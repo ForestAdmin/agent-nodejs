@@ -13,7 +13,7 @@ import {
 } from './errors';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
-import { SequelizeColumn, SequelizeIndex, SequelizeReference, Table } from './types';
+import { SequelizeColumn, SequelizeReference, Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
@@ -73,9 +73,8 @@ export default class Introspector {
 
     // Create columns
     const columns = Object.entries(columnDescriptions).map(([name, description]) => {
-      const indexes = tableIndexes.filter(i => i.fields.find(f => f.attribute === name));
       const references = tableReferences.filter(r => r.columnName === name);
-      const options = { name, description, indexes, references };
+      const options = { name, description, references };
 
       return this.getColumn(sequelize, logger, tableName, options);
     });
@@ -83,6 +82,9 @@ export default class Introspector {
     return {
       name: tableName,
       columns: (await Promise.all(columns)).filter(Boolean),
+      unique: tableIndexes
+        .filter(i => i.unique || i.primary)
+        .map(i => i.fields.map(f => f.attribute)),
     };
   }
 
@@ -93,20 +95,16 @@ export default class Introspector {
     options: {
       name: string;
       description: SequelizeColumn;
-      indexes: SequelizeIndex[];
       references: SequelizeReference[];
     },
   ): Promise<Table['columns'][number]> {
-    const { name, description, indexes, references } = options;
+    const { name, description, references } = options;
     const dialect = sequelize.getDialect() as Dialect;
     const typeConverter = new SqlTypeConverter(sequelize);
 
     try {
       const type = await typeConverter.convert(tableName, name, description);
       const defaultValue = new DefaultValueParser(dialect).parse(description.defaultValue, type);
-      const unique = !!indexes.find(
-        i => i.fields.length === 1 && i.fields[0].attribute === name && i.unique,
-      );
 
       // Workaround autoincrement flag not being properly set when using postgres
       const autoIncrement = Boolean(
@@ -119,7 +117,6 @@ export default class Introspector {
         defaultValue: autoIncrement ? null : defaultValue,
         name,
         allowNull: description.allowNull,
-        unique,
         primaryKey: description.primaryKey,
         constraints: references.map(r => ({
           table: r.referencedTableName,

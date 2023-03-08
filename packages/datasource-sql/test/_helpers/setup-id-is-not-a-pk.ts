@@ -14,13 +14,7 @@ export default async (baseUri: string, database: string): Promise<Sequelize> => 
 
     sequelize.define(
       'person',
-      {
-        anid: {
-          type: DataTypes.STRING,
-          defaultValue: 'default string',
-          primaryKey: true,
-        },
-      },
+      { anid: { type: DataTypes.STRING, defaultValue: 'default string', primaryKey: true } },
       {
         timestamps: false,
         tableName: 'person',

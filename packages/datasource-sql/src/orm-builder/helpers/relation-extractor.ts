@@ -29,7 +29,7 @@ export default class RelationExtractor {
         // Skip HasMany to junction tables
         if (!this.isJunctionTable(table))
           relations.push({
-            type: column.unique ? 'HasOne' : 'HasMany',
+            type: this.isUnique(table, column.name) ? 'HasOne' : 'HasMany',
             from: constraint.table,
             to: table.name,
             originKey: column.name,
@@ -76,5 +76,9 @@ export default class RelationExtractor {
 
   private static isJunctionTable(table: Table): boolean {
     return table.columns.filter(c => c.primaryKey && c.constraints.length === 1).length === 2;
+  }
+
+  private static isUnique(table: Table, columnName: string): boolean {
+    return table.unique.some(u => u.length === 1 && u[0] === columnName);
   }
 }
