@@ -58,7 +58,7 @@ describe('SqlDataSourceFactory > Integration', () => {
   });
 
   describe('when the table has an "id" without primary key constraint', () => {
-    it('the model should be skipped and not throw error', async () => {
+    it('the model should assume id is the pk', async () => {
       const baseUri = 'postgres://test:password@localhost:5443';
       const databaseName = 'datasource-sql-id-field-test';
       const logger = jest.fn();
@@ -69,10 +69,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       // We should have zero collections and a warning on the console
       expect(sequelize).toBeInstanceOf(Sequelize);
-      expect(logger).not.toHaveBeenCalledWith(
-        'Warn',
-        expect.stringContaining('Skipping table "person"'),
-      );
+      expect(sequelize.models.person.getAttributes().id.primaryKey).toBe(true);
 
       await sequelize.close();
     });

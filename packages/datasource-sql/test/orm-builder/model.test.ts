@@ -92,8 +92,9 @@ describe('ModelBuilder', () => {
       '"public"."custom_type"',
     );
   });
+
   describe('when there is no primary key', () => {
-    it('should force the primary key to true when the column is an ID', () => {
+    it('should use the "id" field, even if not marked as pk in the schema', () => {
       const sequelize = new Sequelize('postgres://');
       const tables: Table[] = [
         {
@@ -109,44 +110,62 @@ describe('ModelBuilder', () => {
       expect(sequelize.models.myTable.rawAttributes.id.primaryKey).toBe(true);
     });
 
-    describe('when there is an unique field and no ID', () => {
-      it('should force at the first one the primary key to true when the field is unique', () => {
-        const sequelize = new Sequelize('postgres://');
-        const tables: Table[] = [
-          {
-            name: 'myTable',
-            columns: [{ ...baseColumn, name: 'uniqueField', primaryKey: false }],
-            unique: [['uniqueField']],
-          },
-        ];
+    it('should use a unique column is available', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          columns: [
+            { ...baseColumn, name: 'uniqueTogether1', primaryKey: false },
+            { ...baseColumn, name: 'uniqueTogether2', primaryKey: false },
+            { ...baseColumn, name: 'uniqueField', primaryKey: false },
+          ],
+          unique: [['uniqueTogether1', 'uniqueTogether2'], ['uniqueField']],
+        },
+      ];
 
-        ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
 
-        expect(sequelize.models.myTable).toBeDefined();
-        expect(sequelize.models.myTable.rawAttributes.uniqueField.primaryKey).toBe(true);
-      });
+      expect(sequelize.models.myTable).toBeDefined();
+      expect(sequelize.models.myTable.rawAttributes.uniqueField.primaryKey).toBe(true);
     });
 
-    describe('when there are two unique field and no ID', () => {
-      it('should force at the first one the primary key to true when the field is unique', () => {
-        const sequelize = new Sequelize('postgres://');
-        const tables: Table[] = [
-          {
-            name: 'myTable',
-            columns: [
-              { ...baseColumn, name: 'fk1', primaryKey: false },
-              { ...baseColumn, name: 'fk2', primaryKey: false },
-            ],
-            unique: [['fk1', 'fk2']],
-          },
-        ];
+    it('should use columns which are unique together otherwise', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          columns: [
+            { ...baseColumn, name: 'fk1', primaryKey: false },
+            { ...baseColumn, name: 'fk2', primaryKey: false },
+          ],
+          unique: [['fk1', 'fk2']],
+        },
+      ];
 
-        ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
 
-        expect(sequelize.models.myTable).toBeDefined();
-        expect(sequelize.models.myTable.rawAttributes.fk1.primaryKey).toBe(true);
-        expect(sequelize.models.myTable.rawAttributes.fk2.primaryKey).toBe(true);
-      });
+      expect(sequelize.models.myTable).toBeDefined();
+      expect(sequelize.models.myTable.rawAttributes.fk1.primaryKey).toBe(true);
+      expect(sequelize.models.myTable.rawAttributes.fk2.primaryKey).toBe(true);
+    });
+
+    it('should skip the collection if sequelize throws at our definition', () => {
+      const tables: Table[] = [{ name: 'myTable', columns: [], unique: [] }];
+      const logger = jest.fn();
+      const sequelize = {
+        getDialect: jest.fn().mockReturnValue('postgres'),
+        define: jest.fn().mockImplementation(() => {
+          throw new Error('Invalid Model.');
+        }),
+      } as unknown as Sequelize;
+
+      ModelBuilder.defineModels(sequelize, logger, tables);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Skipping table "myTable" because of error: Invalid Model.',
+      );
     });
   });
 });

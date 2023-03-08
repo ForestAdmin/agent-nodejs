@@ -32,6 +32,8 @@ export default class ModelBuilder {
         model.removeAttribute('id');
       }
     } catch (e) {
+      // In practice, now that we added the primary key guessing, this should not happen anymore.
+      // But we keep it here just in case.
       logger?.('Warn', `Skipping table "${table.name}" because of error: ${e.message}`);
     }
   }
@@ -59,6 +61,7 @@ export default class ModelBuilder {
         };
     }
 
+    // If there is no primary key, we try to guess one.
     if (!table.columns.some(c => c.primaryKey)) {
       this.guessPrimaryKeyInPlace(logger, table, modelAttrs);
     }
@@ -70,33 +73,23 @@ export default class ModelBuilder {
    * When the primary key is missing, we attempt to find a column that may act as such.
    * This enables us to support tables that have no primary key.
    */
-  private static guessPrimaryKeyInPlace(logger: Logger, table: Table, modelAttrs: ModelAttributes) {
+  private static guessPrimaryKeyInPlace(logger: Logger, table: Table, attributes: ModelAttributes) {
     // Try to find a column named "id".
-    const columnId = table.columns.find(c => c.name === 'id');
-
-    if (columnId) {
-      (modelAttrs[columnId.name] as ModelAttributeColumnOptions).primaryKey = true;
-
-      logger?.(
-        'Warn',
-        `Table "${table.name}" has no primary key. Using "id" column as primary key.`,
-      );
-
-      return;
-    }
+    let primaryKeys = table.columns.some(c => c.name === 'id') ? ['id'] : [];
 
     // If there is no id column, look at unique indexes, and use the shortest one.
     // (hopefully only one column, but this can also be a composite key for many-to-many tables)
-    const sorted = [...table.unique].sort((a, b) => a.length - b.length);
+    if (!primaryKeys.length && table.unique.length) {
+      [primaryKeys] = [...table.unique].sort((a, b) => a.length - b.length);
+    }
 
-    if (sorted.length > 0) {
-      for (const column of sorted[0])
-        (modelAttrs[column] as ModelAttributeColumnOptions).primaryKey = true;
+    for (const column of primaryKeys)
+      (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
 
-      const compositePk = sorted[0].join(', ');
+    if (primaryKeys.length) {
       logger?.(
         'Warn',
-        `Table "${table.name}" has no primary key. Using "${compositePk}" column(s).`,
+        `Table "${table.name}" has no primary key. Using "${primaryKeys.join(', ')}".`,
       );
     }
   }

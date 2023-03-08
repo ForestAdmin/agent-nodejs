@@ -22,6 +22,21 @@ describe('SequelizeDataSource', () => {
     expect(datasource.getCollection('cars')).toBeInstanceOf(SequelizeCollection);
   });
 
+  it('should skip collection which have no pk', () => {
+    const sequelize = new Sequelize({ dialect: 'postgres' });
+    const model = sequelize.define('cars', {});
+    model.removeAttribute('id');
+
+    const logger = jest.fn();
+    const datasource = new SequelizeDataSource(sequelize, logger);
+
+    expect(datasource.collections).toHaveLength(0);
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Skipping table "cars" because of error: no primary key found.',
+    );
+  });
+
   it('should keep the same collections order', () => {
     const firstSequelize = new Sequelize({ dialect: 'postgres' });
     firstSequelize.define('cars', {});
