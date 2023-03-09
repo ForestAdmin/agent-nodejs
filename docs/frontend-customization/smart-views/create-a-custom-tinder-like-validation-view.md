@@ -1,6 +1,6 @@
 This example shows you how you can implement a time-saving profile validation view using keyboard keys to trigger approve/reject actions.
 
-{% embed url="../../assets/smart-view-tinder.mp4" %}
+![](../../assets/smart-view-tinder.gif)
 
 In our example, we want to Approve or Reject new customers profiles and more specifically:
 
