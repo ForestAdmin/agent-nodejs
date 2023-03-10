@@ -46,29 +46,21 @@ export default class RelationExtractor {
     const columns = table.columns.filter(c => c.primaryKey && c.constraints.length === 1);
 
     if (this.isJunctionTable(table)) {
-      const [column1, column2] = columns;
-
-      relations.push({
-        type: 'BelongsToMany',
-        from: column1.constraints[0].table,
-        to: column2.constraints[0].table,
-        through: table.name,
-        originKey: column1.name,
-        foreignKey: column2.name,
-        originKeyTarget: column1.constraints[0].column,
-        foreignKeyTarget: column2.constraints[0].column,
-      });
-
-      relations.push({
-        type: 'BelongsToMany',
-        from: column2.constraints[0].table,
-        to: column1.constraints[0].table,
-        through: table.name,
-        originKey: column2.name,
-        foreignKey: column1.name,
-        originKeyTarget: column2.constraints[0].column,
-        foreignKeyTarget: column1.constraints[0].column,
-      });
+      for (const [column1, column2] of [
+        [columns[0], columns[1]],
+        [columns[1], columns[0]],
+      ]) {
+        relations.push({
+          type: 'BelongsToMany',
+          from: column1.constraints[0].table,
+          to: column2.constraints[0].table,
+          through: table.name,
+          originKey: column1.name,
+          foreignKey: column2.name,
+          originKeyTarget: column1.constraints[0].column,
+          foreignKeyTarget: column2.constraints[0].column,
+        });
+      }
     }
 
     return relations;

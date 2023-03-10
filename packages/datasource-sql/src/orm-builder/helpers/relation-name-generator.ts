@@ -45,11 +45,11 @@ export default class RelationNameGenerator {
     const { foreignKey } = relation;
     let name = relation.to;
 
-    if (foreignKey?.length > 3 && foreignKey?.endsWith('_id'))
-      name = foreignKey.substring(0, foreignKey.length - 3);
-
-    if (foreignKey?.length > 2 && foreignKey?.endsWith('Id'))
-      name = foreignKey.substring(0, foreignKey.length - 2);
+    for (const suffix of ['_id', 'Id']) {
+      if (foreignKey?.length > suffix.length && foreignKey?.endsWith(suffix)) {
+        name = foreignKey.substring(0, foreignKey.length - suffix.length);
+      }
+    }
 
     return relation.type === 'HasMany' || relation.type === 'BelongsToMany'
       ? plural(name)
