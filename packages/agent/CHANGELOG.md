@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.8.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.3...@forestadmin/agent@1.8.4) (2023-03-10)
+
+
+### Bug Fixes
+
+* **agent:** allow updating records which have readonly ids ([#639](https://github.com/ForestAdmin/agent-nodejs/issues/639)) ([c118496](https://github.com/ForestAdmin/agent-nodejs/commit/c118496e127b2562defaa68cc3f873729bfa925d))
+
 ## @forestadmin/agent [1.8.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.2...@forestadmin/agent@1.8.3) (2023-02-28)
 
 
