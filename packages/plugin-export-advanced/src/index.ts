@@ -86,9 +86,9 @@ export async function addExportAdvanced(
 
         const renderer = renderers[format];
         const records = await context.collection.list({}, fields);
-        const excelFile = renderer.handler(records, fields);
+        const output = renderer.handler(records, fields);
 
-        return resultBuilder.file(excelFile, `${filename}${format}`, renderer.mimeType);
+        return resultBuilder.file(output, `${filename}${format}`, renderer.mimeType);
       },
     });
   }
