@@ -37,9 +37,3 @@ export type Stack = {
   asFields: string[];
   asModels: string[];
 }[];
-
-/** In mongoose 6.X and 7.X versions, objectId is written in different ways.
- * This is a list of all the possible values.
- * @see https://github.com/Automattic/mongoose/commit/021862316ee2cd9ac7b1c8d5d6b0ba67745e0416
- */
-export const OBJECT_ID_VALUES = ['ObjectId', 'ObjectID'];
