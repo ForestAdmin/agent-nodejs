@@ -2,7 +2,9 @@ import {
   ConditionTreeFactory,
   Filter,
   ProjectionFactory,
+  RecordData,
   RecordValidator,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
@@ -19,22 +21,20 @@ export default class UpdateRoute extends CollectionRoute {
   public async handleUpdate(context: Context): Promise<void> {
     await this.services.authorization.assertCanEdit(context, this.collection.name);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body = context.request.body as any;
+    // Build caller
+    const caller = QueryStringParser.parseCaller(context);
+
+    // Build filter
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-
-    if ('relationships' in body.data) {
-      delete body.data.relationships;
-    }
-
-    const record = this.services.serializer.deserialize(this.collection, body);
-    RecordValidator.validate(this.collection, record);
-
     const conditionTree = ConditionTreeFactory.intersect(
       ConditionTreeFactory.matchIds(this.collection.schema, [id]),
       await this.services.authorization.getScope(this.collection, context),
     );
-    const caller = QueryStringParser.parseCaller(context);
+
+    // Deserialize the record.
+    const record = this.deserializeForUpdate(context.request.body);
+
+    // Perform the update and return the updated record.
     await this.collection.update(caller, new Filter({ conditionTree }), record);
     const [updateResult] = await this.collection.list(
       caller,
@@ -43,5 +43,22 @@ export default class UpdateRoute extends CollectionRoute {
     );
 
     context.response.body = this.services.serializer.serialize(this.collection, updateResult);
+  }
+
+  private deserializeForUpdate(body: any): RecordData {
+    if ('relationships' in body.data) {
+      delete body.data.relationships;
+    }
+
+    const record = this.services.serializer.deserialize(this.collection, body);
+    RecordValidator.validate(this.collection, record);
+
+    for (const name of SchemaUtils.getPrimaryKeys(this.collection.schema)) {
+      if (record[name] !== undefined && body.data.attributes[name] === undefined) {
+        delete record[name];
+      }
+    }
+
+    return record;
   }
 }

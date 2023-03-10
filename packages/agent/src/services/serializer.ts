@@ -91,7 +91,7 @@ export default class Serializer {
           const parts = IdUtils.unpackId(collection.schema, data.forestId as string);
           const primaryKeys = SchemaUtils.getPrimaryKeys(collection.schema);
           primaryKeys.forEach((field, index) => {
-            copy[field] = parts[index];
+            if (copy[field] === undefined) copy[field] = parts[index];
           });
         }
 
