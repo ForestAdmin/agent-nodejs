@@ -10,7 +10,8 @@
     "packages/datasource-sequelize",
     "packages/datasource-sql",
     "packages/datasource-toolkit",
-    "packages/plugin-aws-s3"
+    "packages/plugin-aws-s3",
+    "packages/plugin-export-advanced"
   ],
   "out": "api-reference",
   "name": "Forest Admin - API reference"
