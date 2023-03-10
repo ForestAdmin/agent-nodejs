@@ -46,6 +46,39 @@ describe('Serializer', () => {
       expect(result).toStrictEqual(person);
     });
 
+    test('use ids from data.attributes over those on data.id', () => {
+      const result = setupSerializer().deserialize(dataSource.collections[0], {
+        data: {
+          type: 'person',
+          // Changed those ids
+          id: 'f8096a66-f1b8-4a51-94c5-84adf08ac1bf|ea2b62c7-55ea-47d9-9ccf-3a9f21411378',
+          attributes: {
+            // Did not change those ids
+            idA: '2d162303-78bf-599e-b197-93590ac3d315',
+            firstName: 'Isaac',
+            idB: '2d162303-78bf-599e-b197-93590ac3d316',
+          },
+        },
+      });
+
+      // Final result should be the same as the original person
+      expect(result).toStrictEqual(person);
+    });
+
+    test('fallback to data.id when no ids are available in attributes', () => {
+      const result = setupSerializer().deserialize(dataSource.collections[0], {
+        data: {
+          type: 'person',
+          // Changed those ids
+          id: '2d162303-78bf-599e-b197-93590ac3d315|2d162303-78bf-599e-b197-93590ac3d316',
+          attributes: { firstName: 'Isaac' },
+        },
+      });
+
+      // Final result should be the same as the original person
+      expect(result).toStrictEqual(person);
+    });
+
     test('should use the serializer cache when a collection schema is already passed', () => {
       const serializer = setupSerializer();
       serializer.deserialize(dataSource.collections[0], serializedPerson);

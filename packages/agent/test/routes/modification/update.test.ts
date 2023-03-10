@@ -38,7 +38,7 @@ describe('UpdateRoute', () => {
       const updateRoute = new UpdateRoute(services, options, dataSource, 'books');
 
       const customProperties = { query: { timezone: 'Europe/Paris' }, params: { id: '1523' } };
-      const requestBody = { data: { attributes: { name: 'foo name' } } };
+      const requestBody = { data: { id: '1523', attributes: { name: 'foo name' } } };
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties,
