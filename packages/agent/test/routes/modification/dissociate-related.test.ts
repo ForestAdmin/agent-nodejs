@@ -334,7 +334,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
                 value: '123e4567-e89b-12d3-a456-426614174088',
                 field: 'bookId',
               }),
-              factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
               factories.conditionTreeLeaf.build({
                 operator: 'In',
                 value: [
@@ -343,6 +342,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
                 ],
                 field: 'myLibrary:id',
               }),
+              factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
             ],
           }),
           search: null,
@@ -398,7 +398,6 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
                   value: '123e4567-e89b-12d3-a456-426614174088',
                   field: 'bookId',
                 }),
-                factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
                 factories.conditionTreeLeaf.build({
                   operator: 'NotIn',
                   value: [
@@ -407,6 +406,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
                   ],
                   field: 'myLibrary:id',
                 }),
+                factories.conditionTreeLeaf.build({ operator: 'Present', field: 'libraryId' }),
               ],
             }),
             search: null,
