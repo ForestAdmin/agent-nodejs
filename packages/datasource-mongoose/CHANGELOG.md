@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.3.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.3.1...@forestadmin/datasource-mongoose@1.3.2) (2023-03-13)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** mongoose 7.0 should return the right type for _id ([#636](https://github.com/ForestAdmin/agent-nodejs/issues/636)) ([a043a15](https://github.com/ForestAdmin/agent-nodejs/commit/a043a156016c68e5a9e55174020704102555e691))
+
 ## @forestadmin/datasource-mongoose [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.3.0...@forestadmin/datasource-mongoose@1.3.1) (2023-02-09)
 
 
