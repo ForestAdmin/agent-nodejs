@@ -10,6 +10,7 @@ import { Model, PipelineStage, Types, isValidObjectId } from 'mongoose';
 
 import MongooseSchema from '../../mongoose/schema';
 import { Stack } from '../../types';
+import VersionManager from '../version-manager';
 
 const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'ShorterThan'];
 
@@ -83,13 +84,13 @@ export default class FilterGenerator {
       ) {
         value = (value as Array<string>).map(v => new Date(v));
       } else if (
-        instance === 'ObjectID' &&
+        instance === VersionManager.ObjectIdTypeName &&
         Array.isArray(value) &&
         value.every(v => isValidObjectId(v))
       ) {
         value = (value as Array<string>).map(id => new Types.ObjectId(id));
       }
-    } else if (instance === 'ObjectID') {
+    } else if (instance === VersionManager.ObjectIdTypeName) {
       if (STRING_OPERATORS.includes(leaf.operator)) {
         fields.add(leaf.field);
         leaf.field = this.formatStringFieldName(leaf.field);

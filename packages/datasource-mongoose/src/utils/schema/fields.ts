@@ -13,6 +13,7 @@ import FilterOperatorsGenerator from './filter-operators';
 import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
 import { Stack } from '../../types';
 import { escape } from '../helpers';
+import VersionManager from '../version-manager';
 
 /** Generate forest admin schema from mongoose schema */
 export default class FieldsGenerator {
@@ -118,7 +119,7 @@ export default class FieldsGenerator {
         return field.instance as PrimitiveTypes;
       }
 
-      if (['ObjectID', 'Buffer', 'Decimal128'].includes(field.instance)) {
+      if ([VersionManager.ObjectIdTypeName, 'Buffer', 'Decimal128'].includes(field.instance)) {
         return 'String';
       }
 
