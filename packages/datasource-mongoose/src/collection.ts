@@ -12,7 +12,7 @@ import {
   RecordData,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { Error, Model, PipelineStage, Types } from 'mongoose';
+import { Error, Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema from './mongoose/schema';
 import { Stack } from './types';
@@ -241,11 +241,7 @@ export default class MongooseCollection extends BaseCollection {
         // request sequentially.
         // eslint-disable-next-line no-await-in-loop
         await this.model.collection.updateMany(
-          {
-            _id: {
-              $in: idsByPath[path].map((id: string) => new Types.ObjectId(id)),
-            },
-          },
+          { _id: { $in: idsByPath[path] } } as unknown,
           [{ $set: { [arrayPath]: { $concatArrays: newArrayValue } } }],
           {},
         );
@@ -253,9 +249,7 @@ export default class MongooseCollection extends BaseCollection {
     } else {
       const promises = Object.entries(idsByPath).map(([path, pathIds]) =>
         this.model.collection.updateMany(
-          {
-            _id: { $in: pathIds.map((id: string) => new Types.ObjectId(id)) },
-          },
+          { _id: { $in: pathIds } } as unknown,
           { $unset: { [path]: '' } },
           {},
         ),
