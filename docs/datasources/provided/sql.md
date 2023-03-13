@@ -24,7 +24,7 @@ To make everything work as expected, you need to:
 
 ## Configuration
 
-Configuration can be as simple as passing a URI to the data source constructor:
+Configuration can be as simple as passing a URI to the data source constructor, but more options are available:
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
