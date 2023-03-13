@@ -17,6 +17,7 @@ import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
 import { WriteDefinition } from './decorators/write/write-replace/types';
+import FieldCustomizer from './field-customizer';
 import addExternalRelation from './plugins/add-external-relation';
 import importField from './plugins/import-field';
 import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
@@ -28,16 +29,25 @@ export default class CollectionCustomizer<
 > {
   private readonly dataSourceCustomizer: DataSourceCustomizer<S>;
   private readonly stack: DecoratorsStack;
-  readonly name: string;
+  readonly name: N;
 
   get schema(): CollectionSchema {
     return this.stack.validation.getCollection(this.name).schema;
   }
 
-  constructor(dataSourceCustomizer: DataSourceCustomizer<S>, stack: DecoratorsStack, name: string) {
+  constructor(dataSourceCustomizer: DataSourceCustomizer<S>, stack: DecoratorsStack, name: N) {
     this.dataSourceCustomizer = dataSourceCustomizer;
     this.name = name;
     this.stack = stack;
+  }
+
+  customizeField<C extends TColumnName<S, N>>(
+    field: C,
+    handler: (field: FieldCustomizer<S, N, C>) => unknown,
+  ): this {
+    handler(new FieldCustomizer(this, field));
+
+    return this;
   }
 
   /**

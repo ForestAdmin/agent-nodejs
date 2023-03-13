@@ -9,6 +9,7 @@ import {
   ComputedDefinition,
   DataSourceChartDefinition,
   DataSourceCustomizer,
+  TSchema,
 } from '../src';
 import { ActionDefinition } from '../src/decorators/actions/types/actions';
 import { WriteDefinition } from '../src/decorators/write/write-replace/types';
@@ -167,7 +168,10 @@ describe('Builder > Collection', () => {
       const { dsc, customizer, stack } = await setup();
       const spy = jest.spyOn(stack.action.getCollection('authors'), 'addAction');
 
-      const actionDefinition: ActionDefinition = { scope: 'Global', execute: () => {} };
+      const actionDefinition: ActionDefinition<TSchema, 'authors'> = {
+        scope: 'Global',
+        execute: () => {},
+      };
       const self = customizer.addAction('action name', actionDefinition);
       await dsc.getDataSource(logger);
 
@@ -229,7 +233,10 @@ describe('Builder > Collection', () => {
 
       const { getValues } = spy.mock.calls[0][1];
       expect(
-        getValues([{ firstName: 'John' }], null as unknown as CollectionCustomizationContext),
+        getValues(
+          [{ firstName: 'John' }],
+          null as unknown as CollectionCustomizationContext<TSchema, 'authors'>,
+        ),
       ).toStrictEqual(['John']);
     });
 
@@ -386,7 +393,7 @@ describe('Builder > Collection', () => {
       const { getValues } = spy.mock.calls[0][1];
       const values = await getValues(
         [{ authorId: 1 }, { authorId: 2 }],
-        null as unknown as CollectionCustomizationContext,
+        null as unknown as CollectionCustomizationContext<TSchema, 'authors'>,
       );
       expect(values).toStrictEqual([
         [{ firstname: 'John', lastName: 'Doe' }],
