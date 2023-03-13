@@ -2,16 +2,17 @@ You may want to create a relationship between two collections, but you don't hav
 
 To solve that use case, you should use both [computed fields](../fields/computed.md) and relationships.
 
+This is done with the following steps:
+
+- Create a new field containing a foreign key.
+- Make the field filterable for the `In` operator (see [Under the hood](./under-the-hood.md) as to why this is required).
+- Create a relation using it.
+
 ## Displaying a link to the last message sent by a customer
 
 We have two collections: `Customers` and `Messages` which are linked together by a `one-to-many` relationship.
 
 We want to create a `ManyToOne` relationship with the last message sent by a given customer.
-
-This is done in two steps:
-
-- Create a new field containing a foreign key.
-- Create a relation using it.
 
 ```javascript
 agent.customizeCollection('customers', collection => {
@@ -33,7 +34,7 @@ agent.customizeCollection('customers', collection => {
     },
   });
 
-  // Implement the 'In' operator (required).
+  // Implement the 'In' operator.
   collection.replaceFieldOperator('lastMessageId', 'In', async (lastMessageIds, context) => {
     const records = await context.dataSource
       .getCollection('messages')
