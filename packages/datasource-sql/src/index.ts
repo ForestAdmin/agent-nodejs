@@ -20,7 +20,8 @@ function createEmptySequelize(uriOrOptions: ConnectionOptions, logger: Logger): 
   let sequelize: Sequelize;
 
   if (typeof uriOrOptions === 'string') {
-    sequelize = new Sequelize(uriOrOptions, { logging });
+    const schema = uriOrOptions.match(/schema=([^&]+)/i)?.[1];
+    sequelize = new Sequelize(uriOrOptions, { schema, logging });
   } else if (uriOrOptions.uri) {
     const { uri, ...options } = uriOrOptions;
     sequelize = new Sequelize(uri, { ...options, logging });
