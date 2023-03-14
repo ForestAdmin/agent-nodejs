@@ -17,13 +17,14 @@ function createEmptySequelize(uriOrOptions: ConnectionOptions, logger: Logger): 
     );
 
   const logging = (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
+  const getSchema = (uri: string): string => new URL(uri).searchParams.get('schema');
   let sequelize: Sequelize;
 
   if (typeof uriOrOptions === 'string') {
-    sequelize = new Sequelize(uriOrOptions, { logging });
+    sequelize = new Sequelize(uriOrOptions, { schema: getSchema(uriOrOptions), logging });
   } else if (uriOrOptions.uri) {
     const { uri, ...options } = uriOrOptions;
-    sequelize = new Sequelize(uri, { ...options, logging });
+    sequelize = new Sequelize(uri, { ...options, schema: getSchema(uri), logging });
   } else {
     sequelize = new Sequelize({ ...uriOrOptions, logging });
   }
