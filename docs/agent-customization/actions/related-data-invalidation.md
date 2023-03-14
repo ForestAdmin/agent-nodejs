@@ -16,7 +16,7 @@ agent.customizeCollection('companies', collection =>
   // (see right arrow of the screenshot above)
   collection.addAction('Add new transaction', {
     scope: 'Global',
-    execute: async context => {
+    execute: async (context, resultBuilder) => {
       /* ... Create new transaction here ... */
 
       // Tell the GUI to refresh the "emitted_transactions" related data section.

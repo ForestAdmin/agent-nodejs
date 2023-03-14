@@ -37,7 +37,7 @@ When customizing the notification message, you can use the `resultBuilder` to ge
 agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context) => {
+    execute: async (context, resultBuilder) => {
       // The resultBuilder can be used to generate different types of responses.
       if (/* ... Company is not live ... */) {
         return resultBuilder.success('Company is now live!');
@@ -59,7 +59,7 @@ You can also return an HTML page to give more feedback to the user who triggered
 agent.customizeCollection('companies', collection =>
   collection.addAction('Charge credit card', {
     scope: 'Single',
-    execute: async (context) => {
+    execute: async (context, resultBuilder) => {
       /* ... charge the credit card ... */
 
       if (/* ... the credit card was successfully charged ... */) {

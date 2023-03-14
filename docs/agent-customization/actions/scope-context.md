@@ -50,7 +50,7 @@ Those are instances of objects from the Forest Admin Query Interface [(documenta
 agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context, resultBuilder) => {
+    execute: async context => {
       await context.collection.update(context.filter, { live: true });
     },
   }),
@@ -69,7 +69,7 @@ import axios from 'axios';
 agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context, resultBuilder) => {
+    execute: async context => {
       const url = 'http://my-api.com/mark-as-live';
       const params = { id: await context.getRecordId() };
 

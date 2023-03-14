@@ -155,6 +155,9 @@ agent.customizeCollection('customer', collection => {
         },
       },
     ],
+    execute: async context => {
+      /* ... */
+    },
   });
 });
 ```
@@ -184,7 +187,7 @@ collection.addAction('Leave a review', {
       if: context => Number(context.formValues.Rating) >= 4,
     },
   ],
-  execute: async (context, resultBuilder) => {
+  execute: async context => {
     /* ... perform work here ... */
   },
 });
@@ -246,7 +249,7 @@ agent.customizeCollection('customer', collection => {
         text = text.toUpperCase() + '!!!';
       }
 
-      return resultBuilder.success();
+      return resultBuilder.success(text);
     },
   });
 });
