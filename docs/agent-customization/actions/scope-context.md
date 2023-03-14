@@ -1,4 +1,6 @@
-Actions can have three different scopes: Single, Bulk, and Global. The scope of an action defines how it can be triggered and which records it will target.
+Actions can have three different scopes: Single, Bulk, and Global.
+
+The scope of an action defines how it can be triggered and which records it will target.
 
 | &nbsp;                                     | Single                           | Bulk                                                   | Global                                    |
 | :----------------------------------------- | :------------------------------- | :----------------------------------------------------- | :---------------------------------------- |
