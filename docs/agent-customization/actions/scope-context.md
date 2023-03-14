@@ -11,7 +11,7 @@ Note that actions can have three different scopes:
 
 The `context` object is central to writing actions in Forest Admin.
 
-It is passed both to the [`execute` function](./gui-behavior.md) of your action and when using [dynamic form customization](./forms.md#dynamic-configuration).
+It is passed both to the [`execute` function](./frontend-behavior.md) of your action and when using [dynamic form customization](./forms.md#dynamic-configuration).
 
 ## Getting data from the selected records
 
