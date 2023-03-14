@@ -1,39 +1,78 @@
 Note that actions can have three different scopes:
 
-- `Single`: the action can be called only on one record at a time
-- `Bulk`: the action can be called on several records at a time
-- `Global`: the action is available only in the list view and is executed on all records
+|                                        | Single                           | Bulk                                                   | Global                                    |
+| :------------------------------------- | :------------------------------- | :----------------------------------------------------- | :---------------------------------------- |
+| Can be triggered from the list view    | When a single record is selected | When one or more records are selected                  | Always                                    |
+| Can be triggered from the record view  | Yes                              | Yes                                                    | No                                        |
+| Can be triggered from the summary view | Yes                              | Yes                                                    | No                                        |
+| Targeted records                       | One at a time                    | All selected and matching the current segment / search | All matching the current segment / search |
 
-{% hint style='info' %}
-In the following example, we are making queries using the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
+# The `context` object
 
-As Forest Admin does not impose any restriction on the handler, you are free to call external APIs or query your database directly instead.
-{% endhint %}
+The `context` object is central to writing actions in Forest Admin.
 
-### Interacting with selected records
+It is passed both to the [`execute` function](./gui-behavior.md) of your action and when using [dynamic form customization](./forms.md#dynamic-configuration).
+
+## Getting data from the selected records
 
 When programming `Single` or `Bulk` actions, you'll need to interact with the selected records.
 
 This can be done by using the `context` parameter of the `execute` function.
 
-{% tabs %} {% tab title="Using a single action" %}
-
 ```javascript
-// Get the record with the wanted field
-const record = await context.getRecord(['firstName']);
+agent.customizeCollection('customers', collection =>
+  collection.addAction('Call me John', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      // use getRecords() for bulk and global actions
+      const { firstName, lastName } = await context.getRecord(['firstName']);
 
-// Get id of selected record
-const recordId = await context.getId();
+      if (firstName === 'John') {
+        return resultBuilder.success('Hi John!');
+      } else {
+        return resultBuilder.error('You are not John!');
+      }
+    },
+  }),
+);
 ```
 
-{% endtab %} {% tab title="Using a bulk action" %}
+## Interacting with the records
+
+For convenience, the `context` object provides a `collection` property and a `filter` property.
+
+Those are documented in the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
 
 ```javascript
-// Get records with the wanted field
-const records = await context.getRecords(['firstName']);
-
-// Get ids of selected records
-const recordIds = await context.getIds();
+agent.customizeCollection('companies', collection =>
+  collection.addAction('Mark as live', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      await context.collection.update(context.filter, { live: true });
+    },
+  }),
+);
 ```
 
-{% endtab %} {% endtabs %}
+## Coding your business logic
+
+Depending on your use case, you may want to use them, or you may prefer to use your own ORM or a simple SQL query / API call.
+
+Forest Admin does not impose any restriction on the handler: you are free to write the `execute()` handler to fit your use-case.
+
+You are free to call external APIs, query your database, or perform any work there.
+
+```javascript
+import axios from 'axios';
+
+agent.customizeCollection('companies', collection =>
+  collection.addAction('Mark as live', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      await axios.post('http://my-api.com/mark-as-live', {
+        id: await context.getRecordId(),
+      });
+    },
+  }),
+);
+```

@@ -1,6 +1,7 @@
-Aside from their actual behavior in the agent, actions can be configured to achieve different results in the GUI.
+Actions can be configured to achieve different results in the GUI.
 
 Most actions will simply perform work and display the default notification, however, other behaviors are possible:
+
 - [Displaying a notification with a custom message](#custom-notifications)
 - [Displaying HTML content in a side panel](#html-result)
 - [Generating a file download](#file-generation)
@@ -17,7 +18,7 @@ The default behavior, when no exception is thrown in the handler is to display a
 agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context) => {
+    execute: async context => {
       // Doing nothing will trigger the default success notification.
     },
   }),
@@ -105,10 +106,10 @@ collection.addAction('Download a file', {
   execute: async (context, resultBuilder) => {
     const random = Math.random();
 
-    if (random < .33) {
+    if (random < 0.33) {
       // Files can be generated from JavaScript strings.
       return resultBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
-    } else if (random < .63) {
+    } else if (random < 0.63) {
       // Or from a Buffer.
       const buffer = Buffer.from('StringThatWillBeInTheFile');
       return resultBuilder.file(buffer, 'filename.txt', 'text/plain');
