@@ -39,8 +39,8 @@
 ## Agent customization
 
 - [Actions](agent-customization/actions/README.md)
-  - [Frontend behavior](agent-customization/actions/frontend-behavior.md)
   - [Scope and context](agent-customization/actions/scope-context.md)
+  - [Frontend behavior](agent-customization/actions/frontend-behavior.md)
   - [Forms](agent-customization/actions/forms.md)
   - [Related data invalidation](agent-customization/actions/related-data-invalidation.md)
 - [Charts](agent-customization/charts/README.md)
