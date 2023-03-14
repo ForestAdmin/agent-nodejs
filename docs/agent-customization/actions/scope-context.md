@@ -2,9 +2,9 @@ Note that actions can have three different scopes:
 
 | &nbsp;                                     | Single                           | Bulk                                                   | Global                                    |
 | :----------------------------------------- | :------------------------------- | :----------------------------------------------------- | :---------------------------------------- |
-| **Can be triggered from the list view**    | When a single record is selected | When one or more records are selected                  | Always                                    |
-| **Can be triggered from the record view**  | Yes                              | Yes                                                    | No                                        |
-| **Can be triggered from the summary view** | Yes                              | Yes                                                    | No                                        |
+| **Can be triggered from the list view**    | When a single record is selected | When one or more records are selected                  | ✅                                        |
+| **Can be triggered from the record view**  | ✅                               | ✅                                                     | 🚫                                        |
+| **Can be triggered from the summary view** | ✅                               | ✅                                                     | 🚫                                        |
 | **Targeted records**                       | One at a time                    | All selected and matching the current segment / search | All matching the current segment / search |
 
 # The `context` object
