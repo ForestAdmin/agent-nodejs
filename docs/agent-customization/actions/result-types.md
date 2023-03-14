@@ -2,7 +2,7 @@ Aside from their actual behavior in the agent, actions can be configured to achi
 
 Most actions will simply perform work and display the default notification, however, other behaviors are possible:
 - [Displaying a notification with a custom message](#custom-notifications)
-- [Displaying HTML content in a side panel](#html-response)
+- [Displaying HTML content in a side panel](#html-result)
 - [Generating a file download](#file-generation)
 - [Redirecting the user to another page](#redirections)
 - [Calling a webhook from the user's browser](#webhooks) (for instance to trigger a login in a third-party application)
@@ -11,7 +11,7 @@ Most actions will simply perform work and display the default notification, howe
 
 The default behavior, when no exception is thrown in the handler is to display a generic notification.
 
-<img src="../../assets/actions-default-success-response.png" width="300">
+<img src="../../assets/actions-default-success-result.png" width="300">
 
 ```javascript
 agent.customizeCollection('companies', collection =>
@@ -28,8 +28,8 @@ agent.customizeCollection('companies', collection =>
 
 When customizing the notification message, you can use the `resultBuilder` to generate different types of responses.
 
-<img src="../../assets/actions-custom-success-response.png" width="300">
-<img src="../../assets/actions-custom-error-response.png" width="300">
+<img src="../../assets/actions-custom-success-result.png" width="300">
+<img src="../../assets/actions-custom-error-result.png" width="300">
 
 ```javascript
 agent.customizeCollection('companies', collection =>
@@ -47,11 +47,11 @@ agent.customizeCollection('companies', collection =>
 );
 ```
 
-## HTML response
+## HTML result
 
-You can also return an HTML page as a response to give more feedback to the user who triggered your Action.
+You can also return an HTML page to give more feedback to the user who triggered your Action.
 
-![](../../assets/actions-html-response-success.png)
+![](../../assets/actions-html-result-success.png)
 
 ```javascript
 agent.customizeCollection('companies', collection =>
@@ -86,16 +86,37 @@ agent.customizeCollection('companies', collection =>
 
 ## File generation
 
-[On our Live Demo](https://app.forestadmin.com/livedemo), the collection `customers` has an action Generate invoice. In this use case, we want to download the generated PDF invoice after clicking on the action. To indicate that an action returns something to download, you have to enable the option `generateFile`.
+{% hint style="warning" %}
+Because of technical limitations, Smart Actions that generate files should be flagged as such with the `generateFile` option.
 
-The example code below will trigger a file download (With the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mime-type).
+This will cause the GUI to download the output of the action, but will also prevent from being able to use the `resultBuilder` to display notifications, errors, or HTML content.
+{% endhint %}
+
+Smart actions can be used to generate or download files.
+
+The example code below will trigger a file download (with the file named `filename.txt`, containing `StringThatWillBeInTheFile` using `text/plain` mime-type).
 
 ```javascript
 collection.addAction('Download a file', {
   scope: 'Global',
+  // This option is required to trigger the file download.
   generateFile: true,
+
   execute: async (context, resultBuilder) => {
-    return resultBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
+    const random = Math.random();
+
+    if (random < .33) {
+      // Files can be generated from JavaScript strings.
+      return resultBuilder.file('StringThatWillBeInTheFile', 'filename.txt', 'text/plain');
+    } else if (random < .63) {
+      // Or from a Buffer.
+      const buffer = Buffer.from('StringThatWillBeInTheFile');
+      return resultBuilder.file(buffer, 'filename.txt', 'text/plain');
+    } else {
+      // Or from a stream.
+      const stream = fs.createReadStream('path/to/file');
+      return result.builder.file(stream, 'filename.txt', 'text/plain');
+    }
   },
 });
 ```
