@@ -1,4 +1,4 @@
-Note that actions can have three different scopes:
+Actions can have three different scopes: Single, Bulk, and Global. The scope of an action defines how it can be triggered and which records it will target.
 
 | &nbsp;                                     | Single                           | Bulk                                                   | Global                                    |
 | :----------------------------------------- | :------------------------------- | :----------------------------------------------------- | :---------------------------------------- |
@@ -7,17 +7,20 @@ Note that actions can have three different scopes:
 | **Can be triggered from the summary view** | ✅                               | ✅                                                     | 🚫                                        |
 | **Targeted records**                       | One at a time                    | All selected and matching the current segment / search | All matching the current segment / search |
 
-# The `context` object
+## The `context` object
 
 The `context` object is central to writing actions in Forest Admin.
 
-It is passed both to the [`execute` function](./frontend-behavior.md) of your action and when using [dynamic form customization](./forms.md#dynamic-configuration).
+It is the bridge between all the data that your agent has access to and the action's execution. It is passed to the `execute()` function as the first argument and provides access to the following properties:
 
-## Getting data from the selected records
+- `getRecord()` (or `getRecords()` for bulk and global actions)
+- `getRecordId()` (or `getRecordIds()` for bulk and global actions)
+- `collection` the collection on which the action is declared, which can be queried using the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
+- `filter` a filter that can be used to query the collection, and which is based on action scope, and on the selected records.
 
-When programming `Single` or `Bulk` actions, you'll need to interact with the selected records.
+### Example 1: Getting data from the selected records
 
-This can be done by using the `context` parameter of the `execute` function.
+We can simply use the `getRecord()` method to get any column from the selected record or a relation.
 
 ```javascript
 agent.customizeCollection('customers', collection =>
@@ -37,11 +40,11 @@ agent.customizeCollection('customers', collection =>
 );
 ```
 
-## Interacting with the records
+## Example 2: Updating a field from the selected records
 
-For convenience, the `context` object provides a `collection` property and a `filter` property.
+For simple queries, use `context.collection` and `context.filter` to query the collection.
 
-Those are documented in the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
+Those are instances of objects from the Forest Admin Query Interface [(documentation)](../../under-the-hood/queries/README.md).
 
 ```javascript
 agent.customizeCollection('companies', collection =>
@@ -54,13 +57,11 @@ agent.customizeCollection('companies', collection =>
 );
 ```
 
-## Coding your business logic
-
-Depending on your use case, you may want to use them, or you may prefer to use your own ORM or a simple SQL query / API call.
+## Coding any business logic
 
 Forest Admin does not impose any restriction on the handler: you are free to write the `execute()` handler to fit your use-case.
 
-You are free to call external APIs, query your database, or perform any work there.
+You are free to call external APIs, query your database, or perform any work in action handlers.
 
 ```javascript
 import axios from 'axios';
