@@ -126,6 +126,39 @@ This can be done for the following properties:
 - Available as static configuration: `isRequired`, `isReadOnly`, `defaultValue`, `enumValues`, `collectionName`
 - Additional properties: `if`, `value`
 
+```javascript
+agent.customizeCollection('customer', collection => {
+  collection.addAction('Charge credit card', {
+    form: [
+      {
+        /** See documentation above */
+        label: 'amount',
+        type: 'Number',
+
+        /**
+         * The field will only be displayed if the function returns true.
+         * (optional, no default value)
+         */
+        if: context => context.formValues['...'] !== '...',
+
+        /**
+         * Change the current value of the field.
+         * (optional, no default value)
+         */
+        value: context => {
+          if (context.formValues['amount'] > 1000) {
+            // The amount is too high, let's set the field to a lower value.
+            return 500;
+          } else {
+            return context.formValues['amount'];
+          }
+        },
+      },
+    ],
+  });
+});
+```
+
 ### Example 1: Conditional field display based on record data
 
 Success on social media can be based on the quality of your content but regardless on how hard you try, you will never be able to please everyone.
