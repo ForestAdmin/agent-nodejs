@@ -1,5 +1,5 @@
 {
-  // Format all files on save with prettier, except for markdown
+  // Format all files on save with eslint, except for markdown which are formatted with prettier
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
