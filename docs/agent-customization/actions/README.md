@@ -35,4 +35,4 @@ An action is displayed in the UI only if:
 
 You must make the action visible there if you wish users to be able to see it.
 
-![](../../assets/actions-visibility.png)
+![Making the action visible](../../assets/actions-visibility.png)

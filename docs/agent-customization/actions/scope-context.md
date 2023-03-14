@@ -1,3 +1,9 @@
+Note that actions can have three different scopes:
+
+- `Single`: the action can be called only on one record at a time
+- `Bulk`: the action can be called on several records at a time
+- `Global`: the action is available only in the list view and is executed on all records
+
 
 
 {% hint style='info' %}
