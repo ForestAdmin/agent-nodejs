@@ -133,16 +133,30 @@ The redirection works both for internal (`\*.forestadmin.com` pages) and externa
 {% tabs %} {% tab title="Internal link" %}
 
 ```javascript
-return resultBuilder.redirectTo(
-  '/MyProject/MyEnvironment/MyTeam/data/20/index/record/20/108/activity',
+agent.customizeCollection('companies', collection =>
+  collection.addAction('Mark as live', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      return resultBuilder.redirectTo(
+        '/MyProject/MyEnvironment/MyTeam/data/20/index/record/20/108/activity',
+      );
+    },
+  }),
 );
 ```
 
 {% endtab %} {% tab title="External link" %}
 
 ```javascript
-return resultBuilder.redirectTo(
-  'https://www.royalmail.com/portal/rm/track?trackNumber=ZW924750388GB',
+agent.customizeCollection('companies', collection =>
+  collection.addAction('Mark as live', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      return resultBuilder.redirectTo(
+        'https://www.royalmail.com/portal/rm/track?trackNumber=ZW924750388GB',
+      );
+    },
+  }),
 );
 ```
 
@@ -152,11 +166,22 @@ return resultBuilder.redirectTo(
 
 After an action you can set up an HTTP (or HTTPS) callback - a webhook - to forward information to other applications.
 
+Note that the webhook will be triggered from the user's browser, so it will be subject to CORS restrictions.
+
+Its intended use is often to perform a login on a third-party application or to trigger a background job on the current user's behalf.
+
 ```javascript
-return resultBuilder.webhook(
-  'http://my-company-name', // The url of the company providing the service.
-  'POST', // The method you would like to use (typically a POST).
-  {}, // You can add some headers if needed.
-  { adminToken: 'your-admin-token' }, // A body to send to the url (only JSON supported).
+agent.customizeCollection('companies', collection =>
+  collection.addAction('Mark as live', {
+    scope: 'Single',
+    execute: async (context, resultBuilder) => {
+      return resultBuilder.webhook(
+        'http://my-company-name', // The url of the company providing the service.
+        'POST', // The method you would like to use (typically a POST).
+        {}, // You can add some headers if needed.
+        { adminToken: 'your-admin-token' }, // A body to send to the url (only JSON supported).
+      );
+    },
+  }),
 );
 ```

@@ -40,7 +40,7 @@
 
 - [Actions](agent-customization/actions/README.md)
   - [Scope and context](agent-customization/actions/scope-context.md)
-  - [Frontend behavior](agent-customization/actions/frontend-behavior.md)
+  - [Result builder](agent-customization/actions/result-builder.md)
   - [Forms](agent-customization/actions/forms.md)
   - [Related data invalidation](agent-customization/actions/related-data-invalidation.md)
 - [Charts](agent-customization/charts/README.md)
