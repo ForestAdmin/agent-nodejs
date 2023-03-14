@@ -2,8 +2,8 @@
 
 The `forest login` command allows you to authenticate using:
 
-* your Forest Admin _email address_
-* your Forest Admin _password_
+- your Forest Admin _email address_
+- your Forest Admin _password_
 
 ```
 $ forest login --help

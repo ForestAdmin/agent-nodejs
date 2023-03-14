@@ -20,11 +20,11 @@ agent
   .addDataSource(sqlDataSource, {
     rename: {
       customers: 'customersFromFrenchBranch',
-      stores: 'storesFromFrenchBranch'
+      stores: 'storesFromFrenchBranch',
     },
   })
 
   // Renaming can also be done by providing a function.
   // All collections will be renamed (the handler is called once per collection)
-  .addDataSource(sqlDataSource, { rename: (name) => `${name}FromSpanishBranch` });
+  .addDataSource(sqlDataSource, { rename: name => `${name}FromSpanishBranch` });
 ```
