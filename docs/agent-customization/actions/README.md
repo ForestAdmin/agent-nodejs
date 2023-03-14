@@ -1,4 +1,4 @@
-Sooner or later, you will need to perform actions on your data that are specific to your business. Moderating comments, generating an invoice, logging into a customer’s account, or banning users are exactly the kind of important tasks to unlock to manage your day-to-day operations.
+Sooner or later, you will need to perform actions on your data that are specific to your business. Moderating comments, generating invoices, logging into a customer’s account, or banning users are exactly the kind of important tasks to unlock to manage your day-to-day operations.
 
 ![Custom action displayed on the table-view](../../assets/actions-dropdown.png)
 
