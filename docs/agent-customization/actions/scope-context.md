@@ -24,16 +24,16 @@ We can simply use the `getRecord()` method to get any column from the selected r
 
 ```javascript
 agent.customizeCollection('customers', collection =>
-  collection.addAction('Call me John', {
+  collection.addAction('Call me John in the server logs', {
     scope: 'Single',
-    execute: async (context, resultBuilder) => {
+    execute: async context => {
       // use getRecords() for bulk and global actions
       const { firstName, lastName } = await context.getRecord(['firstName']);
 
       if (firstName === 'John') {
-        return resultBuilder.success('Hi John!');
+        console.log('Hi John!');
       } else {
-        return resultBuilder.error('You are not John!');
+        console.error('You are not John!');
       }
     },
   }),
@@ -59,7 +59,7 @@ agent.customizeCollection('companies', collection =>
 
 ## Coding any business logic
 
-Forest Admin does not impose any restriction on the handler: you are free to write the `execute()` handler to fit your use-case.
+Forest Admin does not impose any restriction on the handler: you are free to write the `execute()` handler to fit your use case.
 
 You are free to call external APIs, query your database, or perform any work in action handlers.
 
@@ -70,9 +70,10 @@ agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
     execute: async (context, resultBuilder) => {
-      await axios.post('http://my-api.com/mark-as-live', {
-        id: await context.getRecordId(),
-      });
+      const url = 'http://my-api.com/mark-as-live';
+      const params = { id: await context.getRecordId() };
+
+      await axios.post(url, params);
     },
   }),
 );

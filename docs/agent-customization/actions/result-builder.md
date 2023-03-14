@@ -19,7 +19,8 @@ agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
     execute: async context => {
-      // Doing nothing will trigger the default success notification.
+      // Not using the resultBuilder here will display the generic success notification.
+      // (as long as no exception is thrown)
     },
   }),
 );
