@@ -29,34 +29,46 @@ describe('index', () => {
   });
 
   describe('buildSequelizeInstance', () => {
-    describe('when it is a valid connection Uri', () => {
-      describe('when a database schema is given', () => {
-        it('should use the given schema', async () => {
-          Introspector.introspect = jest.fn().mockResolvedValue([]);
+    beforeEach(() => jest.resetAllMocks());
 
-          const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
-          await buildSequelizeInstance(uri, jest.fn(), null);
+    describe('when a database schema is given from uri string', () => {
+      it('should use the given schema', async () => {
+        Introspector.introspect = jest.fn().mockResolvedValue([]);
 
-          // sequelize must be called with the schema
-          expect(Sequelize).toHaveBeenCalledWith(uri, {
-            logging: expect.any(Function),
-            schema: 'public',
-          });
+        const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
+        await buildSequelizeInstance(uri, jest.fn(), null);
+
+        expect(Sequelize).toHaveBeenCalledWith(uri, {
+          logging: expect.any(Function),
+          schema: 'public',
         });
       });
+    });
 
-      describe('when a database schema is not given', () => {
-        it('should not use a schema', async () => {
-          Introspector.introspect = jest.fn().mockResolvedValue([]);
+    describe('when a database schema is given from uri options', () => {
+      it('should use the given schema', async () => {
+        Introspector.introspect = jest.fn().mockResolvedValue([]);
 
-          const uri = 'postgres://example:password@localhost:5442/example';
-          await buildSequelizeInstance(uri, jest.fn(), null);
+        const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
+        await buildSequelizeInstance({ uri }, jest.fn(), null);
 
-          // sequelize must be called without a schema
-          expect(Sequelize).toHaveBeenCalledWith(uri, {
-            logging: expect.any(Function),
-            schema: undefined,
-          });
+        expect(Sequelize).toHaveBeenCalledWith(uri, {
+          logging: expect.any(Function),
+          schema: 'public',
+        });
+      });
+    });
+
+    describe('when a database schema is not given', () => {
+      it('should not use a schema', async () => {
+        Introspector.introspect = jest.fn().mockResolvedValue([]);
+
+        const uri = 'postgres://example:password@localhost:5442/example';
+        await buildSequelizeInstance(uri, jest.fn(), null);
+
+        expect(Sequelize).toHaveBeenCalledWith(uri, {
+          logging: expect.any(Function),
+          schema: null,
         });
       });
     });
