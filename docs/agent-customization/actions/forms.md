@@ -171,25 +171,27 @@ A good way to improve the mood is to ask only users which like your media to lea
 Here is how to do it in Forest Admin:
 
 ```javascript
-collection.addAction('Leave a review', {
-  scope: 'Single',
-  form: [
-    {
-      label: 'Rating',
-      type: 'Enum',
-      enumValues: ['1', '2', '3', '4', '5'],
-    },
-    {
-      label: 'Put a comment',
-      type: 'String',
+agent.customizeCollection('product', collection => {
+  collection.addAction('Leave a review', {
+    scope: 'Single',
+    form: [
+      {
+        label: 'Rating',
+        type: 'Enum',
+        enumValues: ['1', '2', '3', '4', '5'],
+      },
+      {
+        label: 'Put a comment',
+        type: 'String',
 
-      // Only display this field if the rating is 4 or 5
-      if: context => Number(context.formValues.Rating) >= 4,
+        // Only display this field if the rating is 4 or 5
+        if: context => Number(context.formValues.Rating) >= 4,
+      },
+    ],
+    execute: async context => {
+      /* ... perform work here ... */
     },
-  ],
-  execute: async context => {
-    /* ... perform work here ... */
-  },
+  });
 });
 ```
 
