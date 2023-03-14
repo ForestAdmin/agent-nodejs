@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.2.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.6...@forestadmin/datasource-sql@1.2.7) (2023-03-14)
+
+
+### Bug Fixes
+
+* **sql-datasource:** use schema when it is given in the connection string ([#644](https://github.com/ForestAdmin/agent-nodejs/issues/644)) ([423bc55](https://github.com/ForestAdmin/agent-nodejs/commit/423bc55d829d85a457828ada8f832a727b3ff1c3))
+
 ## @forestadmin/datasource-sql [1.2.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.5...@forestadmin/datasource-sql@1.2.6) (2023-03-10)
 
 ## @forestadmin/datasource-sql [1.2.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.4...@forestadmin/datasource-sql@1.2.5) (2023-03-08)
