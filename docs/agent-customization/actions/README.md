@@ -1,8 +1,8 @@
-## What is an Action?
-
 Sooner or later, you will need to perform actions on your data that are specific to your business. Moderating comments, generating an invoice, logging into a customer’s account, or banning a user are exactly the kind of important tasks to unlock to manage your day-to-day operations.
 
 In our Live Demo example, our `companies` collection has many examples of Action. The simplest one is "Mark as live".
+
+![Custom action displayed on the table-view](../../assets/actions-dropdown.png)
 
 ## In your code
 
@@ -51,7 +51,3 @@ An action is displayed in the UI only if:
 You must make the action visible there if you wish users to be able to see it.
 
 ![](../../assets/actions-visibility.png)
-
-It will then show in the actions dropdown button:
-
-![](../../assets/actions-dropdown.png)
