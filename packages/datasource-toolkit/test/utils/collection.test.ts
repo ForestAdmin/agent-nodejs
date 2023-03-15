@@ -391,8 +391,8 @@ describe('CollectionUtils', () => {
 
         const expectedCondition = ConditionTreeFactory.intersect(
           new ConditionTreeLeaf('bookId', 'Equal', 2),
-          new ConditionTreeLeaf('libraryId', 'Present'),
           baseFilter.conditionTree.nest('myLibrary'),
+          new ConditionTreeLeaf('libraryId', 'Present'),
         );
 
         expect(dataSource.getCollection('librariesBooks').aggregate).toHaveBeenCalledWith(
@@ -493,8 +493,8 @@ describe('CollectionUtils', () => {
           paginatedFilter.override({
             conditionTree: ConditionTreeFactory.intersect(
               new ConditionTreeLeaf('bookId', 'Equal', 2),
-              new ConditionTreeLeaf('libraryId', 'Present'),
               paginatedFilter.conditionTree.nest('myLibrary'),
+              new ConditionTreeLeaf('libraryId', 'Present'),
             ),
             sort: paginatedFilter.sort,
           }),

@@ -113,15 +113,21 @@ export default class FilterFactory {
 
     // Optimization for many to many when there is not search/segment (saves one query)
     if (foreignRelation && baseForeignFilter.isNestable) {
-      const baseThroughFilter = baseForeignFilter.nest(foreignRelation);
+      const foreignKeySchema = collection.dataSource.getCollection(relation.throughCollection)
+        .schema.fields[relation.foreignKey];
 
-      return baseThroughFilter.override({
-        conditionTree: ConditionTreeFactory.intersect(
-          new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
-          new ConditionTreeLeaf(relation.foreignKey, 'Present'),
-          baseThroughFilter.conditionTree,
-        ),
-      });
+      const baseThroughFilter = baseForeignFilter.nest(foreignRelation);
+      let conditionTree = ConditionTreeFactory.intersect(
+        new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
+        baseThroughFilter.conditionTree,
+      );
+
+      if (foreignKeySchema.type === 'Column' && foreignKeySchema.filterOperators.has('Present')) {
+        const present = new ConditionTreeLeaf(relation.foreignKey, 'Present');
+        conditionTree = ConditionTreeFactory.intersect(conditionTree, present);
+      }
+
+      return baseThroughFilter.override({ conditionTree });
     }
 
     // Otherwise we have no choice but to call the target collection so that search and segment
@@ -183,10 +189,21 @@ export default class FilterFactory {
     } else {
       // ManyToMany case (more complicated...)
       const through = collection.dataSource.getCollection(relation.throughCollection);
-      const throughTree = ConditionTreeFactory.intersect(
-        new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
-        new ConditionTreeLeaf(relation.foreignKey, 'Present'),
+      const foreignKeySchema = through.schema.fields[relation.foreignKey];
+      let throughTree: ConditionTree = new ConditionTreeLeaf(
+        relation.originKey,
+        'Equal',
+        originValue,
       );
+
+      // Handle null foreign key case only when the datasource supports it.
+      if (foreignKeySchema.type === 'Column' && foreignKeySchema.filterOperators.has('Present')) {
+        throughTree = ConditionTreeFactory.intersect(
+          throughTree,
+          new ConditionTreeLeaf(relation.foreignKey, 'Present'),
+        );
+      }
+
       const records = await through.list(
         caller,
         new Filter({ conditionTree: throughTree }),
@@ -196,7 +213,8 @@ export default class FilterFactory {
       originTree = new ConditionTreeLeaf(
         relation.foreignKeyTarget,
         'In',
-        records.map(r => r[relation.foreignKey]),
+        // filter out null values in case the 'Present' operator was not supported
+        records.map(r => r[relation.foreignKey]).filter(v => v !== null),
       );
     }
 

@@ -4,6 +4,7 @@ import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/l
 import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
 import Filter from '../../src/interfaces/query/filter/unpaginated';
+import { ColumnSchema } from '../../src/interfaces/schema';
 import * as factories from '../__factories__';
 
 const TEST_TIMEZONE = 'Europe/Dublin';
@@ -222,10 +223,29 @@ describe('FilterFactory', () => {
           aggregator: 'And',
           conditions: [
             { field: 'bookId', operator: 'Equal', value: 1 },
-            { field: 'reviewId', operator: 'Present' },
             { field: 'review:someField', operator: 'Equal', value: 1 },
+            { field: 'reviewId', operator: 'Present' },
           ],
         },
+      });
+    });
+
+    test('should skip the present operator when not supported', async () => {
+      const dataSource = setup();
+      const [books, , bookReview] = dataSource.collections;
+      (bookReview.schema.fields.reviewId as ColumnSchema).filterOperators?.delete('Present');
+
+      const baseFilter = new Filter({});
+      const filter = await FilterFactory.makeThroughFilter(
+        books,
+        [1],
+        'reviews',
+        factories.caller.build(),
+        baseFilter,
+      );
+
+      expect(filter).toEqual({
+        conditionTree: { field: 'bookId', operator: 'Equal', value: 1 },
       });
     });
 
@@ -292,6 +312,7 @@ describe('FilterFactory', () => {
     });
 
     test('should query the through collection [many to many]', async () => {
+      const caller = factories.caller.build();
       const dataSource = setup();
       const [books, , bookReviews] = dataSource.collections;
       (bookReviews.list as jest.Mock).mockResolvedValue([{ reviewId: 123 }, { reviewId: 124 }]);
@@ -304,8 +325,22 @@ describe('FilterFactory', () => {
         books,
         [1],
         'reviews',
-        factories.caller.build(),
+        caller,
         baseFilter,
+      );
+
+      expect(bookReviews.list).toHaveBeenCalledWith(
+        caller,
+        {
+          conditionTree: {
+            aggregator: 'And',
+            conditions: [
+              { field: 'bookId', operator: 'Equal', value: 1 },
+              { field: 'reviewId', operator: 'Present' },
+            ],
+          },
+        },
+        ['reviewId'],
       );
 
       expect(filter).toEqual({
@@ -314,6 +349,45 @@ describe('FilterFactory', () => {
           conditions: [
             { field: 'someField', operator: 'Equal', value: 1 },
             { field: 'id', operator: 'In', value: [123, 124] },
+          ],
+        },
+        segment: 'some-segment',
+      });
+    });
+
+    test('should query the through collection without present [many to many]', async () => {
+      const caller = factories.caller.build();
+      const dataSource = setup();
+      const [books, , bookReview] = dataSource.collections;
+      (bookReview.schema.fields.reviewId as ColumnSchema).filterOperators?.delete('Present');
+
+      // Note the null value here
+      (bookReview.list as jest.Mock).mockResolvedValue([{ reviewId: 123 }, { reviewId: null }]);
+
+      const baseFilter = new Filter({
+        conditionTree: new ConditionTreeLeaf('someField', 'Equal', 1),
+        segment: 'some-segment',
+      });
+      const filter = await FilterFactory.makeForeignFilter(
+        books,
+        [1],
+        'reviews',
+        caller,
+        baseFilter,
+      );
+
+      expect(bookReview.list).toHaveBeenCalledWith(
+        caller,
+        { conditionTree: { field: 'bookId', operator: 'Equal', value: 1 } },
+        ['reviewId'],
+      );
+
+      expect(filter).toEqual({
+        conditionTree: {
+          aggregator: 'And',
+          conditions: [
+            { field: 'someField', operator: 'Equal', value: 1 },
+            { field: 'id', operator: 'In', value: [123] },
           ],
         },
         segment: 'some-segment',
