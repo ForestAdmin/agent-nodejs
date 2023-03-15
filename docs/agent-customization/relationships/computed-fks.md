@@ -23,9 +23,10 @@ agent.customizeCollection('customers', collection => {
     getValues: async (customers, context) => {
       // We're using Forest Admin's query interface (you can use an ORM or a plain SQL query)
       const messages = context.dataSource.getCollection('messages');
+      const conditionTree = { field: 'customer_id', operator: 'In', value: customers.map(r => r.id) }
       const rows = await messages.aggregate(
-        { field: 'customer_id', operator: 'In', value: customers.map(r => r.id) },
-        { operator: 'Max', field: 'id', groups: [{ field: 'customer_id' }] },
+        { conditionTree },
+        { operation: 'Max', field: 'id', groups: [{ field: 'customer_id' }] },
       );
 
       return customers.map(record => {
@@ -38,7 +39,9 @@ agent.customizeCollection('customers', collection => {
   collection.replaceFieldOperator('lastMessageId', 'In', async (lastMessageIds, context) => {
     const records = await context.dataSource
       .getCollection('messages')
-      .list({ field: 'id', operator: 'In', value: lastMessageIds }, ['customer_id']);
+      .list({ conditionTree: { field: 'id', operator: 'In', value: lastMessageIds } }, [
+        'customer_id',
+      ]);
 
     return { field: 'id', operator: 'In', value: records.map(r => r.customer_id) };
   });
@@ -99,7 +102,7 @@ function createRelationship(databaseUsers) {
 
 /** Create relationship between crmUsers and databaseUsers */
 function createInverseRelationship(crmUsers) {
-  databaseUsers.addManyToOneRelation('userFromDatabase', 'databaseUsers', {
+  crmUsers.addManyToOneRelation('userFromDatabase', 'databaseUsers', {
     foreignKey: 'userIdentifier',
     foreignKeyTarget: 'userIdentifier',
   });
