@@ -6,6 +6,7 @@ export * from './types';
 
 // Decorators (helpers)
 export * from './decorators/actions/types/actions';
+export * from './decorators/actions/types/fields';
 export { DataSourceChartDefinition } from './decorators/chart/types';
 export { ComputedDefinition } from './decorators/computed/types';
 export { OperatorDefinition } from './decorators/operators-emulate/types';

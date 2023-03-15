@@ -9,7 +9,7 @@ The scope of an action defines how it can be triggered and which records it will
 | **Can be triggered from the summary view** | ✅                               | ✅                                                     | 🚫                                        |
 | **Targeted records**                       | One at a time                    | All selected and matching the current segment / search | All matching the current segment / search |
 
-## The `context` object
+# The `context` object
 
 The `context` object is central to writing actions in Forest Admin.
 
@@ -20,7 +20,7 @@ It is the bridge between all the data that your agent has access to and the acti
 - `collection` the collection on which the action is declared, which can be queried using the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
 - `filter` a filter that can be used to query the collection, and which is based on action scope, and on the selected records.
 
-### Example 1: Getting data from the selected records
+## Example 1: Getting data from the selected records
 
 We can simply use the `getRecord()` method to get any column from the selected record or a relation.
 
@@ -59,7 +59,7 @@ agent.customizeCollection('companies', collection =>
 );
 ```
 
-## Coding any business logic
+## Example 3: Coding any business logic
 
 Forest Admin does not impose any restriction on the handler: you are free to write the `execute()` handler to fit your use case.
 

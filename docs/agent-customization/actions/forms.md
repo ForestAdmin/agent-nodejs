@@ -1,9 +1,10 @@
 Very often, you will need to ask for user inputs before triggering the logic behind an action.
+
 For example, you might want to specify a reason if you want to block a user account. Or set the amount to charge a user’s credit card.
 
-In the following example, an action form will be displayed for the "Charge credit card" action.
-
 ![Action form displayed on Forest Admin](../../assets/actions-forms-charge-cc.png)
+
+In the following example, an action form will be displayed for the "Charge credit card" action.
 
 ```javascript
 agent.customizeCollection('customer', collection => {
