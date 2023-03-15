@@ -13,6 +13,14 @@ You are using a legacy agent if you are using:
 
 Note that if you are using `forestadmin/laravel-forestadmin`, you may want to wait: our team is hard at work on porting this new agent architecture to PHP (the beta is already open for customers using [Symfony](https://github.com/ForestAdmin/symfony-forestadmin)).
 
+# When to migrate?
+
+Legacy agents are still supported, and we will continue to do so for a while.
+
+No end-of-life date has been set yet, but it will be announced on a minimal 18 months period guarantee.
+
+To give more visibility to our developers' community, about agent usability and support in the future, you will find, [in this page](https://docs.forestadmin.com/documentation/how-tos/releases-support), the important lifecycle dates per agent stack and versions.
+
 # Why migrate?
 
 Breaking changes are not fun, but they are necessary to keep improving the Forest Admin product. The new agent architecture is a big step forward in terms of performance, stability, and features.
@@ -26,16 +34,6 @@ In the ecosystem of the time, the design of our Agent was sound.
 - The company focused on a reduced number of data sources (PostgreSQL, MySQL, Microsoft SQL, MongoDB).
 
 In the meantime, JavaScript’s ecosystem has substantially evolved, and although we could’ve introduced changes in our API at every turn, this would have greatly disturbed our customers’ daily operations.
-
-# When to migrate?
-
-Legacy agents are still supported, and we will continue to do so for a while.
-
-No end-of-life date has been set yet, but it will be announced on a minimal 18 months period guarantee.
-
-To give more visibility to our developers' community, about agent usability and support in the future, you will find, [in this page](https://docs.forestadmin.com/documentation/how-tos/releases-support), the important lifecycle dates per agent stack and versions.
-
-# What’s new?
 
 ## Agnostic to web frameworks and ORMs
 
