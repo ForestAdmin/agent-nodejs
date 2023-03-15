@@ -23,7 +23,11 @@ agent.customizeCollection('customers', collection => {
     getValues: async (customers, context) => {
       // We're using Forest Admin's query interface (you can use an ORM or a plain SQL query)
       const messages = context.dataSource.getCollection('messages');
-      const conditionTree = { field: 'customer_id', operator: 'In', value: customers.map(r => r.id) }
+      const conditionTree = {
+        field: 'customer_id',
+        operator: 'In',
+        value: customers.map(r => r.id),
+      };
       const rows = await messages.aggregate(
         { conditionTree },
         { operation: 'Max', field: 'id', groups: [{ field: 'customer_id' }] },
