@@ -29,6 +29,7 @@
     - [Smart Relationships](getting-started/migrating/customizations/smart-relationships.md)
     - [Smart Segments](getting-started/migrating/customizations/smart-segments.md)
     - [Route overrides](getting-started/migrating/customizations/route-overrides.md)
+  - [Troubleshooting](getting-started/migrating/troubleshooting.md)
 
 ## Data Sources
 
