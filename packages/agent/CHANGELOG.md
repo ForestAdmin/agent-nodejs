@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.8.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.4...@forestadmin/agent@1.8.5) (2023-03-15)
+
+
+### Bug Fixes
+
+* **computed-fks:** using computed foreign keys required implementing the Present operator ([#643](https://github.com/ForestAdmin/agent-nodejs/issues/643)) ([e4fa134](https://github.com/ForestAdmin/agent-nodejs/commit/e4fa13401608311382603cdb9d44fb7ff334c2e9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.5.13
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.10
+
 ## @forestadmin/agent [1.8.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.3...@forestadmin/agent@1.8.4) (2023-03-10)
 
 
