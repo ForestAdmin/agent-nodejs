@@ -1,16 +1,10 @@
-## What is an Action?
+Sooner or later, you will need to perform actions on your data that are specific to your business.
 
-Sooner or later, you will need to perform actions on your data that are specific to your business. Moderating comments, generating an invoice, logging into a customer’s account, or banning a user are exactly the kind of important tasks to unlock to manage your day-to-day operations.
+Moderating comments, generating invoices, logging into a customer’s account, or banning users are exactly the kind of important tasks to unlock to manage your day-to-day operations.
 
-In our Live Demo example, our `companies` collection has many examples of Action. The simplest one is "Mark as live".
+![Custom action displayed on the table-view](../../assets/actions-dropdown.png)
 
 ## In your code
-
-{% hint style='info' %}
-In the following example, we are making queries using the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
-
-As Forest Admin does not impose any restriction on the handler, you are free to call external APIs or query your database directly instead.
-{% endhint %}
 
 To create an action, you will first need to declare it in your code for a specific collection. Here we declare a Mark as Live action for the `companies` collection.
 
@@ -20,19 +14,12 @@ The action behavior is implemented in the `execute()` function.
 agent.customizeCollection('companies', collection =>
   collection.addAction('Mark as live', {
     scope: 'Single',
-    execute: async (context, resultBuilder) => {
-      // Change the company's status to live.
-      await context.collection.update(context.filter, { status: 'live' });
+    execute: async context => {
+      // Perform work here.
     },
   }),
 );
 ```
-
-Note that actions can have three different scopes:
-
-- `Single`: the action can be called only on one record at a time
-- `Bulk`: the action can be called on several records at a time
-- `Global`: the action is available only in the list view and is executed on all records
 
 ## In the admin panel
 
@@ -50,8 +37,4 @@ An action is displayed in the UI only if:
 
 You must make the action visible there if you wish users to be able to see it.
 
-![](../../assets/actions-visibility.png)
-
-It will then show in the actions dropdown button:
-
-![](../../assets/actions-dropdown.png)
+![Making the action visible](../../assets/actions-visibility.png)

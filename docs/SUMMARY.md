@@ -39,8 +39,10 @@
 ## Agent customization
 
 - [Actions](agent-customization/actions/README.md)
-  - [Responses](agent-customization/actions/responses.md)
+  - [Scope and context](agent-customization/actions/scope-context.md)
+  - [Result builder](agent-customization/actions/result-builder.md)
   - [Forms](agent-customization/actions/forms.md)
+  - [Related data invalidation](agent-customization/actions/related-data-invalidation.md)
 - [Charts](agent-customization/charts/README.md)
 
   - [Value](agent-customization/charts/value.md)
