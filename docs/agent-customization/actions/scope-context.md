@@ -18,7 +18,7 @@ It is the bridge between all the data that your agent has access to and the acti
 - `getRecord()` (or `getRecords()` for bulk and global actions)
 - `getRecordId()` (or `getRecordIds()` for bulk and global actions)
 - `collection` the collection on which the action is declared, which can be queried using the [Forest Admin Query Interface](../../under-the-hood/queries/README.md).
-- `filter` a filter that can be used to query the collection, and which is based on action scope, and on the selected records.
+- `filter` a filter that can be used to query the collection, and which is based on action scope and the list of selected records.
 
 ## Example 1: Getting data from the selected records
 
