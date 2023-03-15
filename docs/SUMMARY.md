@@ -18,6 +18,17 @@
   - [Autocompletion & Typings](getting-started/install/autocompletion-and-typings.md)
   - [Troubleshooting](getting-started/install/troubleshooting.md)
 
+- [Migrating from legacy agents](getting-started/migrating/README.md)
+  - [Recommendations](getting-started/migrating/recommendations.md)
+  - [Connecting data sources](getting-started/migrating/datasources.md)
+  - [Porting customizations](getting-started/migrating/customizations/README.md)
+    - [Smart Actions](getting-started/migrating/customizations/smart-actions.md)
+    - [Smart Charts](getting-started/migrating/customizations/smart-charts.md)
+    - [Smart Collections](getting-started/migrating/customizations/smart-collections.md)
+    - [Smart Fields](getting-started/migrating/customizations/smart-fields.md)
+    - [Smart Relationships](getting-started/migrating/customizations/smart-relationships.md)
+    - [Smart Segments](getting-started/migrating/customizations/smart-segments.md)
+
 ## Data Sources
 
 - [Connecting data sources](datasources/connection/README.md)
