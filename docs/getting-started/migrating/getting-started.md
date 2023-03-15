@@ -7,7 +7,7 @@ This file is a JSON file that describes:
 - The structure of the data that is exposed in the Forest Admin UI
 - The list of customizations that you have made (actions, charts, fields, relationships, segments, ...)
 
-The goal of the migration is to make sure that the new agent generates a `.forestadmin-schema.json` that is similar to the old one, and that you can account for and understand the differences.
+The goal of the migration is to make sure that your new agent generates a `.forestadmin-schema.json` that is as similar as possible to the old one, and that you can account for the differences.
 
 # Recommended migration process
 
@@ -31,20 +31,23 @@ After creating a new temporary project using the wizard, you will work on making
 
 The only difference is that because both agents probably call business code from your app, you will need to have both of them living in the same source tree and Node.js process during the migration.
 
-To do so, you will need to create your new agent with a different
-
-- [`prefix`](../install/create-your-agent.md#prefix-string-default-to-empty-string)
-- [`schemaPath`](../install/create-your-agent.md#schemapath-string-defaults-to-forestadmin-schemajson)
-- [`authSecret`](../install/create-your-agent.md#authsecret-string-no-default) and [`envSecret`](../install/create-your-agent.md#envsecret-string-no-default)
+To do so, you will need to create your new agent with a different configuration:
 
 ```javascript
 createAgent({
-  // ...
+  // ... [other options]
+
+  // Change mounting point to avoid conflicts
   prefix: '/new-agent',
-  schemaPath: 'new-agent/.forestadmin-schema.json'
+
+  // Change schema path to ensure that the two agents don't overwrite each other schemas
+  schemaPath: 'new-agent/.forestadmin-schema.json',
+
+  // Change the authSecret and envSecret so that the two agents show as two different projects
+  // in the Forest Admin UI
   authSecret: process.env.TEMPORARY_FOREST_AUTH_SECRET,
   envSecret: process.env.TEMPORARY_FOREST_ENV_SECRET,
-})
+});
 ```
 
 <!-- FIXME add a screenshot of the UI where we show how to add the prefix in the app url -->
@@ -57,9 +60,4 @@ To do so, you will need to port your code from the old agent to the new one.
 
 The process is different depending on the type of customizations that you have made.
 
-- [Smart Actions](./customizations/smart-actions.md)
-- [Smart Charts](./customizations/smart-charts.md)
-- [Smart Collections](./customizations/smart-collections.md)
-- [Smart Fields](./customizations/smart-fields.md)
-- [Smart Relationships](./customizations/smart-relationships.md)
-- [Smart Segments](./customizations/smart-segments.md)
+More information about the differences between the two agents can be found in the [customization migration guide](./customizations/README.md).

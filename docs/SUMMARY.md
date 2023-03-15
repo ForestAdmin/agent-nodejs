@@ -19,7 +19,7 @@
   - [Troubleshooting](getting-started/install/troubleshooting.md)
 
 - [Migrating from legacy agents](getting-started/migrating/README.md)
-  - [Recommendations](getting-started/migrating/recommendations.md)
+  - [Getting started](getting-started/migrating/getting-started.md)
   - [Connecting data sources](getting-started/migrating/datasources.md)
   - [Porting customizations](getting-started/migrating/customizations/README.md)
     - [Smart Actions](getting-started/migrating/customizations/smart-actions.md)

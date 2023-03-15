@@ -2,14 +2,16 @@ You may want to migrate from a legacy agent to this new agent. This guide will h
 
 The new agent is built with a different architecture and has no retro compatibility with the legacy agents. However, because all features are available in the new agent, you can still migrate to it.
 
-Legacy agents are:
+# Am I using a legacy agent?
 
-- On NodeJS: agents using `forest-express-sequelize` or `forest-express-mongoose` packages.
-- On Rails: agents using `forest_liana` gem.
-- On Python: agents using `django-forestadmin` package.
-- On PHP: agents using the `forestadmin/laravel-forestadmin` package.
+You are using a legacy agent if you are using:
 
-Note that if you are using `forestadmin/laravel-forestadmin`, you may want to wait: our team is hard at work on porting this new agent architecture to PHP (the beta is already open for customers using `Symfony`).
+- On NodeJS: Either one of the [forest-express-sequelize](https://github.com/ForestAdmin/forest-express-sequelize) or [forest-express-mongoose](https://github.com/ForestAdmin/forest-express-mongoose) packages.
+- On Rails: the [forest_liana](https://github.com/ForestAdmin/forest-rails) gem.
+- On Python: the [django-forestadmin](https://github.com/ForestAdmin/django-forestadmin) package.
+- On PHP: the [forestadmin/laravel-forestadmin](https://github.com/ForestAdmin/laravel-forestadmin) package.
+
+Note that if you are using `forestadmin/laravel-forestadmin`, you may want to wait: our team is hard at work on porting this new agent architecture to PHP (the beta is already open for customers using [Symfony](https://github.com/ForestAdmin/symfony-forestadmin)).
 
 # Why migrate?
 
@@ -25,6 +27,14 @@ In the ecosystem of the time, the design of our Agent was sound.
 
 In the meantime, JavaScript’s ecosystem has substantially evolved, and although we could’ve introduced changes in our API at every turn, this would have greatly disturbed our customers’ daily operations.
 
+# When to migrate?
+
+Legacy agents are still supported, and we will continue to do so for a while.
+
+No end-of-life date has been set yet, but it will be announced on a minimal 18 months period guarantee.
+
+To give more visibility to our developers' community, about agent usability and support in the future, you will find, [in this page](https://docs.forestadmin.com/documentation/how-tos/releases-support), the important lifecycle dates per agent stack and versions.
+
 # What’s new?
 
 ## Agnostic to web frameworks and ORMs
@@ -36,6 +46,15 @@ Customers working on other frameworks can still use the Agent by mounting it in 
 You can also connect to your database directly and use automatic model introspection: you will no longer need to maintain Sequelize.js models if you are using another ORM for your production app.
 
 We still support Sequelize.js and Mongoose.js, which gives you additional benefits – such as improving code reuse from your application, even though it isn’t required anymore.
+
+```javascript
+createAgent()
+  .mountOnExpress(expressApp)
+  .mountOnKoa(koaApp)
+  .mountOnFastify(fastifyApp)
+  .mountOnNest(nestApp)
+  .mountOnStandalone(3351, '0.0.0.0');
+```
 
 ## Support multiple data sources
 
@@ -65,6 +84,7 @@ This is no longer the case and we adapted to that change as well: the new agent 
 When coding you will get autocompletion and type-checking on your models.
 
 ```console
+sandro@forestadmin $ tsc
 src/forest/card.ts:6:61: error TS2820
   Type '"customerId"' is not assignable to type '"id" | "is_active" | "customer_id"'.
   Did you mean '"customer_id"'?
