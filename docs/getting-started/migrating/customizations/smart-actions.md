@@ -1,5 +1,3 @@
-# Structure
-
 In legacy agents declaring a smart action was a two-step process:
 
 - First, you had to declare by changing the parameters of the `collection` function in the appropriate `collections/*.js` file.
@@ -7,20 +5,20 @@ In legacy agents declaring a smart action was a two-step process:
 
 In the new agent, the process is simplified to a single step.
 
-## Code cheatsheet
+# Code cheatsheet
 
-| Legacy agent                                           | New agent                                                                       |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `type: 'single'`<br>`type: 'bulk'`<br>`type: 'global'` | `scope: 'Single'`<br>`scope: 'Bulk'`<br>`scope: 'Global'`                       |
-| `download: true`                                       | `generateFile: true`                                                            |
-| `reference: 'otherCollection.id'`                      | `{ type: 'Collection', collectionName: 'otherCollection' }`                     |
-| `enums: ['foo', 'bar']`                                | `{ type: 'Enum', enumValues: ['foo', 'bar'] }`                                  |
-| `RecordsGetter.getIdsFromRequest()`                    | `context.getRecordIds()`                                                        |
-| `res.send(...)`                                        | `return resultBuilder.success(...)`<br>`return resultBuilder.error(...)`<br>... |
+| Legacy agent                                     | New agent                                                                   |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| type: 'single'<br>type: 'bulk'<br>type: 'global' | scope: 'Single'<br>scope: 'Bulk'<br>scope: 'Global'                         |
+| download: true                                   | generateFile: true                                                          |
+| reference: 'otherCollection.id'                  | { type: 'Collection', collectionName: 'otherCollection' }                   |
+| enums: ['foo', 'bar']                            | { type: 'Enum', enumValues: ['foo', 'bar'] }                                |
+| RecordsGetter.getIdsFromRequest()                | context.getRecordIds()                                                      |
+| res.send(...)                                    | return resultBuilder.success(...)<br>return resultBuilder.error(...)<br>... |
 
-## Steps
+# Steps
 
-### Step 1: Calling `addAction` for the appropriate collection
+## Step 1: Calling `addAction` for the appropriate collection
 
 Start by calling the `addAction` function on the appropriate collection and passing the appropriate parameters.
 
@@ -60,7 +58,7 @@ agent.customizeCollection('companies', companies => {
 
 {% endtab %} {% endtabs %}
 
-### Step 2: Porting the form definition
+## Step 2: Porting the form definition
 
 Forms are now defined in the `form` property of the action.
 
@@ -113,7 +111,7 @@ agent.customizeCollection('customers', companies => {
 
 {% endtab %} {% endtabs %}
 
-### Step 3: Porting the route to the new agent `execute` function
+## Step 3: Porting the route to the new agent `execute` function
 
 In the legacy agent, users had to implement the action by creating a route handler in the appropriate `routes/*.js` file.
 
@@ -171,7 +169,7 @@ agent.customizeCollection('companies', companies => {
 
 {% endtab %} {% endtabs %}
 
-### Step 4: Porting smart action hooks
+## Step 4: Porting smart action hooks
 
 Load hooks and change hooks have been replaced on the new agent by the possibility to use callbacks in the form definition.
 

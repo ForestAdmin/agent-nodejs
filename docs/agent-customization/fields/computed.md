@@ -1,4 +1,4 @@
-Forest Admin allows creating new fields on any collection, either computationally, by fetching data on an external API, or based on other data that is available on the connected data sources.
+Forest Admin allows creating new fields on any collection, either computationally, by fetching data on an external API or based on other data that is available on the connected data sources.
 
 By default, the fields that you create will be read-only, but you can make them [filterable](./filter.md), [sortable](./sort.md), and [writable](./write.md) by using the relevant methods.
 
@@ -34,6 +34,30 @@ agent.customizeCollection('user', collection => {
     // an array which contains the new values in the same order than the provided records.
     getValues: (records, context) => records.map(r => `${r.firstName} ${r.lastName}`),
   });
+});
+```
+
+### Adding a field that depends on another computed field
+
+This example adds a `user.displayName` field, which is computed by concatenating the first and last names.
+
+```javascript
+// User collection has the following structure: { id, firstName, lastName }
+agent.customizeCollection('user', collection => {
+  collection
+    // Create a first field which is computed by concatenating the first and last names
+    .addField('displayName', {
+      columnType: 'String',
+      dependencies: ['firstName', 'lastName'],
+      getValues: (records, context) => records.map(r => `${r.firstName} ${r.lastName}`),
+    })
+
+    // Create a second field which is computed by uppercasing the first field
+    .addField('displayNameCaps', {
+      columnType: 'String',
+      dependencies: ['displayName'], // It is legal to depend on another computed field
+      getValues: (records, context) => records.map(r => r.displayName.toUpperCase()),
+    });
 });
 ```
 

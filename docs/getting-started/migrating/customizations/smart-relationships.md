@@ -1,12 +1,8 @@
-# Structure
-
-## Code cheatsheet
+# Code cheatsheet
 
 | Legacy agent | New agent |
 | ------------ | --------- |
 
-## Steps
+# Steps
 
-### Step 0:
-
-### Step 1:
+## Step 1:
