@@ -22,13 +22,13 @@
   - [Getting started](getting-started/migrating/getting-started.md)
   - [Connecting data sources](getting-started/migrating/datasources.md)
   - [Porting customizations](getting-started/migrating/customizations/README.md)
+    - [API Charts](getting-started/migrating/customizations/api-charts.md)
+    - [Route overrides](getting-started/migrating/customizations/route-overrides.md)
     - [Smart Actions](getting-started/migrating/customizations/smart-actions.md)
-    - [Smart Charts](getting-started/migrating/customizations/smart-charts.md)
     - [Smart Collections](getting-started/migrating/customizations/smart-collections.md)
     - [Smart Fields](getting-started/migrating/customizations/smart-fields.md)
     - [Smart Relationships](getting-started/migrating/customizations/smart-relationships.md)
     - [Smart Segments](getting-started/migrating/customizations/smart-segments.md)
-    - [Route overrides](getting-started/migrating/customizations/route-overrides.md)
   - [Troubleshooting](getting-started/migrating/troubleshooting.md)
 
 ## Data Sources

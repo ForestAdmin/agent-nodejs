@@ -9,12 +9,13 @@ This was done to reduce the complexity of the code and to make it easier to unde
 | Legacy agent                              | New agent                                                  |
 | ----------------------------------------- | ---------------------------------------------------------- |
 | get: (record) => { ... }                  | getValues: (records) => { ... }                            |
-| set: (record, value) => { ... }           | replaceFieldWriting(...)                                   |
+| set: (record, value) => { ... }           | .replaceFieldWriting(...)                                  |
 | filter: ({ condition, where }) => { ... } | .replaceFieldFiltering(...)<br>.emulateFieldFiltering(...) |
-| enums: ['foo', 'bar']                     | columnType: 'Enum', enumValues: ['foo', 'bar']             |
 | type: 'String'                            | columnType: 'String'                                       |
+| enums: ['foo', 'bar']                     | columnType: 'Enum', enumValues: ['foo', 'bar']             |
+| reference: 'otherCollection.id'           | [Use a smart relationship](./smart-relationships.md)       |
 
-# Do you need a computed field?
+# Do you still need a computed field?
 
 Smart fields were a powerful tool, but they were also a performance bottleneck.
 
@@ -22,7 +23,7 @@ In the new agent, we have introduced two new concepts that can replace many of t
 
 If you were using a smart field to move a field from one collection to another or to create a link to another record in the UI, you can likely use one of these much simpler solutions.
 
-- [Moving, renaming, or deleting fields](../../../agent-customization/fields/import-rename-delete.md)
+- [Moving fields](../../../agent-customization/fields/import-rename-delete.md#moving-fields)
 - [Relationships](../../../agent-customization/relationships/README.md)
 
 # Steps
@@ -31,26 +32,35 @@ If you were using a smart field to move a field from one collection to another o
 
 Computed fields in the new agent are declared by calling the `addField` function on the appropriate collection.
 
-In the following example, we will port a field that fetches the full address of a user from a third-party service.
+Many changes have been made to the API.
 
-Many things have changed with the new agent!
-The motive is mainly performance: exposing a batch API to our customers is a much better solution than calling the API once per record.
+### Dependencies are explicit
 
-When displaying a list of records, the new agent will only make one call to the API, and then display the results for all records, instead of making one call per record.
+You will notice that a new `dependencies` property is required when declaring a computed field.
 
-Here are the main differences in the code:
+It is an array of field names that tells forest admin which fields the `getValues()` function depends on: Unlike the legacy agent, the new agent will not automatically fetch the whole record.
+
+You can [fetch data from relations](../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-a-many-to-one-relationship) and [fetch data from other computed fields](../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-another-computed-field).
+
+### Fields now work in batches
+
+Even if it adds some complexity, exposing a batch API to our customers is a much better solution for performance.
+
+The `get` function is now called `getValues`: it no longer takes a single record as its first argument, but an array of records, and must return an array of values, one for each record, in the same order.
+
+### Other changes
+
+There are other minor changes to the API:
 
 - The `field` property no longer exists. The field name is now the first argument of the `addField` function.
-- The `dependencies` property is now required.
-  - It is an array of field names that the `getValues()` function depends on.
-  - Unlike the legacy agent, the new agent will not automatically fetch the whole record.
-  - You can [fetch data from relations](../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-a-many-to-one-relationship) using the `dependencies` property!
-  - You can also fetch data from other computed fields using the `dependencies` property.
-- The `reference` property no longer exists. You can port `Smart Relationships` by following the [appropriate guide](./smart-relationships.md).
+- The `reference` property no longer exists: use the [smart relationships guide](./smart-relationships.md).
 - The `enums` property was renamed to `enumValues`.
-- The `get` function is now called `getValues`
-  - It no longer takes a single record as its first argument, but an array of records.
-  - It now returns an array of values, one for each record, in the same order.
+
+### Example
+
+In the following example, we will port a field that fetches the full address of a user from a third-party service.
+
+When displaying a list of records, the new agent will only make one call to the API, and then display the results for all records, instead of making one call per record.
 
 {% tabs %} {% tab title="Before" %}
 
@@ -105,5 +115,56 @@ agent.customizeCollection('users', users => {
 ## Step 2: Make it writable
 
 If the field is writable, you will need to call another customization function: `collection.replaceFieldWriting()`.
+
+This part is very similar to the legacy agent.
+
+{% tabs %} {% tab title="Before" %}
+
+```javascript
+collection('users', {
+  fields: [
+    {
+      field: 'full_address',
+      type: 'String',
+      get: /* ... same as before ... */,
+      set: async (user, value) => {
+        const address = await geoWebService.getAddress(customer.address_id);
+
+        address.address_line_1 = value.split('\n')[0];
+        address.address_line_2 = value.split('\n')[1];
+        address.address_city = value.split('\n')[2];
+        address.country = value.split('\n')[3];
+
+        await geoWebService.updateAddress(address);
+      },
+    },
+  ],
+});
+```
+
+{% endtab %} {% tab title="After" %}
+
+```javascript
+agent.customizeCollection('users', users => {
+  users
+    .addField('full_address', { /* ... same as before ... */ })
+    .replaceFieldWriting('full_address', (value, context) => {
+      const address = await geoWebService.getAddress(customer.address_id);
+
+      address.address_line_1 = value.split('\n')[0];
+      address.address_line_2 = value.split('\n')[1];
+      address.address_city = value.split('\n')[2];
+      address.country = value.split('\n')[3];
+
+      await geoWebService.updateAddress(address);
+
+      // You can optionally return a hash of attributes to update
+      // Updating relations is also supported (see relevant guide)
+      return {};
+    });
+});
+```
+
+{% endtab %} {% endtabs %}
 
 ## Step 3: Make it filterable

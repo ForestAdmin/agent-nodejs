@@ -28,7 +28,6 @@ export default function makeAgent() {
     isProduction: false,
     loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
-    schemaPath,
   };
 
   return createAgent<Schema>(envOptions)
