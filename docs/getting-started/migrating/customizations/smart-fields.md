@@ -28,7 +28,7 @@ If you were using a smart field to move a field from one collection to another o
 
 # Steps
 
-## Step 1: Implement a read-only version of the field
+## Step 1: Implement a read-only version of the field ([Docs](../../../agent-customization/fields/computed.md))
 
 Computed fields in the new agent are declared by calling the `addField` function on the appropriate collection.
 
@@ -52,6 +52,7 @@ The `get` function is now called `getValues`: it no longer takes a single record
 
 There are other minor changes to the API:
 
+- the `type` property was renamed to `columnType`.
 - The `field` property no longer exists. The field name is now the first argument of the `addField` function.
 - The `reference` property no longer exists: use the [smart relationships guide](./smart-relationships.md).
 - The `enums` property was renamed to `enumValues`.
@@ -112,11 +113,11 @@ agent.customizeCollection('users', users => {
 
 {% endtab %} {% endtabs %}
 
-## Step 2: Make it writable
+## Step 2: Implement write handler ([Docs](../../../agent-customization/fields/write.md))
 
-If the field is writable, you will need to call another customization function: `collection.replaceFieldWriting()`.
+If you want your computed field to be writable, you will need to call the `.replaceFieldWriting()` function.
 
-This part is very similar to the legacy agent.
+This part is very similar to the legacy agent. The API change is because this function can be used to make any field writable, not just computed fields, or to change the default writing behavior of a normal field.
 
 {% tabs %} {% tab title="Before" %}
 
@@ -167,4 +168,74 @@ agent.customizeCollection('users', users => {
 
 {% endtab %} {% endtabs %}
 
-## Step 3: Make it filterable
+## Step 3: Implement the filters you use ([Docs](../../../agent-customization/fields/filter.md))
+
+### Structure
+
+Implementing filters in the new agent is done operator by operator, instead of using a single function.
+
+This allows more fine-grained control over the behavior of each operator and makes it possible to implement only the operators you need.
+
+Also note that unlike in the legacy agent, [automatic operator replacement](../../../under-the-hood/queries/filters.md#operator-equivalence) will be performed by the agent, so the number of operators that you need to implement to unlock all filtering is much lower.
+
+### Return value
+
+Because the new forest admin agent is designed to work with multiple databases, the return value of the filter function is not a sequelize or mongoose condition anymore.
+
+Instead, you'll be building a [condition tree](../../../under-the-hood/queries/filters.md#condition-trees) that will be translated to the appropriate database syntax by the agent.
+
+### Emulation
+
+At the cost of performance, you can tell the agent to [emulate](../../../agent-customization/fields/filter.md#emulation) the behavior of a given operator by calling the `.emulateFieldOperator()` function.
+
+### Example
+
+{% tabs %} {% tab title="Before" %}
+
+```javascript
+collection('users', {
+  fields: [
+    {
+      field: 'full_address',
+      type: 'String',
+      get: /* ... same as before ... */,
+      filter: ({ condition, where }) => {
+        switch (condition.operator) {
+          case 'equal':
+            return { $and: [/* ... sequelize or mongoose conditions ... */] };
+          case 'less_than':
+            return { $and: [/* ... sequelize or mongoose conditions ... */] };
+
+          // [...] all other operators
+        }
+      },
+    },
+  ],
+});
+```
+
+{% endtab %} {% tab title="After" %}
+
+```javascript
+agent.customizeCollection('users', users => {
+  users
+    .addField('full_address', { /* ... same as before ... */ })
+
+    // Implement the operators you actually use for best performance.
+    .replaceFieldOperator('full_address', 'Equal', (value, context) => ({
+      aggregator: 'And', conditions: [{ /* ... forest admin query interface conditions ... */ }]
+    })
+    .replaceFieldOperator('full_address', 'LessThan', (value, context) => ({
+      aggregator: 'And', conditions: [{ /* ... forest admin query interface conditions ... */ }]
+    })
+
+    // Emulate the other operators with the ones you implemented.
+    .emulateFieldOperator('full_address', 'GreaterThan')
+    .emulateFieldOperator('full_address', 'NotEqual')
+
+    // [Or] Emulate all operators which are not already defined at once
+    .emulateFieldFiltering('full_address');
+});
+```
+
+{% endtab %} {% endtabs %}

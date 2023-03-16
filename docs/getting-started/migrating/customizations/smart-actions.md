@@ -18,7 +18,7 @@ In the new agent, the process is simplified to a single step.
 
 # Steps
 
-## Step 1: Calling `addAction` for the appropriate collection
+## Step 1: Calling `addAction` for the appropriate collection ([Docs](../../../agent-customization/actions/scope-context.md))
 
 Start by calling the `addAction` function on the appropriate collection and passing the appropriate parameters.
 
@@ -58,11 +58,11 @@ agent.customizeCollection('companies', companies => {
 
 {% endtab %} {% endtabs %}
 
-## Step 2: Porting the form definition
+## Step 2: Porting the form definition ([Docs](../../../agent-customization/actions/forms.md))
 
 Forms are now defined in the `form` property of the action.
 
-You can simply copy the fields definition from the legacy agent to the new agent with the following differences:
+You can simply copy the field's definition from the legacy agent to the new agent with the following differences:
 
 - `fields` should become `form`.
 - `widget` choice is no longer supported. A default widget will be used depending on the field type.
@@ -111,7 +111,7 @@ agent.customizeCollection('customers', companies => {
 
 {% endtab %} {% endtabs %}
 
-## Step 3: Porting the route to the new agent `execute` function
+## Step 3: Porting the route to the new agent `execute` function ([Docs](../../../agent-customization/actions/result-builder.md))
 
 In the legacy agent, users had to implement the action by creating a route handler in the appropriate `routes/*.js` file.
 
@@ -169,7 +169,7 @@ agent.customizeCollection('companies', companies => {
 
 {% endtab %} {% endtabs %}
 
-## Step 4: Porting smart action hooks
+## Step 4: Porting smart action hooks ([Docs](../../../agent-customization/actions/forms.md#dynamic-configuration))
 
 Load hooks and change hooks have been replaced on the new agent by the possibility to use callbacks in the form definition.
 

@@ -75,3 +75,38 @@ export default function makeAgent() {
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview);
 }
+
+
+collection('users', {
+  fields: [
+    {
+      field: 'full_address',
+      type: 'String',
+      get: /* ... same as before ... */,
+      filter: ({ condition, where }) => {
+        switch (condition.operator) {
+          case 'equal':
+            return {$and: [{ firstname: firstWord },{ lastname: secondWord || '' }]};
+          case 'ends_with':
+            if (!secondWord) {
+              return {
+                lastname: { $regex: `.*${firstWord}` },
+              };
+            }
+            return {
+              $and: [
+                { firstname: { $regex: `.*${firstWord}` } },
+                { lastname: secondWord },
+              ],
+            };
+
+          // ... And so on with the other operators not_equal, starts_with, etc.
+
+          default:
+            return null;
+        }
+      },
+
+    },
+  ],
+});
