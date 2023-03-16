@@ -9,7 +9,7 @@ This file is a JSON file that describes:
 
 The goal of the migration is to make sure that your new agent generates a `.forestadmin-schema.json` that is as similar as possible to the old one, and that you can account for the differences.
 
-# Recommended migration process
+# Migration process
 
 ## For standalone agents
 
@@ -61,3 +61,11 @@ To do so, you will need to port your code from the old agent to the new one.
 The process is different depending on the type of customizations that you have made.
 
 More information about the differences between the two agents can be found in the [customization migration guide](./customizations/README.md).
+
+# Recommendations
+
+When migrating from a previous version of the Agent, your objective is to make sure that your old agent can be substituted by the new one.
+
+When you start coding, you will notice that the new API allows you to do a lot more than the old one, or to use much more performant code and will be tempted to use it as you go.
+
+We recommend that you do not do that and that you restrict yourself to shorten the migration process as much as possible.

@@ -6,14 +6,14 @@ This was done to reduce the complexity of the code and to make it easier to unde
 
 # Code cheatsheet
 
-| Legacy agent                              | New agent                                                  |
-| ----------------------------------------- | ---------------------------------------------------------- |
-| get: (record) => { ... }                  | getValues: (records) => { ... }                            |
-| set: (record, value) => { ... }           | .replaceFieldWriting(...)                                  |
-| filter: ({ condition, where }) => { ... } | .replaceFieldFiltering(...)<br>.emulateFieldFiltering(...) |
-| type: 'String'                            | columnType: 'String'                                       |
-| enums: ['foo', 'bar']                     | columnType: 'Enum', enumValues: ['foo', 'bar']             |
-| reference: 'otherCollection.id'           | [Use a smart relationship](./smart-relationships.md)       |
+| Legacy agent                              | New agent                                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- |
+| get: (record) => { ... }                  | getValues: (records) => { ... }                                                        |
+| set: (record, value) => { ... }           | .replaceFieldWriting(...)                                                              |
+| filter: ({ condition, where }) => { ... } | .replaceFieldOperator(...)<br>.emulateFieldOperator(...)<br>emulateFieldFiltering(...) |
+| type: 'String'                            | columnType: 'String'                                                                   |
+| enums: ['foo', 'bar']                     | columnType: 'Enum', enumValues: ['foo', 'bar']                                         |
+| reference: 'otherCollection.id'           | [Use a smart relationship](./smart-relationships.md)                                   |
 
 # Do you still need a computed field?
 
@@ -180,7 +180,7 @@ Also note that unlike in the legacy agent, [automatic operator replacement](../.
 
 ### Return value
 
-Because the new forest admin agent is designed to work with multiple databases, the return value of the filter function is not a sequelize or mongoose condition anymore.
+Because the new forest admin agent is designed to work with multiple databases, the return value of the filter function is not a Sequelize or mongoose condition anymore.
 
 Instead, you'll be building a [condition tree](../../../under-the-hood/queries/filters.md#condition-trees) that will be translated to the appropriate database syntax by the agent.
 
