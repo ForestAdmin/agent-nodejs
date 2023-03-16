@@ -60,7 +60,7 @@ To do so, you will need to port your code from the old agent to the new one.
 
 The process is different depending on the type of customizations that you have made.
 
-More information about the differences between the two agents can be found in the [customization migration guide](./customizations/README.md).
+More information about the differences between the two agents can be found in the [customization migration guide](./customizations).
 
 # Recommendations
 

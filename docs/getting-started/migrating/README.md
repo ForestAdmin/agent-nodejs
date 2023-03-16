@@ -37,9 +37,9 @@ In the meantime, JavaScript’s ecosystem has substantially evolved, and althoug
 
 ## Agnostic to web frameworks and ORMs
 
-This new Agent no longer cares about either the web framework or the ORM in use – it natively integrates with [Express](./install/expose/using-express.md), [Fastify](./install/expose/using-fastify.md), [Nest.js](./install/expose/using-nest.md), and [Koa](./install/expose/using-koa.md).
+This new Agent no longer cares about either the web framework or the ORM in use – it natively integrates with [Express](../install/expose/using-express.md), [Fastify](../install/expose/using-fastify.md), [Nest.js](../install/expose/using-nest.md), and [Koa](../install/expose/using-koa.md).
 
-Customers working on other frameworks can still use the Agent by mounting it in [standalone mode](./install/expose/using-standalone.md) and by using a reverse proxy.
+Customers working on other frameworks can still use the Agent by mounting it in [standalone mode](../install/expose/using-standalone.md) and by using a reverse proxy.
 
 You can also connect to your database directly and use automatic model introspection: you will no longer need to maintain Sequelize.js models if you are using another ORM for your production app.
 
@@ -62,7 +62,7 @@ Many apps now use specific data sources for specific features – ElasticSearch 
 
 With our first Agent, the paradigm was to have a single database connection, and Forest Admin released a different library for each data source type.
 
-We now support multiple data sources in the same project: you can [connect as many as you need](../datasources/connection/README.md), combine relational and non-relational databases, and use different ORMs for each one.
+We now support multiple data sources in the same project: you can [connect as many as you need](../../datasources/connection/README.md), combine relational and non-relational databases, and use different ORMs for each one.
 
 ```javascript
 createAgent()
@@ -71,13 +71,13 @@ createAgent()
   .addDataSource(createSqlDataSource('postgres://localhost:5432/my_database'));
 ```
 
-You are also free to [implement your connectors](../datasources/custom/README.md) to any data source that you want, even to your in-house APIs.
+You are also free to [implement your connectors](../../datasources/custom/README.md) to any data source that you want, even to your in-house APIs.
 
 ## Autocompletion and typing system
 
 In 2016, the vast majority of projects did not use a typing system.
 
-This is no longer the case and we adapted to that change as well: the new agent is completely written in [TypeScript](https://www.typescriptlang.org/), and [automatically generates type definitions](./install/autocompletion-and-typings.md) on the databases that are plugged into your agent.
+This is no longer the case and we adapted to that change as well: the new agent is completely written in [TypeScript](https://www.typescriptlang.org/), and [automatically generates type definitions](../install/autocompletion-and-typings.md) on the databases that are plugged into your agent.
 
 When coding you will get autocompletion and type-checking on your models.
 
@@ -101,7 +101,7 @@ As such, our customers have a unique understanding of the value and limits of ou
 
 We've made a major change in the way we design our API and are now using a more functional approach: instead of having a generated codebase that you modify, you now start from an empty project and add custom behaviors by registering your logic with side-effect-free functions.
 
-As a customer, the new [API is much higher-level](../agent-customization/fields/README.md): you won't be dealing with low-level concepts such as "routes" or "query-string", but instead you will be dealing with "actions", "fields", and "segments".
+As a customer, the new [API is much higher-level](../../agent-customization/fields/README.md): you won't be dealing with low-level concepts such as "routes" or "query-string", but instead you will be dealing with "actions", "fields", and "segments".
 
 ```javascript
 createAgent().customizeCollection('books', books => {
