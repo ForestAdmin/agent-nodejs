@@ -7,14 +7,6 @@ In legacy agents declaring a smart action was a two-step process:
 
 In the new agent, the process is simplified to a single step.
 
-## Code cheatsheet
-
-| Legacy agent                                           | New agent                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `type: 'single'`<br>`type: 'bulk'`<br>`type: 'global'` | `scope: 'Single'`<br>`scope: 'Bulk'`<br>`scope: 'Global'`                 |
-| `RecordsGetter.getIdsFromRequest()`                    | `context.getRecordIds()`                                                  |
-| `res.send(...)`                                        | `return resultBuilder.success()`<br>`return resultBuilder.error()`<br>... |
-
 ## Steps
 
 ### Step 1: Calling `addAction` for the appropriate collection
