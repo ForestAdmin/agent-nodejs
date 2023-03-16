@@ -1,6 +1,6 @@
 You may want to migrate from a legacy agent to this new agent. This guide will help you do so.
 
-The new agent is built with a different architecture and has no retro compatibility with the legacy agents. However, because all features are available in the new agent, you can still migrate to it.
+The new agent is built with a different architecture and breaks API retro compatibility with the legacy agents in many ways. However, because all features are available in the new agent, you can still migrate to it.
 
 # Am I using a legacy agent?
 

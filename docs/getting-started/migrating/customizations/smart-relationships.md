@@ -11,7 +11,7 @@ The new system is completely different: it is based on primary keys and foreign 
 
 # Migrating
 
-## Relationships when the foreign key is accessible ([Docs](../../../agent-customization/relationships/single-record.md))
+## Relationships when the foreign key is accessible ([docs](../../../agent-customization/relationships/single-record.md))
 
 {% tabs %} {% tab title="Before" %}
 
@@ -56,7 +56,7 @@ agent.customizeCollection('order', orders => {
 
 {% endtab %} {% endtabs %}
 
-## Relationships when you need complex logic to get a foreign key ([Docs](../../../agent-customization/relationships/computed-fks.md))
+## Relationships when you need complex logic to get a foreign key ([docs](../../../agent-customization/relationships/computed-fks.md))
 
 In this example, we want to create a relationship between the `order` collection and the `address` collection
 (assuming that it does not already exist in the database because depends on complex logic).

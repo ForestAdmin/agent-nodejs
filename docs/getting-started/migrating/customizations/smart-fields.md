@@ -28,7 +28,7 @@ If you were using a smart field to move a field from one collection to another o
 
 # Steps
 
-## Step 1: Implement a read-only version of the field ([Docs](../../../agent-customization/fields/computed.md))
+## Step 1: Implement a read-only version of the field ([docs](../../../agent-customization/fields/computed.md))
 
 Computed fields in the new agent are declared by calling the `addField` function on the appropriate collection.
 
@@ -113,7 +113,7 @@ agent.customizeCollection('users', users => {
 
 {% endtab %} {% endtabs %}
 
-## Step 2: Implement write handler ([Docs](../../../agent-customization/fields/write.md))
+## Step 2: Implement write handler ([docs](../../../agent-customization/fields/write.md))
 
 If you want your computed field to be writable, you will need to call the `.replaceFieldWriting()` function.
 
@@ -168,7 +168,7 @@ agent.customizeCollection('users', users => {
 
 {% endtab %} {% endtabs %}
 
-## Step 3: Implement the filters you use ([Docs](../../../agent-customization/fields/filter.md))
+## Step 3: Implement the filters you use ([docs](../../../agent-customization/fields/filter.md))
 
 ### Structure
 
