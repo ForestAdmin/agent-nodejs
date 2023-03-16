@@ -1,4 +1,11 @@
-Smart Segments are a simple feature.
+Smart Segments should be quick to migrate, as the syntax is very similar to the legacy agent.
+
+# Code cheatsheet
+
+| Legacy agent    | New agent                                                                    |
+| --------------- | ---------------------------------------------------------------------------- |
+| where:          | handler body                                                                 |
+| sequelize.where | [condition tree](../../../under-the-hood/queries/filters.md#condition-trees) |
 
 # How to migrate
 
