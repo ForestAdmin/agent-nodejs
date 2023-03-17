@@ -11,7 +11,7 @@ When migrating from a previous version of the Agent, your objective is to make s
 
 When you start coding, you will notice that the new API allows you to do a lot more than the old one, or to use much more performant code and will be tempted to use it as you go.
 
-We recommend that you do not do that and that you restrict yourself to shorten the migration process as much as possible.
+For small migrations, you may as well just do that, but for big agents, we recommend shortening the migration process as much as possible by restraining yourself to the minimum amount of changes.
 
 # Migration steps
 

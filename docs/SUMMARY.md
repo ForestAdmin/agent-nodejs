@@ -20,8 +20,11 @@
 
 - [Migrating legacy agents](getting-started/migrating/README.md)
   - [Getting started](getting-started/migrating/getting-started.md)
-  - [Connecting data sources](getting-started/migrating/datasources.md)
-  - [Porting customizations](getting-started/migrating/customizations)
+  - Connecting data sources
+    - [forest-express-sequelize](getting-started/migrating/datasources/forest-express-sequelize.md)
+    - [forest-express-mongoose](getting-started/migrating/datasources/forest-express-mongoose.md)
+    - [Others](getting-started/migrating/datasources/others.md)
+  - Porting customizations
     - [API Charts](getting-started/migrating/customizations/api-charts.md)
     - [Smart Actions](getting-started/migrating/customizations/smart-actions.md)
     - [Smart Fields](getting-started/migrating/customizations/smart-fields.md)
