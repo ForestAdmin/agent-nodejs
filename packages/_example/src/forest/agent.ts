@@ -73,5 +73,10 @@ export default function makeAgent() {
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
-    .customizeCollection('review', customizeReview);
+    .customizeCollection('review', customizeReview)
+    .use(async ds => {
+      for (const collection of ds.collections)
+        for (const field of Object.keys(collection.schema.fields))
+          collection.renameField(field, field.toUpperCase());
+    });
 }

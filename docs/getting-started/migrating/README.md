@@ -19,7 +19,7 @@ Legacy agents are still supported, and we will continue to do so for a while.
 
 No end-of-life date has been set yet, but it will be announced on a minimal 18 months period guarantee.
 
-To give more visibility to our developers' community, about agent usability and support in the future, you will find, [in this page](https://docs.forestadmin.com/documentation/how-tos/releases-support), the important lifecycle dates per agent stack and versions.
+To give more visibility to our developers' community, about agent usability and support in the future, you will find [on this page](https://docs.forestadmin.com/documentation/how-tos/releases-support) the important lifecycle dates per agent stack and versions.
 
 # Why migrate?
 
