@@ -1,5 +1,10 @@
 To connect your new agent to a SQL database, you have two options:
 
+|     | Keep Sequelize | Connect directly to the database |
+| --- | -------------- | -------------------------------- |
+
+|
+
 - Use the `Sequelize` ORM, like the old agent.
 - Connect directly to the database using the `@forestadmin/datasource-sql` package.
 

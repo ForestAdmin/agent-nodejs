@@ -19,17 +19,19 @@
   - [Troubleshooting](getting-started/install/troubleshooting.md)
 
 - [Migrating legacy agents](getting-started/migrating/README.md)
-  - [Getting started](getting-started/migrating/getting-started.md)
-  - Connecting data sources
-    - [forest-express-sequelize](getting-started/migrating/datasources/forest-express-sequelize.md)
-    - [forest-express-mongoose](getting-started/migrating/datasources/forest-express-mongoose.md)
-    - [Others](getting-started/migrating/datasources/others.md)
-  - Porting customizations
+  - [Steps and recommendations](getting-started/migrating/steps-recommendations.md)
+  - [Creating a temporary project](getting-started/migrating/create-temporary-project.md)
+  - Connecting the database
+    - [For express + SQL](getting-started/migrating/datasources/sql.md)
+    - [For express + MongoDB](getting-started/migrating/datasources/mongo.md)
+    - [For others](getting-started/migrating/datasources/others.md)
+  - Porting Customizations
     - [API Charts](getting-started/migrating/customizations/api-charts.md)
     - [Smart Actions](getting-started/migrating/customizations/smart-actions.md)
     - [Smart Fields](getting-started/migrating/customizations/smart-fields.md)
     - [Smart Relationships](getting-started/migrating/customizations/smart-relationships.md)
     - [Smart Segments](getting-started/migrating/customizations/smart-segments.md)
+  - [Final checklist](getting-started/migrating/checklist.md)
   - [Troubleshooting](getting-started/migrating/troubleshooting.md)
 
 ## Data Sources

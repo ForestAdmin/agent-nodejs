@@ -1,25 +1,6 @@
-The new agent is built with a different architecture and breaks API retro compatibility with the legacy agents.
-
-Migrating is not a complex process, but **it cannot be done incrementally**.
-Customers have reported that they achieved this in a single working day, but it ultimately depends on the complexity of your project.
-
-Projects which apply a few customizations to their collections will be able to migrate in a few hours, while others that heavily rely on features such as [Smart Collections](https://docs.forestadmin.com/documentation/reference-guide/smart-collections) will need more time.
-
-# Recommendations
-
-When migrating from a previous version of the Agent, your objective is to make sure that your old agent can be substituted by the new one.
-
-When you start coding, you will notice that the new API allows you to do a lot more than the old one, or to use much more performant code and will be tempted to use it as you go.
-
-For small migrations, you may as well just do that, but for big agents, we recommend shortening the migration process as much as possible by restraining yourself to the minimum amount of changes.
-
-# Migration steps
-
-## Step 1: Create a temporary project
-
-The first step of every migration should be the creation of a temporary project using the onboarding wizard.
-
 This project will be used to test your new agent before replacing the old one.
+
+The only consideration that you need to take into account for this step is that you want to be able to run both agents side by side.
 
 ### For standalone agents
 
@@ -53,41 +34,3 @@ createAgent({
 ```
 
 <!-- FIXME add a screenshot of the UI where we show how to add the prefix in the app url -->
-
-## Step 2: Connect the new agent to the same databases as the old one
-
-Some thoughts should be given to the way you connect your new agent to your databases.
-
-Follow the [dedicated guide](./datasources) to learn more about the differences between the two agents and how to connect your new agent to your databases.
-
-## Step 3: Port customizations
-
-More information about the differences between the two agents can be found in the [customization migration guide](./customizations).
-
-## Step 4: Make the schemas match
-
-To achieve this, you have a tool at your disposal: [the `.forestadmin-schema.json` file](../../under-the-hood/forestadmin-schema.md).
-
-This file is a JSON file that describes:
-
-- The structure of the data that is exposed in the Forest Admin UI
-- The list of customizations that you have made (actions, charts, fields, relationships, segments, ...)
-
-The goal of the migration is to make sure that your new agent generates a `.forestadmin-schema.json` that is as similar as possible to the old one, and that you can account for the differences.
-
-Once you have both agents running, you will need to make sure that the schemas match before you can replace the old agent with the new one.
-
-To do so, you will need to port your code from the old agent to the new one.
-
-The process is different depending on the type of customizations that you have made.
-
-## Step 5: Replace the old agent with the new one
-
-Once all those steps are done, you can go ahead and replace the old agent with the new one in your development environment!
-
-This is done by stopping the old agent and changing the configuration of your new agent so that all settings match with the old one (`URL prefix`, `port`, `envSecret` and `authSecret`).
-
-Your project will then be migrated to the new agent, and you can delete both:
-
-- The old agent code from your source tree
-- The temporary project that you created.

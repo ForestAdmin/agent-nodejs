@@ -243,7 +243,7 @@ collection('customers', {
             const amountField = fields.find(field => field.field === 'amount');
             const motivationField = fields.find(field => field.field === 'motivation');
 
-            motivationField.isRequired = amountField.values > 100;
+            motivationField.isRequired = amountField.value > 100;
 
             return fields;
           },
