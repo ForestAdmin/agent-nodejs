@@ -1,4 +1,4 @@
-To connect the new agent to a MongoDB instance, you still need to use the `mongoose` ODM.
+Connecting to a MongoDB instance is very similar: using the `mongoose` ODM is required (we support versions 6.x and 7.x of `mongoose`).
 
 You will need to:
 

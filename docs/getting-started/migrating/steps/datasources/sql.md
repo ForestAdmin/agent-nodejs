@@ -1,17 +1,11 @@
 To connect your new agent to a SQL database, you have two options:
 
-|     | Keep Sequelize | Connect directly to the database |
-| --- | -------------- | -------------------------------- |
-
-|
-
-- Use the `Sequelize` ORM, like the old agent.
-- Connect directly to the database using the `@forestadmin/datasource-sql` package.
-
-The choice depends on your use case:
-
-- Customers that have in-app installations and use the `Sequelize` ORM in their code will probably want to keep using it.
-- Others that only used `Sequelize` because it was a requirement in the legacy agents will probably want to connect directly to their database and stop maintaining their `Sequelize` models.
+|          | Keep Sequelize                                                                     | Connect directly to the database                                                    |
+| -------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| How      | Use the `@forestadmin/datasource-sequelize` package                                | Use the `@forestadmin/datasource-sql` package                                       |
+| For whom | Customers that have in-app installations and use the `Sequelize` ORM in their code | Others that only used `Sequelize` because it was a requirement in the legacy agents |
+| Benefits | Migration is less error-prone                                                      | You no longer need to maintain `Sequelize` models                                   |
+| Cons     |                                                                                    | You may need to rename your tables and fields to match the old install              |
 
 # If you choose to keep using `Sequelize`
 
@@ -62,7 +56,7 @@ const agent = createAgent(options)
 
   // Note that in your code, you will use the camelCase names.
   .addDataSource(createSqlDataSource('postgres://user:pass@localhost:5432/myDatabase'), {
-    rename: name => name.replace(/(_\w)/g, k => k[1].toUpperCase()),
+    rename: toCamelCase,
   })
 
   // If your field names do not match between the old and new agent
@@ -73,6 +67,6 @@ const agent = createAgent(options)
   .use(async ds => {
     for (const collection of ds.collections)
       for (const field of Object.keys(collection.schema.fields))
-        collection.renameField(field, field.toUpperCase());
+        collection.renameField(field, toCamelCase(field));
   });
 ```
