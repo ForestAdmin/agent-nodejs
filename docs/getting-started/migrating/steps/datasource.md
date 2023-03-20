@@ -1,3 +1,29 @@
+## Migrating from `forest-express-sequelize`
+
+When using the onboarding wizard, you connected to your database using the `@forestadmin/datasource-sql` connector. To ease the migration, we recommend that switch to the `@forestadmin/datasource-sequelize` connector.
+
+Start by changing the dependency in your agent
+
+```console
+$ npm remove @forestadmin/datasource-sql
+$ npm install @forestadmin/datasource-sequelize
+```
+
+Then you will need to copy your `Sequelize` models to the new project and change the `index` file.
+
+```javascript
+const { createAgent } = require('@forestadmin/agent');
+const { createSequelizeDataSource } = require('@forestadmin/datasource-sequelize');
+const sequelize = require('./sequelize-models');
+
+// Create agent and import collections from sequelize
+const agent = createAgent(options).addDataSource(createSequelizeDataSource(sequelize));
+```
+
+## Migrating from `forest-express-mongoose`
+
+### Connect to the database
+
 Connecting to a MongoDB instance is very similar: using the `mongoose` ODM is required (we support versions 6.x and 7.x of `mongoose`).
 
 You will need to:
@@ -15,7 +41,7 @@ const connection = require('./mongoose-models');
 const agent = createAgent(options).addDataSource(createMongooseDataSource(connection));
 ```
 
-# Replicate your legacy agent flattener configuration
+### Replicate your legacy agent flattener configuration
 
 If you are using the `forest-express-mongoose` agent, you probably are using the [flattener](https://docs.forestadmin.com/documentation/how-tos/setup/flatten-nested-fields-mongodb) feature.
 
@@ -71,3 +97,9 @@ const agent = createAgent(options).addDataSource(
 ```
 
 {% endtab %} {% endtabs %}
+
+## Migrating from another agent
+
+Rails and Django agents should be migrated using the `@forestadmin/datasource-sql` package.
+
+You have nothing to do in that step, as this is the default when onboarding a new project.

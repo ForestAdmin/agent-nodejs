@@ -7,30 +7,16 @@ To connect your new agent to a SQL database, you have two options:
 | Benefits | Migration is less error-prone                                                      | You no longer need to maintain `Sequelize` models                                   |
 | Cons     |                                                                                    | You may need to rename your tables and fields to match the old install              |
 
-# If you choose to keep using `Sequelize`
+If you wish to migrate to the new `@forestadmin/datasource-sql` connectors, you will need to:
 
-In that case, you will need to:
+Changing the dependency in your agent:
 
-- Install the `@forestadmin/datasource-sequelize` package.
-- Copy your `Sequelize` models to the new project.
-- Use the `@forestadmin/datasource-sequelize` connector.
-
-```javascript
-const { createAgent } = require('@forestadmin/agent');
-const { createSequelizeDataSource } = require('@forestadmin/datasource-sequelize');
-const sequelize = require('./sequelize-models');
-
-// Create agent and import collections from sequelize
-const agent = createAgent(options).addDataSource(createSequelizeDataSource(sequelize));
+```console
+$ npm remove @forestadmin/datasource-sequelize
+$ npm install @forestadmin/datasource-sql
 ```
 
-# If you choose to connect directly to the database
-
-In that case, you will need to start with:
-
-- Install the `@forestadmin/datasource-sql` package.
-- Install one of the supported SQL drivers: `mariadb`, `tedious`, `mysql2`, `oracledb`, `pg` or `sqlite3`.
-- Create a new connection to the same database as the old one.
+Then you can delete your `Sequelize` models and change the `index` file.
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
@@ -42,7 +28,7 @@ const agent = createAgent(options).addDataSource(
 );
 ```
 
-Then, depending on your database structure, you may need to rename both your tables and columns: the new agent will use the same names as your database, but depending on your previous Sequelize configuration, your previous agent may have renamed all tables and fields to `camelCase`.
+Then, depending on your database structure, you may need to rename both your tables and columns: the new agent will use the same names as your database, but depending on your previous Sequelize configuration, `Sequelize` may have renamed all tables and fields to `camelCase`.
 
 Renaming tables and fields can be done by following this example:
 

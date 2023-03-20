@@ -1,1 +1,0 @@
-Rails and Django agents should be migrated using the [same process](./sql.md#if-you-choose-to-connect-directly-to-the-database) as the `forest-express-sequelize` agent using the `@forestadmin/datasource-sql` package.
