@@ -8,8 +8,6 @@ The reason is that when you replace the old agent with the new one, you want to 
 - Segments and charts
 - ...
 
-More information about how to check that is available in the [dedicated guide](./schema).
-
 This can happen because when saving UI customizations, collections and fields are identified by their name which may have changed between the two agents.
 
 To ensure that this does not happen, you have a tool at your disposal: [the `.forestadmin-schema.json` file](../../under-the-hood/forestadmin-schema.md).

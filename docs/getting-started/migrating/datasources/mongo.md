@@ -19,7 +19,7 @@ const agent = createAgent(options).addDataSource(createMongooseDataSource(connec
 
 If you are using the `forest-express-mongoose` agent, you probably are using the [flattener](https://docs.forestadmin.com/documentation/how-tos/setup/flatten-nested-fields-mongodb) feature.
 
-In the new agent, the flattener is [more capable](../../datasources/provided/mongoose.md), but the behavior of the new `auto` mode is different.
+In the new agent, the flattener is [more capable](../../../datasources/provided/mongoose.md), but the behavior of the new `auto` mode is different.
 
 To replicate the behavior of the old agent, you will need to use the `manual` mode and configure the flattener manually.
 

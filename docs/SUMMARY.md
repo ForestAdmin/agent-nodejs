@@ -20,7 +20,7 @@
 
 - [Migrating legacy agents](getting-started/migrating/README.md)
   - [Steps and recommendations](getting-started/migrating/steps-recommendations.md)
-  - [Creating a temporary project](getting-started/migrating/create-temporary-project.md)
+  - [Getting started](getting-started/migrating/getting-started.md)
   - Connecting the database
     - [For express + SQL](getting-started/migrating/datasources/sql.md)
     - [For express + MongoDB](getting-started/migrating/datasources/mongo.md)
