@@ -45,12 +45,14 @@ router.get('/address/:id/relationships/orders', (req, res) => {
 {% endtab %} {% tab title="After" %}
 
 ```javascript
+// Create the relationship
 agent.customizeCollection('order', orders => {
-  // Create the relationship
   orders.addManyToOneRelation('deliveryAddress', 'address', { foreignKey: 'deliveryAddressId' });
+});
 
-  // Create the reverse relationship
-  orders.addOneToManyRelation('orders', 'order', { originKey: 'deliveryAddressId' });
+// Create the reverse relationship
+agent.customizeCollection('address', addresses => {
+  addresses.addOneToManyRelation('orders', 'order', { originKey: 'deliveryAddressId' });
 });
 ```
 
