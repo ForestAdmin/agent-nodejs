@@ -10,7 +10,7 @@ In the new agent, you will need to use either the `agent.addChart` or the `colle
 | Liana.StatSerializer     | return resultBuilder.value(...)<br>return resultBuilder.distribution(...) |
 | request.query?.record_id | context.recordId                                                          |
 
-# How to migrate ([docs](../../../agent-customization/charts/README.md))
+# How to migrate ([docs](../../../../agent-customization/charts/README.md))
 
 Migrating should be straightforward: the only difference are that:
 

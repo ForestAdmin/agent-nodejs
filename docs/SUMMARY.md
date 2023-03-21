@@ -20,20 +20,22 @@
 
 - [Migrating legacy agents](getting-started/migrating/README.md)
   - [What's new](getting-started/migrating/what-is-new.md)
+  - [Pre-requisites](getting-started/migrating/pre-requisites.md)
   - [Recommendations](getting-started/migrating/recommendations.md)
-  - [Steps](getting-started/migrating/steps/README.md)
+  - [Migration steps](getting-started/migrating/steps/README.md)
     - [Run new agent in parallel](getting-started/migrating/steps/run-parallel.md)
     - [Configure database connection](getting-started/migrating/steps/datasource.md)
     - Code transformations
       - [API Charts](getting-started/migrating/steps/customizations/api-charts.md)
-      - [Port Smart Actions](getting-started/migrating/steps/customizations/smart-actions.md)
-      - [Port Smart Fields](getting-started/migrating/steps/customizations/smart-fields.md)
-      - [Port Smart Relationships](getting-started/migrating/steps/customizations/smart-relationships.md)
-      - [Port Smart Segments](getting-started/migrating/steps/customizations/smart-segments.md)
+      - [Smart Actions](getting-started/migrating/steps/customizations/smart-actions.md)
+      - [Smart Fields](getting-started/migrating/steps/customizations/smart-fields.md)
+      - [Smart Relationships](getting-started/migrating/steps/customizations/smart-relationships.md)
+      - [Smart Segments](getting-started/migrating/steps/customizations/smart-segments.md)
     - [Compare schemas](getting-started/migrating/steps/compare.md)
-    - [Test your agent](getting-started/migrating/steps/test.md)
     - [Swap agents](getting-started/migrating/steps/replace.md)
-  - [Troubleshooting](getting-started/migrating/troubleshooting.md)
+  - Post-migration
+    - [Dropping Sequelize](getting-started/migrating/post/drop-sequelize.md)
+    - [Optimize your agent](getting-started/migrating/post/optimize.md)
 
 ## Data Sources
 

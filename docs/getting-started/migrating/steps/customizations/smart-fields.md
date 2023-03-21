@@ -23,12 +23,12 @@ In the new agent, we have introduced two new concepts that can replace many of t
 
 If you were using a smart field to move a field from one collection to another or to create a link to another record in the UI, you can likely use one of these much simpler solutions.
 
-- [Moving fields](../../../agent-customization/fields/import-rename-delete.md#moving-fields)
-- [Relationships](../../../agent-customization/relationships/README.md)
+- [Moving fields](../../../../agent-customization/fields/import-rename-delete.md#moving-fields)
+- [Relationships](../../../../agent-customization/relationships/README.md)
 
 # Steps
 
-## Step 1: Implement a read-only version of the field ([docs](../../../agent-customization/fields/computed.md))
+## Step 1: Implement a read-only version of the field ([docs](../../../../agent-customization/fields/computed.md))
 
 Computed fields in the new agent are declared by calling the `addField` function on the appropriate collection.
 
@@ -38,9 +38,9 @@ Many changes have been made to the API.
 
 You will notice that a new `dependencies` property is required when declaring a computed field.
 
-It is an array of field names that tells forest admin which fields the `getValues()` function depends on: Unlike the legacy agent, the new agent will not automatically fetch the whole record.
+It is an array of field names that tells forest admin which fields the `getValues()` function depends on. Unlike the legacy agent, the new agent will not automatically fetch the whole record.
 
-You can [fetch data from relations](../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-a-many-to-one-relationship) and [fetch data from other computed fields](../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-another-computed-field).
+You can [fetch data from relations](../../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-a-many-to-one-relationship) and [fetch data from other computed fields](../../../../agent-customization/fields/computed.md#adding-a-field-that-depends-on-another-computed-field).
 
 ### Fields now work in batches
 
@@ -61,7 +61,7 @@ There are other minor changes to the API:
 
 In the following example, we will port a field that fetches the full address of a user from a third-party service.
 
-When displaying a list of records, the new agent will only make one call to the API, and then display the results for all records, instead of making one call per record.
+Note that when displaying a list of records, the new agent will only make one call to your handler, and then display the results for all records, instead of making one call per record.
 
 {% tabs %} {% tab title="Before" %}
 
@@ -93,27 +93,26 @@ agent.customizeCollection('users', users => {
   users.addField('full_address', {
     columnType: 'String',
     dependencies: ['address_id'],
-    getValues: async users => {
-      const addresses = await geoWebService.getAddresses(users.map(user => user.address_id));
+    getValues: async users =>
+      Promise.all(
+        users.map(async user => {
+          const address = await geoWebService.getAddress(customer.address_id);
 
-      return users.map(user => {
-        const address = addresses.find(address => address.id === user.address_id);
-
-        return [
-          address.address_line_1,
-          address.address_line_2,
-          address.address_city,
-          address.country,
-        ].join('\n');
-      });
-    },
+          return [
+            address.address_line_1,
+            address.address_line_2,
+            address.address_city,
+            address.country,
+          ].join('\n');
+        }),
+      ),
   });
 });
 ```
 
 {% endtab %} {% endtabs %}
 
-## Step 2: Implement write handler ([docs](../../../agent-customization/fields/write.md))
+## Step 2: Implement write handler ([docs](../../../../agent-customization/fields/write.md))
 
 If you want your computed field to be writable, you will need to call the `.replaceFieldWriting()` function.
 
@@ -137,6 +136,9 @@ collection('users', {
         address.country = value.split('\n')[3];
 
         await geoWebService.updateAddress(address);
+
+        // You can optionally return a hash of attributes to update the record
+        return {};
       },
     },
   ],
@@ -149,7 +151,7 @@ collection('users', {
 agent.customizeCollection('users', users => {
   users
     .addField('full_address', { /* ... same as before ... */ })
-    .replaceFieldWriting('full_address', (value, context) => {
+    .replaceFieldWriting('full_address', (value) => {
       const address = await geoWebService.getAddress(customer.address_id);
 
       address.address_line_1 = value.split('\n')[0];
@@ -159,8 +161,7 @@ agent.customizeCollection('users', users => {
 
       await geoWebService.updateAddress(address);
 
-      // You can optionally return a hash of attributes to update
-      // Updating relations is also supported (see relevant guide)
+      // You can optionally return a hash of attributes to update the record
       return {};
     });
 });
@@ -168,7 +169,7 @@ agent.customizeCollection('users', users => {
 
 {% endtab %} {% endtabs %}
 
-## Step 3: Implement the filters you use ([docs](../../../agent-customization/fields/filter.md))
+## Step 3: Implement the filters you use ([docs](../../../../agent-customization/fields/filter.md))
 
 ### Structure
 
@@ -176,17 +177,17 @@ Implementing filters in the new agent is done operator by operator, instead of u
 
 This allows more fine-grained control over the behavior of each operator and makes it possible to implement only the operators you need.
 
-Also note that unlike in the legacy agent, [automatic operator replacement](../../../under-the-hood/queries/filters.md#operator-equivalence) will be performed by the agent, so the number of operators that you need to implement to unlock all filtering is much lower.
+Also note that unlike in the legacy agent, [automatic operator replacement](../../../../under-the-hood/queries/filters.md#operator-equivalence) will be performed by the agent, so the number of operators that you need to implement to unlock all filtering is much lower.
 
 ### Return value
 
 Because the new forest admin agent is designed to work with multiple databases, the return value of the filter function is not a Sequelize or mongoose condition anymore.
 
-Instead, you'll be building a [condition tree](../../../under-the-hood/queries/filters.md#condition-trees) that will be translated to the appropriate database syntax by the agent.
+Instead, you'll be building a [condition tree](../../../../under-the-hood/queries/filters.md#condition-trees) that will be translated to the appropriate database syntax by the agent.
 
 ### Emulation
 
-At the cost of performance, you can tell the agent to [emulate](../../../agent-customization/fields/filter.md#emulation) the behavior of a given operator by calling the `.emulateFieldOperator()` function.
+At the cost of performance, you can tell the agent to [emulate](../../../../agent-customization/fields/filter.md#emulation) the behavior of a given operator by calling the `.emulateFieldOperator()` function.
 
 ### Example
 
@@ -229,11 +230,11 @@ agent.customizeCollection('users', users => {
       aggregator: 'And', conditions: [{ /* ... forest admin query interface conditions ... */ }]
     })
 
-    // Emulate the other operators with the ones you implemented.
+    // Emulate other operators.
     .emulateFieldOperator('full_address', 'GreaterThan')
     .emulateFieldOperator('full_address', 'NotEqual')
 
-    // [Or] Emulate all operators which are not already defined at once
+    // [Or] Emulate all operators which are not already defined in one call.
     .emulateFieldFiltering('full_address');
 });
 ```

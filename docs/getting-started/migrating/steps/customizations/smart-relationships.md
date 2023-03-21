@@ -11,7 +11,7 @@ The new system is completely different: it is based on primary keys and foreign 
 
 # Migrating
 
-## Relationships when the foreign key is accessible ([docs](../../../agent-customization/relationships/single-record.md))
+## Relationships when the foreign key is accessible ([docs](../../../../agent-customization/relationships/single-record.md))
 
 {% tabs %} {% tab title="Before" %}
 
@@ -56,7 +56,7 @@ agent.customizeCollection('order', orders => {
 
 {% endtab %} {% endtabs %}
 
-## Relationships when you need complex logic to get a foreign key ([docs](../../../agent-customization/relationships/computed-fks.md))
+## Relationships when you need complex logic to get a foreign key ([docs](../../../../agent-customization/relationships/computed-fks.md))
 
 In this example, we want to create a relationship between the `order` collection and the `address` collection
 (assuming that it does not already exist in the database because depends on complex logic).
@@ -66,7 +66,7 @@ We can see that in the legacy agent, the `delivery_address` field was a smart fi
 We won't be detailing the migration of a relation to a list of records here, but it is very similar to the one described below.
 
 {% hint style="info" %}
-If the foreign key was already present in the database in a related table, use the [import-rename-delete](../../../agent-customization/fields/import-rename-delete.md) feature to move it to the correct collection instead of using a computed field.
+If the foreign key was already present in the database in a related table, use the [import-rename-delete](../../../../agent-customization/fields/import-rename-delete.md) feature to move it to the correct collection instead of using a computed field.
 
 This will be much faster and will not require `In` filter operators to be implemented (as unlike computed fields, imported fields are natively filterable and sortable).
 {% endhint %}

@@ -2,18 +2,18 @@ Smart Segments should be quick to migrate, as the syntax is very similar to the 
 
 # Code cheatsheet
 
-| Legacy agent    | New agent                                                                    |
-| --------------- | ---------------------------------------------------------------------------- |
-| where:          | handler body                                                                 |
-| sequelize.where | [condition tree](../../../under-the-hood/queries/filters.md#condition-trees) |
+| Legacy agent    | New agent                                                                       |
+| --------------- | ------------------------------------------------------------------------------- |
+| where:          | handler body                                                                    |
+| sequelize.where | [condition tree](../../../../under-the-hood/queries/filters.md#condition-trees) |
 
-# How to migrate ([docs](../../../agent-customization/segments.md))
+# How to migrate ([docs](../../../../agent-customization/segments.md))
 
 ## Structure
 
 Because the new forest admin agent is designed to work with multiple databases, the return value of the filter function is not a Sequelize or mongoose condition anymore.
 
-Instead, you'll be building a [condition tree](../../../under-the-hood/queries/filters.md#condition-trees) that will be translated to the appropriate database syntax by the agent.
+Instead, you'll be building a [condition tree](../../../../under-the-hood/queries/filters.md#condition-trees) that will be translated to the appropriate database syntax by the agent.
 
 ## Performance
 

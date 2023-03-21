@@ -30,11 +30,11 @@ If you don't have it installed, you can install it with [one of the following me
 
 `diff` is a command line tool that allows you to compare two files.
 It is installed by default on virtually all Unix systems.
-Microsoft Windows users can use [`fc` instead](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/fc),
-or use one of the many available online versions of `diff` from their browser.
+
+Note that if you want to skip the installation step, online versions of both tools are available and can be used from an internet browser.
 {% endhint %}
 
-To ensure agents are compatible, we have a tool at our disposal: [the `.forestadmin-schema.json` file](../../under-the-hood/forestadmin-schema.md).
+To ensure agents are compatible, we have a tool at our disposal: [the `.forestadmin-schema.json` file](../../../under-the-hood/forestadmin-schema.md).
 
 However, diffing two `.forestadmin-schema.json` files is _extremely_ tedious: the file contains a lot of information that is not relevant to our objective.
 
@@ -56,7 +56,7 @@ $ jq -r '.collections[] | (
 )' .forestadmin-schema.json | sort > agent-entities.txt
 ```
 
-If you don't have `jq` installed, you can use run the following Node.js script instead:
+This is equivalent to running the following Node.js script instead:
 
 ```javascript
 const fs = require('fs');
@@ -107,9 +107,9 @@ Diff files are read using the following format:
 
 Once you have identified the differences, you can fix them by:
 
-| Danger level | Difference                                                                     | Fix                                                                                                                      |
-| ------------ | :----------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| 🔴           | Collections or fields where camelCased, they now follow my database convention | Rename the collections in the new agent ([docs](./datasources/sql.md#if-you-choose-to-connect-directly-to-the-database)) |
-| 🔴           | Missing Smart features (Actions / Fields / Relationships / Segments)           | Port the missing smart features to your new agent ([docs](./customizations))                                             |
-| 🟠           | I have extra collections                                                       | You can remove them ([docs](../../datasources/connection/partial-imports.md))                                            |
-| 🟠           | I have extra fields                                                            | You can remove them ([docs](../../agent-customization/fields/import-rename-delete.md#renaming-and-removing-fields))      |
+| Danger level | Difference                                                                     | Fix                                                                                                                    |
+| ------------ | :----------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 🔴           | Collections or fields where camelCased, they now follow my database convention | Rename the collections in the new agent ([docs](../../../datasources/connection/naming-conflicts.md))                  |
+| 🔴           | Missing Smart features (Actions / Fields / Relationships / Segments)           | Port the missing smart features to your new agent ([docs](./customizations))                                           |
+| 🟠           | I have extra collections                                                       | You can remove them ([docs](../../../datasources/connection/partial-imports.md))                                       |
+| 🟠           | I have extra fields                                                            | You can remove them ([docs](../../../agent-customization/fields/import-rename-delete.md#renaming-and-removing-fields)) |

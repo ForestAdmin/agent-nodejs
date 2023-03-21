@@ -18,7 +18,7 @@ In the new agent, the process is simplified to a single step.
 
 # Steps
 
-## Step 1: Calling `addAction` for the appropriate collection ([docs](../../../agent-customization/actions/scope-context.md))
+## Step 1: Calling `addAction` for the appropriate collection ([docs](../../../../agent-customization/actions/scope-context.md))
 
 Start by calling the `addAction` function on the appropriate collection and passing the appropriate parameters.
 
@@ -58,7 +58,7 @@ agent.customizeCollection('companies', companies => {
 
 {% endtab %} {% endtabs %}
 
-## Step 2: Porting the form definition ([docs](../../../agent-customization/actions/forms.md))
+## Step 2: Porting the form definition ([docs](../../../../agent-customization/actions/forms.md))
 
 Forms are now defined in the `form` property of the action.
 
@@ -111,7 +111,7 @@ agent.customizeCollection('customers', companies => {
 
 {% endtab %} {% endtabs %}
 
-## Step 3: Porting the route to the new agent `execute` function ([docs](../../../agent-customization/actions/result-builder.md))
+## Step 3: Porting the route to the new agent `execute` function ([docs](../../../../agent-customization/actions/result-builder.md))
 
 In the legacy agent, users had to implement the action by creating a route handler in the appropriate `routes/*.js` file.
 
@@ -121,7 +121,7 @@ When porting the route handler to the new agent, you will need to:
 
 - Move the body of the route handler to the `execute` function of the action.
 - Replace `RecordsGetter.getIdsFromRequest()` call with `context.getRecordIds()`.
-- Replace `res.send(...)` calls with `return resultBuilder.success()` or `return resultBuilder.error()`, or the [appropriate `resultBuilder` method](../../../agent-customization/actions/result-builder.md).
+- Replace `res.send(...)` calls with `return resultBuilder.success()` or `return resultBuilder.error()`, or the [appropriate `resultBuilder` method](../../../../agent-customization/actions/result-builder.md).
 
 {% tabs %} {% tab title="Before" %}
 
@@ -152,7 +152,7 @@ agent.customizeCollection('companies', companies => {
 });
 ```
 
-or using the newly introduced [query interface](../../../under-the-hood/queries/README.md)
+or using the newly introduced [query interface](../../../../under-the-hood/queries/README.md)
 
 ```javascript
 agent.customizeCollection('companies', companies => {
@@ -169,7 +169,7 @@ agent.customizeCollection('companies', companies => {
 
 {% endtab %} {% endtabs %}
 
-## Step 4: Porting smart action hooks ([docs](../../../agent-customization/actions/forms.md#dynamic-configuration))
+## Step 4: Porting smart action hooks ([docs](../../../../agent-customization/actions/forms.md#dynamic-configuration))
 
 Load hooks and change hooks have been replaced on the new agent by the possibility to use callbacks in the form definition.
 
