@@ -1,8 +1,8 @@
 # Role system
 
-Forest Admin role system go a complete overhaul in February 2021.
+The Forest Admin role system got a complete overhaul in February 2021.
 
-If you project was created before that date, you will need to migrate your role system to the new one before you can upgrade to the latest version of the agent.
+If your project was created before that date, you will need to migrate your role system to the new one before you can upgrade to the latest version of the agent.
 
 A [migration guide](https://docs.forestadmin.com/documentation/v/latest/how-tos/maintain/migrate-to-the-new-role-system) is available in the documentation of the legacy agents.
 
@@ -18,9 +18,9 @@ The new agent brings a lot of new features, but a small subset of what was avail
 
 In the new agent, building a chart from SQL queries is only possible [through code](../../agent-customization/charts/README.md).
 
-Because the new agent no longer exposes the nature of the underlying database, this feature was not ported in the new agent.
+Because the new agent no longer exposes the nature of the underlying database, this feature was not ported into the new agent.
 
-Due to popular request it is planned to be reintroduced in a future version of the agent, but we don't have a timeline for it yet.
+Due to popular demand, it is planned to be reintroduced in a future version of the agent, but we don't have a timeline for it yet.
 
 ## Route overrides
 
