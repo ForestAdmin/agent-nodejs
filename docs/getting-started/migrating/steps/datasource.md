@@ -5,8 +5,7 @@ When using the onboarding wizard, you connected to your database using the `@for
 Start by changing the dependency in your agent
 
 ```console
-$ npm remove @forestadmin/datasource-sql
-$ npm install @forestadmin/datasource-sequelize
+$ npm install @forestadmin/datasource-sequelize sequelize
 ```
 
 Then you will need to copy your `Sequelize` models to the new project and change the `index` file.
@@ -24,7 +23,8 @@ const agent = createAgent(options).addDataSource(createSequelizeDataSource(seque
 
 ### Connect to the database
 
-Connecting to a MongoDB instance is very similar: using the `mongoose` ODM is required (we support versions 6.x and 7.x of `mongoose`).
+Connecting to a MongoDB instance is very similar: using the `mongoose` ODM is required.
+We officially support `mongoose >= 6.0`, but customers have reported working installations with `5.x`.
 
 You will need to:
 
@@ -63,12 +63,13 @@ import { collection } from 'forest-express-mongoose';
 
 collection('users', {
   /** ... other options ... */
-  fieldsToFlatten: ['contactDetails'],
-});
+  fieldsToFlatten: [
+    // Flatten the contactDetails field
+    'contactDetails',
 
-collection('products', {
-  /** ... other options ... */
-  fieldsToFlatten: [{ field: 'characteristics', level: 1 }],
+    // Flatten the characteristics field, but only the first level
+    { field: 'characteristics', level: 1 },
+  ],
 });
 ```
 
@@ -81,8 +82,15 @@ const agent = createAgent(options).addDataSource(
   createMongooseDataSource(connection, {
     flattenMode: 'manual',
     flattenOptions: {
-      users: { asFields: ['contactDetails'] },
-      products: { asFields: [{ field: 'characteristics', level: 1 }] },
+      users: {
+        asFields: [
+          // Flatten the contactDetails field
+          'contactDetails',
+
+          // Flatten the characteristics field, but only the first level
+          { field: 'characteristics', level: 1 },
+        ],
+      },
     },
   }),
 );

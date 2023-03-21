@@ -25,13 +25,13 @@ For instance, if you created a chart on the `customers` collection that displays
 ### Checking the compatibility with `.forestadmin-schema.json`, `jq` and `diff`
 
 {% hint style="info" %}
-`jq` is a command line tool that allows you to manipulate JSON files.
-If you don't have it installed, you can install it with [one of the following methods](https://stedolan.github.io/jq/download/).
-
-`diff` is a command line tool that allows you to compare two files.
-It is installed by default on virtually all Unix systems.
-
 Note that if you want to skip the installation step, online versions of both tools are available and can be used from an internet browser.
+
+- `jq` is a command line tool that allows you to manipulate JSON files.
+  If you don't have it installed, you can install it with [one of the following methods](https://stedolan.github.io/jq/download/).
+- `diff` is a command line tool that allows you to compare two files.
+  It is installed by default on virtually all Unix systems.
+
 {% endhint %}
 
 To ensure agents are compatible, we have a tool at our disposal: [the `.forestadmin-schema.json` file](../../../under-the-hood/forestadmin-schema.md).
@@ -111,5 +111,5 @@ Once you have identified the differences, you can fix them by:
 | ------------ | :----------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
 | 🔴           | Collections or fields where camelCased, they now follow my database convention | Rename the collections in the new agent ([docs](../../../datasources/connection/naming-conflicts.md))                  |
 | 🔴           | Missing Smart features (Actions / Fields / Relationships / Segments)           | Port the missing smart features to your new agent ([docs](./customizations))                                           |
-| 🟠           | I have extra collections                                                       | You can remove them ([docs](../../../datasources/connection/partial-imports.md))                                       |
-| 🟠           | I have extra fields                                                            | You can remove them ([docs](../../../agent-customization/fields/import-rename-delete.md#renaming-and-removing-fields)) |
+| 🟢           | I have extra collections                                                       | You can remove them ([docs](../../../datasources/connection/partial-imports.md))                                       |
+| 🟢           | I have extra fields                                                            | You can remove them ([docs](../../../agent-customization/fields/import-rename-delete.md#renaming-and-removing-fields)) |
