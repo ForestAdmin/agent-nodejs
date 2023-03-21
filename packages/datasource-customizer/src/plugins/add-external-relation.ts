@@ -18,7 +18,7 @@ export default async function addExternalRelation<
   collectionCustomizer.addField(options.name, {
     dependencies: options.dependencies ?? primaryKeys,
     columnType: [options.schema],
-    getValues: async (records, context) =>
-      Promise.all(records.map(async record => options.listRecords(record, context))),
+    getValues: (records, context) =>
+      records.map(async record => options.listRecords(record, context)),
   });
 }
