@@ -33,7 +33,7 @@ Because our new agent API is higher-level, the protocol used to communicate betw
 
 All use cases that we have seen so far can be implemented using the new [agent customization](../../agent-customization) system, but because the former system was lower-level, we cannot guarantee it.
 
-If you are stuck, please [expose your use-case in the community forums](https://community.forestadmin.com/) and we will be happy to help you.
+If you are stuck, please [expose your use case in the community forums](https://community.forestadmin.com/) and we will be happy to help you.
 
 ## SQL Charts
 
