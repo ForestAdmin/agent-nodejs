@@ -16,6 +16,8 @@ This is valid for:
 
 ### Example
 
+![Broken chart after migration](../../../assets/migration-chart-broken.png)
+
 For instance, if you created a chart on the `customers` collection that displays the TOP 10 customers by number of orders, you will need to make sure that:
 
 - The `customers` collection still exists and has the same name
