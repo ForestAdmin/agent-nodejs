@@ -20,14 +20,12 @@ agent.customizeCollection('post', postCollection => {
   postCollection.addField('authorFullName', {
     columnType: 'String',
     dependencies: ['authorId'],
-    getValues: async posts =>
-      Promise.all(
-        posts.map(async post => {
-          // Those async query take a long time and are performed in parallel with the other queries
-          const author = await models.authors.findOne({ where: { id: post.authorId } });
-          return `${author.firstName} ${author.lastName}`;
-        }),
-      ),
+    getValues: posts =>
+      posts.map(async post => {
+        // Those async queries take a long time and are performed in parallel with the other queries
+        const author = await models.authors.findOne({ where: { id: post.authorId } });
+        return `${author.firstName} ${author.lastName}`;
+      }),
   });
 });
 ```
@@ -81,21 +79,19 @@ agent.customizeCollection('users', users => {
   users.addField('full_address', {
     columnType: 'String',
     dependencies: ['address_id'],
-    getValues: async users =>
-      Promise.all(
-        users.map(async user => {
-          // Get the address for each user individually
-          // This is very slow if you are displaying a lot of users in a table
-          const address = await geoWebService.getAddress(customer.address_id);
+    getValues: users =>
+      users.map(async user => {
+        // Get the address for each user individually
+        // This is very slow if you are displaying a lot of users in a table
+        const address = await geoWebService.getAddress(customer.address_id);
 
-          return [
-            address.address_line_1,
-            address.address_line_2,
-            address.address_city,
-            address.country,
-          ].join('\n');
-        }),
-      ),
+        return [
+          address.address_line_1,
+          address.address_line_2,
+          address.address_city,
+          address.country,
+        ].join('\n');
+      }),
   });
 });
 ```

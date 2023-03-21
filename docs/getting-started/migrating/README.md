@@ -15,7 +15,7 @@ Note that if you are using `forestadmin/laravel-forestadmin`, you may want to wa
 
 # When to migrate?
 
-Legacy agents are still supported, and we will continue to do so for a while.
+Legacy agents are still supported and will continue to be for a while.
 
 No end-of-life date has been set yet, but it will be announced on a minimal 18 months period guarantee.
 

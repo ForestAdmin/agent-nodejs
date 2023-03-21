@@ -74,12 +74,7 @@ collection('users', {
       get: async user => {
         const address = await geoWebService.getAddress(customer.address_id);
 
-        return [
-          address.address_line_1,
-          address.address_line_2,
-          address.address_city,
-          address.country,
-        ].join('\n');
+        return [address.line_1, address.line_2, address.city, address.country].join('\n');
       },
     },
   ],
@@ -93,19 +88,12 @@ agent.customizeCollection('users', users => {
   users.addField('full_address', {
     columnType: 'String',
     dependencies: ['address_id'],
-    getValues: async users =>
-      Promise.all(
-        users.map(async user => {
-          const address = await geoWebService.getAddress(customer.address_id);
+    getValues: users =>
+      users.map(async user => {
+        const address = await geoWebService.getAddress(customer.address_id);
 
-          return [
-            address.address_line_1,
-            address.address_line_2,
-            address.address_city,
-            address.country,
-          ].join('\n');
-        }),
-      ),
+        return [address.line_1, address.line_2, address.city, address.country].join('\n');
+      }),
   });
 });
 ```
@@ -129,10 +117,9 @@ collection('users', {
       get: /* ... same as before ... */,
       set: async (user, value) => {
         const address = await geoWebService.getAddress(customer.address_id);
-
-        address.address_line_1 = value.split('\n')[0];
-        address.address_line_2 = value.split('\n')[1];
-        address.address_city = value.split('\n')[2];
+        address.line_1 = value.split('\n')[0];
+        address.line_2 = value.split('\n')[1];
+        address.city = value.split('\n')[2];
         address.country = value.split('\n')[3];
 
         await geoWebService.updateAddress(address);
@@ -153,10 +140,9 @@ agent.customizeCollection('users', users => {
     .addField('full_address', { /* ... same as before ... */ })
     .replaceFieldWriting('full_address', (value) => {
       const address = await geoWebService.getAddress(customer.address_id);
-
-      address.address_line_1 = value.split('\n')[0];
-      address.address_line_2 = value.split('\n')[1];
-      address.address_city = value.split('\n')[2];
+      address.line_1 = value.split('\n')[0];
+      address.line_2 = value.split('\n')[1];
+      address.city = value.split('\n')[2];
       address.country = value.split('\n')[3];
 
       await geoWebService.updateAddress(address);
