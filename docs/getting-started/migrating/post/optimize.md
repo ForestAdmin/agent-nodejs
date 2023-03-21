@@ -66,10 +66,6 @@ agent.customizeCollection('post', postCollection => {
 });
 ```
 
-```javascript
-
-```
-
 {% endtab %} {% endtabs %}
 
 ## Move async calls outside of the hot loop
