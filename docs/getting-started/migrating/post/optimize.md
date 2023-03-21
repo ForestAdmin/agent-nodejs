@@ -138,8 +138,6 @@ agent.customizeCollection('users', users => {
 
 If you happen to have computed fields that are similar, or that depend on the same data, you can make fields that depend on other fields.
 
-The plugin that we introduced is documented [here](../../../agent-customization/plugins/provided/flattener.md).
-
 {% tabs %} {% tab title="Before" %}
 
 ```javascript
@@ -166,9 +164,13 @@ agent.customizeCollection('users', users => {
 
 {% endtab %} {% tab title="After" %}
 
+Install the [`@forestadmin/plugin-flattener`](../../../agent-customization/plugins/provided/flattener.md) plugin.
+
 ```console
 npm install @forestadmin/plugin-flattener
 ```
+
+Fetch all the user info in a single request, and then flatten the result.
 
 ```javascript
 const { flattenColumn } = require('@forestadmin/plugin-flattener');
@@ -196,7 +198,3 @@ The new agent introduced the capability to customize the search behavior of your
 This is a very powerful feature that allows you to make sure that your agent is fast.
 
 Documentation about this feature is available [here](../../../agent-customization/search.md#changing-searched-columns).
-
-```
-
-```
