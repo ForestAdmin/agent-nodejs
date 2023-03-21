@@ -152,21 +152,6 @@ agent.customizeCollection('companies', companies => {
 });
 ```
 
-or using the newly introduced [query interface](../../../../under-the-hood/queries/README.md)
-
-```javascript
-agent.customizeCollection('companies', companies => {
-  companies.addAction('Mark as Live', {
-    // ...
-    execute: async (context, resultBuilder) => {
-      await context.collection.update(context.filter, { status: 'live' });
-
-      return resultBuilder.success('Company is now live!');
-    },
-  });
-});
-```
-
 {% endtab %} {% endtabs %}
 
 ## Step 4: Porting smart action hooks ([docs](../../../../agent-customization/actions/forms.md#dynamic-configuration))
