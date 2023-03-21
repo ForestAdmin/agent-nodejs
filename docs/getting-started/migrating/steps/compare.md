@@ -107,9 +107,9 @@ Diff files are read using the following format:
 
 Once you have identified the differences, you can fix them by:
 
-| Danger level | Difference                                                                     | Fix                                                                                                                    |
-| ------------ | :----------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| 🔴           | Collections or fields where camelCased, they now follow my database convention | Rename the collections in the new agent ([docs](../../../datasources/connection/naming-conflicts.md))                  |
-| 🔴           | Missing Smart features (Actions / Fields / Relationships / Segments)           | Port the missing smart features to your new agent ([docs](./customizations))                                           |
-| 🟢           | I have extra collections                                                       | You can remove them ([docs](../../../datasources/connection/partial-imports.md))                                       |
-| 🟢           | I have extra fields                                                            | You can remove them ([docs](../../../agent-customization/fields/import-rename-delete.md#renaming-and-removing-fields)) |
+| Danger level | Difference                                                                    | Fix                                                                                                                    |
+| ------------ | :---------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 🔴           | Collections or fields have different names (i.e. `camelCase` vs `snake_case`) | Rename the collections in the new agent ([docs](../../../datasources/connection/naming-conflicts.md))                  |
+| 🔴           | Missing Smart features (actions, fields, relationships, segments, ...)        | Port the missing smart features to your new agent ([docs](./customizations))                                           |
+| 🟢           | Extra collections                                                             | You can remove them ([docs](../../../datasources/connection/partial-imports.md))                                       |
+| 🟢           | Extra fields                                                                  | You can remove them ([docs](../../../agent-customization/fields/import-rename-delete.md#renaming-and-removing-fields)) |
