@@ -56,7 +56,7 @@ $ jq -r '.collections[] | (
 )' .forestadmin-schema.json | sort > agent-entities.txt
 ```
 
-This is equivalent to running the following Node.js script instead:
+This is equivalent to running the following Node.js script:
 
 ```javascript
 const fs = require('fs');
@@ -86,15 +86,15 @@ Once you have generated the `agent-entities.txt` file for both your old and new 
 
 ```console
 $ diff --side-by-side --suppress-common-lines --minimal [old-agent-folder]/agent-entities.txt [new-agent-folder]/agent-entities.txt
-Collection: "account"                                         <
-Field: "account" has "_id"                                    <
-Field: "account" has "firstname"                              <
-Field: "account" has "lastname"                               <
-Field: "account_address" has "_id"                            <
-Field: "account_address" has "country"                        | Field: "account_address" has "Country"
-Relationship: "account" has "address"                         <
-Relationship: "account" has "bills"                           <
-Relationship: "account" has "store"                           <
+Collection: "account"                    <
+Field: "account" has "_id"               <
+Field: "account" has "firstname"         <
+Field: "account" has "lastname"          <
+Field: "account_address" has "_id"       <
+Field: "account_address" has "country"   | Field: "account_address" has "Country"
+Relationship: "account" has "address"    <
+Relationship: "account" has "bills"      <
+Relationship: "account" has "store"      <
 ```
 
 Diff files are read using the following format:
