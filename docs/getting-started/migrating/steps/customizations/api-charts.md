@@ -12,7 +12,7 @@ In the new agent, you will need to use either the `agent.addChart` or the `colle
 
 # How to migrate ([docs](../../../../agent-customization/charts/README.md))
 
-Migrating should be straightforward: the only difference are that:
+Migrating should be straightforward: the only differences are that:
 
 - dashboard charts are now declared using the `agent.addChart` function.
 - collection charts are now declared using the `collection.addChart` function, and access the record id using `context.recordId` instead of `request.query?.record_id`.
