@@ -11,7 +11,7 @@ You are using a legacy agent if you are using:
 - On Python: the [django-forestadmin](https://github.com/ForestAdmin/django-forestadmin) package.
 - On PHP: the [forestadmin/laravel-forestadmin](https://github.com/ForestAdmin/laravel-forestadmin) package.
 
-Note that if you are using `forestadmin/laravel-forestadmin`, you may want to wait: our team is hard at work on porting this new agent architecture to PHP (the beta is already open for customers using [Symfony](https://github.com/ForestAdmin/symfony-forestadmin)).
+Note that if you are using `forestadmin/laravel-forestadmin`, you may want to wait: our team is working hard on porting this new agent architecture to PHP (the beta is already open for customers using [Symfony](https://github.com/ForestAdmin/symfony-forestadmin)).
 
 # When to migrate?
 
