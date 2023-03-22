@@ -85,12 +85,7 @@ agent.customizeCollection('users', users => {
         // This is very slow if you are displaying a lot of users in a table
         const address = await geoWebService.getAddress(customer.address_id);
 
-        return [
-          address.address_line_1,
-          address.address_line_2,
-          address.address_city,
-          address.country,
-        ].join('\n');
+        return [address.line_1, address.line_2, address.city, address.country].join('\n');
       }),
   });
 });
@@ -112,12 +107,7 @@ agent.customizeCollection('users', users => {
       return users.map(user => {
         const address = addresses.find(address => address.id === user.address_id);
 
-        return [
-          address.address_line_1,
-          address.address_line_2,
-          address.address_city,
-          address.country,
-        ].join('\n');
+        return [address.line_1, address.line_2, address.city, address.country].join('\n');
       });
     },
   });
