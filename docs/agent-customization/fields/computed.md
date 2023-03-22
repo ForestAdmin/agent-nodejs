@@ -17,7 +17,7 @@ When creating a new field you will need to provide:
 
 ### Adding a field by concatenating other fields
 
-This example adds a `user.displayName` field, which is computed by concatenating the first and last names.
+This example adds a `user.displayName` field, which is computed by concatenating the first and last names, and then another which capitalize it.
 
 ```javascript
 // User collection has the following structure: { id, firstName, lastName }
