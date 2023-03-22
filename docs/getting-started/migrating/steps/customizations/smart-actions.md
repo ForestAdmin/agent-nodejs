@@ -196,7 +196,8 @@ agent.customizeCollection('customers', companies => {
         type: 'Number',
 
         // Set the default value of the amount field to 50 euros converted into dollars
-        // convertEurosIntoDollars is a function that returns a promise, it will be awaited automatically
+        // convertEurosIntoDollars is a function that returns a promise, it will be awaited
+        // automatically
         defaultValues: () => convertEurosIntoDollars(50),
       },
     ],

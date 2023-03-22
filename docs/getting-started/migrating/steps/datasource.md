@@ -1,6 +1,6 @@
 ## Migrating from `forest-express-sequelize`
 
-When using the onboarding wizard, you connected to your database using the `@forestadmin/datasource-sql` connector. To ease the migration, we recommend that switch to the `@forestadmin/datasource-sequelize` connector.
+When using the onboarding wizard, you connected to your database using the `@forestadmin/datasource-sql` connector. To ease the migration, we recommend to switch to the `@forestadmin/datasource-sequelize` connector.
 
 Start by changing the dependency in your agent
 
@@ -13,10 +13,10 @@ Then you will need to copy your `Sequelize` models to the new project and change
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
 const { createSequelizeDataSource } = require('@forestadmin/datasource-sequelize');
-const sequelize = require('./sequelize-models');
+const sequelizeInstance = require('./sequelize-instance');
 
 // Create agent and import collections from sequelize
-const agent = createAgent(options).addDataSource(createSequelizeDataSource(sequelize));
+const agent = createAgent(options).addDataSource(createSequelizeDataSource(sequelizeInstance));
 ```
 
 ## Migrating from `forest-express-mongoose`
@@ -35,7 +35,7 @@ You will need to:
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
 const { createMongooseDataSource } = require('@forestadmin/datasource-mongoose');
-const connection = require('./mongoose-models');
+const connection = require('./mongoose-connection');
 
 // Create agent and import collections from mongoose.connection
 const agent = createAgent(options).addDataSource(createMongooseDataSource(connection));
