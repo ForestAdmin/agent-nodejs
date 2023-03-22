@@ -7,8 +7,8 @@ export default function createField(collection: CollectionCustomizer, config: Co
   collection.addField(config.filename, {
     columnType: 'String',
     dependencies: [config.sourcename],
-    getValues: records => {
-      const values = records.map(async record => {
+    getValues: records =>
+      records.map(async record => {
         const key = record[config.sourcename];
 
         if (!key) {
@@ -24,9 +24,6 @@ export default function createField(collection: CollectionCustomizer, config: Co
         }
 
         return config.client.getSignedUrl(key);
-      });
-
-      return Promise.all(values);
-    },
+      }),
   });
 }

@@ -384,9 +384,11 @@ describe('Builder > Collection', () => {
       expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
-      const values = await getValues(
-        [{ authorId: 1 }, { authorId: 2 }],
-        null as unknown as CollectionCustomizationContext,
+      const values = await Promise.all(
+        await getValues(
+          [{ authorId: 1 }, { authorId: 2 }],
+          null as unknown as CollectionCustomizationContext,
+        ),
       );
       expect(values).toStrictEqual([
         [{ firstname: 'John', lastName: 'Doe' }],

@@ -14,7 +14,13 @@ async function computeField(
 ): Promise<unknown[]> {
   return transformUniqueValues(
     unflatten(await Promise.all(promises), paths),
-    async uniquePartials => computed.getValues(uniquePartials, ctx),
+
+    // Customer can return the following:
+    // - an array of values [value, value, ...]
+    // - an array of promises: [Promise<value>, Promise<value>, ...]
+    // - a promise of an array of values: Promise<[value, value, ...]>
+    // - a promise of an array of promises: Promise<[Promise<value>, Promise<value>, ...]>
+    async uniquePartials => Promise.all(await computed.getValues(uniquePartials, ctx)),
   );
 }
 
