@@ -22,24 +22,9 @@ To make everything work as expected, you need to:
 | PostgreSQL           | `pg` + `pg-hstore`    |
 | SQLite               | `sqlite3`             |
 
-<!-- Snowflake is removed because introspection does not work -->
-<!-- | Snowflake            | `snowflake-sdk`       | -->
-
 ## Configuration
 
-Configuration can be as simple as passing a URI to the data source constructor:
-
-```javascript
-const { createAgent } = require('@forestadmin/agent');
-const { createSqlDataSource } = require('@forestadmin/datasource-sql');
-
-// Create agent and import collections from SQL database
-const agent = createAgent(options).addDataSource(
-  createSqlDataSource('postgres://user:pass@localhost:5432/myDatabase'),
-);
-```
-
-Or you can pass an object with the following properties:
+Configuration can be as simple as passing a URI to the data source constructor, but more options are available:
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
@@ -47,14 +32,20 @@ const { createSqlDataSource } = require('@forestadmin/datasource-sql');
 
 // Create agent and import collections from SQL database
 const agent = createAgent(options).addDataSource(createSqlDataSource({
+  ////////////////////////
+  // Connection options //
+  ////////////////////////
+
+  /** URI where the database can be reached */
+  uri: 'postgres://user:pass@localhost:5432/myDatabase',
+
+  // OR
+
   /** The dialect of the database you are connecting to */
   dialect: 'postgres',
 
   /** The name of the database */
   database: 'myDatabase',
-
-  /** If defined the connection will use the provided schema instead of the default ("public") */
-  schema: 'public'
 
   /** The username which is used to authenticate against the database */
   username: 'user',
@@ -66,7 +57,14 @@ const agent = createAgent(options).addDataSource(createSqlDataSource({
   host: 'localhost',
 
   /** The port of the relational database */
-  port: 5432,
+  port: 5432
+
+  ///////////////////
+  // Extra options //
+  ///////////////////
+
+  /** If defined the connection will use the provided schema instead of the default ("public") */
+  schema: 'public'
 
   /** A flag that defines if a TLS connection should be used */
   ssl: false,
