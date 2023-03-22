@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.13...@forestadmin/datasource-customizer@1.6.0) (2023-03-22)
+
+
+### Features
+
+* **computed:** remove need for promise.all on customer code when using async handler ([#652](https://github.com/ForestAdmin/agent-nodejs/issues/652)) ([3dab13c](https://github.com/ForestAdmin/agent-nodejs/commit/3dab13c49ecd5737aeeedb9ad21cbe44b81dfe32))
+
 ## @forestadmin/datasource-customizer [1.5.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.5.12...@forestadmin/datasource-customizer@1.5.13) (2023-03-15)
 
 
