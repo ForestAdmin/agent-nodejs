@@ -3,7 +3,7 @@ import { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
 export default class FilterOperatorsGenerator {
   static readonly defaultOperators: Partial<Operator[]> = ['Equal', 'NotEqual', 'Present'];
   static readonly inOperators: Partial<Operator[]> = ['In', 'NotIn'];
-  static readonly stringOperators: Partial<Operator[]> = ['Like', 'ILike', 'NotContains'];
+  static readonly stringOperators: Partial<Operator[]> = ['Match', 'NotContains'];
   static readonly comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
 
   static getSupportedOperators(type: ColumnType): Set<Operator> {

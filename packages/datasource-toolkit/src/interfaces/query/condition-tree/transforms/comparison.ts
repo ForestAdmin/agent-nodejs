@@ -40,6 +40,20 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
   ],
   In: [
     {
+      dependsOn: ['Match'],
+      forTypes: ['String'],
+      replacer: leaf =>
+        leaf.override({
+          operator: 'Match',
+          value: RegExp(
+            `^${(leaf.value as string[])
+              .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
+              .join('|')}$`,
+            'gi',
+          ),
+        }),
+    },
+    {
       dependsOn: ['Equal'],
       replacer: leaf =>
         ConditionTreeFactory.union(

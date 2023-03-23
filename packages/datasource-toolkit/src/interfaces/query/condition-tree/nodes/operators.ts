@@ -58,6 +58,7 @@ export const otherOperators = [
   'BeforeXHoursAgo',
   'Future',
   'Past',
+  'Match',
 ] as const;
 
 export const allOperators = [...uniqueOperators, ...intervalOperators, ...otherOperators] as const;

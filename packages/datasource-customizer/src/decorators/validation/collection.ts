@@ -4,7 +4,6 @@ import {
   ColumnSchema,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  ConditionTreeValidator,
   FieldValidator,
   Filter,
   Operator,
@@ -66,7 +65,6 @@ export default class ValidationDecorator extends CollectionDecorator {
         for (const validator of applicableRules) {
           const rawLeaf = { field: name, ...validator };
           const tree = ConditionTreeFactory.fromPlainObject(rawLeaf) as ConditionTreeLeaf;
-          ConditionTreeValidator.validate(tree, this);
 
           if (!tree.match(record, this, timezone)) {
             const message = `'${name}' failed validation rule:`;

@@ -91,10 +91,8 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return fieldValue < this.value;
       case 'GreaterThan':
         return fieldValue > this.value;
-      case 'Like':
-        return this.like(fieldValue as string, this.value as string, true);
-      case 'ILike':
-        return this.like(fieldValue as string, this.value as string, false);
+      case 'Match':
+        return (this.value as RegExp).test(fieldValue as string);
       case 'LongerThan':
         return typeof fieldValue === 'string' ? fieldValue.length > this.value : false;
       case 'ShorterThan':
@@ -122,18 +120,5 @@ export default class ConditionTreeLeaf extends ConditionTree {
 
   override unnest(): ConditionTreeLeaf {
     return super.unnest() as ConditionTreeLeaf;
-  }
-
-  /** @see https://stackoverflow.com/a/18418386/1897495 */
-  private like(value: string, pattern: string, caseSensitive: boolean): boolean {
-    if (!value) return false;
-
-    let regexp = pattern;
-
-    // eslint-disable-next-line no-useless-escape
-    regexp = regexp.replace(/([\.\\\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:\-])/g, '\\$1');
-    regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
-
-    return RegExp(`^${regexp}$`, caseSensitive ? 'g' : 'gi').test(value);
   }
 }
