@@ -7,8 +7,7 @@ export const uniqueOperators = [
   'GreaterThan',
 
   // Strings
-  'Like',
-  'ILike',
+  'Match',
   'NotContains',
   'LongerThan',
   'ShorterThan',
@@ -50,6 +49,8 @@ export const otherOperators = [
   'IStartsWith',
   'IEndsWith',
   'IContains',
+  'Like',
+  'ILike',
 
   // Dates
   'Before',
@@ -58,7 +59,6 @@ export const otherOperators = [
   'BeforeXHoursAgo',
   'Future',
   'Past',
-  'Match',
 ] as const;
 
 export const allOperators = [...uniqueOperators, ...intervalOperators, ...otherOperators] as const;
