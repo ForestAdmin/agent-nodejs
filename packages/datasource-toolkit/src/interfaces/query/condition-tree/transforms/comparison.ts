@@ -42,16 +42,13 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
     {
       dependsOn: ['Match'],
       forTypes: ['String'],
-      replacer: leaf =>
-        leaf.override({
-          operator: 'Match',
-          value: RegExp(
-            `^${(leaf.value as string[])
-              .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
-              .join('|')}$`,
-            'gi',
-          ),
-        }),
+      replacer: leaf => {
+        const pattern = (leaf.value as string[])
+          .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
+          .join('|');
+
+        return leaf.override({ operator: 'Match', value: RegExp(`^${pattern}$`, 'g') });
+      },
     },
     {
       dependsOn: ['Equal'],
