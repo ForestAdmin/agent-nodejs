@@ -119,7 +119,6 @@ export default class FrontendValidationUtils {
     }
 
     // Drop the rule if we don't know how to convert it (we could log a warning here).
-
     return [];
   }
 
@@ -163,8 +162,8 @@ export default class FrontendValidationUtils {
       const newRegexp = newRule.value as RegExp;
 
       rule.value = new RegExp(`^(?=${regexp.source})(?=${newRegexp.source}).*$`, regexp.flags);
-    } else if (rule.operator !== 'Present') {
-      // Drop the rule if we don't know how to deduplicate it (we could log a warning here).
+    } else {
+      // Ignore the rules that we can't deduplicate (we could log a warning here).
     }
   }
 }
