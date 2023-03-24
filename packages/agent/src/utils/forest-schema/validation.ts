@@ -30,7 +30,7 @@ export default class FrontendValidationUtils {
     Contains: rule => ({
       type: 'contains',
       value: rule.value,
-      message: `Value must contain ${rule.value}`,
+      message: `Value must contain '${rule.value}'`,
     }),
     GreaterThan: rule => ({
       type: 'is greater than',
@@ -59,7 +59,8 @@ export default class FrontendValidationUtils {
     }),
 
     // Tell the rule conversion routine to ignore these operators
-    Missing: null,
+    Equal: null,
+    NotEqual: null,
   } as const;
 
   /** Convert a list of our validation rules to what we'll be sending to the frontend */
@@ -80,14 +81,10 @@ export default class FrontendValidationUtils {
     }
 
     try {
-      // Add the `Missing` operator to unlock the `In -> Match` replacement rule.
-      // This is a bit hacky, but works well: the `Missing` operator won't be used as long as
-      // the final user did not ask for `IN(null, 'some-value', 'some-other-value')`.
-      //
-      // If the user does ask for it, then a `OR(Missing, Match)` will be generated, and we'll
-      // ignore that rule because the frontend does not supports OR.
+      // Add the 'Equal|NotEqual' operators to unlock the `In|NotIn -> Match` replacement rules.
       const operators = new Set(Object.keys(this.operatorValidationTypeMap)) as Set<Operator>;
-      operators.add('Missing');
+      operators.add('Equal');
+      operators.add('NotEqual');
 
       // Rewrite the rule to use only operators that the frontend supports.
       const leaf = new ConditionTreeLeaf('field', rule.operator, rule.value);
@@ -95,19 +92,13 @@ export default class FrontendValidationUtils {
       const tree = ConditionTreeEquivalent.getEquivalentTree(leaf, operators, columnType, timezone);
 
       if (tree instanceof ConditionTreeLeaf) {
-        return this.simplifyRule(columnType, { operator: tree.operator, value: tree.value });
+        return this.simplifyRule(columnType, tree);
       }
 
-      if (
-        tree instanceof ConditionTreeBranch &&
-        tree.aggregator === 'And' &&
-        tree.conditions.every(c => c instanceof ConditionTreeLeaf)
-      ) {
-        return tree.conditions.flatMap(cond => {
-          const t = cond as ConditionTreeLeaf;
-
-          return this.simplifyRule(columnType, { operator: t.operator, value: t.value });
-        });
+      if (tree instanceof ConditionTreeBranch && tree.aggregator === 'And') {
+        return tree.conditions.flatMap(c =>
+          c instanceof ConditionTreeLeaf ? this.simplifyRule(columnType, c) : [],
+        );
       }
     } catch {
       // Just ignore errors, they mean that the operator is not supported by the frontend

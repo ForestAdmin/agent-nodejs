@@ -1,5 +1,5 @@
 import ConditionTree, { PlainConditionTree } from './base';
-import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
+import { Operator, allOperators, intervalOperators } from './operators';
 import CollectionUtils from '../../../../utils/collection';
 import RecordUtils from '../../../../utils/record';
 import { Collection } from '../../../collection';
@@ -83,6 +83,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
   match(record: RecordData, collection: Collection, timezone: string): boolean {
     const fieldValue = RecordUtils.getFieldValue(record, this.field);
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
+    const supported = [
+      ...['In', 'Equal', 'LessThan', 'GreaterThan', 'Match', 'StartsWith', 'EndsWith'],
+      ...['LongerThan', 'ShorterThan', 'IncludesAll', 'NotIn', 'NotEqual', 'NotContains'],
+    ] as const;
 
     switch (this.operator) {
       case 'In':
@@ -96,9 +100,9 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case 'Match':
         return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);
       case 'StartsWith':
-        return (fieldValue as string)?.startsWith(this.value as string);
+        return typeof fieldValue === 'string' && fieldValue.startsWith(this.value as string);
       case 'EndsWith':
-        return (fieldValue as string)?.endsWith(this.value as string);
+        return typeof fieldValue === 'string' && fieldValue.endsWith(this.value as string);
       case 'LongerThan':
         return typeof fieldValue === 'string' ? fieldValue.length > this.value : false;
       case 'ShorterThan':
@@ -113,7 +117,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       default:
         return ConditionTreeEquivalent.getEquivalentTree(
           this,
-          new Set(uniqueOperators),
+          new Set(supported),
           columnType,
           timezone,
         ).match(record, collection, timezone);

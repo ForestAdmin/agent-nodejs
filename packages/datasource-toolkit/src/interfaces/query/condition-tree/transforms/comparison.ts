@@ -41,19 +41,23 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
   ],
   In: [
     {
-      dependsOn: ['Missing', 'Match'],
+      dependsOn: ['Equal', 'Match'],
       forTypes: ['String'],
       replacer: leaf => {
-        const pattern = (leaf.value as string[])
-          .filter(Boolean)
-          .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
-          .join('|');
+        const values = leaf.value as string[];
+        const conditions = [];
 
-        const rule = leaf.override({ operator: 'Match', value: RegExp(`^${pattern}$`, 'g') });
+        for (const value of [null, ''])
+          if (values.includes(value))
+            conditions.push(new ConditionTreeLeaf(leaf.field, 'Equal', value));
 
-        return (leaf.value as unknown[]).includes(null)
-          ? ConditionTreeFactory.union(rule, new ConditionTreeLeaf(leaf.field, 'Missing'))
-          : rule;
+        if (values.some(v => v !== null && v !== '')) {
+          const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
+          const regexp = new RegExp(`^${escaped.join('|')}$`, 'g');
+          conditions.push(new ConditionTreeLeaf(leaf.field, 'Match', regexp));
+        }
+
+        return ConditionTreeFactory.union(...conditions);
       },
     },
     {
@@ -74,22 +78,23 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
   ],
   NotIn: [
     {
-      dependsOn: ['Present', 'Match'],
+      dependsOn: ['NotEqual', 'Match'],
       forTypes: ['String'],
       replacer: leaf => {
-        const pattern = (leaf.value as string[])
-          .filter(Boolean)
-          .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
-          .join('|');
+        const values = leaf.value as string[];
+        const conditions = [];
 
-        const rule = leaf.override({
-          operator: 'Match',
-          value: RegExp(`(?!${pattern})`, 'g'),
-        });
+        for (const value of [null, ''])
+          if (values.includes(value))
+            conditions.push(new ConditionTreeLeaf(leaf.field, 'NotEqual', value));
 
-        return (leaf.value as unknown[]).includes(null)
-          ? ConditionTreeFactory.intersect(rule, new ConditionTreeLeaf(leaf.field, 'Present'))
-          : rule;
+        if (values.some(v => v !== null && v !== '')) {
+          const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
+          const regexp = new RegExp(`(?!${escaped.join('|')})`, 'g');
+          conditions.push(new ConditionTreeLeaf(leaf.field, 'Match', regexp));
+        }
+
+        return ConditionTreeFactory.intersect(...conditions);
       },
     },
     {
