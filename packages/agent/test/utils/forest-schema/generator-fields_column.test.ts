@@ -1,5 +1,4 @@
 import { FieldTypes } from '@forestadmin/datasource-toolkit';
-import { ValidationType } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
