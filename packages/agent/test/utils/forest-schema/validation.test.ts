@@ -147,6 +147,7 @@ describe('FrontendValidationUtils', () => {
     );
 
     expect(validationList).toStrictEqual([
+      { message: 'Field is required', type: 'is present' },
       {
         message: 'Value must be lower than 34',
         type: 'is less than',
