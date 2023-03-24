@@ -19,6 +19,8 @@ describe('ConditionTree', () => {
 
       test('intersect() should ignore null params', () => {
         const tree = ConditionTreeFactory.intersect(
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           null,
           new ConditionTreeLeaf('column', 'Equal', true),
           null,
