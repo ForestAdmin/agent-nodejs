@@ -85,6 +85,8 @@ export default class ConditionTreeLeaf extends ConditionTree {
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
 
     switch (this.operator) {
+      case 'In':
+        return (this.value as unknown[])?.includes(fieldValue);
       case 'Equal':
         return fieldValue == this.value; // eslint-disable-line eqeqeq
       case 'LessThan':
@@ -92,14 +94,18 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case 'GreaterThan':
         return fieldValue > this.value;
       case 'Match':
-        return (this.value as RegExp).test(fieldValue as string);
+        return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);
+      case 'StartsWith':
+        return (fieldValue as string)?.startsWith(this.value as string);
+      case 'EndsWith':
+        return (fieldValue as string)?.endsWith(this.value as string);
       case 'LongerThan':
         return typeof fieldValue === 'string' ? fieldValue.length > this.value : false;
       case 'ShorterThan':
         return typeof fieldValue === 'string' ? fieldValue.length < this.value : false;
       case 'IncludesAll':
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
-
+      case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
         return !this.inverse().match(record, collection, timezone);

@@ -1,6 +1,7 @@
 import { Alternative } from '../equivalence';
 import ConditionTreeFactory from '../factory';
 import ConditionTree from '../nodes/base';
+import ConditionTreeLeaf from '../nodes/leaf';
 import { Operator } from '../nodes/operators';
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
@@ -40,14 +41,19 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
   ],
   In: [
     {
-      dependsOn: ['Match'],
+      dependsOn: ['Missing', 'Match'],
       forTypes: ['String'],
       replacer: leaf => {
         const pattern = (leaf.value as string[])
+          .filter(Boolean)
           .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
           .join('|');
 
-        return leaf.override({ operator: 'Match', value: RegExp(`^${pattern}$`, 'g') });
+        const rule = leaf.override({ operator: 'Match', value: RegExp(`^${pattern}$`, 'g') });
+
+        return (leaf.value as unknown[]).includes(null)
+          ? ConditionTreeFactory.union(rule, new ConditionTreeLeaf(leaf.field, 'Missing'))
+          : rule;
       },
     },
     {
@@ -67,6 +73,25 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
     },
   ],
   NotIn: [
+    {
+      dependsOn: ['Present', 'Match'],
+      forTypes: ['String'],
+      replacer: leaf => {
+        const pattern = (leaf.value as string[])
+          .filter(Boolean)
+          .map(str => str.replace(/[.|[\]]/g, m => `\\${m}`))
+          .join('|');
+
+        const rule = leaf.override({
+          operator: 'Match',
+          value: RegExp(`(?!${pattern})`, 'g'),
+        });
+
+        return (leaf.value as unknown[]).includes(null)
+          ? ConditionTreeFactory.intersect(rule, new ConditionTreeLeaf(leaf.field, 'Present'))
+          : rule;
+      },
+    },
     {
       dependsOn: ['NotEqual'],
       replacer: leaf =>

@@ -6,7 +6,6 @@ import {
   ConditionTreeLeaf,
   FieldValidator,
   Filter,
-  Operator,
   RecordData,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -48,7 +47,7 @@ export default class ValidationDecorator extends CollectionDecorator {
 
     for (const [name, rules] of Object.entries(this.validation)) {
       const field = { ...schema.fields[name] } as ColumnSchema;
-      field.validation = ValidationDecorator.deduplicate([...(field.validation ?? []), ...rules]);
+      field.validation = [...(field.validation ?? []), ...rules];
       schema.fields[name] = field;
     }
 
@@ -78,55 +77,5 @@ export default class ValidationDecorator extends CollectionDecorator {
         }
       }
     }
-  }
-
-  /**
-   * Deduplicate rules which the frontend understand
-   * We ignore other rules as duplications are not an issue within the agent
-   */
-  private static deduplicate(rules: ValidationRule[]): ValidationRule[] {
-    const values: Partial<Record<Operator, ValidationRule[]>> = {};
-
-    for (const rule of rules) {
-      values[rule.operator] ??= [];
-      values[rule.operator].push(rule);
-    }
-
-    // Remove duplicate "Present"
-    while (values.Present?.length > 1) values.Present.pop();
-
-    // Merge duplicate 'GreaterThan', 'After' and 'LongerThan' (keep the max value)
-    for (const operator of ['GreaterThan', 'After', 'LongerThan']) {
-      while (values[operator]?.length > 1) {
-        const last = values[operator].pop();
-
-        values[operator][0] = {
-          operator,
-          value: ValidationDecorator.max(last.value, values[operator][0].value),
-        };
-      }
-    }
-
-    // Merge duplicate 'LessThan', 'Before' and 'ShorterThan' (keep the min value)
-    for (const operator of ['LessThan', 'Before', 'ShorterThan']) {
-      while (values[operator]?.length > 1) {
-        const last = values[operator].pop();
-
-        values[operator][0] = {
-          operator,
-          value: ValidationDecorator.min(last.value, values[operator][0].value),
-        };
-      }
-    }
-
-    return Object.values(values).reduce((memo, r) => [...memo, ...r], []);
-  }
-
-  private static min(valueA: unknown, valueB: unknown): unknown {
-    return valueA < valueB ? valueA : valueB;
-  }
-
-  private static max(valueA: unknown, valueB: unknown): unknown {
-    return valueA < valueB ? valueB : valueA;
   }
 }
