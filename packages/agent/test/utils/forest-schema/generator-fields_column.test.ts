@@ -73,9 +73,7 @@ describe('SchemaGeneratorFields > Column', () => {
         isReadOnly: true,
         isRequired: true,
         isSortable: true,
-        validations: [
-          { message: "Failed validation rule: 'Present'", type: ValidationType.Present },
-        ],
+        validations: [{ message: 'Field is required', type: 'is present' }],
         type: 'String',
       });
     });

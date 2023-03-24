@@ -12,11 +12,20 @@ type FrontendValidation = ForestServerField['validations'][number];
 type Validation = ColumnSchema['validation'][number];
 
 export default class FrontendValidationUtils {
+  /**
+   * Those operators depend on the current time so they won't work.
+   * The reason is that we need now() to be evaluated at query time, not at schema generation time.
+   */
+  private static excluded: Set<Operator> = new Set([
+    ...['Future', 'Past', 'Today', 'Yesterday'],
+    ...['PreviousMonth', 'PreviousQuarter', 'PreviousWeek', 'PreviousXDays', 'PreviousYear'],
+    ...['AfterXHoursAgo', 'BeforeXHoursAgo', 'PreviousXDaysToDate'],
+    ...['PreviousMonthToDate', 'PreviousQuarterToDate', 'PreviousWeekToDate', 'PreviousYearToDate'],
+  ] as const);
+
   /** This is the list of operators which are supported in the frontend implementation */
-  private static operatorValidationTypeMap: Partial<
-    Record<Operator, (v: Validation) => FrontendValidation>
-  > = {
-    Present: () => ({ type: 'is present', message: 'Field is required', value: null }),
+  private static supported: Partial<Record<Operator, (v: Validation) => FrontendValidation>> = {
+    Present: () => ({ type: 'is present', message: 'Field is required' }),
     After: rule => ({
       type: 'is after',
       value: rule.value,
@@ -57,11 +66,7 @@ export default class FrontendValidationUtils {
       value: rule.value.toString(),
       message: `Value must match ${rule.value}`,
     }),
-
-    // Tell the rule conversion routine to ignore these operators
-    Equal: null,
-    NotEqual: null,
-  } as const;
+  };
 
   /** Convert a list of our validation rules to what we'll be sending to the frontend */
   static convertValidationList(column: ColumnSchema): FrontendValidation[] {
@@ -70,19 +75,21 @@ export default class FrontendValidationUtils {
     const rules = column.validation.flatMap(rule => this.simplifyRule(column.columnType, rule));
     this.removeDuplicatesInPlace(rules);
 
-    return rules.map(rule => this.operatorValidationTypeMap[rule.operator](rule));
+    return rules.map(rule => this.supported[rule.operator](rule));
   }
 
   /** Convert one of our validation rules to a given number of frontend validation rules */
   private static simplifyRule(columnType: ColumnType, rule: Validation): Validation[] {
+    // Operators which we don't want to end up the schema
+    if (this.excluded.has(rule.operator)) return [];
+
     // Operators which are natively supported by the frontend
-    if (this.operatorValidationTypeMap[rule.operator]) {
-      return [rule];
-    }
+    if (this.supported[rule.operator]) return [rule];
 
     try {
       // Add the 'Equal|NotEqual' operators to unlock the `In|NotIn -> Match` replacement rules.
-      const operators = new Set(Object.keys(this.operatorValidationTypeMap)) as Set<Operator>;
+      // This is a bit hacky, but it allows to reuse the existing logic.
+      const operators = new Set(Object.keys(this.supported)) as Set<Operator>;
       operators.add('Equal');
       operators.add('NotEqual');
 
@@ -91,15 +98,18 @@ export default class FrontendValidationUtils {
       const timezone = 'Europe/Paris'; // we're sending the schema => use random tz
       const tree = ConditionTreeEquivalent.getEquivalentTree(leaf, operators, columnType, timezone);
 
+      let conditions = [];
+
       if (tree instanceof ConditionTreeLeaf) {
-        return this.simplifyRule(columnType, tree);
+        conditions = [tree];
+      } else if (tree instanceof ConditionTreeBranch && tree.aggregator === 'And') {
+        conditions = tree.conditions;
       }
 
-      if (tree instanceof ConditionTreeBranch && tree.aggregator === 'And') {
-        return tree.conditions.flatMap(c =>
-          c instanceof ConditionTreeLeaf ? this.simplifyRule(columnType, c) : [],
-        );
-      }
+      return conditions
+        .filter(c => c instanceof ConditionTreeLeaf)
+        .filter(c => c.operator !== 'Equal' && c.operator !== 'NotEqual')
+        .flatMap(c => this.simplifyRule(columnType, c));
     } catch {
       // Just ignore errors, they mean that the operator is not supported by the frontend
       // and that we don't have an automatic conversion for it.

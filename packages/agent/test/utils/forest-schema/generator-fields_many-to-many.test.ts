@@ -104,7 +104,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         relationship: 'BelongsTo',
         type: 'Uuid',
         isRequired: true,
-        validations: [{ type: 'is present', message: "Failed validation rule: 'Present'" }],
+        validations: [{ type: 'is present', message: 'Field is required' }],
         isFilterable: true,
         isPrimaryKey: false,
         defaultValue: null,
