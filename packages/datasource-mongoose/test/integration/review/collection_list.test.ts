@@ -171,7 +171,7 @@ describe('MongooseCollection', () => {
         [{ tags: ['B', 'C'] }],
       ],
       [
-        { value: '%message%', operator: 'Like', field: 'message' },
+        { value: /.*message.*/, operator: 'Match', field: 'message' },
         new Projection('message'),
         [{ message: 'a message' }, { message: 'message' }],
       ],
@@ -289,8 +289,8 @@ describe('MongooseCollection', () => {
         factories.caller.build(),
         factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
-            value: targetedId.toString(),
-            operator: 'Like',
+            value: new RegExp(targetedId.toString()),
+            operator: 'Match',
             field: '_id',
           }),
         }),
@@ -313,8 +313,8 @@ describe('MongooseCollection', () => {
         factories.caller.build(),
         factories.filter.build({
           conditionTree: factories.conditionTreeLeaf.build({
-            value: targetedId.toString(),
-            operator: 'Like',
+            value: new RegExp(targetedId.toString()),
+            operator: 'Match',
             field: 'authorId',
           }),
         }),

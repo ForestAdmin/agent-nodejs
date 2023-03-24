@@ -12,7 +12,7 @@ import MongooseSchema from '../../mongoose/schema';
 import { Stack } from '../../types';
 import VersionManager from '../version-manager';
 
-const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'ShorterThan'];
+const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
