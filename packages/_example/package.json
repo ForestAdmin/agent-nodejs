@@ -22,7 +22,7 @@
     "fastify2": "npm:fastify@^2.15.3",
     "koa": "^2.14.1",
     "mariadb": "^3.0.2",
-    "mongoose": "^6.8.3",
+    "mongoose": "^7.0.1",
     "mysql2": "^3.0.1",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",

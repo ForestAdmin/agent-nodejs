@@ -34,10 +34,10 @@ import VirtualFieldsGenerator from './utils/pipeline/virtual-fields';
 import FieldsGenerator from './utils/schema/fields';
 
 export default class MongooseCollection extends BaseCollection {
-  model: Model<RecordData>;
+  model: Model<unknown>;
   stack: Stack;
 
-  constructor(dataSource: DataSource, model: Model<RecordData>, stack: Stack) {
+  constructor(dataSource: DataSource, model: Model<unknown>, stack: Stack) {
     const { prefix } = stack[stack.length - 1];
     const name = prefix ? escape(`${model.modelName}.${prefix}`) : model.modelName;
 
@@ -241,14 +241,18 @@ export default class MongooseCollection extends BaseCollection {
         // request sequentially.
         // eslint-disable-next-line no-await-in-loop
         await this.model.collection.updateMany(
-          { _id: { $in: idsByPath[path] } },
+          { _id: { $in: idsByPath[path] } } as unknown,
           [{ $set: { [arrayPath]: { $concatArrays: newArrayValue } } }],
           {},
         );
       }
     } else {
       const promises = Object.entries(idsByPath).map(([path, pathIds]) =>
-        this.model.collection.updateMany({ _id: { $in: pathIds } }, { $unset: { [path]: '' } }, {}),
+        this.model.collection.updateMany(
+          { _id: { $in: pathIds } } as unknown,
+          { $unset: { [path]: '' } },
+          {},
+        ),
       );
 
       await Promise.all(promises);

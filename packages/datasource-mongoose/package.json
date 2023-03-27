@@ -20,10 +20,10 @@
     "luxon": "^3.2.1"
   },
   "devDependencies": {
-    "mongoose": "^6.8.3"
+    "mongoose": "^7.0.1"
   },
   "peerDependencies": {
-    "mongoose": "6.x"
+    "mongoose": "6.x || 7.x"
   },
   "scripts": {
     "build": "tsc",
