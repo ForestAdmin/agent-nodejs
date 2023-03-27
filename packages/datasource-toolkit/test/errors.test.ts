@@ -13,6 +13,11 @@ describe('errors', () => {
         const error = new CustomError('test');
         expect(error.name).toEqual('CustomError');
       });
+
+      it('should use the name when it is given', () => {
+        const error = new BusinessError('test', {}, 'MyName');
+        expect(error.name).toEqual('MyName');
+      });
     });
 
     describe('message', () => {
