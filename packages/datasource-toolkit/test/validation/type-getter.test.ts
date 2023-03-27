@@ -84,8 +84,34 @@ describe('TypeGetter', () => {
       });
 
       describe('when it is an uuid', () => {
-        it('should return the expected type', () => {
-          expect(TypeGetter.get('2d162303-78bf-599e-b197-93590ac3d315', 'Uuid')).toEqual('Uuid');
+        describe('when v1', () => {
+          it('should return the expected type', () => {
+            expect(TypeGetter.get('3defd622-ccb4-11ed-afa1-0242ac120002', 'Uuid')).toEqual('Uuid');
+          });
+        });
+
+        describe('when v3', () => {
+          it('should return the expected type', () => {
+            expect(TypeGetter.get('1d36d561-950c-3f6a-9710-e51e740e8c8b', 'Uuid')).toEqual('Uuid');
+          });
+        });
+
+        describe('when v4', () => {
+          it('should return the expected type', () => {
+            expect(TypeGetter.get('7202e0e8-06ca-4f67-af5e-fb7205a08648', 'Uuid')).toEqual('Uuid');
+          });
+        });
+
+        describe('when v5', () => {
+          it('should return the expected type', () => {
+            expect(TypeGetter.get('ae8a0c9b-144c-5380-bfe3-8eb67c3c2196', 'Uuid')).toEqual('Uuid');
+          });
+        });
+
+        describe('when the version is unknown', () => {
+          it('should return the expected type', () => {
+            expect(TypeGetter.get('ae8a0c9b-144c-8380-bfe3-8eb67c3c2196', 'Uuid')).toEqual('Uuid');
+          });
         });
       });
 

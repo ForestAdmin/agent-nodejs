@@ -1,5 +1,4 @@
 import { DateTime } from 'luxon';
-import { validate as uuidValidate } from 'uuid';
 
 import { PrimitiveTypes } from '../interfaces/schema';
 
@@ -32,8 +31,9 @@ export default class TypeGetter {
 
   private static getTypeFromString(value: string, typeContext: PrimitiveTypes): PrimitiveTypes {
     if (['Enum', 'String'].includes(typeContext)) return typeContext;
-
-    if (uuidValidate(value)) return 'Uuid';
+    // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx où x peut être des chiffres ou lettres
+    // regex
+    if (/^[a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(value)) return 'Uuid';
 
     if (TypeGetter.isValidDate(value)) return TypeGetter.getDateType(value);
 

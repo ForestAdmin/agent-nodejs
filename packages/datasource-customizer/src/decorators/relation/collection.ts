@@ -163,8 +163,8 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
 
     if (key.columnType !== target.columnType) {
       throw new Error(
-        `Types from '${owner.name}.${keyName}' and ` +
-          `'${targetOwner.name}.${targetName}' do not match.`,
+        `Types from '${owner.name}.${keyName}: ${key.columnType}' and ` +
+          `'${targetOwner.name}.${targetName}: ${target.columnType}' do not match.`,
       );
     }
   }
