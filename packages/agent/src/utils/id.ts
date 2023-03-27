@@ -18,11 +18,7 @@ export default class IdUtils {
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
 
     if (!pkNames.length) {
-      throw new UnprocessableError(
-        'Cannot list records without primary keys',
-        {},
-        'NoPrimaryKeyError',
-      );
+      throw new UnprocessableError('This collection has no primary key', {}, 'NoPrimaryKeyError');
     }
 
     if (pkNames.some(pkName => record[pkName] === undefined)) {
