@@ -14,14 +14,6 @@ export default class ListRoute extends CollectionRoute {
   public async handleList(context: Context) {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
-    if (SchemaUtils.getPrimaryKeys(this.collection.schema).length === 0) {
-      throw new UnprocessableError(
-        'Cannot list records without primary keys',
-        {},
-        'NoPrimaryKeyError',
-      );
-    }
-
     const scope = await this.services.authorization.getScope(this.collection, context);
     const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 

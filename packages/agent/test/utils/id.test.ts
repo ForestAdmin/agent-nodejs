@@ -9,7 +9,7 @@ describe('IdUtils', () => {
 
     test('pack should fail', () => {
       const fn = () => IdUtils.packId(noPkSchema, {});
-      expect(fn).toThrow(/no primary key/);
+      expect(fn).toThrow('Cannot list records without primary keys');
     });
 
     test('unpack should fail', () => {

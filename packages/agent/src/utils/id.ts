@@ -5,6 +5,7 @@ import {
   FieldValidator,
   RecordData,
   SchemaUtils,
+  UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -17,7 +18,11 @@ export default class IdUtils {
     const pkNames = SchemaUtils.getPrimaryKeys(schema);
 
     if (!pkNames.length) {
-      throw new Error('This collection has no primary key');
+      throw new UnprocessableError(
+        'Cannot list records without primary keys',
+        {},
+        'NoPrimaryKeyError',
+      );
     }
 
     if (pkNames.some(pkName => record[pkName] === undefined)) {
