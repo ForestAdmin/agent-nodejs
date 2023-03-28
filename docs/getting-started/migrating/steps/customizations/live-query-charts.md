@@ -4,7 +4,7 @@ Due to popular demand, it is planned to be reintroduced in a future version of t
 
 [Live Query Charts](https://docs.forestadmin.com/user-guide/dashboards/charts/create-a-chart#creating-a-chart-with-sql) allowed the creation of charts from SQL queries from the UI.
 
-Because the new agent no longer exposes the nature of the underlying database, this feature was not ported into the new agent. Building a chart from SQL queries is only possible [using API charts](../../agent-customization/charts/README.md) for now.
+Because the new agent no longer exposes the nature of the underlying database, this feature was not ported into the new agent. Building a chart from SQL queries is only possible [using API charts](../../../../agent-customization/charts/README.md) for now.
 
 # Migrating
 
