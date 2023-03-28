@@ -1,6 +1,6 @@
 ## Migrating from `forest-express-sequelize`
 
-When using the onboarding wizard, you connected to your database using the `@forestadmin/datasource-sql` connector. To ease the migration, we recommend to switch to the `@forestadmin/datasource-sequelize` connector.
+When using the onboarding wizard, you connected to your database using the `@forestadmin/datasource-sql` connector. To ease the migration, we recommend switching to the `@forestadmin/datasource-sequelize` connector.
 
 Start by changing the dependency in your agent
 
