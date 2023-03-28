@@ -7,6 +7,12 @@ Projects which apply a few customizations to their collections will be able to m
 
 # Common pitfalls
 
+## Getting stuck
+
+If you get stuck during the migration, you can always contact our support team at [https://community.forestadmin.com/](https://community.forestadmin.com/).
+
+Feedback about any issue you encounter during the migration process is invaluable to us, so please don't hesitate to share it.
+
 ## Premature optimizations
 
 When migrating from a previous version of the Agent, your objective is to make sure that your old agent can be substituted by the new one.
@@ -14,12 +20,6 @@ When migrating from a previous version of the Agent, your objective is to make s
 When you start coding, you will notice that the new API allows you to use more performant code and will be tempted to use it as you go.
 
 We recommend shortening the migration process as much as possible by restraining yourself to the minimum amount of changes.
-
-## Getting stuck
-
-If you get stuck during the migration, you can always contact our support team at [https://community.forestadmin.com/](https://community.forestadmin.com/).
-
-Feedback about any issue you encounter during the migration process is invaluable to us, so please don't hesitate to share it with us.
 
 ## Testing
 

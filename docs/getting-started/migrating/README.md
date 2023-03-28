@@ -27,14 +27,26 @@ To give more visibility to our developers' community, about agent usability and 
 
 The new agent brings a lot of new features, but a small subset of what was available in the legacy agents is not yet there.
 
-## SQL Charts
+## Route overrides
 
-![SQL Chart configuration screen](../../assets/migration-chart-sql.png)
+[Route overrides](https://docs.forestadmin.com/documentation/reference-guide/routes/override-a-route) allowed customizing the behavior of the routes exposed by the agent.
 
-[SQL Charts](https://docs.forestadmin.com/user-guide/dashboards/charts/create-a-chart#creating-a-chart-with-sql) allowed the creation of charts from SQL queries from the UI.
+Because our new agent API is higher-level, the protocol used to communicate between the agent and the application can no longer be manipulated.
 
-In the new agent, building a chart from SQL queries is only possible [through code](../../agent-customization/charts/README.md).
+All use cases that we have seen so far can be implemented using the new [agent customization](../../agent-customization) system, but because the former system was lower-level, we cannot guarantee it.
+
+A specific [migration guide](./steps/customizations/route-overrides.md) is available for this feature.
+
+## "Live Query" charts
+
+{% hint style="info" %}
+Due to popular demand, it is planned to be reintroduced in a future version of the agent, but we don't have a timeline for it yet.
+{% endhint %}
+
+![Live Query Chart configuration screen](../../assets/migration-chart-sql.png)
+
+[Live Query Charts](https://docs.forestadmin.com/user-guide/dashboards/charts/create-a-chart#creating-a-chart-with-sql) allowed the creation of charts from SQL queries from the UI.
+
+In the new agent, building a chart from SQL queries is only possible [using API charts](../../agent-customization/charts/README.md).
 
 Because the new agent no longer exposes the nature of the underlying database, this feature was not ported into the new agent.
-
-Due to popular demand, it is planned to be reintroduced in a future version of the agent, but we don't have a timeline for it yet.
