@@ -7,7 +7,7 @@ Smart Segments should be quick to migrate, as the syntax is very similar to the 
 | where:          | handler body                                                                    |
 | sequelize.where | [condition tree](../../../../under-the-hood/queries/filters.md#condition-trees) |
 
-# How to migrate ([docs](../../../../agent-customization/segments.md))
+# How to migrate
 
 ## Structure
 
