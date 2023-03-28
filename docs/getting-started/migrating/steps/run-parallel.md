@@ -10,7 +10,7 @@ Both agents will be on different source trees and Node.js processes, so you can 
 
 ### For in-app agents
 
-If you are migrating from an in-app agent, choose the `Advanced > In-app` option in the wizard.
+If you are migrating from an in-app agent, choose the `Advanced > Inside my own app` option in the wizard.
 
 Because both agents probably call business code from your app, you will need to have both of them living in the same source tree and Node.js process during the migration.
 
@@ -33,4 +33,4 @@ createAgent({
 });
 ```
 
-<!-- FIXME add a screenshot of the UI where we show how to add the prefix in the app url -->
+![Enter the same prefix in the UI](../../../assets/migration-application-url.png)
