@@ -105,9 +105,3 @@ const agent = createAgent(options).addDataSource(
 ```
 
 {% endtab %} {% endtabs %}
-
-## Migrating from another agent
-
-Rails and Django agents should be migrated using the `@forestadmin/datasource-sql` package.
-
-You have nothing to do in that step, as this is the default when onboarding a new project.

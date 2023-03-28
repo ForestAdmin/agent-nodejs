@@ -2,7 +2,7 @@ Smart relationships are very different between the two versions of the Agent.
 
 # Structure
 
-Smart relationships on legacy agents were declared creating a smartfield with a `reference` property but differed in the way that:
+Smart relationships on legacy agents were declared creating a smart field with a `reference` property but differed in the way that:
 
 - Relationships to a single record (many-to-one or one-to-one) worked using the `get` function which needed to return a single record.
 - Relationships to a list of records (one-to-many or many-to-many) worked by implementing all the CRUD routes on a router file.
