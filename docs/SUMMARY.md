@@ -27,6 +27,7 @@
     - [Configure database connection](getting-started/migrating/steps/datasource.md)
     - Code transformations
       - [API Charts](getting-started/migrating/steps/customizations/api-charts.md)
+      - [Live Query Charts](getting-started/migrating/steps/customizations/live-query-charts.md)
       - [Route overrides](getting-started/migrating/steps/customizations/route-overrides.md)
       - [Smart Actions](getting-started/migrating/steps/customizations/smart-actions.md)
       - [Smart Fields](getting-started/migrating/steps/customizations/smart-fields.md)
