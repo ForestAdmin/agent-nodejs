@@ -3,7 +3,7 @@ import { Sequelize } from 'sequelize';
 import { SequelizeCollection, SequelizeDataSource } from '../src';
 
 describe('SequelizeDataSource', () => {
-  it('should fail to instanciate without a Sequelize instance', () => {
+  it('should fail to instantiate without a Sequelize instance', () => {
     expect(() => new SequelizeDataSource(null)).toThrow('Invalid (null) Sequelize instance.');
   });
 
