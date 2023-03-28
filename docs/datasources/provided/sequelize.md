@@ -28,3 +28,15 @@ User.init(
 // Create agent and import collections from sequelize
 const agent = createAgent(options).addDataSource(createSequelizeDataSource(sequelize));
 ```
+
+# Disable UUID type checking
+
+[Postgres UUID type support non-standard UUIDs](https://www.postgresql.org/docs/current/datatype-uuid.html) but forestadmin-agent does not support it.
+To bypass this limitation, you can disable the UUID type checking by giving the `castUuidToString` option to the data source.
+
+```javascript
+/* ... */
+const agent = createAgent(options).addDataSource(
+  createSequelizeDataSource(sequelize, { castUuidToString: true }),
+);
+```

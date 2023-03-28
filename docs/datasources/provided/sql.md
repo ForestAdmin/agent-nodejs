@@ -99,3 +99,14 @@ const agent = createAgent(options).addDataSource(createSqlDataSource({
 ```
 
 Note that under the hood, the data source uses [Sequelize](https://sequelize.org/) to connect to the database. So, you can pass any option that is supported by Sequelize.
+
+# Disable UUID type checking
+
+[Postgres UUID type support non-standard UUIDs](https://www.postgresql.org/docs/current/datatype-uuid.html) but forestadmin-agent does not support it.
+To bypass this limitation, you can disable the UUID type checking by giving the `castUuidToString` option to the data source.
+
+```javascript
+const agent = createAgent(options).addDataSource(
+  createSqlDataSource(sequelize, { castUuidToString: true }),
+);
+```
