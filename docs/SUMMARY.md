@@ -39,7 +39,6 @@
 ## Agent customization
 
 - [Getting Started](agent-customization/README.md)
-- [Collections](agent-customization/collections.md)
 - [Actions](agent-customization/actions/README.md)
   - [Scope and context](agent-customization/actions/scope-context.md)
   - [Result builder](agent-customization/actions/result-builder.md)
