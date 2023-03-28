@@ -23,8 +23,8 @@ import Serializer from './utils/serializer';
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected model: ModelDefined<any, any>;
-  private col: Sequelize['col'];
-  private fn: Sequelize['fn'];
+  private readonly col: Sequelize['col'];
+  private readonly fn: Sequelize['fn'];
 
   private aggregationUtils: AggregationUtils;
   private queryConverter: QueryConverter;
@@ -35,6 +35,7 @@ export default class SequelizeCollection extends BaseCollection {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
     logger?: Logger,
+    options?: { castUuidToString: boolean },
   ) {
     super(name, datasource);
 
@@ -47,7 +48,7 @@ export default class SequelizeCollection extends BaseCollection {
     this.aggregationUtils = new AggregationUtils(this.model);
     this.queryConverter = new QueryConverter(this.model);
 
-    const modelSchema = ModelConverter.convert(this.model, logger);
+    const modelSchema = ModelConverter.convert(this.model, logger, options);
 
     this.enableCount();
     this.addFields(modelSchema.fields);

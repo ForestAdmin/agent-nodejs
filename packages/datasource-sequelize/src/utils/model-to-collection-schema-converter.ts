@@ -21,6 +21,8 @@ import {
 
 import TypeConverter from './type-converter';
 
+type Options = { castUuidToString: boolean };
+
 export default class ModelToCollectionSchemaConverter {
   private static convertAssociation(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -86,7 +88,10 @@ export default class ModelToCollectionSchemaConverter {
     return schemaAssociations;
   }
 
-  private static convertAttribute(attribute: ModelAttributeColumnOptions): FieldSchema {
+  private static convertAttribute(
+    attribute: ModelAttributeColumnOptions,
+    options?: Options,
+  ): FieldSchema {
     const sequelizeColumnType = attribute.type as AbstractDataType;
     const columnType = TypeConverter.fromDataType(sequelizeColumnType);
     const filterOperators = TypeConverter.operatorsForColumnType(columnType);
@@ -119,11 +124,24 @@ export default class ModelToCollectionSchemaConverter {
       column.defaultValue = attribute.defaultValue;
     }
 
+    const isArrayOf = (type: string): boolean =>
+      Array.isArray(columnType) && columnType[0] === type;
+
     if (columnType === 'Enum') {
       column.enumValues = [...attribute.values];
-    } else if (Array.isArray(columnType) && columnType.length === 1 && columnType[0] === 'Enum') {
+    } else if (isArrayOf('Enum')) {
       const arrayType = attribute.type as DataTypes.ArrayDataType<DataTypes.EnumDataType<string>>;
       column.enumValues = [...arrayType.options.type.values];
+    }
+
+    if (options?.castUuidToString) {
+      if (columnType === 'Uuid') {
+        column.columnType = 'String';
+        column.filterOperators = TypeConverter.operatorsForColumnType('String');
+      } else if (isArrayOf('Uuid')) {
+        column.columnType = ['String'];
+        column.filterOperators = TypeConverter.operatorsForColumnType(['String']);
+      }
     }
 
     return column;
@@ -133,12 +151,13 @@ export default class ModelToCollectionSchemaConverter {
     modelName: string,
     attributes: ModelAttributes,
     logger: Logger,
+    options?: Options,
   ): CollectionSchema['fields'] {
     const fields: CollectionSchema['fields'] = {};
 
     Object.entries(attributes).forEach(([name, attribute]) => {
       try {
-        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
+        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions, options);
       } catch (error) {
         logger?.('Warn', `Skipping column '${modelName}.${name}' (${error.message})`);
       }
@@ -148,7 +167,11 @@ export default class ModelToCollectionSchemaConverter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public static convert(model: ModelDefined<any, any>, logger: Logger): CollectionSchema {
+  public static convert(
+    model: ModelDefined<any, any>,
+    logger: Logger,
+    options?: Options,
+  ): CollectionSchema {
     if (!model) throw new Error('Invalid (null) model.');
 
     return {
@@ -156,7 +179,7 @@ export default class ModelToCollectionSchemaConverter {
       charts: [],
       countable: true,
       fields: {
-        ...this.convertAttributes(model.name, model.getAttributes(), logger),
+        ...this.convertAttributes(model.name, model.getAttributes(), logger, options),
         ...this.convertAssociations(model.name, model.associations, logger),
       },
       searchable: false,

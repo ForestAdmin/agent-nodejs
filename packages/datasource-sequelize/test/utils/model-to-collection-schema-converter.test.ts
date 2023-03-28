@@ -400,5 +400,84 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         });
       });
     });
+
+    describe('when castUuidToString option is true', () => {
+      describe('when the column is an uuid', () => {
+        it('should cast the column to a string', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define(
+            '__model__',
+            { uuid: { type: DataTypes.UUID } },
+            { timestamps: false },
+          );
+
+          const result = ModelToCollectionSchemaConverter.convert(model, () => {}, {
+            castUuidToString: true,
+          });
+
+          expect(result.fields.uuid).toEqual({
+            columnType: 'String',
+            filterOperators: TypeConverter.operatorsForColumnType('String'),
+            isSortable: true,
+            isReadOnly: undefined,
+            validation: [],
+            type: 'Column',
+          });
+        });
+      });
+
+      describe('when the column is an array of uuid', () => {
+        it('should cast the column to an array of string', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define(
+            '__model__',
+            {
+              arrayUuid: { type: DataTypes.ARRAY(DataTypes.UUID) },
+            },
+            { timestamps: false },
+          );
+
+          const result = ModelToCollectionSchemaConverter.convert(model, () => {}, {
+            castUuidToString: true,
+          });
+
+          expect(result.fields.arrayUuid).toEqual({
+            columnType: ['String'],
+            filterOperators: TypeConverter.operatorsForColumnType(['String']),
+            isSortable: true,
+            isReadOnly: undefined,
+            validation: [],
+            type: 'Column',
+          });
+        });
+      });
+
+      describe('when castUuidToString option is false', () => {
+        it('should not cast the uuid column', () => {
+          const { sequelize } = setup();
+
+          const model = sequelize.define(
+            '__model__',
+            { uuid: { type: DataTypes.UUID } },
+            { timestamps: false },
+          );
+
+          const result = ModelToCollectionSchemaConverter.convert(model, () => {}, {
+            castUuidToString: false,
+          });
+
+          expect(result.fields.uuid).toEqual({
+            columnType: 'Uuid',
+            filterOperators: TypeConverter.operatorsForColumnType('Uuid'),
+            isSortable: true,
+            isReadOnly: undefined,
+            validation: [],
+            type: 'Column',
+          });
+        });
+      });
+    });
   });
 });

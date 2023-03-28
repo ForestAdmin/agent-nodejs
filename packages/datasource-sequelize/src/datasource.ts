@@ -12,22 +12,26 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
    */
   protected sequelize: Sequelize = null;
 
-  constructor(sequelize: Sequelize, logger?: Logger) {
+  constructor(sequelize: Sequelize, logger?: Logger, options?: { castUuidToString: boolean }) {
     super();
 
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
 
     this.sequelize = sequelize;
 
-    this.createCollections(this.sequelize.models, logger);
+    this.createCollections(this.sequelize.models, logger, options);
   }
 
-  protected createCollections(models: Sequelize['models'], logger?: Logger) {
+  protected createCollections(
+    models: Sequelize['models'],
+    logger?: Logger,
+    options?: { castUuidToString: boolean },
+  ) {
     Object.values(models)
       // avoid schema reordering
       .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
       .forEach(model => {
-        const collection = new SequelizeCollection(model.name, this, model, logger);
+        const collection = new SequelizeCollection(model.name, this, model, logger, options);
         this.addCollection(collection);
       });
   }

@@ -59,12 +59,14 @@ export async function buildSequelizeInstance(
 
 export function createSqlDataSource(
   uriOrOptions: ConnectionOptions,
-  options?: { introspection: Table[] },
+  options?: { introspection?: Table[]; castUuidToString?: boolean },
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const sequelize = await buildSequelizeInstance(uriOrOptions, logger, options?.introspection);
 
-    return new SequelizeDataSource(sequelize, logger);
+    return new SequelizeDataSource(sequelize, logger, {
+      castUuidToString: options?.castUuidToString,
+    });
   };
 }
 
