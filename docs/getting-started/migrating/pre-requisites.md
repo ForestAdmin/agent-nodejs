@@ -1,4 +1,4 @@
-# Role system
+## Role system
 
 {% hint style="warning" %}
 Not completing this step will prevent you from upgrading to the latest version of the agent.
