@@ -12,7 +12,7 @@ Follow the [dedicated guide](./datasource.md) to learn more about the difference
 
 ## Step 3: Port your code to the new API
 
-A translation guide for most features is available in the [customization migration guide](./customizations).
+A translation guide for most features is available in the `Code transformations` section.
 
 ## Step 4: Ensure compatibility between agents
 
