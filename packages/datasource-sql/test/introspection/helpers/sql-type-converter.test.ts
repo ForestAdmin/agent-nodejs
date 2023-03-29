@@ -28,6 +28,7 @@ describe('SqlTypeConverter', () => {
       ['JSON', DataTypes.JSON, 'JSON'],
       ['TINYINT(1)', DataTypes.BOOLEAN, 'BOOLEAN'],
       ['BIT', DataTypes.BOOLEAN, 'BOOLEAN'],
+      ['BIT(1)', DataTypes.BOOLEAN, 'BOOLEAN'],
       ['BOOLEAN', DataTypes.BOOLEAN, 'BOOLEAN'],
       ['CHARACTER VARYING', DataTypes.STRING, 'STRING'],
       ['TEXT', DataTypes.STRING, 'STRING'],
