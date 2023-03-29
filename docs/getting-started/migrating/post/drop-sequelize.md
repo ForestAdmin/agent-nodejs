@@ -9,7 +9,7 @@ To connect your new agent to a SQL database, you have two options:
 
 If you wish to migrate to the new `@forestadmin/datasource-sql` connectors, you will need to:
 
-Changing the dependency in your agent:
+Change the dependency in your agent:
 
 ```console
 $ npm remove @forestadmin/datasource-sequelize
