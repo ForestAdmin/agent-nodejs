@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.9...@forestadmin/datasource-sql@1.3.0) (2023-03-29)
+
+
+### Features
+
+* **datasource-sql:** add support for MySQL BIT(1) type ([#661](https://github.com/ForestAdmin/agent-nodejs/issues/661)) ([a0b3a52](https://github.com/ForestAdmin/agent-nodejs/commit/a0b3a52848716ed427bb545ed8616437f432b436))
+
 ## @forestadmin/datasource-sql [1.2.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.8...@forestadmin/datasource-sql@1.2.9) (2023-03-29)
 
 
