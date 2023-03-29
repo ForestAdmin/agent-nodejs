@@ -1,3 +1,4 @@
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource } from '../src';
@@ -7,23 +8,48 @@ jest.mock('sequelize');
 
 describe('index', () => {
   describe('createSqlDataSource', () => {
-    describe('when the connection Uri is invalid', () => {
-      test('should throw an error', async () => {
-        const factory = createSqlDataSource('invalid');
-        const logger = jest.fn();
+    test('should return a data source factory', () => {
+      const factory = createSqlDataSource('postgres://');
 
-        await expect(() => factory(logger)).rejects.toThrow(
-          'Connection Uri "invalid" provided to SQL data source is not valid.' +
-            ' Should be <dialect>://<connection>.',
-        );
-      });
+      expect(factory).toBeInstanceOf(Function);
     });
 
-    describe('when the connection Uri is valid', () => {
-      test('should return a data source factory', () => {
-        const factory = createSqlDataSource('postgres://');
+    describe('when running the factory', () => {
+      describe('when the connection Uri is invalid', () => {
+        test('should throw an error', async () => {
+          const factory = createSqlDataSource('invalid');
+          const logger = jest.fn();
 
-        expect(factory).toBeInstanceOf(Function);
+          await expect(() => factory(logger)).rejects.toThrow(
+            'Connection Uri "invalid" provided to SQL data source is not valid.' +
+              ' Should be <dialect>://<connection>.',
+          );
+        });
+      });
+
+      describe('when the connection Uri is valid', () => {
+        test('should return a data source', async () => {
+          const factory = createSqlDataSource('postgres://', { introspection: [] });
+          const logger = jest.fn();
+
+          const dataSource = await factory(logger);
+
+          expect(dataSource).toBeInstanceOf(SequelizeDataSource);
+        });
+
+        describe('when options are given', () => {
+          test('should return a data source without errors', async () => {
+            const factory = createSqlDataSource('postgres://', {
+              introspection: [],
+              castUuidToString: true,
+            });
+            const logger = jest.fn();
+
+            const dataSource = await factory(logger);
+
+            expect(dataSource).toBeInstanceOf(SequelizeDataSource);
+          });
+        });
       });
     });
   });
