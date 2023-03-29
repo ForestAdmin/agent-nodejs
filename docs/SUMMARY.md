@@ -18,6 +18,27 @@
   - [Autocompletion & Typings](getting-started/install/autocompletion-and-typings.md)
   - [Troubleshooting](getting-started/install/troubleshooting.md)
 
+- [Migrating legacy agents](getting-started/migrating/README.md)
+  - [What's new](getting-started/migrating/what-is-new.md)
+  - [Pre-requisites](getting-started/migrating/pre-requisites.md)
+  - [Recommendations](getting-started/migrating/recommendations.md)
+  - [Migration steps](getting-started/migrating/steps/README.md)
+    - [Run new agent in parallel](getting-started/migrating/steps/run-parallel.md)
+    - [Configure database connection](getting-started/migrating/steps/datasource.md)
+    - Code transformations
+      - [API Charts](getting-started/migrating/steps/customizations/api-charts.md)
+      - [Live Query Charts](getting-started/migrating/steps/customizations/live-query-charts.md)
+      - [Route overrides](getting-started/migrating/steps/customizations/route-overrides.md)
+      - [Smart Actions](getting-started/migrating/steps/customizations/smart-actions.md)
+      - [Smart Fields](getting-started/migrating/steps/customizations/smart-fields.md)
+      - [Smart Relationships](getting-started/migrating/steps/customizations/smart-relationships.md)
+      - [Smart Segments](getting-started/migrating/steps/customizations/smart-segments.md)
+    - [Compare schemas](getting-started/migrating/steps/compare.md)
+    - [Swap agents](getting-started/migrating/steps/replace.md)
+  - Post-migration
+    - [Dropping Sequelize](getting-started/migrating/post/drop-sequelize.md)
+    - [Optimize your agent](getting-started/migrating/post/optimize.md)
+
 ## Data Sources
 
 - [Connecting data sources](datasources/connection/README.md)
