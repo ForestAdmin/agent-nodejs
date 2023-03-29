@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.4.1...@forestadmin/datasource-toolkit@1.4.2) (2023-03-29)
+
+
+### Bug Fixes
+
+* **agent:** send specific error when collection has no pk ([#654](https://github.com/ForestAdmin/agent-nodejs/issues/654)) ([e42756e](https://github.com/ForestAdmin/agent-nodejs/commit/e42756e9ff1474f405d206765e858cd493998742))
+
 ## @forestadmin/datasource-toolkit [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.4.0...@forestadmin/datasource-toolkit@1.4.1) (2023-03-15)
 
 

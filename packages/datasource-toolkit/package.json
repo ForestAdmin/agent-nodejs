@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-toolkit",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "main": "dist/src/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
