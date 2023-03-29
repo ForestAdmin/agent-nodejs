@@ -57,16 +57,22 @@ export async function buildSequelizeInstance(
   return sequelize;
 }
 
+/**
+ * This function is used to create a SQL data source factory.
+ * @param uriOrOptions - The connection uri or options to connect to the database.
+ * @param options - The options to configure the data source.
+ * @param options.introspection - The database schema to use.
+ * @param options.castUuidToString - Cast UUID to string to avoid issue withe type checking.
+ */
 export function createSqlDataSource(
   uriOrOptions: ConnectionOptions,
   options?: { introspection?: Table[]; castUuidToString?: boolean },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const sequelize = await buildSequelizeInstance(uriOrOptions, logger, options?.introspection);
+    const { introspection, castUuidToString } = options ?? {};
+    const sequelize = await buildSequelizeInstance(uriOrOptions, logger, introspection);
 
-    return new SequelizeDataSource(sequelize, logger, {
-      castUuidToString: options?.castUuidToString,
-    });
+    return new SequelizeDataSource(sequelize, logger, { castUuidToString });
   };
 }
 

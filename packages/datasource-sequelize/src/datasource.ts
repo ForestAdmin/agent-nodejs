@@ -27,7 +27,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     logger?: Logger,
     options?: { castUuidToString: boolean },
   ) {
-    Object.values(models)
+    Object.values(models ?? {})
       // avoid schema reordering
       .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
       .forEach(model => {
