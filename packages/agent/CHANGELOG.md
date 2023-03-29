@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.8.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.6...@forestadmin/agent@1.8.7) (2023-03-29)
+
+
+### Bug Fixes
+
+* **agent:** send specific error when collection has no pk ([#654](https://github.com/ForestAdmin/agent-nodejs/issues/654)) ([e42756e](https://github.com/ForestAdmin/agent-nodejs/commit/e42756e9ff1474f405d206765e858cd493998742))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.6.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.11
+
 ## @forestadmin/agent [1.8.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.5...@forestadmin/agent@1.8.6) (2023-03-22)
 
 
