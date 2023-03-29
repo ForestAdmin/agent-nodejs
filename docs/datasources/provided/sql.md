@@ -103,7 +103,8 @@ Note that under the hood, the data source uses [Sequelize](https://sequelize.org
 # Disable UUID type checking
 
 [Postgres UUID type support non-standard UUIDs](https://www.postgresql.org/docs/current/datatype-uuid.html) but forestadmin-agent does not support it.
-To bypass this limitation, you can disable the UUID type checking by giving the `castUuidToString` option to the data source.
+One way to overcome this restriction is to utilize the `castUuidToString` option for the data source, which disables UUID type verification and transforms UUIDs into strings.
+Despite this conversion, your database will continue to store UUIDs rather than strings, so there is no need for concern.
 
 ```javascript
 const agent = createAgent(options).addDataSource(

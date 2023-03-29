@@ -1,6 +1,7 @@
 import {
   CollectionSchema,
   ColumnSchema,
+  ColumnType,
   FieldSchema,
   Logger,
   RelationSchema,
@@ -124,27 +125,37 @@ export default class ModelToCollectionSchemaConverter {
       column.defaultValue = attribute.defaultValue;
     }
 
-    const isArrayOf = (type: string): boolean =>
-      Array.isArray(columnType) && columnType[0] === type;
+    this.convertEnumAttribute(columnType, column, attribute);
+    if (options?.castUuidToString) this.convertUuidAttribute(columnType, column);
 
+    return column;
+  }
+
+  private static convertEnumAttribute(
+    columnType: ColumnType,
+    column: ColumnSchema,
+    attribute: ModelAttributeColumnOptions<Model>,
+  ) {
     if (columnType === 'Enum') {
       column.enumValues = [...attribute.values];
-    } else if (isArrayOf('Enum')) {
+    } else if (ModelToCollectionSchemaConverter.isArrayOf(columnType, 'Enum')) {
       const arrayType = attribute.type as DataTypes.ArrayDataType<DataTypes.EnumDataType<string>>;
       column.enumValues = [...arrayType.options.type.values];
     }
+  }
 
-    if (options?.castUuidToString) {
-      if (columnType === 'Uuid') {
-        column.columnType = 'String';
-        column.filterOperators = TypeConverter.operatorsForColumnType('String');
-      } else if (isArrayOf('Uuid')) {
-        column.columnType = ['String'];
-        column.filterOperators = TypeConverter.operatorsForColumnType(['String']);
-      }
+  private static convertUuidAttribute(columnType: ColumnType, column: ColumnSchema) {
+    if (columnType === 'Uuid') {
+      column.columnType = 'String';
+      column.filterOperators = TypeConverter.operatorsForColumnType('String');
+    } else if (ModelToCollectionSchemaConverter.isArrayOf(columnType, 'Uuid')) {
+      column.columnType = ['String'];
+      column.filterOperators = TypeConverter.operatorsForColumnType(['String']);
     }
+  }
 
-    return column;
+  private static isArrayOf(columnType: ColumnType, type: ColumnType): boolean {
+    return Array.isArray(columnType) && columnType[0] === type;
   }
 
   private static convertAttributes(
