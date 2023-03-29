@@ -105,8 +105,9 @@ export default class SqlTypeConverter {
     switch (type.toUpperCase()) {
       case 'JSON':
         return 'JSON';
+      case 'BIT(1)': // In MySQL / MariaDB / Postgres, BIT(N) is used for bitmasks
       case 'TINYINT(1)': // MYSQL bool
-      case 'BIT': // NOTICE: MSSQL type.
+      case 'BIT': // MSSQL type.
       case 'BOOLEAN':
         return 'BOOLEAN';
       case 'CHARACTER VARYING':
