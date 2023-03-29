@@ -30,9 +30,9 @@ For instance, if you created a chart on the `customers` collection that displays
 Note that if you want to skip the installation step, online versions of both tools are available and can be used from an internet browser.
 
 - `jq` is a command line tool that allows you to manipulate JSON files.
-  If you don't have it installed, you can install it with [one of the following methods](https://stedolan.github.io/jq/download/).
+  If you don't have it installed, you can install it with [one of the following methods](https://stedolan.github.io/jq/download/) or [use it online](https://jqplay.org/).
 - `diff` is a command line tool that allows you to compare two files.
-  It is installed by default on virtually all Unix systems.
+  It is installed by default on virtually all Unix systems, windows users can use [online versions](https://www.diffchecker.com/).
 
 {% endhint %}
 
@@ -58,7 +58,9 @@ $ jq -r '.collections[] | (
 )' .forestadmin-schema.json | sort > agent-entities.txt
 ```
 
-This is equivalent to running the following Node.js script:
+<details>
+<summary>Equivalent Node.js script</summary>
+You can also execute the following script to generate the same file:
 
 ```javascript
 const fs = require('fs');
@@ -81,6 +83,8 @@ const entities = forestAdminSchema.collections
 
 fs.writeFileSync('agent-entities.txt', entities.join('\n'));
 ```
+
+</details>
 
 #### Comparing the list of entities
 
