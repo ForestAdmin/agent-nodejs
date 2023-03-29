@@ -27,7 +27,6 @@ For instance, if you created a chart on the `customers` collection that displays
 ### Checking the compatibility with `.forestadmin-schema.json`, `jq` and `diff`
 
 {% hint style="info" %}
-Note that if you want to skip the installation step, online versions of both tools are available and can be used from an internet browser.
 
 - `jq` is a command line tool that allows you to manipulate JSON files.
   If you don't have it installed, you can install it with [one of the following methods](https://stedolan.github.io/jq/download/)
