@@ -19,34 +19,59 @@ const router = new Router().get('/', async ctx => {
 });
 
 describe('Builder > Agent', () => {
-  it('should return an error when not started', async () => {
-    expect.assertions(1);
+  describe('standalone mode', () => {
+    it('should return an error when not started', async () => {
+      expect.assertions(1);
 
-    const mounter = new FrameworkMounter('my-api', logger);
-    mounter.mountOnStandaloneServer(9994, 'localhost');
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnStandaloneServer(9994, 'localhost');
 
-    try {
-      const response = await superagent.get('http://localhost:9994/my-api/forest');
-      expect(response.body).toStrictEqual({ error: 'Agent is not started' });
-    } finally {
-      await mounter.stop();
-    }
-  });
+      try {
+        const response = await superagent.get('http://localhost:9994/my-api/forest');
+        expect(response.body).toStrictEqual({ error: 'Agent is not started' });
+      } finally {
+        await mounter.stop();
+      }
+    });
 
-  it('should work in standalone mode', async () => {
-    expect.assertions(1);
+    it('should work in standalone mode', async () => {
+      expect.assertions(1);
 
-    const mounter = new FrameworkMounter('my-api', logger);
-    mounter.mountOnStandaloneServer(9997, 'localhost');
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnStandaloneServer(9997, 'localhost');
 
-    try {
-      await mounter.start(router);
+      try {
+        await mounter.start(router);
 
-      const response = await superagent.get('http://localhost:9997/my-api/forest');
-      expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
-    } finally {
-      await mounter.stop();
-    }
+        const response = await superagent.get('http://localhost:9997/my-api/forest');
+        expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+      } finally {
+        await mounter.stop();
+      }
+    });
+
+    describe('when starting error throw an error', () => {
+      it('should handle the error', async () => {
+        expect.assertions(1);
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        const mounter2 = new FrameworkMounter('my-api', logger);
+
+        try {
+          mounter.mountOnStandaloneServer(9997, 'localhost');
+          await mounter.start(router);
+          // throw error on start by mount two servers on the same port
+          mounter2.mountOnStandaloneServer(9997, 'localhost');
+          await mounter2.start(router);
+        } catch (e) {
+          // eslint-disable-next-line jest/no-conditional-expect
+          expect(e.message).toStrictEqual('listen EADDRINUSE: address already in use ::1:9997');
+        } finally {
+          await mounter.stop();
+          await mounter2.stop();
+        }
+      });
+    });
   });
 
   it('should work in an express app', async () => {

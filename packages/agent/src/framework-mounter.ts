@@ -8,10 +8,10 @@ import path from 'path';
 import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
-  private onStart: ((router: Router) => Promise<void>)[] = [];
-  private onStop: (() => Promise<void>)[] = [];
-  private prefix: string;
-  private logger: Logger;
+  private readonly onStart: ((router: Router) => Promise<void>)[] = [];
+  private readonly onStop: (() => Promise<void>)[] = [];
+  private readonly prefix: string;
+  private readonly logger: Logger;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
   private get completeMountPrefix(): string {
@@ -40,12 +40,17 @@ export default class FrameworkMounter {
   mountOnStandaloneServer(port?: number, host?: string): this {
     const chosenPort = port || Number(process.env.PORT) || 3351;
     const server = createServer(this.getConnectCallback(true));
-    server.listen(chosenPort, host);
-
-    this.logger(
-      'Info',
-      `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
-    );
+    const isListeningPromise = new Promise<void>((resolve, reject) => {
+      server.listen(chosenPort, host, () => {
+        this.logger(
+          'Info',
+          `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
+        );
+        resolve();
+      });
+      server.on('error', reject);
+    });
+    this.onStart.push(async () => isListeningPromise);
 
     this.onStop.push(async () => {
       server.close();
