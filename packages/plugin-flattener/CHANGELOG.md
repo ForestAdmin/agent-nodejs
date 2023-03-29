@@ -1,3 +1,14 @@
+## @forestadmin/plugin-flattener [1.0.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.15...@forestadmin/plugin-flattener@1.0.16) (2023-03-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.2
+* **@forestadmin/datasource-customizer:** upgraded to 1.6.1
+
 ## @forestadmin/plugin-flattener [1.0.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.14...@forestadmin/plugin-flattener@1.0.15) (2023-03-22)
 
 
