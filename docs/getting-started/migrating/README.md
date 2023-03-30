@@ -1,6 +1,6 @@
 You may want to migrate from a legacy agent to this new agent. This guide will help you do so.
 
-The new agent is built with a different architecture and breaks API retro compatibility with the legacy agents in many ways. However, you can still migrate to it.
+The new agent is built with a different architecture and breaks API retro compatibility with the legacy agents in many ways. However, as this new agent provides a more efficient API to let builders focus on their operational needs, we encourage you to migrate to speed up your future admin panel evolutions.
 
 # Am I using a legacy agent?
 
