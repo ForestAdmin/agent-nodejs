@@ -4,16 +4,7 @@ The new agent is built with a different architecture and breaks API retro compat
 
 # Am I using a legacy agent?
 
-You are using a legacy agent if you are using:
-
-- On NodeJS: Either one of the [forest-express-sequelize](https://github.com/ForestAdmin/forest-express-sequelize) or [forest-express-mongoose](https://github.com/ForestAdmin/forest-express-mongoose) packages.
-- On Rails: the [forest_liana](https://github.com/ForestAdmin/forest-rails) gem.
-- On Python: the [django-forestadmin](https://github.com/ForestAdmin/django-forestadmin) package.
-- On PHP: the [forestadmin/laravel-forestadmin](https://github.com/ForestAdmin/laravel-forestadmin) package.
-
-Note that if you are using Rails, Python or PHP, you will want to wait!
-
-Our team is currently porting this new agent architecture to all stacks supported by Forest Admin (the beta is already open for customers using [Symfony](https://github.com/ForestAdmin/symfony-forestadmin)).
+You are using a legacy agent if you are using either the [forest-express-sequelize](https://github.com/ForestAdmin/forest-express-sequelize) or the [forest-express-mongoose](https://github.com/ForestAdmin/forest-express-mongoose) packages.
 
 # When to migrate?
 
