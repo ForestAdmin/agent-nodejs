@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.8.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.7...@forestadmin/agent@1.8.8) (2023-03-30)
+
+
+### Bug Fixes
+
+* handle standalone server errors when agent is starting ([#662](https://github.com/ForestAdmin/agent-nodejs/issues/662)) ([49e3e24](https://github.com/ForestAdmin/agent-nodejs/commit/49e3e248b648e6b89a2c66ae76ab76106ed11f23))
+
 ## @forestadmin/agent [1.8.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.6...@forestadmin/agent@1.8.7) (2023-03-29)
 
 
