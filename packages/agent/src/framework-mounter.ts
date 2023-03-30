@@ -40,17 +40,18 @@ export default class FrameworkMounter {
   mountOnStandaloneServer(port?: number, host?: string): this {
     const chosenPort = port || Number(process.env.PORT) || 3351;
     const server = createServer(this.getConnectCallback(true));
-    const isListeningPromise = new Promise<void>((resolve, reject) => {
-      server.listen(chosenPort, host, () => {
-        this.logger(
-          'Info',
-          `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
-        );
-        resolve();
+    this.onStart.push(() => {
+      return new Promise<void>((resolve, reject) => {
+        server.listen(chosenPort, host, () => {
+          this.logger(
+            'Info',
+            `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
+          );
+          resolve();
+        });
+        server.on('error', reject);
       });
-      server.on('error', reject);
     });
-    this.onStart.push(async () => isListeningPromise);
 
     this.onStop.push(async () => {
       server.close();

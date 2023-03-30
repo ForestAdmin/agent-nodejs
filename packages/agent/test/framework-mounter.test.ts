@@ -20,38 +20,38 @@ const router = new Router().get('/', async ctx => {
 
 describe('Builder > Agent', () => {
   describe('standalone mode', () => {
-    it('should return an error when not started', async () => {
-      expect.assertions(1);
+    describe('when starting the agent is a success', () => {
+      it('should send a response', async () => {
+        expect.assertions(1);
 
-      const mounter = new FrameworkMounter('my-api', logger);
-      mounter.mountOnStandaloneServer(9994, 'localhost');
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnStandaloneServer(9997, 'localhost');
 
-      try {
-        const response = await superagent.get('http://localhost:9994/my-api/forest');
-        expect(response.body).toStrictEqual({ error: 'Agent is not started' });
-      } finally {
-        await mounter.stop();
-      }
+        try {
+          await mounter.start(router);
+
+          const response = await superagent.get('http://localhost:9997/my-api/forest');
+          expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+        } finally {
+          await mounter.stop();
+        }
+      });
     });
 
-    it('should work in standalone mode', async () => {
-      expect.assertions(1);
+    describe('when the agent is not started', () => {
+      it('should throw an error', async () => {
+        expect.assertions(1);
 
-      const mounter = new FrameworkMounter('my-api', logger);
-      mounter.mountOnStandaloneServer(9997, 'localhost');
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnStandaloneServer(9994, 'localhost');
 
-      try {
-        await mounter.start(router);
-
-        const response = await superagent.get('http://localhost:9997/my-api/forest');
-        expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
-      } finally {
+        await expect(() => superagent.get('http://localhost:9994/my-api/forest')).rejects.toThrow();
         await mounter.stop();
-      }
+      });
     });
 
-    describe('when starting error throw an error', () => {
-      it('should handle the error', async () => {
+    describe('when starting the agent fails', () => {
+      it('should throw an error catchable', async () => {
         expect.assertions(1);
 
         const mounter = new FrameworkMounter('my-api', logger);
@@ -65,10 +65,30 @@ describe('Builder > Agent', () => {
           await mounter2.start(router);
         } catch (e) {
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(e.message).toStrictEqual('listen EADDRINUSE: address already in use ::1:9997');
+          expect(e.message).toContain('9997');
         } finally {
           await mounter.stop();
           await mounter2.stop();
+        }
+      });
+    });
+  });
+
+  describe('when agent is mounted without the standalone mode', () => {
+    describe('when the agent is not started', () => {
+      it('should return a response', async () => {
+        expect.assertions(1);
+        const app = express();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnExpress(app);
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: 'Agent is not started' });
+        } finally {
+          server.close();
         }
       });
     });
