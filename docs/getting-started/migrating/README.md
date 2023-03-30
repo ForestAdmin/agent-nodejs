@@ -1,25 +1,16 @@
 You may want to migrate from a legacy agent to this new agent. This guide will help you do so.
 
-The new agent is built with a different architecture and breaks API retro compatibility with the legacy agents in many ways. However, because all features are available in the new agent, you can still migrate to it.
+The new agent is built with a different architecture and breaks API retro compatibility with the legacy agents in many ways. However, as this new agent provides a more efficient API to let builders focus on their operational needs, we encourage you to migrate to speed up your future admin panel evolutions.
 
 # Am I using a legacy agent?
 
-You are using a legacy agent if you are using:
-
-- On NodeJS: Either one of the [forest-express-sequelize](https://github.com/ForestAdmin/forest-express-sequelize) or [forest-express-mongoose](https://github.com/ForestAdmin/forest-express-mongoose) packages.
-- On Rails: the [forest_liana](https://github.com/ForestAdmin/forest-rails) gem.
-- On Python: the [django-forestadmin](https://github.com/ForestAdmin/django-forestadmin) package.
-- On PHP: the [forestadmin/laravel-forestadmin](https://github.com/ForestAdmin/laravel-forestadmin) package.
-
-Note that if you are using Rails, Python or PHP, you will want to wait!
-
-Our team is currently porting this new agent architecture to all stacks supported by Forest Admin (the beta is already open for customers using [Symfony](https://github.com/ForestAdmin/symfony-forestadmin)).
+You are using a legacy agent if you are using either the [forest-express-sequelize](https://github.com/ForestAdmin/forest-express-sequelize) or the [forest-express-mongoose](https://github.com/ForestAdmin/forest-express-mongoose) packages.
 
 # When to migrate?
 
 Legacy agents are still supported and will continue to be for a while.
 
-No end-of-life date has been set yet for customers using the latest major version of the legacy agents, but it will be announced on a minimal 18 months period guarantee.
+No end-of-life date has been set yet for customers using the latest major version of the legacy agents.
 
 To give more visibility to our developers' community, about agent usability and support in the future, you will find [on this page](https://docs.forestadmin.com/documentation/how-tos/releases-support) the important lifecycle dates per agent stack and versions.
 
