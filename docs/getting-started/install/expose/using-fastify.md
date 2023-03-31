@@ -20,3 +20,15 @@ agent.mountOnFastify(app).start();
 
 app.listen(3000);
 ```
+
+## Using Fastify v4.x
+
+You should use [@fastify/middie](https://github.com/fastify/middie) library to be able to use Fastify v4.x with Forest Admin.
+
+This library adds middleware support to Fastify.
+
+```javascript
+const fastifyAppV4 = Fastify();
+await fastifyAppV4.register(import('@fastify/middie'));
+agent.mountOnFastify(fastifyAppV4);
+```
