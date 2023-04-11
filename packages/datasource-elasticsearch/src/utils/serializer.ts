@@ -24,3 +24,4 @@ export default class Serializer {
     return value;
   }
 }
+// TODO: Handle Point serialization + Deserialization

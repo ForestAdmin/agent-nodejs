@@ -128,7 +128,7 @@ export type Schema = {
       'parent:parent:store:owner:fullName': string;
     };
   };
-  'activity-logs-v1-template': {
+  'ActivityLogs': {
     plain: {
       'renderingId': string;
       'records': string;
@@ -268,12 +268,64 @@ export type Schema = {
       'rental:customer:deletedAt': string;
     };
   };
-  'kibana_sample_data_flights': {
+  'eCommerce': {
     plain: {
-      'Dest': string;
+      'category': string;
+      'currency': string;
+      'customer_birth_date': string;
+      'customer_first_name': string;
+      'customer_full_name': string;
+      'customer_gender': string;
+      'customer_id': string;
+      'customer_last_name': string;
+      'customer_phone': string;
+      'day_of_week': string;
+      'day_of_week_i': number;
+      'email': string;
+      'manufacturer': string;
+      'order_date': string;
+      'order_id': string;
+      'sku': string;
+      'taxful_total_price': number;
+      'taxless_total_price': number;
+      'total_quantity': number;
+      'total_unique_products': number;
+      'type': string;
+      'user': string;
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'Flights': {
+    plain: {
       'AvgTicketPrice': number;
       'Cancelled': boolean;
       'Carrier': string;
+      'Dest': string;
+      'DestAirportID': string;
+      'DestCityName': string;
+      'DestCountry': string;
+      'DestLocation': [number, number];
+      'DestRegion': string;
+      'DestWeather': string;
+      'DistanceKilometers': number;
+      'DistanceMiles': number;
+      'FlightDelay': boolean;
+      'FlightDelayMin': number;
+      'FlightDelayType': string;
+      'FlightNum': string;
+      'FlightTimeHour': string;
+      'FlightTimeMin': number;
+      'Origin': string;
+      'OriginAirportID': string;
+      'OriginCityName': string;
+      'OriginCountry': string;
+      'OriginLocation': [number, number];
+      'OriginRegion': string;
+      'OriginWeather': string;
+      'dayOfWeek': number;
+      'timestamp': string;
       '_id': string;
     };
     nested: {};

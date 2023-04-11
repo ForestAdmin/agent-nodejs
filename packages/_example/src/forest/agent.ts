@@ -1,7 +1,6 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-
-// import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch';
-import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch/dist';
+import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch';
+// import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch/dist';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
@@ -59,7 +58,28 @@ export default function makeAgent() {
     .addDataSource(
       createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
     )
-    .addDataSource(createElasticsearchDataSource('http://localhost:9200'))
+    .addDataSource(
+      createElasticsearchDataSource('http://localhost:9200', configurator =>
+        configurator
+          .addCollectionFromIndex({ name: 'Flights', indexName: 'kibana_sample_data_flights' })
+          .addCollectionFromTemplate({
+            name: 'ActivityLogs',
+            templateName: 'activity-logs-v1-template',
+            generateIndexName: ({ type, createdAt }) => {
+              const createdDate = new Date(createdAt).toISOString();
+              // NOTICE: getMonth() returns the month as a zero-based value
+              const month = new Date(createdDate).getUTCMonth() + 1;
+
+              const dateSuffix = `${new Date(createdDate).getUTCFullYear()}_${
+                month < 10 ? '0' : ''
+              }${month}`;
+
+              return `activity-logs-v1-${type}-${dateSuffix}`;
+            },
+          })
+          .addCollectionFromIndex({ name: 'eCommerce', indexName: 'kibana_sample_data_ecommerce' }),
+      ),
+    )
 
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');

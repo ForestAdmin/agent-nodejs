@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import { Client } from '@elastic/elasticsearch';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
@@ -8,10 +9,16 @@ export default class Introspector {
     elasticsearchClient: Client,
     logger?: Logger,
   ): Promise<ModelElasticsearch[]> {
-    const results = [];
-
     logger('Info', 'Introspector - Introspect Elasticsearch');
 
+    return Introspector.introspectAll(elasticsearchClient, logger);
+  }
+
+  private static async introspectAll(
+    elasticsearchClient: Client,
+    logger?: Logger,
+  ): Promise<ModelElasticsearch[]> {
+    const results = [];
     /**
      * Get all templates information
      */

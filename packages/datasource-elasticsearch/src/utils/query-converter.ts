@@ -76,7 +76,7 @@ export default class QueryConverter {
 
       // Strings
       case 'Like':
-        // Use more_like_this or match?
+        // Use more_like_this or match or query_string?
         return {
           wildcard: {
             [field]: (value as string).replace(/%/g, '*'),

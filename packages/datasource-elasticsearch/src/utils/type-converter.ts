@@ -86,7 +86,9 @@ export default class TypeConverter {
       }
     }
 
-    // There's no fucking arrays, well everything is an array
+    // In Elasticsearch, there is no dedicated array data type.
+    // Any field can contain zero or more values by default, however, all values
+    // in the array must be of the same data type
     // https://www.elastic.co/guide/en/elasticsearch/reference/master/array.html
     // if (Array.isArray(columnType)) {
     // }
@@ -94,5 +96,11 @@ export default class TypeConverter {
     result.push(...equality, 'IncludesAll');
 
     return new Set(result);
+  }
+
+  public static operatorsForId(): Set<Operator> {
+    // _id field is accessible in queries such as term, terms, match, and query_string
+    // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html
+    return new Set(['Present', 'Missing', 'Equal', 'NotEqual', 'In', 'NotIn']);
   }
 }

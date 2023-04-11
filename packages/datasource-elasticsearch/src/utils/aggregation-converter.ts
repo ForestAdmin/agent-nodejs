@@ -1,4 +1,4 @@
-import { AggregationsAggregationContainer } from '@elastic/elasticsearch/api/types';
+import { AggregationsAggregationContainer, double } from '@elastic/elasticsearch/api/types';
 import {
   AggregateResult,
   Aggregation,
@@ -28,36 +28,62 @@ export default class AggregationUtils {
     Day: { calendar_interval: 'day', format: 'yyy-MM-dd' },
   };
 
-  static aggs(aggregation: Aggregation): Record<string, AggregationsAggregationContainer> {
-    const metricsAggregations = this.computeValue(aggregation);
-    const groupsAggregations = this.computeGroups(aggregation.groups);
+  static aggs(
+    aggregation: Aggregation,
+    filter: unknown,
+  ): Record<string, AggregationsAggregationContainer> {
+    const metricsAggregations = this.computeValue(aggregation, filter);
+    const groupsAggregations = this.computeGroups(aggregation);
+
+    if (aggregation.groups) {
+      return { groupsAggregations };
+    }
 
     return {
-      ...(metricsAggregations ? { metricsAggregations } : {}),
-      ...(groupsAggregations ? { groupsAggregations } : {}),
+      metricsAggregations,
     };
   }
 
   /** Compute aggregation value */
-  private static computeValue(aggregation: Aggregation): AggregationsAggregationContainer {
-    // Handle count(*) case
-    if (!aggregation.field) return { global: {} };
+  private static computeValue(
+    aggregation: Aggregation,
+    filter?: unknown,
+  ): AggregationsAggregationContainer {
+    if (!aggregation.field) {
+      // TODO TEST: Rework -> doc_count is computed in every search responses no need
+      // to put back the filter in here
+      // Handle count(*) case (affected by global filters)
+      if (filter) {
+        return { filter };
+      }
+
+      // TODO: Rework this count(*) -> doc_count is computed in every search responses
+      // Handle count(*) case (not affected by any global filters)
+      return { global: {} };
+    }
 
     // General case
     return {
-      [this.AGGREGATION_OPERATION[aggregation.operation]]: aggregation.field,
+      [this.AGGREGATION_OPERATION[aggregation.operation]]: { field: aggregation.field },
     };
   }
 
   /** Compute field for the Bucket aggregations stage */
-  private static computeGroups(groups: Aggregation['groups']): unknown {
-    return groups?.reduce((memo, group) => {
+  private static computeGroups(aggregation: Aggregation): unknown {
+    return aggregation.groups?.reduce((memo, group) => {
       let bucketAggregation;
       const { field, operation } = group;
 
       if (operation) {
         bucketAggregation = {
           date_histogram: { ...this.GROUP_OPERATION[operation], field },
+        };
+      } else if (field) {
+        bucketAggregation = {
+          terms: { field },
+          ...(aggregation.operation !== 'Count'
+            ? { aggs: { operation: AggregationUtils.computeValue(aggregation) } }
+            : {}),
         };
       }
 
@@ -67,29 +93,51 @@ export default class AggregationUtils {
 
   static computeResult(
     aggregationResults: Record<string, unknown>,
-    groups: Aggregation['groups'],
+    aggregation: Aggregation,
   ): AggregateResult[] {
     if (aggregationResults.metricsAggregations && !aggregationResults.groupsAggregations)
       return [
         {
-          value: (aggregationResults.metricsAggregations as { doc_count: number })?.doc_count,
+          value: AggregationUtils.computeAggregationResult(
+            aggregationResults.metricsAggregations,
+            aggregation,
+          ),
           group: {},
         },
       ];
 
     const { buckets } = aggregationResults.groupsAggregations as {
-      buckets: { key_as_string: string; key: Date; doc_count: number }[];
+      buckets: {
+        key_as_string: string;
+        key: string;
+        doc_count: number;
+        operation?: { doc_count: number; value: number | double };
+      }[];
     };
 
-    return buckets.map(({ key_as_string, doc_count }) => {
+    console.log(JSON.stringify(buckets));
+
+    return buckets.map(({ key, key_as_string, doc_count, operation }) => {
       return {
-        value: Serializer.serializeValue(doc_count),
-        group: (groups ?? []).reduce((memo, { field }) => {
-          memo[field] = key_as_string;
+        value: operation
+          ? AggregationUtils.computeAggregationResult(operation, aggregation)
+          : Serializer.serializeValue(doc_count),
+        group: (aggregation.groups ?? []).reduce((memo, { field }) => {
+          memo[field] = key_as_string ?? key;
 
           return memo;
         }, {}),
       };
     });
+  }
+
+  static computeAggregationResult(aggregationResults: unknown, aggregation: Aggregation): unknown {
+    switch (aggregation.operation) {
+      case 'Count':
+        return (aggregationResults as { doc_count: number })?.doc_count;
+
+      default:
+        return (aggregationResults as { value: number | double })?.value;
+    }
   }
 }

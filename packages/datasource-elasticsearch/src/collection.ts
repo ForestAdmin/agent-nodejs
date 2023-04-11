@@ -24,7 +24,6 @@ export default class ElasticsearchCollection extends BaseCollection {
   protected internalModel: ModelElasticsearch;
 
   private queryConverter: QueryConverter;
-  // private aggregationUtils: AggregationUtils;
 
   constructor(datasource: DataSource, model: ModelElasticsearch, logger?: Logger) {
     if (!model) throw new Error('Invalid (null) model instance.');
@@ -34,11 +33,10 @@ export default class ElasticsearchCollection extends BaseCollection {
     this.internalModel = model;
 
     this.queryConverter = new QueryConverter();
-    // this.aggregationUtils = new AggregationUtils(this.model);
 
     const modelSchema = ModelConverter.convert(this.internalModel, logger);
 
-    // this.enableCount();
+    this.enableCount();
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
 
@@ -68,7 +66,7 @@ export default class ElasticsearchCollection extends BaseCollection {
 
     const searchBody = {
       query: this.queryConverter.getBoolQueryFromConditionTree(filter.conditionTree),
-      ...(filter.sort.length > 0
+      ...(filter.sort?.length > 0
         ? { sort: this.queryConverter.getOrderFromSort(filter.sort) }
         : {}),
     };
@@ -110,10 +108,13 @@ export default class ElasticsearchCollection extends BaseCollection {
     const lookupProjection = aggregation.projection.union(filter.conditionTree?.projection);
 
     // const order = AggregationUtils.getOrder(aggregationFunction);
+    const query = this.queryConverter.getBoolQueryFromConditionTree(filter.conditionTree);
+    const aggs = AggregationUtils.aggs(aggregation, query);
 
+    console.log(JSON.stringify(query), aggs);
     const searchBody = {
-      // query: this.queryConverter.getBoolQueryFromConditionTree(filter.conditionTree),
-      aggs: AggregationUtils.aggs(aggregation),
+      query,
+      aggs,
       // ...(order
       //   ? { order }
       //   : {}),
@@ -123,6 +124,10 @@ export default class ElasticsearchCollection extends BaseCollection {
       this.internalModel.aggregateSearch(searchBody),
     );
 
-    return AggregationUtils.computeResult(aggregationResults, aggregation.groups);
+    console.log(searchBody, aggregationResults);
+
+    return AggregationUtils.computeResult(aggregationResults, aggregation);
   }
 }
+
+// { lat: -0.129166667, lon: -78.3575 } => { "coordinates": [ 121.3359985, 31.19790077 ], "type": "Point" }

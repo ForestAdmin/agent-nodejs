@@ -14,13 +14,13 @@ export default class ModelElasticsearch {
    * is created - either manually or through indexing a document - the template settings
    * are used as a basis for creating the index.
    */
-  private indexPatterns: string | string[];
+  private indexPatterns: string[];
 
   /**
    * An alias is a secondary name for a group of data streams or indices.
    * Most Elasticsearch APIs accept an alias in place of a data stream or index name.
    */
-  private aliases: string | string[];
+  private aliases: string[];
 
   /**
    * Mapping is the process of defining how a document, and the fields it contains, are
@@ -30,28 +30,37 @@ export default class ModelElasticsearch {
    */
   private mapping: MappingTypeMapping;
 
+  private generateIndexName: (record?: unknown) => string;
+
   private elasticsearchClient: Client;
 
   constructor(
     elasticsearchClient: Client,
     name: string,
-    indexPatterns: string | string[],
-    aliases: string | string[],
+    indexPatterns: string[],
+    aliases: string[],
     mapping: MappingTypeMapping,
+    generateIndexName?: (record?: unknown) => string,
   ) {
     this.name = name;
     this.indexPatterns = indexPatterns;
     this.aliases = aliases;
     this.mapping = mapping;
+    this.generateIndexName = generateIndexName;
 
     this.elasticsearchClient = elasticsearchClient;
   }
 
   public async bulkCreate(data: RecordData[]): Promise<RecordData[]> {
-    // TODO: create an index based on this.indexPatterns[0]
-    // Equivalent to Kibana index pattern
-    // example indexPattern_*-* -> indexPatterns_12-02
-    // Protected indexPattern = () => string | string
+    if (!this.generateIndexName)
+      throw new Error('You need to define generateIndexName in order to create a record');
+
+    // How to handle this the proper way ?
+    if (this.mapping.properties.createdAt) {
+      data.forEach(newRecord => {
+        newRecord.createdAt = new Date();
+      });
+    }
 
     const recordsCreationPromises = data.map(newRecord =>
       this.elasticsearchClient.index<{
@@ -59,7 +68,7 @@ export default class ModelElasticsearch {
         _id: string;
       }>({
         op_type: 'create',
-        index: this.indexPatterns[0],
+        index: this.generateIndexName(newRecord),
         body: newRecord,
       }),
     );
@@ -113,6 +122,8 @@ export default class ModelElasticsearch {
       index: this.indexPatterns[0],
       body: searchBody,
     });
+
+    console.log('Raw body', JSON.stringify(response.body));
 
     return response.body.aggregations;
   }
@@ -176,8 +187,6 @@ export default class ModelElasticsearch {
    * Return all fields
    */
   public getAttributes() {
-    // this.mapping.runtime ?
-    // https://www.elastic.co/guide/en/elasticsearch/reference/master/runtime-mapping-fields.html
     return this.mapping.properties;
   }
 }

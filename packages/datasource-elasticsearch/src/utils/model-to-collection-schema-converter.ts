@@ -114,7 +114,7 @@ export default class ModelToCollectionSchemaConverter {
     const defaultPrimaryColumn: ColumnSchema = {
       columnType: 'String',
       type: 'Column',
-      filterOperators: undefined,
+      filterOperators: TypeConverter.operatorsForId(),
       validation: [],
       isReadOnly: true,
       isSortable: false,

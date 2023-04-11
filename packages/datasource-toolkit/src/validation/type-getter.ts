@@ -7,6 +7,13 @@ export default class TypeGetter {
   static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes {
     if (typeContext === 'Json') return 'Json';
 
+    if (
+      typeContext === 'Point' &&
+      (value as { lat: unknown }).lat &&
+      (value as { lon: unknown }).lon
+    )
+      return 'Point';
+
     if (typeof value === 'string') return TypeGetter.getTypeFromString(value, typeContext);
 
     if (typeof value === 'number' && !Number.isNaN(Number(value))) return 'Number';

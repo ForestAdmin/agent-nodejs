@@ -2,6 +2,7 @@ import { Client, ClientOptions } from '@elastic/elasticsearch';
 import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import ElasticsearchDataSource from './datasource';
+import { ConfigurationOptions, ElasticsearchDatasourceBuilder } from './introspection/builder';
 import Introspector from './introspection/introspector';
 
 export { default as ElasticsearchCollection } from './collection';
@@ -16,22 +17,31 @@ export function createElasticsearchDataSourceWithExistingClient(client: Client):
   };
 }
 
+/**
+ * Allow to interact with elasticsearch datasource
+ * @param connection the connection to the elasticsearch instance
+ * @param handle a function that provide a
+ *   datasource configurations on the given datasource
+ * @example
+ * .createElasticsearchDataSource('books', configurator =>
+ *   configurator.addCollectionFromIndex(
+ *    { name: 'Flights',indexPatterns: 'kibana_sample_data_flights' },
+ *   ),
+ * )
+ */
 export function createElasticsearchDataSource(
   connection: ClientOptions['node'],
+  options?: ConfigurationOptions,
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const client = new Client({ node: connection });
 
-    const collectionModels = await Introspector.introspect(client, logger);
+    const collectionModels = options
+      ? await (
+          options(new ElasticsearchDatasourceBuilder(client)) as ElasticsearchDatasourceBuilder
+        ).createCollectionsFromConfiguration()
+      : await Introspector.introspect(client, logger);
 
     return new ElasticsearchDataSource(client, collectionModels, logger);
   };
 }
-
-/**
- * Rethink the whole introspection
- *
- * - Maybe add option to only look for indices
- * - Add option to create the right index naming in case of collection from index template
- *
- */
