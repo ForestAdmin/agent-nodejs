@@ -34,13 +34,7 @@ export default class SchemaGeneratorCollection {
     return Promise.all(
       Object.keys(collection.schema.actions)
         .sort()
-        .map(name =>
-          SchemaGeneratorActions.buildSchema(
-            collection,
-            name,
-            collection.schema.actions[name].displayName,
-          ),
-        ),
+        .map(name => SchemaGeneratorActions.buildSchema(collection, name)),
     );
   }
 

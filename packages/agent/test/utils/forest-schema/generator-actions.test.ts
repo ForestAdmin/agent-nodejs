@@ -6,17 +6,14 @@ import * as factories from '../../__factories__';
 describe('SchemaGeneratorActions', () => {
   describe('Without form', () => {
     const collection = factories.collection.buildWithAction('Send email', {
+      displayName: 'Send some email',
       scope: 'Single',
       generateFile: false,
       staticForm: true,
     });
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(
-        collection,
-        'Send email',
-        'Send some email',
-      );
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
 
       expect(schema).toStrictEqual({
         id: 'books-0-send-email',
