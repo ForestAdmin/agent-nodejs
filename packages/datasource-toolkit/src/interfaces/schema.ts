@@ -3,6 +3,7 @@ import { Operator } from './query/condition-tree/nodes/operators';
 export type ActionScope = 'Single' | 'Bulk' | 'Global';
 
 export type ActionSchema = {
+  displayName?: string;
   scope: ActionScope;
   generateFile?: boolean;
   staticForm?: boolean;

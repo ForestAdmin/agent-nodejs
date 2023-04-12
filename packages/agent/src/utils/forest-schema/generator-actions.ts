@@ -33,7 +33,11 @@ export default class SchemaGeneratorActions {
     },
   ];
 
-  static async buildSchema(collection: Collection, name: string): Promise<ForestServerAction> {
+  static async buildSchema(
+    collection: Collection,
+    name: string,
+    displayName?: string,
+  ): Promise<ForestServerAction> {
     const schema = collection.schema.actions[name];
     const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
 
@@ -44,6 +48,7 @@ export default class SchemaGeneratorActions {
     return {
       id: `${collection.name}-${actionIndex}-${slug}`,
       name,
+      displayName,
       type: schema.scope.toLowerCase() as 'single' | 'bulk' | 'global',
       baseUrl: null,
       endpoint: path.posix.join('/forest/_actions', collection.name, String(actionIndex), slug),

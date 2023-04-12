@@ -12,11 +12,16 @@ describe('SchemaGeneratorActions', () => {
     });
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
+      const schema = await SchemaGeneratorActions.buildSchema(
+        collection,
+        'Send email',
+        'Send some email',
+      );
 
       expect(schema).toStrictEqual({
         id: 'books-0-send-email',
         name: 'Send email',
+        displayName: 'Send some email',
         baseUrl: null,
         download: false,
         endpoint: '/forest/_actions/books/0/send-email',

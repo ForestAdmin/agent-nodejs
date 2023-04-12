@@ -14,6 +14,7 @@ export interface BaseAction<
   Scope extends ActionScope,
   Context extends ActionContext<S, N>,
 > {
+  displayName?: string;
   generateFile?: boolean;
   scope: Scope;
   form?: DynamicField<Context>[];

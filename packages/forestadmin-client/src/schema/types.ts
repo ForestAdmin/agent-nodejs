@@ -34,6 +34,7 @@ export type ForestServerCollection = {
 export type ForestServerAction = {
   id: string;
   name: string;
+  displayName?: string;
   type: 'single' | 'bulk' | 'global';
   baseUrl: string;
   endpoint: string;

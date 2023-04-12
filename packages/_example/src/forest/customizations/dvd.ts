@@ -23,6 +23,7 @@ export default (collection: CollectionCustomizer<Schema, 'dvd'>) =>
       },
     })
     .addAction('Increase the rental price', {
+      displayName: 'Increase rental price of the DVD',
       scope: 'Bulk',
       form: [{ label: 'percentage', type: 'Number', defaultValue: 10, isRequired: true }],
       execute: async (context, resultBuilder) => {
