@@ -18,11 +18,9 @@ export function getDialect(uriOrOptions: ConnectionOptions): Dialect {
   if (typeof uriOrOptions === 'string' || uriOrOptions.uri) {
     const uri = new URL(typeof uriOrOptions === 'string' ? uriOrOptions : uriOrOptions.uri);
 
-    if (uri.protocol === 'mariadb:') return 'mariadb';
-    if (uri.protocol === 'mysql:' || uri.protocol === 'mysql2:') return 'mysql';
-    if (uri.protocol === 'mssql:' || uri.protocol === 'tedious:') return 'mssql';
-    if (uri.protocol === 'postgres:' || uri.protocol === 'pg:' || uri.protocol === 'postgresql:')
-      return 'postgres';
+    if (uri.protocol === 'mysql2:') return 'mysql';
+    if (uri.protocol === 'tedious:') return 'mssql';
+    if (uri.protocol === 'pg:' || uri.protocol === 'postgresql:') return 'postgres';
 
     return uri.protocol.slice(0, -1) as Dialect;
   }
