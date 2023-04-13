@@ -1,7 +1,6 @@
 import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource } from '../src';
-import Introspector from '../src/introspection/introspector';
 
 jest.mock('sequelize');
 
@@ -33,45 +32,42 @@ describe('index', () => {
 
     describe('when a database schema is given from uri string', () => {
       it('should use the given schema', async () => {
-        Introspector.introspect = jest.fn().mockResolvedValue([]);
-
         const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
-        await buildSequelizeInstance(uri, jest.fn(), null);
+        await buildSequelizeInstance(uri, jest.fn(), []);
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
           schema: 'public',
           dialect: 'postgres',
+          dialectOptions: {},
         });
       });
     });
 
     describe('when a database schema is given from uri options', () => {
       it('should use the given schema', async () => {
-        Introspector.introspect = jest.fn().mockResolvedValue([]);
-
         const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
-        await buildSequelizeInstance({ uri }, jest.fn(), null);
+        await buildSequelizeInstance({ uri }, jest.fn(), []);
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
-          dialect: 'postgres',
           schema: 'public',
+          dialect: 'postgres',
+          dialectOptions: {},
         });
       });
     });
 
     describe('when a database schema is not given', () => {
       it('should not use a schema', async () => {
-        Introspector.introspect = jest.fn().mockResolvedValue([]);
-
         const uri = 'postgres://example:password@localhost:5442/example';
-        await buildSequelizeInstance(uri, jest.fn(), null);
+        await buildSequelizeInstance(uri, jest.fn(), []);
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
-          dialect: 'postgres',
           schema: null,
+          dialect: 'postgres',
+          dialectOptions: {},
         });
       });
     });

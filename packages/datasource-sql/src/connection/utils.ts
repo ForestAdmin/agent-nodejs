@@ -38,7 +38,7 @@ export function getLogger(logger: Logger): (sql: string) => void {
   return (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
 }
 
-export function handleSequelizeErrors(error: Error): void {
+export function rewriteSequelizeErrors(error: Error): void {
   if (error instanceof BaseError) {
     const nameWithoutSequelize = error.name.replace('Sequelize', '');
     const nameWithSpaces = nameWithoutSequelize.replace(
