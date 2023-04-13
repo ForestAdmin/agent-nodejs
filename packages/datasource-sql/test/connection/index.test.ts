@@ -5,6 +5,27 @@ import { SslMode } from '../../src/types';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 
 describe('Connect', () => {
+  describe('on database which do not support automatic ssl (sqlite)', () => {
+    it('should work in manual mode with nothing specified', async () => {
+      const seq = await connect('sqlite::memory:');
+      await seq.close();
+
+      expect(seq).toBeInstanceOf(Sequelize);
+    });
+
+    it('should work but print a warning when setting ssl options', async () => {
+      const logger = jest.fn();
+      const seq = await connect({ uri: 'sqlite::memory:', sslMode: 'verify' }, logger);
+      await seq.close();
+
+      expect(seq).toBeInstanceOf(Sequelize);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'ignoring sslMode=verify (not supported for sqlite)',
+      );
+    });
+  });
+
   describe.each([
     ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],
     ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
@@ -76,7 +97,7 @@ describe('Connect', () => {
     });
   });
 
-  describe('error handling (on postgres)', () => {
+  describe('generic error handling (on postgres, but it is the same for the others)', () => {
     it('should throw when hostname is unknown and using preferred ssl', async () => {
       const fn = () => connect({ uri: 'postgres://dontexist123123', sslMode: 'preferred' });
 

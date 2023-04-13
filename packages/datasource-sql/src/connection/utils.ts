@@ -6,7 +6,7 @@ import { BaseError, Dialect } from 'sequelize';
 export function checkOptions(uriOrOptions: ConnectionOptions): void {
   const uri = typeof uriOrOptions === 'string' ? uriOrOptions : uriOrOptions.uri;
 
-  if (uri && !/.*:\/\//g.test(uri)) {
+  if (uri && !/.*:\/\//g.test(uri) && uri !== 'sqlite::memory:') {
     throw new Error(
       `Connection Uri "${uri}" provided to SQL data source is not valid.` +
         ' Should be <dialect>://<connection>.',
