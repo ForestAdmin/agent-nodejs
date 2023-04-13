@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-live-demo-blocker",
-  "version": "1.0.16",
+  "version": "1.0.0",
   "description": "A plugin that prevents any data update on collections",
   "main": "dist/index.js",
   "license": "GPL-3.0",
