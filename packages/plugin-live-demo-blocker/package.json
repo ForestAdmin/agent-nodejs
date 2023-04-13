@@ -1,7 +1,7 @@
 {
   "name": "@forestadmin/plugin-live-demo-blocker",
   "version": "1.0.16",
-  "description": "A plugin that allows to flatten columns and relations in Forest Admin",
+  "description": "A plugin that prevents any data update on collections",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "files": [
