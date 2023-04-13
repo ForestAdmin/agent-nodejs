@@ -41,6 +41,7 @@ describe('index', () => {
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
           schema: 'public',
+          dialect: 'postgres',
         });
       });
     });
@@ -54,6 +55,7 @@ describe('index', () => {
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
+          dialect: 'postgres',
           schema: 'public',
         });
       });
@@ -68,6 +70,7 @@ describe('index', () => {
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
+          dialect: 'postgres',
           schema: null,
         });
       });
