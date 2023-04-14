@@ -100,8 +100,8 @@ export default class Introspector {
   }
 
   /**
-   * Remove references to tables that are not present in the schema.
-   * This can happen when we skip a table or column because of an error (e.g. unsupported type).
+   * Remove references to entities that are not present in the schema
+   * (happens when we skip entities because of errors)
    */
   private static sanitizeInPlace(tables: Table[]): void {
     for (const table of tables) {
