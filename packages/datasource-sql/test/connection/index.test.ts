@@ -1,6 +1,6 @@
 import { Dialect, Sequelize } from 'sequelize';
 
-import { connect } from '../../src/connection';
+import connect from '../../src/connection';
 import { SslMode } from '../../src/types';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 
@@ -98,21 +98,26 @@ describe('Connect', () => {
   });
 
   describe('generic error handling (on postgres, but it is the same for the others)', () => {
+    it('should throw when dialect is unknown', async () => {
+      const fn = () => connect({ host: 'localhost', port: 23123 });
+      await expect(fn).rejects.toThrow('Expected dialect to be provided in options or uri.');
+    });
+
     it('should throw when hostname is unknown and using preferred ssl', async () => {
-      const fn = () => connect({ uri: 'postgres://dontexist123123', sslMode: 'preferred' });
+      const fn = () => connect({ uri: 'mysql2://dontexist123123', sslMode: 'preferred' });
 
       // Either 'ENOTFOUND' or 'EAI_AGAIN' depending on the dns lookup
       await expect(fn).rejects.toThrow('dontexist123123');
     });
 
     it('should throw when hostname is unknown', async () => {
-      const fn = () => connect('postgres://dontexist123123');
+      const fn = () => connect('postgresql://dontexist123123');
       await expect(fn).rejects.toThrow('dontexist123123');
     });
 
     it('should throw when port is not reachable', async () => {
-      const fn = () => connect('postgres://localhost:23123');
-      await expect(fn).rejects.toThrow('Connection refused error: connect ECONNREFUSED');
+      const fn = () => connect('tedious://localhost:23123');
+      await expect(fn).rejects.toThrow('Connection error: Failed to connect');
     });
 
     it('should throw when username is wrong', async () => {
@@ -136,6 +141,15 @@ describe('Connect', () => {
 
       await expect(fn).rejects.toThrow(
         'Connection error: database "unknownDatabase" does not exist',
+      );
+    });
+
+    it('should throw when protocol is unknown', async () => {
+      const fn = () => connect('unknown://localhost:5443');
+
+      await expect(fn).rejects.toThrow(
+        'The dialect unknown is not supported. ' +
+          'Supported dialects: mssql, mariadb, mysql, oracle, postgres, db2 and sqlite.',
       );
     });
   });

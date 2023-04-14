@@ -5,7 +5,7 @@ import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit'
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { Sequelize } from 'sequelize';
 
-import { connect, preprocessOptions } from './connection';
+import connect from './connection';
 import Introspector from './introspection/introspector';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
@@ -47,4 +47,4 @@ export function createSqlDataSource(
 }
 
 export type { ConnectionOptions, Table };
-export { preprocessOptions };
+export { default as preprocessOptions } from './connection/preprocess';
