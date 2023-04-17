@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.3.0...@forestadmin/datasource-sql@1.4.0) (2023-04-17)
+
+
+### Features
+
+* **datasource-sql:** add support for sslMode option ([#667](https://github.com/ForestAdmin/agent-nodejs/issues/667)) ([0d1eb19](https://github.com/ForestAdmin/agent-nodejs/commit/0d1eb1975a316d33027bc350fc6ff7d63d326f10))
+
 # @forestadmin/datasource-sql [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.9...@forestadmin/datasource-sql@1.3.0) (2023-03-29)
 
 
