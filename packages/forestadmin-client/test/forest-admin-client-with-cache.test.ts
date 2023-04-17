@@ -55,6 +55,7 @@ describe('ForestAdminClientWithCache', () => {
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
