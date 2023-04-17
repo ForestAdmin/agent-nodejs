@@ -1,48 +1,15 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize, ConnectionError as SequelizeConnectionError } from 'sequelize';
+import { Dialect, Sequelize } from 'sequelize';
 
-import {
-  AccessDeniedError,
-  ConnectionAcquireTimeoutError,
-  ConnectionError,
-  ConnectionRefusedError,
-  ConnectionTimedOutError,
-  HostNotFoundError,
-  HostNotReachableError,
-  InvalidConnectionError,
-} from './errors';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import { SequelizeColumn, SequelizeReference, Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-    try {
-      const tableNames = await this.getTableNames(sequelize);
+    const tableNames = await this.getTableNames(sequelize);
 
-      return await Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
-    } catch (e) {
-      switch ((e as SequelizeConnectionError).name) {
-        case 'SequelizeConnectionError':
-          throw new ConnectionError(e.message);
-        case 'SequelizeHostNotFoundError':
-          throw new HostNotFoundError(e.message);
-        case 'SequelizeConnectionRefusedError':
-          throw new ConnectionRefusedError(e.message);
-        case 'SequelizeHostNotReachableError':
-          throw new HostNotReachableError(e.message);
-        case 'SequelizeAccessDeniedError':
-          throw new AccessDeniedError(e.message);
-        case 'SequelizeConnectionAcquireTimeoutError':
-          throw new ConnectionAcquireTimeoutError(e.message);
-        case 'SequelizeConnectionTimedOutError':
-          throw new ConnectionTimedOutError(e.message);
-        case 'SequelizeInvalidConnectionError':
-          throw new InvalidConnectionError(e.message);
-        default:
-          throw new ConnectionError(e.message);
-      }
-    }
+    return Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
   }
 
   /** Get names of all tables in the public schema of the db */

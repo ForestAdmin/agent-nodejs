@@ -7,56 +7,6 @@ import { buildSequelizeInstance, introspect } from '../src';
 import Introspector from '../src/introspection/introspector';
 
 describe('SqlDataSourceFactory > Integration', () => {
-  describe('catch all the sequelize connection errors during the introspect', () => {
-    const databaseName = 'datasource-sql-primitive-field-test';
-    const dialect = 'postgres';
-    const logger = jest.fn();
-
-    describe('when the credentials are wrong', () => {
-      it('should throw an error', async () => {
-        const host = 'test:badPassword@localhost:5443';
-        const uri = `${dialect}://${host}/${databaseName}`;
-
-        await expect(() => introspect(uri, logger)).rejects.toThrow(
-          'Connection error: password authentication failed for user "test"',
-        );
-      });
-    });
-
-    describe('when the port is wrong', () => {
-      it('should throw an error', async () => {
-        const host = 'test:password@localhost:544';
-        const uri = `${dialect}://${host}/${databaseName}`;
-
-        await expect(() => introspect(uri, logger)).rejects.toThrow(
-          'Connection refused error: connect ECONNREFUSED 127.0.0.1:544',
-        );
-      });
-    });
-
-    describe('when the database name is wrong', () => {
-      it('should throw an error', async () => {
-        const host = 'test:password@localhost:5443';
-        const uri = `${dialect}://${host}/aBadDatabaseName`;
-
-        await expect(() => introspect(uri, logger)).rejects.toThrow(
-          'Connection error: database "aBadDatabaseName" does not exist',
-        );
-      });
-    });
-
-    describe('when the user does not exist', () => {
-      it('should throw an error', async () => {
-        const host = 'userDoesNotExist:password@localhost:5443';
-        const uri = `${dialect}://${host}/${databaseName}`;
-
-        await expect(() => introspect(uri, logger)).rejects.toThrow(
-          'Connection error: password authentication failed for user "userDoesNotExist"',
-        );
-      });
-    });
-  });
-
   describe('when the table has an "id" without primary key constraint', () => {
     it('the model should assume id is the pk', async () => {
       const baseUri = 'postgres://test:password@localhost:5443';
