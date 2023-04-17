@@ -4,7 +4,10 @@ import { ForestSchema } from '@forestadmin/forestadmin-client';
 import SchemaGeneratorCollection from './generator-collection';
 
 export default class SchemaGenerator {
-  static async buildSchema(dataSource: DataSource): Promise<ForestSchema> {
+  static async buildSchema(
+    dataSource: DataSource,
+    features: Record<string, string> | null,
+  ): Promise<ForestSchema> {
     const { version } = require('../../../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require,max-len
 
     return {
@@ -16,6 +19,7 @@ export default class SchemaGenerator {
       metadata: {
         liana: 'forest-nodejs-agent',
         liana_version: version,
+        liana_features: features,
         stack: {
           engine: 'nodejs',
           engine_version: process.versions && process.versions.node,
