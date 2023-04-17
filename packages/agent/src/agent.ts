@@ -190,8 +190,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   private buildSchemaFeatures(): Record<string, string> | null {
-    console.log('this.options', this.options);
-
     if (this.options.experimental?.webhookCustomActions) {
       return {
         // Versions correspond to the version of the feature
