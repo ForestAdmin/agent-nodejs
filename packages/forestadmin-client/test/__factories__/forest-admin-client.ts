@@ -4,7 +4,7 @@ import authServiceFactory from './auth';
 import chartHandlerFactory from './chart/chart-handler';
 import forestAdminClientOptionsFactory from './forest-admin-client-options';
 import ipWhitelistServiceFactory from './ip-whitelist';
-import modelCustomizationServiceFactory from './model-customizations';
+import modelCustomizationServiceFactory from './model-customizations/model-customization-from-api';
 import permissionServiceFactory from './permissions/permission';
 import renderingPermissionsFactory from './permissions/rendering-permission';
 import schemaServiceFactory from './schema';
