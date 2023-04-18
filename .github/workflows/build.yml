@@ -125,7 +125,7 @@ jobs:
   release:
     name: Release packages
     runs-on: ubuntu-latest
-    needs: [build-api-reference, doc-link-validation, test, lint]
+    needs: [build-api-reference, test, lint]
     if: |
       github.event_name == 'push' 
       && (
