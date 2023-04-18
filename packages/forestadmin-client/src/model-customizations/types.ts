@@ -2,15 +2,10 @@ export enum ModelCustomizationType {
   action = 'action',
 }
 
-export enum ActionScope {
-  global = 'global',
-  single = 'single',
-  bulk = 'bulk',
-}
+export type ActionScopeApi = 'global' | 'single' | 'bulk';
+export type ActionScope = 'Global' | 'Single' | 'Bulk';
 
-export enum ActionType {
-  webhook = 'webhook',
-}
+export type ActionType = 'webhook';
 
 export type ModelCustomization<TConfiguration> = {
   id: number;
@@ -20,17 +15,27 @@ export type ModelCustomization<TConfiguration> = {
   configuration: TConfiguration;
 };
 
-export type ActionConfiguration = {
-  scope: `${ActionScope}`;
-  type: `${ActionType}`;
+export type ActionConfigurationApi = {
+  scope: ActionScopeApi;
+  type: ActionType;
 };
 
-export type WebhookActionConfiguration = ActionConfiguration & {
-  type: `${ActionType.webhook}`;
+export type WebhookActionConfigurationApi = ActionConfigurationApi & {
+  type: 'webhook';
   url: string;
   integration: string;
 };
 
+export type ActionConfiguration = {
+  scope: ActionScope;
+  type: ActionType;
+};
+
+export type WebhookActionConfiguration = ActionConfiguration & {
+  type: 'webhook';
+  url: string;
+  integration: string;
+};
 export interface ModelCustomizationService {
   getConfiguration(): Promise<ModelCustomization<unknown>[]>;
 }

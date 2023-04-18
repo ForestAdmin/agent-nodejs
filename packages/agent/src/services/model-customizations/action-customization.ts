@@ -1,30 +1,15 @@
 import { DataSourceCustomizer, TSchema } from '@forestadmin/datasource-customizer';
-import { ActionScope } from '@forestadmin/datasource-toolkit';
 import {
   ActionConfiguration,
   ActionType,
-  ActionScope as ConfigurationScope,
   ForestAdminClient,
   ModelCustomization,
   ModelCustomizationType,
   WebhookActionConfiguration,
 } from '@forestadmin/forestadmin-client';
 
-import createWebhookExecutor from './webhook-executor';
+import executeWebhook from './execute-webhook';
 import { AgentOptionsWithDefaults } from '../../types';
-
-function translateScope(scope: `${ConfigurationScope}`): ActionScope {
-  switch (scope) {
-    case ConfigurationScope.global:
-      return 'Global';
-    case ConfigurationScope.bulk:
-      return 'Bulk';
-    case ConfigurationScope.single:
-      return 'Single';
-    default:
-      throw new Error(`Unknown scope: ${scope}`);
-  }
-}
 
 export default class ActionCustomizationService<S extends TSchema = TSchema> {
   public static VERSION = '1.0.0';
@@ -36,14 +21,21 @@ export default class ActionCustomizationService<S extends TSchema = TSchema> {
   }
 
   public async addWebhookActions(customizer: DataSourceCustomizer<S>) {
-    const actions = await this.getActions<WebhookActionConfiguration>(ActionType.webhook);
+    const actions = await this.getActions<WebhookActionConfiguration>('webhook');
 
     actions.forEach(action => {
       const collection = customizer.getCollection(action.modelName as Extract<keyof S, string>);
 
       collection.addAction(action.name, {
-        scope: translateScope(action.configuration.scope),
-        execute: createWebhookExecutor(action),
+        scope: action.configuration.scope,
+        execute: context =>
+          executeWebhook({
+            name: action.name,
+            url: action.configuration.url,
+            scope: action.configuration.scope,
+            collection,
+            context,
+          }),
       });
     });
   }
