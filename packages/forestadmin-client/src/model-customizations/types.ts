@@ -7,7 +7,7 @@ export type ActionScope = 'Global' | 'Single' | 'Bulk';
 
 export type ActionType = 'webhook';
 
-export type ModelCustomization<TConfiguration> = {
+export type ModelCustomization<TConfiguration = unknown> = {
   id: number;
   name: string;
   type: `${ModelCustomizationType}`;
@@ -37,5 +37,5 @@ export type WebhookActionConfiguration = ActionConfiguration & {
   integration: string;
 };
 export interface ModelCustomizationService {
-  getConfiguration(): Promise<ModelCustomization<unknown>[]>;
+  getConfiguration(): Promise<ModelCustomization[]>;
 }
