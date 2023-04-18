@@ -26,6 +26,7 @@ const mockGetDataSource = jest.fn();
 const mockCustomizeCollection = jest.fn();
 const mockUpdateTypesOnFileSystem = jest.fn();
 const mockUse = jest.fn();
+const mockAddWebhookActions = jest.fn();
 
 jest.mock('@forestadmin/datasource-customizer', () => ({
   DataSourceCustomizer: class {
@@ -35,6 +36,14 @@ jest.mock('@forestadmin/datasource-customizer', () => ({
     customizeCollection = mockCustomizeCollection;
     updateTypesOnFileSystem = mockUpdateTypesOnFileSystem;
     use = mockUse;
+  },
+}));
+
+jest.mock('../src/services/model-customizations/action-customization', () => ({
+  __esModule: true,
+  default: class {
+    public static VERSION = '3.14.15';
+    addWebhookActions = mockAddWebhookActions;
   },
 }));
 
@@ -104,6 +113,8 @@ describe('Agent', () => {
           stack: expect.anything(),
         },
       });
+
+      expect(mockAddWebhookActions).not.toHaveBeenCalled();
     });
 
     test('that should upload the schema with experimental features', async () => {
@@ -127,11 +138,13 @@ describe('Agent', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: {
-            'webhook-custom-actions': '1.0.0',
+            'webhook-custom-actions': '3.14.15',
           },
           stack: expect.anything(),
         },
       });
+
+      expect(mockAddWebhookActions).toHaveBeenCalledTimes(1);
     });
   });
 

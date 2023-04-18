@@ -25,6 +25,7 @@ describe('ForestAdminClientWithCache', () => {
         whiteListService,
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -48,6 +49,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         schemaService,
         factories.auth.build(),
+        factories.modelCustomization.build(),
       );
 
       const result = await forestAdminClient.postSchema({
@@ -77,6 +79,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -103,6 +106,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         authService,
+        factories.modelCustomization.build(),
       );
 
       const result = await forestAdminClient.getUserInfo(1, 'token');
@@ -125,6 +129,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         authService,
+        factories.modelCustomization.build(),
       );
 
       const result = await forestAdminClient.getOpenIdClient();
@@ -146,6 +151,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
       );
 
       await forestAdminClient.markScopesAsUpdated(42);
@@ -166,6 +172,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');

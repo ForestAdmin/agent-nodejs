@@ -4,6 +4,7 @@ import type { Client } from 'openid-client';
 
 import { UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { ModelCustomizationService } from './model-customizations/types';
 import {
   CollectionActionEvent,
   EnvironmentPermissionsV4,
@@ -33,6 +34,7 @@ export interface ForestAdminClient {
   readonly permissionService: PermissionService;
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
+  readonly modelCustomizationService: ModelCustomizationService;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
