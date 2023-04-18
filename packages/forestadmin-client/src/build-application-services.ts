@@ -1,7 +1,7 @@
 import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import IpWhiteListService from './ip-whitelist';
-import ModelCustomizationWithCacheService from './model-customizations/model-customization-with-cache';
+import ModelCustomizationFromApiService from './model-customizations/model-customization-from-api';
 import { ModelCustomizationService } from './model-customizations/types';
 import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
@@ -58,6 +58,6 @@ export default function buildApplicationServices(
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
     auth: new AuthService(optionsWithDefaults),
-    modelCustomizationService: new ModelCustomizationWithCacheService(optionsWithDefaults),
+    modelCustomizationService: new ModelCustomizationFromApiService(optionsWithDefaults),
   };
 }

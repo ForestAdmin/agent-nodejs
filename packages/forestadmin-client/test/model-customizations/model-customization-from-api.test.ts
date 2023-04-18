@@ -1,4 +1,4 @@
-import ModelCustomizationWithCacheService from '../../src/model-customizations/model-customization-with-cache';
+import ModelCustomizationService from '../../src/model-customizations/model-customization-from-api';
 import ServerUtils from '../../src/utils/server';
 import forestadminClientOptionsFactory from '../__factories__/forest-admin-client-options';
 
@@ -8,7 +8,7 @@ jest.mock('../../src/utils/server', () => ({
 
 const ServerUtilsMock = ServerUtils as jest.Mocked<typeof ServerUtils>;
 
-describe('ModelCustomizationWithCacheService', () => {
+describe('ModelCustomizationFromApiService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -19,7 +19,7 @@ describe('ModelCustomizationWithCacheService', () => {
 
       const options = forestadminClientOptionsFactory.build();
 
-      const modelCustomizations = new ModelCustomizationWithCacheService(options);
+      const modelCustomizations = new ModelCustomizationService(options);
 
       const configuration = await modelCustomizations.getConfiguration();
 
@@ -31,19 +31,6 @@ describe('ModelCustomizationWithCacheService', () => {
         'get',
         '/liana/model-customizations',
       );
-    });
-
-    it('should not retrieve the configuration twice', async () => {
-      ServerUtilsMock.query.mockResolvedValueOnce([{ name: 'test' }]);
-
-      const options = forestadminClientOptionsFactory.build();
-
-      const modelCustomizations = new ModelCustomizationWithCacheService(options);
-
-      await modelCustomizations.getConfiguration();
-      await modelCustomizations.getConfiguration();
-
-      expect(ServerUtilsMock.query).toHaveBeenCalledTimes(1);
     });
   });
 });

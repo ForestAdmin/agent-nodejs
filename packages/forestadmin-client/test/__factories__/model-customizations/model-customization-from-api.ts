@@ -1,9 +1,9 @@
 import { Factory } from 'fishery';
 
-import ModelCustomizationWithCacheService from '../../../src/model-customizations/model-customization-with-cache';
+import ModelCustomizationFromApiService from '../../../src/model-customizations/model-customization-from-api';
 import forestAdminClientOptionsFactory from '../forest-admin-client-options';
 
-export class ModelCustomizationServiceFactory extends Factory<ModelCustomizationWithCacheService> {
+export class ModelCustomizationServiceFactory extends Factory<ModelCustomizationFromApiService> {
   mockAllMethods() {
     return this.afterBuild(client => {
       client.getConfiguration = jest.fn();
@@ -12,7 +12,7 @@ export class ModelCustomizationServiceFactory extends Factory<ModelCustomization
 }
 
 const modelCustomizationServiceFactory = ModelCustomizationServiceFactory.define(
-  () => new ModelCustomizationWithCacheService(forestAdminClientOptionsFactory.build()),
+  () => new ModelCustomizationFromApiService(forestAdminClientOptionsFactory.build()),
 );
 
 export default modelCustomizationServiceFactory;

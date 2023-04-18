@@ -9,4 +9,4 @@ export { default as forestAdminClientOptions } from './forest-admin-client-optio
 export { default as ipWhiteList } from './ip-whitelist';
 export { default as schema } from './schema';
 export { default as auth } from './auth';
-export { default as modelCustomization } from './model-customizations';
+export { default as modelCustomization } from './model-customizations/model-customization-from-api';
