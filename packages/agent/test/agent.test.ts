@@ -1,6 +1,8 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { readFile } from 'fs/promises';
+
 import * as factories from './__factories__';
 import Agent from '../src/agent';
 
@@ -98,6 +100,35 @@ describe('Agent', () => {
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
+          liana_features: null,
+          stack: expect.anything(),
+        },
+      });
+    });
+
+    test('that should upload the schema with experimental features', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+      });
+      await agent.start();
+
+      expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+      expect(mockBootstrap).toHaveBeenCalledTimes(1);
+      expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
+      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
+      expect(mockUpdateTypesOnFileSystem).toHaveBeenCalledTimes(1);
+
+      expect(mockPostSchema).toHaveBeenCalledWith({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
+          liana_features: {
+            'webhook-custom-actions': '1.0.0',
+          },
           stack: expect.anything(),
         },
       });
@@ -109,6 +140,7 @@ describe('Agent', () => {
       isProduction: true,
       typingsPath: '/tmp/test_typings.ts',
       forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+      schemaPath: `${__dirname}/__data__/agent-schema.json`,
     });
 
     test('start should throw if the schema does not exists', async () => {
@@ -132,14 +164,9 @@ describe('Agent', () => {
       expect(mockGetDataSource).toHaveBeenCalledTimes(1);
       expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
 
-      expect(mockPostSchema).toHaveBeenCalledWith({
-        collections: [],
-        metadata: {
-          liana: 'forest-nodejs-agent',
-          liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
-          stack: expect.anything(),
-        },
-      });
+      const schemaContent = JSON.parse(await readFile(options.schemaPath, 'utf8'));
+
+      expect(mockPostSchema).toHaveBeenCalledWith(schemaContent);
     });
 
     test('start should not update schema when specified', async () => {

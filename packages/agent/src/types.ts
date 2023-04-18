@@ -18,6 +18,9 @@ export type AgentOptions = {
   permissionsCacheDurationInSeconds?: number;
   skipSchemaUpdate?: boolean;
   forestAdminClient?: ForestAdminClient;
+  experimental?: {
+    webhookCustomActions?: boolean;
+  };
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

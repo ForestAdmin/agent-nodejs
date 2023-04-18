@@ -174,7 +174,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(dataSource);
+      schema = await SchemaGenerator.buildSchema(dataSource, this.buildSchemaFeatures());
 
       const pretty = stringify(schema, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
@@ -187,5 +187,16 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       : 'Schema was not updated since last run';
 
     this.options.logger('Info', message);
+  }
+
+  private buildSchemaFeatures(): Record<string, string> | null {
+    if (this.options.experimental?.webhookCustomActions) {
+      return {
+        // Versions correspond to the version of the feature
+        'webhook-custom-actions': '1.0.0',
+      };
+    }
+
+    return null;
   }
 }

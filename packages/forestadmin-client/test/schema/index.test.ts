@@ -29,6 +29,7 @@ describe('SchemaService', () => {
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -55,6 +56,7 @@ describe('SchemaService', () => {
           meta: {
             liana: 'forest-nodejs-agent',
             liana_version: '1.0.0',
+            liana_features: null,
             stack: { engine: 'nodejs', engine_version: '16.0.0' },
             schemaFileHash: expect.any(String),
           },
@@ -81,6 +83,7 @@ describe('SchemaService', () => {
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
