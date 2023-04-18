@@ -1,10 +1,6 @@
 {
-  // Format all files on save with eslint, except for markdown which are formatted with prettier
+  // Format all files on save with eslint
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-  "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-
   "editor.formatOnSave": true,
   "editor.formatOnType": false,
   "editor.formatOnPaste": false,
@@ -55,11 +51,4 @@
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "grammarly.config.documentDialect": "american",
-  "grammarly.selectors": [
-    {
-      "language": "markdown",
-      "scheme": "file"
-    }
-  ]
 }
