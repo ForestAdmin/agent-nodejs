@@ -190,6 +190,28 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Add a new hook handler to an action
+   * @param position Either if the hook is executed before or after the action
+   * @param type Type of action which should be hooked
+   * @param handler Callback that should be executed when the hook is triggered
+   * @example
+   * .addHook('Before', 'List', async (context) => {
+   *   // Do something before the list action
+   * });
+   */
+  addHook<P extends HookPosition, T extends HookType>(
+    position: P,
+    type: T,
+    handler: HookHandler<HooksContext<S, N>[P][T]>,
+  ): this {
+    return this.pushCustomization(async () => {
+      this.stack.hook
+        .getCollection(this.name)
+        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
+    });
+  }
+
+  /**
    * Add a many to one relation to the collection
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection
@@ -468,18 +490,6 @@ export default class CollectionCustomizer<
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .replaceSearch(definition as SearchDefinition<any, any>);
-    });
-  }
-
-  addHook<P extends HookPosition, T extends HookType>(
-    position: P,
-    type: T,
-    handler: HookHandler<HooksContext<S, N>[P][T]>,
-  ): this {
-    return this.pushCustomization(async () => {
-      this.stack.hook
-        .getCollection(this.name)
-        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
     });
   }
 
