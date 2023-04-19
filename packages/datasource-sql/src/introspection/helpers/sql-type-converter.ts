@@ -116,7 +116,7 @@ export default class SqlTypeConverter {
       case this.typeContains(type, 'TEXT'):
       case this.typeContains(type, 'VARCHAR'):
       case this.typeContains(type, 'CHAR'):
-      case 'NVARCHAR': // NOTICE: MSSQL type.
+      case 'NVARCHAR': // NOTICE: MSSQL type
         return 'STRING';
 
       case this.typeStartsWith(type, 'BINARY'):
@@ -124,7 +124,7 @@ export default class SqlTypeConverter {
       case 'BLOB':
       case 'MEDIUMBLOB':
       case 'LONGBLOB':
-        // case bytea?
+      case 'BYTEA': // Postgres type
         return 'BLOB';
 
       case 'UNIQUEIDENTIFIER':
