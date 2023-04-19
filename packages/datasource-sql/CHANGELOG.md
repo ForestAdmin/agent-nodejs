@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.4.0...@forestadmin/datasource-sql@1.4.1) (2023-04-19)
+
+
+### Bug Fixes
+
+* **datasource-sql:** remove dangling references to skipped entities in database introspection ([#669](https://github.com/ForestAdmin/agent-nodejs/issues/669)) ([fb29d1e](https://github.com/ForestAdmin/agent-nodejs/commit/fb29d1e7d040ffa472bd3168e5dac5251e14eee7))
+
 # @forestadmin/datasource-sql [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.3.0...@forestadmin/datasource-sql@1.4.0) (2023-04-17)
 
 
