@@ -8,6 +8,7 @@ import {
 
 import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
+import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition } from './decorators/computed/types';
 import DecoratorsStack from './decorators/decorators-stack';
@@ -490,6 +491,19 @@ export default class CollectionCustomizer<
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .replaceSearch(definition as SearchDefinition<any, any>);
+    });
+  }
+
+  /**
+   * Choose how binary data should be converted to the transport layer.
+   * @param name the name of the field
+   * @param binaryMode either 'datauri' or 'hex'
+   * @example
+   * .replaceFieldBinaryMode('avatar', 'datauri');
+   */
+  replaceFieldBinaryMode(name: TColumnName<S, N>, binaryMode: BinaryMode): this {
+    return this.pushCustomization(async () => {
+      this.stack.binary.getCollection(this.name).setBinaryMode(name, binaryMode);
     });
   }
 

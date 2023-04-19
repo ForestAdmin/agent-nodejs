@@ -1,1 +1,1 @@
-export type ConvertionType = 'hex' | 'datauri';
+export type BinaryMode = 'hex' | 'datauri';

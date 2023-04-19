@@ -14,7 +14,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import FileType from 'file-type';
 
-import { ConvertionType } from './types';
+import { BinaryMode } from './types';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
@@ -27,9 +27,9 @@ type Direction = 'toFrontend' | 'toBackend';
 export default class BinaryCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<BinaryCollectionDecorator>;
 
-  convertionTypes: Map<string, ConvertionType> = new Map();
+  convertionTypes: Map<string, BinaryMode> = new Map();
 
-  setConvertionType(name: string, type: ConvertionType): void {
+  setBinaryMode(name: string, type: BinaryMode): void {
     this.convertionTypes.set(name, type);
     this.markSchemaAsDirty();
   }
@@ -158,7 +158,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   private async convertValueHelper(
     direction: Direction,
     columnType: ColumnType,
-    conversionType: ConvertionType,
+    conversionType: BinaryMode,
     value: unknown,
   ): Promise<unknown> {
     if (value) {
@@ -191,7 +191,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
   private async convertScalar(
     direction: Direction,
-    convertionType: ConvertionType,
+    convertionType: BinaryMode,
     value: unknown,
   ): Promise<unknown> {
     if (direction === 'toFrontend') {
