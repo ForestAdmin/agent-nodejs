@@ -1,3 +1,18 @@
+## @forestadmin/datasource-mongoose [1.3.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.3.4...@forestadmin/datasource-mongoose@1.3.5) (2023-04-19)
+
+
+### Bug Fixes
+
+* **validation:** make frontend validation more reliable ([#655](https://github.com/ForestAdmin/agent-nodejs/issues/655)) ([75255b0](https://github.com/ForestAdmin/agent-nodejs/commit/75255b083edc422c5bd3582c069849728d595e98))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.3
+
 ## @forestadmin/datasource-mongoose [1.3.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.3.3...@forestadmin/datasource-mongoose@1.3.4) (2023-03-29)
 
 
