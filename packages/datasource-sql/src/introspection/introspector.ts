@@ -8,8 +8,12 @@ import { SequelizeColumn, SequelizeReference, Table } from './types';
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
     const tableNames = await this.getTableNames(sequelize);
+    const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
+    const tables = await Promise.all(promises);
 
-    return Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
+    this.sanitizeInPlace(tables);
+
+    return tables;
   }
 
   /** Get names of all tables in the public schema of the db */
@@ -92,6 +96,29 @@ export default class Introspector {
       };
     } catch (e) {
       logger?.('Warn', `Skipping column ${tableName}.${name} (${e.message})`);
+    }
+  }
+
+  /**
+   * Remove references to entities that are not present in the schema
+   * (happens when we skip entities because of errors)
+   */
+  private static sanitizeInPlace(tables: Table[]): void {
+    for (const table of tables) {
+      // Remove unique indexes which depennd on columns that are not present in the table.
+      table.unique = table.unique.filter(unique =>
+        unique.every(column => table.columns.find(c => c.name === column)),
+      );
+
+      for (const column of table.columns) {
+        // Remove references to tables that are not present in the schema.
+        column.constraints = column.constraints.filter(constraint => {
+          const refTable = tables.find(t => t.name === constraint.table);
+          const refColumn = refTable?.columns.find(c => c.name === constraint.column);
+
+          return refTable && refColumn;
+        });
+      }
     }
   }
 }
