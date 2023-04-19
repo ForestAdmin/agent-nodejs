@@ -37,6 +37,7 @@ import OptionsValidator from './utils/options-validator';
 export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter {
   private options: AgentOptionsWithDefaults;
   private customizer: DataSourceCustomizer<S>;
+  private nocodeCustomizer: DataSourceCustomizer<S>;
   private actionCustomizationService: ActionCustomizationService<S>;
 
   /**
@@ -61,6 +62,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.actionCustomizationService = new ActionCustomizationService<S>(allOptions);
   }
 
@@ -70,10 +73,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   override async start(): Promise<void> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
-    const dataSource = await this.customizer.getDataSource(logger);
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
 
     if (this.options.experimental?.webhookCustomActions) {
-      await this.actionCustomizationService.addWebhookActions(this.customizer);
+      await this.actionCustomizationService.addWebhookActions(this.nocodeCustomizer);
     }
 
     const [router] = await Promise.all([

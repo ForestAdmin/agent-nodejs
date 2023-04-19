@@ -1,3 +1,4 @@
+import { ActionContext } from '@forestadmin/datasource-customizer';
 import { ActionScope } from '@forestadmin/datasource-toolkit';
 import {
   ActionType,
@@ -93,15 +94,11 @@ describe('Services > ModelCustomizations > ActionCustomization', () => {
 
       const { execute } = collection.addAction.mock.calls[0][1];
 
-      await execute();
+      const context = { getRecords: jest.fn() } as unknown as ActionContext;
 
-      expect(executeWebhookMock).toHaveBeenCalledWith({
-        name: 'myAction',
-        url: 'https://my-url.com',
-        scope: 'Global',
-        collection,
-        context: undefined,
-      });
+      await execute(context);
+
+      expect(executeWebhookMock).toHaveBeenCalledWith(action, context);
     });
 
     it('should not use customizations that are not actions', async () => {

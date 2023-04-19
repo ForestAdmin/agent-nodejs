@@ -1,27 +1,24 @@
 import { ActionContext, TFieldName, TRow, TSchema } from '@forestadmin/datasource-customizer';
-import { ActionScope, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { WebhookAction } from '@forestadmin/forestadmin-client';
 import superagent from 'superagent';
 
-import { CollectionCustomizer } from '../..';
-
 function generateBody<S extends TSchema>(
-  {
-    name,
-    scope,
-  }: {
-    name: string;
-    scope: ActionScope;
-  },
+  action: WebhookAction,
   records: TRow<S, Extract<keyof S, string>>[],
 ) {
-  switch (scope) {
+  const commonPart = {
+    action: {
+      name: action.name,
+      scope: action.configuration.scope.toLocaleLowerCase(),
+    },
+  };
+
+  switch (action.configuration.scope) {
     case 'Global':
     case 'Bulk':
       return {
-        action: {
-          name,
-          scope: scope.toLocaleLowerCase(),
-        },
+        ...commonPart,
         records,
       };
     case 'Single':
@@ -30,38 +27,26 @@ function generateBody<S extends TSchema>(
       }
 
       return {
-        action: {
-          name,
-          scope: scope.toLocaleLowerCase(),
-        },
+        ...commonPart,
         record: records[0],
       };
     default:
-      throw new Error(`Unknown scope: ${scope}`);
+      throw new Error(`Unknown scope: ${action.configuration.scope}`);
   }
 }
 
-export default async function executeWebhook<S extends TSchema = TSchema>({
-  name,
-  scope,
-  url,
-  collection,
-  context,
-}: {
-  name: string;
-  scope: ActionScope;
-  url: string;
-  collection: CollectionCustomizer<S>;
-  context: ActionContext<S, Extract<keyof S, string>>;
-}) {
-  const primaryKeys = SchemaUtils.getPrimaryKeys(collection.schema) as TFieldName<
+export default async function executeWebhook<S extends TSchema = TSchema>(
+  action: WebhookAction,
+  context: ActionContext<S>,
+) {
+  const primaryKeys = SchemaUtils.getPrimaryKeys(context.collection.schema) as TFieldName<
     S,
     Extract<keyof S, string>
   >[];
 
   const records = await context.getRecords(primaryKeys);
 
-  const body = generateBody({ name, scope }, records);
+  const body = generateBody(action, records);
 
-  await superagent.post(url).send(body);
+  await superagent.post(action.configuration.url).send(body);
 }

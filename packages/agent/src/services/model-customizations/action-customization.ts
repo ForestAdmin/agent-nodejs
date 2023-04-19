@@ -28,14 +28,7 @@ export default class ActionCustomizationService<S extends TSchema = TSchema> {
 
       collection.addAction(action.name, {
         scope: action.configuration.scope,
-        execute: context =>
-          executeWebhook({
-            name: action.name,
-            url: action.configuration.url,
-            scope: action.configuration.scope,
-            collection,
-            context,
-          }),
+        execute: context => executeWebhook(action, context),
       });
     });
   }

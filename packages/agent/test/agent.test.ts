@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
@@ -18,26 +19,23 @@ jest.mock('../src/routes', () => ({
 
 // Mock options
 const mockPostSchema = jest.fn();
-
-// Mock customizer
-const mockAddDataSource = jest.fn();
-const mockAddChart = jest.fn();
-const mockGetDataSource = jest.fn();
-const mockCustomizeCollection = jest.fn();
-const mockUpdateTypesOnFileSystem = jest.fn();
-const mockUse = jest.fn();
 const mockAddWebhookActions = jest.fn();
 
-jest.mock('@forestadmin/datasource-customizer', () => ({
-  DataSourceCustomizer: class {
-    addDataSource = mockAddDataSource;
-    addChart = mockAddChart;
-    getDataSource = mockGetDataSource;
-    customizeCollection = mockCustomizeCollection;
-    updateTypesOnFileSystem = mockUpdateTypesOnFileSystem;
-    use = mockUse;
-  },
-}));
+const mockCustomizer = {
+  addDataSource: jest.fn(),
+  addChart: jest.fn(),
+  customizeCollection: jest.fn(),
+  updateTypesOnFileSystem: jest.fn(),
+  use: jest.fn(),
+  getFactory: jest.fn(),
+};
+
+const mockNocodeCustomizer = {
+  addDataSource: jest.fn(),
+  getDataSource: jest.fn(),
+};
+
+const mockDatasourceCustomizer = DataSourceCustomizer as jest.Mock;
 
 jest.mock('../src/services/model-customizations/action-customization', () => ({
   __esModule: true,
@@ -47,11 +45,21 @@ jest.mock('../src/services/model-customizations/action-customization', () => ({
   },
 }));
 
+jest.mock('@forestadmin/datasource-customizer', () => ({
+  __esModule: true,
+  DataSourceCustomizer: jest.fn(),
+}));
+
 beforeEach(() => {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
+
+  mockDatasourceCustomizer
+    .mockReset()
+    .mockImplementationOnce(() => mockCustomizer)
+    .mockImplementationOnce(() => mockNocodeCustomizer);
 
   mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
-  mockGetDataSource.mockResolvedValue(factories.dataSource.build());
+  mockNocodeCustomizer.getDataSource.mockResolvedValue(factories.dataSource.build());
 });
 
 describe('Agent', () => {
@@ -70,28 +78,40 @@ describe('Agent', () => {
       const agent = new Agent(options);
       agent.addDataSource(factory);
 
-      expect(mockAddDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.addDataSource).toHaveBeenCalledTimes(1);
     });
 
     test('addChart should proxy the call', async () => {
       const agent = new Agent(options);
       agent.addChart('name', () => 666);
 
-      expect(mockAddChart).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.addChart).toHaveBeenCalledTimes(1);
     });
 
     test('customizeCollection should proxy the call', async () => {
       const agent = new Agent(options);
       agent.customizeCollection('name', () => {});
 
-      expect(mockCustomizeCollection).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.customizeCollection).toHaveBeenCalledTimes(1);
     });
 
     test('use should proxy the call', async () => {
       const agent = new Agent(options);
       agent.use(async () => {});
 
-      expect(mockUse).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.use).toHaveBeenCalledTimes(1);
+    });
+
+    // eslint-disable-next-line max-len
+    test("should add the customizer's factory as a datasource for the nocode customizer", async () => {
+      mockCustomizer.getFactory.mockReturnValueOnce('factory');
+
+      const agent = new Agent(options);
+
+      expect(agent).toBeTruthy();
+
+      expect(mockNocodeCustomizer.addDataSource).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.addDataSource).toHaveBeenCalledWith('factory');
     });
 
     test('start should upload apimap', async () => {
@@ -101,8 +121,8 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(1);
 
       expect(mockPostSchema).toHaveBeenCalledWith({
         collections: [],
@@ -129,8 +149,8 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(1);
 
       expect(mockPostSchema).toHaveBeenCalledWith({
         collections: [],
@@ -174,8 +194,8 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).not.toHaveBeenCalled();
 
       const schemaContent = JSON.parse(await readFile(options.schemaPath, 'utf8'));
 
@@ -189,8 +209,8 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).not.toHaveBeenCalled();
       expect(mockPostSchema).not.toHaveBeenCalled();
     });
   });

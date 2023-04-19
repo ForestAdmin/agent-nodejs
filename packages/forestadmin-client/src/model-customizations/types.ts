@@ -8,7 +8,6 @@ export type ActionScope = 'Global' | 'Single' | 'Bulk';
 export type ActionType = 'webhook';
 
 export type ModelCustomization<TConfiguration = unknown> = {
-  id: number;
   name: string;
   type: `${ModelCustomizationType}`;
   modelName: string;
@@ -39,3 +38,5 @@ export type WebhookActionConfiguration = ActionConfiguration & {
 export interface ModelCustomizationService {
   getConfiguration(): Promise<ModelCustomization[]>;
 }
+
+export type WebhookAction = ModelCustomization<WebhookActionConfiguration>;

@@ -2,6 +2,7 @@ import {
   ActionScope,
   ModelCustomization,
   ModelCustomizationService,
+  WebhookAction,
   WebhookActionConfiguration,
   WebhookActionConfigurationApi,
 } from './types';
@@ -33,7 +34,7 @@ function mapApiValues(
 export default class ModelCustomizationFromApiService implements ModelCustomizationService {
   constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
 
-  async getConfiguration(): Promise<ModelCustomization<WebhookActionConfiguration>[]> {
+  async getConfiguration(): Promise<WebhookAction[]> {
     const result = await ServerUtils.query<ModelCustomization<WebhookActionConfigurationApi>[]>(
       this.options,
       'get',
