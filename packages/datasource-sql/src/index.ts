@@ -48,3 +48,4 @@ export function createSqlDataSource(
 
 export type { ConnectionOptions, Table };
 export { default as preprocessOptions } from './connection/preprocess';
+export { default as connect } from './connection';
