@@ -30,8 +30,14 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   convertionTypes: Map<string, BinaryMode> = new Map();
 
   setBinaryMode(name: string, type: BinaryMode): void {
-    this.convertionTypes.set(name, type);
-    this.markSchemaAsDirty();
+    const field = this.childCollection.schema.fields[name];
+
+    if (field.type === 'Column' && field.columnType === 'Binary') {
+      this.convertionTypes.set(name, type);
+      this.markSchemaAsDirty();
+    } else {
+      throw new Error('Expected a binary field');
+    }
   }
 
   override async list(
