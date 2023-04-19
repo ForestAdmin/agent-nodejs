@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.4.2...@forestadmin/datasource-toolkit@1.4.3) (2023-04-19)
+
+
+### Bug Fixes
+
+* **validation:** make frontend validation more reliable ([#655](https://github.com/ForestAdmin/agent-nodejs/issues/655)) ([75255b0](https://github.com/ForestAdmin/agent-nodejs/commit/75255b083edc422c5bd3582c069849728d595e98))
+
 ## @forestadmin/datasource-toolkit [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.4.1...@forestadmin/datasource-toolkit@1.4.2) (2023-03-29)
 
 
