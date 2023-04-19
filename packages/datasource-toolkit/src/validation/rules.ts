@@ -46,6 +46,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
   Dateonly: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
   Date: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS, 'BeforeXHoursAgo', 'AfterXHoursAgo'],
   Timeonly: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
+  Binary: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Enum: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Json: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Boolean: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
@@ -57,6 +58,7 @@ export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   Record<PrimitiveTypes, readonly PrimitiveTypes[]>
 > = Object.freeze({
   String: ['String', null],
+  Binary: ['Binary', null],
   Number: ['Number', null],
   Boolean: ['Boolean', null],
   Enum: ['Enum', null],

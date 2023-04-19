@@ -118,6 +118,15 @@ export default class SqlTypeConverter {
       case this.typeContains(type, 'CHAR'):
       case 'NVARCHAR': // NOTICE: MSSQL type.
         return 'STRING';
+
+      case this.typeStartsWith(type, 'BINARY'):
+      case 'TINYBLOB':
+      case 'BLOB':
+      case 'MEDIUMBLOB':
+      case 'LONGBLOB':
+        // case bytea?
+        return 'BLOB';
+
       case 'UNIQUEIDENTIFIER':
       case 'UUID':
         return 'UUID';
