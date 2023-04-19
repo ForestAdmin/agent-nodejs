@@ -3,6 +3,7 @@ import {
   Aggregation,
   Caller,
   CollectionSchema,
+  ColumnSchema,
   ColumnType,
   ConditionTreeLeaf,
   FieldSchema,
@@ -38,6 +39,17 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     } else {
       throw new Error('Expected a binary field');
     }
+  }
+
+  private getBinaryMode(name: string): BinaryMode {
+    if (this.convertionTypes.has(name)) {
+      return this.convertionTypes.get(name);
+    }
+
+    return SchemaUtils.isPrimaryKey(this.childCollection.schema, name) ||
+      SchemaUtils.isForeignKey(this.childCollection.schema, name)
+      ? 'hex'
+      : 'datauri';
   }
 
   override async list(
@@ -86,6 +98,8 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
+    if (!filter) return null;
+
     const promise = filter.conditionTree
       ? filter.conditionTree.replaceLeafsAsync(leaf => this.convertConditionTreeLeaf(leaf))
       : null;
@@ -98,7 +112,10 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
     for (const [name, schema] of Object.entries(subSchema.fields)) {
       if (schema.type === 'Column') {
-        fields[name] = { ...schema, columnType: this.replaceColumnType(schema.columnType) };
+        const columnType = this.replaceColumnType(schema.columnType);
+        const validation = this.replaceValidation(name, schema);
+
+        fields[name] = { ...schema, columnType, validation };
       } else {
         fields[name] = schema;
       }
@@ -144,12 +161,8 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     let result: unknown;
 
     if (schema.type === 'Column') {
-      const { isPrimaryKey, isForeignKey } = SchemaUtils;
-      const conversionType =
-        this.convertionTypes.get(path) ??
-        (isPrimaryKey(this.schema, path) || isForeignKey(this.schema, path) ? 'hex' : 'datauri');
-
-      result = this.convertValueHelper(direction, schema.columnType, conversionType, value);
+      const binaryMode = this.getBinaryMode(path);
+      result = this.convertValueHelper(direction, schema.columnType, binaryMode, value);
     } else {
       const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
@@ -164,18 +177,18 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   private async convertValueHelper(
     direction: Direction,
     columnType: ColumnType,
-    conversionType: BinaryMode,
+    binaryMode: BinaryMode,
     value: unknown,
   ): Promise<unknown> {
     if (value) {
       if (columnType === 'Binary') {
-        return this.convertScalar(direction, conversionType, value);
+        return this.convertScalar(direction, binaryMode, value);
       }
 
       if (Array.isArray(columnType)) {
         return Promise.all(
           (value as unknown[]).map(v =>
-            this.convertValueHelper(direction, columnType[0], conversionType, v),
+            this.convertValueHelper(direction, columnType[0], binaryMode, v),
           ),
         );
       }
@@ -183,7 +196,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       if (typeof columnType !== 'string') {
         const result = {};
         const promises = Object.entries(columnType).map(async ([key, type]) => {
-          result[key] = await this.convertValueHelper(direction, type, conversionType, value[key]);
+          result[key] = await this.convertValueHelper(direction, type, binaryMode, value[key]);
         });
 
         await Promise.all(promises);
@@ -197,14 +210,14 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
   private async convertScalar(
     direction: Direction,
-    convertionType: BinaryMode,
+    binaryMode: BinaryMode,
     value: unknown,
   ): Promise<unknown> {
     if (direction === 'toFrontend') {
       const buffer = value as Buffer;
-      if (convertionType === 'hex') return buffer.toString('hex');
+      if (binaryMode === 'hex') return buffer.toString('hex');
 
-      if (convertionType === 'datauri') {
+      if (binaryMode === 'datauri') {
         const { mime } = await FileType.fromBuffer(buffer);
 
         return `data:${mime ?? 'application/octet-stream'};base64,${buffer.toString('base64')}`;
@@ -213,11 +226,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
     if (direction === 'toBackend') {
       const string = value as string;
-      if (convertionType === 'hex') return Buffer.from(string, 'hex');
-      if (convertionType === 'datauri') return Buffer.from(string.split(',')[1], 'base64');
+      if (binaryMode === 'hex') return Buffer.from(string, 'hex');
+      if (binaryMode === 'datauri') return Buffer.from(string.split(',')[1], 'base64');
     }
 
-    throw new Error(`Unsupported convertion type: ${convertionType}`);
+    throw new Error(`Unsupported convertion type: ${binaryMode}`);
   }
 
   private replaceColumnType(columnType: ColumnType): ColumnType {
@@ -235,5 +248,30 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       newColumnType[key] = this.replaceColumnType(type);
 
     return newColumnType;
+  }
+
+  private replaceValidation(name: string, schema: ColumnSchema): ColumnSchema['validation'] {
+    if (schema.columnType === 'Binary') {
+      const validation: ColumnSchema['validation'] = [];
+      const binaryMode = this.getBinaryMode(name);
+      const minLength = schema.validation?.find(v => v.operator === 'LongerThan')?.value as number;
+      const maxLength = schema.validation?.find(v => v.operator === 'ShorterThan')?.value as number;
+
+      if (binaryMode === 'hex') {
+        validation.push({ operator: 'Match', value: /^[0-9a-f]+$/ });
+        if (minLength) validation.push({ operator: 'LongerThan', value: minLength * 2 });
+        if (maxLength) validation.push({ operator: 'ShorterThan', value: maxLength * 2 });
+      } else if (binaryMode === 'datauri') {
+        validation.push({ operator: 'Match', value: /^data:.*;base64,.*/ });
+      }
+
+      if (schema.validation?.find(v => v.operator === 'Present')) {
+        validation.push({ operator: 'Present' });
+      }
+
+      return validation;
+    }
+
+    return schema.validation;
   }
 }
