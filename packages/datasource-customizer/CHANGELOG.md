@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.6.1...@forestadmin/datasource-customizer@1.6.2) (2023-04-19)
+
+
+### Bug Fixes
+
+* **validation:** make frontend validation more reliable ([#655](https://github.com/ForestAdmin/agent-nodejs/issues/655)) ([75255b0](https://github.com/ForestAdmin/agent-nodejs/commit/75255b083edc422c5bd3582c069849728d595e98))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.3
+
 ## @forestadmin/datasource-customizer [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.6.0...@forestadmin/datasource-customizer@1.6.1) (2023-03-29)
 
 
