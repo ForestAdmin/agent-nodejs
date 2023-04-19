@@ -1,5 +1,5 @@
 import ConditionTree, { PlainConditionTree } from './base';
-import { Operator, allOperators, intervalOperators, uniqueOperators } from './operators';
+import { Operator, allOperators, intervalOperators } from './operators';
 import CollectionUtils from '../../../../utils/collection';
 import RecordUtils from '../../../../utils/record';
 import { Collection } from '../../../collection';
@@ -83,25 +83,33 @@ export default class ConditionTreeLeaf extends ConditionTree {
   match(record: RecordData, collection: Collection, timezone: string): boolean {
     const fieldValue = RecordUtils.getFieldValue(record, this.field);
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
+    const supported = [
+      ...['In', 'Equal', 'LessThan', 'GreaterThan', 'Match', 'StartsWith', 'EndsWith'],
+      ...['LongerThan', 'ShorterThan', 'IncludesAll', 'NotIn', 'NotEqual', 'NotContains'],
+    ] as const;
 
     switch (this.operator) {
+      case 'In':
+        return (this.value as unknown[])?.includes(fieldValue);
       case 'Equal':
         return fieldValue == this.value; // eslint-disable-line eqeqeq
       case 'LessThan':
         return fieldValue < this.value;
       case 'GreaterThan':
         return fieldValue > this.value;
-      case 'Like':
-        return this.like(fieldValue as string, this.value as string, true);
-      case 'ILike':
-        return this.like(fieldValue as string, this.value as string, false);
+      case 'Match':
+        return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);
+      case 'StartsWith':
+        return typeof fieldValue === 'string' && fieldValue.startsWith(this.value as string);
+      case 'EndsWith':
+        return typeof fieldValue === 'string' && fieldValue.endsWith(this.value as string);
       case 'LongerThan':
         return typeof fieldValue === 'string' ? fieldValue.length > this.value : false;
       case 'ShorterThan':
         return typeof fieldValue === 'string' ? fieldValue.length < this.value : false;
       case 'IncludesAll':
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
-
+      case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
         return !this.inverse().match(record, collection, timezone);
@@ -109,7 +117,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       default:
         return ConditionTreeEquivalent.getEquivalentTree(
           this,
-          new Set(uniqueOperators),
+          new Set(supported),
           columnType,
           timezone,
         ).match(record, collection, timezone);
@@ -122,18 +130,5 @@ export default class ConditionTreeLeaf extends ConditionTree {
 
   override unnest(): ConditionTreeLeaf {
     return super.unnest() as ConditionTreeLeaf;
-  }
-
-  /** @see https://stackoverflow.com/a/18418386/1897495 */
-  private like(value: string, pattern: string, caseSensitive: boolean): boolean {
-    if (!value) return false;
-
-    let regexp = pattern;
-
-    // eslint-disable-next-line no-useless-escape
-    regexp = regexp.replace(/([\.\\\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:\-])/g, '\\$1');
-    regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
-
-    return RegExp(`^${regexp}$`, caseSensitive ? 'g' : 'gi').test(value);
   }
 }

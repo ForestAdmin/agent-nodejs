@@ -1,5 +1,4 @@
 import { FieldTypes } from '@forestadmin/datasource-toolkit';
-import { ValidationType } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorFields from '../../../src/utils/forest-schema/generator-fields';
 import * as factories from '../../__factories__';
@@ -73,9 +72,7 @@ describe('SchemaGeneratorFields > Column', () => {
         isReadOnly: true,
         isRequired: true,
         isSortable: true,
-        validations: [
-          { message: "Failed validation rule: 'Present'", type: ValidationType.Present },
-        ],
+        validations: [{ message: 'Field is required', type: 'is present' }],
         type: 'String',
       });
     });

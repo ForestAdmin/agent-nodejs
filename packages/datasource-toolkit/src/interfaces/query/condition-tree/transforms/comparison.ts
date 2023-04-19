@@ -1,6 +1,7 @@
 import { Alternative } from '../equivalence';
 import ConditionTreeFactory from '../factory';
 import ConditionTree from '../nodes/base';
+import ConditionTreeLeaf from '../nodes/leaf';
 import { Operator } from '../nodes/operators';
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
@@ -40,6 +41,26 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
   ],
   In: [
     {
+      dependsOn: ['Equal', 'Match'],
+      forTypes: ['String'],
+      replacer: leaf => {
+        const values = leaf.value as string[];
+        const conditions = [];
+
+        for (const value of [null, ''])
+          if (values.includes(value))
+            conditions.push(new ConditionTreeLeaf(leaf.field, 'Equal', value));
+
+        if (values.some(v => v !== null && v !== '')) {
+          const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
+          const regexp = new RegExp(`^${escaped.join('|')}$`, 'g');
+          conditions.push(new ConditionTreeLeaf(leaf.field, 'Match', regexp));
+        }
+
+        return ConditionTreeFactory.union(...conditions);
+      },
+    },
+    {
       dependsOn: ['Equal'],
       replacer: leaf =>
         ConditionTreeFactory.union(
@@ -56,6 +77,26 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
     },
   ],
   NotIn: [
+    {
+      dependsOn: ['NotEqual', 'Match'],
+      forTypes: ['String'],
+      replacer: leaf => {
+        const values = leaf.value as string[];
+        const conditions = [];
+
+        for (const value of [null, ''])
+          if (values.includes(value))
+            conditions.push(new ConditionTreeLeaf(leaf.field, 'NotEqual', value));
+
+        if (values.some(v => v !== null && v !== '')) {
+          const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
+          const regexp = new RegExp(`(?!${escaped.join('|')})`, 'g');
+          conditions.push(new ConditionTreeLeaf(leaf.field, 'Match', regexp));
+        }
+
+        return ConditionTreeFactory.intersect(...conditions);
+      },
+    },
     {
       dependsOn: ['NotEqual'],
       replacer: leaf =>

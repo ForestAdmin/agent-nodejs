@@ -12,7 +12,7 @@ import MongooseSchema from '../../mongoose/schema';
 import { Stack } from '../../types';
 import VersionManager from '../version-manager';
 
-const STRING_OPERATORS = ['Like', 'ILike', 'NotContains', 'LongerThan', 'ShorterThan'];
+const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
@@ -125,26 +125,13 @@ export default class FilterGenerator {
         return { $all: formattedLeafValue };
       case 'NotContains':
         return { $not: new RegExp(`.*${formattedLeafValue}.*`) };
-      case 'Like':
-        return this.like(formattedLeafValue as string, true);
-      case 'ILike':
-        return this.like(formattedLeafValue as string, false);
+      case 'Match':
+        return formattedLeafValue;
       case 'Present':
         return { $exists: true, $ne: null };
       default:
         throw new Error(`Unsupported '${operator}' operator`);
     }
-  }
-
-  /** @see https://stackoverflow.com/a/18418386/1897495 */
-  private static like(pattern: string, caseSensitive: boolean): RegExp {
-    let regexp = pattern;
-
-    // eslint-disable-next-line no-useless-escape
-    regexp = regexp.replace(/([\.\\\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:\-])/g, '\\$1');
-    regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
-
-    return RegExp(`^${regexp}$`, caseSensitive ? 'g' : 'gi');
   }
 
   private static computeSort(sorts: PaginatedFilter['sort']): PipelineStage.Sort['$sort'] {
