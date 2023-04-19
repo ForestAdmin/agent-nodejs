@@ -1,21 +1,9 @@
-import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
 import { DataTypes } from 'sequelize';
 
 import TypeConverter from '../../src/utils/type-converter';
 
 describe('Utils > TypeConverter', () => {
-  describe('fromColumnType', () => {
-    it('should throw with an unknown column type', () => {
-      expect(() => TypeConverter.fromColumnType('__unknown__' as PrimitiveTypes)).toThrow(
-        'Unsupported column type: "__unknown__".',
-      );
-    });
-
-    it('should return a Sequelize data type when known', () => {
-      expect(TypeConverter.fromColumnType('Boolean')).toBe(DataTypes.BOOLEAN);
-    });
-  });
-
   describe('fromDataType', () => {
     it('should throw an error with an unsupported data type', () => {
       expect(() => TypeConverter.fromDataType(DataTypes.VIRTUAL())).toThrow(
