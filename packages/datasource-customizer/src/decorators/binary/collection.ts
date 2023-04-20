@@ -76,15 +76,12 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   ): Promise<AggregateResult[]> {
     const rows = await super.aggregate(caller, filter, aggregation, limit);
     const promises = rows.map(async row => {
-      const newRow = { value: row.value, group: {} };
+      const entries = Object.entries(row.group).map(async ([path, value]) => [
+        path,
+        await this.convertValue('toFrontend', path, value),
+      ]);
 
-      await Promise.all(
-        Object.entries(row.group).map(async ([path, value]) => {
-          newRow.group[path] = this.convertValue('toFrontend', path, value);
-        }),
-      );
-
-      return newRow;
+      return { value: row.value, group: Object.fromEntries(await Promise.all(entries)) };
     });
 
     return Promise.all(promises);
@@ -130,15 +127,12 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private async convertRecord(direction: Direction, record: RecordData): Promise<RecordData> {
-    const newRecord = {};
+    const entries = Object.entries(record).map(async ([key, value]) => [
+      key,
+      await this.convertValue(direction, key, value),
+    ]);
 
-    await Promise.all(
-      Object.entries(record).map(async ([key, value]) => {
-        newRecord[key] = await this.convertValue(direction, key, value);
-      }),
-    );
-
-    return newRecord;
+    return Object.fromEntries(await Promise.all(entries));
   }
 
   private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTreeLeaf> {
@@ -203,22 +197,20 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       }
 
       if (Array.isArray(columnType)) {
-        return Promise.all(
-          (value as unknown[]).map(v =>
-            this.convertValueHelper(direction, columnType[0], binaryMode, v),
-          ),
+        const newValues = (value as unknown[]).map(v =>
+          this.convertValueHelper(direction, columnType[0], binaryMode, v),
         );
+
+        return Promise.all(newValues);
       }
 
       if (typeof columnType !== 'string') {
-        const result = {};
-        const promises = Object.entries(columnType).map(async ([key, type]) => {
-          result[key] = await this.convertValueHelper(direction, type, binaryMode, value[key]);
-        });
+        const entries = Object.entries(columnType).map(async ([key, type]) => [
+          key,
+          await this.convertValueHelper(direction, type, binaryMode, value[key]),
+        ]);
 
-        await Promise.all(promises);
-
-        return result;
+        return Object.fromEntries(await Promise.all(entries));
       }
     }
 
@@ -259,12 +251,12 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       return [this.replaceColumnType(columnType[0])];
     }
 
-    const newColumnType = {};
+    const entries = Object.entries(columnType).map(([key, type]) => [
+      key,
+      this.replaceColumnType(type),
+    ]);
 
-    for (const [key, type] of Object.entries(columnType))
-      newColumnType[key] = this.replaceColumnType(type);
-
-    return newColumnType;
+    return Object.fromEntries(entries);
   }
 
   private replaceValidation(name: string, schema: ColumnSchema): ColumnSchema['validation'] {
