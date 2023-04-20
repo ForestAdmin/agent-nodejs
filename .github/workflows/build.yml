@@ -178,6 +178,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' 
     needs: [build-api-reference, release]
     steps:
       - name: Setup Pages
