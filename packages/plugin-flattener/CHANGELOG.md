@@ -1,3 +1,13 @@
+## @forestadmin/plugin-flattener [1.0.18-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.17...@forestadmin/plugin-flattener@1.0.18-alpha-webhook-custom-actions.1) (2023-04-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.0-alpha-webhook-custom-actions.1
+
 ## @forestadmin/plugin-flattener [1.0.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.16...@forestadmin/plugin-flattener@1.0.17) (2023-04-19)
 
 
