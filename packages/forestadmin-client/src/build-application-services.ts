@@ -1,6 +1,8 @@
 import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import IpWhiteListService from './ip-whitelist';
+import ModelCustomizationFromApiService from './model-customizations/model-customization-from-api';
+import { ModelCustomizationService } from './model-customizations/types';
 import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
 import RenderingPermissionService from './permissions/rendering-permission';
@@ -26,6 +28,7 @@ export default function buildApplicationServices(
   permission: PermissionService;
   chartHandler: ChartHandler;
   auth: AuthService;
+  modelCustomizationService: ModelCustomizationService;
 } {
   const optionsWithDefaults = {
     forestServerUrl: 'https://api.forestadmin.com',
@@ -55,5 +58,6 @@ export default function buildApplicationServices(
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
     auth: new AuthService(optionsWithDefaults),
+    modelCustomizationService: new ModelCustomizationFromApiService(optionsWithDefaults),
   };
 }

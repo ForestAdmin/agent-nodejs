@@ -19,6 +19,7 @@ import bodyParser from 'koa-bodyparser';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
+import ActionCustomizationService from './services/model-customizations/action-customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
@@ -36,6 +37,8 @@ import OptionsValidator from './utils/options-validator';
 export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter {
   private options: AgentOptionsWithDefaults;
   private customizer: DataSourceCustomizer<S>;
+  private nocodeCustomizer: DataSourceCustomizer<S>;
+  private actionCustomizationService: ActionCustomizationService<S>;
 
   /**
    * Create a new Agent Builder.
@@ -59,6 +62,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
+    this.actionCustomizationService = new ActionCustomizationService<S>(allOptions);
   }
 
   /**
@@ -67,7 +73,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   override async start(): Promise<void> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
-    const dataSource = await this.customizer.getDataSource(logger);
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+
+    if (this.options.experimental?.webhookCustomActions) {
+      await this.actionCustomizationService.addWebhookActions(this.nocodeCustomizer);
+    }
+
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
@@ -193,7 +204,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     if (this.options.experimental?.webhookCustomActions) {
       return {
         // Versions correspond to the version of the feature
-        'webhook-custom-actions': '1.0.0',
+        'webhook-custom-actions': ActionCustomizationService.VERSION,
       };
     }
 
