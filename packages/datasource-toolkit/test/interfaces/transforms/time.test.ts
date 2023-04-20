@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/time';
 
@@ -13,7 +14,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('Before', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.Before[0].replacer(
+        alternatives.Before![0].replacer(
           new ConditionTreeLeaf('column', 'Before', '2010-01-01T00:00:00Z'),
           'America/Los_Angeles',
         ),
@@ -28,7 +29,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('After', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.After[0].replacer(
+        alternatives.After![0].replacer(
           new ConditionTreeLeaf('column', 'After', '2010-01-01T00:00:00Z'),
           'America/Los_Angeles',
         ),
@@ -43,7 +44,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('Past', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.Past[0].replacer(
+        alternatives.Past![0].replacer(
           new ConditionTreeLeaf('column', 'Past'),
           'America/Los_Angeles',
         ),
@@ -58,7 +59,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('Future', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.Future[0].replacer(
+        alternatives.Future![0].replacer(
           new ConditionTreeLeaf('column', 'Future'),
           'America/Los_Angeles',
         ),
@@ -73,7 +74,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('BeforeXHoursAgo', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.BeforeXHoursAgo[0].replacer(
+        alternatives.BeforeXHoursAgo![0].replacer(
           new ConditionTreeLeaf('column', 'BeforeXHoursAgo', 24),
           'America/Los_Angeles',
         ),
@@ -88,7 +89,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('AfterXHoursAgo', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.AfterXHoursAgo[0].replacer(
+        alternatives.AfterXHoursAgo![0].replacer(
           new ConditionTreeLeaf('column', 'AfterXHoursAgo', 24),
           'America/Los_Angeles',
         ),
@@ -103,7 +104,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousMonthToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousMonthToDate[0].replacer(
+        alternatives.PreviousMonthToDate![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousMonthToDate'),
           'America/Los_Angeles',
         ),
@@ -120,7 +121,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousMonth', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousMonth[0].replacer(
+        alternatives.PreviousMonth![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousMonth'),
           'America/Los_Angeles',
         ),
@@ -137,7 +138,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousQuarterToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousQuarterToDate[0].replacer(
+        alternatives.PreviousQuarterToDate![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousQuarterToDate'),
           'America/Los_Angeles',
         ),
@@ -154,7 +155,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousQuarter', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousQuarter[0].replacer(
+        alternatives.PreviousQuarter![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousQuarter'),
           'America/Los_Angeles',
         ),
@@ -171,7 +172,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousWeekToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousWeekToDate[0].replacer(
+        alternatives.PreviousWeekToDate![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousWeekToDate'),
           'America/Los_Angeles',
         ),
@@ -191,7 +192,7 @@ describe('ConditionTreeOperators > Time', () => {
       // @see https://github.com/moment/luxon/issues/373#issuecomment-441123720
 
       expect(
-        alternatives.PreviousWeek[0].replacer(
+        alternatives.PreviousWeek![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousWeek'),
           'America/Los_Angeles',
         ),
@@ -208,7 +209,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousXDaysToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousXDaysToDate[0].replacer(
+        alternatives.PreviousXDaysToDate![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousXDaysToDate', 14),
           'America/Los_Angeles',
         ),
@@ -225,7 +226,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousXDays', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousXDays[0].replacer(
+        alternatives.PreviousXDays![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousXDays', 14),
           'America/Los_Angeles',
         ),
@@ -242,7 +243,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('PreviousYearToDate', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.PreviousYearToDate[0].replacer(
+        alternatives.PreviousYearToDate![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousYearToDate'),
           'America/Los_Angeles',
         ),
@@ -261,7 +262,7 @@ describe('ConditionTreeOperators > Time', () => {
       // Notice daylight saving time in this test, as it's january
 
       expect(
-        alternatives.PreviousYear[0].replacer(
+        alternatives.PreviousYear![0].replacer(
           new ConditionTreeLeaf('column', 'PreviousYear'),
           'America/Los_Angeles',
         ),
@@ -278,7 +279,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('Today', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.Today[0].replacer(
+        alternatives.Today![0].replacer(
           new ConditionTreeLeaf('column', 'Today'),
           'America/Los_Angeles',
         ),
@@ -295,7 +296,7 @@ describe('ConditionTreeOperators > Time', () => {
   describe('Yesterday', () => {
     test('should rewrite', () => {
       expect(
-        alternatives.Yesterday[0].replacer(
+        alternatives.Yesterday![0].replacer(
           new ConditionTreeLeaf('column', 'Yesterday'),
           'America/Los_Angeles',
         ),

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/pattern';
 
@@ -7,7 +8,7 @@ describe('ConditionTreeOperators > Pattern', () => {
   describe('Contains', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.Contains[0].replacer(
+        alternatives.Contains![0].replacer(
           new ConditionTreeLeaf('column', 'Contains', 'something'),
           'Europe/Paris',
         ),
@@ -18,7 +19,7 @@ describe('ConditionTreeOperators > Pattern', () => {
   describe('StartsWith', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.StartsWith[0].replacer(
+        alternatives.StartsWith![0].replacer(
           new ConditionTreeLeaf('column', 'StartsWith', 'something'),
           'Europe/Paris',
         ),
@@ -29,7 +30,7 @@ describe('ConditionTreeOperators > Pattern', () => {
   describe('EndsWith', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.EndsWith[0].replacer(
+        alternatives.EndsWith![0].replacer(
           new ConditionTreeLeaf('column', 'EndsWith', 'something'),
           'Europe/Paris',
         ),
@@ -40,7 +41,7 @@ describe('ConditionTreeOperators > Pattern', () => {
   describe('IContains', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.IContains[0].replacer(
+        alternatives.IContains![0].replacer(
           new ConditionTreeLeaf('column', 'IContains', 'something'),
           'Europe/Paris',
         ),
@@ -51,7 +52,7 @@ describe('ConditionTreeOperators > Pattern', () => {
   describe('IStartsWith', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.IStartsWith[0].replacer(
+        alternatives.IStartsWith![0].replacer(
           new ConditionTreeLeaf('column', 'IStartsWith', 'something'),
           'Europe/Paris',
         ),
@@ -62,7 +63,7 @@ describe('ConditionTreeOperators > Pattern', () => {
   describe('IEndsWith', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.IEndsWith[0].replacer(
+        alternatives.IEndsWith![0].replacer(
           new ConditionTreeLeaf('column', 'IEndsWith', 'something'),
           'Europe/Paris',
         ),

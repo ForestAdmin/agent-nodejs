@@ -1,3 +1,28 @@
+## @forestadmin/datasource-sql [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.4.1...@forestadmin/datasource-sql@1.4.2) (2023-04-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.2.15
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.3
+
+## @forestadmin/datasource-sql [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.4.0...@forestadmin/datasource-sql@1.4.1) (2023-04-19)
+
+
+### Bug Fixes
+
+* **datasource-sql:** remove dangling references to skipped entities in database introspection ([#669](https://github.com/ForestAdmin/agent-nodejs/issues/669)) ([fb29d1e](https://github.com/ForestAdmin/agent-nodejs/commit/fb29d1e7d040ffa472bd3168e5dac5251e14eee7))
+
+# @forestadmin/datasource-sql [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.3.0...@forestadmin/datasource-sql@1.4.0) (2023-04-17)
+
+
+### Features
+
+* **datasource-sql:** add support for sslMode option ([#667](https://github.com/ForestAdmin/agent-nodejs/issues/667)) ([0d1eb19](https://github.com/ForestAdmin/agent-nodejs/commit/0d1eb1975a316d33027bc350fc6ff7d63d326f10))
+
 # @forestadmin/datasource-sql [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.2.9...@forestadmin/datasource-sql@1.3.0) (2023-03-29)
 
 

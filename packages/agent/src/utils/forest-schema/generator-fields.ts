@@ -77,7 +77,7 @@ export default class SchemaGeneratorFields {
       isVirtual: false,
       reference: null,
       type: this.convertColumnType(column.columnType),
-      validations: FrontendValidationUtils.convertValidationList(column.validation),
+      validations: FrontendValidationUtils.convertValidationList(column),
     };
   }
 
@@ -187,7 +187,7 @@ export default class SchemaGeneratorFields {
       isRequired: keyField.validation?.some(v => v.operator === 'Present') ?? false,
       isReadOnly: Boolean(keyField.isReadOnly),
       isSortable: Boolean(keyField.isSortable),
-      validations: FrontendValidationUtils.convertValidationList(keyField.validation),
+      validations: FrontendValidationUtils.convertValidationList(keyField),
       reference: `${foreignCollection.name}.${relation.foreignKeyTarget}`,
     };
   }

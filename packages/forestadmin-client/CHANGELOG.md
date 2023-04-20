@@ -1,3 +1,18 @@
+## @forestadmin/forestadmin-client [1.1.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.11...@forestadmin/forestadmin-client@1.1.12) (2023-04-19)
+
+
+### Bug Fixes
+
+* **validation:** make frontend validation more reliable ([#655](https://github.com/ForestAdmin/agent-nodejs/issues/655)) ([75255b0](https://github.com/ForestAdmin/agent-nodejs/commit/75255b083edc422c5bd3582c069849728d595e98))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.4.3
+
 ## @forestadmin/forestadmin-client [1.1.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.10...@forestadmin/forestadmin-client@1.1.11) (2023-03-29)
 
 

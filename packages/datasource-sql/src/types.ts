@@ -1,8 +1,7 @@
 import { Options } from 'sequelize/types';
 
-export type ConnectionOptions =
-  | string
-  | ({ uri?: string } & Pick<
+export type ConnectionOptionsObj =
+  | { uri?: string; sslMode?: SslMode } & Pick<
       Options,
       | 'database'
       | 'dialect'
@@ -21,4 +20,8 @@ export type ConnectionOptions =
       | 'ssl'
       | 'storage'
       | 'username'
-    >);
+    >;
+
+export type ConnectionOptions = ConnectionOptionsObj | string;
+
+export type SslMode = 'preferred' | 'disabled' | 'required' | 'verify' | 'manual';

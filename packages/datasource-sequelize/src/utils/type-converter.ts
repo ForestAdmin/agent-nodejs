@@ -2,32 +2,6 @@ import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-to
 import { AbstractDataType, AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
 
 export default class TypeConverter {
-  // TODO: Allow to differentiate NUMBER and INTEGER.
-  private static readonly columnTypeToDataType: Record<
-    PrimitiveTypes,
-    AbstractDataTypeConstructor
-  > = {
-    Boolean: DataTypes.BOOLEAN,
-    Date: DataTypes.DATE,
-    Dateonly: DataTypes.DATEONLY,
-    Enum: DataTypes.ENUM,
-    Json: DataTypes.JSON,
-    Number: DataTypes.NUMBER,
-    Point: null,
-    String: DataTypes.STRING,
-    Timeonly: DataTypes.TIME,
-    Uuid: DataTypes.UUID,
-  };
-
-  // TODO: Handle all ColumnTypes, not only PrimitiveTypes?
-  public static fromColumnType(columnType: PrimitiveTypes): AbstractDataTypeConstructor {
-    const dataType = TypeConverter.columnTypeToDataType[columnType];
-
-    if (!dataType) throw new Error(`Unsupported column type: "${columnType}".`);
-
-    return dataType;
-  }
-
   private static getColumnTypeFromDataType(dataType: AbstractDataType): PrimitiveTypes {
     // See postgres enum handling in @datasource-sql
     if ((dataType as { isDataSourceSqlEnum?: boolean }).isDataSourceSqlEnum) return 'Enum';

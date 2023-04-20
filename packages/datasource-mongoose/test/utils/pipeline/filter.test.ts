@@ -32,7 +32,7 @@ describe('FilterGenerator', () => {
   describe('Condition tree', () => {
     it('filter should generate a $match stage', () => {
       const filter = new PaginatedFilter({
-        conditionTree: new ConditionTreeLeaf('title', 'ILike', 'Foundation'),
+        conditionTree: new ConditionTreeLeaf('title', 'Match', /^Foundation$/gi),
       });
 
       const pipeline = FilterGenerator.filter(model, stack, filter);

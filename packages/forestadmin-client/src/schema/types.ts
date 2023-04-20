@@ -77,7 +77,7 @@ export type ForestServerField = Partial<{
   reference: null | string;
   inverseOf: null | string;
   relationship: 'BelongsTo' | 'BelongsToMany' | 'HasMany' | 'HasOne';
-  validations: Array<{ message: string | null; type: ValidationType; value: unknown }>;
+  validations: Array<{ message: string | null; type: ValidationType; value?: unknown }>;
 }>;
 
 export type ForestServerSegment = {
@@ -85,14 +85,13 @@ export type ForestServerSegment = {
   name: string;
 };
 
-export enum ValidationType {
-  Present = 'is present',
-  GreaterThan = 'is greater than',
-  LessThan = 'is less than',
-  Before = 'is before',
-  After = 'is after',
-  LongerThan = 'is longer than',
-  ShorterThan = 'is shorter than',
-  Contains = 'contains',
-  Like = 'is like',
-}
+export type ValidationType =
+  | 'contains'
+  | 'is after'
+  | 'is before'
+  | 'is greater than'
+  | 'is less than'
+  | 'is like'
+  | 'is longer than'
+  | 'is present'
+  | 'is shorter than';

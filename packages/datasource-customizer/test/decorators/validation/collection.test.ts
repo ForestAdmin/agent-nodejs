@@ -1,4 +1,4 @@
-import { Collection, ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
@@ -70,51 +70,6 @@ describe('SortEmulationDecoratorCollection', () => {
     expect(() => newBooks.addValidation('author:firstName', { operator: 'Present' })).toThrow(
       'Cannot add validators on a relation, use the foreign key instead',
     );
-  });
-
-  describe('Rule Deduplication', () => {
-    test('should merge multiple GreaterThan rules', () => {
-      newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
-      newBooks.addValidation('title', { operator: 'GreaterThan', value: 5 });
-      newBooks.addValidation('title', { operator: 'GreaterThan', value: 2 });
-
-      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
-        { operator: 'GreaterThan', value: 5 },
-      ]);
-    });
-
-    test('should merge multiple LessThan rules', () => {
-      newBooks.addValidation('title', { operator: 'LessThan', value: 3 });
-      newBooks.addValidation('title', { operator: 'LessThan', value: 5 });
-      newBooks.addValidation('title', { operator: 'LessThan', value: 2 });
-
-      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
-        { operator: 'LessThan', value: 2 },
-      ]);
-    });
-
-    test('should not merge rules using different operators', () => {
-      newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
-      newBooks.addValidation('title', { operator: 'LongerThan', value: 5 });
-
-      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
-        { operator: 'GreaterThan', value: 3 },
-        { operator: 'LongerThan', value: 5 },
-      ]);
-    });
-
-    test('should not merge rules on different fields', () => {
-      newBooks.addValidation('subtitle', { operator: 'GreaterThan', value: 5 });
-      newBooks.addValidation('title', { operator: 'GreaterThan', value: 3 });
-
-      expect((newBooks.schema.fields.subtitle as ColumnSchema).validation).toStrictEqual([
-        { operator: 'GreaterThan', value: 5 },
-      ]);
-
-      expect((newBooks.schema.fields.title as ColumnSchema).validation).toStrictEqual([
-        { operator: 'GreaterThan', value: 3 },
-      ]);
-    });
   });
 
   describe('Field selection when validating', () => {

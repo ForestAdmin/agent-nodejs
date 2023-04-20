@@ -1,48 +1,19 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize, ConnectionError as SequelizeConnectionError } from 'sequelize';
+import { Dialect, Sequelize } from 'sequelize';
 
-import {
-  AccessDeniedError,
-  ConnectionAcquireTimeoutError,
-  ConnectionError,
-  ConnectionRefusedError,
-  ConnectionTimedOutError,
-  HostNotFoundError,
-  HostNotReachableError,
-  InvalidConnectionError,
-} from './errors';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import { SequelizeColumn, SequelizeReference, Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-    try {
-      const tableNames = await this.getTableNames(sequelize);
+    const tableNames = await this.getTableNames(sequelize);
+    const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
+    const tables = await Promise.all(promises);
 
-      return await Promise.all(tableNames.map(name => this.getTable(sequelize, logger, name)));
-    } catch (e) {
-      switch ((e as SequelizeConnectionError).name) {
-        case 'SequelizeConnectionError':
-          throw new ConnectionError(e.message);
-        case 'SequelizeHostNotFoundError':
-          throw new HostNotFoundError(e.message);
-        case 'SequelizeConnectionRefusedError':
-          throw new ConnectionRefusedError(e.message);
-        case 'SequelizeHostNotReachableError':
-          throw new HostNotReachableError(e.message);
-        case 'SequelizeAccessDeniedError':
-          throw new AccessDeniedError(e.message);
-        case 'SequelizeConnectionAcquireTimeoutError':
-          throw new ConnectionAcquireTimeoutError(e.message);
-        case 'SequelizeConnectionTimedOutError':
-          throw new ConnectionTimedOutError(e.message);
-        case 'SequelizeInvalidConnectionError':
-          throw new InvalidConnectionError(e.message);
-        default:
-          throw new ConnectionError(e.message);
-      }
-    }
+    this.sanitizeInPlace(tables);
+
+    return tables;
   }
 
   /** Get names of all tables in the public schema of the db */
@@ -125,6 +96,29 @@ export default class Introspector {
       };
     } catch (e) {
       logger?.('Warn', `Skipping column ${tableName}.${name} (${e.message})`);
+    }
+  }
+
+  /**
+   * Remove references to entities that are not present in the schema
+   * (happens when we skip entities because of errors)
+   */
+  private static sanitizeInPlace(tables: Table[]): void {
+    for (const table of tables) {
+      // Remove unique indexes which depennd on columns that are not present in the table.
+      table.unique = table.unique.filter(unique =>
+        unique.every(column => table.columns.find(c => c.name === column)),
+      );
+
+      for (const column of table.columns) {
+        // Remove references to tables that are not present in the schema.
+        column.constraints = column.constraints.filter(constraint => {
+          const refTable = tables.find(t => t.name === constraint.table);
+          const refColumn = refTable?.columns.find(c => c.name === constraint.column);
+
+          return refTable && refColumn;
+        });
+      }
     }
   }
 }

@@ -19,6 +19,8 @@ describe('ConditionTree', () => {
 
       test('intersect() should ignore null params', () => {
         const tree = ConditionTreeFactory.intersect(
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           null,
           new ConditionTreeLeaf('column', 'Equal', true),
           null,
@@ -78,9 +80,7 @@ describe('ConditionTree', () => {
         const collection = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              col1: factories.columnSchema.uuidPrimaryKey().build({
-                filterOperators: null,
-              }),
+              col1: factories.columnSchema.uuidPrimaryKey().build({ filterOperators: undefined }),
             },
           }),
         });
@@ -353,6 +353,8 @@ describe('ConditionTree', () => {
         new ConditionTreeLeaf('array', 'IncludesAll', ['value']),
         new ConditionTreeLeaf('string', 'LongerThan', 0),
         new ConditionTreeLeaf('string', 'ShorterThan', 999),
+        new ConditionTreeLeaf('string', 'StartsWith', 'valu'),
+        new ConditionTreeLeaf('string', 'EndsWith', 'alue'),
       ]);
 
       expect(
