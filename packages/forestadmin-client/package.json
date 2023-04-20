@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/forestadmin-client",
-  "version": "1.1.12",
+  "version": "1.2.0-alpha-webhook-custom-actions.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
