@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-dummy",
-  "version": "1.0.27",
+  "version": "1.0.28-alpha-webhook-custom-actions.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,7 +12,7 @@
     "directory": "packages/datasource-dummy"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.6.2",
+    "@forestadmin/datasource-customizer": "1.7.0-alpha-webhook-custom-actions.1",
     "@forestadmin/datasource-toolkit": "1.4.3"
   },
   "files": [
