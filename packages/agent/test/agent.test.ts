@@ -41,6 +41,7 @@ jest.mock('../src/services/model-customizations/action-customization', () => ({
   __esModule: true,
   default: class {
     public static VERSION = '3.14.15';
+    public static FEATURE = 'webhook-custom-actions';
     addWebhookActions = mockAddWebhookActions;
   },
 }));

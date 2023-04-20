@@ -13,6 +13,7 @@ import { AgentOptionsWithDefaults } from '../../types';
 
 export default class ActionCustomizationService<S extends TSchema = TSchema> {
   public static VERSION = '1.0.0';
+  public static FEATURE = 'webhook-custom-actions';
 
   private readonly client: ForestAdminClient;
 
