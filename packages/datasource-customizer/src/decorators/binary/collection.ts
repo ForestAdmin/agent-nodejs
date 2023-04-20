@@ -22,13 +22,18 @@ import DataSourceDecorator from '../datasource-decorator';
 type Direction = 'toFrontend' | 'toBackend';
 
 /**
- * Implement binary to string type conversion.
- * (neither the frontend nor the transport layer support binary data)
+ * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data
+ * is not supported.
+ *
+ * This decorator implement binary to string translation for binary fields and back.
+ * Binary fields can either by represented in the frontend as:
+ * - data-uris (so that the current file widgets can be used)
+ * - hex strings (for primarykeys, foreign keys, etc...)
  */
 export default class BinaryCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<BinaryCollectionDecorator>;
 
-  convertionTypes: Map<string, BinaryMode> = new Map();
+  private convertionTypes: Map<string, BinaryMode> = new Map();
 
   setBinaryMode(name: string, type: BinaryMode): void {
     const field = this.childCollection.schema.fields[name];
@@ -137,17 +142,32 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTreeLeaf> {
-    // fixme add other operators here
-    if (leaf.operator === 'Equal')
-      return leaf.override({
-        value: await this.convertValue('toBackend', leaf.field, leaf.value),
-      });
+    const [prefix, suffix] = leaf.field.split(/:(.*)/);
+    const schema = this.childCollection.schema.fields[prefix];
 
-    if (leaf.operator === 'In') {
+    if (schema.type !== 'Column') {
+      return this.dataSource
+        .getCollection(schema.foreignCollection)
+        .convertConditionTreeLeaf(leaf.override({ field: suffix }));
+    }
+
+    // For those operators, we need to replace hex string/datauri by Buffers instances (depending
+    // on what is actually supported by the underlying connector).
+    const operators = [
+      ...['After', 'Before', 'Contains', 'EndsWith', 'Equal', 'GreaterThan', 'IContains'],
+      ...['IEndsWith', 'ILike', 'IStartsWith', 'LessThan', 'Like', 'NotContains', 'NotEqual'],
+      ...['StartsWith', 'NotIn', 'In'],
+    ];
+
+    if (operators.includes(leaf.operator)) {
+      const binaryMode: BinaryMode = this.getBinaryMode(prefix);
+      const columnType: ColumnType =
+        leaf.operator === 'In' || leaf.operator === 'NotIn'
+          ? [schema.columnType]
+          : schema.columnType;
+
       return leaf.override({
-        value: await Promise.all(
-          (leaf.value as unknown[]).map(v => this.convertValue('toBackend', leaf.field, v)),
-        ),
+        value: await this.convertValueHelper('toBackend', columnType, binaryMode, leaf.value),
       });
     }
 
@@ -158,20 +178,17 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     const [prefix, suffix] = path.split(/:(.*)/);
     const schema = this.childCollection.schema.fields[prefix];
 
-    let result: unknown;
-
-    if (schema.type === 'Column') {
-      const binaryMode = this.getBinaryMode(path);
-      result = this.convertValueHelper(direction, schema.columnType, binaryMode, value);
-    } else {
+    if (schema.type !== 'Column') {
       const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
-      result = suffix
+      return suffix
         ? foreignCollection.convertValue(direction, suffix, value)
         : foreignCollection.convertRecord(direction, value as RecordData);
     }
 
-    return result;
+    const binaryMode = this.getBinaryMode(path);
+
+    return this.convertValueHelper(direction, schema.columnType, binaryMode, value);
   }
 
   private async convertValueHelper(
