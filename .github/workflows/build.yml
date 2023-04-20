@@ -132,8 +132,8 @@ jobs:
         github.ref == 'refs/heads/main' 
         || github.ref == 'refs/heads/beta' 
         || github.ref == 'refs/heads/alpha' 
-        || startsWith('refs/heads/alpha-', github.ref) 
-        || startsWith('refs/heads/beta-', github.ref)
+        || startsWith(github.ref, 'refs/heads/alpha-') 
+        || startsWith(github.ref, 'refs/heads/beta-')
       )
     steps:
       - uses: actions/checkout@v3
