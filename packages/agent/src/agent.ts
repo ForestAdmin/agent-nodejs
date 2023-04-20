@@ -200,14 +200,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.options.logger('Info', message);
   }
 
-  private buildSchemaFeatures(): Record<string, string> | null {
-    if (this.options.experimental?.webhookCustomActions) {
-      return {
-        // Versions correspond to the version of the feature
-        'webhook-custom-actions': ActionCustomizationService.VERSION,
-      };
-    }
+  private buildSchemaFeatures(): string[] | null {
+    const mapping: Record<keyof AgentOptions['experimental'], string> = {
+      webhookCustomActions: ActionCustomizationService.FEATURE,
+    };
 
-    return null;
+    return Object.entries(mapping)
+      .filter(([experimentalFeature]) => this.options.experimental?.[experimentalFeature])
+      .map(([, feature]) => feature);
   }
 }
