@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-customizer",
-  "version": "1.6.2",
+  "version": "1.7.0-alpha-webhook-custom-actions.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
