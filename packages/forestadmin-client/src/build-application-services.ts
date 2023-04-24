@@ -58,6 +58,9 @@ export default function buildApplicationServices(
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
     auth: new AuthService(optionsWithDefaults),
-    modelCustomizationService: new ModelCustomizationFromApiService(optionsWithDefaults),
+    modelCustomizationService: new ModelCustomizationFromApiService(
+      forestAdminServerInterface,
+      optionsWithDefaults,
+    ),
   };
 }

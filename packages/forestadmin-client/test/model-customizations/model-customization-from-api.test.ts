@@ -4,14 +4,8 @@ import {
   ModelCustomization,
   WebhookActionConfigurationApi,
 } from '../../src/model-customizations/types';
-import ServerUtils from '../../src/utils/server';
+import { forestAdminServerInterface } from '../__factories__';
 import forestadminClientOptionsFactory from '../__factories__/forest-admin-client-options';
-
-jest.mock('../../src/utils/server', () => ({
-  query: jest.fn(),
-}));
-
-const ServerUtilsMock = ServerUtils as jest.Mocked<typeof ServerUtils>;
 
 describe('ModelCustomizationFromApiService', () => {
   beforeEach(() => {
@@ -24,7 +18,8 @@ describe('ModelCustomizationFromApiService', () => {
         it.each(['Global', 'Bulk', 'Single'] as ActionScope[])(
           'should retrieve the configuration from the API and map values for the scope %s',
           async scope => {
-            ServerUtilsMock.query.mockResolvedValueOnce([
+            const forestadminServer = forestAdminServerInterface.build();
+            (forestadminServer.getModelCustomizations as jest.Mock).mockResolvedValueOnce([
               {
                 name: 'test',
                 type: 'action',
@@ -40,7 +35,7 @@ describe('ModelCustomizationFromApiService', () => {
 
             const options = forestadminClientOptionsFactory.build();
 
-            const modelCustomizations = new ModelCustomizationService(options);
+            const modelCustomizations = new ModelCustomizationService(forestadminServer, options);
 
             const configuration = await modelCustomizations.getConfiguration();
 
@@ -58,12 +53,8 @@ describe('ModelCustomizationFromApiService', () => {
               },
             ]);
 
-            expect(ServerUtilsMock.query).toHaveBeenCalledTimes(1);
-            expect(ServerUtilsMock.query).toHaveBeenCalledWith(
-              options,
-              'get',
-              '/liana/model-customizations',
-            );
+            expect(forestadminServer.getModelCustomizations).toHaveBeenCalledTimes(1);
+            expect(forestadminServer.getModelCustomizations).toHaveBeenCalledWith(options);
           },
         );
       });
@@ -71,7 +62,10 @@ describe('ModelCustomizationFromApiService', () => {
 
     describe('with unsupported types', () => {
       it('should throw an error', async () => {
-        ServerUtilsMock.query.mockResolvedValueOnce([
+        const options = forestadminClientOptionsFactory.build();
+        const forestadminServer = forestAdminServerInterface.build();
+
+        (forestadminServer.getModelCustomizations as jest.Mock).mockResolvedValueOnce([
           {
             name: 'test',
             type: 'unsupported',
@@ -80,9 +74,7 @@ describe('ModelCustomizationFromApiService', () => {
           },
         ]);
 
-        const options = forestadminClientOptionsFactory.build();
-
-        const modelCustomizations = new ModelCustomizationService(options);
+        const modelCustomizations = new ModelCustomizationService(forestadminServer, options);
 
         await expect(modelCustomizations.getConfiguration()).rejects.toThrow(
           'Only action customizations are supported for now.',

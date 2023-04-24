@@ -6,8 +6,7 @@ import {
   WebhookActionConfiguration,
   WebhookActionConfigurationApi,
 } from './types';
-import { ForestAdminClientOptionsWithDefaults } from '../types';
-import ServerUtils from '../utils/server';
+import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
 function mapApiValues(
   modelCustomization: ModelCustomization<WebhookActionConfigurationApi>,
@@ -32,14 +31,13 @@ function mapApiValues(
 }
 
 export default class ModelCustomizationFromApiService implements ModelCustomizationService {
-  constructor(private readonly options: ForestAdminClientOptionsWithDefaults) {}
+  constructor(
+    private readonly forestadminServerInterface: ForestAdminServerInterface,
+    private readonly options: ForestAdminClientOptionsWithDefaults,
+  ) {}
 
   async getConfiguration(): Promise<WebhookAction[]> {
-    const result = await ServerUtils.query<ModelCustomization<WebhookActionConfigurationApi>[]>(
-      this.options,
-      'get',
-      '/liana/model-customizations',
-    );
+    const result = await this.forestadminServerInterface.getModelCustomizations(this.options);
 
     return result.map(mapApiValues);
   }
