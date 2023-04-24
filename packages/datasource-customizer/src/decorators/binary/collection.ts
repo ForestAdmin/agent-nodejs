@@ -5,6 +5,7 @@ import {
   CollectionSchema,
   ColumnSchema,
   ColumnType,
+  ConditionTree,
   ConditionTreeLeaf,
   FieldSchema,
   Filter,
@@ -19,8 +20,6 @@ import { BinaryMode } from './types';
 import CollectionDecorator from '../collection-decorator';
 import DataSourceDecorator from '../datasource-decorator';
 
-type Direction = 'toFrontend' | 'toBackend';
-
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data
  * is not supported.
@@ -32,29 +31,32 @@ type Direction = 'toFrontend' | 'toBackend';
  */
 export default class BinaryCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<BinaryCollectionDecorator>;
-
-  private convertionTypes: Map<string, BinaryMode> = new Map();
+  private useHexConversion: Map<string, boolean> = new Map();
 
   setBinaryMode(name: string, type: BinaryMode): void {
     const field = this.childCollection.schema.fields[name];
 
-    if (field.type === 'Column' && field.columnType === 'Binary') {
-      this.convertionTypes.set(name, type);
+    if (type !== 'datauri' && type !== 'hex') {
+      throw new Error('Invalid binary mode');
+    }
+
+    if (field?.type === 'Column' && field?.columnType === 'Binary') {
+      this.useHexConversion.set(name, type === 'hex');
       this.markSchemaAsDirty();
     } else {
       throw new Error('Expected a binary field');
     }
   }
 
-  private getBinaryMode(name: string): BinaryMode {
-    if (this.convertionTypes.has(name)) {
-      return this.convertionTypes.get(name);
+  private shouldUseHex(name: string): boolean {
+    if (this.useHexConversion.has(name)) {
+      return this.useHexConversion.get(name);
     }
 
-    return SchemaUtils.isPrimaryKey(this.childCollection.schema, name) ||
+    return (
+      SchemaUtils.isPrimaryKey(this.childCollection.schema, name) ||
       SchemaUtils.isForeignKey(this.childCollection.schema, name)
-      ? 'hex'
-      : 'datauri';
+    );
   }
 
   override async list(
@@ -63,7 +65,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     projection: Projection,
   ): Promise<RecordData[]> {
     const records = await super.list(caller, filter, projection);
-    const promises = records.map(r => this.convertRecord('toFrontend', r));
+    const promises = records.map(r => this.convertRecord(false, r));
 
     return Promise.all(promises);
   }
@@ -78,7 +80,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     const promises = rows.map(async row => {
       const entries = Object.entries(row.group).map(async ([path, value]) => [
         path,
-        await this.convertValue('toFrontend', path, value),
+        await this.convertValue(false, path, value),
       ]);
 
       return { value: row.value, group: Object.fromEntries(await Promise.all(entries)) };
@@ -88,25 +90,25 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
-    const promises = data.map(record => this.convertRecord('toBackend', record));
+    const dataWithBinary = data.map(record => this.convertRecord(true, record));
+    const records = await super.create(caller, await Promise.all(dataWithBinary));
+    const recordsWithoutBinary = records.map(record => this.convertRecord(false, record));
 
-    return super.create(caller, await Promise.all(promises));
+    return Promise.all(recordsWithoutBinary);
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    const newPatch = await this.convertRecord('toBackend', patch);
+    const newPatch = await this.convertRecord(true, patch);
 
     return super.update(caller, filter, newPatch);
   }
 
   override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
-    if (!filter) return null;
-
-    const promise = filter.conditionTree
-      ? filter.conditionTree.replaceLeafsAsync(leaf => this.convertConditionTreeLeaf(leaf))
-      : null;
-
-    return filter.override({ conditionTree: await promise });
+    return filter?.override({
+      conditionTree: await filter?.conditionTree?.replaceLeafsAsync(leaf =>
+        this.convertConditionTreeLeaf(leaf),
+      ),
+    });
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
@@ -126,49 +128,50 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     return { ...subSchema, fields };
   }
 
-  private async convertRecord(direction: Direction, record: RecordData): Promise<RecordData> {
-    const entries = Object.entries(record).map(async ([key, value]) => [
-      key,
-      await this.convertValue(direction, key, value),
+  private async convertRecord(toBackend: boolean, record: RecordData): Promise<RecordData> {
+    const entries = Object.entries(record).map(async ([path, value]) => [
+      path,
+      await this.convertValue(toBackend, path, value),
     ]);
 
     return Object.fromEntries(await Promise.all(entries));
   }
 
-  private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTreeLeaf> {
+  private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTree> {
     const [prefix, suffix] = leaf.field.split(/:(.*)/);
     const schema = this.childCollection.schema.fields[prefix];
 
     if (schema.type !== 'Column') {
-      return this.dataSource
+      const conditionTree = await this.dataSource
         .getCollection(schema.foreignCollection)
         .convertConditionTreeLeaf(leaf.override({ field: suffix }));
+
+      return conditionTree.nest(prefix);
     }
 
     // For those operators, we need to replace hex string/datauri by Buffers instances (depending
     // on what is actually supported by the underlying connector).
     const operators = [
-      ...['After', 'Before', 'Contains', 'EndsWith', 'Equal', 'GreaterThan', 'IContains'],
-      ...['IEndsWith', 'ILike', 'IStartsWith', 'LessThan', 'Like', 'NotContains', 'NotEqual'],
-      ...['StartsWith', 'NotIn', 'In'],
+      ...['After', 'Before', 'Contains', 'EndsWith', 'Equal', 'GreaterThan', 'IContains', 'NotIn'],
+      ...['IEndsWith', 'IStartsWith', 'LessThan', 'NotContains', 'NotEqual', 'StartsWith', 'In'],
     ];
 
     if (operators.includes(leaf.operator)) {
-      const binaryMode: BinaryMode = this.getBinaryMode(prefix);
+      const useHex = this.shouldUseHex(prefix);
       const columnType: ColumnType =
         leaf.operator === 'In' || leaf.operator === 'NotIn'
           ? [schema.columnType]
           : schema.columnType;
 
       return leaf.override({
-        value: await this.convertValueHelper('toBackend', columnType, binaryMode, leaf.value),
+        value: await this.convertValueHelper(true, columnType, useHex, leaf.value),
       });
     }
 
     return leaf;
   }
 
-  private async convertValue(direction: Direction, path: string, value: unknown): Promise<unknown> {
+  private async convertValue(toBackend: boolean, path: string, value: unknown): Promise<unknown> {
     const [prefix, suffix] = path.split(/:(.*)/);
     const schema = this.childCollection.schema.fields[prefix];
 
@@ -176,29 +179,29 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
       return suffix
-        ? foreignCollection.convertValue(direction, suffix, value)
-        : foreignCollection.convertRecord(direction, value as RecordData);
+        ? foreignCollection.convertValue(toBackend, suffix, value)
+        : foreignCollection.convertRecord(toBackend, value as RecordData);
     }
 
-    const binaryMode = this.getBinaryMode(path);
+    const binaryMode = this.shouldUseHex(path);
 
-    return this.convertValueHelper(direction, schema.columnType, binaryMode, value);
+    return this.convertValueHelper(toBackend, schema.columnType, binaryMode, value);
   }
 
   private async convertValueHelper(
-    direction: Direction,
+    toBackend: boolean,
     columnType: ColumnType,
-    binaryMode: BinaryMode,
+    useHex: boolean,
     value: unknown,
   ): Promise<unknown> {
     if (value) {
       if (columnType === 'Binary') {
-        return this.convertScalar(direction, binaryMode, value);
+        return this.convertScalar(toBackend, useHex, value);
       }
 
       if (Array.isArray(columnType)) {
         const newValues = (value as unknown[]).map(v =>
-          this.convertValueHelper(direction, columnType[0], binaryMode, v),
+          this.convertValueHelper(toBackend, columnType[0], useHex, v),
         );
 
         return Promise.all(newValues);
@@ -207,7 +210,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       if (typeof columnType !== 'string') {
         const entries = Object.entries(columnType).map(async ([key, type]) => [
           key,
-          await this.convertValueHelper(direction, type, binaryMode, value[key]),
+          await this.convertValueHelper(toBackend, type, useHex, value[key]),
         ]);
 
         return Object.fromEntries(await Promise.all(entries));
@@ -218,28 +221,24 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private async convertScalar(
-    direction: Direction,
-    binaryMode: BinaryMode,
+    toBackend: boolean,
+    useHex: boolean,
     value: unknown,
   ): Promise<unknown> {
-    if (direction === 'toFrontend') {
-      const buffer = value as Buffer;
-      if (binaryMode === 'hex') return buffer.toString('hex');
-
-      if (binaryMode === 'datauri') {
-        const { mime } = await FileType.fromBuffer(buffer);
-
-        return `data:${mime ?? 'application/octet-stream'};base64,${buffer.toString('base64')}`;
-      }
-    }
-
-    if (direction === 'toBackend') {
+    if (toBackend) {
+      // direction === true
       const string = value as string;
-      if (binaryMode === 'hex') return Buffer.from(string, 'hex');
-      if (binaryMode === 'datauri') return Buffer.from(string.split(',')[1], 'base64');
+
+      return useHex ? Buffer.from(string, 'hex') : Buffer.from(string.split(',')[1], 'base64');
     }
 
-    throw new Error(`Unsupported convertion type: ${binaryMode}`);
+    const buffer = value as Buffer;
+    if (useHex) return buffer.toString('hex');
+
+    const mime = (await FileType.fromBuffer(buffer))?.mime ?? 'application/octet-stream';
+    const data = buffer.toString('base64');
+
+    return `data:${mime};base64,${data}`;
   }
 
   private replaceColumnType(columnType: ColumnType): ColumnType {
@@ -262,15 +261,15 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   private replaceValidation(name: string, schema: ColumnSchema): ColumnSchema['validation'] {
     if (schema.columnType === 'Binary') {
       const validation: ColumnSchema['validation'] = [];
-      const binaryMode = this.getBinaryMode(name);
+
       const minLength = schema.validation?.find(v => v.operator === 'LongerThan')?.value as number;
       const maxLength = schema.validation?.find(v => v.operator === 'ShorterThan')?.value as number;
 
-      if (binaryMode === 'hex') {
+      if (this.shouldUseHex(name)) {
         validation.push({ operator: 'Match', value: /^[0-9a-f]+$/ });
-        if (minLength) validation.push({ operator: 'LongerThan', value: minLength * 2 });
-        if (maxLength) validation.push({ operator: 'ShorterThan', value: maxLength * 2 });
-      } else if (binaryMode === 'datauri') {
+        if (minLength) validation.push({ operator: 'LongerThan', value: minLength * 2 + 1 });
+        if (maxLength) validation.push({ operator: 'ShorterThan', value: maxLength * 2 - 1 });
+      } else {
         validation.push({ operator: 'Match', value: /^data:.*;base64,.*/ });
       }
 

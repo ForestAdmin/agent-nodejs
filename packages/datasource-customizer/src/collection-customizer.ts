@@ -495,7 +495,13 @@ export default class CollectionCustomizer<
   }
 
   /**
-   * Choose how binary data should be converted to the transport layer.
+   * Choose how binary data should be transported to the GUI.
+   * By default, all fields are transported as 'datauri', with the exception of primary and foreign
+   * keys.
+   *
+   * Using 'datauri' allows to use the FilePicker widget, while 'hex' is more suitable for
+   * short binary data (for instance binary uuids).
+   *
    * @param name the name of the field
    * @param binaryMode either 'datauri' or 'hex'
    * @example
