@@ -9,6 +9,7 @@ connection.model(
     firstname: String,
     lastname: String,
     storeId: Number,
+    avatar: Buffer,
 
     address: {
       streetNumber: Number,

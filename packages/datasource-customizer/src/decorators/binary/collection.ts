@@ -129,12 +129,16 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private async convertRecord(toBackend: boolean, record: RecordData): Promise<RecordData> {
-    const entries = Object.entries(record).map(async ([path, value]) => [
-      path,
-      await this.convertValue(toBackend, path, value),
-    ]);
+    if (record) {
+      const entries = Object.entries(record).map(async ([path, value]) => [
+        path,
+        await this.convertValue(toBackend, path, value),
+      ]);
 
-    return Object.fromEntries(await Promise.all(entries));
+      return Object.fromEntries(await Promise.all(entries));
+    }
+
+    return record;
   }
 
   private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTree> {

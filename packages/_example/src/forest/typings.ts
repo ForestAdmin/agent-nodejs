@@ -5,6 +5,7 @@ export type Schema = {
       'firstname': string;
       'lastname': string;
       'storeId': number;
+      'avatar': Buffer;
       '_id': string;
     };
     nested: {
@@ -44,6 +45,7 @@ export type Schema = {
       'parent:firstname': string;
       'parent:lastname': string;
       'parent:storeId': number;
+      'parent:avatar': Buffer;
       'parent:_id': string;
       'parent:store:id': number;
       'parent:store:name': string;
@@ -70,6 +72,7 @@ export type Schema = {
       'parent:firstname': string;
       'parent:lastname': string;
       'parent:storeId': number;
+      'parent:avatar': Buffer;
       'parent:_id': string;
       'parent:address:streetNumber': number;
       'parent:address:streetName': string;
@@ -107,6 +110,7 @@ export type Schema = {
       'parent:parent:firstname': string;
       'parent:parent:lastname': string;
       'parent:parent:storeId': number;
+      'parent:parent:avatar': Buffer;
       'parent:parent:_id': string;
       'parent:parent:address:streetNumber': number;
       'parent:parent:address:streetName': string;

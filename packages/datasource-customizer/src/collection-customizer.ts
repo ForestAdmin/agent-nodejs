@@ -423,6 +423,25 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Choose how binary data should be transported to the GUI.
+   * By default, all fields are transported as 'datauri', with the exception of primary and foreign
+   * keys.
+   *
+   * Using 'datauri' allows to use the FilePicker widget, while 'hex' is more suitable for
+   * short binary data (for instance binary uuids).
+   *
+   * @param name the name of the field
+   * @param binaryMode either 'datauri' or 'hex'
+   * @example
+   * .replaceFieldBinaryMode('avatar', 'datauri');
+   */
+  replaceFieldBinaryMode(name: TColumnName<S, N>, binaryMode: BinaryMode): this {
+    return this.pushCustomization(async () => {
+      this.stack.binary.getCollection(this.name).setBinaryMode(name, binaryMode);
+    });
+  }
+
+  /**
    * Replace an implementation for a specific operator on a specific field.
    * The operator replacement will be done by the datasource.
    * @param name the name of the field to filter on
@@ -491,25 +510,6 @@ export default class CollectionCustomizer<
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .replaceSearch(definition as SearchDefinition<any, any>);
-    });
-  }
-
-  /**
-   * Choose how binary data should be transported to the GUI.
-   * By default, all fields are transported as 'datauri', with the exception of primary and foreign
-   * keys.
-   *
-   * Using 'datauri' allows to use the FilePicker widget, while 'hex' is more suitable for
-   * short binary data (for instance binary uuids).
-   *
-   * @param name the name of the field
-   * @param binaryMode either 'datauri' or 'hex'
-   * @example
-   * .replaceFieldBinaryMode('avatar', 'datauri');
-   */
-  replaceFieldBinaryMode(name: TColumnName<S, N>, binaryMode: BinaryMode): this {
-    return this.pushCustomization(async () => {
-      this.stack.binary.getCollection(this.name).setBinaryMode(name, binaryMode);
     });
   }
 
