@@ -119,6 +119,7 @@ export default class SqlTypeConverter {
       case 'NVARCHAR': // NOTICE: MSSQL type
         return 'STRING';
 
+      case this.typeStartsWith(type, 'VARBINARY'):
       case this.typeStartsWith(type, 'BINARY'):
       case 'TINYBLOB':
       case 'BLOB':
