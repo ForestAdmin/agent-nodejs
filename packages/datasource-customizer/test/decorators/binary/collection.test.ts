@@ -14,8 +14,8 @@ import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factorie
 import BinaryCollectionDecorator from '../../../src/decorators/binary/collection';
 import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
-// Mock records
-const book = {
+// Sample records
+const bookRecord = {
   id: Buffer.from('0000', 'ascii'),
   cover: Buffer.from(
     // 1x1 transparent png (we use it to test that the datauri can guess mime types)
@@ -30,7 +30,7 @@ const book = {
   },
 };
 
-const favorite = { id: 1, book };
+const favoriteRecord = { id: 1, book: bookRecord };
 
 describe('BinaryCollectionDecorator', () => {
   let books: Collection;
@@ -49,7 +49,6 @@ describe('BinaryCollectionDecorator', () => {
           }),
         },
       }),
-      list: jest.fn().mockResolvedValue([favorite]),
     });
 
     books = factories.collection.build({
@@ -73,7 +72,6 @@ describe('BinaryCollectionDecorator', () => {
           }),
         },
       }),
-      list: jest.fn().mockResolvedValue([book]),
     });
 
     const dataSource = factories.dataSource.buildWithCollections([books, favorites]);
@@ -159,6 +157,7 @@ describe('BinaryCollectionDecorator', () => {
     let records: RecordData[];
 
     beforeEach(async () => {
+      (books.list as jest.Mock).mockResolvedValue([bookRecord]);
       records = await decoratedBook.list(caller, filter, projection);
     });
 
@@ -208,6 +207,7 @@ describe('BinaryCollectionDecorator', () => {
     const projection = new Projection('id', 'cover', 'author:picture');
 
     beforeEach(async () => {
+      (books.list as jest.Mock).mockResolvedValue([bookRecord]);
       await decoratedBook.list(caller, filter, projection);
     });
 
@@ -238,6 +238,7 @@ describe('BinaryCollectionDecorator', () => {
     let records: RecordData[];
 
     beforeEach(async () => {
+      (favorites.list as jest.Mock).mockResolvedValue([favoriteRecord, { id: 2, book: null }]);
       records = await decoratedFavorites.list(caller, filter, projection);
     });
 
@@ -269,6 +270,10 @@ describe('BinaryCollectionDecorator', () => {
               tags: ['tag1', 'tag2'],
             },
           },
+        },
+        {
+          id: 2,
+          book: null,
         },
       ]);
     });
@@ -331,10 +336,7 @@ describe('BinaryCollectionDecorator', () => {
 
     beforeEach(async () => {
       (books.aggregate as jest.Mock).mockResolvedValue([
-        {
-          value: 1,
-          group: { cover: Buffer.from('aGVsbG8=', 'base64') },
-        },
+        { value: 1, group: { cover: Buffer.from('aGVsbG8=', 'base64') } },
       ]);
 
       result = await decoratedBook.aggregate(caller, filter, aggregation);
@@ -365,10 +367,7 @@ describe('BinaryCollectionDecorator', () => {
 
     beforeEach(async () => {
       (favorites.aggregate as jest.Mock).mockResolvedValue([
-        {
-          value: 1,
-          group: { 'book:cover': Buffer.from('aGVsbG8=', 'base64') },
-        },
+        { value: 1, group: { 'book:cover': Buffer.from('aGVsbG8=', 'base64') } },
       ]);
 
       result = await decoratedFavorites.aggregate(caller, filter, aggregation);
@@ -376,10 +375,7 @@ describe('BinaryCollectionDecorator', () => {
 
     test('groups in result should be transformed', () => {
       expect(result).toEqual([
-        {
-          value: 1,
-          group: { 'book:cover': 'data:application/octet-stream;base64,aGVsbG8=' },
-        },
+        { value: 1, group: { 'book:cover': 'data:application/octet-stream;base64,aGVsbG8=' } },
       ]);
     });
   });
