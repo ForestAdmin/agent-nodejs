@@ -13,6 +13,9 @@ describe('Utils > TypeConverter', () => {
 
     it('should return a column type when known', () => {
       expect(TypeConverter.fromDataType(DataTypes.BOOLEAN())).toBe('Boolean');
+      expect(TypeConverter.fromDataType(DataTypes.BLOB())).toBe('Binary');
+      expect(TypeConverter.fromDataType(DataTypes.DATEONLY())).toBe('Dateonly');
+      expect(TypeConverter.fromDataType(DataTypes.TIME())).toBe('Timeonly');
     });
 
     it('should return an array column type when needed', () => {
@@ -31,6 +34,7 @@ describe('Utils > TypeConverter', () => {
     it.each([
       // Primitive type
       ['Boolean', [...presence, ...equality]],
+      ['Binary', [...presence, ...equality]],
       ['Date', [...presence, ...equality, ...orderables]],
       ['Enum', [...presence, ...equality]],
       ['Number', [...presence, ...equality, ...orderables]],
