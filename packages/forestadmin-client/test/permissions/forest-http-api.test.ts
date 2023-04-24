@@ -34,4 +34,12 @@ describe('ForestHttpApi', () => {
       '/liana/v4/permissions/renderings/42',
     );
   });
+
+  describe('getModelCustomizations', () => {
+    it('should call the right endpoint', async () => {
+      await new ForestHttpApi().getModelCustomizations(options);
+
+      expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/model-customizations');
+    });
+  });
 });

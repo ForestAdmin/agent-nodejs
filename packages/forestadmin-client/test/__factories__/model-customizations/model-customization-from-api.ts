@@ -2,6 +2,7 @@ import { Factory } from 'fishery';
 
 import ModelCustomizationFromApiService from '../../../src/model-customizations/model-customization-from-api';
 import forestAdminClientOptionsFactory from '../forest-admin-client-options';
+import { forestAdminServerInterface } from '../index';
 
 export class ModelCustomizationServiceFactory extends Factory<ModelCustomizationFromApiService> {
   mockAllMethods() {
@@ -12,7 +13,11 @@ export class ModelCustomizationServiceFactory extends Factory<ModelCustomization
 }
 
 const modelCustomizationServiceFactory = ModelCustomizationServiceFactory.define(
-  () => new ModelCustomizationFromApiService(forestAdminClientOptionsFactory.build()),
+  () =>
+    new ModelCustomizationFromApiService(
+      forestAdminServerInterface.build(),
+      forestAdminClientOptionsFactory.build(),
+    ),
 );
 
 export default modelCustomizationServiceFactory;
