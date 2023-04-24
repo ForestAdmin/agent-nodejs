@@ -1,3 +1,13 @@
+# @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.2...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.3) (2023-04-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.2.0-alpha-webhook-custom-actions.2
+
 # @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.1...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.2) (2023-04-20)
 
 # @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.9...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.1) (2023-04-20)
