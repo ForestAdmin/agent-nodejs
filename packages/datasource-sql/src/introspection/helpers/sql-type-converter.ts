@@ -116,8 +116,18 @@ export default class SqlTypeConverter {
       case this.typeContains(type, 'TEXT'):
       case this.typeContains(type, 'VARCHAR'):
       case this.typeContains(type, 'CHAR'):
-      case 'NVARCHAR': // NOTICE: MSSQL type.
+      case 'NVARCHAR': // NOTICE: MSSQL type
         return 'STRING';
+
+      case this.typeStartsWith(type, 'VARBINARY'):
+      case this.typeStartsWith(type, 'BINARY'):
+      case 'TINYBLOB':
+      case 'BLOB':
+      case 'MEDIUMBLOB':
+      case 'LONGBLOB':
+      case 'BYTEA': // Postgres type
+        return 'BLOB';
+
       case 'UNIQUEIDENTIFIER':
       case 'UUID':
         return 'UUID';

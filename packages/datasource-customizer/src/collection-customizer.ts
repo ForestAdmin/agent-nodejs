@@ -8,6 +8,7 @@ import {
 
 import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
+import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition } from './decorators/computed/types';
 import DecoratorsStack from './decorators/decorators-stack';
@@ -418,6 +419,25 @@ export default class CollectionCustomizer<
         : this.stack.lateOpEmulate.getCollection(this.name);
 
       collection.emulateFieldOperator(name, operator);
+    });
+  }
+
+  /**
+   * Choose how binary data should be transported to the GUI.
+   * By default, all fields are transported as 'datauri', with the exception of primary and foreign
+   * keys.
+   *
+   * Using 'datauri' allows to use the FilePicker widget, while 'hex' is more suitable for
+   * short binary data (for instance binary uuids).
+   *
+   * @param name the name of the field
+   * @param binaryMode either 'datauri' or 'hex'
+   * @example
+   * .replaceFieldBinaryMode('avatar', 'datauri');
+   */
+  replaceFieldBinaryMode(name: TColumnName<S, N>, binaryMode: BinaryMode): this {
+    return this.pushCustomization(async () => {
+      this.stack.binary.getCollection(this.name).setBinaryMode(name, binaryMode);
     });
   }
 

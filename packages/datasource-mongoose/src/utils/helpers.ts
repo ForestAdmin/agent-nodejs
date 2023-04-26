@@ -132,8 +132,22 @@ export function groupIdsByPath(ids: string[]): { [path: string]: unknown[] } {
  * replaceMongoTypes({_id: ObjectId('12312321313'), createdAt: Date() })
  * == { _id: '12312321313', createdAt: '2010-01-01T00:00:00Z' }
  */
-export function replaceMongoTypes(records: any): any {
-  return JSON.parse(JSON.stringify(records));
+export function replaceMongoTypes(data: any): any {
+  if (data instanceof Uint8Array) return data;
+  if (data instanceof Date) return data.toISOString();
+  if (data instanceof Types.ObjectId) return data.toHexString();
+
+  // eslint-disable-next-line no-underscore-dangle
+  if (data?._bsontype === 'Binary') return data.buffer;
+
+  if (Array.isArray(data)) return data.map(item => replaceMongoTypes(item));
+
+  if (typeof data === 'object' && data !== null)
+    return Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, replaceMongoTypes(value)]),
+    );
+
+  return data;
 }
 
 /**

@@ -26,7 +26,7 @@ export default CollectionFactory.define(() => ({
   execute: jest.fn(),
   getForm: jest.fn(),
   renderChart: jest.fn(),
-  create: jest.fn(),
+  create: jest.fn().mockImplementation((caller, records) => Promise.resolve(records)),
   list: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),

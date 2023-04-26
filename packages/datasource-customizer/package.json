@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.4.3",
+    "file-type": "version-16",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
     "uuid": "^9.0.0"

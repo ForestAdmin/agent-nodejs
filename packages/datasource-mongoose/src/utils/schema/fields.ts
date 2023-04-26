@@ -115,11 +115,15 @@ export default class FieldsGenerator {
   /** Build ColumnType from CleanSchema recursively */
   private static getColumnTypeRec(field: SchemaNode): ColumnType {
     if (field instanceof SchemaType) {
+      if (field.instance === 'Buffer') {
+        return 'Binary';
+      }
+
       if (['String', 'Number', 'Date', 'Boolean'].includes(field.instance)) {
         return field.instance as PrimitiveTypes;
       }
 
-      if ([VersionManager.ObjectIdTypeName, 'Buffer', 'Decimal128'].includes(field.instance)) {
+      if ([VersionManager.ObjectIdTypeName, 'Decimal128'].includes(field.instance)) {
         return 'String';
       }
 
