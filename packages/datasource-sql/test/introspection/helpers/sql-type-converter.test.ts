@@ -1,8 +1,9 @@
-import { ColumnDescription, DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from 'sequelize';
 
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
+import { SequelizeColumn } from '../../../src/introspection/type-overrides';
 
-const makeColumnDescription = (description: Partial<ColumnDescription>) => {
+const makeColumnDescription = (description: Partial<SequelizeColumn>) => {
   return {
     type: 'THIS-SHOULD-NEVER-MATCH',
     allowNull: false,
@@ -14,11 +15,11 @@ const makeColumnDescription = (description: Partial<ColumnDescription>) => {
   };
 };
 
-const makeColumnDescriptionForType = (type: string): ColumnDescription => {
+const makeColumnDescriptionForType = (type: string): SequelizeColumn => {
   return makeColumnDescription({ type });
 };
 
-const makeColumnDescriptionForEnum = (enumValues: Array<string>): ColumnDescription => {
+const makeColumnDescriptionForEnum = (enumValues: Array<string>): SequelizeColumn => {
   return makeColumnDescription({ type: 'USER-DEFINED', special: enumValues });
 };
 
