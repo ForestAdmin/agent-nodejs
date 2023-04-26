@@ -1,3 +1,23 @@
+# example [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.2.20...example@1.3.0) (2023-04-26)
+
+
+### Features
+
+* **datasource-customizer:** add support for binary fields ([#673](https://github.com/ForestAdmin/agent-nodejs/issues/673)) ([419727c](https://github.com/ForestAdmin/agent-nodejs/commit/419727cce812af10fa5917f1b94a2064d06883f7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.8.10
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.28
+* **@forestadmin/datasource-mongoose:** upgraded to 1.4.0
+* **@forestadmin/datasource-sequelize:** upgraded to 1.3.0
+* **@forestadmin/datasource-sql:** upgraded to 1.5.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.0
+
 ## example [1.2.20](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.2.19...example@1.2.20) (2023-04-19)
 
 
