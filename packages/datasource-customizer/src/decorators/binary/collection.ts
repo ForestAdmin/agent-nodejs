@@ -30,6 +30,13 @@ import DataSourceDecorator from '../datasource-decorator';
  * - hex strings (for primarykeys, foreign keys, etc...)
  */
 export default class BinaryCollectionDecorator extends CollectionDecorator {
+  // For those operators, we need to replace hex string/datauri by Buffers instances (depending
+  // on what is actually supported by the underlying connector).
+  private static readonly operatorsWithValueReplacement = [
+    ...['After', 'Before', 'Contains', 'EndsWith', 'Equal', 'GreaterThan', 'IContains', 'NotIn'],
+    ...['IEndsWith', 'IStartsWith', 'LessThan', 'NotContains', 'NotEqual', 'StartsWith', 'In'],
+  ];
+
   override dataSource: DataSourceDecorator<BinaryCollectionDecorator>;
   private useHexConversion: Map<string, boolean> = new Map();
 
@@ -153,14 +160,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       return conditionTree.nest(prefix);
     }
 
-    // For those operators, we need to replace hex string/datauri by Buffers instances (depending
-    // on what is actually supported by the underlying connector).
-    const operators = [
-      ...['After', 'Before', 'Contains', 'EndsWith', 'Equal', 'GreaterThan', 'IContains', 'NotIn'],
-      ...['IEndsWith', 'IStartsWith', 'LessThan', 'NotContains', 'NotEqual', 'StartsWith', 'In'],
-    ];
-
-    if (operators.includes(leaf.operator)) {
+    if (BinaryCollectionDecorator.operatorsWithValueReplacement.includes(leaf.operator)) {
       const useHex = this.shouldUseHex(prefix);
       const columnType: ColumnType =
         leaf.operator === 'In' || leaf.operator === 'NotIn'
@@ -230,7 +230,6 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     value: unknown,
   ): Promise<unknown> {
     if (toBackend) {
-      // direction === true
       const string = value as string;
 
       return useHex ? Buffer.from(string, 'hex') : Buffer.from(string.split(',')[1], 'base64');
