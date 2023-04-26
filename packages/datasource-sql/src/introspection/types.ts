@@ -1,11 +1,3 @@
-import { AbstractDataType, AbstractDataTypeConstructor, QueryInterface } from 'sequelize/types';
-
-export type SequelizeColumn = Awaited<ReturnType<QueryInterface['describeTable']>>[number];
-export type SequelizeColumnType = AbstractDataType | AbstractDataTypeConstructor;
-export type SequelizeReference = Awaited<
-  ReturnType<QueryInterface['getForeignKeyReferencesForTable']>
->[number];
-
 export type ScalarSubType =
   | 'BIGINT'
   | 'BLOB'

@@ -3,7 +3,8 @@ import { Dialect, Sequelize } from 'sequelize';
 
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
-import { SequelizeColumn, SequelizeReference, Table } from './types';
+import { QueryInterfaceExt, SequelizeColumn, SequelizeReference } from './type-overrides';
+import { Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
@@ -36,10 +37,11 @@ export default class Introspector {
     tableName: string,
   ): Promise<Table> {
     // Load columns descriptions, indexes and references of the current table.
+    const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
     const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
-      sequelize.getQueryInterface().describeTable(tableName),
-      sequelize.getQueryInterface().showIndex(tableName),
-      sequelize.getQueryInterface().getForeignKeyReferencesForTable(tableName),
+      queryInterface.describeTable(tableName),
+      queryInterface.showIndex(tableName),
+      queryInterface.getForeignKeyReferencesForTable(tableName),
     ]);
 
     // Create columns

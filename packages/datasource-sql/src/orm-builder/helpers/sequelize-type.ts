@@ -2,7 +2,8 @@
 /* eslint-disable max-classes-per-file */
 import { DataTypes } from 'sequelize';
 
-import { ColumnType, SequelizeColumnType } from '../../introspection/types';
+import { SequelizeColumnType } from '../../introspection/type-overrides';
+import { ColumnType } from '../../introspection/types';
 
 export default class SequelizeTypeFactory {
   static makeType(

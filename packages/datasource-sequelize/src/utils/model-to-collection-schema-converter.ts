@@ -14,12 +14,12 @@ import {
   HasMany,
   HasOne,
   Model,
-  ModelAttributeColumnOptions,
   ModelAttributes,
   ModelDefined,
 } from 'sequelize';
 
 import TypeConverter from './type-converter';
+import { BelongsToManyExt, ModelAttributeColumnOptionsExt } from '../type-overrides';
 
 export default class ModelToCollectionSchemaConverter {
   private static convertAssociation(
@@ -37,7 +37,7 @@ export default class ModelToCollectionSchemaConverter {
       case BelongsToMany.name:
         return {
           foreignCollection: association.target.name,
-          throughCollection: (association as BelongsToMany).through.model.name,
+          throughCollection: (association as BelongsToManyExt).through.model.name,
           originKey: (association as BelongsToMany).foreignKey,
           originKeyTarget: (association as BelongsToMany).sourceKey,
           foreignKey: (association as BelongsToMany).otherKey,
@@ -86,7 +86,7 @@ export default class ModelToCollectionSchemaConverter {
     return schemaAssociations;
   }
 
-  private static convertAttribute(attribute: ModelAttributeColumnOptions): FieldSchema {
+  private static convertAttribute(attribute: ModelAttributeColumnOptionsExt): FieldSchema {
     const sequelizeColumnType = attribute.type as AbstractDataType;
     const columnType = TypeConverter.fromDataType(sequelizeColumnType);
     const filterOperators = TypeConverter.operatorsForColumnType(columnType);
@@ -138,7 +138,7 @@ export default class ModelToCollectionSchemaConverter {
 
     Object.entries(attributes).forEach(([name, attribute]) => {
       try {
-        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptions);
+        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptionsExt);
       } catch (error) {
         logger?.('Warn', `Skipping column '${modelName}.${name}' (${error.message})`);
       }

@@ -25,7 +25,6 @@
     "markdown-link-check": "^3.10.3",
     "multi-semantic-release": "^3.0.1",
     "nock": "^13.3.0",
-    "patch-package": "^6.5.1",
     "postinstall-postinstall": "^2.1.0",
     "prettier": "^2.8.2",
     "prettier-eslint": "^15.0.1",
@@ -44,7 +43,6 @@
     "lint": "lerna exec --parallel eslint src test",
     "lint:fix": "lerna exec eslint src test -- --fix",
     "prepare": "husky install",
-    "postinstall": "patch-package",
     "test": "jest",
     "test:coverage": "yarn test --coverage"
   },

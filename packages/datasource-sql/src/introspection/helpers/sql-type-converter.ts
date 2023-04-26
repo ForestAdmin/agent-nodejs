@@ -1,5 +1,6 @@
-import { ColumnDescription, QueryTypes, Sequelize } from 'sequelize';
+import { QueryTypes, Sequelize } from 'sequelize';
 
+import { SequelizeColumn } from '../type-overrides';
 import { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
@@ -13,7 +14,7 @@ export default class SqlTypeConverter {
   async convert(
     tableName: string,
     columnName: string,
-    columnInfo: ColumnDescription,
+    columnInfo: SequelizeColumn,
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
@@ -29,7 +30,7 @@ export default class SqlTypeConverter {
   }
 
   /** Get the type of an enum from sequelize column description */
-  private getEnumType(columnInfo: ColumnDescription): ColumnType {
+  private getEnumType(columnInfo: SequelizeColumn): ColumnType {
     if (columnInfo.type === 'USER-DEFINED') {
       // Postgres enum
       return columnInfo?.special?.length > 0
