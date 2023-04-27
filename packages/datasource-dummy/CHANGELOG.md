@@ -1,3 +1,18 @@
+## @forestadmin/datasource-dummy [1.0.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.28...@forestadmin/datasource-dummy@1.0.29) (2023-04-27)
+
+
+### Bug Fixes
+
+* **datasource-dummy:** correct relation definition ([#682](https://github.com/ForestAdmin/agent-nodejs/issues/682)) ([2ff0c9e](https://github.com/ForestAdmin/agent-nodejs/commit/2ff0c9e9a034dcb3111ca7db0fed8d809434dfde))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.1
+
 ## @forestadmin/datasource-dummy [1.0.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.27...@forestadmin/datasource-dummy@1.0.28) (2023-04-26)
 
 
