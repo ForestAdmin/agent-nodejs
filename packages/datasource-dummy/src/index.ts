@@ -10,8 +10,11 @@ export function createDummyDataSource(): DataSourceFactory {
   customizer.addDataSource(async () => new DummyDataSource());
 
   customizer.customizeCollection('persons', collection =>
+    collection.addOneToManyRelation('books', 'books', { originKey: 'authorId' }),
+  );
+
+  customizer.customizeCollection('books', collection =>
     collection
-      .addOneToManyRelation('books', 'books', { originKey: 'authorId' })
       .addManyToOneRelation('author', 'persons', { foreignKey: 'authorId' })
       .addManyToManyRelation('librairies', 'libraries', 'librariesBooks', {
         originKey: 'bookId',
