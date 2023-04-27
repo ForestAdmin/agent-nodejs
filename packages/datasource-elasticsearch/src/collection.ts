@@ -1,4 +1,4 @@
-import { Client } from '@elastic/elasticsearch';
+/* eslint-disable max-len */
 import {
   AggregateResult,
   Aggregation,
@@ -19,8 +19,6 @@ import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
 
 export default class ElasticsearchCollection extends BaseCollection {
-  protected elasticsearchClient: Client;
-
   protected internalModel: ModelElasticsearch;
 
   private queryConverter: QueryConverter;
@@ -71,12 +69,12 @@ export default class ElasticsearchCollection extends BaseCollection {
         : {}),
     };
 
-    // TODO handle projection post search (only return required fields?)
     const recordsResponse = await handleErrors('list', async () =>
       this.internalModel.search(searchBody, filter.page?.skip, filter.page?.limit),
     );
 
-    return recordsResponse;
+    // Might be removed in the future ?
+    return projection.apply(recordsResponse);
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
@@ -105,16 +103,17 @@ export default class ElasticsearchCollection extends BaseCollection {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    const lookupProjection = aggregation.projection.union(filter.conditionTree?.projection);
+    // TODO handle limit and lookupProjection
+    // const lookupProjection = aggregation.projection.union(filter.conditionTree?.projection);
 
     // const order = AggregationUtils.getOrder(aggregationFunction);
     const query = this.queryConverter.getBoolQueryFromConditionTree(filter.conditionTree);
-    const aggs = AggregationUtils.aggs(aggregation, query);
+    const aggs = AggregationUtils.aggs(aggregation, query, limit);
 
-    console.log(JSON.stringify(query), aggs);
     const searchBody = {
       query,
       aggs,
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-pipeline-bucket-sort-aggregation.html
       // ...(order
       //   ? { order }
       //   : {}),
@@ -124,10 +123,6 @@ export default class ElasticsearchCollection extends BaseCollection {
       this.internalModel.aggregateSearch(searchBody),
     );
 
-    console.log(searchBody, aggregationResults);
-
     return AggregationUtils.computeResult(aggregationResults, aggregation);
   }
 }
-
-// { lat: -0.129166667, lon: -78.3575 } => { "coordinates": [ 121.3359985, 31.19790077 ], "type": "Point" }

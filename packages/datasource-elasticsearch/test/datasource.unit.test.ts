@@ -20,28 +20,11 @@ describe('ElasticsearchDataSource', () => {
     const elasticsearchClient = new Client({ node: 'http://localhost:9200' });
 
     const datasource = new ElasticsearchDataSource(elasticsearchClient, [
-      new ModelElasticsearch(elasticsearchClient, 'cars', 'indexPatterns', 'aliases', {
+      new ModelElasticsearch(elasticsearchClient, 'cars', ['indexPatterns'], ['aliases'], {
         properties: {},
       }),
     ]);
 
     expect(datasource.getCollection('cars')).toBeInstanceOf(ElasticsearchCollection);
   });
-
-  // it('should keep the same collections order', () => {
-  //   const firstSequelize = new Sequelize({ dialect: 'postgres' });
-  //   firstSequelize.define('cars', {});
-  //   firstSequelize.define('owner', {});
-  //   const firstDataSource = new SequelizeDataSource(firstSequelize);
-
-  //   const secondSequelize = new Sequelize({ dialect: 'postgres' });
-  //   secondSequelize.define('owner', {});
-  //   secondSequelize.define('cars', {});
-  //   const secondDataSource = new SequelizeDataSource(secondSequelize);
-
-  //   const firstCollectionNames = firstDataSource.collections.map(({ name }) => name);
-  //   const secondCollectionNames = secondDataSource.collections.map(({ name }) => name);
-
-  //   expect(firstCollectionNames).toStrictEqual(secondCollectionNames);
-  // });
 });

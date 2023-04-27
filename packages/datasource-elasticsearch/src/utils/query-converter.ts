@@ -79,14 +79,14 @@ export default class QueryConverter {
         // Use more_like_this or match or query_string?
         return {
           wildcard: {
-            [field]: (value as string).replace(/%/g, '*'),
+            [field]: { value: `${value}`.replace(/%/g, '*') },
           },
         };
       case 'ILike':
         return {
           wildcard: {
             [field]: {
-              value: (value as string).replace(/%/g, '*'),
+              value: `${value}`.replace(/%/g, '*'),
               case_insensitive: true,
             },
           },

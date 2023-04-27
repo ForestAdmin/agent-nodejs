@@ -11,24 +11,6 @@ import {
 import QueryConverter from '../../src/utils/query-converter';
 
 describe('Utils > QueryConverter', () => {
-  // const setupModel = (dialect: Dialect = 'postgres') => {
-  //   const sequelize = new Sequelize({ dialect });
-  //   const model = sequelize.define('model', {
-  //     __field_1__: {
-  //       type: DataTypes.STRING,
-  //     },
-  //     __field_2__: {
-  //       type: DataTypes.STRING,
-  //     },
-  //     __renamed_field__: {
-  //       type: DataTypes.STRING,
-  //       field: 'fieldRenamed',
-  //     },
-  //   });
-
-  //   return model;
-  // };
-
   describe('getBoolQueryFromConditionTree', () => {
     describe('with a condition tree acting on relation', () => {
       it('should throw', async () => {
@@ -219,6 +201,62 @@ describe('Utils > QueryConverter', () => {
               },
             },
           ],
+
+          [
+            'Like',
+            stringValue,
+            {
+              wildcard: {
+                __field_1__: { value: 'VaLuE' },
+              },
+            },
+          ],
+          [
+            'Like',
+            `${stringValue}%`,
+            {
+              wildcard: {
+                __field_1__: { value: 'VaLuE*' },
+              },
+            },
+          ],
+          [
+            'Like',
+            integerValue,
+            {
+              wildcard: {
+                __field_1__: { value: '42' },
+              },
+            },
+          ],
+
+          [
+            'ILike',
+            stringValue,
+            {
+              wildcard: {
+                __field_1__: { value: 'VaLuE', case_insensitive: true },
+              },
+            },
+          ],
+          [
+            'ILike',
+            `${stringValue}%`,
+            {
+              wildcard: {
+                __field_1__: { value: 'VaLuE*', case_insensitive: true },
+              },
+            },
+          ],
+          [
+            'ILike',
+            integerValue,
+            {
+              wildcard: {
+                __field_1__: { value: '42', case_insensitive: true },
+              },
+            },
+          ],
         ])(
           'should generate a "boolean query" QueryDsl from a "%s" operator',
           (operator, value, expectedQuery) => {
@@ -231,59 +269,6 @@ describe('Utils > QueryConverter', () => {
           },
         );
 
-        // describe('whith "Like" operator', () => {
-        //   it.each([
-        //     [
-        //       'mariadb',
-        //       {
-        //         attribute: { fn: 'BINARY', args: [{ col: '__field_1__' }] },
-        //         comparator: 'LIKE',
-        //         logic: 'VaLuE',
-        //       },
-        //     ],
-        //     ['mssql', { [Op.like]: 'VaLuE' }],
-        //     [
-        //       'mysql',
-        //       {
-        //         attribute: { fn: 'BINARY', args: [{ col: '__field_1__' }] },
-        //         comparator: 'LIKE',
-        //         logic: 'VaLuE',
-        //       },
-        //     ],
-        //     ['postgres', { [Op.like]: 'VaLuE' }],
-        //   ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
-        //     const tree = new ConditionTreeLeaf('__field_1__', 'Like', 'VaLuE');
-        //     const model = setupModel(dialect as Dialect);
-        //     const queryConverter = new QueryConverter(model);
-        //     const sequelizeFilter = queryConverter.getBoolQueryFromConditionTree(tree);
-
-        //     expect(sequelizeFilter).toHaveProperty('__field_1__', where);
-        //   });
-        // });
-
-        // describe('with "ILike" operator', () => {
-        //   it.each([
-        //     ['mariadb', { [Op.like]: 'VaLuE' }],
-        //     [
-        //       'mssql',
-        //       {
-        //         attribute: { fn: 'LOWER', args: [{ col: '__field_1__' }] },
-        //         comparator: 'LIKE',
-        //         logic: 'value',
-        //       },
-        //     ],
-        //     ['mysql', { [Op.like]: 'VaLuE' }],
-        //     ['postgres', { [Op.iLike]: 'VaLuE' }],
-        //   ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
-        //     const tree = new ConditionTreeLeaf('__field_1__', 'ILike', 'VaLuE');
-        //     const model = setupModel(dialect as Dialect);
-        //     const queryConverter = new QueryConverter(model);
-        //     const sequelizeFilter = queryConverter.getBoolQueryFromConditionTree(tree);
-
-        //     expect(sequelizeFilter).toHaveProperty('__field_1__', where);
-        //   });
-        // });
-
         it('should fail with an invalid operator', () => {
           const queryConverter = new QueryConverter();
 
@@ -294,87 +279,7 @@ describe('Utils > QueryConverter', () => {
           ).toThrow('Unsupported operator: "__invalid__".');
         });
       });
-
-      // Not sur to get this one
-      // describe('with a renamed field', () => {
-      //   it('should generate a valid where clause', () => {
-      //     const conditionTree = new ConditionTreeLeaf('__renamed_field__', 'Equal', '__value__');
-
-      //     const queryConverter = new QueryConverter();
-
-      //     expect(queryConverter.getBoolQueryFromConditionTree(conditionTree)).toEqual({
-      //       fieldRenamed: { term: '__value__' },
-      //     });
-      //   });
-      // });
-
-      // describe('with a condition tree acting on relation', () => {
-      //   const setupModelWithRelation = () => {
-      //     const model = setupModel();
-      //     const relation = model.sequelize.define('relation', {
-      //       __field_a__: {
-      //         type: DataTypes.STRING,
-      //         field: 'fieldNameA',
-      //       },
-      //     });
-      //     const relationB = model.sequelize.define('relationB', {
-      //       __field_b__: {
-      //         type: DataTypes.STRING,
-      //         field: 'fieldNameB',
-      //       },
-      //     });
-
-      //     relation.belongsTo(relationB);
-      //     model.belongsTo(relation);
-
-      //     return model;
-      //   };
-
-      //   it('should generate a valid where clause', () => {
-      //     const conditionTree = new ConditionTreeLeaf('relation:__field_a__', 'Equal', '__value__');
-      //     const model = setupModelWithRelation();
-      //     const queryConverter = new QueryConverter(model);
-
-      //     expect(queryConverter.getBoolQueryFromConditionTree(conditionTree)).toEqual({
-      //       '$relation.fieldNameA$': { [Op.eq]: '__value__' },
-      //     });
-      //   });
-
-      //   describe('with deep relation', () => {
-      //     it('should generate a valid where clause', () => {
-      //       const conditionTree = new ConditionTreeLeaf(
-      //         'relation:relationB:__field_b__',
-      //         'Equal',
-      //         '__value__',
-      //       );
-
-      //       const model = setupModelWithRelation();
-      //       const queryConverter = new QueryConverter(model);
-
-      //       expect(queryConverter.getBoolQueryFromConditionTree(conditionTree)).toEqual({
-      //         '$relation.relationB.fieldNameB$': { [Op.eq]: '__value__' },
-      //       });
-      //     });
-      //   });
-      // });
     });
-
-    // describe('with array operator', () => {
-    //   it.each([
-    //     ['In', Op.in],
-    //     ['IncludesAll', Op.contains],
-    //     ['NotIn', Op.notIn],
-    //   ])('should handle array values "%s"', (operator, sequelizeOperator) => {
-    //     const model = setupModel();
-    //     const queryConverter = new QueryConverter(model);
-
-    //     const sequelizeFilter = queryConverter.getBoolQueryFromConditionTree(
-    //       new ConditionTreeLeaf('__field_1__', operator as Operator, [42, 43]),
-    //     );
-
-    //     expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42, 43] });
-    //   });
-    // });
   });
 
   describe('getOrderFromSort', () => {

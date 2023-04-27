@@ -123,8 +123,6 @@ export default class ModelElasticsearch {
       body: searchBody,
     });
 
-    console.log('Raw body', JSON.stringify(response.body));
-
     return response.body.aggregations;
   }
 

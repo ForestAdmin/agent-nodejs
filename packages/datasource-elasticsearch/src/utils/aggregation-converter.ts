@@ -31,9 +31,10 @@ export default class AggregationUtils {
   static aggs(
     aggregation: Aggregation,
     filter: unknown,
+    limit?: number,
   ): Record<string, AggregationsAggregationContainer> {
     const metricsAggregations = this.computeValue(aggregation, filter);
-    const groupsAggregations = this.computeGroups(aggregation);
+    const groupsAggregations = this.computeGroups(aggregation, limit);
 
     if (aggregation.groups) {
       return { groupsAggregations };
@@ -69,7 +70,7 @@ export default class AggregationUtils {
   }
 
   /** Compute field for the Bucket aggregations stage */
-  private static computeGroups(aggregation: Aggregation): unknown {
+  private static computeGroups(aggregation: Aggregation, limit?: number): unknown {
     return aggregation.groups?.reduce((memo, group) => {
       let bucketAggregation;
       const { field, operation } = group;
@@ -80,7 +81,7 @@ export default class AggregationUtils {
         };
       } else if (field) {
         bucketAggregation = {
-          terms: { field },
+          terms: { field, size: limit ?? 10 },
           ...(aggregation.operation !== 'Count'
             ? { aggs: { operation: AggregationUtils.computeValue(aggregation) } }
             : {}),
@@ -114,8 +115,6 @@ export default class AggregationUtils {
         operation?: { doc_count: number; value: number | double };
       }[];
     };
-
-    console.log(JSON.stringify(buckets));
 
     return buckets.map(({ key, key_as_string, doc_count, operation }) => {
       return {
