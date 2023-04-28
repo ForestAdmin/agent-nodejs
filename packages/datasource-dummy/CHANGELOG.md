@@ -1,3 +1,13 @@
+## @forestadmin/datasource-dummy [1.0.30-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.29...@forestadmin/datasource-dummy@1.0.30-alpha-webhook-custom-actions.1) (2023-04-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.8.0-alpha-webhook-custom-actions.1
+
 ## @forestadmin/datasource-dummy [1.0.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.0.28...@forestadmin/datasource-dummy@1.0.29) (2023-04-27)
 
 
