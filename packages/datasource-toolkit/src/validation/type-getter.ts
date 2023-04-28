@@ -15,6 +15,8 @@ export default class TypeGetter {
 
     if (typeof value === 'boolean') return 'Boolean';
 
+    if (value instanceof Buffer) return 'Binary';
+
     if (value === null || value === undefined) return null;
 
     return undefined;

@@ -32,7 +32,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   ): Promise<PaginatedFilter> {
     // Search string is not significant
     if (!filter?.search?.trim().length) {
-      return filter.override({ search: null });
+      return filter?.override({ search: null });
     }
 
     // Implement search ourselves

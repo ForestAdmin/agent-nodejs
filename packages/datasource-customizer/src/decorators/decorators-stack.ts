@@ -1,6 +1,7 @@
 import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
+import BinaryCollectionDecorator from './binary/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
 import DataSourceDecorator from './datasource-decorator';
@@ -20,6 +21,7 @@ import WriteDataSourceDecorator from './write/datasource';
 
 export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
+  binary: DataSourceDecorator<BinaryCollectionDecorator>;
   chart: ChartDataSourceDecorator;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
@@ -70,6 +72,7 @@ export default class DecoratorsStack {
     last = this.write = new WriteDataSourceDecorator(last);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);
     last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
+    last = this.binary = new DataSourceDecorator(last, BinaryCollectionDecorator);
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.

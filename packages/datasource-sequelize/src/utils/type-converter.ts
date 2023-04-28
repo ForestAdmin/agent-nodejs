@@ -7,6 +7,8 @@ export default class TypeConverter {
     if ((dataType as { isDataSourceSqlEnum?: boolean }).isDataSourceSqlEnum) return 'Enum';
 
     switch (dataType.key) {
+      case DataTypes.BLOB.key:
+        return 'Binary';
       case DataTypes.BOOLEAN.key:
         return 'Boolean';
       case DataTypes.DATE.key:
@@ -64,7 +66,7 @@ export default class TypeConverter {
       const orderables: Operator[] = ['LessThan', 'GreaterThan'];
       const strings: Operator[] = ['Like', 'ILike', 'NotContains'];
 
-      if (['Boolean', 'Enum', 'Uuid'].includes(columnType)) {
+      if (['Boolean', 'Binary', 'Enum', 'Uuid'].includes(columnType)) {
         result.push(...equality);
       }
 

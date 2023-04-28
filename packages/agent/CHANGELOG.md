@@ -1,3 +1,32 @@
+## @forestadmin/agent [1.8.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.11...@forestadmin/agent@1.8.12) (2023-04-28)
+
+
+### Bug Fixes
+
+* **agent:** improve error message when validating projections ([#683](https://github.com/ForestAdmin/agent-nodejs/issues/683)) ([5e1baa9](https://github.com/ForestAdmin/agent-nodejs/commit/5e1baa9c413bce4716cc0f6b0b194ea271218c7d))
+
+## @forestadmin/agent [1.8.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.10...@forestadmin/agent@1.8.11) (2023-04-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.1
+
+## @forestadmin/agent [1.8.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.9...@forestadmin/agent@1.8.10) (2023-04-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.1.13
+
 # @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.2...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.3) (2023-04-24)
 
 

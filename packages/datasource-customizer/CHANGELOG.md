@@ -1,3 +1,25 @@
+## @forestadmin/datasource-customizer [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.0...@forestadmin/datasource-customizer@1.7.1) (2023-04-27)
+
+
+### Bug Fixes
+
+* **customizer:** crash at startup when using collections with native actions ([#681](https://github.com/ForestAdmin/agent-nodejs/issues/681)) ([abe3edf](https://github.com/ForestAdmin/agent-nodejs/commit/abe3edfd476d4d0fe9b14f1d8b7c40717e3e349a))
+
+# @forestadmin/datasource-customizer [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.6.2...@forestadmin/datasource-customizer@1.7.0) (2023-04-26)
+
+
+### Features
+
+* **datasource-customizer:** add support for binary fields ([#673](https://github.com/ForestAdmin/agent-nodejs/issues/673)) ([419727c](https://github.com/ForestAdmin/agent-nodejs/commit/419727cce812af10fa5917f1b94a2064d06883f7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.0
+
 # @forestadmin/datasource-customizer [1.7.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.6.2...@forestadmin/datasource-customizer@1.7.0-alpha-webhook-custom-actions.1) (2023-04-20)
 
 

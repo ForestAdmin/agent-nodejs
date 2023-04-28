@@ -71,6 +71,7 @@ export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [Colum
 
 export type PrimitiveTypes =
   | 'Boolean'
+  | 'Binary'
   | 'Date'
   | 'Dateonly'
   | 'Enum'

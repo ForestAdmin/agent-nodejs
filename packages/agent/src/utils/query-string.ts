@@ -52,11 +52,14 @@ export default class QueryStringParser {
 
       const { schema } = collection;
       const rootFields = fields.toString().split(',');
-      const explicitRequest = rootFields.map(field =>
-        schema.fields[field].type === 'Column'
+      const explicitRequest = rootFields.map(field => {
+        if (!schema.fields[field])
+          throw new ValidationError(`field not found '${collection.name}.${field}'`);
+
+        return schema.fields[field].type === 'Column'
           ? field
-          : `${field}:${context.request.query[`fields[${field}]`]}`,
-      );
+          : `${field}:${context.request.query[`fields[${field}]`]}`;
+      });
 
       ProjectionValidator.validate(collection, explicitRequest);
 

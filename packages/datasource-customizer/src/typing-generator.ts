@@ -140,6 +140,7 @@ export default class TypingGenerator {
     if (typeof field.columnType === 'string') {
       return {
         Boolean: 'boolean',
+        Binary: 'Buffer',
         Date: 'string',
         Dateonly: 'string',
         Json: 'any',

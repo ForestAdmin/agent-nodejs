@@ -607,6 +607,22 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('replaceFieldBinaryMode', () => {
+    it('should replace binary mode on field', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest
+        .spyOn(stack.binary.getCollection('authors'), 'setBinaryMode')
+        .mockReturnValue();
+
+      const self = customizer.replaceFieldBinaryMode('firstName', 'hex');
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', 'hex');
+      expect(self).toEqual(customizer);
+    });
+  });
+
   describe('replaceSearch', () => {
     it('should call the search decorator', async () => {
       const { dsc, customizer, stack } = await setup();

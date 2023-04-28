@@ -13,6 +13,8 @@ export default class FilterOperatorsGenerator {
 
     switch (type) {
       case 'Boolean':
+      case 'Binary':
+      case 'Json':
         return new Set<Operator>(FilterOperatorsGenerator.defaultOperators);
       case 'Date':
       case 'Dateonly':
@@ -43,8 +45,6 @@ export default class FilterOperatorsGenerator {
           ...FilterOperatorsGenerator.defaultOperators,
           ...FilterOperatorsGenerator.stringOperators,
         ]);
-      case 'Json':
-        return new Set<Operator>(FilterOperatorsGenerator.defaultOperators);
       default:
         return new Set<Operator>();
     }

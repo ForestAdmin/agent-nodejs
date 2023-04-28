@@ -8,6 +8,7 @@ export type SequelizeReference = Awaited<
 
 export type ScalarSubType =
   | 'BIGINT'
+  | 'BLOB'
   | 'BOOLEAN'
   | 'DATE'
   | 'DATEONLY'

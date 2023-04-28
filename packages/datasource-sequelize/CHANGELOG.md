@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sequelize [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.15...@forestadmin/datasource-sequelize@1.3.0) (2023-04-26)
+
+
+### Features
+
+* **datasource-customizer:** add support for binary fields ([#673](https://github.com/ForestAdmin/agent-nodejs/issues/673)) ([419727c](https://github.com/ForestAdmin/agent-nodejs/commit/419727cce812af10fa5917f1b94a2064d06883f7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.0
+
 ## @forestadmin/datasource-sequelize [1.2.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.2.14...@forestadmin/datasource-sequelize@1.2.15) (2023-04-19)
 
 

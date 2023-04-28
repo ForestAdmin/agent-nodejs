@@ -1,3 +1,24 @@
+## @forestadmin/plugin-export-advanced [1.0.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.0.5...@forestadmin/plugin-export-advanced@1.0.6) (2023-04-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.1
+
+## @forestadmin/plugin-export-advanced [1.0.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.0.4...@forestadmin/plugin-export-advanced@1.0.5) (2023-04-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.0
+
 ## @forestadmin/plugin-export-advanced [1.0.5-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.0.4...@forestadmin/plugin-export-advanced@1.0.5-alpha-webhook-custom-actions.1) (2023-04-20)
 
 

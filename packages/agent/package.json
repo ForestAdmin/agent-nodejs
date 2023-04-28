@@ -15,7 +15,7 @@
     "@fast-csv/format": "^4.3.5",
     "@fastify/express": "^1.1.0",
     "@forestadmin/datasource-customizer": "1.7.0-alpha-webhook-custom-actions.1",
-    "@forestadmin/datasource-toolkit": "1.4.3",
+    "@forestadmin/datasource-toolkit": "1.5.0",
     "@forestadmin/forestadmin-client": "1.2.0-alpha-webhook-custom-actions.2",
     "@koa/cors": "^4.0.0",
     "@koa/router": "^12.0.0",
