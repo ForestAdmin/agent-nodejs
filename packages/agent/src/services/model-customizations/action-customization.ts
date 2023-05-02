@@ -1,4 +1,4 @@
-import { DataSourceCustomizer, TSchema } from '@forestadmin/datasource-customizer';
+import { Plugin } from '@forestadmin/datasource-customizer';
 import {
   ActionConfiguration,
   ActionType,
@@ -11,38 +11,52 @@ import {
 import executeWebhook from './execute-webhook';
 import { AgentOptionsWithDefaults } from '../../types';
 
-export default class ActionCustomizationService<S extends TSchema = TSchema> {
+function getActions<TConfiguration>(
+  type: ActionType,
+  configuration: ModelCustomization[],
+): ModelCustomization<TConfiguration>[] {
+  return configuration.filter(
+    customization =>
+      customization.type === ModelCustomizationType.action &&
+      (customization as ModelCustomization<ActionConfiguration>).configuration.type === type,
+  ) as ModelCustomization<TConfiguration>[];
+}
+
+export default class ActionCustomizationService {
   public static VERSION = '1.0.0';
   public static FEATURE = 'webhook-custom-actions';
 
   private readonly client: ForestAdminClient;
 
-  public constructor(agentOptions: AgentOptionsWithDefaults) {
+  public constructor(agentOptions: Pick<AgentOptionsWithDefaults, 'forestAdminClient'>) {
     this.client = agentOptions.forestAdminClient;
   }
 
-  public async addWebhookActions(customizer: DataSourceCustomizer<S>) {
-    const actions = await this.getActions<WebhookActionConfiguration>('webhook');
+  public addWebhookActions: Plugin<boolean> = async (datasourceCustomizer, _, enabled) => {
+    if (!enabled) return;
 
+    const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
+
+    await ActionCustomizationService.addWebhookActions(
+      datasourceCustomizer,
+      _,
+      modelCustomizations,
+    );
+  };
+
+  public static addWebhookActions: Plugin<ModelCustomization[]> = async (
+    datasourceCustomizer,
+    _,
+    modelCustomizations,
+  ) => {
+    const actions = await getActions<WebhookActionConfiguration>('webhook', modelCustomizations);
     actions.forEach(action => {
-      const collection = customizer.getCollection(action.modelName as Extract<keyof S, string>);
+      const collection = datasourceCustomizer.getCollection(action.modelName);
 
       collection.addAction(action.name, {
         scope: action.configuration.scope,
         execute: context => executeWebhook(action, context),
       });
     });
-  }
-
-  private async getActions<TConfiguration>(
-    type: ActionType,
-  ): Promise<ModelCustomization<TConfiguration>[]> {
-    const configuration = await this.client.modelCustomizationService.getConfiguration();
-
-    return configuration.filter(
-      customization =>
-        customization.type === ModelCustomizationType.action &&
-        (customization as ModelCustomization<ActionConfiguration>).configuration.type === type,
-    ) as ModelCustomization<TConfiguration>[];
-  }
+  };
 }

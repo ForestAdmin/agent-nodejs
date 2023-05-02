@@ -1,4 +1,4 @@
-import { ActionContext } from '@forestadmin/datasource-customizer';
+import { ActionContext, CollectionCustomizer } from '@forestadmin/datasource-customizer';
 import { ActionScope } from '@forestadmin/datasource-toolkit';
 import {
   ActionType,
@@ -51,7 +51,11 @@ describe('Services > ModelCustomizations > ActionCustomization', () => {
         };
         (customizer.getCollection as jest.Mock).mockReturnValue(collection);
 
-        await actionCustomization.addWebhookActions(customizer);
+        await actionCustomization.addWebhookActions(
+          customizer,
+          undefined as unknown as CollectionCustomizer,
+          true,
+        );
 
         expect(collection.addAction).toHaveBeenCalledWith('myAction', {
           scope,
@@ -90,7 +94,11 @@ describe('Services > ModelCustomizations > ActionCustomization', () => {
       };
       (customizer.getCollection as jest.Mock).mockReturnValue(collection);
 
-      await actionCustomization.addWebhookActions(customizer);
+      await actionCustomization.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        true,
+      );
 
       const { execute } = collection.addAction.mock.calls[0][1];
 
@@ -127,7 +135,11 @@ describe('Services > ModelCustomizations > ActionCustomization', () => {
       };
       (customizer.getCollection as jest.Mock).mockReturnValue(collection);
 
-      await actionCustomization.addWebhookActions(customizer);
+      await actionCustomization.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        true,
+      );
 
       expect(collection.addAction).not.toHaveBeenCalled();
     });
@@ -158,7 +170,138 @@ describe('Services > ModelCustomizations > ActionCustomization', () => {
       };
       (customizer.getCollection as jest.Mock).mockReturnValue(collection);
 
-      await actionCustomization.addWebhookActions(customizer);
+      await actionCustomization.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        true,
+      );
+
+      expect(collection.addAction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('static addWebhookActions', () => {
+    it.each(['Global', 'Single', 'Bulk'] as ActionScope[])(
+      'should register a webhook action with the scope $scope',
+      async scope => {
+        const action = {
+          name: 'myAction',
+          type: ModelCustomizationType.action,
+          modelName: 'myModel',
+          configuration: {
+            type: 'webhook',
+            scope,
+            url: 'https://my-url.com',
+          },
+        };
+
+        const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+        const collection = {
+          addAction: jest.fn(),
+        };
+        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+        await ActionCustomizationService.addWebhookActions(
+          customizer,
+          undefined as unknown as CollectionCustomizer,
+          [action],
+        );
+
+        expect(collection.addAction).toHaveBeenCalledWith('myAction', {
+          scope,
+          execute: expect.any(Function),
+        });
+        expect(customizer.getCollection).toHaveBeenCalledWith('myModel');
+      },
+    );
+
+    it('should execute the webhook', async () => {
+      const action = {
+        name: 'myAction',
+        type: ModelCustomizationType.action,
+        modelName: 'myModel',
+        configuration: {
+          type: 'webhook',
+          scope: 'Global',
+          url: 'https://my-url.com',
+        },
+      };
+
+      const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+      const collection = {
+        addAction: jest.fn(),
+      };
+      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+      await ActionCustomizationService.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        [action],
+      );
+
+      const { execute } = collection.addAction.mock.calls[0][1];
+
+      const context = { getRecords: jest.fn() } as unknown as ActionContext;
+
+      await execute(context);
+
+      expect(executeWebhookMock).toHaveBeenCalledWith(action, context);
+    });
+
+    it('should not use customizations that are not actions', async () => {
+      const configuration = [
+        {
+          name: 'myAction',
+          type: 'field' as ModelCustomizationType,
+          modelName: 'myModel',
+          configuration: {
+            type: 'webhook',
+            scope: 'Global',
+            url: 'https://my-url.com',
+          },
+        },
+      ];
+
+      const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+      const collection = {
+        addAction: jest.fn(),
+      };
+      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+      await ActionCustomizationService.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        configuration,
+      );
+
+      expect(collection.addAction).not.toHaveBeenCalled();
+    });
+
+    it('should not use actions that are not webhooks', async () => {
+      const configuration = [
+        {
+          name: 'myAction',
+          type: ModelCustomizationType.action,
+          modelName: 'myModel',
+          configuration: {
+            type: 'other' as ActionType,
+            scope: 'Global',
+            url: 'https://my-url.com',
+          },
+        },
+      ];
+
+      const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+      const collection = {
+        addAction: jest.fn(),
+      };
+      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+      await ActionCustomizationService.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        configuration,
+      );
 
       expect(collection.addAction).not.toHaveBeenCalled();
     });

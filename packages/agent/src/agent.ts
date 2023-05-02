@@ -38,7 +38,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private options: AgentOptionsWithDefaults;
   private customizer: DataSourceCustomizer<S>;
   private nocodeCustomizer: DataSourceCustomizer<S>;
-  private actionCustomizationService: ActionCustomizationService<S>;
+  private actionCustomizationService: ActionCustomizationService;
 
   /**
    * Create a new Agent Builder.
@@ -64,7 +64,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.customizer = new DataSourceCustomizer<S>();
     this.nocodeCustomizer = new DataSourceCustomizer<S>();
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
-    this.actionCustomizationService = new ActionCustomizationService<S>(allOptions);
+    this.actionCustomizationService = new ActionCustomizationService(allOptions);
   }
 
   /**
@@ -75,9 +75,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     const dataSource = await this.nocodeCustomizer.getDataSource(logger);
 
-    if (this.options.experimental?.webhookCustomActions) {
-      await this.actionCustomizationService.addWebhookActions(this.nocodeCustomizer);
-    }
+    await this.nocodeCustomizer.use(
+      this.actionCustomizationService.addWebhookActions,
+      this.options.experimental?.webhookCustomActions,
+    );
 
     const [router] = await Promise.all([
       this.getRouter(dataSource),

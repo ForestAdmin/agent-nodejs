@@ -33,6 +33,7 @@ const mockCustomizer = {
 const mockNocodeCustomizer = {
   addDataSource: jest.fn(),
   getDataSource: jest.fn(),
+  use: jest.fn().mockReturnThis(),
 };
 
 const mockDatasourceCustomizer = DataSourceCustomizer as jest.Mock;
@@ -165,7 +166,8 @@ describe('Agent', () => {
         },
       });
 
-      expect(mockAddWebhookActions).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(mockAddWebhookActions, true);
     });
   });
 
