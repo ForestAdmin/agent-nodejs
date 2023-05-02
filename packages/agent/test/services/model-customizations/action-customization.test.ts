@@ -178,6 +178,44 @@ describe('Services > ModelCustomizations > ActionCustomization', () => {
 
       expect(collection.addAction).not.toHaveBeenCalled();
     });
+
+    it.each([false, undefined])(
+      'should not register the webhook when the feature is disabled (%s)',
+      async optionValue => {
+        const options = forestAdminHttpDriverOptions.build();
+
+        const actionCustomization = new ActionCustomizationService(options);
+
+        const action = {
+          name: 'myAction',
+          type: ModelCustomizationType.action,
+          modelName: 'myModel',
+          configuration: {
+            type: 'webhook',
+            scope: 'Global',
+            url: 'https://my-url.com',
+          },
+        };
+
+        (
+          options.forestAdminClient.modelCustomizationService.getConfiguration as jest.Mock
+        ).mockResolvedValue([action]);
+
+        const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+        const collection = {
+          addAction: jest.fn(),
+        };
+        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+        await actionCustomization.addWebhookActions(
+          customizer,
+          undefined as unknown as CollectionCustomizer,
+          optionValue,
+        );
+
+        expect(collection.addAction).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('static addWebhookActions', () => {

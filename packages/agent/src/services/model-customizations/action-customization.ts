@@ -32,7 +32,11 @@ export default class ActionCustomizationService {
     this.client = agentOptions.forestAdminClient;
   }
 
-  public addWebhookActions: Plugin<boolean> = async (datasourceCustomizer, _, enabled) => {
+  public addWebhookActions: Plugin<boolean | undefined> = async (
+    datasourceCustomizer,
+    _,
+    enabled,
+  ) => {
     if (!enabled) return;
 
     const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
