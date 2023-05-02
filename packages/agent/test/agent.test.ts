@@ -19,7 +19,7 @@ jest.mock('../src/routes', () => ({
 
 // Mock options
 const mockPostSchema = jest.fn();
-const mockAddWebhookActions = jest.fn();
+const mockAddWebhookActions = Symbol('addWebhookActions');
 
 const mockCustomizer = {
   addDataSource: jest.fn(),
@@ -33,6 +33,7 @@ const mockCustomizer = {
 const mockNocodeCustomizer = {
   addDataSource: jest.fn(),
   getDataSource: jest.fn(),
+  use: jest.fn().mockReturnThis(),
 };
 
 const mockDatasourceCustomizer = DataSourceCustomizer as jest.Mock;
@@ -134,8 +135,6 @@ describe('Agent', () => {
           stack: expect.anything(),
         },
       });
-
-      expect(mockAddWebhookActions).not.toHaveBeenCalled();
     });
 
     test('that should upload the schema with experimental features', async () => {
@@ -165,7 +164,8 @@ describe('Agent', () => {
         },
       });
 
-      expect(mockAddWebhookActions).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(mockAddWebhookActions, true);
     });
   });
 
