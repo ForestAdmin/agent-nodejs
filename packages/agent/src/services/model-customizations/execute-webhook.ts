@@ -3,8 +3,6 @@ import { ActionResult, SchemaUtils } from '@forestadmin/datasource-toolkit';
 import { WebhookAction } from '@forestadmin/forestadmin-client';
 import superagent, { ResponseError } from 'superagent';
 
-import { AgentOptions } from '../../types';
-
 function generateBody<S extends TSchema>(
   action: WebhookAction,
   records: TRow<S, Extract<keyof S, string>>[],
