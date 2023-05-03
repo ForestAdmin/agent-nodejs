@@ -1,5 +1,6 @@
 import { Client, ClientAuthMethod, Issuer, IssuerMetadata } from 'openid-client';
 
+import { ClientExt } from './type-overrides';
 import { UserInfo } from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
@@ -14,7 +15,9 @@ export default class AuthService {
     const issuer = new Issuer(config);
     const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
 
-    return issuer.Client.register(registration, { initialAccessToken: this.options.envSecret });
+    return (issuer.Client as ClientExt).register(registration, {
+      initialAccessToken: this.options.envSecret,
+    });
   }
 
   async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {

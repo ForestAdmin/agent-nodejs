@@ -1,5 +1,7 @@
 import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { AbstractDataType, AbstractDataTypeConstructor, ArrayDataType, DataTypes } from 'sequelize';
+import { AbstractDataType, AbstractDataTypeConstructor, DataTypes } from 'sequelize';
+
+import { ArrayDataTypeExt } from '../type-overrides';
 
 export default class TypeConverter {
   private static getColumnTypeFromDataType(dataType: AbstractDataType): PrimitiveTypes {
@@ -50,7 +52,7 @@ export default class TypeConverter {
 
   public static fromDataType(dataType: AbstractDataType): ColumnType {
     if (dataType.key === DataTypes.ARRAY.key) {
-      const arrayDataType = dataType as ArrayDataType<AbstractDataTypeConstructor>;
+      const arrayDataType = dataType as ArrayDataTypeExt<AbstractDataTypeConstructor>;
 
       return [TypeConverter.fromDataType(arrayDataType.type as unknown as AbstractDataType)];
     }

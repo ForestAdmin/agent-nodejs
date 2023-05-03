@@ -7,6 +7,7 @@ import {
 import JsonApiSerializer from 'json-api-serializer';
 import path from 'path';
 
+import { JsonApiRelationshipOptionsExt } from './type-overrides';
 import IdUtils from '../utils/id';
 
 type SerializedRecord = { forestId: string };
@@ -104,8 +105,8 @@ export default class Serializer {
 
   private buildRelationshipsConfiguration(
     collection: Collection,
-  ): Record<string, JsonApiSerializer.RelationshipOptions> {
-    const relationships: Record<string, JsonApiSerializer.RelationshipOptions> = {};
+  ): Record<string, JsonApiRelationshipOptionsExt> {
+    const relationships: Record<string, JsonApiRelationshipOptionsExt> = {};
     const urlPrefix = path.posix.join('/forest', collection.name);
 
     for (const [name, field] of Object.entries(collection.schema.fields)) {
