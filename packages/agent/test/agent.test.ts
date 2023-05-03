@@ -104,6 +104,28 @@ describe('Agent', () => {
       expect(mockCustomizer.use).toHaveBeenCalledTimes(1);
     });
 
+    test('use should be called before getDatasource in order to be correctly applied', async () => {
+      const agent = new Agent(options);
+      let useCalled = false;
+      let getDataSourceCalledAfterUseCalled = false;
+
+      mockNocodeCustomizer.use.mockImplementationOnce(async () => {
+        useCalled = true;
+      });
+
+      mockNocodeCustomizer.getDataSource.mockImplementationOnce(async () => {
+        getDataSourceCalledAfterUseCalled = useCalled;
+
+        return factories.dataSource.build();
+      });
+
+      await agent.start();
+
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(getDataSourceCalledAfterUseCalled).toBe(true);
+    });
+
     // eslint-disable-next-line max-len
     test("should add the customizer's factory as a datasource for the nocode customizer", async () => {
       mockCustomizer.getFactory.mockReturnValueOnce('factory');
