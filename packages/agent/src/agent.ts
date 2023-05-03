@@ -73,12 +73,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   override async start(): Promise<void> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
-    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
-
     await this.nocodeCustomizer.use(
       this.actionCustomizationService.addWebhookActions,
       this.options.experimental?.webhookCustomActions,
     );
+
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
 
     const [router] = await Promise.all([
       this.getRouter(dataSource),
