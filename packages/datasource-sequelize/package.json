@@ -12,7 +12,8 @@
     "directory": "packages/datasource-sequelize"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.5.0"
+    "@forestadmin/datasource-toolkit": "1.5.0",
+    "socks": "^2.7.1"
   },
   "files": [
     "dist/**/*.js",
