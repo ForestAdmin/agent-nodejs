@@ -1,7 +1,9 @@
 import { ActionContext, TFieldName, TRow, TSchema } from '@forestadmin/datasource-customizer';
-import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { ActionResult, SchemaUtils } from '@forestadmin/datasource-toolkit';
 import { WebhookAction } from '@forestadmin/forestadmin-client';
-import superagent from 'superagent';
+import superagent, { ResponseError } from 'superagent';
+
+import { AgentOptions } from '../../types';
 
 function generateBody<S extends TSchema>(
   action: WebhookAction,
@@ -38,7 +40,7 @@ function generateBody<S extends TSchema>(
 export default async function executeWebhook<S extends TSchema = TSchema>(
   action: WebhookAction,
   context: ActionContext<S>,
-) {
+): Promise<ActionResult> {
   const primaryKeys = SchemaUtils.getPrimaryKeys(context.collection.schema) as TFieldName<
     S,
     Extract<keyof S, string>
@@ -48,5 +50,19 @@ export default async function executeWebhook<S extends TSchema = TSchema>(
 
   const body = generateBody(action, records);
 
-  await superagent.post(action.configuration.url).send(body);
+  try {
+    await superagent.post(action.configuration.url).send(body);
+  } catch (e) {
+    if ((e as ResponseError).response) {
+      return {
+        type: 'Error',
+        message: `Error received from the server: ${e.status} ${e.message}.`,
+      };
+    }
+
+    return {
+      type: 'Error',
+      message: `Could not execute the action: ${e.message}.`,
+    };
+  }
 }

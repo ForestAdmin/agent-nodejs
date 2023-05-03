@@ -192,5 +192,79 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
         });
       },
     );
+
+    describe('when the webhook returns an error', () => {
+      it('should return an error response when a response was not received', async () => {
+        const action: WebhookAction = {
+          name: 'myAction',
+          modelName: 'myModel',
+          type: 'action',
+          configuration: {
+            type: 'webhook',
+            url: 'https://my-url.com',
+            scope: 'Single',
+            integration: 'forest',
+          },
+        };
+
+        const schema = {
+          name: 'myModel',
+        };
+
+        const context = {
+          getRecords: jest.fn().mockResolvedValue([{ id1: 1, id2: 2 }]),
+          collection: { schema },
+        } as unknown as ActionContext;
+
+        SchemaUtilsMock.getPrimaryKeys.mockReturnValue(['id1', 'id2']);
+
+        superagentMock.send.mockRejectedValueOnce(new Error('Network error'));
+
+        const result = await executeWebhook(action, context);
+
+        expect(result).toEqual({
+          type: 'Error',
+          message: 'Could not execute the action: Network error.',
+        });
+      });
+
+      it('should return more details about the error when a response was received', async () => {
+        const action: WebhookAction = {
+          name: 'myAction',
+          modelName: 'myModel',
+          type: 'action',
+          configuration: {
+            type: 'webhook',
+            url: 'https://my-url.com',
+            scope: 'Single',
+            integration: 'forest',
+          },
+        };
+
+        const schema = {
+          name: 'myModel',
+        };
+
+        const context = {
+          getRecords: jest.fn().mockResolvedValue([{ id1: 1, id2: 2 }]),
+          collection: { schema },
+        } as unknown as ActionContext;
+
+        SchemaUtilsMock.getPrimaryKeys.mockReturnValue(['id1', 'id2']);
+
+        superagentMock.send.mockRejectedValueOnce({
+          status: 400,
+          message: 'Bad request',
+          response: {},
+        });
+
+        const result = await executeWebhook(action, context);
+
+        expect(result).toEqual({
+          type: 'Error',
+          message: 'Error received from the server: 400 Bad request.',
+        });
+      });
+    });
   });
 });
