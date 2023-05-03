@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.5...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.6) (2023-05-03)
+
+
+### Bug Fixes
+
+* **webhook-custom-actions:** register webhook actions configured from the frontend ([#686](https://github.com/ForestAdmin/agent-nodejs/issues/686)) ([fd9334a](https://github.com/ForestAdmin/agent-nodejs/commit/fd9334a76699f33e217f766b1ed29a7be179951c))
+
 # @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.4...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.5) (2023-05-02)
 
 # @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.3...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.4) (2023-04-28)
