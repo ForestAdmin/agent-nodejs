@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.6...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.7) (2023-05-03)
+
+
+### Bug Fixes
+
+* **webhook-custom-actions:** improve error reporting when calling a webhook ([#687](https://github.com/ForestAdmin/agent-nodejs/issues/687)) ([c3f7f9a](https://github.com/ForestAdmin/agent-nodejs/commit/c3f7f9a2803185a1058fe570f12072ffbec94a2c))
+
 # @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.5...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.6) (2023-05-03)
 
 
