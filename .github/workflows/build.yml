@@ -66,6 +66,7 @@ jobs:
           - datasource-dummy
           - datasource-mongoose
           - datasource-replica
+          - datasource-mongo
           - datasource-sequelize
           - datasource-sql
           - datasource-toolkit
