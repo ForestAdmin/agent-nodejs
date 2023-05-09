@@ -37,6 +37,23 @@ describe('Connect', () => {
 
     beforeAll(async () => {
       await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
+    }, 100000);
+
+    describe('when proxy socks configuration is provided', () => {
+      it('should work with proxy auth and not throwing error when seq is closing', async () => {
+        const seq = await connect({
+          uri: uri.replace('localhost', 'host.docker.internal'),
+          proxySocks: {
+            host: 'localhost',
+            port: 1080,
+            password: 'password',
+            userId: 'username',
+          },
+        });
+        await seq.close();
+
+        expect(seq).toBeInstanceOf(Sequelize);
+      }, 10000000);
     });
 
     it('should work in manual mode with nothing specified', async () => {
@@ -151,23 +168,6 @@ describe('Connect', () => {
         'The dialect unknown is not supported. ' +
           'Supported dialects: mssql, mariadb, mysql, oracle, postgres, db2 and sqlite.',
       );
-    });
-  });
-
-  describe('when proxy socks configuration is provided', () => {
-    it('should work with proxy auth and not throwing error when seq is closing', async () => {
-      const seq = await connect({
-        uri: 'postgres://test:password@host.docker.internal:5443/test_connection',
-        proxySocks: {
-          host: 'localhost',
-          port: 1080,
-          password: 'password',
-          userId: 'username',
-        },
-      });
-      await seq.close();
-
-      expect(seq).toBeInstanceOf(Sequelize);
     });
   });
 });
