@@ -68,8 +68,7 @@ export default async function connect(
       options = proxy.connectionOptions;
     }
 
-    const { uri, sslMode, proxySocks, ...opts } = options;
-
+    const { uri, sslMode, ...opts } = options;
     const schema = opts.schema ?? getSchema(uri);
     const logging = logger ? getLogger(logger) : false;
 
@@ -93,7 +92,7 @@ export default async function connect(
     return sequelize;
   } catch (e) {
     await proxy?.stop();
-
+    // if proxy encountered an error, we want to throw it instead of the sequelize error
     handleSequelizeError(proxy?.getError() || (e as Error));
   }
 }

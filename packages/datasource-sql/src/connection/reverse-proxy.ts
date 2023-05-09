@@ -6,13 +6,14 @@ import { ConnectionOptionsObj } from '../types';
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
-  private readonly proxyOptions: ConnectionOptionsObj['proxySocks'];
   private readonly destination: ConnectionOptionsObj;
 
-  constructor(connectionOptionsObj: ConnectionOptionsObj) {
-    this.destination = connectionOptionsObj;
-    this.proxyOptions = connectionOptionsObj.proxySocks;
+  constructor(destination: ConnectionOptionsObj) {
+    this.destination = destination;
     this.server = net.createServer(this.onConnection.bind(this));
+
+    if (!this.destinationPort) throw new Error('Port is required');
+    if (!this.destinationHost) throw new Error('Host is required');
   }
 
   start(): Promise<void> {
@@ -20,12 +21,6 @@ export default class ReverseProxy {
       this.server.on('error', reject);
       this.server.listen(0, '127.0.0.1', resolve);
     });
-  }
-
-  handleError() {
-    if (this.errors.length > 0) {
-      throw this.errors[0];
-    }
   }
 
   stop(): Promise<void> {
@@ -36,19 +31,19 @@ export default class ReverseProxy {
 
   public get connectionOptions(): ConnectionOptionsObj {
     const { address, port } = this.server.address() as net.AddressInfo;
-    const copiedBaseUri = { ...this.destination };
+    const connection = { ...this.destination };
 
     if (this.destination.uri) {
       const uri = new URL(this.destination.uri);
       uri.host = address;
       uri.port = port.toString();
-      copiedBaseUri.uri = uri.toString();
+      connection.uri = uri.toString();
     }
 
-    copiedBaseUri.host = address;
-    copiedBaseUri.port = port;
+    connection.host = address;
+    connection.port = port;
 
-    return copiedBaseUri;
+    return connection;
   }
 
   public getError(): Error | null {
@@ -56,35 +51,21 @@ export default class ReverseProxy {
   }
 
   private get destinationHost(): string {
-    const destination = this.destination
-      ? new URL(this.destination.uri).hostname
-      : this.destination.host;
-
-    if (!destination) {
-      throw new Error('Missing host');
-    }
-
-    return destination;
+    return this.destination.uri ? new URL(this.destination.uri).hostname : this.destination.host;
   }
 
   private get destinationPort(): number {
-    const port = Number(
+    return Number(
       this.destination.uri ? new URL(this.destination.uri).port : this.destination.port,
     );
-
-    if (!port) {
-      throw new Error('Missing port');
-    }
-
-    return port;
   }
 
   private async onConnection(socket: net.Socket): Promise<void> {
-    socket.on('error', this.onError.bind(this));
+    socket.on('error', error => this.errors.push(error));
 
     try {
       const socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...this.proxyOptions, type: 5 },
+        proxy: { ...this.destination.proxySocks, type: 5 },
         command: 'connect',
         destination: { host: this.destinationHost, port: this.destinationPort },
       });
@@ -95,9 +76,5 @@ export default class ReverseProxy {
     } catch (err) {
       socket.destroy(err as Error);
     }
-  }
-
-  private onError(error: Error): void {
-    this.errors.push(error);
   }
 }
