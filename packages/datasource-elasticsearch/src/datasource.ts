@@ -34,6 +34,13 @@ export default class ElasticsearchDataSource extends BaseDataSource<Elasticsearc
       // avoid schema reordering
       .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
       .forEach(model => {
+        // HARD to do because it's totally different:'(
+        model.getInnerModels().forEach(inner => {
+          // We should create inner collections with specific queries looks like a nightmare
+          const collection = new ElasticsearchCollection(this, inner, logger);
+          this.addCollection(collection);
+        });
+
         const collection = new ElasticsearchCollection(this, model, logger);
         this.addCollection(collection);
       });
