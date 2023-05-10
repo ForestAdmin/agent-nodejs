@@ -1,3 +1,13 @@
+## example [1.3.5-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.4...example@1.3.5-alpha-webhook-custom-actions.1) (2023-05-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.9.0-alpha-webhook-custom-actions.8
+
 ## example [1.3.4](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.3...example@1.3.4) (2023-05-10)
 
 
