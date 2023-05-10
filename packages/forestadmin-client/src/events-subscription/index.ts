@@ -14,7 +14,7 @@ export default class EventsSubscriptionService {
     private readonly renderingPermissionService: RenderingPermissionService,
   ) {}
 
-  async subscribeEvents(callbackCustomizations?: () => Promise<void>): Promise<void> {
+  async subscribeEvents(): Promise<void> {
     const url = new URL('/liana/v4/events', this.options.forestServerUrl).toString();
     const eventSourceConfig = {
       // forest-secret-key act as the credential
@@ -43,17 +43,6 @@ export default class EventsSubscriptionService {
           for (const renderingId of data as [string])
             this.renderingPermissionService.invalidateCache(renderingId);
           break;
-
-        case ServerEventType.RefreshCustomizations:
-          if (!callbackCustomizations)
-            this.options.logger(
-              'Info',
-              'No code customizations - Please restart your agent to see them..',
-            );
-
-          // Ugly - But it will recall the sever to get new customizations then
-          // applying nocodeCustomizer and rebuild no-code routes
-          return callbackCustomizations();
 
         default:
           throw new Error(`Unsupported Server Event: ${type}`);

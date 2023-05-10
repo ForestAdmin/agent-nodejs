@@ -59,9 +59,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
-
-    // prefer arrow function ?
-    this.options.forestAdminClient.subscribeServerEvents(this.start.bind(this));
   }
 
   /**
@@ -77,6 +74,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       !isProduction && typingsPath
         ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
         : Promise.resolve(),
+
+      this.options.forestAdminClient.subscribeServerEvents(),
     ]);
 
     return super.start(router);
