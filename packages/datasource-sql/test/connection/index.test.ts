@@ -27,32 +27,55 @@ describe('Connect', () => {
   });
 
   describe.each([
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
-  ])('on %s database (supports unencrypted)', (dialect, username, password, host, port) => {
-    const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
-    const uri = `${baseUri}/test_connection`;
+    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 5432, 'postgres'],
+    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, 3306, 'mysql'],
+    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434, 1433, 'mssql'],
+    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809, 3306, 'mariadb'],
+  ])(
+    'on %s database (supports unencrypted)',
+    (dialect, username, password, host, containerPort, port, dockerServiceName) => {
+      const baseUri = `${dialect}://${username}:${password}@${host}:${containerPort}`;
+      const uri = `${baseUri}/test_connection`;
 
-    beforeAll(async () => {
-      await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
-    });
+      beforeAll(async () => {
+        await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
+      });
 
-    it('should work in manual mode with nothing specified', async () => {
-      const seq = await connect(uri);
-      await seq.close();
+      describe('when proxy socks configuration is provided', () => {
+        it('should work with proxy auth and not throwing error when seq is closing', async () => {
+          const updatedUri = uri
+            .replace('localhost', dockerServiceName)
+            .replace(containerPort.toString(), port.toString());
+          const seq = await connect({
+            uri: updatedUri,
+            proxySocks: {
+              host: 'localhost',
+              port: 1080,
+              password: 'password',
+              userId: 'username',
+            },
+          });
+          await seq.close();
 
-      expect(seq).toBeInstanceOf(Sequelize);
-    });
+          expect(seq).toBeInstanceOf(Sequelize);
+        });
+      });
 
-    it.each([['preferred'], ['disabled']])('should work when using sslMode %s', async sslMode => {
-      const seq = await connect({ uri, sslMode: sslMode as SslMode });
-      await seq.close();
+      it('should work in manual mode with nothing specified', async () => {
+        const seq = await connect(uri);
+        await seq.close();
 
-      expect(seq).toBeInstanceOf(Sequelize);
-    });
-  });
+        expect(seq).toBeInstanceOf(Sequelize);
+      });
+
+      it.each([['preferred'], ['disabled']])('should work when using sslMode %s', async sslMode => {
+        const seq = await connect({ uri, sslMode: sslMode as SslMode });
+        await seq.close();
+
+        expect(seq).toBeInstanceOf(Sequelize);
+      });
+    },
+  );
 
   describe.each([
     ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],

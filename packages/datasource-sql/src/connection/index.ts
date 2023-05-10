@@ -4,6 +4,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import { Dialect, Sequelize } from 'sequelize';
 
 import preprocessOptions from './preprocess';
+import ReverseProxy from './reverse-proxy';
 import { getLogger, getSchema, handleSequelizeError } from './utils';
 
 function getSslConfiguration(
@@ -56,8 +57,18 @@ export default async function connect(
   uriOrOptions: ConnectionOptions,
   logger?: Logger,
 ): Promise<Sequelize> {
+  let proxy: ReverseProxy | undefined;
+
   try {
-    const { uri, sslMode, ...opts } = await preprocessOptions(uriOrOptions);
+    let options = await preprocessOptions(uriOrOptions);
+
+    if (options.proxySocks) {
+      proxy = new ReverseProxy(options);
+      await proxy.start();
+      options = proxy.connectionOptions;
+    }
+
+    const { uri, sslMode, ...opts } = options;
     const schema = opts.schema ?? getSchema(uri);
     const logging = logger ? getLogger(logger) : false;
 
@@ -70,10 +81,18 @@ export default async function connect(
       ? new Sequelize(uri, { ...opts, schema, logging })
       : new Sequelize({ ...opts, schema, logging });
 
+    // we want to stop the proxy when the sequelize connection is closed
+    sequelize.close = async function close() {
+      await Sequelize.prototype.close.call(this);
+      await proxy?.stop();
+    };
+
     await sequelize.authenticate(); // Test connection
 
     return sequelize;
   } catch (e) {
-    handleSequelizeError(e as Error);
+    await proxy?.stop();
+    // if proxy encountered an error, we want to throw it instead of the sequelize error
+    handleSequelizeError(proxy?.getError() || (e as Error));
   }
 }
