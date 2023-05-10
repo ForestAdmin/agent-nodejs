@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.5.2...@forestadmin/datasource-sql@1.6.0) (2023-05-10)
+
+
+### Features
+
+* **datasource-sql:** enable to proxify the tcp connection by a socks5 proxy ([#690](https://github.com/ForestAdmin/agent-nodejs/issues/690)) ([971a712](https://github.com/ForestAdmin/agent-nodejs/commit/971a71286338ee085d00794dd4fa9f9cf1d05520))
+
 ## @forestadmin/datasource-sql [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.5.1...@forestadmin/datasource-sql@1.5.2) (2023-05-10)
 
 
