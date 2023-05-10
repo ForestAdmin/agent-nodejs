@@ -27,8 +27,10 @@ describe('ModelCustomizationFromApiService', () => {
                 configuration: {
                   type: 'webhook',
                   scope: scope.toLowerCase(),
-                  url: 'https://my-url.com',
-                  integration: 'service',
+                  configuration: {
+                    url: 'https://my-url.com',
+                    integration: 'service',
+                  },
                 },
               },
             ] as ModelCustomization<WebhookActionConfigurationApi>[]);
@@ -47,8 +49,10 @@ describe('ModelCustomizationFromApiService', () => {
                 configuration: {
                   type: 'webhook',
                   scope,
-                  url: 'https://my-url.com',
-                  integration: 'service',
+                  configuration: {
+                    url: 'https://my-url.com',
+                    integration: 'service',
+                  },
                 },
               },
             ]);

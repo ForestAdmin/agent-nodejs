@@ -42,9 +42,11 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
           type: 'action',
           configuration: {
             type: 'webhook',
-            url: 'https://my-url.com',
             scope: 'Single',
-            integration: 'forest',
+            configuration: {
+              url: 'https://my-url.com',
+              integration: 'forest',
+            },
           },
         };
 
@@ -80,9 +82,11 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
           type: 'action',
           configuration: {
             type: 'webhook',
-            url: 'https://my-url.com',
             scope: 'Single',
-            integration: 'forest',
+            configuration: {
+              url: 'https://my-url.com',
+              integration: 'forest',
+            },
           },
         };
 
@@ -112,9 +116,11 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
           type: 'action',
           configuration: {
             type: 'webhook',
-            url: 'https://my-url.com',
             scope: 'Single',
-            integration: 'forest',
+            configuration: {
+              url: 'https://my-url.com',
+              integration: 'forest',
+            },
           },
         };
 
@@ -151,9 +157,11 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
             type: 'action',
             configuration: {
               type: 'webhook',
-              url: 'https://my-url.com',
               scope,
-              integration: 'forest',
+              configuration: {
+                url: 'https://my-url.com',
+                integration: 'forest',
+              },
             },
           };
 
@@ -201,9 +209,11 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
           type: 'action',
           configuration: {
             type: 'webhook',
-            url: 'https://my-url.com',
             scope: 'Single',
-            integration: 'forest',
+            configuration: {
+              url: 'https://my-url.com',
+              integration: 'forest',
+            },
           },
         };
 
@@ -235,9 +245,11 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
           type: 'action',
           configuration: {
             type: 'webhook',
-            url: 'https://my-url.com',
             scope: 'Single',
-            integration: 'forest',
+            configuration: {
+              url: 'https://my-url.com',
+              integration: 'forest',
+            },
           },
         };
 
