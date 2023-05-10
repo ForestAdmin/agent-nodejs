@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.7...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.8) (2023-05-10)
+
+
+### Bug Fixes
+
+* **in-app-onboarding:** do not force skipLibCheck on customers TS configuration ([#680](https://github.com/ForestAdmin/agent-nodejs/issues/680)) ([c374117](https://github.com/ForestAdmin/agent-nodejs/commit/c37411763507f274dd4dba2d3dd08adb8c1b4222))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.2.0-alpha-webhook-custom-actions.3
+
 ## @forestadmin/agent [1.8.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.12...@forestadmin/agent@1.8.13) (2023-05-03)
 
 
