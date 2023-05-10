@@ -1,5 +1,5 @@
 import type { Table } from './introspection/types';
-import type { ConnectionOptions } from './types';
+import type { ConnectionOptions, SslMode } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -46,5 +46,5 @@ export function createSqlDataSource(
   };
 }
 
-export type { ConnectionOptions, Table };
+export type { ConnectionOptions, Table, SslMode };
 export { default as preprocessOptions } from './connection/preprocess';
