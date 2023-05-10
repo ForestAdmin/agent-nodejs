@@ -1,5 +1,4 @@
 version: '3.1'
-
 services:
   postgres:
     image: postgres:12.7
@@ -9,8 +8,6 @@ services:
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
-    networks:
-      - localnetwork
 
   mysql:
     image: mysql:oracle
@@ -19,8 +16,6 @@ services:
       - '3307:3306'
     environment:
       - MYSQL_ROOT_PASSWORD=password
-    networks:
-      - localnetwork
 
   mssql:
     image: mcr.microsoft.com/azure-sql-edge
@@ -30,8 +25,6 @@ services:
     environment:
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
-    networks:
-      - localnetwork
 
   mariadb:
     image: mariadb:latest
@@ -40,8 +33,6 @@ services:
       - '3809:3306'
     environment:
       - MARIADB_ROOT_PASSWORD=password
-    networks:
-      - localnetwork
 
   socks-proxy:
     image: serjs/go-socks5-proxy
@@ -51,8 +42,4 @@ services:
     environment:
       - PROXY_USER=username
       - PROXY_PASSWORD=password
-    networks:
-      - localnetwork
 
-networks:
-  localnetwork:
