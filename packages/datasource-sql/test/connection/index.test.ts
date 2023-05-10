@@ -27,13 +27,13 @@ describe('Connect', () => {
   });
 
   describe.each([
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 5432],
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, 3306],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434, 1433],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809, 3306],
+    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 5432, 'postgres'],
+    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, 3306, 'mysql'],
+    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434, 1433, 'mssql'],
+    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809, 3306, 'mariadb'],
   ])(
     'on %s database (supports unencrypted)',
-    (dialect, username, password, host, containerPort, port) => {
+    (dialect, username, password, host, containerPort, port, dockerServiceName) => {
       const baseUri = `${dialect}://${username}:${password}@${host}:${containerPort}`;
       const uri = `${baseUri}/test_connection`;
 
@@ -44,7 +44,7 @@ describe('Connect', () => {
       describe('when proxy socks configuration is provided', () => {
         it('should work with proxy auth and not throwing error when seq is closing', async () => {
           const updatedUri = uri
-            .replace('localhost', dialect)
+            .replace('localhost', dockerServiceName)
             .replace(containerPort.toString(), port.toString());
           const seq = await connect({
             uri: updatedUri,
