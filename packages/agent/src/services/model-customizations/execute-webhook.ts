@@ -49,7 +49,7 @@ export default async function executeWebhook<S extends TSchema = TSchema>(
   const body = generateBody(action, records);
 
   try {
-    await superagent.post(action.configuration.url).send(body);
+    await superagent.post(action.configuration.configuration.url).send(body);
   } catch (e) {
     if ((e as ResponseError).response) {
       return {

@@ -14,26 +14,30 @@ export type ModelCustomization<TConfiguration = unknown> = {
   configuration: TConfiguration;
 };
 
-export type ActionConfigurationApi = {
+export type ActionConfigurationApi<TActionConfigurationSpecific = unknown> = {
   scope: ActionScopeApi;
   type: ActionType;
+  configuration: TActionConfigurationSpecific;
 };
 
-export type WebhookActionConfigurationApi = ActionConfigurationApi & {
-  type: 'webhook';
+export type WebhookActionConfigurationSpecific = {
   url: string;
   integration: string;
 };
 
-export type ActionConfiguration = {
+export type WebhookActionConfigurationApi =
+  ActionConfigurationApi<WebhookActionConfigurationSpecific> & {
+    type: 'webhook';
+  };
+
+export type ActionConfiguration<TActionConfigurationSpecific = unknown> = {
   scope: ActionScope;
   type: ActionType;
+  configuration: TActionConfigurationSpecific;
 };
 
-export type WebhookActionConfiguration = ActionConfiguration & {
+export type WebhookActionConfiguration = ActionConfiguration<WebhookActionConfigurationSpecific> & {
   type: 'webhook';
-  url: string;
-  integration: string;
 };
 export interface ModelCustomizationService {
   getConfiguration(): Promise<ModelCustomization[]>;
