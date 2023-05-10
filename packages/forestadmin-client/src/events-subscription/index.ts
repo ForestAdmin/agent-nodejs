@@ -9,7 +9,7 @@ import { ForestAdminClientOptionsWithDefaults } from '../types';
 export default class EventsSubscriptionService {
   constructor(
     private options: ForestAdminClientOptionsWithDefaults,
-    private readonly permissionService: ActionPermissionService,
+    private readonly actionPermissionService: ActionPermissionService,
     private readonly usersPermissionService: UserPermissionService,
     private readonly renderingPermissionService: RenderingPermissionService,
   ) {}
@@ -25,28 +25,30 @@ export default class EventsSubscriptionService {
 
     const source = new EventSource(url, eventSourceConfig);
 
-    source.addEventListener('message', async (event: ServerEvent) => {
-      const { type, data } = event.data;
+    source.addEventListener('message', (event: ServerEvent) => this.handleSeverEvents(event));
+  }
 
-      this.options.logger('Debug', `Event - ${type}`);
+  private async handleSeverEvents(event: ServerEvent) {
+    const { type, data } = event.data;
 
-      switch (type) {
-        case ServerEventType.RefreshUsers:
-          this.usersPermissionService.invalidateCache();
-          break;
+    this.options.logger('Debug', `Event - ${type}`);
 
-        case ServerEventType.RefreshRoles:
-          this.permissionService.invalidateCache();
-          break;
+    switch (type) {
+      case ServerEventType.RefreshUsers:
+        this.usersPermissionService.invalidateCache();
+        break;
 
-        case ServerEventType.RefreshRenderings:
-          for (const renderingId of data as [string])
-            this.renderingPermissionService.invalidateCache(renderingId);
-          break;
+      case ServerEventType.RefreshRoles:
+        this.actionPermissionService.invalidateCache();
+        break;
 
-        default:
-          throw new Error(`Unsupported Server Event: ${type}`);
-      }
-    });
+      case ServerEventType.RefreshRenderings:
+        for (const renderingId of data as [string | number])
+          this.renderingPermissionService.invalidateCache(renderingId);
+        break;
+
+      default:
+        throw new Error(`Unsupported Server Event: ${type}`);
+    }
   }
 }

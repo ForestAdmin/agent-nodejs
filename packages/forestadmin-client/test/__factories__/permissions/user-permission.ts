@@ -7,6 +7,7 @@ export class UserPermissionsFactory extends Factory<UserPermissionService> {
   mockAllMethods() {
     return this.afterBuild(permissions => {
       permissions.getUserInfo = jest.fn();
+      permissions.invalidateCache = jest.fn();
     });
   }
 }

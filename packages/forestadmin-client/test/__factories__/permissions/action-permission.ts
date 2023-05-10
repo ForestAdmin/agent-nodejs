@@ -11,6 +11,7 @@ export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
       permissions.getCustomActionCondition = jest.fn();
       permissions.getAllCustomActionConditions = jest.fn();
       permissions.getRoleIdsAllowedToApproveWithoutConditions = jest.fn();
+      permissions.invalidateCache = jest.fn();
     });
   }
 }
