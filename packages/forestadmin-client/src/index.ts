@@ -42,6 +42,7 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     auth,
+    eventsSubscription,
   } = buildApplicationServices(new ForestHttpApi(), options);
 
   return new ForestAdminClientWithCache(
@@ -53,6 +54,7 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     auth,
+    eventsSubscription,
   );
 }
 

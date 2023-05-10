@@ -1,5 +1,6 @@
 import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
+import EventsSubscriptionService from './events-subscription';
 import IpWhiteListService from './ip-whitelist';
 import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
@@ -26,6 +27,7 @@ export default function buildApplicationServices(
   permission: PermissionService;
   chartHandler: ChartHandler;
   auth: AuthService;
+  eventsSubscription: EventsSubscriptionService;
 } {
   const optionsWithDefaults = {
     forestServerUrl: 'https://api.forestadmin.com',
@@ -34,15 +36,30 @@ export default function buildApplicationServices(
     ...options,
   };
 
-  const renderingPermission = new RenderingPermissionService(
+  const usersPermission = new UserPermissionService(
     optionsWithDefaults,
-    new UserPermissionService(optionsWithDefaults, forestAdminServerInterface),
     forestAdminServerInterface,
   );
+
+  const renderingPermission = new RenderingPermissionService(
+    optionsWithDefaults,
+    usersPermission,
+    forestAdminServerInterface,
+  );
+
+  const actionPermission = new ActionPermissionService(
+    optionsWithDefaults,
+    forestAdminServerInterface,
+  );
+
   const contextVariables = new ContextVariablesInstantiator(renderingPermission);
 
-  const permission = new PermissionService(
-    new ActionPermissionService(optionsWithDefaults, forestAdminServerInterface),
+  const permission = new PermissionService(actionPermission, renderingPermission);
+
+  const eventsSubscription = new EventsSubscriptionService(
+    optionsWithDefaults,
+    actionPermission,
+    usersPermission,
     renderingPermission,
   );
 
@@ -51,6 +68,7 @@ export default function buildApplicationServices(
     optionsWithDefaults,
     permission,
     contextVariables,
+    eventsSubscription,
     chartHandler: new ChartHandler(contextVariables),
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),

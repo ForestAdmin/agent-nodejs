@@ -59,6 +59,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
+
+    // prefer arrow function ?
+    this.options.forestAdminClient.subscribeServerEvents(this.start.bind(this));
   }
 
   /**

@@ -144,8 +144,8 @@ describe('UserPermission', () => {
     });
   });
 
-  describe('clearCache', () => {
-    it('should retrieve the cache a second time after cache clearance', async () => {
+  describe('invalidateCache', () => {
+    it('should retrieve the cache a second time after cache invalidation', async () => {
       const { userPermissions, serverInterface } = setup();
 
       serverInterface.getUsers = jest.fn().mockResolvedValue([
@@ -156,7 +156,7 @@ describe('UserPermission', () => {
       jest.useFakeTimers().setSystemTime(new Date('2020-01-01T00:00:00.000Z'));
       await userPermissions.getUserInfo(43);
 
-      userPermissions.clearCache();
+      userPermissions.invalidateCache();
 
       jest.useFakeTimers().setSystemTime(new Date('2020-01-01T00:15:00.000Z'));
       const userInfo = await userPermissions.getUserInfo(43);

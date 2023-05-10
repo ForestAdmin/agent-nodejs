@@ -43,8 +43,7 @@ export default class ActionPermissionService {
     const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
     if (!isAllowed && allowRefetch) {
-      this.permissionsPromise = undefined;
-      this.permissionExpirationTimestamp = undefined;
+      this.invalidateCache();
 
       return this.hasPermissionOrRefetch({
         roleId,
@@ -139,5 +138,10 @@ export default class ActionPermissionService {
     return Array.from(approvalPermission.allowedRoles).filter(
       roleId => !approvalPermission.conditionsByRole?.has(roleId),
     );
+  }
+
+  public invalidateCache() {
+    this.permissionsPromise = undefined;
+    this.permissionExpirationTimestamp = undefined;
   }
 }

@@ -36,8 +36,8 @@ export default class UserPermissionService {
     return (await this.userInfoById).get(`${userId}`);
   }
 
-  public clearCache() {
-    this.userInfoById = null;
-    this.cacheExpirationTimestamp = Number.NEGATIVE_INFINITY;
+  public invalidateCache() {
+    this.userInfoById = undefined;
+    this.cacheExpirationTimestamp = undefined;
   }
 }

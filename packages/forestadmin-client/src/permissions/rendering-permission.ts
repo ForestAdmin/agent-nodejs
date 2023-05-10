@@ -215,7 +215,7 @@ export default class RenderingPermissionService {
 
     if (allowRetry) {
       this.invalidateCache(renderingId);
-      this.userPermissions.clearCache();
+      this.userPermissions.invalidateCache();
 
       return this.canRetrieveChartHashOrRetry({
         renderingId,
