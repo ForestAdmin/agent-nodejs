@@ -33,7 +33,6 @@
   },
   "devDependencies": {
     "@forestadmin/datasource-toolkit": "1.5.0",
-    "@types/eventsource": "^1.1.11",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/lru-cache": "^7.10.10",

@@ -3425,11 +3425,6 @@
   resolved "https://registry.npmjs.org/@types/estree/-/estree-1.0.0.tgz"
   integrity sha512-WulqXMDUTYAXCjZnk6JtIHPigp55cVtDgDrO2gHRwhyJto21+1zbVCtOYB2L1F9w4qCQ0rOGWBnBe0FNTiEJIQ==
 
-"@types/eventsource@^1.1.11":
-  version "1.1.11"
-  resolved "https://registry.yarnpkg.com/@types/eventsource/-/eventsource-1.1.11.tgz#a2c0bfd0436b7db42ed1b2b2117f7ec2e8478dc7"
-  integrity sha512-L7wLDZlWm5mROzv87W0ofIYeQP5K2UhoFnnUyEWLKM6UBb0ZNRgAqp98qE5DkgfBXdWfc2kYmw9KZm4NLjRbsw==
-
 "@types/express-serve-static-core@^4.17.31":
   version "4.17.32"
   resolved "https://registry.npmjs.org/@types/express-serve-static-core/-/express-serve-static-core-4.17.32.tgz"

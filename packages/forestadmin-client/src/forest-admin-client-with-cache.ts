@@ -68,10 +68,10 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
   }
 
   public markScopesAsUpdated(renderingId: number | string) {
-    this.renderingPermissionService.invalidateCache(renderingId);
+    if (!this.options.useServerEvents) this.renderingPermissionService.invalidateCache(renderingId);
   }
 
-  public subscribeServerEvents(callbackCustomizations?: () => Promise<void>) {
-    return this.eventsSubscription.subscribeEvents(callbackCustomizations);
+  public async subscribeServerEvents() {
+    await this.eventsSubscription.subscribeEvents();
   }
 }

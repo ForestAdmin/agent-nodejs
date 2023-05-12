@@ -1,7 +1,7 @@
 import { Factory } from 'fishery';
 
 import ActionPermissionService from '../../../src/permissions/action-permission';
-import { forestAdminServerInterface } from '../index';
+import { forestAdminClientOptions, forestAdminServerInterface } from '../index';
 
 export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
   mockAllMethods() {
@@ -19,12 +19,7 @@ export class ActionPermissionsFactory extends Factory<ActionPermissionService> {
 const actionPermissionsFactory = ActionPermissionsFactory.define(
   () =>
     new ActionPermissionService(
-      {
-        envSecret: '123',
-        forestServerUrl: 'http://api',
-        permissionsCacheDurationInSeconds: 15 * 60,
-        logger: () => {},
-      },
+      forestAdminClientOptions.build(),
       forestAdminServerInterface.build(),
     ),
 );

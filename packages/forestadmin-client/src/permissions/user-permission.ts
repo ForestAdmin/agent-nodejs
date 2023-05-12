@@ -18,7 +18,8 @@ export default class UserPermissionService {
     if (
       !this.cacheExpirationTimestamp ||
       this.cacheExpirationTimestamp < Date.now() ||
-      !(await this.userInfoById).has(`${userId}`)
+      // Only allow refetch when not using server events and not found
+      (!this.options.useServerEvents && !(await this.userInfoById).has(`${userId}`))
     ) {
       this.cacheExpirationTimestamp =
         Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;

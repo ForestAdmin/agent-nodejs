@@ -26,7 +26,8 @@ export default class ActionPermissionService {
     return this.hasPermissionOrRefetch({
       roleId,
       actionName,
-      allowRefetch: true,
+      // Only allow refetch when not using server events
+      allowRefetch: !this.options.useServerEvents,
     });
   }
 

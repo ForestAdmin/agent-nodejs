@@ -1,6 +1,7 @@
 import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import EventsSubscriptionService from './events-subscription';
+import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
 import IpWhiteListService from './ip-whitelist';
 import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
@@ -33,6 +34,7 @@ export default function buildApplicationServices(
     forestServerUrl: 'https://api.forestadmin.com',
     permissionsCacheDurationInSeconds: 15 * 60,
     logger: defaultLogger,
+    useServerEvents: true,
     ...options,
   };
 
@@ -56,12 +58,13 @@ export default function buildApplicationServices(
 
   const permission = new PermissionService(actionPermission, renderingPermission);
 
-  const eventsSubscription = new EventsSubscriptionService(
-    optionsWithDefaults,
+  const eventsHandler = new NativeRefreshEventsHandlerService(
     actionPermission,
     usersPermission,
     renderingPermission,
   );
+
+  const eventsSubscription = new EventsSubscriptionService(optionsWithDefaults, eventsHandler);
 
   return {
     renderingPermission,

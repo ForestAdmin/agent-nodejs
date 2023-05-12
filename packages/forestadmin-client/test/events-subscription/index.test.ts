@@ -18,18 +18,11 @@ describe('EventsSubscriptionService', () => {
   beforeEach(() => jest.clearAllMocks());
 
   const options = factories.forestAdminClientOptions.build();
-  const actionPermission = factories.actionPermission.mockAllMethods().build();
-  const usersPermission = factories.userPermission.mockAllMethods().build();
-  const renderingPermission = factories.renderingPermission.mockAllMethods().build();
+  const refreshEventsHandlerService = factories.nativeRefreshEventsHandler.mockAllMethods().build();
 
   describe('subscribeEvents', () => {
     test('should add listener for message events', async () => {
-      const eventsSubscriptionService = new EventsSubscriptionService(
-        options,
-        actionPermission,
-        usersPermission,
-        renderingPermission,
-      );
+      const eventsSubscriptionService = factories.eventsSubscription.build();
 
       eventsSubscriptionService.subscribeEvents();
 
@@ -42,24 +35,19 @@ describe('EventsSubscriptionService', () => {
       test('should invalidate users cache', async () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
-          actionPermission,
-          usersPermission,
-          renderingPermission,
+          refreshEventsHandlerService,
         );
 
         eventsSubscriptionService.subscribeEvents();
 
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events['message']({
-          data: {
+          data: JSON.stringify({
             type: ServerEventType.RefreshUsers,
-          },
+          }),
         });
 
-        expect(usersPermission.invalidateCache).toHaveBeenCalled();
-
-        expect(actionPermission.invalidateCache).not.toHaveBeenCalled();
-        expect(renderingPermission.invalidateCache).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshUsers).toHaveBeenCalled();
       });
     });
 
@@ -67,24 +55,19 @@ describe('EventsSubscriptionService', () => {
       test('should invalidate roles cache', async () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
-          actionPermission,
-          usersPermission,
-          renderingPermission,
+          refreshEventsHandlerService,
         );
 
         eventsSubscriptionService.subscribeEvents();
 
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events['message']({
-          data: {
+          data: JSON.stringify({
             type: ServerEventType.RefreshRoles,
-          },
+          }),
         });
 
-        expect(actionPermission.invalidateCache).toHaveBeenCalled();
-
-        expect(usersPermission.invalidateCache).not.toHaveBeenCalled();
-        expect(renderingPermission.invalidateCache).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshRoles).toHaveBeenCalled();
       });
     });
 
@@ -92,50 +75,44 @@ describe('EventsSubscriptionService', () => {
       test('should invalidate renderings cache', async () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
-          actionPermission,
-          usersPermission,
-          renderingPermission,
+          refreshEventsHandlerService,
         );
-
         eventsSubscriptionService.subscribeEvents();
 
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events['message']({
-          data: {
+          data: JSON.stringify({
             type: ServerEventType.RefreshRenderings,
             data: ['13', 24],
-          },
+          }),
         });
 
-        expect(renderingPermission.invalidateCache).toHaveBeenCalledTimes(2);
-        expect(renderingPermission.invalidateCache).toHaveBeenNthCalledWith(1, '13');
-        expect(renderingPermission.invalidateCache).toHaveBeenNthCalledWith(2, 24);
-
-        expect(actionPermission.invalidateCache).not.toHaveBeenCalled();
-        expect(usersPermission.invalidateCache).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshRenderings).toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshRenderings).toHaveBeenCalledWith(['13', 24]);
       });
+    });
 
-      test('should invalidate renderings cache empty event data', async () => {
+    describe('on unknown event', () => {
+      test('should throw error Unsupported Server Event', async () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
-          actionPermission,
-          usersPermission,
-          renderingPermission,
+          refreshEventsHandlerService,
         );
-
         eventsSubscriptionService.subscribeEvents();
 
-        // eslint-disable-next-line @typescript-eslint/dot-notation
-        events['message']({
-          data: {
-            type: ServerEventType.RefreshRenderings,
-            data: [],
-          },
-        });
+        await expect(() =>
+          // eslint-disable-next-line @typescript-eslint/dot-notation
+          events['message']({
+            data: JSON.stringify({
+              type: 'unknown',
+            }),
+          }),
+        ).rejects.toThrow('Unsupported Server Event: unknown');
 
-        expect(usersPermission.invalidateCache).not.toHaveBeenCalled();
-        expect(actionPermission.invalidateCache).not.toHaveBeenCalled();
-        expect(renderingPermission.invalidateCache).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshUsers).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshRoles).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshRenderings).not.toHaveBeenCalled();
+        expect(refreshEventsHandlerService.onRefreshCustomizations).not.toHaveBeenCalled();
       });
     });
   });
