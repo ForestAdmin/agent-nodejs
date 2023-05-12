@@ -1,70 +1,34 @@
-import ContextVariables from './context-variables';
-import { RawTree, RawTreeBranch } from '../permissions/types';
-
 export default class ContextVariablesInjector {
-  private static isTreeBranch(filter: RawTree): filter is RawTreeBranch {
-    return 'aggregator' in filter;
-  }
-
-  public static injectContextInValueCustom<ValueType>(
-    value: ValueType,
-    replaceFunction: (contextVariableName: string) => string,
-  ) {
-    if (typeof value !== 'string') {
-      return value;
+  static injectContext(target: unknown, context: Record<string, unknown>): unknown {
+    if (Array.isArray(target)) {
+      return target.map(item => this.injectContext(item, context));
     }
 
-    let valueWithContextVariablesInjected: string = value;
-    const regex = /{{([^}]+)}}/g;
-    let match = regex.exec(value);
-    const encounteredVariables = [];
+    if (target?.constructor === Object) {
+      return Object.fromEntries(
+        Object.entries(target).map(([key, value]) => [key, this.injectContext(value, context)]),
+      );
+    }
 
-    while (match) {
-      const contextVariableKey = match[1];
-
-      if (!encounteredVariables.includes(contextVariableKey)) {
-        valueWithContextVariablesInjected = valueWithContextVariablesInjected.replace(
-          new RegExp(`{{${contextVariableKey}}}`, 'g'),
-          replaceFunction(contextVariableKey),
-        );
+    if (typeof target === 'string') {
+      // If the whole string is a template, return the value directly to keep the type.
+      if (target.match(/^{{([^}]+)}}$/)) {
+        return this.getValueFromContext(target.substring(2, target.length - 2), context);
       }
 
-      encounteredVariables.push(contextVariableKey);
-      match = regex.exec(value);
+      // Otherwise, replace all the templates in the string.
+      return target.replace(/{{([^}]+)}}/g, (match, key) =>
+        String(this.getValueFromContext(key, context)),
+      );
     }
 
-    return valueWithContextVariablesInjected as unknown as ValueType;
+    return target;
   }
 
-  public static injectContextInValue<ValueType>(
-    value: ValueType,
-    contextVariables: ContextVariables,
-  ): ValueType {
-    return this.injectContextInValueCustom(value, contextVariableKey =>
-      String(contextVariables.getValue(contextVariableKey)),
-    );
-  }
+  private static getValueFromContext(key: string, context: Record<string, unknown>): unknown {
+    let value = context;
+    for (const part of key.split('.')) value = value?.[part] as Record<string, unknown>;
 
-  public static injectContextInFilter(
-    filter: RawTree | null,
-    contextVariables: ContextVariables,
-  ): RawTree {
-    if (!filter) {
-      return null;
-    }
-
-    if (ContextVariablesInjector.isTreeBranch(filter)) {
-      return {
-        ...filter,
-        conditions: filter.conditions.map(condition => {
-          return this.injectContextInFilter(condition, contextVariables);
-        }),
-      };
-    }
-
-    return {
-      ...filter,
-      value: this.injectContextInValue(filter.value, contextVariables),
-    };
+    return value;
   }
 }
