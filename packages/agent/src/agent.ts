@@ -78,6 +78,28 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       this.options.forestAdminClient.subscribeServerEvents(),
     ]);
 
+    this.options.forestAdminClient.refreshEventsHandlerService.ononRefreshCustomizations(
+      this.restart.bind(this),
+    );
+
+    return super.start(router);
+  }
+
+  /**
+   * Restart the agent. Use full to register dynamic routes (No-Code customizations)
+   */
+  async restart(): Promise<void> {
+    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
+
+    const dataSource = await this.customizer.getDataSource(logger);
+    const [router] = await Promise.all([
+      this.getRouter(dataSource),
+      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
+      !isProduction && typingsPath
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        : Promise.resolve(),
+    ]);
+
     return super.start(router);
   }
 

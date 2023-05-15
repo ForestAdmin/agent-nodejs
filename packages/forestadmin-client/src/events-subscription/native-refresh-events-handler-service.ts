@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 
-import { RefreshEventsHandlerService } from './types';
+import { RefreshEventsHandlerService, ServerEventType } from './types';
 import ActionPermissionService from '../permissions/action-permission';
 import RenderingPermissionService from '../permissions/rendering-permission';
 import UserPermissionService from '../permissions/user-permission';
@@ -31,7 +31,11 @@ export default class NativeRefreshEventsHandlerService
   }
 
   public onRefreshCustomizations() {
-    this.emit('RefreshCustomizations');
+    this.emit(ServerEventType.RefreshCustomizations);
+  }
+
+  public ononRefreshCustomizations(listener: () => Promise<void>) {
+    this.on(ServerEventType.RefreshCustomizations, listener);
   }
 
   public refreshEverything() {
@@ -40,6 +44,6 @@ export default class NativeRefreshEventsHandlerService
     this.renderingPermissionService.invalidateAllCache();
 
     // Emit RefreshCustomizations event
-    this.emit('RefreshCustomizations');
+    this.emit(ServerEventType.RefreshCustomizations);
   }
 }

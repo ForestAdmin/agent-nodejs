@@ -2,6 +2,7 @@ import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import EventsSubscriptionService from './events-subscription';
 import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
+import { RefreshEventsHandlerService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
@@ -29,6 +30,7 @@ export default function buildApplicationServices(
   chartHandler: ChartHandler;
   auth: AuthService;
   eventsSubscription: EventsSubscriptionService;
+  eventsHandler: RefreshEventsHandlerService;
 } {
   const optionsWithDefaults = {
     forestServerUrl: 'https://api.forestadmin.com',
@@ -76,5 +78,6 @@ export default function buildApplicationServices(
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
     auth: new AuthService(optionsWithDefaults),
+    eventsHandler,
   };
 }

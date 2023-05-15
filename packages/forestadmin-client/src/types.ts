@@ -3,6 +3,7 @@ import type { Chart, QueryChart } from './charts/types';
 import type { Client } from 'openid-client';
 
 import { UserInfo } from './auth/types';
+import { RefreshEventsHandlerService } from './events-subscription/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import {
   CollectionActionEvent,
@@ -34,6 +35,7 @@ export interface ForestAdminClient {
   readonly permissionService: PermissionService;
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
+  readonly refreshEventsHandlerService: RefreshEventsHandlerService;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 

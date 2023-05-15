@@ -18,5 +18,7 @@ export interface RefreshEventsHandlerService extends EventEmitter {
   onRefreshRenderings: (renderingIds: [string | number]) => Promise<void> | void;
   onRefreshCustomizations: () => Promise<void> | void;
 
+  ononRefreshCustomizations: (listener: () => Promise<void>) => void;
+
   refreshEverything: () => Promise<void> | void;
 }

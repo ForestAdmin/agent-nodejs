@@ -4,6 +4,7 @@ import AuthService from './auth';
 import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
 import EventsSubscriptionService from './events-subscription';
+import { RefreshEventsHandlerService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import RenderingPermissionService from './permissions/rendering-permission';
@@ -29,6 +30,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly schemaService: SchemaService,
     protected readonly authService: AuthService,
     protected readonly eventsSubscription: EventsSubscriptionService,
+    public readonly refreshEventsHandlerService: RefreshEventsHandlerService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
