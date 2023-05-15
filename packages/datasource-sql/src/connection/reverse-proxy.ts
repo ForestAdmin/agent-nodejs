@@ -26,7 +26,10 @@ export default class ReverseProxy {
 
   stop(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.clients.forEach(client => client.destroy());
+      this.clients.forEach(client => {
+        client.destroy();
+        this.clients.splice(this.clients.indexOf(client), 1);
+      });
       this.server.close(e => {
         if (e) reject(e);
         else resolve();
@@ -76,6 +79,7 @@ export default class ReverseProxy {
       });
 
       this.clients.push(socket);
+
       socks5Proxy.socket.on('error', socket.destroy);
       socks5Proxy.socket.pipe(socket);
       socket.pipe(socks5Proxy.socket);

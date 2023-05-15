@@ -1,5 +1,7 @@
 import type { ConnectionOptions, ConnectionOptionsObj, SslMode } from '../types';
 
+import { Sequelize } from 'sequelize';
+
 import connect from './index';
 import { getDialect, getUri } from './utils';
 
@@ -12,16 +14,18 @@ async function resolveSslMode(uriOrOptions: ConnectionOptionsObj): Promise<SslMo
     if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') modes.shift();
 
     let error: Error;
+    let sequelize: Sequelize;
 
     for (const sslMode of modes) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const sequelize = await connect({ ...uriOrOptions, sslMode });
-        await sequelize.close(); // eslint-disable-line no-await-in-loop
+        sequelize = await connect({ ...uriOrOptions, sslMode });
 
         return sslMode;
       } catch (e) {
         error = e;
+      } finally {
+        await sequelize?.close(); // eslint-disable-line no-await-in-loop
       }
     }
 

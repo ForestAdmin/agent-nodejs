@@ -42,7 +42,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         const sequelize = await buildSequelizeInstance(`${baseUri}/${database}`, logger);
 
-        sequelize.close();
+        await sequelize.close();
         expect(sequelize).toBeInstanceOf(Sequelize);
       });
 
@@ -52,7 +52,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         const sequelize = await buildSequelizeInstance({ uri: `${baseUri}/${database}` }, logger);
 
-        sequelize.close();
+        await sequelize.close();
         expect(sequelize).toBeInstanceOf(Sequelize);
       });
 
@@ -65,7 +65,7 @@ describe('SqlDataSourceFactory > Integration', () => {
           logger,
         );
 
-        sequelize.close();
+        await sequelize.close();
         expect(sequelize).toBeInstanceOf(Sequelize);
       });
     });
