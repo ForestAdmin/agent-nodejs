@@ -11,6 +11,7 @@ describe('UserPermission', () => {
       isProduction: true,
       envSecret: '123',
       forestServerUrl: 'http://api',
+      useServerEvents: false,
       permissionsCacheDurationInSeconds: 15 * 60,
       logger: jest.fn(),
     };

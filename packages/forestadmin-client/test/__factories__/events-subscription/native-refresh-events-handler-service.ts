@@ -8,10 +8,10 @@ import userPermission from '../permissions/user-permission';
 export class NativeRefreshEventsHandlerServiceFactory extends Factory<NativeRefreshEventsHandlerService> {
   mockAllMethods() {
     return this.afterBuild(service => {
-      service.onRefreshUsers = jest.fn();
-      service.onRefreshRoles = jest.fn();
-      service.onRefreshRenderings = jest.fn();
-      service.onRefreshCustomizations = jest.fn();
+      service.refreshUsers = jest.fn();
+      service.refreshRoles = jest.fn();
+      service.refreshRenderings = jest.fn();
+      service.refreshCustomizations = jest.fn();
       service.refreshEverything = jest.fn();
     });
   }

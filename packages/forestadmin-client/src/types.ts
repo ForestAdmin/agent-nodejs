@@ -51,7 +51,7 @@ export interface ForestAdminClient {
   }): Promise<RawTree>;
   markScopesAsUpdated(renderingId: number | string): void;
 
-  subscribeServerEvents(callbackCustomizations?: () => Promise<void>): Promise<void>;
+  subscribeServerEvents(): Promise<void>;
 }
 
 export interface PermissionService {
