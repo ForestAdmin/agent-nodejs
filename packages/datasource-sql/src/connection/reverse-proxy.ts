@@ -7,6 +7,7 @@ export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly destination: ConnectionOptionsObj;
+  private readonly clients: net.Socket[] = [];
 
   constructor(destination: ConnectionOptionsObj) {
     this.destination = destination;
@@ -24,8 +25,12 @@ export default class ReverseProxy {
   }
 
   stop(): Promise<void> {
-    return new Promise(resolve => {
-      this.server.close(() => resolve());
+    return new Promise((resolve, reject) => {
+      this.clients.forEach(client => client.destroy());
+      this.server.close(e => {
+        if (e) reject(e);
+        else resolve();
+      });
     });
   }
 
@@ -70,6 +75,7 @@ export default class ReverseProxy {
         destination: { host: this.destinationHost, port: this.destinationPort },
       });
 
+      this.clients.push(socket);
       socks5Proxy.socket.on('error', socket.destroy);
       socks5Proxy.socket.pipe(socket);
       socket.pipe(socks5Proxy.socket);
