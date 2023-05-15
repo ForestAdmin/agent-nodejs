@@ -36,31 +36,45 @@ export default class EventsSubscriptionService {
 
     source.addEventListener('open', () => this.onEventOpen());
 
-    source.addEventListener('message', async (event: ServerEvent) => this.handleSeverEvents(event));
+    source.addEventListener(ServerEventType.RefreshUsers, async () =>
+      this.handleSeverEventRefreshUsers(),
+    );
+
+    source.addEventListener(ServerEventType.RefreshRoles, async () =>
+      this.handleSeverEventRefreshRoles(),
+    );
+
+    source.addEventListener(ServerEventType.RefreshRenderings, async (event: ServerEvent) =>
+      this.handleSeverEventRefreshRenderings(event),
+    );
+
+    source.addEventListener(ServerEventType.RefreshCustomizations, async () =>
+      this.handleSeverEventRefreshCustomizations(),
+    );
   }
 
-  private async handleSeverEvents(event: ServerEvent) {
-    const { type, data } = JSON.parse(event.data as unknown as string);
+  private async handleSeverEventRefreshUsers() {
+    await this.refreshEventsHandlerService.onRefreshUsers();
+  }
 
-    this.options.logger('Debug', `Event - ${type}`);
+  private async handleSeverEventRefreshRoles() {
+    await this.refreshEventsHandlerService.onRefreshRoles();
+  }
 
-    switch (type) {
-      case ServerEventType.RefreshUsers:
-        await this.refreshEventsHandlerService.onRefreshUsers();
-        break;
-
-      case ServerEventType.RefreshRoles:
-        await this.refreshEventsHandlerService.onRefreshRoles();
-        break;
-
-      case ServerEventType.RefreshRenderings:
-        await this.refreshEventsHandlerService.onRefreshRenderings(data as [string | number]);
-        break;
-
-      default:
-        throw new Error(`Unsupported Server Event: ${type}`);
+  private async handleSeverEventRefreshRenderings(event: ServerEvent) {
+    if (!event.data) {
+      this.options.logger('Debug', 'Server Event - RefreshRenderings missing required data.');
     }
+
+    const { renderingIds } = JSON.parse(event.data as unknown as string);
+    await this.refreshEventsHandlerService.onRefreshRenderings(renderingIds);
   }
+
+  private async handleSeverEventRefreshCustomizations() {
+    await this.refreshEventsHandlerService.onRefreshCustomizations();
+  }
+
+  // Base handlers
 
   private onEventError(event: { type: string; status?: number; message?: string }) {
     if (event.status === 502) {
@@ -76,7 +90,7 @@ export default class EventsSubscriptionService {
       this.options.logger('Debug', `Server Event - Error: ${JSON.stringify(event)}`);
   }
 
-  private async onEventOpen() {
+  private onEventOpen() {
     this.options.logger(
       'Debug',
       'Server Event - Open EventSource (SSE) connection with Forest Admin servers',
