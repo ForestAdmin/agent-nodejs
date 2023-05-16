@@ -91,6 +91,7 @@ export default class ReverseProxy {
         proxy: { ...this.destination.proxySocks, type: 5 },
         command: 'connect',
         destination: { host: this.destinationHost, port: this.destinationPort },
+        timeout: 4000,
       });
 
       socks5Proxy.socket.on('close', () => {

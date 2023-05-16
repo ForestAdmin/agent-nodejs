@@ -1,7 +1,5 @@
 import type { ConnectionOptions, ConnectionOptionsObj, SslMode } from '../types';
 
-import { Sequelize } from 'sequelize';
-
 import connect from './index';
 import { getDialect, getUri } from './utils';
 
