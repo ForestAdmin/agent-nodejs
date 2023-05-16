@@ -1,3 +1,23 @@
+## example [1.3.6](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.5...example@1.3.6) (2023-05-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.6.1
+
+## example [1.3.5](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.4...example@1.3.5) (2023-05-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.6.0
+
 ## example [1.3.5-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.4...example@1.3.5-alpha-webhook-custom-actions.1) (2023-05-10)
 
 
