@@ -35,7 +35,6 @@ export interface ForestAdminClient {
   readonly permissionService: PermissionService;
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
-  readonly refreshEventsHandlerService: RefreshEventsHandlerService;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
@@ -53,7 +52,9 @@ export interface ForestAdminClient {
   }): Promise<RawTree>;
   markScopesAsUpdated(renderingId: number | string): void;
 
-  subscribeServerEvents(): Promise<void>;
+  subscribeToServerEvents(): Promise<void>;
+
+  onRefreshCustomizations(handler: () => void | Promise<void>): void;
 }
 
 export interface PermissionService {

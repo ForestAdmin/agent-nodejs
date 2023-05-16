@@ -37,11 +37,11 @@ export default class EventsSubscriptionService {
     source.addEventListener('open', () => this.onEventOpen());
 
     source.addEventListener(ServerEventType.RefreshUsers, async () =>
-      this.handleSeverEventRefreshUsers(),
+      this.refreshEventsHandlerService.refreshUsers(),
     );
 
     source.addEventListener(ServerEventType.RefreshRoles, async () =>
-      this.handleSeverEventRefreshRoles(),
+      this.refreshEventsHandlerService.refreshRoles(),
     );
 
     source.addEventListener(ServerEventType.RefreshRenderings, async (event: ServerEvent) =>
@@ -49,29 +49,19 @@ export default class EventsSubscriptionService {
     );
 
     source.addEventListener(ServerEventType.RefreshCustomizations, async () =>
-      this.handleSeverEventRefreshCustomizations(),
+      this.refreshEventsHandlerService.refreshCustomizations(),
     );
-  }
-
-  private async handleSeverEventRefreshUsers() {
-    await this.refreshEventsHandlerService.onRefreshUsers();
-  }
-
-  private async handleSeverEventRefreshRoles() {
-    await this.refreshEventsHandlerService.onRefreshRoles();
   }
 
   private async handleSeverEventRefreshRenderings(event: ServerEvent) {
     if (!event.data) {
       this.options.logger('Debug', 'Server Event - RefreshRenderings missing required data.');
+
+      return;
     }
 
     const { renderingIds } = JSON.parse(event.data as unknown as string);
-    await this.refreshEventsHandlerService.onRefreshRenderings(renderingIds);
-  }
-
-  private async handleSeverEventRefreshCustomizations() {
-    await this.refreshEventsHandlerService.onRefreshCustomizations();
+    await this.refreshEventsHandlerService.refreshRenderings(renderingIds);
   }
 
   // Base handlers
@@ -87,7 +77,7 @@ export default class EventsSubscriptionService {
     }
 
     if (event.message)
-      this.options.logger('Debug', `Server Event - Error: ${JSON.stringify(event)}`);
+      this.options.logger('Warn', `Server Event - Error: ${JSON.stringify(event)}`);
   }
 
   private onEventOpen() {

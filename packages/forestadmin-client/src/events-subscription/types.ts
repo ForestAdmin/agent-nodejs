@@ -13,12 +13,10 @@ export type ServerEvent = MessageEvent<{
 }>;
 
 export interface RefreshEventsHandlerService extends EventEmitter {
-  onRefreshUsers: () => Promise<void> | void;
-  onRefreshRoles: () => Promise<void> | void;
-  onRefreshRenderings: (renderingIds: [string | number]) => Promise<void> | void;
-  onRefreshCustomizations: () => Promise<void> | void;
-
-  ononRefreshCustomizations: (listener: () => Promise<void>) => void;
+  refreshUsers: () => Promise<void> | void;
+  refreshRoles: () => Promise<void> | void;
+  refreshRenderings: (renderingIds: [string | number]) => Promise<void> | void;
+  refreshCustomizations: () => Promise<void> | void;
 
   refreshEverything: () => Promise<void> | void;
 }

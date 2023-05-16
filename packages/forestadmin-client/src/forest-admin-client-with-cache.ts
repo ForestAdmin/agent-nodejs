@@ -30,7 +30,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly schemaService: SchemaService,
     protected readonly authService: AuthService,
     protected readonly eventsSubscription: EventsSubscriptionService,
-    public readonly refreshEventsHandlerService: RefreshEventsHandlerService,
+    protected readonly refreshEventsHandlerService: RefreshEventsHandlerService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
@@ -73,7 +73,11 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     if (!this.options.useServerEvents) this.renderingPermissionService.invalidateCache(renderingId);
   }
 
-  public async subscribeServerEvents() {
+  public async subscribeToServerEvents() {
     await this.eventsSubscription.subscribeEvents();
+  }
+
+  public async onRefreshCustomizations(handler: () => void | Promise<void>) {
+    await this.refreshEventsHandlerService.on('RefreshCustomizations', handler);
   }
 }

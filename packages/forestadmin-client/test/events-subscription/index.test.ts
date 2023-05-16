@@ -46,6 +46,19 @@ describe('EventsSubscriptionService', () => {
         expect.any(Function),
       );
     });
+
+    describe('when server events are deactivated', () => {
+      test('should not do anything', async () => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          { ...options, useServerEvents: false },
+          refreshEventsHandlerService,
+        );
+
+        eventsSubscriptionService.subscribeEvents();
+
+        expect(addEventListener).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('handleSeverEvents', () => {
@@ -61,7 +74,7 @@ describe('EventsSubscriptionService', () => {
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events[ServerEventType.RefreshUsers]({});
 
-        expect(refreshEventsHandlerService.onRefreshUsers).toHaveBeenCalled();
+        expect(refreshEventsHandlerService.refreshUsers).toHaveBeenCalled();
       });
     });
 
@@ -77,7 +90,23 @@ describe('EventsSubscriptionService', () => {
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events[ServerEventType.RefreshRoles]({});
 
-        expect(refreshEventsHandlerService.onRefreshRoles).toHaveBeenCalled();
+        expect(refreshEventsHandlerService.refreshRoles).toHaveBeenCalled();
+      });
+    });
+
+    describe('on RefreshCustomizations event', () => {
+      test('should delegate to refreshEventsHandlerService', async () => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          refreshEventsHandlerService,
+        );
+
+        eventsSubscriptionService.subscribeEvents();
+
+        // eslint-disable-next-line @typescript-eslint/dot-notation
+        events[ServerEventType.RefreshCustomizations]({});
+
+        expect(refreshEventsHandlerService.refreshCustomizations).toHaveBeenCalled();
       });
     });
 
@@ -112,8 +141,88 @@ describe('EventsSubscriptionService', () => {
           }),
         });
 
-        expect(refreshEventsHandlerService.onRefreshRenderings).toHaveBeenCalled();
-        expect(refreshEventsHandlerService.onRefreshRenderings).toHaveBeenCalledWith(['13', 24]);
+        expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalled();
+        expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith(['13', 24]);
+      });
+      describe('on malformed event', () => {
+        test('should not do anything', async () => {
+          const eventsSubscriptionService = new EventsSubscriptionService(
+            options,
+            refreshEventsHandlerService,
+          );
+          eventsSubscriptionService.subscribeEvents();
+
+          // eslint-disable-next-line @typescript-eslint/dot-notation
+          events[ServerEventType.RefreshRenderings]({
+            data: null,
+          });
+
+          expect(refreshEventsHandlerService.refreshRenderings).not.toHaveBeenCalled();
+        });
+      });
+    });
+  });
+
+  describe('onEventOpen', () => {
+    test('should refreshEverything using refreshEventsHandlerService', async () => {
+      const eventsSubscriptionService = new EventsSubscriptionService(
+        options,
+        refreshEventsHandlerService,
+      );
+
+      eventsSubscriptionService.subscribeEvents();
+
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      events['open']();
+
+      expect(refreshEventsHandlerService.refreshEverything).toHaveBeenCalled();
+
+      expect(options.logger).toHaveBeenCalledWith(
+        'Debug',
+        'Server Event - Open EventSource (SSE) connection with Forest Admin servers',
+      );
+    });
+  });
+
+  describe('onEventError', () => {
+    describe('when error status is Bad Gateway (502)', () => {
+      test('should delegate to refreshEventsHandlerService', async () => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          refreshEventsHandlerService,
+        );
+
+        eventsSubscriptionService.subscribeEvents();
+
+        // eslint-disable-next-line @typescript-eslint/dot-notation
+        events['error']({ status: 502 });
+
+        expect(options.logger).toHaveBeenCalledWith(
+          'Debug',
+          'Server Event - Connection lost (ForestAdmin servers are restarting)',
+        );
+      });
+    });
+
+    describe('other error case', () => {
+      test('should delegate to refreshEventsHandlerService', async () => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          refreshEventsHandlerService,
+        );
+
+        eventsSubscriptionService.subscribeEvents();
+
+        // eslint-disable-next-line @typescript-eslint/dot-notation
+        events['error']({
+          status: 404,
+          message: 'some error message that might help customer to track issues',
+        });
+        expect(options.logger).toHaveBeenCalledWith(
+          'Warn',
+          'Server Event - Error: {"status":404,"message":"some error message that' +
+            ' might help customer to track issues"}',
+        );
       });
     });
   });

@@ -20,7 +20,7 @@ describe('NativeRefreshEventsHandlerService', () => {
   const usersPermission = factories.userPermission.mockAllMethods().build();
   const renderingPermission = factories.renderingPermission.mockAllMethods().build();
 
-  describe('onRefreshUsers', () => {
+  describe('refreshUsers', () => {
     test('should invalidate users cache', async () => {
       const refreshEventsHandler = new NativeRefreshEventsHandlerService(
         actionPermission,
@@ -28,7 +28,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         renderingPermission,
       );
 
-      refreshEventsHandler.onRefreshUsers();
+      refreshEventsHandler.refreshUsers();
 
       expect(usersPermission.invalidateCache).toHaveBeenCalled();
 
@@ -37,7 +37,7 @@ describe('NativeRefreshEventsHandlerService', () => {
     });
   });
 
-  describe('onRefreshRoles', () => {
+  describe('refreshRoles', () => {
     test('should invalidate roles cache', async () => {
       const refreshEventsHandler = new NativeRefreshEventsHandlerService(
         actionPermission,
@@ -45,7 +45,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         renderingPermission,
       );
 
-      refreshEventsHandler.onRefreshRoles();
+      refreshEventsHandler.refreshRoles();
 
       expect(actionPermission.invalidateCache).toHaveBeenCalled();
 
@@ -54,7 +54,7 @@ describe('NativeRefreshEventsHandlerService', () => {
     });
   });
 
-  describe('onRefreshRenderings', () => {
+  describe('refreshRenderings', () => {
     test('should invalidate renderings cache', async () => {
       const refreshEventsHandler = new NativeRefreshEventsHandlerService(
         actionPermission,
@@ -63,7 +63,7 @@ describe('NativeRefreshEventsHandlerService', () => {
       );
 
       const renderingsIds = ['13', 24];
-      refreshEventsHandler.onRefreshRenderings(renderingsIds);
+      refreshEventsHandler.refreshRenderings(renderingsIds);
 
       expect(renderingPermission.invalidateCache).toHaveBeenCalledTimes(2);
       expect(renderingPermission.invalidateCache).toHaveBeenNthCalledWith(1, '13');
@@ -74,7 +74,7 @@ describe('NativeRefreshEventsHandlerService', () => {
     });
   });
 
-  describe('onRefreshCustomizations', () => {
+  describe('refreshCustomizations', () => {
     test('should emit RefreshCustomizations (it will call listener)', async () => {
       const refreshEventsHandler = new NativeRefreshEventsHandlerService(
         actionPermission,
@@ -84,7 +84,7 @@ describe('NativeRefreshEventsHandlerService', () => {
 
       const spyEmit = jest.spyOn(refreshEventsHandler, 'emit');
 
-      refreshEventsHandler.onRefreshCustomizations();
+      refreshEventsHandler.refreshCustomizations();
 
       expect(spyEmit).toHaveBeenCalled();
       expect(spyEmit).toHaveBeenCalledWith('RefreshCustomizations');

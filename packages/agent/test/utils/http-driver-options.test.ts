@@ -101,16 +101,16 @@ describe('OptionsValidator', () => {
         expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
       });
 
+      describe('when using Server Events (useServerEvents=true)', () => {
+        test('should set permissionsCacheDurationInSeconds to 1 year', () => {
+          const options = OptionsValidator.withDefaults({
+            ...mandatoryOptions,
+            useServerEvents: true,
+            permissionsCacheDurationInSeconds: 5 * 60,
+          });
 
-    describe('when using Server Events (useServerEvents=true)', () => {
-      test('should set the default value whatever permissionsCacheDurationInSeconds option value', () => {
-        const options = OptionsValidator.withDefaults({
-          ...mandatoryOptions,
-          useServerEvents: true,
-          permissionsCacheDurationInSeconds: 5 * 60,
+          expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 31560000);
         });
-
-        expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 31560000);
       });
     });
   });

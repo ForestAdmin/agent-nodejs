@@ -17,25 +17,21 @@ export default class NativeRefreshEventsHandlerService
     super();
   }
 
-  public onRefreshUsers() {
+  public refreshUsers() {
     this.usersPermissionService.invalidateCache();
   }
 
-  public onRefreshRoles() {
+  public refreshRoles() {
     this.actionPermissionService.invalidateCache();
   }
 
-  public onRefreshRenderings(renderingIds: (string | number)[]) {
+  public refreshRenderings(renderingIds: (string | number)[]) {
     for (const renderingId of renderingIds)
       this.renderingPermissionService.invalidateCache(renderingId);
   }
 
-  public onRefreshCustomizations() {
-    this.emit(ServerEventType.RefreshCustomizations);
-  }
-
-  public ononRefreshCustomizations(listener: () => Promise<void>) {
-    this.on(ServerEventType.RefreshCustomizations, listener);
+  public refreshCustomizations() {
+    this.emit('RefreshCustomizations');
   }
 
   public refreshEverything() {
