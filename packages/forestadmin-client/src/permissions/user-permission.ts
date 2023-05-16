@@ -38,6 +38,8 @@ export default class UserPermissionService {
   }
 
   public invalidateCache() {
+    this.options.logger('Debug', 'Invalidating users permissions cache..');
+
     this.userInfoById = undefined;
     this.cacheExpirationTimestamp = undefined;
   }

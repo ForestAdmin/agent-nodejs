@@ -56,6 +56,8 @@ export default class EventsSubscriptionService {
   private async handleSeverEventRefreshRenderings(event: ServerEvent) {
     if (!event.data) {
       this.options.logger('Debug', 'Server Event - RefreshRenderings missing required data.');
+
+      return;
     }
 
     const { renderingIds } = JSON.parse(event.data as unknown as string);
@@ -73,7 +75,7 @@ export default class EventsSubscriptionService {
     }
 
     if (event.message)
-      this.options.logger('Debug', `Server Event - Error: ${JSON.stringify(event)}`);
+      this.options.logger('Warn', `Server Event - Error: ${JSON.stringify(event)}`);
   }
 
   private onEventOpen() {

@@ -71,7 +71,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     if (!this.options.useServerEvents) this.renderingPermissionService.invalidateCache(renderingId);
   }
 
-  public async subscribeServerEvents() {
+  public async subscribeToServerEvents() {
     await this.eventsSubscription.subscribeEvents();
   }
 }

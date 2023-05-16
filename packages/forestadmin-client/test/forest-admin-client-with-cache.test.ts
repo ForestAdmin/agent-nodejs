@@ -214,7 +214,7 @@ describe('ForestAdminClientWithCache', () => {
     });
   });
 
-  describe('subscribeServerEvents', () => {
+  describe('subscribeToServerEvents', () => {
     it('should subscribes to Server Events rendering service', async () => {
       const eventsSubscriptionService = factories.eventsSubscription.mockAllMethods().build();
       const forestAdminClient = new ForestAdminClient(
@@ -229,7 +229,7 @@ describe('ForestAdminClientWithCache', () => {
         eventsSubscriptionService,
       );
 
-      await forestAdminClient.subscribeServerEvents();
+      await forestAdminClient.subscribeToServerEvents();
 
       expect(eventsSubscriptionService.subscribeEvents).toHaveBeenCalledWith();
     });

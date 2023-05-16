@@ -55,8 +55,7 @@ export default class ActionPermissionService {
 
     this.options.logger(
       'Debug',
-      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform
-      }${actionName}`,
+      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform ${actionName}`,
     );
 
     return isAllowed;
@@ -142,6 +141,8 @@ export default class ActionPermissionService {
   }
 
   public invalidateCache() {
+    this.options.logger('Debug', 'Invalidating roles permissions cache..');
+
     this.permissionsPromise = undefined;
     this.permissionExpirationTimestamp = undefined;
   }
