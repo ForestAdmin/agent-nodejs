@@ -58,6 +58,7 @@ export default async function connect(
   logger?: Logger,
 ): Promise<Sequelize> {
   let proxy: ReverseProxy | undefined;
+  let sequelize: Sequelize | undefined;
 
   try {
     let options = await preprocessOptions(uriOrOptions);
@@ -77,22 +78,25 @@ export default async function connect(
       ...getSslConfiguration(opts.dialect, sslMode, logger),
     };
 
-    const sequelize = uri
+    sequelize = uri
       ? new Sequelize(uri, { ...opts, schema, logging })
       : new Sequelize({ ...opts, schema, logging });
 
     // we want to stop the proxy when the sequelize connection is closed
     sequelize.close = async function close() {
-      await Sequelize.prototype.close.call(this);
-      await proxy?.stop();
+      try {
+        await Sequelize.prototype.close.call(this);
+      } finally {
+        await proxy?.stop();
+      }
     };
 
     await sequelize.authenticate(); // Test connection
 
     return sequelize;
   } catch (e) {
-    await proxy?.stop();
+    await sequelize?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
-    handleSequelizeError(proxy?.getError() || (e as Error));
+    handleSequelizeError(proxy?.error || (e as Error));
   }
 }

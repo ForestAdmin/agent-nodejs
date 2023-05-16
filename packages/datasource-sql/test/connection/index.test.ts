@@ -26,6 +26,28 @@ describe('Connect', () => {
     });
   });
 
+  describe('when proxy socks configuration is provided', () => {
+    describe('when the password the uri is wrong', () => {
+      it('should not blocked the promise', async () => {
+        const baseUri = 'postgres://test:password@localhost:5443';
+        await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+
+        const badUri = `postgres://BADUSER:password@postgres:5432/test_connection`;
+        await expect(() =>
+          connect({
+            uri: badUri,
+            proxySocks: {
+              host: 'localhost',
+              port: 1080,
+              password: 'password',
+              userId: 'username',
+            },
+          }),
+        ).rejects.toThrow('password authentication failed for user "BADUSER"');
+      });
+    });
+  });
+
   describe.each([
     ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 5432, 'postgres'],
     ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, 3306, 'mysql'],
