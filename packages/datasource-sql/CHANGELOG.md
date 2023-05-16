@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.0...@forestadmin/datasource-sql@1.6.1) (2023-05-16)
+
+
+### Bug Fixes
+
+* **ds-sql:** close the proxy when sequelize instance closes ([#694](https://github.com/ForestAdmin/agent-nodejs/issues/694)) ([d31276c](https://github.com/ForestAdmin/agent-nodejs/commit/d31276cba54b1c4d42e884bdaddb38200cd1364b))
+
 # @forestadmin/datasource-sql [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.5.2...@forestadmin/datasource-sql@1.6.0) (2023-05-10)
 
 
