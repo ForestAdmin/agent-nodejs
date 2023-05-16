@@ -4,6 +4,7 @@ import {
   Aggregation,
   Caller,
   Collection,
+  CollectionSchema,
   ConditionTreeFactory,
   Filter,
   Page,
@@ -33,6 +34,10 @@ export default class RelaxedCollection<
 > {
   private collection: Collection;
   private caller: Caller;
+
+  get schema(): CollectionSchema {
+    return this.collection.schema;
+  }
 
   constructor(collection: Collection, caller: Caller) {
     this.collection = collection;

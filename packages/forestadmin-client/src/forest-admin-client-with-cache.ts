@@ -7,6 +7,7 @@ import EventsSubscriptionService from './events-subscription';
 import { RefreshEventsHandlerService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { ModelCustomizationService } from './model-customizations/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
@@ -31,6 +32,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly authService: AuthService,
     protected readonly eventsSubscription: EventsSubscriptionService,
     protected readonly refreshEventsHandlerService: RefreshEventsHandlerService,
+    public readonly modelCustomizationService: ModelCustomizationService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {

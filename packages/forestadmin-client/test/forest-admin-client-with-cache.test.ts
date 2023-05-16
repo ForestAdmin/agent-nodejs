@@ -27,6 +27,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.auth.build(),
         factories.eventsSubscription.build(),
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -52,6 +53,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.auth.build(),
         factories.eventsSubscription.build(),
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       const result = await forestAdminClient.postSchema({
@@ -59,6 +61,7 @@ describe('ForestAdminClientWithCache', () => {
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -82,6 +85,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.auth.build(),
         factories.eventsSubscription.build(),
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -110,6 +114,7 @@ describe('ForestAdminClientWithCache', () => {
         authService,
         factories.eventsSubscription.build(),
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       const result = await forestAdminClient.getUserInfo(1, 'token');
@@ -134,6 +139,7 @@ describe('ForestAdminClientWithCache', () => {
         authService,
         factories.eventsSubscription.build(),
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       const result = await forestAdminClient.getOpenIdClient();
@@ -158,6 +164,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.auth.build(),
           factories.eventsSubscription.build(),
           factories.nativeRefreshEventsHandler.build(),
+          factories.modelCustomization.build(),
         );
 
         await forestAdminClient.markScopesAsUpdated(42);
@@ -180,6 +187,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.auth.build(),
           factories.eventsSubscription.build(),
           factories.nativeRefreshEventsHandler.build(),
+          factories.modelCustomization.build(),
         );
 
         await forestAdminClient.markScopesAsUpdated(42);
@@ -203,6 +211,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.auth.build(),
         factories.eventsSubscription.build(),
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
@@ -236,6 +245,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.auth.build(),
         eventsSubscriptionService,
         factories.nativeRefreshEventsHandler.build(),
+        factories.modelCustomization.build(),
       );
 
       await forestAdminClient.subscribeToServerEvents();

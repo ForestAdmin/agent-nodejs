@@ -1,5 +1,5 @@
 import type { Table } from './introspection/types';
-import type { ConnectionOptions } from './types';
+import type { ConnectionOptions, SslMode } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -14,11 +14,15 @@ export async function introspect(
   uriOrOptions: ConnectionOptions,
   logger?: Logger,
 ): Promise<Table[]> {
-  const sequelize = await connect(uriOrOptions, logger);
-  const tables = await Introspector.introspect(sequelize, logger);
-  await sequelize.close();
+  let sequelize: Sequelize;
 
-  return tables;
+  try {
+    sequelize = await connect(uriOrOptions, logger);
+
+    return await Introspector.introspect(sequelize, logger);
+  } finally {
+    await sequelize?.close();
+  }
 }
 
 export async function buildSequelizeInstance(
@@ -26,11 +30,17 @@ export async function buildSequelizeInstance(
   logger: Logger,
   introspection?: Table[],
 ): Promise<Sequelize> {
-  const sequelize = await connect(uriOrOptions, logger);
-  const tables = introspection ?? (await Introspector.introspect(sequelize, logger));
+  let sequelize: Sequelize;
 
-  ModelBuilder.defineModels(sequelize, logger, tables);
-  RelationBuilder.defineRelations(sequelize, logger, tables);
+  try {
+    sequelize = await connect(uriOrOptions, logger);
+    const tables = introspection ?? (await Introspector.introspect(sequelize, logger));
+    ModelBuilder.defineModels(sequelize, logger, tables);
+    RelationBuilder.defineRelations(sequelize, logger, tables);
+  } catch (error) {
+    await sequelize?.close();
+    throw error;
+  }
 
   return sequelize;
 }
@@ -46,5 +56,5 @@ export function createSqlDataSource(
   };
 }
 
-export type { ConnectionOptions, Table };
+export type { ConnectionOptions, Table, SslMode };
 export { default as preprocessOptions } from './connection/preprocess';

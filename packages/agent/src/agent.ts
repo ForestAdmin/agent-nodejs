@@ -19,6 +19,7 @@ import bodyParser from 'koa-bodyparser';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
+import ActionCustomizationService from './services/model-customizations/action-customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
@@ -36,6 +37,8 @@ import OptionsValidator from './utils/options-validator';
 export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter {
   private options: AgentOptionsWithDefaults;
   private customizer: DataSourceCustomizer<S>;
+  private nocodeCustomizer: DataSourceCustomizer<S>;
+  private actionCustomizationService: ActionCustomizationService;
 
   /**
    * Create a new Agent Builder.
@@ -59,37 +62,24 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
+    this.actionCustomizationService = new ActionCustomizationService(allOptions);
   }
 
   /**
    * Start the agent.
    */
-  override async start(): Promise<void> {
+  override async start(_, restart = false): Promise<void> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
-    const dataSource = await this.customizer.getDataSource(logger);
-    const [router] = await Promise.all([
-      this.getRouter(dataSource),
-      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
-      !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
-        : Promise.resolve(),
+    await this.nocodeCustomizer.use(
+      this.actionCustomizationService.addWebhookActions,
+      this.options.experimental?.webhookCustomActions,
+    );
 
-      this.options.forestAdminClient.subscribeToServerEvents(),
-    ]);
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
 
-    this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
-
-    return super.start(router);
-  }
-
-  /**
-   * Restart the agent. Use full to register dynamic routes (No-Code customizations)
-   */
-  async restart(): Promise<void> {
-    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
-
-    const dataSource = await this.customizer.getDataSource(logger);
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
@@ -97,6 +87,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
         : Promise.resolve(),
     ]);
+
+    if (!restart) {
+      this.options.forestAdminClient.subscribeToServerEvents();
+      this.options.forestAdminClient.onRefreshCustomizations(this.start.bind(this, null, true));
+    }
 
     return super.start(router);
   }
@@ -196,7 +191,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(dataSource);
+      schema = await SchemaGenerator.buildSchema(dataSource, this.buildSchemaFeatures());
 
       const pretty = stringify(schema, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
@@ -209,5 +204,15 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       : 'Schema was not updated since last run';
 
     this.options.logger('Info', message);
+  }
+
+  private buildSchemaFeatures(): string[] | null {
+    const mapping: Record<keyof AgentOptions['experimental'], string> = {
+      webhookCustomActions: ActionCustomizationService.FEATURE,
+    };
+
+    return Object.entries(mapping)
+      .filter(([experimentalFeature]) => this.options.experimental?.[experimentalFeature])
+      .map(([, feature]) => feature);
   }
 }
