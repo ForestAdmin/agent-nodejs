@@ -8,7 +8,7 @@ export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly destination: ConnectionOptionsObj;
-  private readonly clients: Set<net.Socket> = new Set();
+  private readonly connectedClients: Set<net.Socket> = new Set();
 
   constructor(destination: ConnectionOptionsObj) {
     this.destination = destination;
@@ -32,11 +32,11 @@ export default class ReverseProxy {
         else resolve();
       });
 
-      this.clients.forEach(client => client.destroy());
+      this.connectedClients.forEach(client => client.destroy());
     });
   }
 
-  public get connectionOptions(): ConnectionOptionsObj {
+  get connectionOptions(): ConnectionOptionsObj {
     const { address, port } = this.server.address() as net.AddressInfo;
     const connection = { ...this.destination };
 
@@ -53,7 +53,7 @@ export default class ReverseProxy {
     return connection;
   }
 
-  public getError(): Error | null {
+  get error(): Error | null {
     return this.errors.length > 0 ? this.errors[0] : null;
   }
 
@@ -69,7 +69,7 @@ export default class ReverseProxy {
 
   private async onConnection(socket: net.Socket): Promise<void> {
     let socks5Proxy: SocksClientEstablishedEvent;
-    this.clients.add(socket);
+    this.connectedClients.add(socket);
 
     socket.on('error', error => {
       this.errors.push(error);
@@ -79,7 +79,7 @@ export default class ReverseProxy {
       }
     });
     socket.on('close', () => {
-      this.clients.delete(socket);
+      this.connectedClients.delete(socket);
 
       if (!socks5Proxy?.socket.closed) {
         socks5Proxy?.socket.destroy();
@@ -95,7 +95,7 @@ export default class ReverseProxy {
       });
 
       socks5Proxy.socket.on('close', () => {
-        this.clients.delete(socks5Proxy.socket);
+        this.connectedClients.delete(socks5Proxy.socket);
 
         if (!socket.closed) {
           socket.destroy();

@@ -97,6 +97,6 @@ export default async function connect(
   } catch (e) {
     await sequelize?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
-    handleSequelizeError(proxy?.getError() || (e as Error));
+    handleSequelizeError(proxy?.error || (e as Error));
   }
 }

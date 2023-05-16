@@ -58,7 +58,7 @@ describe('ReverseProxy', () => {
           client.connect({ port: Number(port), host });
         });
 
-        expect(proxy.getError()).toEqual(new Error('a proxy error'));
+        expect(proxy.error).toEqual(new Error('a proxy error'));
       });
     });
   });
