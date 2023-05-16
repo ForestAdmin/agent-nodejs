@@ -38,7 +38,7 @@ export async function buildSequelizeInstance(
     ModelBuilder.defineModels(sequelize, logger, tables);
     RelationBuilder.defineRelations(sequelize, logger, tables);
   } catch (error) {
-    sequelize?.close();
+    await sequelize?.close();
     throw error;
   }
 

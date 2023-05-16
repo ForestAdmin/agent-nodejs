@@ -1,5 +1,6 @@
 import net from 'net';
 import { SocksClient } from 'socks';
+import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import { ConnectionOptionsObj } from '../types';
 
@@ -7,7 +8,7 @@ export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly destination: ConnectionOptionsObj;
-  private readonly clients: net.Socket[] = [];
+  private readonly clients: Set<net.Socket> = new Set();
 
   constructor(destination: ConnectionOptionsObj) {
     this.destination = destination;
@@ -26,14 +27,12 @@ export default class ReverseProxy {
 
   stop(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.clients.forEach(client => {
-        client.destroy();
-        this.clients.splice(this.clients.indexOf(client), 1);
-      });
       this.server.close(e => {
         if (e) reject(e);
         else resolve();
       });
+
+      this.clients.forEach(client => client.destroy());
     });
   }
 
@@ -69,16 +68,38 @@ export default class ReverseProxy {
   }
 
   private async onConnection(socket: net.Socket): Promise<void> {
-    socket.on('error', error => this.errors.push(error));
+    let socks5Proxy: SocksClientEstablishedEvent;
+    this.clients.add(socket);
+
+    socket.on('error', error => {
+      this.errors.push(error);
+
+      if (!socket.closed) {
+        socket.destroy(error);
+      }
+    });
+    socket.on('close', () => {
+      this.clients.delete(socket);
+
+      if (!socks5Proxy?.socket.closed) {
+        socks5Proxy?.socket.destroy();
+      }
+    });
 
     try {
-      const socks5Proxy = await SocksClient.createConnection({
+      socks5Proxy = await SocksClient.createConnection({
         proxy: { ...this.destination.proxySocks, type: 5 },
         command: 'connect',
         destination: { host: this.destinationHost, port: this.destinationPort },
       });
 
-      this.clients.push(socket);
+      socks5Proxy.socket.on('close', () => {
+        this.clients.delete(socks5Proxy.socket);
+
+        if (!socket.closed) {
+          socket.destroy();
+        }
+      });
 
       socks5Proxy.socket.on('error', socket.destroy);
       socks5Proxy.socket.pipe(socket);

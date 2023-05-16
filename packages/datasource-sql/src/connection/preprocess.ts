@@ -14,18 +14,16 @@ async function resolveSslMode(uriOrOptions: ConnectionOptionsObj): Promise<SslMo
     if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') modes.shift();
 
     let error: Error;
-    let sequelize: Sequelize;
 
     for (const sslMode of modes) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        sequelize = await connect({ ...uriOrOptions, sslMode });
+        const sequelize = await connect({ ...uriOrOptions, sslMode });
+        await sequelize.close(); // eslint-disable-line no-await-in-loop
 
         return sslMode;
       } catch (e) {
         error = e;
-      } finally {
-        await sequelize?.close(); // eslint-disable-line no-await-in-loop
       }
     }
 

@@ -65,7 +65,7 @@ describe('ReverseProxy', () => {
 
   describe('when client open a connection', () => {
     it('should branch the socks5 to the socket', async () => {
-      const socks5ProxyMock = { socket: { on: jest.fn(), pipe: jest.fn() } };
+      const socks5ProxyMock = { socket: { on: jest.fn(), pipe: jest.fn(), destroy: jest.fn() } };
       jest.spyOn(SocksClient, 'createConnection').mockResolvedValue(socks5ProxyMock as any);
       proxy = new ReverseProxy(makeProxyOptions());
 
@@ -153,7 +153,7 @@ describe('ReverseProxy', () => {
 
     describe('when a connection is opened', () => {
       it('should stop the proxy without throwing error', async () => {
-        const socks5ProxyMock = { socket: { on: jest.fn(), pipe: jest.fn() } };
+        const socks5ProxyMock = { socket: { on: jest.fn(), pipe: jest.fn(), destroy: jest.fn() } };
         jest.spyOn(SocksClient, 'createConnection').mockResolvedValue(socks5ProxyMock as any);
 
         proxy = new ReverseProxy(makeProxyOptions());
