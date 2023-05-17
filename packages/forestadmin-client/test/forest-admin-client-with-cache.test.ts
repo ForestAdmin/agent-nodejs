@@ -154,7 +154,7 @@ describe('ForestAdminClientWithCache', () => {
       it('should invalidate the cache of scopes', async () => {
         const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
         const forestAdminClient = new ForestAdminClient(
-          { ...factories.forestAdminClientOptions.build(), useServerEvents: false },
+          { ...factories.forestAdminClientOptions.build(), instantCacheRefresh: false },
           factories.permission.build(),
           renderingPermissionService,
           factories.contextVariablesInstantiator.build(),

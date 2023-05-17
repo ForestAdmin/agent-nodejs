@@ -40,7 +40,7 @@ describe('RenderingPermissionService', () => {
       forestServerUrl: 'https://api.dev',
       envSecret: 'secret',
       isProduction: true,
-      useServerEvents: false,
+      instantCacheRefresh: false,
       permissionsCacheDurationInSeconds: 1000,
       logger: jest.fn(),
     };

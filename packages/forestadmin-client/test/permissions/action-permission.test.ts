@@ -19,7 +19,7 @@ describe('ActionPermissionService', () => {
       envSecret: '123',
       forestServerUrl: 'http://api',
       isProduction: true,
-      useServerEvents: false,
+      instantCacheRefresh: false,
       logger: jest.fn(),
     };
     const serverInterface = factories.forestAdminServerInterface.build();
