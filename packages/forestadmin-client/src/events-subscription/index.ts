@@ -5,15 +5,15 @@ import { ForestAdminClientOptionsWithDefaults } from '../types';
 
 export default class EventsSubscriptionService {
   constructor(
-    private options: ForestAdminClientOptionsWithDefaults,
+    private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly refreshEventsHandlerService: RefreshEventsHandlerService,
   ) {}
 
   async subscribeEvents(): Promise<void> {
-    if (!this.options.useServerEvents) {
+    if (!this.options.instantCacheRefresh) {
       this.options.logger(
         'Debug',
-        'Event source deactivated.. Use agent option [useServerEvents=true] ' +
+        'Event source deactivated.. Use agent option [instantCacheRefresh=true] ' +
           'if you want to activate them',
       );
 
@@ -66,10 +66,7 @@ export default class EventsSubscriptionService {
 
   private onEventError(event: { type: string; status?: number; message?: string }) {
     if (event.status === 502) {
-      this.options.logger(
-        'Debug',
-        'Server Event - Connection lost (ForestAdmin servers are restarting)',
-      );
+      this.options.logger('Debug', 'Server Event - Connection lost');
 
       return;
     }

@@ -27,7 +27,7 @@ export default class ActionPermissionService {
       roleId,
       actionName,
       // Only allow refetch when not using server events
-      allowRefetch: !this.options.useServerEvents,
+      allowRefetch: !this.options.instantCacheRefresh,
     });
   }
 

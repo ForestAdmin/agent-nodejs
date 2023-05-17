@@ -51,7 +51,7 @@ export default class RenderingPermissionService {
       collectionName,
       userId,
       // Only allow retry when not using server events
-      allowRetry: !this.options.useServerEvents,
+      allowRetry: !this.options.instantCacheRefresh,
     });
   }
 
@@ -109,7 +109,7 @@ export default class RenderingPermissionService {
         collectionName,
         segmentQuery,
         // Only allow retry when not using server events
-        allowRetry: !this.options.useServerEvents,
+        allowRetry: !this.options.instantCacheRefresh,
       })) && verifySQLQuery(segmentQuery)
     );
   }
@@ -193,7 +193,7 @@ export default class RenderingPermissionService {
         chartHash,
         userId,
         // Only allow retry when not using server events
-        allowRetry: !this.options.useServerEvents,
+        allowRetry: !this.options.instantCacheRefresh,
       })) &&
       (!this.isQueryChart(chartRequest) || verifySQLQuery(chartRequest.query))
     );

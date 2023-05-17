@@ -34,7 +34,7 @@ export default function buildApplicationServices(
     forestServerUrl: 'https://api.forestadmin.com',
     permissionsCacheDurationInSeconds: 15 * 60,
     logger: defaultLogger,
-    useServerEvents: true,
+    instantCacheRefresh: true,
     ...options,
   };
 

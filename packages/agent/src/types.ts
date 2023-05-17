@@ -15,7 +15,7 @@ export type AgentOptions = {
   schemaPath?: string;
   typingsPath?: string | null;
   typingsMaxDepth?: number;
-  useServerEvents?: boolean;
+  instantCacheRefresh?: boolean;
   permissionsCacheDurationInSeconds?: number;
   skipSchemaUpdate?: boolean;
   forestAdminClient?: ForestAdminClient;

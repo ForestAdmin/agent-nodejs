@@ -35,17 +35,22 @@ export default class OptionsValidator {
     copyOptions.prefix = copyOptions.prefix || '';
     copyOptions.loggerLevel = copyOptions.loggerLevel || 'Info';
     copyOptions.skipSchemaUpdate = copyOptions.skipSchemaUpdate || false;
-    copyOptions.useServerEvents = copyOptions.useServerEvents ?? true;
+    copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
+
+    if (copyOptions.instantCacheRefresh && copyOptions.permissionsCacheDurationInSeconds) {
+      copyOptions.logger(
+        'Warn',
+        'ignoring options.permissionsCacheDurationInSeconds: when using ' +
+          'options.instantCacheRefresh=true permissions caches are instantly refreshed',
+      );
+    }
 
     // When using the event source to refresh cache we set a one year cache duration
-    copyOptions.permissionsCacheDurationInSeconds = copyOptions.useServerEvents
+    copyOptions.permissionsCacheDurationInSeconds = copyOptions.instantCacheRefresh
       ? DEFAULT_CACHE_DURATION_WITH_EVENTS
       : copyOptions.permissionsCacheDurationInSeconds ?? DEFAULT_MINIMUM_CACHE_DURATION * 15;
 
-    if (
-      !copyOptions.useServerEvents &&
-      copyOptions.permissionsCacheDurationInSeconds < DEFAULT_MINIMUM_CACHE_DURATION
-    ) {
+    if (copyOptions.permissionsCacheDurationInSeconds < DEFAULT_MINIMUM_CACHE_DURATION) {
       copyOptions.permissionsCacheDurationInSeconds = DEFAULT_MINIMUM_CACHE_DURATION;
       copyOptions.logger(
         'Warn',
@@ -61,7 +66,7 @@ export default class OptionsValidator {
         forestServerUrl: copyOptions.forestServerUrl,
         logger: copyOptions.logger,
         permissionsCacheDurationInSeconds: copyOptions.permissionsCacheDurationInSeconds,
-        useServerEvents: copyOptions.useServerEvents,
+        instantCacheRefresh: copyOptions.instantCacheRefresh,
       });
 
     return {

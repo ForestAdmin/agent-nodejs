@@ -50,7 +50,7 @@ describe('EventsSubscriptionService', () => {
     describe('when server events are deactivated', () => {
       test('should not do anything', async () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
-          { ...options, useServerEvents: false },
+          { ...options, instantCacheRefresh: false },
           refreshEventsHandlerService,
         );
 
@@ -181,10 +181,7 @@ describe('EventsSubscriptionService', () => {
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events['error']({ status: 502 });
 
-        expect(options.logger).toHaveBeenCalledWith(
-          'Debug',
-          'Server Event - Connection lost (ForestAdmin servers are restarting)',
-        );
+        expect(options.logger).toHaveBeenCalledWith('Debug', 'Server Event - Connection lost');
       });
     });
 
