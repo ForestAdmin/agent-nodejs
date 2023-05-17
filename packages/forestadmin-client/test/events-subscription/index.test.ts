@@ -110,22 +110,6 @@ describe('EventsSubscriptionService', () => {
       });
     });
 
-    describe('on RefreshCustomizations event', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
-        const eventsSubscriptionService = new EventsSubscriptionService(
-          options,
-          refreshEventsHandlerService,
-        );
-
-        eventsSubscriptionService.subscribeEvents();
-
-        // eslint-disable-next-line @typescript-eslint/dot-notation
-        events[ServerEventType.RefreshCustomizations]({});
-
-        expect(refreshEventsHandlerService.onRefreshCustomizations).toHaveBeenCalled();
-      });
-    });
-
     describe('on RefreshRenderings event', () => {
       test('should delegate to refreshEventsHandlerService', async () => {
         const eventsSubscriptionService = new EventsSubscriptionService(

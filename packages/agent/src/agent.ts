@@ -70,30 +70,20 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Start the agent.
    */
-  override async start(_, restart = false): Promise<void> {
-    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
+  override async start(): Promise<void> {
+    const router = await this._start();
 
-    await this.nocodeCustomizer.use(
-      this.actionCustomizationService.addWebhookActions,
-      this.options.experimental?.webhookCustomActions,
-    );
-
-    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
-
-    const [router] = await Promise.all([
-      this.getRouter(dataSource),
-      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
-      !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
-        : Promise.resolve(),
-    ]);
-
-    if (!restart) {
-      this.options.forestAdminClient.subscribeToServerEvents();
-      this.options.forestAdminClient.onRefreshCustomizations(this.start.bind(this, null, true));
-    }
+    this.options.forestAdminClient.subscribeToServerEvents();
+    this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
     return super.start(router);
+  }
+
+  private async restart(): Promise<void> {
+    this.options.logger('Debug', 'Server restarting');
+    await super.stop();
+
+    return super.start(await this._start());
   }
 
   /**
@@ -214,5 +204,31 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return Object.entries(mapping)
       .filter(([experimentalFeature]) => this.options.experimental?.[experimentalFeature])
       .map(([, feature]) => feature);
+  }
+
+  /**
+   * Create an handler which can respond to all queries which are expected from an agent.
+   * Send Schema
+   */
+  private async _start(): Promise<Router> {
+    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
+
+    await this.nocodeCustomizer.use(
+      this.actionCustomizationService.addWebhookActions,
+      this.options.experimental?.webhookCustomActions,
+    );
+
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+
+    const [router] = await Promise.all([
+      this.getRouter(dataSource),
+      // TODO: When using customization we need to send schema !!!
+      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
+      !isProduction && typingsPath
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        : Promise.resolve(),
+    ]);
+
+    return router;
   }
 }
