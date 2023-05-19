@@ -5,8 +5,11 @@ To make everything work as expected, you need to install the package `@forestadm
 Note that:
 
 - It has been developed with version 7 in mind. Support for elastic search v8 will come later.
-- Joins are not supported
-- Points are not supported
+- Joins are not supported at the moment
+- Object (sub-model in models) are not supported at the moment
+- Points are not supported at the moment
+- Arrays are not supported out of the box. See the section [`Specifying that a field is an array`](#Tips)
+
 
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
@@ -44,3 +47,25 @@ const agent = createAgent(options).addDataSource(
     ),
   ));
 ```
+
+
+## Tips
+### Specifying that a field is an array
+
+In Elasticsearch, there is no dedicated array data type. Any field can contain zero or more values by default, however, all values in the array must be of the same data type.
+So, you will need to hand-specify that a field is indeed an array.
+
+*`document` is a keyword type seen as a String in the Forest Admin world but we use it with multiple values so let's make it an array of String*
+
+```
+collection.removeField('document').addField('documents', {
+        columnType: ['String'],
+        dependencies: ['document'],
+        getValues: records => records.map(record => record.document),
+      });
+```
+
+## TODO
+- Create a plugin for specifying fields that are arrays (or add an option to the data source configuration builder)
+- Handle Joins
+- Handle Object

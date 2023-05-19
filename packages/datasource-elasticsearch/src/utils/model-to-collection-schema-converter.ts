@@ -101,18 +101,8 @@ export default class ModelToCollectionSchemaConverter {
           Object.assign(fields, {
             ...this.convertAssociations(modelName, attribute as MappingJoinProperty, logger),
           });
-        } else if (attribute.type) {
-          fields[name] = this.convertAttribute(attribute);
         } else {
-          // TODO Handle this inner definition as hasMany relation to the new collection
-          // this.convertAttributes(name, attribute, logger);
-
-          fields[name] = {
-            type: 'OneToMany',
-            originKey: name,
-            originKeyTarget: '_id',
-            foreignCollection: name.endsWith('s') ? name.slice(0, name.length - 1) : name,
-          };
+          fields[name] = this.convertAttribute(attribute);
         }
       } catch (error) {
         logger?.('Warn', `Skipping column '${modelName}.${name}' (${error.message})`);

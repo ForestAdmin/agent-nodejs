@@ -187,25 +187,4 @@ export default class ModelElasticsearch {
   public getAttributes() {
     return this.mapping.properties;
   }
-
-  /**
-   * Return inner models definition
-   */
-  public getInnerModels() {
-    return Object.entries(this.mapping.properties).reduce((acc, [name, attribute]) => {
-      // Inner model definition
-      // Example in kibana_sample_data_ecommerce -> products even worst it's an array
-
-      // https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html
-
-      if (!attribute.type && attribute.properties) {
-        acc.push({
-          name: name.endsWith('s') ? name.slice(0, name.length - 1) : name,
-          properties: attribute.properties,
-        });
-      }
-
-      return acc;
-    }, []);
-  }
 }

@@ -97,5 +97,12 @@ export default function makeAgent() {
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
-    .customizeCollection('review', customizeReview);
+    .customizeCollection('review', customizeReview)
+    .customizeCollection('Flights', collection => {
+      collection.removeField('AvgTicketPrice').addField('ArrayOfAvgTicketPrice', {
+        columnType: ['String'],
+        dependencies: ['AvgTicketPrice'],
+        getValues: records => records.map(record => record.AvgTicketPrice),
+      });
+    });
 }
