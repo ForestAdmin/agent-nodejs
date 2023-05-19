@@ -9,11 +9,12 @@ const logger = () => {};
 const mockDocuments = { create: jest.fn(), get: jest.fn(), batchUpdate: jest.fn() };
 const mockFiles = { export: jest.fn(), get: jest.fn() };
 
-jest.mock('googleapis', () => ({
-  google: {
-    docs: jest.fn().mockImplementation(opt => ({ documents: mockDocuments, opt })),
-    drive: jest.fn().mockImplementation(opt => ({ files: mockFiles, opt })),
-  },
+jest.mock('@googleapis/docs', () => ({
+  docs: jest.fn().mockImplementation(opt => ({ documents: mockDocuments, opt })),
+}));
+
+jest.mock('@googleapis/drive', () => ({
+  drive: jest.fn().mockImplementation(opt => ({ files: mockFiles, opt })),
 }));
 
 // This is read only, no need to rebuild for each test

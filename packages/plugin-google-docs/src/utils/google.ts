@@ -1,4 +1,5 @@
-import { docs_v1, drive_v3, google } from 'googleapis';
+import { docs, docs_v1 } from '@googleapis/docs';
+import { drive, drive_v3 } from '@googleapis/drive';
 
 import { Options } from '../types';
 
@@ -7,8 +8,8 @@ export default class Client {
   private service: drive_v3.Drive;
 
   constructor(options: Options['google']) {
-    this.client = google.docs({ version: 'v1', auth: options.auth });
-    this.service = google.drive({ version: 'v3', auth: options.auth });
+    this.client = docs({ version: 'v1', auth: options.auth });
+    this.service = drive({ version: 'v3', auth: options.auth });
   }
 
   async exportToPdf(fileId: string): Promise<Buffer> {
