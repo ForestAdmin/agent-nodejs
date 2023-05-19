@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.5.0",
-    "googleapis": "^118.0.0"
+    "@googleapis/drive": "^5.1.0"
   },
   "files": [
     "dist/**/*.js",

@@ -11,7 +11,7 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { drive_v3, google } from 'googleapis';
+import { drive, drive_v3 } from '@googleapis/drive';
 
 import { Options } from './datasource';
 import queryStringFromConditionTree from './utils/query-converter';
@@ -71,7 +71,7 @@ export default class GoogleDriveCollection extends BaseCollection {
   constructor(datasource: DataSource, name: string, options: Options) {
     super(name, datasource);
 
-    this.service = google.drive({ version: 'v3', auth: options.auth });
+    this.service = drive({ version: 'v3', auth: options.auth });
 
     // https://developers.google.com/drive/api/reference/rest/v3/files
     this.addFields(GoogleDriveCollection.schema);
