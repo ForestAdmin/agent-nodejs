@@ -1,7 +1,7 @@
 import type { ConnectionOptions } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { BaseError, Dialect } from 'sequelize';
+import { Dialect } from 'sequelize';
 
 function checkUri(uri: string): void {
   if (!/.*:\/\//g.test(uri) && uri !== 'sqlite::memory:') {
@@ -54,21 +54,4 @@ export function getSchema(uri: string): string {
 
 export function getLogger(logger: Logger): (sql: string) => void {
   return (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
-}
-
-export function handleSequelizeError(error: Error): void {
-  if (error instanceof BaseError) {
-    const nameWithoutSequelize = error.name.replace('Sequelize', '');
-    const nameWithSpaces = nameWithoutSequelize.replace(
-      /([a-z])([A-Z])/g,
-      (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
-    );
-
-    const newError = new Error(`${nameWithSpaces}: ${error.message}`);
-    newError.name = nameWithoutSequelize;
-
-    throw newError;
-  }
-
-  throw error;
 }

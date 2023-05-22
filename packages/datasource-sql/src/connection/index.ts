@@ -3,9 +3,10 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { Dialect, Sequelize } from 'sequelize';
 
+import { handleErrors, handleErrorsWithProxy } from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
-import { getLogger, getSchema, handleSequelizeError } from './utils';
+import { getLogger, getSchema } from './utils';
 
 function getSslConfiguration(
   dialect: Dialect,
@@ -96,7 +97,15 @@ export default async function connect(
     return sequelize;
   } catch (e) {
     await sequelize?.close();
+
     // if proxy encountered an error, we want to throw it instead of the sequelize error
-    handleSequelizeError(proxy?.error || (e as Error));
+    const uri = typeof uriOrOptions === 'string' ? uriOrOptions : uriOrOptions.uri;
+    const error = proxy?.error || (e as Error);
+
+    if (proxy) {
+      handleErrorsWithProxy(error, uri);
+    } else {
+      handleErrors(error, uri);
+    }
   }
 }
