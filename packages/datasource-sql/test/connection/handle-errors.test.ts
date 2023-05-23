@@ -1,3 +1,5 @@
+import { Dialect } from 'sequelize';
+
 import connect from '../../src/connection';
 import {
   AccessDeniedError,
@@ -18,89 +20,159 @@ describe('connect errors', () => {
     userId: 'username',
   };
 
-  beforeEach(async () => {
-    const baseUri = 'postgres://test:password@localhost:5443';
-    await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
-  });
+  describe.each([
+    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 5432, 'postgres'],
+    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, 3306, 'mysql'],
+    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434, 1433, 'mssql'],
+    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809, 3306, 'mariadb'],
+  ])(
+    'on %s database',
+    (dialect, username, password, host, containerPort, port, dockerServiceName) => {
+      const db = `test_connection`;
 
-  describe('when the password is wrong', () => {
+      beforeEach(async () => {
+        await setupDatabaseWithTypes(
+          `${dialect}://${username}:${password}@${host}:${containerPort}`,
+          dialect,
+          'test_connection',
+        );
+      });
+
+      describe('when the password is wrong', () => {
+        describe('with the proxy socks configuration', () => {
+          it('should throw an AccessDeniedError error', async () => {
+            await expect(() =>
+              connect({
+                uri: `${dialect}://${username}:BADPASSWORD@${dockerServiceName}:${port}/${db}`,
+                proxySocks,
+              }),
+            ).rejects.toThrow(AccessDeniedError);
+          });
+        });
+        describe('without the proxy socks configuration', () => {
+          it('should throw an AccessDeniedError error', async () => {
+            await expect(() =>
+              connect(`${dialect}://${username}:BADPASSWORD@${host}:${containerPort}/${db}`),
+            ).rejects.toThrow(AccessDeniedError);
+          });
+        });
+      });
+
+      describe('when the user is wrong', () => {
+        describe('with the proxy socks configuration', () => {
+          it('should throw an AccessDeniedError error', async () => {
+            await expect(() =>
+              connect({
+                uri: `${dialect}://BADUSER:${password}@${dockerServiceName}:${port}/${db}`,
+                proxySocks,
+              }),
+            ).rejects.toThrow(AccessDeniedError);
+          });
+        });
+
+        describe('without the proxy socks configuration', () => {
+          it('should throw an AccessDeniedError error', async () => {
+            await expect(() =>
+              connect(`${dialect}://BADUSER:${password}@${host}:${containerPort}/${db}`),
+            ).rejects.toThrow(AccessDeniedError);
+          });
+        });
+      });
+
+      describe('when the host is wrong', () => {
+        describe('with the proxy socks configuration', () => {
+          it('should throw a HostNotFoundError error', async () => {
+            await expect(() =>
+              connect({
+                uri: `${dialect}://${username}:${password}@BADHOST:${port}/${db}`,
+                proxySocks,
+              }),
+            ).rejects.toThrow(HostNotFoundError);
+          });
+        });
+
+        describe('without the proxy socks configuration', () => {
+          it('should throw a HostNotFoundError error', async () => {
+            await expect(() =>
+              connect(`${dialect}://${username}:${password}@BADHOST:${containerPort}/${db}`),
+            ).rejects.toThrow(HostNotFoundError);
+          });
+        });
+      });
+
+      describe('when the port is wrong', () => {
+        describe('with the proxy socks configuration', () => {
+          it('should throw an AccessDeniedError error', async () => {
+            await expect(() =>
+              connect({
+                uri: `${dialect}://${username}:${password}@${dockerServiceName}:9999/${db}`,
+                proxySocks,
+              }),
+            ).rejects.toThrow(AccessDeniedError);
+          });
+        });
+
+        describe('without the proxy socks configuration', () => {
+          it('should throw an AccessDeniedError error', async () => {
+            await expect(
+              () => connect(`${dialect}://${username}:${password}@${host}:9999/${db}`),
+              // in mysql, the error is a DatabaseError
+              // because sequelize does not throw the same error
+            ).rejects.toThrow(dialect === 'mssql' ? DatabaseError : AccessDeniedError);
+          });
+        });
+      });
+
+      describe('when the database is wrong', () => {
+        describe('with the proxy socks configuration', () => {
+          it('should throw a DatabaseError error', async () => {
+            await expect(() =>
+              connect({
+                uri: `${dialect}://${username}:${password}@${dockerServiceName}:${port}/BADDB`,
+                proxySocks,
+              }),
+            ) // in mysql, the error is a AccessDeniedError
+              // because sequelize does not throw the same error
+              .rejects.toThrow(dialect === 'mssql' ? AccessDeniedError : DatabaseError);
+          });
+        });
+
+        describe('without the proxy socks configuration', () => {
+          it('should throw a DatabaseError error', async () => {
+            await expect(() =>
+              connect(`${dialect}://${username}:${password}@${host}:${containerPort}/BADDB`),
+            ) // in mysql, the error is a AccessDeniedError
+              // because sequelize does not throw the same error
+              .rejects.toThrow(dialect === 'mssql' ? AccessDeniedError : DatabaseError);
+          });
+        });
+      });
+    },
+  );
+
+  describe('when a wrong configuration raises a connection timeout', () => {
     describe('with the proxy socks configuration', () => {
-      it('should throw an AccessDeniedError error', async () => {
+      it('should throw a ConnectionAcquireTimeoutError error', async () => {
         await expect(() =>
           connect({
-            uri: 'postgres://test:BADPASSWORD@localhost:5443/test_connection',
+            uri: `postgres://test:password@postgres:5432/test_connection`,
+            dialect: 'mysql',
             proxySocks,
           }),
-        ).rejects.toThrow(AccessDeniedError);
-      });
+        ).rejects.toThrow(ConnectionAcquireTimeoutError);
+      }, 15000);
     });
 
     describe('without the proxy socks configuration', () => {
-      it('should throw an AccessDeniedError error', async () => {
-        await expect(() =>
-          connect('postgres://test:BADPASSWORD@localhost:5443/test_connection'),
-        ).rejects.toThrow(AccessDeniedError);
-      });
-    });
-  });
-
-  describe('when the user is wrong', () => {
-    describe('with the proxy socks configuration', () => {
-      it('should throw an AccessDeniedError error', async () => {
-        await expect(() =>
-          connect({ uri: 'postgres://BADUSER:password@postgres:5432/test_connection', proxySocks }),
-        ).rejects.toThrow(AccessDeniedError);
-      });
-    });
-
-    describe('without the proxy socks configuration', () => {
-      it('should throw an AccessDeniedError error', async () => {
-        await expect(() =>
-          connect('postgres://BADUSER:password@localhost:5443/test_connection'),
-        ).rejects.toThrow(AccessDeniedError);
-      });
-    });
-  });
-
-  describe('when the host is wrong', () => {
-    describe('with the proxy socks configuration', () => {
-      it('should throw a HostNotFoundError error', async () => {
+      it('should throw a ConnectionAcquireTimeoutError error', async () => {
         await expect(() =>
           connect({
-            uri: 'postgres://test:password@BADHOST:5443/test_connection',
-            proxySocks,
+            uri: `postgres://test:password@localhost:5443/test_connection`,
+
+            dialect: 'mysql',
           }),
-        ).rejects.toThrow(HostNotFoundError);
-      });
-    });
-
-    describe('without the proxy socks configuration', () => {
-      it('should throw a HostNotFoundError error', async () => {
-        await expect(() =>
-          connect('postgres://test:password@BADHOST:5443/test_connection'),
-        ).rejects.toThrow(HostNotFoundError);
-      });
-    });
-  });
-
-  describe('when the port is wrong', () => {
-    describe('with the proxy socks configuration', () => {
-      it('should throw an AccessDeniedError error', async () => {
-        await expect(() =>
-          connect({
-            uri: 'postgres://test:password@localhost:9999/test_connection',
-            proxySocks,
-          }),
-        ).rejects.toThrow(AccessDeniedError);
-      });
-    });
-
-    describe('without the proxy socks configuration', () => {
-      it('should throw an AccessDeniedError error', async () => {
-        await expect(() =>
-          connect('postgres://test:password@localhost:9999/test_connection'),
-        ).rejects.toThrow(AccessDeniedError);
-      });
+        ).rejects.toThrow(ConnectionAcquireTimeoutError);
+      }, 15000);
     });
   });
 
@@ -115,7 +187,7 @@ describe('connect errors', () => {
           for (let i = 0; i < maxConnections + 1; i += 1) {
             // eslint-disable-next-line no-await-in-loop
             const connection = await connect({
-              uri: 'postgres://test:password@postgres:5432/test_connection',
+              uri: `postgres://test:password@postgres:5432/test_connection`,
               proxySocks,
             });
             connections.push(connection);
@@ -139,7 +211,7 @@ describe('connect errors', () => {
           for (let i = 0; i < maxConnections + 1; i += 1) {
             // eslint-disable-next-line no-await-in-loop
             const connection = await connect(
-              'postgres://test:password@localhost:5443/test_connection',
+              `postgres://test:password@localhost:5443/test_connection`,
             );
             connections.push(connection);
           }
@@ -150,52 +222,6 @@ describe('connect errors', () => {
           await Promise.all(connections.map(connection => connection.close()));
         }
       }, 10000);
-    });
-  });
-
-  describe('when the database is wrong', () => {
-    describe('with the proxy socks configuration', () => {
-      it('should throw a DatabaseError error', async () => {
-        await expect(() =>
-          connect({
-            uri: 'postgres://test:password@postgres:5432/BADDB',
-            proxySocks,
-          }),
-        ).rejects.toThrow(DatabaseError);
-      });
-    });
-
-    describe('without the proxy socks configuration', () => {
-      it('should throw a DatabaseError error', async () => {
-        await expect(() =>
-          connect('postgres://test:password@localhost:5443/BADDB'),
-        ).rejects.toThrow(DatabaseError);
-      });
-    });
-  });
-
-  describe('when the badly configuration creates a connection timeout', () => {
-    describe('with the proxy socks configuration', () => {
-      it('should throw a ConnectionAcquireTimeoutError error', async () => {
-        await expect(() =>
-          connect({
-            uri: 'postgres://test:password@postgres:5432/test_connection',
-            dialect: 'mysql',
-            proxySocks,
-          }),
-        ).rejects.toThrow(ConnectionAcquireTimeoutError);
-      }, 15000);
-    });
-
-    describe('without the proxy socks configuration', () => {
-      it('should throw a ConnectionAcquireTimeoutError error', async () => {
-        await expect(() =>
-          connect({
-            uri: 'postgres://test:password@localhost:5443/test_connection',
-            dialect: 'mysql',
-          }),
-        ).rejects.toThrow(ConnectionAcquireTimeoutError);
-      }, 15000);
     });
   });
 
@@ -284,18 +310,18 @@ describe('connect errors', () => {
 
     describe('when fixie proxy close the socket', () => {
       /* it('should throw a HostNotFoundError error', async () => {
-        await expect(() =>
-          connect({
-            uri: 'postgres://example:password@5.tcp.eu.ngrok.io:14817/example',
-            proxySocks: {
-              host: 'bici.usefixie.com',
-              port: 1080,
-              password: 'TO CHANGE',
-              userId: 'fixie',
-            },
-          }),
-        ).rejects.toThrow(HostNotFoundError);
-      }); */
+    await expect(() =>
+      connect({
+        uri: 'postgres://example:password@5.tcp.eu.ngrok.io:14817/example',
+        proxySocks: {
+          host: 'bici.usefixie.com',
+          port: 1080,
+          password: 'TO CHANGE',
+          userId: 'fixie',
+        },
+      }),
+    ).rejects.toThrow(HostNotFoundError);
+  }); */
 
       it('Unit Test > should throw a HostNotFoundError error', async () => {
         expect(() => handleErrorsWithProxy(new Error('Socket closed'), uri, uri)).toThrow(

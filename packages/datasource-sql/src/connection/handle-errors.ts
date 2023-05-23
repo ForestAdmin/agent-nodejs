@@ -18,7 +18,13 @@ export function handleErrors(error: Error, databaseUri: string): void {
   if (error instanceof SequelizeHostNotFoundError) throw new HostNotFoundError(databaseUri);
 
   if (error instanceof ConnectionError) {
-    if (error instanceof ConnectionRefusedError || error.message.includes('password'))
+    const defaultLoginFailed = 'password';
+    const mssqlLoginFailed = 'Login failed';
+    if (
+      error instanceof ConnectionRefusedError ||
+      error.message.includes(defaultLoginFailed) ||
+      error.message.includes(mssqlLoginFailed)
+    )
       throw new AccessDeniedError(databaseUri);
 
     // when there is too many connection to the database

@@ -105,6 +105,7 @@ export default async function connect(
     const error = proxy?.error || (e as Error);
 
     if (proxy) {
+      // skip the password to avoid leaking it
       const proxyUri = new URL(`tcp://${options.proxySocks.host}:${options.proxySocks.port}`);
       proxyUri.username = options.proxySocks.userId;
 
