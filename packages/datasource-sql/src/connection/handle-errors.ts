@@ -1,13 +1,18 @@
 import {
   BaseError,
   ConnectionError,
+  ConnectionRefusedError,
   HostNotFoundError as SequelizeHostNotFoundError,
 } from 'sequelize';
 
 import {
   AccessDeniedError,
+  AccessDeniedProxyError,
   ConnectionAcquireTimeoutError,
+  ConnectionProxyError,
+  DatabaseError,
   HostNotFoundError,
+  TooManyConnectionError,
   UnexpectedProxyError,
 } from './errors';
 
@@ -15,7 +20,18 @@ export function handleErrors(error: Error, databaseUri: string): void {
   if (error instanceof SequelizeHostNotFoundError) {
     throw new HostNotFoundError(databaseUri);
   } else if (error instanceof ConnectionError) {
-    throw new AccessDeniedError(databaseUri);
+    if (error instanceof ConnectionRefusedError || error.message.includes('password')) {
+      throw new AccessDeniedError(databaseUri);
+    }
+
+    // when there is too many connection to the database
+    if (error.message.includes('too many')) {
+      throw new TooManyConnectionError(databaseUri);
+    }
+
+    if (error.message.includes('connect ETIMEDOUT')) {
+      throw new ConnectionAcquireTimeoutError(databaseUri);
+    }
   }
 
   if (error instanceof BaseError) {
@@ -25,16 +41,13 @@ export function handleErrors(error: Error, databaseUri: string): void {
       (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
     );
 
-    const newError = new Error(`${nameWithSpaces}: ${error.message}`);
-    newError.name = nameWithoutSequelize;
-
-    throw newError;
+    throw new DatabaseError(databaseUri, `${nameWithSpaces}: ${error.message}`);
   }
 
   throw error;
 }
 
-export function handleErrorsWithProxy(error: Error, databaseUri: string): void {
+export function handleErrorsWithProxy(error: Error, databaseUri: string, proxyUri: string): void {
   // eslint-disable-next-line max-len
   // @link: list of errors thrown by the proxy https://github.com/JoshGlazebrook/socks/blob/76d013e4c9a2d956f07868477d8f12ec0b96edfc/src/common/constants.ts#LL10C10-L10C10
   if (error.message.includes('Socket closed')) {
@@ -48,13 +61,14 @@ export function handleErrorsWithProxy(error: Error, databaseUri: string): void {
   } else if (error.message.includes('Proxy connection timed out')) {
     throw new ConnectionAcquireTimeoutError(databaseUri);
   } else if (error.message.includes('Socks5 Authentication failed')) {
-    throw new AccessDeniedError(databaseUri);
+    throw new AccessDeniedProxyError(proxyUri, error.message);
   } else if (
-    error.message.includes('socks') ||
     error.message.includes('getaddrinfo ENOTFOUND BADHOST') ||
     error.message.includes('connect ECONNREFUSED')
   ) {
-    throw new UnexpectedProxyError(databaseUri);
+    throw new ConnectionProxyError(proxyUri, error.message);
+  } else if (error.message.includes('socks')) {
+    throw new UnexpectedProxyError(databaseUri, error.message);
   }
 
   handleErrors(error, databaseUri);

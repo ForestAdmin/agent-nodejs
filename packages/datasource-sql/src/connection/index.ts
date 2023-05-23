@@ -7,6 +7,7 @@ import { handleErrors, handleErrorsWithProxy } from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
 import { getLogger, getSchema } from './utils';
+import { ConnectionOptionsObj } from '../types';
 
 function getSslConfiguration(
   dialect: Dialect,
@@ -60,9 +61,10 @@ export default async function connect(
 ): Promise<Sequelize> {
   let proxy: ReverseProxy | undefined;
   let sequelize: Sequelize | undefined;
+  let options: ConnectionOptionsObj | undefined;
 
   try {
-    let options = await preprocessOptions(uriOrOptions);
+    options = await preprocessOptions(uriOrOptions);
 
     if (options.proxySocks) {
       proxy = new ReverseProxy(options);
@@ -103,7 +105,10 @@ export default async function connect(
     const error = proxy?.error || (e as Error);
 
     if (proxy) {
-      handleErrorsWithProxy(error, uri);
+      const proxyUri = new URL(`tcp:${options.proxySocks.host}:${options.proxySocks.port}`);
+      proxyUri.username = options.proxySocks.userId;
+
+      handleErrorsWithProxy(error, uri, proxyUri.toString());
     } else {
       handleErrors(error, uri);
     }
