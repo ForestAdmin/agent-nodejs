@@ -15,21 +15,17 @@ import {
 } from './errors';
 
 export function handleErrors(error: Error, databaseUri: string): void {
-  if (error instanceof SequelizeHostNotFoundError) {
-    throw new HostNotFoundError(databaseUri);
-  } else if (error instanceof ConnectionError) {
-    if (error instanceof ConnectionRefusedError || error.message.includes('password')) {
+  if (error instanceof SequelizeHostNotFoundError) throw new HostNotFoundError(databaseUri);
+
+  if (error instanceof ConnectionError) {
+    if (error instanceof ConnectionRefusedError || error.message.includes('password'))
       throw new AccessDeniedError(databaseUri);
-    }
 
     // when there is too many connection to the database
-    if (error.message.includes('too many')) {
-      throw new TooManyConnectionError(databaseUri);
-    }
+    if (error.message.includes('too many')) throw new TooManyConnectionError(databaseUri);
 
-    if (error.message.includes('connect ETIMEDOUT')) {
+    if (error.message.includes('connect ETIMEDOUT'))
       throw new ConnectionAcquireTimeoutError(databaseUri);
-    }
   }
 
   if (error instanceof BaseError) {
@@ -51,18 +47,10 @@ export function handleErrorsWithProxy(error: Error, databaseUri: string, proxyUr
   if (error.message.includes('Socket closed')) {
     throw new HostNotFoundError(databaseUri);
   } else if (error.message.includes('Socks5 proxy rejected connection')) {
-    if (error.message.includes('HostUnreachable')) {
-      throw new HostNotFoundError(databaseUri);
-    }
+    if (error.message.includes('HostUnreachable')) throw new HostNotFoundError(databaseUri);
 
     throw new AccessDeniedError(databaseUri);
-  } else if (
-    error.message.includes('getaddrinfo ENOTFOUND') ||
-    error.message.includes('connect ECONNREFUSED') ||
-    error.message.includes('socks') ||
-    error.message.includes('Proxy') ||
-    error.message.includes('Socks')
-  ) {
+  } else if (error.stack.includes('SocksClient')) {
     throw new ProxyError(proxyUri, error.message);
   }
 
