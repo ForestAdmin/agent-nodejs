@@ -1,77 +1,45 @@
 // eslint-disable-next-line max-classes-per-file
-export class BaseError extends Error {
-  public readonly uri: string;
+function sanitizeUri(uri: string): string {
+  const uriObject = new URL(uri);
+  uriObject.password = '**sanitizedPassword**';
 
-  constructor(message: string, uri: string) {
-    super(message);
-
-    this.uri = uri;
-    this.name = this.constructor.name;
-  }
+  return uriObject.toString();
 }
 
-export class HostNotFoundError extends BaseError {
-  constructor(databaseUri: string) {
-    const hostWithPort = new URL(databaseUri).host;
-    super(`Unable to connect to the host "${hostWithPort}".`, databaseUri);
-    this.name = this.constructor.name;
-  }
-}
+export type SourceError = 'Proxy' | 'Database';
 
-export class AccessDeniedError extends BaseError {
-  constructor(databaseUri: string) {
-    const { host, username: user } = new URL(databaseUri);
-    super(
-      `Access denied for user "${user}" on host "${host}".
-       Please check your credentials and your host.`,
-      databaseUri,
-    );
-    this.name = this.constructor.name;
-  }
-}
+class BaseError extends Error {
+  public source: SourceError;
+  public uri: string;
+  public readonly details: string;
 
-export class ConnectionAcquireTimeoutError extends BaseError {
-  constructor(databaseUri: string) {
-    const hostWithPort = new URL(databaseUri).host;
-    super(
-      `Unable to connect to the host "${hostWithPort}". The connection timed out.`,
-      databaseUri,
-    );
-    this.name = this.constructor.name;
-  }
-}
+  constructor(message: string, details?: string) {
+    const messageWithDetails = details ? `${message}\n${details}` : message;
+    super(messageWithDetails);
 
-export class TooManyConnectionError extends BaseError {
-  constructor(databaseUri: string) {
-    const hostWithPort = new URL(databaseUri).host;
-    super(
-      `Unable to connect to the host "${hostWithPort}".
-       There is too many connection to the database.`,
-      databaseUri,
-    );
-    this.name = this.constructor.name;
+    this.details = details;
   }
 }
 
 export class DatabaseError extends BaseError {
-  constructor(databaseUri: string, message: string) {
-    const hostWithPort = new URL(databaseUri).host;
-    super(
-      `Unable to connect to the host "${hostWithPort}".
-       Details: ${message}`,
-      databaseUri,
-    );
+  constructor(databaseUri: string, details?: string, source: SourceError = 'Database') {
+    super(`Unable to connect to the given uri: ${sanitizeUri(databaseUri)}`, details);
     this.name = this.constructor.name;
+    this.source = source;
+    this.uri = databaseUri;
   }
 }
 
 export class ProxyError extends BaseError {
-  constructor(proxyUri: string, message: string) {
+  constructor(proxyUri: string, details?: string) {
     super(
-      `Your proxy has encountered an error. Please check your proxy configuration.
-       Details: ${message}`,
-      proxyUri,
+      `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizeUri(
+        proxyUri,
+      )}`,
+      details,
     );
     this.name = this.constructor.name;
+    this.source = 'Proxy';
+    this.uri = proxyUri;
   }
 }
