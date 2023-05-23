@@ -7,13 +7,11 @@ import {
 
 import {
   AccessDeniedError,
-  AccessDeniedProxyError,
   ConnectionAcquireTimeoutError,
-  ConnectionProxyError,
   DatabaseError,
   HostNotFoundError,
+  ProxyError,
   TooManyConnectionError,
-  UnexpectedProxyError,
 } from './errors';
 
 export function handleErrors(error: Error, databaseUri: string): void {
@@ -58,17 +56,14 @@ export function handleErrorsWithProxy(error: Error, databaseUri: string, proxyUr
     }
 
     throw new AccessDeniedError(databaseUri);
-  } else if (error.message.includes('Proxy connection timed out')) {
-    throw new ConnectionAcquireTimeoutError(databaseUri);
-  } else if (error.message.includes('Socks5 Authentication failed')) {
-    throw new AccessDeniedProxyError(proxyUri, error.message);
   } else if (
-    error.message.includes('getaddrinfo ENOTFOUND BADHOST') ||
-    error.message.includes('connect ECONNREFUSED')
+    error.message.includes('getaddrinfo ENOTFOUND') ||
+    error.message.includes('connect ECONNREFUSED') ||
+    error.message.includes('socks') ||
+    error.message.includes('Proxy') ||
+    error.message.includes('Socks')
   ) {
-    throw new ConnectionProxyError(proxyUri, error.message);
-  } else if (error.message.includes('socks')) {
-    throw new UnexpectedProxyError(databaseUri, error.message);
+    throw new ProxyError(proxyUri, error.message);
   }
 
   handleErrors(error, databaseUri);

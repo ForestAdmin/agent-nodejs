@@ -79,7 +79,7 @@ export default class ReverseProxy {
       }
     });
     socket.on('close', () => {
-      // this.connectedClients.delete(socket);
+      this.connectedClients.delete(socket);
 
       if (!socks5Proxy?.socket.closed) {
         socks5Proxy?.socket.destroy();
@@ -95,7 +95,7 @@ export default class ReverseProxy {
       });
 
       socks5Proxy.socket.on('close', () => {
-        // this.connectedClients.delete(socks5Proxy.socket);
+        this.connectedClients.delete(socks5Proxy.socket);
 
         if (!socket.closed) {
           socket.destroy();

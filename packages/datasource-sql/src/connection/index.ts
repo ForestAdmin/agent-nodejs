@@ -105,7 +105,7 @@ export default async function connect(
     const error = proxy?.error || (e as Error);
 
     if (proxy) {
-      const proxyUri = new URL(`tcp:${options.proxySocks.host}:${options.proxySocks.port}`);
+      const proxyUri = new URL(`tcp://${options.proxySocks.host}:${options.proxySocks.port}`);
       proxyUri.username = options.proxySocks.userId;
 
       handleErrorsWithProxy(error, uri, proxyUri.toString());

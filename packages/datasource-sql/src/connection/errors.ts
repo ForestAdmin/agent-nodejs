@@ -53,43 +53,6 @@ export class TooManyConnectionError extends BaseError {
   }
 }
 
-export class ProxyError extends BaseError {}
-export class UnexpectedProxyError extends ProxyError {
-  constructor(proxyUri: string, message: string) {
-    super(
-      `Your proxy has encountered an unexpected error. Please check your proxy configuration.
-       Details: ${message}`,
-      proxyUri,
-    );
-    this.name = this.constructor.name;
-  }
-}
-
-export class ConnectionProxyError extends ProxyError {
-  constructor(proxyUri: string, message: string) {
-    super(
-      `Unable to connect to the host.
-       Details: ${message}`,
-      proxyUri,
-    );
-    this.name = this.constructor.name;
-  }
-}
-
-export class AccessDeniedProxyError extends ProxyError {
-  constructor(proxyUri: string, message: string) {
-    const { host, username: user } = new URL(proxyUri);
-
-    super(
-      `Access denied for user "${user}" on host "${host}".
-       Please check your credentials and your host.
-       Details: ${message}`,
-      proxyUri,
-    );
-    this.name = this.constructor.name;
-  }
-}
-
 export class DatabaseError extends BaseError {
   constructor(databaseUri: string, message: string) {
     const hostWithPort = new URL(databaseUri).host;
@@ -97,6 +60,17 @@ export class DatabaseError extends BaseError {
       `Unable to connect to the host "${hostWithPort}".
        Details: ${message}`,
       databaseUri,
+    );
+    this.name = this.constructor.name;
+  }
+}
+
+export class ProxyError extends BaseError {
+  constructor(proxyUri: string, message: string) {
+    super(
+      `Your proxy has encountered an error. Please check your proxy configuration.
+       Details: ${message}`,
+      proxyUri,
     );
     this.name = this.constructor.name;
   }
