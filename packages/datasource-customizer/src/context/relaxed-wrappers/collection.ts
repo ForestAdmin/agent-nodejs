@@ -23,7 +23,6 @@ import {
   TPartialSimpleRow,
   TRow,
   TSchema,
-  TSimpleRow,
 } from '../../templates';
 
 /** Collection wrapper which accepts plain objects in all methods */
@@ -78,8 +77,8 @@ export default class RelaxedCollection<
    *    { amountInEur: -100, description: 'Refund' },
    * ]);
    */
-  create(data: TSimpleRow<S, N>[]): Promise<TSimpleRow<S, N>[]> {
-    return this.collection.create(this.caller, data) as Promise<TSimpleRow<S, N>[]>;
+  create(data: TPartialSimpleRow<S, N>[]): Promise<TPartialSimpleRow<S, N>[]> {
+    return this.collection.create(this.caller, data) as Promise<TPartialSimpleRow<S, N>[]>;
   }
 
   /**
