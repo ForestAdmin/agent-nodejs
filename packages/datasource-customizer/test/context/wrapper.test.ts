@@ -182,5 +182,11 @@ describe('RelaxedWrappers', () => {
         66,
       );
     });
+
+    describe('schema', () => {
+      it("should return the base collection's schema", () => {
+        expect(relaxed.schema).toBe(collection.schema);
+      });
+    });
   });
 });

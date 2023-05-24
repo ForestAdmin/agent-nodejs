@@ -42,6 +42,7 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     auth,
+    modelCustomizationService,
   } = buildApplicationServices(new ForestHttpApi(), options);
 
   return new ForestAdminClientWithCache(
@@ -53,11 +54,14 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     auth,
+    modelCustomizationService,
   );
 }
 
 export * from './charts/types';
 export * from './schema/types';
+export * from './model-customizations/types';
+
 export { default as ContextVariablesInjector } from './utils/context-variables-injector';
 export { default as ContextVariables } from './utils/context-variables';
 export { default as ChartHandler } from './charts/chart-handler';

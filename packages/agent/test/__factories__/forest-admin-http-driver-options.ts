@@ -18,4 +18,5 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   skipSchemaUpdate: false,
   typingsMaxDepth: 5,
   typingsPath: null,
+  experimental: {},
 }));

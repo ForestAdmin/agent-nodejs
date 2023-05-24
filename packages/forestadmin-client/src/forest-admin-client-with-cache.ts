@@ -5,6 +5,7 @@ import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { ModelCustomizationService } from './model-customizations/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
@@ -27,6 +28,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly ipWhitelistService: IpWhiteListService,
     protected readonly schemaService: SchemaService,
     protected readonly authService: AuthService,
+    public readonly modelCustomizationService: ModelCustomizationService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
