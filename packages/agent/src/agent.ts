@@ -213,7 +213,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private async _start(): Promise<Router> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
-    await this.nocodeCustomizer.use(
+    this.nocodeCustomizer.use(
       this.actionCustomizationService.addWebhookActions,
       this.options.experimental?.webhookCustomActions,
     );

@@ -2,7 +2,7 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { createServer } from 'http';
-import Koa from 'koa';
+import Koa, { Middleware } from 'koa';
 import path from 'path';
 
 import { HttpCallback } from './types';
@@ -89,14 +89,59 @@ export default class FrameworkMounter {
    * @param koa instance of a koa app or a koa Router.
    */
   mountOnKoa(koa: any): this {
-    const parentRouter = new Router({ prefix: this.completeMountPrefix });
+    // Solution 1
+    // Repliquer le fonctionnement qu'on a avec connect sur koa
+    let handler: Middleware = null;
 
-    koa.use(parentRouter.routes());
-    this.logger('Info', `Successfully mounted on Koa`);
-
-    this.onStart.push(async router => {
-      parentRouter.use(router.routes());
+    const router = new Router({ prefix: this.completeMountPrefix });
+    router.use(async (ctx, next) => {
+      if (handler) {
+        // delegate to routes handler
+        await handler(ctx, next);
+      } else {
+        ctx.response.status = 200;
+        ctx.response.body = { error: 'Agent is not started' };
+      }
     });
+
+    this.onStart.push(async driverRouter => {
+      handler = driverRouter.routes();
+    });
+
+    // Solution 1.2
+    // Simply clear router router.stack = []; router.use(driverRouter.routes());
+
+    // Solution 2
+    // Il semble possible de monter des middleware connect sur koa
+    // exemple: https://github.com/vkurchatkin/koa-connect (voir s'il y en a des plus recents)
+
+    // on peut donc repliquer le meme systeme qu'avec les autres
+    // Attention: il semble y avoir des prerequis sur le middleware qu'on va monter (appeler next
+    // dans tous les cas, verifier que c'est applicable dans notre cas?)
+
+    const c2k = require('koa-connect');
+
+    koa.use(this.completeMountPrefix, c2k(this.getConnectCallback(false)));
+    this.logger('Info', `Successfully mounted on Express.js`);
+
+    // Solution 3
+    // on peut surcharger koa.callback(), pour se garantir qu'on est toujours en premier
+
+    const forestHandler = this.getConnectCallback(false);
+    const { callback } = koa;
+
+    koa.callback = function (...args) {
+      const customerHandler = callback.apply(koa, args);
+
+      return (req, res) => {
+        if (req.path.startsWith('/forest')) {
+          // you probably will need to handle the prefix properly
+          forestHandler(req, res);
+        } else {
+          customerHandler(req, res);
+        }
+      };
+    };
 
     return this;
   }
