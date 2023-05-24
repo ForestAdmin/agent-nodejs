@@ -2,13 +2,14 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { createServer } from 'http';
-import Koa from 'koa';
+import Koa, { Middleware } from 'koa';
 import path from 'path';
 
 import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
-  private readonly onStart: ((router: Router) => Promise<void>)[] = [];
+  private readonly onStart: (() => Promise<void>)[] = [];
+  private readonly onStartRouting: ((router: Router) => Promise<void>)[] = [];
   private readonly onStop: (() => Promise<void>)[] = [];
   private readonly prefix: string;
   private readonly logger: Logger;
@@ -24,7 +25,21 @@ export default class FrameworkMounter {
   }
 
   async start(router: Router): Promise<void> {
-    for (const task of this.onStart) await task(router); // eslint-disable-line no-await-in-loop
+    for (const task of this.onStart) {
+      await task(); // eslint-disable-line no-await-in-loop
+    }
+
+    await this.startRouting(router);
+  }
+
+  /**
+   * Creates the routes handlers
+   * (Also it allows to restart the agent)
+   */
+  async startRouting(router: Router): Promise<void> {
+    for (const task of this.onStartRouting) {
+      await task(router); // eslint-disable-line no-await-in-loop
+    }
   }
 
   async stop(): Promise<void> {
@@ -91,12 +106,15 @@ export default class FrameworkMounter {
   mountOnKoa(koa: any): this {
     const parentRouter = new Router({ prefix: this.completeMountPrefix });
 
+    this.onStartRouting.push(async driverRouter => {
+      // Unmounts previous routes
+      parentRouter.stack = [];
+      // Mounts new ones
+      parentRouter.use(driverRouter.routes());
+    });
+
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
-
-    this.onStart.push(async router => {
-      parentRouter.use(router.routes());
-    });
 
     return this;
   }
@@ -144,7 +162,7 @@ export default class FrameworkMounter {
   private getConnectCallback(nested: boolean): HttpCallback {
     let handler = null;
 
-    this.onStart.push(async driverRouter => {
+    this.onStartRouting.push(async driverRouter => {
       let router = driverRouter;
 
       if (nested) {

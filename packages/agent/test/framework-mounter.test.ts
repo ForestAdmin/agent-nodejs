@@ -18,6 +18,10 @@ const router = new Router().get('/', async ctx => {
   ctx.response.body = { error: null, message: 'Agent is running' };
 });
 
+const newRouter = new Router().get('/resource', async ctx => {
+  ctx.response.body = { message: 'Here is your resource' };
+});
+
 describe('Builder > Agent', () => {
   describe('standalone mode', () => {
     describe('when starting the agent is a success', () => {
@@ -123,6 +127,17 @@ describe('Builder > Agent', () => {
     try {
       const response = await superagent.get('http://localhost:9998/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+
+      // Mounting new routes (a.k.a restart)
+      mounter.startRouting(newRouter);
+
+      const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
+      expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
+
+      // The previous route as been unmounted
+      await expect(superagent.get('http://localhost:9998/my-api/forest')).rejects.toThrow(
+        'Not Found',
+      );
     } finally {
       server.close();
     }
