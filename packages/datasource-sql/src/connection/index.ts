@@ -59,7 +59,7 @@ function handleConnectErrors(e, options?: ConnectionOptionsObj, proxy?: ReverseP
   const error = proxy?.error || (e as Error);
 
   if (proxy) {
-    handleErrorsWithProxy(error, options?.uri, options.proxySocks);
+    handleErrorsWithProxy(error, proxy.destination.uri, options.proxySocks);
   } else {
     handleErrors(error, options?.uri);
   }

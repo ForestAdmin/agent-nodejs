@@ -7,8 +7,8 @@ import { ConnectionOptionsObj } from '../types';
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
-  private readonly destination: ConnectionOptionsObj;
   private readonly connectedClients: Set<net.Socket> = new Set();
+  public readonly destination: ConnectionOptionsObj;
 
   constructor(destination: ConnectionOptionsObj) {
     this.destination = destination;
