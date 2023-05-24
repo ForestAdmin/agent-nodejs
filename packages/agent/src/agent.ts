@@ -65,18 +65,19 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Start the agent.
    */
   async start(): Promise<void> {
-    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
-
-    const dataSource = await this.customizer.getDataSource(logger);
-    const [router] = await Promise.all([
-      this.getRouter(dataSource),
-      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
-      !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
-        : Promise.resolve(),
-    ]);
+    const router = await this.getRouterAndSendSchema();
 
     await this.mount(router);
+  }
+
+  /**
+   * Restart the agent at runtime (remount routes).
+   */
+  private async restart(): Promise<void> {
+    // We force sending schema when restarting
+    const updatedRouter = await this.getRouterAndSendSchema();
+
+    return super.remount(updatedRouter);
   }
 
   /**
@@ -154,6 +155,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
     router.use(bodyParser({ jsonLimit: '50mb' }));
     routes.forEach(route => route.setupRoutes(router));
+
+    return router;
+  }
+
+  private async getRouterAndSendSchema(): Promise<Router> {
+    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
+
+    const dataSource = await this.customizer.getDataSource(logger);
+    const [router] = await Promise.all([
+      this.getRouter(dataSource),
+      // skipSchemaUpdate is mainly used in cloud version
+      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
+      !isProduction && typingsPath
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        : Promise.resolve(),
+    ]);
 
     return router;
   }
