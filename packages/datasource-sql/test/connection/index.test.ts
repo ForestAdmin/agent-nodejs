@@ -1,7 +1,7 @@
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
-import { DatabaseError } from '../../src/connection/errors';
+import { DatabaseConnectError } from '../../src/connection/errors';
 import { SslMode } from '../../src/types';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 
@@ -44,7 +44,7 @@ describe('Connect', () => {
               userId: 'username',
             },
           }),
-        ).rejects.toThrow(DatabaseError);
+        ).rejects.toThrow(DatabaseConnectError);
       });
     });
 

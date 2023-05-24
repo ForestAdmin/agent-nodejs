@@ -1,4 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
+import { ConnectionOptionsObj } from '../types';
+
 function sanitizeUri(uri: string): string {
   const uriObject = new URL(uri);
 
@@ -24,25 +26,50 @@ class BaseError extends Error {
   }
 }
 
-export class DatabaseError extends BaseError {
-  constructor(databaseUri: string, details?: string, source: SourceError = 'Database') {
-    super(`Unable to connect to the given uri: ${sanitizeUri(databaseUri)}.`, details);
+export class DatabaseConnectError extends BaseError {
+  constructor(message: string, databaseUri?: string, source: SourceError = 'Database') {
+    if (databaseUri) {
+      const sanitizedUri = sanitizeUri(databaseUri);
+      super(`Unable to connect to the given uri: ${sanitizedUri}.`, message);
+      this.uri = sanitizedUri;
+    } else {
+      super(`Unable to connect to the given uri.`, message);
+    }
+
     this.name = this.constructor.name;
     this.source = source;
-    this.uri = databaseUri;
   }
 }
 
-export class ProxyError extends BaseError {
-  constructor(proxyUri: string, details?: string) {
-    super(
-      `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizeUri(
-        proxyUri,
-      ).replace('socks://', '')}.`,
-      details,
-    );
+export class ProxyConnectError extends BaseError {
+  constructor(message: string, proxyConfig?: ConnectionOptionsObj['proxySocks']) {
+    const defaultMessage = 'Your proxy has encountered an error.';
+
+    if (proxyConfig) {
+      const sanitizedUri = ProxyConnectError.buildSanitizedUriFromConfig(proxyConfig);
+      super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);
+      this.uri = sanitizedUri;
+    } else {
+      super(defaultMessage, message);
+    }
+
     this.name = this.constructor.name;
     this.source = 'Proxy';
-    this.uri = proxyUri;
+  }
+
+  private static buildSanitizedUriFromConfig(
+    proxyConfig: ConnectionOptionsObj['proxySocks'],
+  ): string {
+    const proxyUri = new URL(`socks://${proxyConfig.host}:${proxyConfig.port}`);
+
+    if (proxyConfig.userId) {
+      proxyUri.username = proxyConfig.userId;
+    }
+
+    if (proxyConfig.password) {
+      proxyUri.password = proxyConfig.password;
+    }
+
+    return sanitizeUri(proxyUri.toString()).replace('socks://', '');
   }
 }

@@ -1,8 +1,7 @@
 import { Dialect } from 'sequelize';
 
 import connect from '../../src/connection';
-import { DatabaseError, ProxyError } from '../../src/connection/errors';
-import { handleErrorsWithProxy } from '../../src/connection/handle-errors';
+import { DatabaseConnectError, ProxyConnectError } from '../../src/connection/errors';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 
 describe('connect errors', () => {
@@ -33,104 +32,104 @@ describe('connect errors', () => {
 
       describe('when the password is wrong', () => {
         describe('with the proxy socks configuration', () => {
-          it('should throw an DatabaseError error', async () => {
+          it('should throw an DatabaseConnectError error', async () => {
             await expect(() =>
               connect({
                 uri: `${dialect}://${username}:BADPASSWORD@${dockerServiceName}:${port}/${db}`,
                 proxySocks,
               }),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
         describe('without the proxy socks configuration', () => {
-          it('should throw an DatabaseError error', async () => {
+          it('should throw an DatabaseConnectError error', async () => {
             await expect(() =>
               connect(`${dialect}://${username}:BADPASSWORD@${host}:${containerPort}/${db}`),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
       });
 
       describe('when the user is wrong', () => {
         describe('with the proxy socks configuration', () => {
-          it('should throw an DatabaseError error', async () => {
+          it('should throw an DatabaseConnectError error', async () => {
             await expect(() =>
               connect({
                 uri: `${dialect}://BADUSER:${password}@${dockerServiceName}:${port}/${db}`,
                 proxySocks,
               }),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
 
         describe('without the proxy socks configuration', () => {
-          it('should throw an DatabaseError error', async () => {
+          it('should throw an DatabaseConnectError error', async () => {
             await expect(() =>
               connect(`${dialect}://BADUSER:${password}@${host}:${containerPort}/${db}`),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
       });
 
       describe('when the host is wrong', () => {
         describe('with the proxy socks configuration', () => {
-          it('should throw a DatabaseError error', async () => {
+          it('should throw a DatabaseConnectError error', async () => {
             await expect(() =>
               connect({
                 uri: `${dialect}://${username}:${password}@BADHOST:${port}/${db}`,
                 proxySocks,
               }),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
 
         describe('without the proxy socks configuration', () => {
-          it('should throw a DatabaseError error', async () => {
+          it('should throw a DatabaseConnectError error', async () => {
             await expect(() =>
               connect(`${dialect}://${username}:${password}@BADHOST:${containerPort}/${db}`),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
       });
 
       describe('when the port is wrong', () => {
         describe('with the proxy socks configuration', () => {
-          it('should throw an DatabaseError error', async () => {
+          it('should throw an DatabaseConnectError error', async () => {
             await expect(() =>
               connect({
                 uri: `${dialect}://${username}:${password}@${dockerServiceName}:9999/${db}`,
                 proxySocks,
               }),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
 
         describe('without the proxy socks configuration', () => {
-          it('should throw an DatabaseError error', async () => {
+          it('should throw an DatabaseConnectError error', async () => {
             await expect(() =>
               connect(`${dialect}://${username}:${password}@${host}:9999/${db}`),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
       });
 
       describe('when the database is wrong', () => {
         describe('with the proxy socks configuration', () => {
-          it('should throw a DatabaseError error', async () => {
+          it('should throw a DatabaseConnectError error', async () => {
             await expect(() =>
               connect({
                 uri: `${dialect}://${username}:${password}@${dockerServiceName}:${port}/BADDB`,
                 proxySocks,
               }),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
 
         describe('without the proxy socks configuration', () => {
-          it('should throw a DatabaseError error', async () => {
+          it('should throw a DatabaseConnectError error', async () => {
             await expect(() =>
               connect(`${dialect}://${username}:${password}@${host}:${containerPort}/BADDB`),
-            ).rejects.toThrow(DatabaseError);
+            ).rejects.toThrow(DatabaseConnectError);
           });
         });
       });
@@ -139,33 +138,33 @@ describe('connect errors', () => {
 
   describe('when a wrong configuration raises a connection timeout', () => {
     describe('with the proxy socks configuration', () => {
-      it('should throw a DatabaseError error', async () => {
+      it('should throw a DatabaseConnectError error', async () => {
         await expect(() =>
           connect({
             uri: `postgres://test:password@postgres:5432/test_connection`,
             dialect: 'mysql',
             proxySocks,
           }),
-        ).rejects.toThrow(DatabaseError);
+        ).rejects.toThrow(DatabaseConnectError);
       }, 15000);
     });
 
     describe('without the proxy socks configuration', () => {
-      it('should throw a DatabaseError error', async () => {
+      it('should throw a DatabaseConnectError error', async () => {
         await expect(() =>
           connect({
             uri: `postgres://test:password@localhost:5443/test_connection`,
 
             dialect: 'mysql',
           }),
-        ).rejects.toThrow(DatabaseError);
+        ).rejects.toThrow(DatabaseConnectError);
       }, 15000);
     });
   });
 
   describe('when there is to many connection', () => {
     describe('with the proxy socks configuration', () => {
-      it('should throw a DatabaseError error', async () => {
+      it('should throw a DatabaseConnectError error', async () => {
         expect.assertions(1);
         const maxConnections = 100;
         const connections = [];
@@ -181,7 +180,7 @@ describe('connect errors', () => {
           }
         } catch (e) {
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(e).toBeInstanceOf(DatabaseError);
+          expect(e).toBeInstanceOf(DatabaseConnectError);
         } finally {
           await Promise.all(connections.map(connection => connection.close()));
         }
@@ -189,7 +188,7 @@ describe('connect errors', () => {
     });
 
     describe('without the proxy socks configuration', () => {
-      it('should throw a DatabaseError error', async () => {
+      it('should throw a DatabaseConnectError error', async () => {
         expect.assertions(1);
         const maxConnections = 100;
         const connections = [];
@@ -204,7 +203,7 @@ describe('connect errors', () => {
           }
         } catch (e) {
           // eslint-disable-next-line jest/no-conditional-expect
-          expect(e).toBeInstanceOf(DatabaseError);
+          expect(e).toBeInstanceOf(DatabaseConnectError);
         } finally {
           await Promise.all(connections.map(connection => connection.close()));
         }
@@ -216,7 +215,7 @@ describe('connect errors', () => {
     const uri = 'postgres://test:password@localhost:5443/test_connection';
 
     describe('with the wrong port', () => {
-      it('should throw a ProxyError error', async () => {
+      it('should throw a ProxyConnectError error', async () => {
         await expect(() =>
           connect({
             uri,
@@ -227,12 +226,12 @@ describe('connect errors', () => {
               userId: 'username',
             },
           }),
-        ).rejects.toThrow(ProxyError);
+        ).rejects.toThrow(ProxyConnectError);
       });
     });
 
     describe('with the wrong host', () => {
-      it('should throw a ProxyError error', async () => {
+      it('should throw a ProxyConnectError error', async () => {
         await expect(() =>
           connect({
             uri,
@@ -243,12 +242,12 @@ describe('connect errors', () => {
               userId: 'username',
             },
           }),
-        ).rejects.toThrow(ProxyError);
+        ).rejects.toThrow(ProxyConnectError);
       });
     });
 
     describe('with the wrong password', () => {
-      it('should throw an ProxyError error', async () => {
+      it('should throw an ProxyConnectError error', async () => {
         await expect(() =>
           connect({
             uri,
@@ -259,12 +258,12 @@ describe('connect errors', () => {
               userId: 'username',
             },
           }),
-        ).rejects.toThrow(ProxyError);
+        ).rejects.toThrow(ProxyConnectError);
       });
     });
 
     describe('with the wrong userId', () => {
-      it('should throw an ProxyError error', async () => {
+      it('should throw an ProxyConnectError error', async () => {
         await expect(() =>
           connect({
             uri,
@@ -275,12 +274,12 @@ describe('connect errors', () => {
               userId: 'BADUSER',
             },
           }),
-        ).rejects.toThrow(ProxyError);
+        ).rejects.toThrow(ProxyConnectError);
       });
     });
 
     describe('with a host that does not support the socks protocol', () => {
-      it('should throw a ProxyError error', async () => {
+      it('should throw a ProxyConnectError error', async () => {
         await expect(() =>
           connect({
             uri,
@@ -291,12 +290,12 @@ describe('connect errors', () => {
               userId: 'username',
             },
           }),
-        ).rejects.toThrow(ProxyError);
+        ).rejects.toThrow(ProxyConnectError);
       });
     });
 
     describe('when fixie proxy close the socket', () => {
-      it.skip('should throw a DatabaseError error', async () => {
+      it.skip('should throw a DatabaseConnectError error', async () => {
         await expect(() =>
           connect({
             uri: 'postgres://example:password@5.tcp.eu.ngrok.io:14817/example',
@@ -307,8 +306,18 @@ describe('connect errors', () => {
               userId: 'fixie',
             },
           }),
-        ).rejects.toThrow(DatabaseError);
+        ).rejects.toThrow(DatabaseConnectError);
       });
+    });
+  });
+
+  describe('when the uri is wrong', () => {
+    it('should throw a DatabaseConnectError error', async () => {
+      await expect(() =>
+        connect({
+          uri: 'wrong uri',
+        }),
+      ).rejects.toThrow(DatabaseConnectError);
     });
   });
 });

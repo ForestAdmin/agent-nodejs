@@ -3,9 +3,11 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { Dialect } from 'sequelize';
 
+import { DatabaseConnectError } from './errors';
+
 function checkUri(uri: string): void {
   if (!/.*:\/\//g.test(uri) && uri !== 'sqlite::memory:') {
-    throw new Error(
+    throw new DatabaseConnectError(
       `Connection Uri "${uri}" provided to SQL data source is not valid.` +
         ' Should be <dialect>://<connection>.',
     );
@@ -38,7 +40,7 @@ export function getDialect(uriOrOptions: ConnectionOptions): Dialect {
 
     dialect = new URL(uri).protocol.slice(0, -1);
   } else {
-    throw new Error('Expected dialect to be provided in options or uri.');
+    throw new DatabaseConnectError('Expected dialect to be provided in options or uri.');
   }
 
   if (dialect === 'mysql2') return 'mysql';

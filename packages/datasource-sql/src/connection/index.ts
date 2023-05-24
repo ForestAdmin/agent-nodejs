@@ -54,6 +54,17 @@ function getSslConfiguration(
   }
 }
 
+function handleConnectErrors(e, options?: ConnectionOptionsObj, proxy?: ReverseProxy) {
+  // if proxy encountered an error, we want to throw it instead of the sequelize error
+  const error = proxy?.error || (e as Error);
+
+  if (proxy) {
+    handleErrorsWithProxy(error, options?.uri, options.proxySocks);
+  } else {
+    handleErrors(error, options?.uri);
+  }
+}
+
 /** Attempt to connect to the database */
 export default async function connect(
   uriOrOptions: ConnectionOptions,
@@ -99,15 +110,6 @@ export default async function connect(
     return sequelize;
   } catch (e) {
     await sequelize?.close();
-
-    // if proxy encountered an error, we want to throw it instead of the sequelize error
-    const uri = typeof uriOrOptions === 'string' ? uriOrOptions : uriOrOptions.uri;
-    const error = proxy?.error || (e as Error);
-
-    if (proxy) {
-      handleErrorsWithProxy(error, uri, options.proxySocks);
-    } else {
-      handleErrors(error, uri);
-    }
+    handleConnectErrors(e, options, proxy);
   }
 }
