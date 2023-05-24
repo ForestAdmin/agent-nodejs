@@ -112,7 +112,9 @@ describe('Builder > Agent', () => {
           expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
 
           // Mounting new routes (a.k.a restart)
-          await mounter.startRouting(newRouter);
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await mounter.mountForestRoutes(newRouter);
 
           const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
           expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
@@ -161,7 +163,9 @@ describe('Builder > Agent', () => {
           expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
 
           // Mounting new routes (a.k.a restart)
-          await mounter.startRouting(newRouter);
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await mounter.mountForestRoutes(newRouter);
 
           const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
           expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });

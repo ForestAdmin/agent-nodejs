@@ -8,8 +8,8 @@ import path from 'path';
 import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
-  private readonly onStart: (() => Promise<void>)[] = [];
-  private readonly onStartRouting: ((router: Router) => Promise<void>)[] = [];
+  private readonly onStartServer: (() => Promise<void>)[] = [];
+  private readonly onMountForestRoutes: ((router: Router) => Promise<void>)[] = [];
   private readonly onStop: (() => Promise<void>)[] = [];
   private readonly prefix: string;
   private readonly logger: Logger;
@@ -25,20 +25,19 @@ export default class FrameworkMounter {
   }
 
   async start(router: Router): Promise<void> {
-    for (const task of this.onStart) {
-      await task(); // eslint-disable-line no-await-in-loop
-    }
-
-    await this.startRouting(router);
+    await this.startServer();
+    await this.mountForestRoutes(router);
   }
 
-  /**
-   * Creates the routes handlers
-   * (Also it allows to restart the agent)
-   */
-  async startRouting(router: Router): Promise<void> {
-    for (const task of this.onStartRouting) {
+  protected async mountForestRoutes(router: Router): Promise<void> {
+    for (const task of this.onMountForestRoutes) {
       await task(router); // eslint-disable-line no-await-in-loop
+    }
+  }
+
+  private async startServer(): Promise<void> {
+    for (const task of this.onStartServer) {
+      await task(); // eslint-disable-line no-await-in-loop
     }
   }
 
@@ -55,7 +54,7 @@ export default class FrameworkMounter {
   mountOnStandaloneServer(port?: number, host?: string): this {
     const chosenPort = port || Number(process.env.PORT) || 3351;
     const server = createServer(this.getConnectCallback(true));
-    this.onStart.push(() => {
+    this.onStartServer.push(() => {
       return new Promise<void>((resolve, reject) => {
         server.listen(chosenPort, host, () => {
           this.logger(
@@ -111,7 +110,7 @@ export default class FrameworkMounter {
       ctx.response.body = { error: 'Agent is not started' };
     });
 
-    this.onStartRouting.push(async driverRouter => {
+    this.onMountForestRoutes.push(async driverRouter => {
       // Unmounts previous routes
       parentRouter.stack = [];
       // Mounts new ones
@@ -167,7 +166,7 @@ export default class FrameworkMounter {
   private getConnectCallback(nested: boolean): HttpCallback {
     let handler = null;
 
-    this.onStartRouting.push(async driverRouter => {
+    this.onMountForestRoutes.push(async driverRouter => {
       let router = driverRouter;
 
       if (nested) {
