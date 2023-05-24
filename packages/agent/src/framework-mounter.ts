@@ -8,8 +8,8 @@ import path from 'path';
 import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
-  private readonly onStartServer: (() => Promise<void>)[] = [];
-  private readonly onMountForestRoutes: ((router: Router) => Promise<void>)[] = [];
+  private readonly onFirstStart: (() => Promise<void>)[] = [];
+  private readonly onEachStart: ((router: Router) => Promise<void>)[] = [];
   private readonly onStop: (() => Promise<void>)[] = [];
   private readonly prefix: string;
   private readonly logger: Logger;
@@ -24,21 +24,14 @@ export default class FrameworkMounter {
     this.logger = logger;
   }
 
-  async start(router: Router): Promise<void> {
-    await this.startServer();
-    await this.mountForestRoutes(router);
+  protected async mount(router: Router): Promise<void> {
+    for (const task of this.onFirstStart) await task(); // eslint-disable-line no-await-in-loop
+
+    await this.remount(router);
   }
 
-  protected async mountForestRoutes(router: Router): Promise<void> {
-    for (const task of this.onMountForestRoutes) {
-      await task(router); // eslint-disable-line no-await-in-loop
-    }
-  }
-
-  private async startServer(): Promise<void> {
-    for (const task of this.onStartServer) {
-      await task(); // eslint-disable-line no-await-in-loop
-    }
+  protected async remount(router: Router): Promise<void> {
+    for (const task of this.onEachStart) await task(router); // eslint-disable-line no-await-in-loop
   }
 
   async stop(): Promise<void> {
@@ -54,7 +47,8 @@ export default class FrameworkMounter {
   mountOnStandaloneServer(port?: number, host?: string): this {
     const chosenPort = port || Number(process.env.PORT) || 3351;
     const server = createServer(this.getConnectCallback(true));
-    this.onStartServer.push(() => {
+
+    this.onFirstStart.push(() => {
       return new Promise<void>((resolve, reject) => {
         server.listen(chosenPort, host, () => {
           this.logger(
@@ -104,13 +98,14 @@ export default class FrameworkMounter {
    */
   mountOnKoa(koa: any): this {
     const parentRouter = new Router({ prefix: this.completeMountPrefix });
+
     // Default route middleware, it will be removed after starting the agent
     parentRouter.get('/', ctx => {
       ctx.response.status = 200;
       ctx.response.body = { error: 'Agent is not started' };
     });
 
-    this.onMountForestRoutes.push(async driverRouter => {
+    this.onEachStart.push(async driverRouter => {
       // Unmounts previous routes
       parentRouter.stack = [];
       // Mounts new ones
@@ -166,7 +161,7 @@ export default class FrameworkMounter {
   private getConnectCallback(nested: boolean): HttpCallback {
     let handler = null;
 
-    this.onMountForestRoutes.push(async driverRouter => {
+    this.onEachStart.push(async driverRouter => {
       let router = driverRouter;
 
       if (nested) {

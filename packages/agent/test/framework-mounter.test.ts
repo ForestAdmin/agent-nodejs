@@ -32,7 +32,8 @@ describe('Builder > Agent', () => {
         mounter.mountOnStandaloneServer(9997, 'localhost');
 
         try {
-          await mounter.start(router);
+          // @ts-expect-error: testing a protected method
+          await mounter.mount(router);
 
           const response = await superagent.get('http://localhost:9997/my-api/forest');
           expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
@@ -63,10 +64,12 @@ describe('Builder > Agent', () => {
 
         try {
           mounter.mountOnStandaloneServer(9997, 'localhost');
-          await mounter.start(router);
+          // @ts-expect-error: testing a protected method
+          await mounter.mount(router);
           // throw error on start by mount two servers on the same port
           mounter2.mountOnStandaloneServer(9997, 'localhost');
-          await mounter2.start(router);
+          // @ts-expect-error: testing a protected method
+          await mounter2.mount(router);
         } catch (e) {
           // eslint-disable-next-line jest/no-conditional-expect
           expect(e.message).toContain('9997');
@@ -103,7 +106,8 @@ describe('Builder > Agent', () => {
 
         const mounter = new FrameworkMounter('my-api', logger);
         mounter.mountOnExpress(app);
-        await mounter.start(router);
+        // @ts-expect-error: testing a protected method
+        await mounter.mount(router);
 
         const server = app.listen(9998);
 
@@ -112,9 +116,8 @@ describe('Builder > Agent', () => {
           expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
 
           // Mounting new routes (a.k.a restart)
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          await mounter.mountForestRoutes(newRouter);
+          // @ts-expect-error: testing a protected method
+          await mounter.remount(newRouter);
 
           const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
           expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
@@ -136,7 +139,8 @@ describe('Builder > Agent', () => {
 
       const mounter = new FrameworkMounter('my-api', logger);
       mounter.mountOnKoa(app);
-      await mounter.start(router);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(router);
 
       const server = app.listen(9998);
 
@@ -154,7 +158,8 @@ describe('Builder > Agent', () => {
 
         const mounter = new FrameworkMounter('my-api', logger);
         mounter.mountOnKoa(app);
-        await mounter.start(router);
+        // @ts-expect-error: testing a protected method
+        await mounter.mount(router);
 
         const server = app.listen(9998);
 
@@ -163,9 +168,8 @@ describe('Builder > Agent', () => {
           expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
 
           // Mounting new routes (a.k.a restart)
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          await mounter.mountForestRoutes(newRouter);
+          // @ts-expect-error: testing a protected method
+          await mounter.remount(newRouter);
 
           const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
           expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
@@ -204,7 +208,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnExpress(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     const server = app.listen(9998);
 
@@ -224,7 +229,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnFastify(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     await app.listen(9999);
 
@@ -243,7 +249,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnNestJs(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     await app.listen(9996);
 
@@ -264,7 +271,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnNestJs(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     await app.listen(9995);
 
