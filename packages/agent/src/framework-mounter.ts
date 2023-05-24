@@ -2,7 +2,7 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { createServer } from 'http';
-import Koa, { Middleware } from 'koa';
+import Koa from 'koa';
 import path from 'path';
 
 import { HttpCallback } from './types';
@@ -105,6 +105,11 @@ export default class FrameworkMounter {
    */
   mountOnKoa(koa: any): this {
     const parentRouter = new Router({ prefix: this.completeMountPrefix });
+    // Default route middleware, it will be removed after starting the agent
+    parentRouter.get('/', ctx => {
+      ctx.response.status = 200;
+      ctx.response.body = { error: 'Agent is not started' };
+    });
 
     this.onStartRouting.push(async driverRouter => {
       // Unmounts previous routes

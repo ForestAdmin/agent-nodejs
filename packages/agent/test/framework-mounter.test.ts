@@ -78,14 +78,111 @@ describe('Builder > Agent', () => {
     });
   });
 
-  describe('when agent is mounted without the standalone mode', () => {
+  describe('when agent is mounted without the standalone mode or koa', () => {
     describe('when the agent is not started', () => {
-      it('should return a response', async () => {
+      it('should return a default response "Agent is not started"', async () => {
         expect.assertions(1);
         const app = express();
 
         const mounter = new FrameworkMounter('my-api', logger);
         mounter.mountOnExpress(app);
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: 'Agent is not started' });
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    describe('when the agent is restarted', () => {
+      it('should unmount previous routes and mount new ones', async () => {
+        const app = express();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnExpress(app);
+        await mounter.start(router);
+
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+
+          // Mounting new routes (a.k.a restart)
+          await mounter.startRouting(newRouter);
+
+          const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
+          expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
+
+          // The previous route has been unmounted
+          await expect(superagent.get('http://localhost:9998/my-api/forest')).rejects.toThrow(
+            'Not Found',
+          );
+        } finally {
+          server.close();
+        }
+      });
+    });
+  });
+
+  describe('in an koa app', () => {
+    it('should work in an koa app', async () => {
+      const app = new Koa();
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnKoa(app);
+      await mounter.start(router);
+
+      const server = app.listen(9998);
+
+      try {
+        const response = await superagent.get('http://localhost:9998/my-api/forest');
+        expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+      } finally {
+        server.close();
+      }
+    });
+
+    describe('when the agent is restarted', () => {
+      it('should unmount previous routes and mount new ones', async () => {
+        const app = new Koa();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnKoa(app);
+        await mounter.start(router);
+
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+
+          // Mounting new routes (a.k.a restart)
+          await mounter.startRouting(newRouter);
+
+          const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
+          expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
+
+          // The previous route has been unmounted
+          await expect(superagent.get('http://localhost:9998/my-api/forest')).rejects.toThrow(
+            'Not Found',
+          );
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    describe('when the agent is not started', () => {
+      it('should return a default response "Agent is not started"', async () => {
+        const app = new Koa();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnKoa(app);
+
         const server = app.listen(9998);
 
         try {
@@ -110,34 +207,6 @@ describe('Builder > Agent', () => {
     try {
       const response = await superagent.get('http://localhost:9998/my-api/forest');
       expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
-    } finally {
-      server.close();
-    }
-  });
-
-  it('should work in an koa app', async () => {
-    const app = new Koa();
-
-    const mounter = new FrameworkMounter('my-api', logger);
-    mounter.mountOnKoa(app);
-    await mounter.start(router);
-
-    const server = app.listen(9998);
-
-    try {
-      const response = await superagent.get('http://localhost:9998/my-api/forest');
-      expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
-
-      // Mounting new routes (a.k.a restart)
-      mounter.startRouting(newRouter);
-
-      const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
-      expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
-
-      // The previous route as been unmounted
-      await expect(superagent.get('http://localhost:9998/my-api/forest')).rejects.toThrow(
-        'Not Found',
-      );
     } finally {
       server.close();
     }
