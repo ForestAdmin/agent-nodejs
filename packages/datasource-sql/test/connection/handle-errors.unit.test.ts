@@ -13,7 +13,7 @@ describe('handleErrorsWithProxy', () => {
       };
       expect(() => handleErrorsWithProxy(error, databaseUri, proxyConfig)).toThrow(
         // eslint-disable-next-line max-len
-        'Unable to connect to the given uri: postgres://user:**sanitizedPassword**@localhost:5432/db\n' +
+        'Unable to connect to the given uri: postgres://user:**sanitizedPassword**@localhost:5432/db.\n' +
           'Connection error: Connection timed out',
       );
     });
@@ -23,6 +23,7 @@ describe('handleErrorsWithProxy', () => {
     describe('when the proxy has an error with database uri', () => {
       it('should throw a DatabaseError', () => {
         const error = new Error('Socket closed');
+        error.stack = 'SocksClient.connect: Socks connection failed to proxy: Socket closed';
         const databaseUri = 'postgres://user:password@localhost:5432/db';
         const proxyConfig = {
           host: 'localhost',
@@ -30,7 +31,7 @@ describe('handleErrorsWithProxy', () => {
         };
         expect(() => handleErrorsWithProxy(error, databaseUri, proxyConfig)).toThrow(
           // eslint-disable-next-line max-len
-          'Unable to connect to the given uri: postgres://user:**sanitizedPassword**@localhost:5432/db',
+          'Unable to connect to the given uri: postgres://user:**sanitizedPassword**@localhost:5432/db.',
         );
       });
     });

@@ -26,7 +26,7 @@ class BaseError extends Error {
 
 export class DatabaseError extends BaseError {
   constructor(databaseUri: string, details?: string, source: SourceError = 'Database') {
-    super(`Unable to connect to the given uri: ${sanitizeUri(databaseUri)}`, details);
+    super(`Unable to connect to the given uri: ${sanitizeUri(databaseUri)}.`, details);
     this.name = this.constructor.name;
     this.source = source;
     this.uri = databaseUri;
@@ -38,7 +38,7 @@ export class ProxyError extends BaseError {
     super(
       `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizeUri(
         proxyUri,
-      ).replace('socks://', '')}`,
+      ).replace('socks://', '')}.`,
       details,
     );
     this.name = this.constructor.name;

@@ -303,20 +303,11 @@ describe('connect errors', () => {
             proxySocks: {
               host: 'bici.usefixie.com',
               port: 1080,
-              password: 'TO CHANGE',
+              password: 'TO CHANGE, go to heroku to get a value',
               userId: 'fixie',
             },
           }),
         ).rejects.toThrow(DatabaseError);
-      });
-
-      it('Unit Test > should throw a DatabaseError error', async () => {
-        expect(() =>
-          handleErrorsWithProxy(new Error('Socket closed'), uri, {
-            host: 'bici.usefixie.com',
-            port: 1080,
-          }),
-        ).toThrow(DatabaseError);
       });
     });
   });
