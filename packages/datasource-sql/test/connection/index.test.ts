@@ -1,6 +1,7 @@
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
+import { DatabaseError } from '../../src/connection/errors';
 import { SslMode } from '../../src/types';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 
@@ -43,7 +44,30 @@ describe('Connect', () => {
               userId: 'username',
             },
           }),
-        ).rejects.toThrow('password authentication failed for user "BADUSER"');
+        ).rejects.toThrow(DatabaseError);
+      });
+    });
+
+    describe('when the proxy configuration is wrong', () => {
+      it('should throw an error', async () => {
+        const baseUri = 'postgres://test:password@localhost:5443';
+        await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+
+        const uri = `postgres://test:password@postgres:5432/test_connection`;
+        await expect(() =>
+          connect({
+            uri,
+            proxySocks: {
+              host: 'BADHOST',
+              port: 1080,
+              password: 'password',
+              userId: 'username',
+            },
+          }),
+        ).rejects.toThrow(
+          // eslint-disable-next-line max-len
+          'Your proxy has encountered an error. Unable to connect to the given uri: username:**sanitizedPassword**@BADHOST:1080',
+        );
       });
     });
   });

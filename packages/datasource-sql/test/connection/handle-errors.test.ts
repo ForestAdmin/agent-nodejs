@@ -311,9 +311,12 @@ describe('connect errors', () => {
       });
 
       it('Unit Test > should throw a DatabaseError error', async () => {
-        expect(() => handleErrorsWithProxy(new Error('Socket closed'), uri, uri)).toThrow(
-          DatabaseError,
-        );
+        expect(() =>
+          handleErrorsWithProxy(new Error('Socket closed'), uri, {
+            host: 'bici.usefixie.com',
+            port: 1080,
+          }),
+        ).toThrow(DatabaseError);
       });
     });
   });

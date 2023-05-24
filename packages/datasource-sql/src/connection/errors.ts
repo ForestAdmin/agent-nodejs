@@ -1,7 +1,10 @@
 // eslint-disable-next-line max-classes-per-file
 function sanitizeUri(uri: string): string {
   const uriObject = new URL(uri);
-  uriObject.password = '**sanitizedPassword**';
+
+  if (uriObject.password) {
+    uriObject.password = '**sanitizedPassword**';
+  }
 
   return uriObject.toString();
 }
@@ -35,7 +38,7 @@ export class ProxyError extends BaseError {
     super(
       `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizeUri(
         proxyUri,
-      )}`,
+      ).replace('socks://', '')}`,
       details,
     );
     this.name = this.constructor.name;

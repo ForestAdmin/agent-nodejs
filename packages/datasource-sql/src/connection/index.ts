@@ -105,12 +105,7 @@ export default async function connect(
     const error = proxy?.error || (e as Error);
 
     if (proxy) {
-      const { proxySocks } = options;
-      const proxyUri = new URL(
-        `tcp://${proxySocks.userId}@${proxySocks.password}${proxySocks.host}:${proxySocks.port}`,
-      );
-
-      handleErrorsWithProxy(error, uri, proxyUri.toString());
+      handleErrorsWithProxy(error, uri, options.proxySocks);
     } else {
       handleErrors(error, uri);
     }
