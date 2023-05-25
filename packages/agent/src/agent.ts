@@ -64,7 +64,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Start the agent.
    */
-  override async start(): Promise<void> {
+  async start(): Promise<void> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
     const dataSource = await this.customizer.getDataSource(logger);
@@ -76,7 +76,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         : Promise.resolve(),
     ]);
 
-    return super.start(router);
+    await this.mount(router);
   }
 
   /**
