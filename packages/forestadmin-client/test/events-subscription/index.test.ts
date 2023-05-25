@@ -18,7 +18,7 @@ describe('EventsSubscriptionService', () => {
   beforeEach(() => jest.clearAllMocks());
 
   const options = factories.forestAdminClientOptions.build();
-  const refreshEventsHandlerService = factories.nativeRefreshEventsHandler.mockAllMethods().build();
+  const refreshEventsHandlerService = factories.eventsHandler.mockAllMethods().build();
 
   describe('subscribeEvents', () => {
     test('should add listener for message events', async () => {
