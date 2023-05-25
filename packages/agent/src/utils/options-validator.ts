@@ -5,6 +5,8 @@ import path from 'path';
 import { AgentOptions, AgentOptionsWithDefaults } from '../types';
 
 const DEFAULT_MINIMUM_CACHE_DURATION = 60;
+// One year cache duration when using events
+const DEFAULT_CACHE_DURATION_WITH_EVENTS = 31560000;
 
 export default class OptionsValidator {
   private static loggerPrefix = {
@@ -31,22 +33,22 @@ export default class OptionsValidator {
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
     copyOptions.prefix = copyOptions.prefix || '';
-    copyOptions.permissionsCacheDurationInSeconds =
-      copyOptions.permissionsCacheDurationInSeconds ?? 15 * 60;
     copyOptions.loggerLevel = copyOptions.loggerLevel || 'Info';
     copyOptions.skipSchemaUpdate = copyOptions.skipSchemaUpdate || false;
+    copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
 
-    copyOptions.forestAdminClient =
-      copyOptions.forestAdminClient ||
-      createForestAdminClient({
-        envSecret: copyOptions.envSecret,
-        forestServerUrl: copyOptions.forestServerUrl,
-        logger: copyOptions.logger,
-        permissionsCacheDurationInSeconds: copyOptions.permissionsCacheDurationInSeconds,
-      });
+    if (copyOptions.instantCacheRefresh && copyOptions.permissionsCacheDurationInSeconds) {
+      copyOptions.logger(
+        'Warn',
+        'ignoring options.permissionsCacheDurationInSeconds: when using ' +
+          'options.instantCacheRefresh=true permissions caches are instantly refreshed',
+      );
+    }
 
-    copyOptions.permissionsCacheDurationInSeconds =
-      copyOptions.permissionsCacheDurationInSeconds ?? 15 * DEFAULT_MINIMUM_CACHE_DURATION;
+    // When using the event source to refresh cache we set a one year cache duration
+    copyOptions.permissionsCacheDurationInSeconds = copyOptions.instantCacheRefresh
+      ? DEFAULT_CACHE_DURATION_WITH_EVENTS
+      : copyOptions.permissionsCacheDurationInSeconds ?? DEFAULT_MINIMUM_CACHE_DURATION * 15;
 
     if (copyOptions.permissionsCacheDurationInSeconds < DEFAULT_MINIMUM_CACHE_DURATION) {
       copyOptions.permissionsCacheDurationInSeconds = DEFAULT_MINIMUM_CACHE_DURATION;
@@ -56,6 +58,16 @@ export default class OptionsValidator {
           `minimum value is ${DEFAULT_MINIMUM_CACHE_DURATION} seconds`,
       );
     }
+
+    copyOptions.forestAdminClient =
+      copyOptions.forestAdminClient ||
+      createForestAdminClient({
+        envSecret: copyOptions.envSecret,
+        forestServerUrl: copyOptions.forestServerUrl,
+        logger: copyOptions.logger,
+        permissionsCacheDurationInSeconds: copyOptions.permissionsCacheDurationInSeconds,
+        instantCacheRefresh: copyOptions.instantCacheRefresh,
+      });
 
     return {
       loggerLevel: 'Info',

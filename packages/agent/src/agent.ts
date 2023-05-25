@@ -74,6 +74,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       !isProduction && typingsPath
         ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
         : Promise.resolve(),
+
+      this.options.forestAdminClient.subscribeToServerEvents(),
     ]);
 
     await this.mount(router);
