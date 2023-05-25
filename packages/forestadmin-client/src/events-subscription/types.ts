@@ -20,3 +20,7 @@ export interface RefreshEventsHandlerService extends EventEmitter {
 
   refreshEverything: () => Promise<void> | void;
 }
+
+export interface BaseEventsSubscriptionService {
+  subscribeEvents(): Promise<void>;
+}

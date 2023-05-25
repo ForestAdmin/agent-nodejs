@@ -3,7 +3,7 @@ import { Client } from 'openid-client';
 import AuthService from './auth';
 import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
-import EventsSubscriptionService from './events-subscription';
+import { BaseEventsSubscriptionService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import RenderingPermissionService from './permissions/rendering-permission';
@@ -28,7 +28,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly ipWhitelistService: IpWhiteListService,
     protected readonly schemaService: SchemaService,
     protected readonly authService: AuthService,
-    protected readonly eventsSubscription: EventsSubscriptionService,
+    protected readonly eventsSubscription: BaseEventsSubscriptionService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
