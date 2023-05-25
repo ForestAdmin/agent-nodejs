@@ -18,7 +18,8 @@ export default class UserPermissionService {
     if (
       !this.cacheExpirationTimestamp ||
       this.cacheExpirationTimestamp < Date.now() ||
-      !(await this.userInfoById).has(`${userId}`)
+      // Only allow refetch when not using server events and not found
+      (!this.options.instantCacheRefresh && !(await this.userInfoById).has(`${userId}`))
     ) {
       this.cacheExpirationTimestamp =
         Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
@@ -36,8 +37,10 @@ export default class UserPermissionService {
     return (await this.userInfoById).get(`${userId}`);
   }
 
-  public clearCache() {
-    this.userInfoById = null;
-    this.cacheExpirationTimestamp = Number.NEGATIVE_INFINITY;
+  public invalidateCache() {
+    this.options.logger('Debug', 'Invalidating users permissions cache..');
+
+    this.userInfoById = undefined;
+    this.cacheExpirationTimestamp = undefined;
   }
 }

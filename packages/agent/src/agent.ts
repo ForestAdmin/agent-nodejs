@@ -73,6 +73,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   async start(): Promise<void> {
     const router = await this.getRouterAndSendSchema();
 
+    await this.options.forestAdminClient.subscribeToServerEvents();
+    this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
+
     await this.mount(router);
   }
 
@@ -83,7 +86,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // We force sending schema when restarting
     const updatedRouter = await this.getRouterAndSendSchema();
 
-    return super.remount(updatedRouter);
+    await this.remount(updatedRouter);
   }
 
   /**

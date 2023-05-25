@@ -46,7 +46,13 @@ export default class RenderingPermissionService {
     collectionName: string;
     userId: number | string;
   }): Promise<RawTree> {
-    return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: true });
+    return this.getScopeOrRetry({
+      renderingId,
+      collectionName,
+      userId,
+      // Only allow retry when not using server events
+      allowRetry: !this.options.instantCacheRefresh,
+    });
   }
 
   private async getScopeOrRetry({
@@ -71,7 +77,12 @@ export default class RenderingPermissionService {
       if (allowRetry) {
         this.invalidateCache(renderingId);
 
-        return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: false });
+        return this.getScopeOrRetry({
+          renderingId,
+          collectionName,
+          userId,
+          allowRetry: false,
+        });
       }
 
       return null;
@@ -97,7 +108,8 @@ export default class RenderingPermissionService {
         renderingId,
         collectionName,
         segmentQuery,
-        allowRetry: true,
+        // Only allow retry when not using server events
+        allowRetry: !this.options.instantCacheRefresh,
       })) && verifySQLQuery(segmentQuery)
     );
   }
@@ -180,7 +192,8 @@ export default class RenderingPermissionService {
         renderingId,
         chartHash,
         userId,
-        allowRetry: true,
+        // Only allow retry when not using server events
+        allowRetry: !this.options.instantCacheRefresh,
       })) &&
       (!this.isQueryChart(chartRequest) || verifySQLQuery(chartRequest.query))
     );
@@ -215,7 +228,7 @@ export default class RenderingPermissionService {
 
     if (allowRetry) {
       this.invalidateCache(renderingId);
-      this.userPermissions.clearCache();
+      this.userPermissions.invalidateCache();
 
       return this.canRetrieveChartHashOrRetry({
         renderingId,
@@ -240,6 +253,12 @@ export default class RenderingPermissionService {
     );
 
     this.permissionsByRendering.delete(`${renderingId}`);
+  }
+
+  public invalidateAllCache() {
+    this.options.logger('Debug', `Invalidating rendering permissions cache for all renderings`);
+
+    this.permissionsByRendering.clear();
   }
 
   public async getUser(userId: number | string): Promise<UserPermissionV4> {

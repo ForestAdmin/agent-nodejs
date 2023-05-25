@@ -40,6 +40,7 @@ describe('RenderingPermissionService', () => {
       forestServerUrl: 'https://api.dev',
       envSecret: 'secret',
       isProduction: true,
+      instantCacheRefresh: false,
       permissionsCacheDurationInSeconds: 1000,
       logger: jest.fn(),
     };
@@ -758,6 +759,90 @@ describe('RenderingPermissionService', () => {
       expect(result2).toBe(true);
 
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('invalidateAllCache', () => {
+    it('should invalidate the cache for all renderings', async () => {
+      const {
+        renderingPermission,
+        getUserInfoMock,
+        serverInterface,
+        hashServerChartsMock,
+        hashChartRequestMock,
+      } = setup();
+
+      const userInfo = {
+        id: 42,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@forest.com',
+        permissionLevel: PermissionLevel.User,
+      };
+
+      getUserInfoMock.mockResolvedValue(userInfo);
+
+      const stats = { lines: [{ type: 'Line' }] };
+      serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue({
+        collections: {},
+        stats,
+        team: {},
+      });
+      hashServerChartsMock.mockReturnValue(new Set(['HASH']));
+      hashChartRequestMock.mockReturnValue('HASH');
+
+      const resultA1 = await renderingPermission.canExecuteChart({
+        renderingId: 60,
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
+        userId: 42,
+      });
+
+      const resultB1 = await renderingPermission.canExecuteChart({
+        renderingId: 63,
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
+        userId: 42,
+      });
+
+      renderingPermission.invalidateAllCache();
+
+      const resultA2 = await renderingPermission.canExecuteChart({
+        renderingId: 60,
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
+        userId: 42,
+      });
+
+      const resultB2 = await renderingPermission.canExecuteChart({
+        renderingId: 63,
+        chartRequest: {
+          type: ChartType.Value,
+          sourceCollectionName: 'jedi',
+          aggregateFieldName: 'strength',
+          aggregator: 'Sum',
+        },
+        userId: 42,
+      });
+
+      expect(resultA1).toBe(true);
+      expect(resultA2).toBe(true);
+      expect(resultB1).toBe(true);
+      expect(resultB2).toBe(true);
+
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(4);
     });
   });
 
