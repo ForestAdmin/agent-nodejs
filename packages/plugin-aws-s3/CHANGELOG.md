@@ -1,4 +1,4 @@
-## @forestadmin/plugin-aws-s3 [1.1.5-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.1.4...@forestadmin/plugin-aws-s3@1.1.5-alpha-webhook-custom-actions.1) (2023-04-28)
+## @forestadmin/plugin-aws-s3 [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.1.4...@forestadmin/plugin-aws-s3@1.1.5) (2023-05-24)
 
 
 
@@ -6,7 +6,7 @@
 
 ### Dependencies
 
-* **@forestadmin/datasource-customizer:** upgraded to 1.8.0-alpha-webhook-custom-actions.1
+* **@forestadmin/datasource-customizer:** upgraded to 1.7.2
 
 ## @forestadmin/plugin-aws-s3 [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.1.3...@forestadmin/plugin-aws-s3@1.1.4) (2023-04-27)
 

@@ -26,6 +26,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -50,6 +51,7 @@ describe('ForestAdminClientWithCache', () => {
         schemaService,
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
       );
 
       const result = await forestAdminClient.postSchema({
@@ -80,6 +82,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -107,6 +110,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         authService,
         factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
       );
 
       const result = await forestAdminClient.getUserInfo(1, 'token');
@@ -130,6 +134,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         authService,
         factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
       );
 
       const result = await forestAdminClient.getOpenIdClient();
@@ -140,23 +145,48 @@ describe('ForestAdminClientWithCache', () => {
   });
 
   describe('markScopesAsUpdated', () => {
-    it('should invalidate the cache of scopes', async () => {
-      const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
-      const forestAdminClient = new ForestAdminClient(
-        factories.forestAdminClientOptions.build(),
-        factories.permission.build(),
-        renderingPermissionService,
-        factories.contextVariablesInstantiator.build(),
-        factories.chartHandler.build(),
-        factories.ipWhiteList.build(),
-        factories.schema.build(),
-        factories.auth.build(),
-        factories.modelCustomization.build(),
-      );
+    describe('when not using ServerEvents', () => {
+      it('should invalidate the cache of scopes', async () => {
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const forestAdminClient = new ForestAdminClient(
+          { ...factories.forestAdminClientOptions.build(), instantCacheRefresh: false },
+          factories.permission.build(),
+          renderingPermissionService,
+          factories.contextVariablesInstantiator.build(),
+          factories.chartHandler.build(),
+          factories.ipWhiteList.build(),
+          factories.schema.build(),
+          factories.auth.build(),
+          factories.modelCustomization.build(),
+          factories.eventsSubscription.build(),
+        );
 
-      await forestAdminClient.markScopesAsUpdated(42);
+        await forestAdminClient.markScopesAsUpdated(42);
 
-      expect(renderingPermissionService.invalidateCache).toHaveBeenCalledWith(42);
+        expect(renderingPermissionService.invalidateCache).toHaveBeenCalledWith(42);
+      });
+    });
+
+    describe('when using ServerEvents', () => {
+      it('should not do anything', async () => {
+        const renderingPermissionService = factories.renderingPermission.mockAllMethods().build();
+        const forestAdminClient = new ForestAdminClient(
+          factories.forestAdminClientOptions.build(),
+          factories.permission.build(),
+          renderingPermissionService,
+          factories.contextVariablesInstantiator.build(),
+          factories.chartHandler.build(),
+          factories.ipWhiteList.build(),
+          factories.schema.build(),
+          factories.auth.build(),
+          factories.modelCustomization.build(),
+          factories.eventsSubscription.build(),
+        );
+
+        await forestAdminClient.markScopesAsUpdated(42);
+
+        expect(renderingPermissionService.invalidateCache).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -173,6 +203,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
@@ -189,6 +220,28 @@ describe('ForestAdminClientWithCache', () => {
         userId: 42,
       });
       expect(result).toBe('scope');
+    });
+  });
+
+  describe('subscribeToServerEvents', () => {
+    it('should subscribes to Server Events rendering service', async () => {
+      const eventsSubscriptionService = factories.eventsSubscription.mockAllMethods().build();
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        factories.auth.build(),
+        factories.modelCustomization.build(),
+        eventsSubscriptionService,
+      );
+
+      await forestAdminClient.subscribeToServerEvents();
+
+      expect(eventsSubscriptionService.subscribeEvents).toHaveBeenCalledWith();
     });
   });
 });

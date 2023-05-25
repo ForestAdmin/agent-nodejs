@@ -16,7 +16,8 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('prefix', '');
       expect(options).toHaveProperty('schemaPath', '.forestadmin-schema.json');
       expect(options).toHaveProperty('typingsMaxDepth', 5);
-      expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 900);
+      expect(options).toHaveProperty('instantCacheRefresh', true);
+      expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 31560000);
       expect(options).toHaveProperty('skipSchemaUpdate', false);
     });
 
@@ -79,6 +80,7 @@ describe('OptionsValidator', () => {
         const options = OptionsValidator.withDefaults({
           ...mandatoryOptions,
           logger: jest.fn(),
+          instantCacheRefresh: false,
           permissionsCacheDurationInSeconds: 1,
         });
 
@@ -92,10 +94,29 @@ describe('OptionsValidator', () => {
       test('should allow user to configure it with realistic value', () => {
         const options = OptionsValidator.withDefaults({
           ...mandatoryOptions,
+          instantCacheRefresh: false,
           permissionsCacheDurationInSeconds: 5 * 60,
         });
 
         expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 300);
+      });
+
+      describe('when using Server Events (instantCacheRefresh=true)', () => {
+        test('should set permissionsCacheDurationInSeconds to 1 year', () => {
+          const options = OptionsValidator.withDefaults({
+            ...mandatoryOptions,
+            logger: jest.fn(),
+            instantCacheRefresh: true,
+            permissionsCacheDurationInSeconds: 5 * 60,
+          });
+
+          expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 31560000);
+          expect(options.logger).toHaveBeenCalledWith(
+            'Warn',
+            'ignoring options.permissionsCacheDurationInSeconds: when using ' +
+              'options.instantCacheRefresh=true permissions caches are instantly refreshed',
+          );
+        });
       });
     });
   });

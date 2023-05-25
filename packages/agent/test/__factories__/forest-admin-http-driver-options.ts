@@ -13,6 +13,7 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   logger: () => {},
   loggerLevel: 'Error',
   permissionsCacheDurationInSeconds: 15 * 60,
+  instantCacheRefresh: false,
   prefix: 'prefix',
   schemaPath: '/tmp/.testschema.json',
   skipSchemaUpdate: false,

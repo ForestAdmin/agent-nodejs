@@ -19,6 +19,7 @@ describe('ActionPermissionService', () => {
       envSecret: '123',
       forestServerUrl: 'http://api',
       isProduction: true,
+      instantCacheRefresh: false,
       logger: jest.fn(),
     };
     const serverInterface = factories.forestAdminServerInterface.build();
@@ -397,6 +398,32 @@ describe('ActionPermissionService', () => {
 
       expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('invalidateCache', () => {
+    it('should retrieve the cache a second time after cache invalidation', async () => {
+      const { service, serverInterface } = setup(
+        {
+          isDevelopment: true,
+          actionsByRole: new Map(),
+          actionsGloballyAllowed: new Set(),
+        },
+        {
+          isDevelopment: true,
+          actionsByRole: new Map(),
+          actionsGloballyAllowed: new Set(),
+        },
+      );
+
+      expect(await service.can(1, 'action')).toBe(true);
+
+      service.invalidateCache();
+
+      expect(await service.can(10, 'action')).toStrictEqual(true);
+
+      expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
     });
   });
 });
