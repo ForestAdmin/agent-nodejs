@@ -23,7 +23,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
   }
 
   protected createCollections(models: Sequelize['models'], logger?: Logger) {
-    Object.values(models)
+    Object.values(models ?? {})
       // avoid schema reordering
       .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
       .forEach(model => {

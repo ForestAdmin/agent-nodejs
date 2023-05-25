@@ -1,7 +1,11 @@
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { Sequelize } from 'sequelize';
 
-import { createSqlDataSourceFromSequelize } from '../dist';
-import { buildSequelizeInstance, createSqlDataSource } from '../src';
+import {
+  buildSequelizeInstance,
+  createSqlDataSource,
+  createSqlDataSourceFromSequelize,
+} from '../src';
 
 jest.mock('sequelize');
 
@@ -75,11 +79,12 @@ describe('index', () => {
   });
 
   describe('createSqlDataSourceFromSequelize', () => {
-    test('should return a data source factory', () => {
+    test('should return a data source factory', async () => {
       const sequelize = new Sequelize('postgres://');
       const factory = createSqlDataSourceFromSequelize(sequelize);
 
       expect(factory).toBeInstanceOf(Function);
+      expect(await factory(() => {})).toBeInstanceOf(SequelizeDataSource);
     });
   });
 });
