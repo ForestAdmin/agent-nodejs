@@ -1,9 +1,14 @@
 import EventSource from 'eventsource';
 
-import { RefreshEventsHandlerService, ServerEvent, ServerEventType } from './types';
+import {
+  BaseEventsSubscriptionService,
+  RefreshEventsHandlerService,
+  ServerEvent,
+  ServerEventType,
+} from './types';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 
-export default class EventsSubscriptionService {
+export default class EventsSubscriptionService implements BaseEventsSubscriptionService {
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly refreshEventsHandlerService: RefreshEventsHandlerService,
