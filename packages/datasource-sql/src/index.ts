@@ -45,6 +45,12 @@ export async function buildSequelizeInstance(
   return sequelize;
 }
 
+export function createSqlDataSourceFromSequelize(sequelize: Sequelize): DataSourceFactory {
+  return async (logger: Logger) => {
+    return new SequelizeDataSource(sequelize, logger);
+  };
+}
+
 export function createSqlDataSource(
   uriOrOptions: ConnectionOptions,
   options?: { introspection: Table[] },

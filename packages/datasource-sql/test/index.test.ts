@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 
+import { createSqlDataSourceFromSequelize } from '../dist';
 import { buildSequelizeInstance, createSqlDataSource } from '../src';
 
 jest.mock('sequelize');
@@ -70,6 +71,15 @@ describe('index', () => {
           dialectOptions: {},
         });
       });
+    });
+  });
+
+  describe('createSqlDataSourceFromSequelize', () => {
+    test('should return a data source factory', () => {
+      const sequelize = new Sequelize('postgres://');
+      const factory = createSqlDataSourceFromSequelize(sequelize);
+
+      expect(factory).toBeInstanceOf(Function);
     });
   });
 });
