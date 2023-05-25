@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.14...@forestadmin/agent@1.9.0) (2023-05-25)
+
+
+### Features
+
+* **events-subscription:** allow to instantly refresh permissions when they change ([#692](https://github.com/ForestAdmin/agent-nodejs/issues/692)) ([e108183](https://github.com/ForestAdmin/agent-nodejs/commit/e1081838e42f216e8edc19048531eb8ef05d3fa0))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.2.0
+
 ## @forestadmin/agent [1.8.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.13...@forestadmin/agent@1.8.14) (2023-05-24)
 
 
