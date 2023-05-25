@@ -70,7 +70,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Start the agent.
    */
-  override async start(): Promise<void> {
+  async start(): Promise<void> {
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
 
     await this.nocodeCustomizer.use(
@@ -86,9 +86,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       !isProduction && typingsPath
         ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
         : Promise.resolve(),
+
+      this.options.forestAdminClient.subscribeToServerEvents(),
     ]);
 
-    return super.start(router);
+    await this.mount(router);
   }
 
   /**

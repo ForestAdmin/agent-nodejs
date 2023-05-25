@@ -26,7 +26,8 @@ export default class ActionPermissionService {
     return this.hasPermissionOrRefetch({
       roleId,
       actionName,
-      allowRefetch: true,
+      // Only allow refetch when not using server events
+      allowRefetch: !this.options.instantCacheRefresh,
     });
   }
 
@@ -43,8 +44,7 @@ export default class ActionPermissionService {
     const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
     if (!isAllowed && allowRefetch) {
-      this.permissionsPromise = undefined;
-      this.permissionExpirationTimestamp = undefined;
+      this.invalidateCache();
 
       return this.hasPermissionOrRefetch({
         roleId,
@@ -55,8 +55,7 @@ export default class ActionPermissionService {
 
     this.options.logger(
       'Debug',
-      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform
-      }${actionName}`,
+      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform ${actionName}`,
     );
 
     return isAllowed;
@@ -139,5 +138,12 @@ export default class ActionPermissionService {
     return Array.from(approvalPermission.allowedRoles).filter(
       roleId => !approvalPermission.conditionsByRole?.has(roleId),
     );
+  }
+
+  public invalidateCache() {
+    this.options.logger('Debug', 'Invalidating roles permissions cache..');
+
+    this.permissionsPromise = undefined;
+    this.permissionExpirationTimestamp = undefined;
   }
 }

@@ -27,6 +27,7 @@ export type ForestAdminClientOptions = {
   forestServerUrl?: string;
   logger?: Logger;
   permissionsCacheDurationInSeconds?: number;
+  instantCacheRefresh?: boolean;
 };
 
 export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions>;
@@ -52,6 +53,8 @@ export interface ForestAdminClient {
     collectionName: string;
   }): Promise<RawTree>;
   markScopesAsUpdated(renderingId: number | string): void;
+
+  subscribeToServerEvents(): Promise<void>;
 }
 
 export interface PermissionService {

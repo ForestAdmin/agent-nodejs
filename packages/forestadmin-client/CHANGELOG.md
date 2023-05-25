@@ -4,6 +4,12 @@
 ### Bug Fixes
 
 * **in-app-onboarding:** do not force skipLibCheck on customers TS configuration ([#680](https://github.com/ForestAdmin/agent-nodejs/issues/680)) ([c374117](https://github.com/ForestAdmin/agent-nodejs/commit/c37411763507f274dd4dba2d3dd08adb8c1b4222))
+# @forestadmin/forestadmin-client [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.14...@forestadmin/forestadmin-client@1.2.0) (2023-05-25)
+
+
+### Features
+
+* **events-subscription:** allow to instantly refresh permissions when they change ([#692](https://github.com/ForestAdmin/agent-nodejs/issues/692)) ([e108183](https://github.com/ForestAdmin/agent-nodejs/commit/e1081838e42f216e8edc19048531eb8ef05d3fa0))
 
 ## @forestadmin/forestadmin-client [1.1.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.1.13...@forestadmin/forestadmin-client@1.1.14) (2023-05-03)
 

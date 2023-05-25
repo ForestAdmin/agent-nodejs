@@ -1,3 +1,5 @@
+export { default as eventsSubscription } from './events-subscription';
+export { default as nativeRefreshEventsHandler } from './events-subscription/native-refresh-events-handler-service';
 export { default as actionPermission } from './permissions/action-permission';
 export { default as renderingPermission } from './permissions/rendering-permission';
 export { default as userPermission } from './permissions/user-permission';
