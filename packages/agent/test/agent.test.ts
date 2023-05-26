@@ -58,6 +58,7 @@ beforeEach(() => {
   mockDatasourceCustomizer
     .mockReset()
     .mockImplementationOnce(() => mockCustomizer)
+    .mockImplementationOnce(() => mockNocodeCustomizer)
     .mockImplementationOnce(() => mockNocodeCustomizer);
 
   mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
@@ -131,6 +132,7 @@ describe('Agent', () => {
       mockCustomizer.getFactory.mockReturnValueOnce('factory');
 
       const agent = new Agent(options);
+      await agent.start();
 
       expect(agent).toBeTruthy();
 
@@ -240,6 +242,7 @@ describe('Agent', () => {
       expect(mockMakeRoutes).toHaveBeenCalledTimes(2);
       expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(2);
       expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(2);
+
       expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(2);
     });
   });

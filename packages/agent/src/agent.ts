@@ -62,8 +62,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
-    this.nocodeCustomizer = new DataSourceCustomizer<S>();
-    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.actionCustomizationService = new ActionCustomizationService(allOptions);
   }
 
@@ -172,7 +170,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth, experimental } =
       this.options;
 
-    await this.nocodeCustomizer.use(
+    // It allows to rebuild the full customization stack with no code customizations
+    this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
+    this.nocodeCustomizer.use(
       this.actionCustomizationService.addWebhookActions,
       experimental?.webhookCustomActions,
     );
