@@ -253,4 +253,30 @@ describe('ForestAdminClientWithCache', () => {
       expect(eventsSubscriptionService.subscribeEvents).toHaveBeenCalledWith();
     });
   });
+
+  describe('onRefreshCustomizations', () => {
+    it('should subscribes to Server Events rendering service', async () => {
+      const eventsHandlerService = factories.eventsHandler.mockAllMethods().build();
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        factories.auth.build(),
+        factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
+        eventsHandlerService,
+      );
+
+      const handler = jest.fn();
+
+      forestAdminClient.onRefreshCustomizations(handler);
+
+      expect(eventsHandlerService.onRefreshCustomizations).toHaveBeenCalled();
+      expect(eventsHandlerService.onRefreshCustomizations).toHaveBeenCalledWith(handler);
+    });
+  });
 });
