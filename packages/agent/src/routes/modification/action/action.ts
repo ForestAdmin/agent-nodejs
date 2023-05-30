@@ -47,14 +47,14 @@ export default class ActionRoute extends CollectionRoute {
     const path = `/_actions/${this.collection.name}/${actionIndex}`;
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
-    const actionName = this.actionName.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
+    const urlSafeActionName = this.actionName.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
     router.post(
-      `${path}/${actionName}`,
+      `${path}/${urlSafeActionName}`,
       this.middlewareCustomActionApprovalRequestData.bind(this),
       this.handleExecute.bind(this),
     );
-    router.post(`${path}/${actionName}/hooks/load`, this.handleHook.bind(this));
-    router.post(`${path}/${actionName}/hooks/change`, this.handleHook.bind(this));
+    router.post(`${path}/${urlSafeActionName}/hooks/load`, this.handleHook.bind(this));
+    router.post(`${path}/${urlSafeActionName}/hooks/change`, this.handleHook.bind(this));
   }
 
   private async handleExecute(context: Context): Promise<void> {
