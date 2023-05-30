@@ -25,10 +25,7 @@ describe('ForestAdminClientWithCache', () => {
         whiteListService,
         factories.schema.build(),
         factories.auth.build(),
-<<<<<<< HEAD
         factories.modelCustomization.build(),
-=======
->>>>>>> main
         factories.eventsSubscription.build(),
       );
 
@@ -53,10 +50,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         schemaService,
         factories.auth.build(),
-<<<<<<< HEAD
         factories.modelCustomization.build(),
-=======
->>>>>>> main
         factories.eventsSubscription.build(),
       );
 
@@ -87,10 +81,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
-<<<<<<< HEAD
         factories.modelCustomization.build(),
-=======
->>>>>>> main
         factories.eventsSubscription.build(),
       );
 
@@ -118,10 +109,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         authService,
-<<<<<<< HEAD
         factories.modelCustomization.build(),
-=======
->>>>>>> main
         factories.eventsSubscription.build(),
       );
 
@@ -145,10 +133,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         authService,
-<<<<<<< HEAD
         factories.modelCustomization.build(),
-=======
->>>>>>> main
         factories.eventsSubscription.build(),
       );
 
@@ -172,10 +157,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.auth.build(),
-<<<<<<< HEAD
           factories.modelCustomization.build(),
-=======
->>>>>>> main
           factories.eventsSubscription.build(),
         );
 
@@ -197,10 +179,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.auth.build(),
-<<<<<<< HEAD
           factories.modelCustomization.build(),
-=======
->>>>>>> main
           factories.eventsSubscription.build(),
         );
 
@@ -223,10 +202,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
-<<<<<<< HEAD
         factories.modelCustomization.build(),
-=======
->>>>>>> main
         factories.eventsSubscription.build(),
       );
 
