@@ -81,7 +81,7 @@ export default async function connect(
     try {
       servername = options?.host ?? new URL(options.uri).hostname;
     } catch {
-      servername = undefined; // don't crash if using unix socket, sqlite, etc...
+      // don't crash if using unix socket, sqlite, etc...
     }
 
     if (options.proxySocks) {
