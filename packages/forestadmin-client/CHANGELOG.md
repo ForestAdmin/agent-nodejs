@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.3.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.2.0...@forestadmin/forestadmin-client@1.3.0-alpha-webhook-custom-actions.1) (2023-05-30)
+
+
+### Features
+
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
+
 # @forestadmin/forestadmin-client [1.2.0-alpha-webhook-custom-actions.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.2.0-alpha-webhook-custom-actions.2...@forestadmin/forestadmin-client@1.2.0-alpha-webhook-custom-actions.3) (2023-05-10)
 
 
