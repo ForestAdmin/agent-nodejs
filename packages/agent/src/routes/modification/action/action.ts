@@ -45,7 +45,7 @@ export default class ActionRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
     // Generate url that matches the declaration in forest-schema/generator-actions.ts
     const actionIndex = Object.keys(this.collection.schema.actions).indexOf(this.actionName);
-    const slug = this.actionName.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
+    const slug = SchemaGeneratorActions.getActionSlug(this.actionName);
     const path = `/_actions/${this.collection.name}/${actionIndex}/${slug}`;
 
     router.post(
