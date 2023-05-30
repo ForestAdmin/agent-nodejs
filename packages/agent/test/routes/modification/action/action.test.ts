@@ -53,7 +53,7 @@ describe('ActionRoute', () => {
     dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
         name: 'books',
-        schema: { actions: { MySingleAction: null } },
+        schema: { actions: { MySingleAction: undefined } },
         getForm: jest.fn(),
         execute: jest.fn(),
       }),
@@ -64,16 +64,16 @@ describe('ActionRoute', () => {
     route.setupRoutes(router);
 
     expect(router.post).toHaveBeenCalledWith(
-      '/_actions/books/0/:slug',
+      '/_actions/books/0/mysingleaction',
       expect.any(Function), // middlewareCustomActionApprovalRequestData
       expect.any(Function),
     );
     expect(router.post).toHaveBeenCalledWith(
-      '/_actions/books/0/:slug/hooks/load',
+      '/_actions/books/0/mysingleaction/hooks/load',
       expect.any(Function),
     );
     expect(router.post).toHaveBeenCalledWith(
-      '/_actions/books/0/:slug/hooks/change',
+      '/_actions/books/0/mysingleaction/hooks/change',
       expect.any(Function),
     );
   });
@@ -83,7 +83,7 @@ describe('ActionRoute', () => {
       dataSource = factories.dataSource.buildWithCollections([
         factories.collection.build({
           name: 'books',
-          schema: { actions: { My_Action: null } },
+          schema: { actions: { My_Action: undefined } },
           getForm: jest.fn(),
           execute: jest.fn(),
         }),

@@ -1,10 +1,30 @@
-# @forestadmin/agent [1.9.0-alpha-webhook-custom-actions.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.7...@forestadmin/agent@1.9.0-alpha-webhook-custom-actions.8) (2023-05-10)
+# @forestadmin/agent [1.10.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.1...@forestadmin/agent@1.10.0-alpha-webhook-custom-actions.1) (2023-05-30)
 
 
 ### Bug Fixes
 
-* **in-app-onboarding:** do not force skipLibCheck on customers TS configuration ([#680](https://github.com/ForestAdmin/agent-nodejs/issues/680)) ([c374117](https://github.com/ForestAdmin/agent-nodejs/commit/c37411763507f274dd4dba2d3dd08adb8c1b4222))
-# @forestadmin/agent [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.14...@forestadmin/agent@1.9.0) (2023-05-25)
+* **webhook-custom-actions:** improve error reporting when calling a webhook ([#687](https://github.com/ForestAdmin/agent-nodejs/issues/687)) ([c3f7f9a](https://github.com/ForestAdmin/agent-nodejs/commit/c3f7f9a2803185a1058fe570f12072ffbec94a2c))
+* **webhook-custom-actions:** register webhook actions configured from the frontend ([#686](https://github.com/ForestAdmin/agent-nodejs/issues/686)) ([fd9334a](https://github.com/ForestAdmin/agent-nodejs/commit/fd9334a76699f33e217f766b1ed29a7be179951c))
+
+
+### Features
+
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.3.0-alpha-webhook-custom-actions.1
+
+## @forestadmin/agent [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0...@forestadmin/agent@1.9.1) (2023-05-30)
+### Bug Fixes
+
+* **agent:** make sure that triggered actions from the frontend execute the right code even after an addition or removal of custom actions ([#706](https://github.com/ForestAdmin/agent-nodejs/issues/706)) ([9581036](https://github.com/ForestAdmin/agent-nodejs/commit/95810369f175d84c7e176bad6cbf70fcdb44c772))
+
+# @forestadmin/agent [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0...@forestadmin/agent@1.9.0) (2023-05-10)
 
 
 ### Features

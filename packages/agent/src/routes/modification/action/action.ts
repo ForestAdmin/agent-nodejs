@@ -43,17 +43,18 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   setupRoutes(router: Router): void {
+    // Generate url that matches the declaration in forest-schema/generator-actions.ts
     const actionIndex = Object.keys(this.collection.schema.actions).indexOf(this.actionName);
-    const path = `/_actions/${this.collection.name}/${actionIndex}`;
+    const slug = SchemaGeneratorActions.getActionSlug(this.actionName);
+    const path = `/_actions/${this.collection.name}/${actionIndex}/${slug}`;
 
-    const actionName = this.actionName.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
     router.post(
-      `${path}/${actionName}`,
+      `${path}`,
       this.middlewareCustomActionApprovalRequestData.bind(this),
       this.handleExecute.bind(this),
     );
-    router.post(`${path}/${actionName}/hooks/load`, this.handleHook.bind(this));
-    router.post(`${path}/${actionName}/hooks/change`, this.handleHook.bind(this));
+    router.post(`${path}/hooks/load`, this.handleHook.bind(this));
+    router.post(`${path}/hooks/change`, this.handleHook.bind(this));
   }
 
   private async handleExecute(context: Context): Promise<void> {
