@@ -7,10 +7,15 @@ const addEventListener = jest.fn((event, callback) => {
   events[event] = callback;
 });
 
+const once = jest.fn((event, callback) => {
+  events[event] = callback;
+});
+
 jest.mock('eventsource', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
     addEventListener,
+    once,
   })),
 }));
 
@@ -27,7 +32,7 @@ describe('EventsSubscriptionService', () => {
       eventsSubscriptionService.subscribeEvents();
 
       expect(addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
-      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function));
+      expect(once).toHaveBeenCalledWith('open', expect.any(Function));
 
       expect(addEventListener).toHaveBeenCalledWith(
         ServerEventType.RefreshUsers,
@@ -147,8 +152,8 @@ describe('EventsSubscriptionService', () => {
     });
   });
 
-  describe('onEventOpen', () => {
-    test('should refreshEverything using refreshEventsHandlerService', async () => {
+  describe('onEventOpenAgain', () => {
+    test('should add new open listener on first open event', async () => {
       const eventsSubscriptionService = new EventsSubscriptionService(
         options,
         refreshEventsHandlerService,
@@ -156,6 +161,24 @@ describe('EventsSubscriptionService', () => {
 
       eventsSubscriptionService.subscribeEvents();
 
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      events['open']();
+
+      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function));
+
+      expect(refreshEventsHandlerService.refreshEverything).not.toHaveBeenCalled();
+    });
+
+    test('should refreshEverything using refreshEventsHandlerService on re-open', async () => {
+      const eventsSubscriptionService = new EventsSubscriptionService(
+        options,
+        refreshEventsHandlerService,
+      );
+
+      eventsSubscriptionService.subscribeEvents();
+
+      // eslint-disable-next-line @typescript-eslint/dot-notation
+      events['open']();
       // eslint-disable-next-line @typescript-eslint/dot-notation
       events['open']();
 
