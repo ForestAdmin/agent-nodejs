@@ -45,8 +45,8 @@ function getSslConfiguration(
       // - Providers which use SNI to route requests to the correct database still work (most
       //   notably neon.tech).
 
-      // Note that we should either do that for the other providers as well (if possible), or
-      // not use the reverse proxy at all (if a proxy option is available for given drivers).
+      // Note that we should either do that for the other vendors (if possible), or
+      // replace the reverse proxy by a forward proxy (when supported).
       if (sslMode === 'required')
         return { ssl: { require: true, rejectUnauthorized: false, servername } };
       if (sslMode === 'verify')
