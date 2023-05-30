@@ -10,6 +10,7 @@ import { getLogger, getSchema, handleSequelizeError } from './utils';
 function getSslConfiguration(
   dialect: Dialect,
   sslMode: SslMode,
+  servername?: string,
   logger?: Logger,
 ): Record<string, unknown> {
   switch (dialect) {
@@ -35,8 +36,21 @@ function getSslConfiguration(
 
     case 'postgres':
       if (sslMode === 'disabled') return { ssl: false };
-      if (sslMode === 'required') return { ssl: { require: true, rejectUnauthorized: false } };
-      if (sslMode === 'verify') return { ssl: { require: true, rejectUnauthorized: true } };
+
+      // Pass servername to the net.tlsSocket constructor.
+
+      // This is done so that
+      // - Certificate verification still work when using a proxy server to reach the db (we are
+      //   forced to use a tcp reverse proxy because some drivers do not support them)
+      // - Providers which use SNI to route requests to the correct database still work (most
+      //   notably neon.tech).
+
+      // Note that we should either do that for the other providers as well (if possible), or
+      // not use the reverse proxy at all (if a proxy option is available for given drivers).
+      if (sslMode === 'required')
+        return { ssl: { require: true, rejectUnauthorized: false, servername } };
+      if (sslMode === 'verify')
+        return { ssl: { require: true, rejectUnauthorized: true, servername } };
       break;
 
     case 'db2':
@@ -62,6 +76,13 @@ export default async function connect(
 
   try {
     let options = await preprocessOptions(uriOrOptions);
+    let servername: string;
+
+    try {
+      servername = options?.host ?? new URL(options.uri).hostname;
+    } catch {
+      servername = undefined; // don't crash if using unix socket, sqlite, etc...
+    }
 
     if (options.proxySocks) {
       proxy = new ReverseProxy(options);
@@ -75,7 +96,7 @@ export default async function connect(
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, logger),
+      ...getSslConfiguration(opts.dialect, sslMode, servername, logger),
     };
 
     sequelize = uri
