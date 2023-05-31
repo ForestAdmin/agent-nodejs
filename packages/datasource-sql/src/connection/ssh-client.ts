@@ -24,7 +24,10 @@ export default class SshClient {
         this.onReady(this.socket, '10.0.0.1', 10);
         resolve();
       });
-      this.connection.connect({ ...this.destination.ssh, host: '5.tcp.eu.ngrok.io' });
+      this.connection.connect({
+        ...this.destination.ssh,
+        host: 'localhost',
+      });
     });
   }
 

@@ -2,7 +2,7 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
-import { ConnectionOptionsObj, ProxySocks } from '../types';
+import { ConnectionOptionsObj, ProxySocks, Ssh } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];

@@ -58,14 +58,14 @@ describe('Connect', () => {
         const seq = await connect({
           uri,
           proxySocks: {
-            host: 'bici.usefixie.com',
+            host: 'localhost',
             port: 1080,
-            password: 'vaUKoMNV1khEHN7',
-            userId: 'fixie',
+            password: 'username',
+            userId: 'password',
           },
           ssh: {
-            host: '5.tcp.eu.ngrok.io',
-            port: 13777,
+            host: 'ssh-server',
+            port: 2222,
             username: 'forest',
             privateKey: readFileSync(resolve(__dirname, '../../id_rsa'), 'utf8'),
           },
