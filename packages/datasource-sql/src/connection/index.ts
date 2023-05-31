@@ -1,10 +1,11 @@
-import type { ConnectionOptions, SslMode } from '../types';
+import type { ConnectionOptions, ConnectionOptionsObj, ProxySocks, SslMode } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { Dialect, Sequelize } from 'sequelize';
 
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
+import SshClient from './ssh-client';
 import { getLogger, getSchema, handleSequelizeError } from './utils';
 
 function getSslConfiguration(
@@ -52,6 +53,29 @@ function getSslConfiguration(
   }
 }
 
+async function startProxy(options: ConnectionOptionsObj): Promise<ReverseProxy> {
+  let proxy: ReverseProxy | undefined;
+
+  if (options.ssh) {
+    // destination is now the ssh server
+    proxy = new ReverseProxy({
+      port: options.ssh.port,
+      host: options.ssh.host,
+      proxySocks: options.proxySocks as ProxySocks,
+    });
+    // open a ssh connection when the proxy receives a connection
+    proxy.on('connect', async socket => {
+      await new SshClient(socket, options).connect();
+    });
+  } else {
+    proxy = new ReverseProxy(options);
+  }
+
+  await proxy.start();
+
+  return proxy;
+}
+
 /** Attempt to connect to the database */
 export default async function connect(
   uriOrOptions: ConnectionOptions,
@@ -64,9 +88,8 @@ export default async function connect(
     let options = await preprocessOptions(uriOrOptions);
 
     if (options.proxySocks) {
-      proxy = new ReverseProxy(options);
-      await proxy.start();
-      options = proxy.connectionOptions;
+      proxy = await startProxy(options);
+      options = proxy.updateConnectionOptions(options);
     }
 
     const { uri, sslMode, ...opts } = options;

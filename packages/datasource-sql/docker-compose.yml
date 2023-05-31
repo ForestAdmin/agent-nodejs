@@ -39,7 +39,22 @@ services:
     container_name: socks_proxy
     ports:
       - '1080:1080'
-    environment:
-      - PROXY_USER=username
-      - PROXY_PASSWORD=password
 
+
+  ssh-server:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: ssh_server
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - PUBLIC_KEY_FILE=/config/id_rsa.pub
+      - USER_NAME=forest
+      - DOCKER_MODS=linuxserver/mods:openssh-server-ssh-tunnel # enable AllowTcpForwarding here
+    expose:
+      - 5432
+    volumes:
+      - .:/config
+    ports:
+      - '2222:2222'
+    restart: unless-stopped

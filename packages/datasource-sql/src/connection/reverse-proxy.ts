@@ -2,13 +2,14 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
-import { ConnectionOptionsObj } from '../types';
+import { ConnectionOptionsObj, ProxySocks } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly destination: ConnectionOptionsObj;
   private readonly connectedClients: Set<net.Socket> = new Set();
+  private onConnectHandler?: (clientSocket: net.Socket) => Promise<void>;
 
   constructor(destination: ConnectionOptionsObj) {
     this.destination = destination;
@@ -36,12 +37,16 @@ export default class ReverseProxy {
     });
   }
 
-  get connectionOptions(): ConnectionOptionsObj {
-    const { address, port } = this.server.address() as net.AddressInfo;
-    const connection = { ...this.destination };
+  on(event: 'connect', connectionHandler: (clientSocket: net.Socket) => Promise<void>): void {
+    this.onConnectHandler = connectionHandler;
+  }
 
-    if (this.destination.uri) {
-      const uri = new URL(this.destination.uri);
+  updateConnectionOptions(options: ConnectionOptionsObj): ConnectionOptionsObj {
+    const { address, port } = this.server.address() as net.AddressInfo;
+    const connection = { ...options };
+
+    if (connection.uri) {
+      const uri = new URL(connection.uri);
       uri.host = address;
       uri.port = port.toString();
       connection.uri = uri.toString();
@@ -73,22 +78,16 @@ export default class ReverseProxy {
 
     socket.on('error', error => {
       this.errors.push(error);
-
-      if (!socket.closed) {
-        socket.destroy(error);
-      }
+      if (!socket.closed) socket.destroy(error);
     });
     socket.on('close', () => {
       this.connectedClients.delete(socket);
-
-      if (!socks5Proxy?.socket.closed) {
-        socks5Proxy?.socket.destroy();
-      }
+      if (!socks5Proxy?.socket.closed) socks5Proxy?.socket.destroy();
     });
 
     try {
       socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...this.destination.proxySocks, type: 5 },
+        proxy: { ...(this.destination.proxySocks as ProxySocks), type: 5 },
         command: 'connect',
         destination: { host: this.destinationHost, port: this.destinationPort },
         timeout: 4000,
@@ -96,15 +95,12 @@ export default class ReverseProxy {
 
       socks5Proxy.socket.on('close', () => {
         this.connectedClients.delete(socks5Proxy.socket);
-
-        if (!socket.closed) {
-          socket.destroy();
-        }
+        if (!socket.closed) socket.destroy();
       });
-
       socks5Proxy.socket.on('error', socket.destroy);
-      socks5Proxy.socket.pipe(socket);
-      socket.pipe(socks5Proxy.socket);
+
+      socks5Proxy.socket.pipe(socket).pipe(socks5Proxy.socket);
+      await this.onConnectHandler?.(socket);
     } catch (err) {
       socket.destroy(err as Error);
     }

@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
@@ -28,7 +30,7 @@ describe('Connect', () => {
 
   describe('when proxy socks configuration is provided', () => {
     describe('when the password the uri is wrong', () => {
-      it('should not blocked the promise', async () => {
+      it('should not block the promise', async () => {
         const baseUri = 'postgres://test:password@localhost:5443';
         await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
 
@@ -44,6 +46,32 @@ describe('Connect', () => {
             },
           }),
         ).rejects.toThrow('password authentication failed for user "BADUSER"');
+      });
+    });
+
+    describe('when there is also a provided ssh configuration', () => {
+      it('should be able to connect at the db', async () => {
+        const baseUri = 'postgres://test:password@localhost:5443';
+        await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+
+        const uri = `postgres://test:password@postgres:5432/test_connection`;
+        const seq = await connect({
+          uri,
+          proxySocks: {
+            host: 'bici.usefixie.com',
+            port: 1080,
+            password: 'vaUKoMNV1khEHN7',
+            userId: 'fixie',
+          },
+          ssh: {
+            host: '5.tcp.eu.ngrok.io',
+            port: 13777,
+            username: 'forest',
+            privateKey: readFileSync(resolve(__dirname, '../../id_rsa'), 'utf8'),
+          },
+        });
+        await seq.close();
+        expect(seq).toBeInstanceOf(Sequelize);
       });
     });
   });
@@ -64,7 +92,7 @@ describe('Connect', () => {
       });
 
       describe('when proxy socks configuration is provided', () => {
-        it('should work with proxy auth and not throwing error when seq is closing', async () => {
+        it('should be authenticated and close sequelize without error', async () => {
           const updatedUri = uri
             .replace('localhost', dockerServiceName)
             .replace(containerPort.toString(), port.toString());

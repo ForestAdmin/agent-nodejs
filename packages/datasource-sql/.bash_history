@@ -1,0 +1,12 @@
+exit
+ls
+exit
+exit
+exit
+exit
+exit
+ls
+exit
+exit
+exit
+exit
