@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.3.0-alpha-webhook-custom-actions.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.3.0-alpha-webhook-custom-actions.1...@forestadmin/forestadmin-client@1.3.0-alpha-webhook-custom-actions.2) (2023-05-31)
+
+
+### Features
+
+* **events-subscription:** allow to instantly refresh customizations when they change ([#704](https://github.com/ForestAdmin/agent-nodejs/issues/704)) ([8f4704e](https://github.com/ForestAdmin/agent-nodejs/commit/8f4704e4564bc34413ce7a2a01cdff2ee6762a82))
+
 # @forestadmin/forestadmin-client [1.3.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.2.0...@forestadmin/forestadmin-client@1.3.0-alpha-webhook-custom-actions.1) (2023-05-30)
 
 
