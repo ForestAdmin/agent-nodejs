@@ -1,4 +1,4 @@
-import type { ConnectionOptions, SslMode } from '../types';
+import type { ConnectionOptions, ConnectionOptionsObj, SslMode } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { Dialect, Sequelize } from 'sequelize';
@@ -7,11 +7,11 @@ import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
 import { getLogger, getSchema } from './utils';
-import { ConnectionOptionsObj } from '../types';
 
 function getSslConfiguration(
   dialect: Dialect,
   sslMode: SslMode,
+  servername?: string,
   logger?: Logger,
 ): Record<string, unknown> {
   switch (dialect) {
@@ -37,8 +37,21 @@ function getSslConfiguration(
 
     case 'postgres':
       if (sslMode === 'disabled') return { ssl: false };
-      if (sslMode === 'required') return { ssl: { require: true, rejectUnauthorized: false } };
-      if (sslMode === 'verify') return { ssl: { require: true, rejectUnauthorized: true } };
+
+      // Pass servername to the net.tlsSocket constructor.
+
+      // This is done so that
+      // - Certificate verification still work when using a proxy server to reach the db (we are
+      //   forced to use a tcp reverse proxy because some drivers do not support them)
+      // - Providers which use SNI to route requests to the correct database still work (most
+      //   notably neon.tech).
+
+      // Note that we should either do that for the other vendors (if possible), or
+      // replace the reverse proxy by a forward proxy (when supported).
+      if (sslMode === 'required')
+        return { ssl: { require: true, rejectUnauthorized: false, servername } };
+      if (sslMode === 'verify')
+        return { ssl: { require: true, rejectUnauthorized: true, servername } };
       break;
 
     case 'db2':
@@ -59,12 +72,19 @@ export default async function connect(
   uriOrOptions: ConnectionOptions,
   logger?: Logger,
 ): Promise<Sequelize> {
-  let proxy: ReverseProxy | undefined;
-  let sequelize: Sequelize | undefined;
-  let options: ConnectionOptionsObj | undefined;
+  let proxy: ReverseProxy;
+  let sequelize: Sequelize;
+  let options: ConnectionOptionsObj;
+  let servername: string;
 
   try {
     options = await preprocessOptions(uriOrOptions);
+
+    try {
+      servername = options?.host ?? new URL(options.uri).hostname;
+    } catch {
+      // don't crash if using unix socket, sqlite, etc...
+    }
 
     if (options.proxySocks) {
       proxy = new ReverseProxy(options);
@@ -78,7 +98,7 @@ export default async function connect(
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, logger),
+      ...getSslConfiguration(opts.dialect, sslMode, servername, logger),
     };
 
     sequelize = uri

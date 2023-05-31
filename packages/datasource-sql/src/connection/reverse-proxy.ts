@@ -62,9 +62,18 @@ export default class ReverseProxy {
   }
 
   private get destinationPort(): number {
-    return Number(
-      this.destination.uri ? new URL(this.destination.uri).port : this.destination.port,
-    );
+    // Use port from object or uri if provided
+    if (this.destination.port) return this.destination.port;
+    if (this.destination.uri && new URL(this.destination.uri).port)
+      return Number(new URL(this.destination.uri).port);
+
+    // Use default port for known dialects otherwise
+    if (this.destination.dialect === 'postgres') return 5432;
+    if (this.destination.dialect === 'mysql' || this.destination.dialect === 'mariadb') return 3306;
+    if (this.destination.dialect === 'mssql') return 1433;
+
+    // Otherwise throw an error
+    throw new Error('Port is required');
   }
 
   private async onConnection(socket: net.Socket): Promise<void> {

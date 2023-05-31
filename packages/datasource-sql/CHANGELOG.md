@@ -1,3 +1,17 @@
+## @forestadmin/datasource-sql [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.2...@forestadmin/datasource-sql@1.6.3) (2023-05-31)
+
+
+### Bug Fixes
+
+* **datasource-sql:** send proper server name indication on tls connections through socks proxy ([#708](https://github.com/ForestAdmin/agent-nodejs/issues/708)) ([b072cee](https://github.com/ForestAdmin/agent-nodejs/commit/b072cee0c7fd02df88b030015c9f33540b353b5a))
+
+## @forestadmin/datasource-sql [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.1...@forestadmin/datasource-sql@1.6.2) (2023-05-30)
+
+
+### Bug Fixes
+
+* **datasource-sql:** do not crash at connection time when using proxy without providing port ([#705](https://github.com/ForestAdmin/agent-nodejs/issues/705)) ([c3d7d60](https://github.com/ForestAdmin/agent-nodejs/commit/c3d7d6007f726d20d9a50e1f2240568976336aa5))
+
 ## @forestadmin/datasource-sql [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.0...@forestadmin/datasource-sql@1.6.1) (2023-05-16)
 
 
