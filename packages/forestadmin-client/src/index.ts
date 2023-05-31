@@ -44,6 +44,7 @@ export default function createForestAdminClient(
     auth,
     modelCustomizationService,
     eventsSubscription,
+    eventsHandler,
   } = buildApplicationServices(new ForestHttpApi(), options);
 
   return new ForestAdminClientWithCache(
@@ -57,6 +58,7 @@ export default function createForestAdminClient(
     auth,
     modelCustomizationService,
     eventsSubscription,
+    eventsHandler,
   );
 }
 

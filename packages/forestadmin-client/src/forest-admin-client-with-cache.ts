@@ -3,7 +3,10 @@ import { Client } from 'openid-client';
 import AuthService from './auth';
 import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
-import { BaseEventsSubscriptionService } from './events-subscription/types';
+import {
+  BaseEventsSubscriptionService,
+  RefreshEventsHandlerService,
+} from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import { ModelCustomizationService } from './model-customizations/types';
@@ -31,6 +34,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly authService: AuthService,
     public readonly modelCustomizationService: ModelCustomizationService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
+    protected readonly eventsHandler: RefreshEventsHandlerService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
@@ -76,5 +80,9 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
 
   public async subscribeToServerEvents() {
     await this.eventsSubscription.subscribeEvents();
+  }
+
+  public onRefreshCustomizations(handler: () => void | Promise<void>) {
+    this.eventsHandler.onRefreshCustomizations(handler);
   }
 }

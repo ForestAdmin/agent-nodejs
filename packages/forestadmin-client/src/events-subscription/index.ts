@@ -39,7 +39,8 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
 
     source.addEventListener('error', this.onEventError.bind(this));
 
-    source.addEventListener('open', () => this.onEventOpen());
+    // Only listen after first open
+    source.once('open', () => source.addEventListener('open', () => this.onEventOpenAgain()));
 
     source.addEventListener(ServerEventType.RefreshUsers, async () =>
       this.refreshEventsHandlerService.refreshUsers(),
@@ -80,7 +81,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
       this.options.logger('Warn', `Server Event - Error: ${JSON.stringify(event)}`);
   }
 
-  private onEventOpen() {
+  private onEventOpenAgain() {
     this.options.logger(
       'Debug',
       'Server Event - Open EventSource (SSE) connection with Forest Admin servers',

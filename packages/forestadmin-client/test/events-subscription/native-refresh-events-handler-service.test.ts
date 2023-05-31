@@ -75,19 +75,20 @@ describe('NativeRefreshEventsHandlerService', () => {
   });
 
   describe('refreshCustomizations', () => {
-    test('should emit RefreshCustomizations (it will call listener)', async () => {
+    test('should called registered handlers', async () => {
       const refreshEventsHandler = new NativeRefreshEventsHandlerService(
         actionPermission,
         usersPermission,
         renderingPermission,
       );
 
-      const spyEmit = jest.spyOn(refreshEventsHandler, 'emit');
+      const handler = jest.fn();
+      refreshEventsHandler.onRefreshCustomizations(handler);
+      expect(handler).not.toHaveBeenCalled();
 
       refreshEventsHandler.refreshCustomizations();
 
-      expect(spyEmit).toHaveBeenCalled();
-      expect(spyEmit).toHaveBeenCalledWith('RefreshCustomizations');
+      expect(handler).toHaveBeenCalled();
 
       expect(usersPermission.invalidateCache).not.toHaveBeenCalled();
       expect(actionPermission.invalidateCache).not.toHaveBeenCalled();
@@ -103,15 +104,38 @@ describe('NativeRefreshEventsHandlerService', () => {
         renderingPermission,
       );
 
-      const spyEmit = jest.spyOn(refreshEventsHandler, 'emit');
+      const handler = jest.fn();
+      refreshEventsHandler.onRefreshCustomizations(handler);
+      expect(handler).not.toHaveBeenCalled();
 
       refreshEventsHandler.refreshEverything();
 
       expect(usersPermission.invalidateCache).toHaveBeenCalled();
       expect(actionPermission.invalidateCache).toHaveBeenCalled();
       expect(renderingPermission.invalidateAllCache).toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+    });
+  });
 
-      expect(spyEmit).toHaveBeenCalled();
+  describe('onRefreshCustomizations', () => {
+    test('should registered handlers', async () => {
+      const refreshEventsHandler = new NativeRefreshEventsHandlerService(
+        actionPermission,
+        usersPermission,
+        renderingPermission,
+      );
+
+      const handler = jest.fn();
+      const secondHandler = jest.fn();
+
+      refreshEventsHandler.onRefreshCustomizations(handler);
+      refreshEventsHandler.onRefreshCustomizations(secondHandler);
+
+      // Actually calling them
+      refreshEventsHandler.refreshCustomizations();
+
+      expect(handler).toHaveBeenCalled();
+      expect(secondHandler).toHaveBeenCalled();
     });
   });
 });

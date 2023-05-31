@@ -5,16 +5,15 @@ import ActionPermissionService from '../permissions/action-permission';
 import RenderingPermissionService from '../permissions/rendering-permission';
 import UserPermissionService from '../permissions/user-permission';
 
-export default class NativeRefreshEventsHandlerService
-  extends EventEmitter
-  implements RefreshEventsHandlerService
-{
+export default class NativeRefreshEventsHandlerService implements RefreshEventsHandlerService {
+  private readonly eventEmitter: EventEmitter;
+
   constructor(
     private readonly actionPermissionService: ActionPermissionService,
     private readonly usersPermissionService: UserPermissionService,
     private readonly renderingPermissionService: RenderingPermissionService,
   ) {
-    super();
+    this.eventEmitter = new EventEmitter();
   }
 
   public refreshUsers() {
@@ -31,7 +30,11 @@ export default class NativeRefreshEventsHandlerService
   }
 
   public refreshCustomizations() {
-    this.emit('RefreshCustomizations');
+    this.eventEmitter.emit('RefreshCustomizations');
+  }
+
+  public onRefreshCustomizations(handler: () => void | Promise<void>) {
+    this.eventEmitter.on('RefreshCustomizations', handler);
   }
 
   public refreshEverything() {
@@ -40,6 +43,6 @@ export default class NativeRefreshEventsHandlerService
     this.renderingPermissionService.invalidateAllCache();
 
     // Emit RefreshCustomizations event
-    this.emit('RefreshCustomizations');
+    this.eventEmitter.emit('RefreshCustomizations');
   }
 }

@@ -3,6 +3,7 @@ import { Factory } from 'fishery';
 import authServiceFactory from './auth';
 import chartHandlerFactory from './chart/chart-handler';
 import eventsSubscriptionServiceFactory from './events-subscription';
+import nativeRefreshEventsHandlerServiceFactory from './events-subscription/native-refresh-events-handler-service';
 import forestAdminClientOptionsFactory from './forest-admin-client-options';
 import ipWhitelistServiceFactory from './ip-whitelist';
 import modelCustomizationServiceFactory from './model-customizations/model-customization-from-api';
@@ -35,6 +36,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(
       authServiceFactory.build(),
       modelCustomizationServiceFactory.build(),
       eventsSubscriptionServiceFactory.build(),
+      nativeRefreshEventsHandlerServiceFactory.build(),
     ),
 );
 

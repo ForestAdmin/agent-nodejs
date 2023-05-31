@@ -58,6 +58,7 @@ beforeEach(() => {
   mockDatasourceCustomizer
     .mockReset()
     .mockImplementationOnce(() => mockCustomizer)
+    .mockImplementationOnce(() => mockNocodeCustomizer)
     .mockImplementationOnce(() => mockNocodeCustomizer);
 
   mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
@@ -131,6 +132,7 @@ describe('Agent', () => {
       mockCustomizer.getFactory.mockReturnValueOnce('factory');
 
       const agent = new Agent(options);
+      await agent.start();
 
       expect(agent).toBeTruthy();
 
@@ -188,6 +190,60 @@ describe('Agent', () => {
 
       expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
       expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(mockAddWebhookActions, true);
+    });
+
+    test('start should subscribe server events and add listener to restart', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+        instantCacheRefresh: true,
+      });
+
+      await agent.start();
+
+      expect(options.forestAdminClient.subscribeToServerEvents).toHaveBeenCalledTimes(1);
+      expect(options.forestAdminClient.onRefreshCustomizations).toHaveBeenCalledTimes(1);
+    });
+
+    test('restart should not subscribe server events and add listener to restart', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+        instantCacheRefresh: true,
+      });
+
+      await agent.start();
+      // @ts-expect-error: testing fakes RefreshCustomizations event
+      await agent.restart();
+
+      expect(options.forestAdminClient.subscribeToServerEvents).toHaveBeenCalledTimes(1);
+      expect(options.forestAdminClient.onRefreshCustomizations).toHaveBeenCalledTimes(1);
+    });
+
+    test('restart should re-build datasource and re-bootstrap routes', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+        instantCacheRefresh: true,
+      });
+
+      await agent.start();
+      // @ts-expect-error: testing fakes RefreshCustomizations event
+      await agent.restart();
+
+      expect(mockSetupRoute).toHaveBeenCalledTimes(2);
+      expect(mockBootstrap).toHaveBeenCalledTimes(2);
+      expect(mockMakeRoutes).toHaveBeenCalledTimes(2);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(2);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(2);
+
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(2);
     });
   });
 

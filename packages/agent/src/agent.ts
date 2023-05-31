@@ -62,8 +62,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
-    this.nocodeCustomizer = new DataSourceCustomizer<S>();
-    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.actionCustomizationService = new ActionCustomizationService(allOptions);
   }
 
@@ -71,26 +69,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Start the agent.
    */
   async start(): Promise<void> {
-    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
+    const router = await this.buildRouterAndSendSchema();
 
-    await this.nocodeCustomizer.use(
-      this.actionCustomizationService.addWebhookActions,
-      this.options.experimental?.webhookCustomActions,
-    );
-
-    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
-
-    const [router] = await Promise.all([
-      this.getRouter(dataSource),
-      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
-      !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
-        : Promise.resolve(),
-
-      this.options.forestAdminClient.subscribeToServerEvents(),
-    ]);
+    await this.options.forestAdminClient.subscribeToServerEvents();
+    this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
     await this.mount(router);
+  }
+
+  /**
+   * Restart the agent at runtime (remount routes).
+   */
+  private async restart(): Promise<void> {
+    // We force sending schema when restarting
+    const updatedRouter = await this.buildRouterAndSendSchema();
+
+    await this.remount(updatedRouter);
   }
 
   /**
@@ -172,16 +166,50 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return router;
   }
 
+  private async buildRouterAndSendSchema(): Promise<Router> {
+    const { isProduction, logger, typingsPath, typingsMaxDepth, experimental } = this.options;
+
+    // It allows to rebuild the full customization stack with no code customizations
+    this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
+    this.nocodeCustomizer.use(
+      this.actionCustomizationService.addWebhookActions,
+      experimental?.webhookCustomActions,
+    );
+
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+    const [router] = await Promise.all([
+      this.getRouter(dataSource),
+      this.sendSchema(dataSource),
+      !isProduction && typingsPath
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        : Promise.resolve(),
+    ]);
+
+    return router;
+  }
+
   /**
    * Send the apimap to forest admin server
    */
   private async sendSchema(dataSource: DataSource): Promise<void> {
-    const { schemaPath } = this.options;
+    const { schemaPath, skipSchemaUpdate, isProduction, experimental } = this.options;
+
+    // skipSchemaUpdate is mainly used in cloud version
+    if (skipSchemaUpdate) {
+      this.options.logger(
+        'Warn',
+        'Schema update was skipped (caused by options.skipSchemaUpdate=true)',
+      );
+
+      return;
+    }
 
     // Either load the schema from the file system or build it
     let schema: ForestSchema;
 
-    if (this.options.isProduction) {
+    // When using experimental no-code features even in production we need to build a new schema
+    if (!experimental?.webhookCustomActions && isProduction) {
       try {
         schema = JSON.parse(await readFile(schemaPath, { encoding: 'utf-8' }));
       } catch (e) {
