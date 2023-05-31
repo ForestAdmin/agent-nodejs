@@ -1,11 +1,13 @@
 import type { ConnectionOptions } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { BaseError, Dialect } from 'sequelize';
+import { Dialect } from 'sequelize';
+
+import { DatabaseConnectError } from './errors';
 
 function checkUri(uri: string): void {
   if (!/.*:\/\//g.test(uri) && uri !== 'sqlite::memory:') {
-    throw new Error(
+    throw new DatabaseConnectError(
       `Connection Uri "${uri}" provided to SQL data source is not valid.` +
         ' Should be <dialect>://<connection>.',
     );
@@ -38,7 +40,7 @@ export function getDialect(uriOrOptions: ConnectionOptions): Dialect {
 
     dialect = new URL(uri).protocol.slice(0, -1);
   } else {
-    throw new Error('Expected dialect to be provided in options or uri.');
+    throw new DatabaseConnectError('Expected dialect to be provided in options or uri.');
   }
 
   if (dialect === 'mysql2') return 'mysql';
@@ -54,21 +56,4 @@ export function getSchema(uri: string): string {
 
 export function getLogger(logger: Logger): (sql: string) => void {
   return (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
-}
-
-export function handleSequelizeError(error: Error): void {
-  if (error instanceof BaseError) {
-    const nameWithoutSequelize = error.name.replace('Sequelize', '');
-    const nameWithSpaces = nameWithoutSequelize.replace(
-      /([a-z])([A-Z])/g,
-      (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
-    );
-
-    const newError = new Error(`${nameWithSpaces}: ${error.message}`);
-    newError.name = nameWithoutSequelize;
-
-    throw newError;
-  }
-
-  throw error;
 }

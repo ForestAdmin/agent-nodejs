@@ -58,3 +58,4 @@ export function createSqlDataSource(
 
 export type { ConnectionOptions, Table, SslMode };
 export { default as preprocessOptions } from './connection/preprocess';
+export * from './connection/errors';
