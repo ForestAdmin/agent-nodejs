@@ -1,3 +1,5 @@
+## @forestadmin/datasource-sql [1.6.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.3...@forestadmin/datasource-sql@1.6.4) (2023-05-31)
+
 ## @forestadmin/datasource-sql [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.2...@forestadmin/datasource-sql@1.6.3) (2023-05-31)
 
 
