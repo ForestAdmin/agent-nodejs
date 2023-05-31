@@ -15,7 +15,7 @@
     "eventsource": "2.0.2",
     "json-api-serializer": "^2.6.6",
     "jsonwebtoken": "^9.0.0",
-    "lru-cache": "^7.14.1",
+    "lru-cache": "^10.0.0",
     "object-hash": "^3.0.0",
     "openid-client": "^5.3.1",
     "superagent": "^8.0.6"
@@ -35,7 +35,6 @@
     "@forestadmin/datasource-toolkit": "1.5.0",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",
-    "@types/lru-cache": "^7.10.10",
     "@types/superagent": "^4.1.16"
   }
 }
