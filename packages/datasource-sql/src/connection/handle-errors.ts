@@ -1,23 +1,10 @@
 import { BaseError } from 'sequelize';
 
 import { DatabaseConnectError, ProxyConnectError } from './errors';
+import ReverseProxy from './reverse-proxy';
 import { ConnectionOptionsObj } from '../types';
 
-export function handleErrors(error: Error, databaseUri: string): void {
-  if (error instanceof BaseError) {
-    const nameWithoutSequelize = error.name.replace('Sequelize', '');
-    const nameWithSpaces = nameWithoutSequelize.replace(
-      /([a-z])([A-Z])/g,
-      (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
-    );
-
-    throw new DatabaseConnectError(`${nameWithSpaces}: ${error.message}`, databaseUri);
-  }
-
-  throw error;
-}
-
-export function handleErrorsWithProxy(
+function handleProxyErrors(
   error: Error,
   databaseUri: string,
   proxyConfig: ConnectionOptionsObj['proxySocks'],
@@ -34,6 +21,23 @@ export function handleErrorsWithProxy(
 
     throw new ProxyConnectError(error.message, proxyConfig);
   }
+}
 
-  handleErrors(error, databaseUri);
+export default function handleErrors(e, options?: ConnectionOptionsObj, proxy?: ReverseProxy) {
+  // if proxy encountered an error, we want to throw it instead of the sequelize error
+  if (proxy) {
+    handleProxyErrors(proxy?.error, proxy.destination.uri, options.proxySocks);
+  }
+
+  if (e instanceof BaseError) {
+    const nameWithoutSequelize = e.name.replace('Sequelize', '');
+    const nameWithSpaces = nameWithoutSequelize.replace(
+      /([a-z])([A-Z])/g,
+      (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
+    );
+
+    throw new DatabaseConnectError(`${nameWithSpaces}: ${e.message}`, options?.uri);
+  }
+
+  throw e;
 }
