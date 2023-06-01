@@ -1,11 +1,14 @@
 import type { ConnectionOptions } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { BaseError, Dialect } from 'sequelize';
+import { Dialect } from 'sequelize';
+
+import { DatabaseConnectError } from './errors';
+import { SslMode } from '../types';
 
 function checkUri(uri: string): void {
   if (!/.*:\/\//g.test(uri) && uri !== 'sqlite::memory:') {
-    throw new Error(
+    throw new DatabaseConnectError(
       `Connection Uri "${uri}" provided to SQL data source is not valid.` +
         ' Should be <dialect>://<connection>.',
     );
@@ -38,7 +41,7 @@ export function getDialect(uriOrOptions: ConnectionOptions): Dialect {
 
     dialect = new URL(uri).protocol.slice(0, -1);
   } else {
-    throw new Error('Expected dialect to be provided in options or uri.');
+    throw new DatabaseConnectError('Expected dialect to be provided in options or uri.');
   }
 
   if (dialect === 'mysql2') return 'mysql';
@@ -56,19 +59,61 @@ export function getLogger(logger: Logger): (sql: string) => void {
   return (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
 }
 
-export function handleSequelizeError(error: Error): void {
-  if (error instanceof BaseError) {
-    const nameWithoutSequelize = error.name.replace('Sequelize', '');
-    const nameWithSpaces = nameWithoutSequelize.replace(
-      /([a-z])([A-Z])/g,
-      (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
-    );
+export function getSslConfiguration(
+  dialect: Dialect,
+  sslMode: SslMode,
+  servername?: string,
+  logger?: Logger,
+): Record<string, unknown> {
+  switch (dialect) {
+    case 'mariadb':
+      if (sslMode === 'disabled') return { ssl: false };
+      if (sslMode === 'required') return { ssl: { rejectUnauthorized: false } };
+      if (sslMode === 'verify') return { ssl: true };
+      break;
 
-    const newError = new Error(`${nameWithSpaces}: ${error.message}`);
-    newError.name = nameWithoutSequelize;
+    case 'mssql':
+      if (sslMode === 'disabled') return { options: { encrypt: false } };
+      if (sslMode === 'required')
+        return { options: { encrypt: true, trustServerCertificate: true } };
+      if (sslMode === 'verify')
+        return { options: { encrypt: true, trustServerCertificate: false } };
+      break;
 
-    throw newError;
+    case 'mysql':
+      if (sslMode === 'disabled') return { ssl: false };
+      if (sslMode === 'required') return { ssl: { rejectUnauthorized: false } };
+      if (sslMode === 'verify') return { ssl: { rejectUnauthorized: true } };
+      break;
+
+    case 'postgres':
+      if (sslMode === 'disabled') return { ssl: false };
+
+      // Pass servername to the net.tlsSocket constructor.
+
+      // This is done so that
+      // - Certificate verification still work when using a proxy server to reach the db (we are
+      //   forced to use a tcp reverse proxy because some drivers do not support them)
+      // - Providers which use SNI to route requests to the correct database still work (most
+      //   notably neon.tech).
+
+      // Note that we should either do that for the other vendors (if possible), or
+      // replace the reverse proxy by a forward proxy (when supported).
+      if (sslMode === 'required')
+        return { ssl: { require: true, rejectUnauthorized: false, servername } };
+      if (sslMode === 'verify')
+        return { ssl: { require: true, rejectUnauthorized: true, servername } };
+      break;
+
+    case 'db2':
+    case 'oracle':
+    case 'snowflake':
+    case 'sqlite':
+    default:
+      if (sslMode && sslMode !== 'manual') {
+        logger?.('Warn', `ignoring sslMode=${sslMode} (not supported for ${dialect})`);
+      }
+
+      return {};
   }
-
-  throw error;
 }

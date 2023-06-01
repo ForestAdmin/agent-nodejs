@@ -1,3 +1,5 @@
+## @forestadmin/forestadmin-client [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.2.0...@forestadmin/forestadmin-client@1.2.1) (2023-05-31)
+
 # @forestadmin/forestadmin-client [1.3.0-alpha-webhook-custom-actions.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.3.0-alpha-webhook-custom-actions.1...@forestadmin/forestadmin-client@1.3.0-alpha-webhook-custom-actions.2) (2023-05-31)
 
 

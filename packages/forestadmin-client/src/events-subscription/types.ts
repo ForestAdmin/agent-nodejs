@@ -20,6 +20,9 @@ export interface RefreshEventsHandlerService {
   refreshEverything: () => Promise<void> | void;
 }
 
+/**
+ * Allows to subscribe to the Server Events.
+ */
 export interface BaseEventsSubscriptionService {
   subscribeEvents(): Promise<void>;
 }
