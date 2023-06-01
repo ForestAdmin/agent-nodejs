@@ -85,6 +85,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Add a datasource
    * @param factory the datasource to add
    * @param options the options
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/connection Documentation Link}
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizer.addDataSource(factory, options);
@@ -96,6 +97,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Create a new API chart
    * @param name name of the chart
    * @param definition definition of the chart
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/charts Documentation Link}
    * @example
    * .addChart('numCustomers', {
    *   type: 'Value',
@@ -113,8 +115,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Allow to interact with a decorated collection
    * @param name the name of the collection to manipulate
-   * @param handle a function that provide a
-   *   collection builder on the given collection name
+   * @param handle a function that provide a collection builder on the given collection name
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/agent-customization Documentation Link}
    * @example
    * .customizeCollection('books', books => books.renameField('xx', 'yy'))
    */
@@ -131,6 +133,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Load a plugin across all collections
    * @param plugin instance of the plugin
    * @param options options which need to be passed to the plugin
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/plugins Documentation Link}
    * @example
    * import advancedExportPlugin from '@forestadmin/plugin-advanced-export';
    *
