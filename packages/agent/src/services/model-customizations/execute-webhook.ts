@@ -54,7 +54,7 @@ export default async function executeWebhook<S extends TSchema = TSchema>(
     if ((e as ResponseError).response) {
       return {
         type: 'Error',
-        message: `Error received from the server: ${e.status} ${e.message}.`,
+        message: `Error received from the webhook endpoint: ${e.status} ${e.message}.`,
       };
     }
 
