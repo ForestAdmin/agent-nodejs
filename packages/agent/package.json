@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.10.0-alpha-webhook-custom-actions.3",
+  "version": "1.10.0-alpha-webhook-custom-actions.4",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
