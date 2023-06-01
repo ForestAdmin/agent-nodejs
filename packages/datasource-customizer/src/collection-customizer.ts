@@ -45,6 +45,7 @@ export default class CollectionCustomizer<
    * Load a plugin on the collection.
    * @param plugin reference to the plugin function
    * @param options options to pass to the plugin
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/plugins Documentation Link}
    * @example
    * import { createFileField } from '@forestadmin/plugin-s3';
    *
@@ -73,6 +74,7 @@ export default class CollectionCustomizer<
    *
    * @param name the name of the field that will be created on the collection
    * @param options options to import the field
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#moving-fields Documentation Link}
    * @example
    * .importField('authorName', { path: 'author:fullName' })
    */
@@ -84,6 +86,7 @@ export default class CollectionCustomizer<
    * Allow to rename a field of a given collection.
    * @param oldName the current name of the field in a given collection
    * @param newName the new name of the field
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
    * @example
    * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
    */
@@ -96,6 +99,7 @@ export default class CollectionCustomizer<
   /**
    * Remove field by setting its visibility to false.
    * @param names the fields to remove
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
    * @example
    * .removeField('aFieldToRemove', 'anotherFieldToRemove');
    */
@@ -110,6 +114,7 @@ export default class CollectionCustomizer<
    * Add a new action on the collection.
    * @param name the name of the action
    * @param definition the definition of the action
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions Documentation Link}
    * @example
    * .addAction('is live', {
    *    scope: 'Single',
@@ -131,6 +136,7 @@ export default class CollectionCustomizer<
    * Create a new API chart
    * @param name name of the chart
    * @param definition definition of the chart
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/charts Documentation Link}
    * @example
    * .addChart('numCustomers', {
    *   type: 'Value',
@@ -149,6 +155,7 @@ export default class CollectionCustomizer<
    * Add a new field on the collection.
    * @param name the name of the field
    * @param definition The definition of the field
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/computed Documentation Link}
    * @example
    * .addField('fullName', {
    *    columnType: 'String',
@@ -181,6 +188,7 @@ export default class CollectionCustomizer<
    * @param name The name of the field
    * @param operator The validator that you wish to add
    * @param value A configuration value that the validator may need
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/validation Documentation Link}
    * @example
    * .addFieldValidation('firstName', 'LongerThan', 2);
    */
@@ -195,6 +203,7 @@ export default class CollectionCustomizer<
    * @param position Either if the hook is executed before or after the action
    * @param type Type of action which should be hooked
    * @param handler Callback that should be executed when the hook is triggered
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks Documentation Link}
    * @example
    * .addHook('Before', 'List', async (context) => {
    *   // Do something before the list action
@@ -217,6 +226,7 @@ export default class CollectionCustomizer<
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/relationships/single-record#many-to-one-relations Documentation Link}
    * @example
    * books.addManyToOneRelation('myAuthor', 'persons', { foreignKey: 'authorId' })
    */
@@ -238,6 +248,7 @@ export default class CollectionCustomizer<
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/relationships/multiple-records#one-to-many-relations Documentation Link}
    * @example
    * persons.addOneToManyRelation('writtenBooks', 'books', { originKey: 'authorId' })
    */
@@ -259,6 +270,7 @@ export default class CollectionCustomizer<
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection
    * @param options extra information about the relation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/relationships/single-record#one-to-one-relations Documentation Link}
    * @example
    * persons.addOneToOneRelation('bestFriend', 'persons', { originKey: 'bestFriendId' })
    */
@@ -281,6 +293,7 @@ export default class CollectionCustomizer<
    * @param foreignCollection name of the targeted collection
    * @param throughCollection name of the intermediary collection
    * @param options extra information about the relation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/relationships/multiple-records#many-to-many-relations Documentation Link}
    * @example
    * dvds.addManyToManyRelation('rentalsOfThisDvd', 'rentals', 'dvdRentals', {
    *   originKey: 'dvdId',
@@ -314,6 +327,7 @@ export default class CollectionCustomizer<
    *
    * @param name name of the relation
    * @param definition the definition of the new relation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/relationships/multiple-records#external-relations Documentation Link}
    * @example
    * .addExternalRelation('states', {
    *   schema: { code: 'Number', name: 'String' },
@@ -331,8 +345,8 @@ export default class CollectionCustomizer<
   /**
    * Add a new segment on the collection.
    * @param name the name of the segment
-   * @param definition a function used to generate a condition tree
-   * or a condition tree
+   * @param definition a function used to generate a condition tree or a condition tree
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/segments Documentation Link}
    * @example
    * .addSegment(
    *    'Wrote more than 2 books',
@@ -349,6 +363,7 @@ export default class CollectionCustomizer<
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
    * @param name the name of the field to enable emulation on
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/sort#emulation Documentation Link}
    * @example
    * .emulateFieldSorting('fullName');
    */
@@ -363,6 +378,7 @@ export default class CollectionCustomizer<
    * The field sorting will be done by the datasource.
    * @param name the name of the field to enable sort
    * @param equivalentSort the sort equivalent
+   * @see @{@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/sort Documentation Link}
    * @example
    * .replaceFieldSorting(
    *   'fullName',
@@ -384,6 +400,7 @@ export default class CollectionCustomizer<
    * Enable filtering on a specific field using emulation.
    * As for all the emulation method, the field filtering will be done in-memory.
    * @param name the name of the field to enable emulation on
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/filter#emulation Documentation Link}
    * @example
    * .emulateFieldFiltering('aField');
    */
@@ -409,6 +426,7 @@ export default class CollectionCustomizer<
    * As for all the emulation method, the field filtering will be done in-memory.
    * @param name the name of the field to enable emulation on
    * @param operator the operator to emulate
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/filter Documentation Link}
    * @example
    * .emulateFieldOperator('aField', 'In');
    */
@@ -447,6 +465,7 @@ export default class CollectionCustomizer<
    * @param name the name of the field to filter on
    * @param operator the operator to replace
    * @param replacer the proposed implementation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/filter#substitution Documentation Link}
    * @example
    * .replaceFieldOperator('fullName', 'Contains', (value) => {
    *    return {
@@ -481,6 +500,7 @@ export default class CollectionCustomizer<
    * Replace the write behavior of a field.
    * @param name the name of the field
    * @param definition the function or a value to represent the write behavior
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/write Documentation Link}
    * @example
    * .replaceFieldWriting('fullName', fullName => {
    *   const [firstName, lastName] = fullName.split(' ');
@@ -499,6 +519,7 @@ export default class CollectionCustomizer<
   /**
    * Replace the behavior of the search bar
    * @param definition handler to describe the new behavior
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/search Documentation Link}
    * @example
    * .replaceSearch(async (searchString) => {
    *   return { field: 'name', operator: 'Contains', value: searchString };
