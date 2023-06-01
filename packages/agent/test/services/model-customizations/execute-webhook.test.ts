@@ -274,7 +274,7 @@ describe('Services > ModelCustomizations > WebhookExecutor', () => {
 
         expect(result).toEqual({
           type: 'Error',
-          message: 'Error received from the server: 400 Bad request.',
+          message: 'Error received from the webhook endpoint: 400 Bad request.',
         });
       });
     });
