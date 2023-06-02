@@ -1,3 +1,10 @@
+# @forestadmin/plugin-aws-s3 [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.1.5...@forestadmin/plugin-aws-s3@1.2.0) (2023-06-02)
+
+
+### Features
+
+* **plugin-aws-s3:** add S3Client endpoint option ([#718](https://github.com/ForestAdmin/agent-nodejs/issues/718)) ([f725bbe](https://github.com/ForestAdmin/agent-nodejs/commit/f725bbed405c2c54b4cd975bbfa95274e422e22b))
+
 ## @forestadmin/plugin-aws-s3 [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.1.4...@forestadmin/plugin-aws-s3@1.1.5) (2023-05-24)
 
 
