@@ -25,6 +25,14 @@ export async function introspect(
   }
 }
 
+export function stringifyIntrospection(introspection: Table[]): string {
+  return Introspector.stringify(introspection);
+}
+
+export function parseIntrospectionFromString(introspection: string): Table[] {
+  return Introspector.parse(introspection);
+}
+
 export async function buildSequelizeInstance(
   uriOrOptions: ConnectionOptions,
   logger: Logger,

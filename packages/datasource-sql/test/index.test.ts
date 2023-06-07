@@ -1,6 +1,12 @@
 import { Sequelize } from 'sequelize';
 
-import { buildSequelizeInstance, createSqlDataSource } from '../src';
+import {
+  Table,
+  buildSequelizeInstance,
+  createSqlDataSource,
+  parseIntrospectionFromString,
+  stringifyIntrospection,
+} from '../src';
 
 jest.mock('sequelize');
 
@@ -70,6 +76,22 @@ describe('index', () => {
           dialectOptions: {},
         });
       });
+    });
+  });
+
+  describe('stringifyIntrospection', () => {
+    it('should return the introspection as string', () => {
+      const introspection = [{ columns: [], name: 'AModel', unique: [] }] as Table[];
+      expect(stringifyIntrospection(introspection)).toEqual(expect.any(String));
+    });
+  });
+
+  describe('parseIntrospectionFromString', () => {
+    it('should return the original introspection', () => {
+      const introspection = [{ columns: [], name: 'AModel', unique: [] }] as Table[];
+      const introspectionInString = stringifyIntrospection(introspection);
+
+      expect(parseIntrospectionFromString(introspectionInString)).toEqual(introspection);
     });
   });
 });

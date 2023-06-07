@@ -27,6 +27,7 @@ export default class DefaultValueParser {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isLiteral(expression: any, columnType: ColumnType): boolean {
     const result = this.parse(expression, columnType);
     if (!result) return false;
