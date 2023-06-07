@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.8.0-alpha-webhook-custom-actions.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.1...@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.2) (2023-06-07)
+
+
+### Bug Fixes
+
+* **typings:** allow incomplete records to be passed to collection.create ([#700](https://github.com/ForestAdmin/agent-nodejs/issues/700)) ([95483e2](https://github.com/ForestAdmin/agent-nodejs/commit/95483e277d695a9f3ed19d86b2f6834413007afc))
+
 # @forestadmin/datasource-customizer [1.8.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.1...@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.1) (2023-04-28)
 
 
