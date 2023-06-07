@@ -10,6 +10,7 @@ const baseColumn = {
   constraints: [],
   defaultValue: null,
   type: { type: 'scalar', subType: 'NUMBER' } as unknown as ColumnType,
+  isLiteralDefaultValue: false,
 };
 
 describe('ModelBuilder', () => {
@@ -79,6 +80,7 @@ describe('ModelBuilder', () => {
             type: { type: 'enum', schema: 'public', name: 'custom_type', values: ['a', 'b', 'c'] },
             constraints: [],
             defaultValue: null,
+            isLiteralDefaultValue: false,
           },
         ],
         unique: [],

@@ -27,6 +27,13 @@ export default class DefaultValueParser {
     }
   }
 
+  isLiteral(expression: any, columnType: ColumnType): boolean {
+    const result = this.parse(expression, columnType);
+    if (!result) return false;
+
+    return result !== this.parseGeneric(expression, columnType);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseGeneric(expression: any, columnType: ColumnType): unknown {
     let sanitizedExpression = expression;
