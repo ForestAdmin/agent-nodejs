@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 
-import Introspector from '../../dist/introspection/introspector';
 import { Table } from '../../src';
+import Introspector from '../../src/introspection/introspector';
 
 describe('Introspector', () => {
   describe('when the introspection is stringified and after parsed', () => {
