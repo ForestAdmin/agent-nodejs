@@ -12,6 +12,7 @@ export class NativeRefreshEventsHandlerServiceFactory extends Factory<NativeRefr
       service.refreshRoles = jest.fn();
       service.refreshRenderings = jest.fn();
       service.refreshCustomizations = jest.fn();
+      service.onRefreshCustomizations = jest.fn();
       service.refreshEverything = jest.fn();
     });
   }

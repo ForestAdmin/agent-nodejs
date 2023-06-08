@@ -34,7 +34,11 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   },
   getOpenIdClient: jest.fn(),
   getUserInfo: jest.fn(),
+  modelCustomizationService: {
+    getConfiguration: jest.fn(),
+  },
   subscribeToServerEvents: jest.fn(),
+  onRefreshCustomizations: jest.fn(),
 }));
 
 export default forestAdminClientFactory;

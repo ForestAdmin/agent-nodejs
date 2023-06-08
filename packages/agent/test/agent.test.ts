@@ -1,6 +1,9 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import { readFile } from 'fs/promises';
+
 import * as factories from './__factories__';
 import Agent from '../src/agent';
 
@@ -16,31 +19,50 @@ jest.mock('../src/routes', () => ({
 
 // Mock options
 const mockPostSchema = jest.fn();
+const mockAddWebhookActions = Symbol('addWebhookActions');
 
-// Mock customizer
-const mockAddDataSource = jest.fn();
-const mockAddChart = jest.fn();
-const mockGetDataSource = jest.fn();
-const mockCustomizeCollection = jest.fn();
-const mockUpdateTypesOnFileSystem = jest.fn();
-const mockUse = jest.fn();
+const mockCustomizer = {
+  addDataSource: jest.fn(),
+  addChart: jest.fn(),
+  customizeCollection: jest.fn(),
+  updateTypesOnFileSystem: jest.fn(),
+  use: jest.fn(),
+  getFactory: jest.fn(),
+};
 
-jest.mock('@forestadmin/datasource-customizer', () => ({
-  DataSourceCustomizer: class {
-    addDataSource = mockAddDataSource;
-    addChart = mockAddChart;
-    getDataSource = mockGetDataSource;
-    customizeCollection = mockCustomizeCollection;
-    updateTypesOnFileSystem = mockUpdateTypesOnFileSystem;
-    use = mockUse;
+const mockNocodeCustomizer = {
+  addDataSource: jest.fn(),
+  getDataSource: jest.fn(),
+  use: jest.fn().mockReturnThis(),
+};
+
+const mockDatasourceCustomizer = DataSourceCustomizer as jest.Mock;
+
+jest.mock('../src/services/model-customizations/action-customization', () => ({
+  __esModule: true,
+  default: class {
+    public static VERSION = '3.14.15';
+    public static FEATURE = 'webhook-custom-actions';
+    addWebhookActions = mockAddWebhookActions;
   },
 }));
 
+jest.mock('@forestadmin/datasource-customizer', () => ({
+  __esModule: true,
+  DataSourceCustomizer: jest.fn(),
+}));
+
 beforeEach(() => {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
+
+  mockDatasourceCustomizer
+    .mockReset()
+    .mockImplementationOnce(() => mockCustomizer)
+    .mockImplementationOnce(() => mockNocodeCustomizer)
+    .mockImplementationOnce(() => mockNocodeCustomizer);
 
   mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
-  mockGetDataSource.mockResolvedValue(factories.dataSource.build());
+  mockNocodeCustomizer.getDataSource.mockResolvedValue(factories.dataSource.build());
 });
 
 describe('Agent', () => {
@@ -59,28 +81,63 @@ describe('Agent', () => {
       const agent = new Agent(options);
       agent.addDataSource(factory);
 
-      expect(mockAddDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.addDataSource).toHaveBeenCalledTimes(1);
     });
 
     test('addChart should proxy the call', async () => {
       const agent = new Agent(options);
       agent.addChart('name', () => 666);
 
-      expect(mockAddChart).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.addChart).toHaveBeenCalledTimes(1);
     });
 
     test('customizeCollection should proxy the call', async () => {
       const agent = new Agent(options);
       agent.customizeCollection('name', () => {});
 
-      expect(mockCustomizeCollection).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.customizeCollection).toHaveBeenCalledTimes(1);
     });
 
     test('use should proxy the call', async () => {
       const agent = new Agent(options);
       agent.use(async () => {});
 
-      expect(mockUse).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.use).toHaveBeenCalledTimes(1);
+    });
+
+    test('use should be called before getDatasource in order to be correctly applied', async () => {
+      const agent = new Agent(options);
+      let useCalled = false;
+      let getDataSourceCalledAfterUseCalled = false;
+
+      mockNocodeCustomizer.use.mockImplementationOnce(async () => {
+        useCalled = true;
+      });
+
+      mockNocodeCustomizer.getDataSource.mockImplementationOnce(async () => {
+        getDataSourceCalledAfterUseCalled = useCalled;
+
+        return factories.dataSource.build();
+      });
+
+      await agent.start();
+
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(getDataSourceCalledAfterUseCalled).toBe(true);
+    });
+
+    // eslint-disable-next-line max-len
+    test("should add the customizer's factory as a datasource for the nocode customizer", async () => {
+      mockCustomizer.getFactory.mockReturnValueOnce('factory');
+
+      const agent = new Agent(options);
+      await agent.start();
+
+      expect(agent).toBeTruthy();
+
+      expect(mockNocodeCustomizer.addDataSource).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.addDataSource).toHaveBeenCalledWith('factory');
     });
 
     test('start should upload apimap', async () => {
@@ -90,17 +147,103 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(1);
 
       expect(mockPostSchema).toHaveBeenCalledWith({
         collections: [],
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
+          liana_features: null,
           stack: expect.anything(),
         },
       });
+    });
+
+    test('that should upload the schema with experimental features', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+      });
+      await agent.start();
+
+      expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+      expect(mockBootstrap).toHaveBeenCalledTimes(1);
+      expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(1);
+
+      expect(mockPostSchema).toHaveBeenCalledWith({
+        collections: [],
+        metadata: {
+          liana: 'forest-nodejs-agent',
+          liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
+          liana_features: {
+            'webhook-custom-actions': '3.14.15',
+          },
+          stack: expect.anything(),
+        },
+      });
+
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(mockAddWebhookActions, true);
+    });
+
+    test('start should subscribe server events and add listener to restart', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+        instantCacheRefresh: true,
+      });
+
+      await agent.start();
+
+      expect(options.forestAdminClient.subscribeToServerEvents).toHaveBeenCalledTimes(1);
+      expect(options.forestAdminClient.onRefreshCustomizations).toHaveBeenCalledTimes(1);
+    });
+
+    test('restart should not subscribe server events and add listener to restart', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+        instantCacheRefresh: true,
+      });
+
+      await agent.start();
+      // @ts-expect-error: testing fakes RefreshCustomizations event
+      await agent.restart();
+
+      expect(options.forestAdminClient.subscribeToServerEvents).toHaveBeenCalledTimes(1);
+      expect(options.forestAdminClient.onRefreshCustomizations).toHaveBeenCalledTimes(1);
+    });
+
+    test('restart should re-build datasource and re-bootstrap routes', async () => {
+      const agent = new Agent({
+        ...options,
+        experimental: {
+          webhookCustomActions: true,
+        },
+        instantCacheRefresh: true,
+      });
+
+      await agent.start();
+      // @ts-expect-error: testing fakes RefreshCustomizations event
+      await agent.restart();
+
+      expect(mockSetupRoute).toHaveBeenCalledTimes(2);
+      expect(mockBootstrap).toHaveBeenCalledTimes(2);
+      expect(mockMakeRoutes).toHaveBeenCalledTimes(2);
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(2);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledTimes(2);
+
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -109,6 +252,7 @@ describe('Agent', () => {
       isProduction: true,
       typingsPath: '/tmp/test_typings.ts',
       forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+      schemaPath: `${__dirname}/__data__/agent-schema.json`,
     });
 
     test('start should throw if the schema does not exists', async () => {
@@ -129,17 +273,12 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).not.toHaveBeenCalled();
 
-      expect(mockPostSchema).toHaveBeenCalledWith({
-        collections: [],
-        metadata: {
-          liana: 'forest-nodejs-agent',
-          liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
-          stack: expect.anything(),
-        },
-      });
+      const schemaContent = JSON.parse(await readFile(options.schemaPath, 'utf8'));
+
+      expect(mockPostSchema).toHaveBeenCalledWith(schemaContent);
     });
 
     test('start should not update schema when specified', async () => {
@@ -149,8 +288,8 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       expect(mockBootstrap).toHaveBeenCalledTimes(1);
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
-      expect(mockGetDataSource).toHaveBeenCalledTimes(1);
-      expect(mockUpdateTypesOnFileSystem).not.toHaveBeenCalled();
+      expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
+      expect(mockCustomizer.updateTypesOnFileSystem).not.toHaveBeenCalled();
       expect(mockPostSchema).not.toHaveBeenCalled();
     });
   });

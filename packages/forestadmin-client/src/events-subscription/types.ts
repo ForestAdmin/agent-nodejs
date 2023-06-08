@@ -1,5 +1,3 @@
-import EventEmitter from 'events';
-
 export enum ServerEventType {
   RefreshUsers = 'refresh-users',
   RefreshRoles = 'refresh-roles',
@@ -12,11 +10,12 @@ export type ServerEvent = MessageEvent<{
   data?: string;
 }>;
 
-export interface RefreshEventsHandlerService extends EventEmitter {
+export interface RefreshEventsHandlerService {
   refreshUsers: () => Promise<void> | void;
   refreshRoles: () => Promise<void> | void;
   refreshRenderings: (renderingIds: [string | number]) => Promise<void> | void;
   refreshCustomizations: () => Promise<void> | void;
+  onRefreshCustomizations: (handler: () => void | Promise<void>) => void;
 
   refreshEverything: () => Promise<void> | void;
 }

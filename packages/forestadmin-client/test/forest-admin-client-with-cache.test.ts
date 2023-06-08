@@ -25,7 +25,9 @@ describe('ForestAdminClientWithCache', () => {
         whiteListService,
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
         factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -49,7 +51,9 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         schemaService,
         factories.auth.build(),
+        factories.modelCustomization.build(),
         factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
       );
 
       const result = await forestAdminClient.postSchema({
@@ -57,6 +61,7 @@ describe('ForestAdminClientWithCache', () => {
         metadata: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -78,7 +83,9 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
         factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -105,7 +112,9 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         authService,
+        factories.modelCustomization.build(),
         factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
       );
 
       const result = await forestAdminClient.getUserInfo(1, 'token');
@@ -128,7 +137,9 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         authService,
+        factories.modelCustomization.build(),
         factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
       );
 
       const result = await forestAdminClient.getOpenIdClient();
@@ -151,7 +162,9 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.auth.build(),
+          factories.modelCustomization.build(),
           factories.eventsSubscription.build(),
+          factories.eventsHandler.build(),
         );
 
         await forestAdminClient.markScopesAsUpdated(42);
@@ -172,7 +185,9 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.auth.build(),
+          factories.modelCustomization.build(),
           factories.eventsSubscription.build(),
+          factories.eventsHandler.build(),
         );
 
         await forestAdminClient.markScopesAsUpdated(42);
@@ -194,7 +209,9 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
         factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
@@ -226,12 +243,40 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.auth.build(),
+        factories.modelCustomization.build(),
         eventsSubscriptionService,
+        factories.eventsHandler.build(),
       );
 
       await forestAdminClient.subscribeToServerEvents();
 
       expect(eventsSubscriptionService.subscribeEvents).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('onRefreshCustomizations', () => {
+    it('should subscribes to Server Events rendering service', async () => {
+      const eventsHandlerService = factories.eventsHandler.mockAllMethods().build();
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        factories.auth.build(),
+        factories.modelCustomization.build(),
+        factories.eventsSubscription.build(),
+        eventsHandlerService,
+      );
+
+      const handler = jest.fn();
+
+      forestAdminClient.onRefreshCustomizations(handler);
+
+      expect(eventsHandlerService.onRefreshCustomizations).toHaveBeenCalled();
+      expect(eventsHandlerService.onRefreshCustomizations).toHaveBeenCalledWith(handler);
     });
   });
 });

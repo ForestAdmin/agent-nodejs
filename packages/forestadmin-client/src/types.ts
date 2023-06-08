@@ -4,6 +4,8 @@ import type { Client } from 'openid-client';
 
 import { UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
+import { HttpOptions } from './permissions/forest-http-api';
 import {
   CollectionActionEvent,
   EnvironmentPermissionsV4,
@@ -34,6 +36,7 @@ export interface ForestAdminClient {
   readonly permissionService: PermissionService;
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
+  readonly modelCustomizationService: ModelCustomizationService;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
@@ -52,6 +55,7 @@ export interface ForestAdminClient {
   markScopesAsUpdated(renderingId: number | string): void;
 
   subscribeToServerEvents(): Promise<void>;
+  onRefreshCustomizations(handler: () => void | Promise<void>): void;
 }
 
 export interface PermissionService {
@@ -144,4 +148,5 @@ export interface ForestAdminServerInterface {
   getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
   getUsers: (...args) => Promise<UserPermissionV4[]>;
   getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
+  getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
 }

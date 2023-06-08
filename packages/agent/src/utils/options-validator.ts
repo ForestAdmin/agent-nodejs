@@ -45,6 +45,13 @@ export default class OptionsValidator {
       );
     }
 
+    if (copyOptions.skipSchemaUpdate && copyOptions.experimental) {
+      copyOptions.logger(
+        'Warn',
+        'options.skipSchemaUpdate=true is incompatible with options.experimental',
+      );
+    }
+
     // When using the event source to refresh cache we set a one year cache duration
     copyOptions.permissionsCacheDurationInSeconds = copyOptions.instantCacheRefresh
       ? DEFAULT_CACHE_DURATION_WITH_EVENTS
