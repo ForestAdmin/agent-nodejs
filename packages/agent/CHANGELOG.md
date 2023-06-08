@@ -1,3 +1,27 @@
+# @forestadmin/agent [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.2...@forestadmin/agent@1.10.0) (2023-06-08)
+
+
+### Bug Fixes
+
+* improve errors from webhook endpoints ([#713](https://github.com/ForestAdmin/agent-nodejs/issues/713)) ([7e4f11f](https://github.com/ForestAdmin/agent-nodejs/commit/7e4f11f3b06d90ef3a451b1fc0fab8e8720ac83b))
+* **webhook-custom-actions:** improve error reporting when calling a webhook ([#687](https://github.com/ForestAdmin/agent-nodejs/issues/687)) ([c3f7f9a](https://github.com/ForestAdmin/agent-nodejs/commit/c3f7f9a2803185a1058fe570f12072ffbec94a2c))
+* **webhook-custom-actions:** register webhook actions configured from the frontend ([#686](https://github.com/ForestAdmin/agent-nodejs/issues/686)) ([fd9334a](https://github.com/ForestAdmin/agent-nodejs/commit/fd9334a76699f33e217f766b1ed29a7be179951c))
+
+
+### Features
+
+* **events-subscription:** allow to instantly refresh customizations when they change ([#704](https://github.com/ForestAdmin/agent-nodejs/issues/704)) ([8f4704e](https://github.com/ForestAdmin/agent-nodejs/commit/8f4704e4564bc34413ce7a2a01cdff2ee6762a82))
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.8.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.3.0
+
 # @forestadmin/agent [1.10.0-alpha-webhook-custom-actions.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.10.0-alpha-webhook-custom-actions.4...@forestadmin/agent@1.10.0-alpha-webhook-custom-actions.5) (2023-06-07)
 
 
