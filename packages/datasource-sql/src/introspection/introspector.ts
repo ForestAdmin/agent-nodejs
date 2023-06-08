@@ -88,7 +88,9 @@ export default class Introspector {
         type,
         autoIncrement,
         defaultValue: autoIncrement ? null : parser.parse(description.defaultValue, type),
-        isLiteralDefaultValue: parser.isLiteral(description.defaultValue, type),
+        isLiteralDefaultValue: autoIncrement
+          ? false
+          : parser.isLiteral(description.defaultValue, type),
         name,
         allowNull: description.allowNull,
         primaryKey: description.primaryKey,

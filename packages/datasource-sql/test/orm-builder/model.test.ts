@@ -226,5 +226,27 @@ describe('ModelBuilder', () => {
         Sequelize.literal((column.defaultValue as any).val),
       );
     });
+
+    describe('when there is no defaultValue', () => {
+      it('should not cast the default value as a Literal sequelize object', () => {
+        const sequelize = new Sequelize('postgres://');
+        const column = {
+          defaultValue: null,
+          type: { type: 'scalar', subType: 'UUID' },
+          autoIncrement: false,
+          isLiteralDefaultValue: true,
+          name: 'uuid',
+          allowNull: false,
+          primaryKey: false,
+          constraints: [],
+        };
+        const tables = [{ columns: [column], name: 'aModel', unique: [] }] as Table[];
+
+        ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+        expect(sequelize.models.aModel).toBeDefined();
+        expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
+      });
+    });
   });
 });
