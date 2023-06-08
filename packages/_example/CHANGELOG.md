@@ -1,3 +1,13 @@
+## example [1.3.15](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.14...example@1.3.15) (2023-06-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.6.5
+
 ## example [1.3.14](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.13...example@1.3.14) (2023-06-08)
 
 
