@@ -25,14 +25,6 @@ export async function introspect(
   }
 }
 
-export function transformIntrospectionAsJson(introspection: Table[]): string {
-  return Introspector.stringify(introspection);
-}
-
-export function parseIntrospectionFromJson(introspection: string): Table[] {
-  return Introspector.parse(introspection);
-}
-
 export async function buildSequelizeInstance(
   uriOrOptions: ConnectionOptions,
   logger: Logger,

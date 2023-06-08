@@ -201,4 +201,30 @@ describe('ModelBuilder', () => {
       );
     });
   });
+
+  describe('when the default value is a literal', () => {
+    it('should cast the default value as a Literal sequelize object', () => {
+      const sequelize = new Sequelize('postgres://');
+      const column = {
+        // a literal default value
+        defaultValue: { val: 'gen_random_uuid()' },
+        type: { type: 'scalar', subType: 'UUID' },
+        autoIncrement: false,
+        isLiteralDefaultValue: true,
+        name: 'uuid',
+        allowNull: false,
+        primaryKey: false,
+        constraints: [],
+      };
+      const tables = [{ columns: [column], name: 'aModel', unique: [] }] as Table[];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.aModel).toBeDefined();
+      expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toStrictEqual(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Sequelize.literal((column.defaultValue as any).val),
+      );
+    });
+  });
 });

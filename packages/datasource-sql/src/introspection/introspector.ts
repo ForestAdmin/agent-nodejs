@@ -17,23 +17,6 @@ export default class Introspector {
     return tables;
   }
 
-  static stringify(introspection: Table[]): string {
-    return JSON.stringify(introspection);
-  }
-
-  static parse(introspection: string): Table[] {
-    const parsedIntrospection = JSON.parse(introspection);
-    parsedIntrospection.forEach(table => {
-      table.columns.forEach(column => {
-        if (column.isLiteralDefaultValue) {
-          column.defaultValue = Sequelize.literal(column.defaultValue.val);
-        }
-      });
-    });
-
-    return parsedIntrospection;
-  }
-
   /** Get names of all tables in the public schema of the db */
   private static async getTableNames(sequelize: Sequelize): Promise<string[]> {
     const names: ({ tableName: string } | string)[] = await sequelize
