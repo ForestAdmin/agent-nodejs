@@ -1,8 +1,10 @@
-import type { ConnectionOptions, ConnectionOptionsObj, ProxySocks, SslMode } from '../types';
+import type { ConnectionOptions, ConnectionOptionsObj } from '../types';
+import type { ConnectionOptions, ConnectionOptionsObj, ProxySocks, SslMode, Dialect } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { Dialect, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
+import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
 import SshClient from './ssh-client';
@@ -52,6 +54,7 @@ function getSslConfiguration(
       return {};
   }
 }
+import { getLogger, getSchema, getSslConfiguration } from './utils';
 
 async function startProxy(options: ConnectionOptionsObj): Promise<ReverseProxy> {
   let proxy: ReverseProxy | undefined;
@@ -81,11 +84,19 @@ export default async function connect(
   uriOrOptions: ConnectionOptions,
   logger?: Logger,
 ): Promise<Sequelize> {
-  let proxy: ReverseProxy | undefined;
-  let sequelize: Sequelize | undefined;
+  let proxy: ReverseProxy;
+  let sequelize: Sequelize;
+  let options: ConnectionOptionsObj;
+  let servername: string;
 
   try {
-    let options = await preprocessOptions(uriOrOptions);
+    options = await preprocessOptions(uriOrOptions);
+
+    try {
+      servername = options?.host ?? new URL(options.uri).hostname;
+    } catch {
+      // don't crash if using unix socket, sqlite, etc...
+    }
 
     if (options.proxySocks) {
       proxy = await startProxy(options);
@@ -98,7 +109,7 @@ export default async function connect(
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, logger),
+      ...getSslConfiguration(opts.dialect, sslMode, servername, logger),
     };
 
     sequelize = uri
@@ -120,6 +131,6 @@ export default async function connect(
   } catch (e) {
     await sequelize?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
-    handleSequelizeError(proxy?.error || (e as Error));
+    handleErrors(proxy?.error || e, options, proxy);
   }
 }

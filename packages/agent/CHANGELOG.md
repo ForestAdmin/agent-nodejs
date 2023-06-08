@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.1...@forestadmin/agent@1.9.2) (2023-05-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.2.1
+
+## @forestadmin/agent [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.0...@forestadmin/agent@1.9.1) (2023-05-30)
+
+
+### Bug Fixes
+
+* **agent:** make sure that triggered actions from the frontend execute the right code even after an addition or removal of custom actions ([#706](https://github.com/ForestAdmin/agent-nodejs/issues/706)) ([9581036](https://github.com/ForestAdmin/agent-nodejs/commit/95810369f175d84c7e176bad6cbf70fcdb44c772))
+
 # @forestadmin/agent [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.8.14...@forestadmin/agent@1.9.0) (2023-05-25)
 
 

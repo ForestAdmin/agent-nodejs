@@ -64,6 +64,9 @@ export type Options = {
 
     /** AWS bucket, defaults to process.env.AWS_S3_BUCKET */
     bucket?: string;
+
+    /** AWS endpoint, defaults to process.env.AWS_S3_ENDPOINT */
+    endpoint?: string;
   };
 };
 
