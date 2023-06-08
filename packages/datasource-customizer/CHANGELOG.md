@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.2...@forestadmin/datasource-customizer@1.8.0) (2023-06-08)
+
+
+### Features
+
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
+
 # @forestadmin/datasource-customizer [1.8.0-alpha-webhook-custom-actions.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.1...@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.2) (2023-06-07)
 
 
