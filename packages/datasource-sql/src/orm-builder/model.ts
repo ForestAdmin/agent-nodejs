@@ -52,6 +52,11 @@ export default class ModelBuilder {
         !(hasTimestamps && (column.name === 'updatedAt' || column.name === 'createdAt')) &&
         !(isParanoid && column.name === 'deletedAt');
 
+      if (column.defaultValue && column.isLiteralDefaultValue) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        column.defaultValue = Sequelize.literal((column.defaultValue as any).val);
+      }
+
       // Clone object, because sequelize modifies it.
       if (isExplicit)
         modelAttrs[column.name] = {

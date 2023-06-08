@@ -77,7 +77,7 @@ export default class Introspector {
 
     try {
       const type = await typeConverter.convert(tableName, name, description);
-      const defaultValue = new DefaultValueParser(dialect).parse(description.defaultValue, type);
+      const parser = new DefaultValueParser(dialect);
 
       // Workaround autoincrement flag not being properly set when using postgres
       const autoIncrement = Boolean(
@@ -87,7 +87,10 @@ export default class Introspector {
       return {
         type,
         autoIncrement,
-        defaultValue: autoIncrement ? null : defaultValue,
+        defaultValue: autoIncrement ? null : parser.parse(description.defaultValue, type),
+        isLiteralDefaultValue: autoIncrement
+          ? false
+          : parser.isLiteral(description.defaultValue, type),
         name,
         allowNull: description.allowNull,
         primaryKey: description.primaryKey,

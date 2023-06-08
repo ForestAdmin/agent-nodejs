@@ -10,6 +10,7 @@ const baseColumn = {
   constraints: [],
   defaultValue: null,
   type: { type: 'scalar', subType: 'NUMBER' } as unknown as ColumnType,
+  isLiteralDefaultValue: false,
 };
 
 describe('ModelBuilder', () => {
@@ -79,6 +80,7 @@ describe('ModelBuilder', () => {
             type: { type: 'enum', schema: 'public', name: 'custom_type', values: ['a', 'b', 'c'] },
             constraints: [],
             defaultValue: null,
+            isLiteralDefaultValue: false,
           },
         ],
         unique: [],
@@ -197,6 +199,54 @@ describe('ModelBuilder', () => {
         'Warn',
         'Skipping table "myTable" because of error: Invalid Model.',
       );
+    });
+  });
+
+  describe('when the default value is a literal', () => {
+    it('should cast the default value as a Literal sequelize object', () => {
+      const sequelize = new Sequelize('postgres://');
+      const column = {
+        // a literal default value
+        defaultValue: { val: 'gen_random_uuid()' },
+        type: { type: 'scalar', subType: 'UUID' },
+        autoIncrement: false,
+        isLiteralDefaultValue: true,
+        name: 'uuid',
+        allowNull: false,
+        primaryKey: false,
+        constraints: [],
+      };
+      const tables = [{ columns: [column], name: 'aModel', unique: [] }] as Table[];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.aModel).toBeDefined();
+      expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toStrictEqual(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Sequelize.literal((column.defaultValue as any).val),
+      );
+    });
+
+    describe('when there is no defaultValue', () => {
+      it('should not cast the default value as a Literal sequelize object', () => {
+        const sequelize = new Sequelize('postgres://');
+        const column = {
+          defaultValue: null,
+          type: { type: 'scalar', subType: 'UUID' },
+          autoIncrement: false,
+          isLiteralDefaultValue: true,
+          name: 'uuid',
+          allowNull: false,
+          primaryKey: false,
+          constraints: [],
+        };
+        const tables = [{ columns: [column], name: 'aModel', unique: [] }] as Table[];
+
+        ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+        expect(sequelize.models.aModel).toBeDefined();
+        expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
+      });
     });
   });
 });
