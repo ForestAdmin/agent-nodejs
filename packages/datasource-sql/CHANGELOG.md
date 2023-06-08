@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.6.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.4...@forestadmin/datasource-sql@1.6.5) (2023-06-08)
+
+
+### Bug Fixes
+
+* **datasource-sql:** improve management of literal values to avoid bugs when introspection is stringified ([#720](https://github.com/ForestAdmin/agent-nodejs/issues/720)) ([615dcda](https://github.com/ForestAdmin/agent-nodejs/commit/615dcda2fce4bb4bad46b9fe42395ce3d3866ee3))
+
 ## @forestadmin/datasource-sql [1.6.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.3...@forestadmin/datasource-sql@1.6.4) (2023-05-31)
 
 ## @forestadmin/datasource-sql [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.2...@forestadmin/datasource-sql@1.6.3) (2023-05-31)
