@@ -4,11 +4,7 @@ import { DatabaseConnectError, ProxyConnectError } from './errors';
 import ReverseProxy from './reverse-proxy';
 import { ConnectionOptionsObj } from '../types';
 
-function handleProxyErrors(
-  error: Error,
-  databaseUri?: string,
-  proxyConfig?: ConnectionOptionsObj['proxySocks'],
-): void {
+function handleProxyErrors(error: Error, proxy: ReverseProxy): void {
   // eslint-disable-next-line max-len
   // @link: list of errors thrown by the proxy https://github.com/JoshGlazebrook/socks/blob/76d013e4c9a2d956f07868477d8f12ec0b96edfc/src/common/constants.ts#LL10C10-L10C10
   if (error?.stack?.includes('SocksClient')) {
@@ -16,10 +12,10 @@ function handleProxyErrors(
       error.message.includes('Socket closed') ||
       error.message.includes('Socks5 proxy rejected connection')
     ) {
-      throw new DatabaseConnectError(null, databaseUri, 'Proxy');
+      throw new DatabaseConnectError(null, proxy.connectionOptions, 'Proxy');
     }
 
-    throw new ProxyConnectError(error.message, proxyConfig);
+    throw new ProxyConnectError(error.message, proxy?.connectionOptions);
   }
 }
 
@@ -28,7 +24,7 @@ export default function handleErrors(
   options?: ConnectionOptionsObj,
   proxy?: ReverseProxy,
 ) {
-  handleProxyErrors(error, proxy?.destination.uri, proxy?.destination.proxySocks);
+  handleProxyErrors(error, proxy);
 
   if (error instanceof BaseError) {
     const nameWithoutSequelize = error.name.replace('Sequelize', '');
@@ -37,7 +33,7 @@ export default function handleErrors(
       (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
     );
 
-    throw new DatabaseConnectError(`${nameWithSpaces}: ${error.message}`, options?.uri);
+    throw new DatabaseConnectError(`${nameWithSpaces}: ${error.message}`, options);
   }
 
   throw error;

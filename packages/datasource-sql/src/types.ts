@@ -1,17 +1,19 @@
 import { Options } from 'sequelize/types';
 
+export type ProxySocks = {
+  userId?: string;
+  password?: string;
+  host: string;
+  port: number;
+  version?: 5;
+  command?: 'connect';
+};
+
 export type ConnectionOptionsObj =
   | {
       uri?: string;
       sslMode?: SslMode;
-      proxySocks?: {
-        userId?: string;
-        password?: string;
-        host: string;
-        port: number;
-        version?: 5;
-        command?: 'connect';
-      };
+      proxySocks?: ProxySocks;
     } & Pick<
       Options,
       | 'database'
