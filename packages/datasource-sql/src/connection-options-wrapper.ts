@@ -29,22 +29,12 @@ export default class ConnectionOptionsWrapper {
   }
 
   get port(): number {
-    let port: number;
-    if (this.originalOptions.port) port = this.originalOptions.port;
-
-    if (this.originalOptions.uri && new URL(this.originalOptions.uri).port) {
-      port = Number(new URL(this.originalOptions.uri).port);
-    }
-
+    if (this.uri.port) return Number(this.uri.port);
     // Use default port for known dialects otherwise
-    if (this.originalOptions.dialect === 'postgres') port = 5432;
-    if (this.originalOptions.dialect === 'mssql') port = 1433;
-
-    if (this.originalOptions.dialect === 'mysql' || this.originalOptions.dialect === 'mariadb') {
-      port = 3306;
-    }
-
-    return port;
+    if (this.originalOptions.dialect === 'postgres') return 5432;
+    if (this.originalOptions.dialect === 'mssql') return 1433;
+    if (this.originalOptions.dialect === 'mysql' || this.originalOptions.dialect === 'mariadb')
+      return 3306;
   }
 
   get host(): string {
@@ -61,8 +51,8 @@ export default class ConnectionOptionsWrapper {
     return ConnectionOptionsWrapper.sanitizeUri(proxyUri.toString()).replace('socks://', '');
   }
 
-  get uriAsString(): string {
-    if (this.originalOptions.uri) return this.originalOptions.uri;
+  get uri(): URL {
+    if (this.originalOptions.uri) return new URL(this.originalOptions.uri);
     const uriObject = new URL(`${this.originalOptions.dialect}://`);
 
     if (this.originalOptions.database) uriObject.pathname = this.originalOptions.database;
@@ -70,11 +60,13 @@ export default class ConnectionOptionsWrapper {
     if (this.originalOptions.port) uriObject.port = this.originalOptions.port.toString();
     if (this.originalOptions.username) uriObject.username = this.originalOptions.username;
     if (this.originalOptions.password) uriObject.password = this.originalOptions.password;
+    if (!this.originalOptions.dialect) uriObject.protocol = undefined;
 
-    let uri = uriObject.toString();
-    if (!this.originalOptions.dialect) uri = uri.split('://').pop() as string;
+    return uriObject;
+  }
 
-    return uri;
+  get uriAsString(): string {
+    return this.uri.toString();
   }
 
   get sanitizedUriAsString(): string {
@@ -98,20 +90,17 @@ export default class ConnectionOptionsWrapper {
   }
 
   private checkUri(): void {
-    if (this.uriAsString === 'sqlite::memory:') return;
+    const message =
+      `Connection Uri "${this.originalOptions.uri}" provided to SQL data source is not valid.` +
+      ' Should be <dialect>://<connection>.';
 
-    let message: string;
-    if (!this.port) message = 'Port is required';
-    if (!this.host) message = 'Host is required';
-    if (!this.dialect) message = 'Expected dialect to be provided in options or uri.';
-
-    if (!/.*:\/\//g.test(this.uriAsString)) {
-      message =
-        `Connection Uri "${this.uriAsString}" provided to SQL data source is not valid.` +
-        ' Should be <dialect>://<connection>.';
+    try {
+      if (this.uriAsString === 'sqlite::memory:') return;
+    } catch (err) {
+      throw new DatabaseConnectError(message);
     }
 
-    if (message) throw new DatabaseConnectError(message);
+    if (!/.*:\/\//g.test(this.uriAsString)) throw new DatabaseConnectError(message);
   }
 
   private static sanitizeUri(uri: string): string {
