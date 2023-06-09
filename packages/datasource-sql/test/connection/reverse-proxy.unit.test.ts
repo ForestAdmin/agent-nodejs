@@ -86,7 +86,7 @@ describe('ReverseProxy', () => {
     });
   });
 
-  describe('connectionOptions', () => {
+  describe('options', () => {
     describe('when it takes an options with uri', () => {
       it('gives updated options with updated uri, host and port', async () => {
         const options = {

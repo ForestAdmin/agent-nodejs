@@ -9,12 +9,10 @@ export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly connectedClients: Set<net.Socket> = new Set();
-  private readonly destination: ConnectionOptionsWrapper;
-  public readonly connectionOptions: ConnectionOptionsObj;
+  public readonly options: ConnectionOptionsWrapper;
 
   constructor(connectionOptions: ConnectionOptionsObj) {
-    this.connectionOptions = connectionOptions;
-    this.destination = new ConnectionOptionsWrapper(connectionOptions);
+    this.options = new ConnectionOptionsWrapper(connectionOptions);
     this.server = net.createServer(this.onConnection.bind(this));
   }
 
@@ -36,9 +34,9 @@ export default class ReverseProxy {
     });
   }
 
-  updateConnectionOptions(options: ConnectionOptionsObj): ConnectionOptionsObj {
+  get connectionOptions(): ConnectionOptionsObj {
     const { address, port } = this.server.address() as net.AddressInfo;
-    const connection = { ...options };
+    const connection = { ...this.options.originalOptions };
 
     if (connection.uri) {
       const uri = new URL(connection.uri);
@@ -72,9 +70,9 @@ export default class ReverseProxy {
 
     try {
       socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...this.destination.proxySocks, type: 5 },
+        proxy: { ...this.options.proxySocks, type: 5 },
         command: 'connect',
-        destination: { host: this.destination.host, port: this.destination.port },
+        destination: { host: this.options.host, port: this.options.port },
         timeout: 4000,
       });
 

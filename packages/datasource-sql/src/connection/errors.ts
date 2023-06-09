@@ -1,6 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
-import { ConnectionOptionsObj } from '../types';
 
 export type SourceError = 'Proxy' | 'Database';
 
@@ -18,13 +17,18 @@ class BaseError extends Error {
 }
 
 export class DatabaseConnectError extends BaseError {
-  constructor(message: string, options?: ConnectionOptionsObj, source: SourceError = 'Database') {
+  constructor(
+    message: string,
+    options?: ConnectionOptionsWrapper,
+    source: SourceError = 'Database',
+  ) {
     if (options) {
-      const sanitizedUri = new ConnectionOptionsWrapper(options).sanitizedUriAsString;
+      const sanitizedUri = options.sanitizedUriAsString;
       super(`Unable to connect to the given uri: ${sanitizedUri}.`, message);
 
       this.name = this.constructor.name;
       this.source = source;
+      this.uri = sanitizedUri;
     } else {
       super(`Unable to connect to the given uri.`, message);
     }
@@ -32,11 +36,11 @@ export class DatabaseConnectError extends BaseError {
 }
 
 export class ProxyConnectError extends BaseError {
-  constructor(message: string, options?: ConnectionOptionsObj) {
+  constructor(message: string, options?: ConnectionOptionsWrapper) {
     const defaultMessage = 'Your proxy has encountered an error.';
 
     if (options) {
-      const sanitizedUri = new ConnectionOptionsWrapper(options).sanitizedProxySocksAsUriString;
+      const sanitizedUri = options.sanitizedProxySocksAsUriString;
       super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);
       this.uri = sanitizedUri;
     } else {

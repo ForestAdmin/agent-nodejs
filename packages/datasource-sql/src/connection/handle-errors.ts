@@ -2,6 +2,7 @@ import { BaseError } from 'sequelize';
 
 import { DatabaseConnectError, ProxyConnectError } from './errors';
 import ReverseProxy from './reverse-proxy';
+import ConnectionOptionsWrapper from '../connection-options-wrapper';
 import { ConnectionOptionsObj } from '../types';
 
 function handleProxyErrors(error: Error, proxy: ReverseProxy): void {
@@ -12,10 +13,10 @@ function handleProxyErrors(error: Error, proxy: ReverseProxy): void {
       error.message.includes('Socket closed') ||
       error.message.includes('Socks5 proxy rejected connection')
     ) {
-      throw new DatabaseConnectError(null, proxy.connectionOptions, 'Proxy');
+      throw new DatabaseConnectError(null, proxy.options, 'Proxy');
     }
 
-    throw new ProxyConnectError(error.message, proxy?.connectionOptions);
+    throw new ProxyConnectError(error.message, proxy?.options);
   }
 }
 
@@ -33,7 +34,10 @@ export default function handleErrors(
       (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
     );
 
-    throw new DatabaseConnectError(`${nameWithSpaces}: ${error.message}`, options);
+    throw new DatabaseConnectError(
+      `${nameWithSpaces}: ${error.message}`,
+      options ? new ConnectionOptionsWrapper(options) : null,
+    );
   }
 
   throw error;

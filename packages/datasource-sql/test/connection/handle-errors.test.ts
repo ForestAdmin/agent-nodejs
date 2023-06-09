@@ -154,7 +154,6 @@ describe('connect errors', () => {
         await expect(() =>
           connect({
             uri: `postgres://test:password@localhost:5443/test_connection`,
-
             dialect: 'mysql',
           }),
         ).rejects.toThrow(DatabaseConnectError);

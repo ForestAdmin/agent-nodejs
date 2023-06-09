@@ -7,6 +7,7 @@ import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
 import { getLogger, getSchema, getSslConfiguration } from './utils';
+import ConnectionOptionsWrapper from '../connection-options-wrapper';
 
 /** Attempt to connect to the database */
 export default async function connect(
@@ -22,7 +23,7 @@ export default async function connect(
     options = await preprocessOptions(uriOrOptions);
 
     try {
-      servername = options?.host ?? new URL(options.uri).hostname;
+      servername = new ConnectionOptionsWrapper(options).host;
     } catch {
       // don't crash if using unix socket, sqlite, etc...
     }

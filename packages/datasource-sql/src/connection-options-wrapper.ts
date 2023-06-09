@@ -23,8 +23,6 @@ export default class ConnectionOptionsWrapper {
   }
 
   get proxySocks(): ProxySocks {
-    if (!this.originalOptions.proxySocks) return undefined;
-
     return this.originalOptions.proxySocks;
   }
 
@@ -38,9 +36,7 @@ export default class ConnectionOptionsWrapper {
   }
 
   get host(): string {
-    return this.originalOptions.uri
-      ? new URL(this.originalOptions.uri).hostname
-      : this.originalOptions.host;
+    return this.uri.hostname;
   }
 
   get sanitizedProxySocksAsUriString(): string {
@@ -52,15 +48,16 @@ export default class ConnectionOptionsWrapper {
   }
 
   get uri(): URL {
-    if (this.originalOptions.uri) return new URL(this.originalOptions.uri);
-    const uriObject = new URL(`${this.originalOptions.dialect}://`);
+    const uriObject = this.originalOptions.uri
+      ? new URL(this.originalOptions.uri)
+      : new URL(`${this.originalOptions.dialect}://`);
 
     if (this.originalOptions.database) uriObject.pathname = this.originalOptions.database;
     if (this.originalOptions.host) uriObject.host = this.originalOptions.host;
     if (this.originalOptions.port) uriObject.port = this.originalOptions.port.toString();
     if (this.originalOptions.username) uriObject.username = this.originalOptions.username;
     if (this.originalOptions.password) uriObject.password = this.originalOptions.password;
-    if (!this.originalOptions.dialect) uriObject.protocol = undefined;
+    if (this.originalOptions.dialect) uriObject.protocol = this.originalOptions.dialect;
 
     return uriObject;
   }
@@ -101,6 +98,9 @@ export default class ConnectionOptionsWrapper {
     }
 
     if (!/.*:\/\//g.test(this.uriAsString)) throw new DatabaseConnectError(message);
+    if (!this.port) throw new DatabaseConnectError('Port is required');
+    if (!this.host) throw new DatabaseConnectError('Host is required');
+    if (!this.dialect) throw new DatabaseConnectError('Dialect is required');
   }
 
   private static sanitizeUri(uri: string): string {
