@@ -1,7 +1,8 @@
 import net from 'net';
 import { Client } from 'ssh2';
 
-import { ConnectionOptionsObj } from '../types';
+import ConnectionOptionsWrapper from '../connection-options-wrapper';
+import { ConnectionOptionsObj, Ssh } from '../types';
 
 export default class SshClient {
   private readonly connection: Client;
@@ -21,13 +22,10 @@ export default class SshClient {
       });
       this.connection.on('ready', () => {
         // TO change?
-        this.onReady(this.socket, '10.0.0.1', 10);
+        this.onReady(this.socket, '127.0.0.1', 10);
         resolve();
       });
-      this.connection.connect({
-        ...this.destination.ssh,
-        host: 'localhost',
-      });
+      this.connection.connect(this.destination.ssh as Ssh);
     });
   }
 
@@ -35,23 +33,13 @@ export default class SshClient {
     this.connection.forwardOut(
       sourceAddress,
       sourcePort,
-      this.destinationHost,
-      this.destinationPort,
+      new ConnectionOptionsWrapper(this.destination).host,
+      new ConnectionOptionsWrapper(this.destination).port,
       (err, stream) => {
         if (err) throw err;
         stream.on('close', () => this.connection.end());
         stream.pipe(clientSocket).pipe(stream);
       },
-    );
-  }
-
-  private get destinationHost(): string {
-    return this.destination.uri ? new URL(this.destination.uri).hostname : this.destination.host;
-  }
-
-  private get destinationPort(): number {
-    return Number(
-      this.destination.uri ? new URL(this.destination.uri).port : this.destination.port,
     );
   }
 }

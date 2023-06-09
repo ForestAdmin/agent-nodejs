@@ -10,3 +10,81 @@
 2023-06-09 08:38:33.447510900  Attempt to write login records by non-root user (aborting)
 2023-06-09 08:38:33.449204700  Received disconnect from 172.24.0.1 port 64370:11: disconnected by user
 2023-06-09 08:38:33.450658800  Disconnected from user forest 172.24.0.1 port 64370
+2023-06-09 08:39:55.788200700  Accepted publickey for forest from 172.24.0.1 port 64374 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 08:39:55.838943200  Attempt to write login records by non-root user (aborting)
+2023-06-09 08:39:57.490863800  Attempt to write login records by non-root user (aborting)
+2023-06-09 08:39:57.492760600  Received disconnect from 172.24.0.1 port 64374:11: disconnected by user
+2023-06-09 08:39:57.494917100  Disconnected from user forest 172.24.0.1 port 64374
+2023-06-09 09:05:31.875509100  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:05:31.875526000  banner exchange: Connection from 172.24.0.7 port 50192: invalid format
+2023-06-09 09:05:31.982250600  Accepted publickey for forest from 172.24.0.1 port 64858 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:05:46.378031200  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:05:46.379486700  banner exchange: Connection from 172.24.0.7 port 50208: invalid format
+2023-06-09 09:05:46.456122600  Accepted publickey for forest from 172.24.0.1 port 64874 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:06:05.958952200  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:06:05.958969600  banner exchange: Connection from 172.24.0.7 port 50224: invalid format
+2023-06-09 09:06:06.103882800  Accepted publickey for forest from 172.24.0.1 port 64890 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:07:20.230835100  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:07:20.232778100  banner exchange: Connection from 172.24.0.7 port 50254: invalid format
+2023-06-09 09:07:20.371198400  Accepted publickey for forest from 172.24.0.1 port 64920 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:07:21.526946200  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:07:21.530872000  banner exchange: Connection from 172.24.0.7 port 50240: invalid format
+2023-06-09 09:07:21.668954500  Accepted publickey for forest from 172.24.0.1 port 64924 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:07:51.001950000  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:07:51.004285100  banner exchange: Connection from 172.24.0.7 port 50276: invalid format
+2023-06-09 09:07:51.105061400  Accepted publickey for forest from 172.24.0.1 port 64942 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:08:41.097181500  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:08:41.100071000  banner exchange: Connection from 172.24.0.7 port 50292: invalid format
+2023-06-09 09:08:41.198097200  Accepted publickey for forest from 172.24.0.1 port 64958 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:09:56.218064200  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:09:56.219284200  banner exchange: Connection from 172.24.0.7 port 50310: invalid format
+2023-06-09 09:13:00.175145100  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:13:00.176265300  banner exchange: Connection from 172.24.0.7 port 50328: invalid format
+2023-06-09 09:13:13.679892100  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:13:13.682397800  banner exchange: Connection from 172.24.0.7 port 50340: invalid format
+2023-06-09 09:48:41.677145400  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:48:41.677173300  banner exchange: Connection from 172.24.0.7 port 50598: invalid format
+2023-06-09 09:49:03.190953600  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:49:03.190978100  banner exchange: Connection from 172.24.0.7 port 50610: invalid format
+2023-06-09 09:52:43.447732200  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:52:43.450679800  banner exchange: Connection from 172.24.0.7 port 50630: invalid format
+2023-06-09 09:54:01.253333100  kex_exchange_identification: Connection closed by remote host
+2023-06-09 09:54:01.255092700  Connection closed by 172.24.0.7 port 50642
+2023-06-09 09:54:06.952002700  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:54:06.953326800  banner exchange: Connection from 172.24.0.7 port 50654: invalid format
+2023-06-09 09:54:07.053767000  Accepted publickey for forest from 172.24.0.1 port 65320 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:54:18.003668900  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:54:18.005318100  banner exchange: Connection from 172.24.0.7 port 50670: invalid format
+2023-06-09 09:54:18.107842400  Accepted publickey for forest from 172.24.0.1 port 65336 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:54:40.825269100  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:54:40.825288900  banner exchange: Connection from 172.24.0.7 port 50688: invalid format
+2023-06-09 09:54:40.948576500  Accepted publickey for forest from 172.24.0.1 port 65354 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:57:20.513980400  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:57:20.515434300  banner exchange: Connection from 172.24.0.7 port 50706: invalid format
+2023-06-09 09:57:20.620529400  Accepted publickey for forest from 172.24.0.1 port 65372 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:57:49.400414800  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:57:49.402470000  banner exchange: Connection from 172.24.0.7 port 50724: invalid format
+2023-06-09 09:57:49.526191200  Accepted publickey for forest from 172.24.0.1 port 65390 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:57:49.536872600  connect_to localhost port 5443: failed.
+2023-06-09 09:58:10.115247700  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:58:10.117110100  banner exchange: Connection from 172.24.0.7 port 50740: invalid format
+2023-06-09 09:58:10.203575900  Accepted publickey for forest from 172.24.0.1 port 65406 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 09:58:10.211180000  connect_to localhost port 5443: failed.
+2023-06-09 09:58:22.228510500  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 09:58:22.231681700  banner exchange: Connection from 172.24.0.7 port 50756: invalid format
+2023-06-09 09:58:22.383797600  Accepted publickey for forest from 172.24.0.1 port 65422 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 10:02:06.504802100  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 10:02:06.504818400  banner exchange: Connection from 172.24.0.7 port 50780: invalid format
+2023-06-09 10:02:06.621352400  Accepted publickey for forest from 172.24.0.1 port 65446 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 10:29:15.962577600  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 10:29:15.965671800  banner exchange: Connection from 172.24.0.7 port 50836: invalid format
+2023-06-09 10:29:16.032779200  Accepted publickey for forest from 172.24.0.1 port 65502 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 10:35:01.081747400  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 10:35:01.081768400  banner exchange: Connection from 172.24.0.7 port 50882: invalid format
+2023-06-09 10:35:01.160658300  Accepted publickey for forest from 172.24.0.1 port 55012 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 10:35:45.106780700  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 10:35:45.108299600  banner exchange: Connection from 172.24.0.7 port 51118: invalid format
+2023-06-09 10:35:45.190503700  Accepted publickey for forest from 172.24.0.1 port 55248 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 10:39:59.816090600  kex_exchange_identification: banner line contains invalid characters
+2023-06-09 10:39:59.816105100  banner exchange: Connection from 172.24.0.7 port 51148: invalid format
+2023-06-09 10:39:59.895102100  Accepted publickey for forest from 172.24.0.1 port 55278 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE

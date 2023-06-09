@@ -1,11 +1,11 @@
 import type { ConnectionOptions, ConnectionOptionsObj, SslMode } from '../types';
 
 import connect from './index';
-import { getDialect, getUri } from './utils';
+import ConnectionOptionsWrapper from '../connection-options-wrapper';
 
-async function resolveSslMode(uriOrOptions: ConnectionOptionsObj): Promise<SslMode> {
+async function resolveSslMode(options: ConnectionOptionsWrapper): Promise<SslMode> {
   // Try to connect with the different sslModes in order of preference
-  if (uriOrOptions.sslMode === 'preferred') {
+  if (options.sslMode === 'preferred') {
     // When NODE_TLS_REJECT_UNAUTHORIZED is set to 0, we skip the 'verify' mode, as we know it will
     // always work locally, but not when deploying to another environment.
     const modes = ['verify', 'required', 'disabled'] as SslMode[];
@@ -16,7 +16,7 @@ async function resolveSslMode(uriOrOptions: ConnectionOptionsObj): Promise<SslMo
     for (const sslMode of modes) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const sequelize = await connect({ ...uriOrOptions, sslMode });
+        const sequelize = await connect({ ...options.originalOptions, sslMode });
         await sequelize.close(); // eslint-disable-line no-await-in-loop
 
         return sslMode;
@@ -28,7 +28,7 @@ async function resolveSslMode(uriOrOptions: ConnectionOptionsObj): Promise<SslMo
     throw error;
   }
 
-  return uriOrOptions.sslMode ?? 'manual';
+  return options.sslMode ?? 'manual';
 }
 
 /**
@@ -42,14 +42,13 @@ async function resolveSslMode(uriOrOptions: ConnectionOptionsObj): Promise<SslMo
 export default async function preprocessOptions(
   uriOrOptions: ConnectionOptions,
 ): Promise<ConnectionOptionsObj> {
-  // Extract sanitized dialect and uri from the connection options
-  const dialect = getDialect(uriOrOptions);
-  const uri = getUri(uriOrOptions, dialect);
+  const options = new ConnectionOptionsWrapper(uriOrOptions);
+  const sslMode = await resolveSslMode(options);
 
-  // Create a new object with the sanitized dialect and uri and resolve the sslMode
-  const obj =
-    typeof uriOrOptions === 'string' ? { uri, dialect } : { ...uriOrOptions, uri, dialect };
-  const sslMode = await resolveSslMode(obj);
-
-  return { ...obj, sslMode };
+  return {
+    ...options.originalOptions,
+    uri: options.uriAsString,
+    dialect: options.dialect,
+    sslMode,
+  };
 }

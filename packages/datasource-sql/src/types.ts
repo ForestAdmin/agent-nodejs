@@ -14,6 +14,7 @@ export type Ssh = {
   host: string;
   username: string;
   privateKey: string;
+  dockerHost?: string;
 };
 
 export type ProxySocksWithOptionalSsh = {

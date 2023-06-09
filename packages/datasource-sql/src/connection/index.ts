@@ -16,7 +16,7 @@ async function startProxy(options: ConnectionOptionsObj): Promise<ReverseProxy> 
     // destination is now the ssh server
     proxy = new ReverseProxy({
       port: options.ssh.port,
-      host: options.ssh.host,
+      host: options.ssh.dockerHost || options.ssh.host,
       proxySocks: options.proxySocks as ProxySocks,
     });
     // open a ssh connection when the proxy receives a connection
@@ -46,7 +46,7 @@ export default async function connect(
     options = await preprocessOptions(uriOrOptions);
 
     try {
-      servername = options?.host ?? new URL(options.uri).hostname;
+      servername = options.host;
     } catch {
       // don't crash if using unix socket, sqlite, etc...
     }

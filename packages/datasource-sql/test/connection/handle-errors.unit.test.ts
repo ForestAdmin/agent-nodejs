@@ -6,8 +6,7 @@ import ReverseProxy from '../../src/connection/reverse-proxy';
 describe('handleErrors', () => {
   const makeAProxy = () => {
     return new ReverseProxy({
-      port: 1080,
-      host: 'localhost',
+      uri: 'postgres://localhost:1080',
       proxySocks: {
         host: 'localhost',
         port: 1080,

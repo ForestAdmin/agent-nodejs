@@ -2,21 +2,21 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
+import ConnectionOptionsWrapper from '../connection-options-wrapper';
 import { ConnectionOptionsObj, ProxySocks } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly connectedClients: Set<net.Socket> = new Set();
+  private readonly destination: ConnectionOptionsWrapper;
   private onConnectHandler?: (clientSocket: net.Socket) => Promise<void>;
-  public readonly destination: ConnectionOptionsObj;
+  public readonly connectionOptions: ConnectionOptionsObj;
 
-  constructor(destination: ConnectionOptionsObj) {
-    this.destination = destination;
+  constructor(connectionOptions: ConnectionOptionsObj) {
+    this.connectionOptions = connectionOptions;
+    this.destination = new ConnectionOptionsWrapper(connectionOptions);
     this.server = net.createServer(this.onConnection.bind(this));
-
-    if (!this.destinationPort) throw new Error('Port is required');
-    if (!this.destinationHost) throw new Error('Host is required');
   }
 
   start(): Promise<void> {
@@ -62,25 +62,6 @@ export default class ReverseProxy {
     return this.errors.length > 0 ? this.errors[0] : null;
   }
 
-  private get destinationHost(): string {
-    return this.destination.uri ? new URL(this.destination.uri).hostname : this.destination.host;
-  }
-
-  private get destinationPort(): number {
-    // Use port from object or uri if provided
-    if (this.destination.port) return this.destination.port;
-    if (this.destination.uri && new URL(this.destination.uri).port)
-      return Number(new URL(this.destination.uri).port);
-
-    // Use default port for known dialects otherwise
-    if (this.destination.dialect === 'postgres') return 5432;
-    if (this.destination.dialect === 'mysql' || this.destination.dialect === 'mariadb') return 3306;
-    if (this.destination.dialect === 'mssql') return 1433;
-
-    // Otherwise throw an error
-    throw new Error('Port is required');
-  }
-
   private async onConnection(socket: net.Socket): Promise<void> {
     let socks5Proxy: SocksClientEstablishedEvent;
     this.connectedClients.add(socket);
@@ -98,7 +79,7 @@ export default class ReverseProxy {
       socks5Proxy = await SocksClient.createConnection({
         proxy: { ...(this.destination.proxySocks as ProxySocks), type: 5 },
         command: 'connect',
-        destination: { host: this.destinationHost, port: this.destinationPort },
+        destination: { host: this.destination.host, port: this.destination.port },
         timeout: 4000,
       });
 

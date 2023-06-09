@@ -84,14 +84,15 @@ describe('Connect', () => {
           proxySocks: {
             host: 'localhost',
             port: 1080,
-            password: 'username',
-            userId: 'password',
+            password: 'password',
+            userId: 'username',
           },
           ssh: {
-            host: 'ssh-server',
+            host: 'localhost',
+            dockerHost: 'ssh-server',
             port: 2222,
             username: 'forest',
-            privateKey: readFileSync(resolve(__dirname, '../../id_rsa'), 'utf8'),
+            privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
           },
         });
         await seq.close();
