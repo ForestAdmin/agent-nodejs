@@ -11,7 +11,7 @@ function handleProxyErrors(
 ): void {
   // eslint-disable-next-line max-len
   // @link: list of errors thrown by the proxy https://github.com/JoshGlazebrook/socks/blob/76d013e4c9a2d956f07868477d8f12ec0b96edfc/src/common/constants.ts#LL10C10-L10C10
-  if (error?.stack.includes('SocksClient')) {
+  if (error?.stack?.includes('SocksClient')) {
     if (
       error.message.includes('Socket closed') ||
       error.message.includes('Socks5 proxy rejected connection')
