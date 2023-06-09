@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.6.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.5...@forestadmin/datasource-sql@1.6.6) (2023-06-09)
+
+
+### Bug Fixes
+
+* **datasource-sql:** improve the connect management errors ([#721](https://github.com/ForestAdmin/agent-nodejs/issues/721)) ([1128e49](https://github.com/ForestAdmin/agent-nodejs/commit/1128e492ed3ca61fd088239868d6f5efcfe8697b))
+
 ## @forestadmin/datasource-sql [1.6.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.4...@forestadmin/datasource-sql@1.6.5) (2023-06-08)
 
 
