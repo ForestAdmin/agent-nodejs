@@ -36,6 +36,14 @@ describe('handleErrors', () => {
     });
   });
 
+  describe('when the error has an empty stack trace', () => {
+    it('should throw an error', () => {
+      const error = new Error('An error');
+      error.stack = null;
+      expect(() => handleErrors(error, null, null)).toThrow(error);
+    });
+  });
+
   describe('when the error is thrown by the proxy', () => {
     describe('when the proxy has an error with database uri', () => {
       it('should throw an error', () => {
