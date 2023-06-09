@@ -39,12 +39,12 @@ export default class ConnectionOptionsWrapper {
     return this.uri.hostname;
   }
 
-  get sanitizedProxySocksAsUriString(): string {
+  get proxyUriAsString(): string {
     const proxyUri = new URL(`socks://${this.proxySocks.host}:${this.proxySocks.port}`);
     if (this.proxySocks.userId) proxyUri.username = this.proxySocks.userId;
     if (this.proxySocks.password) proxyUri.password = this.proxySocks.password;
 
-    return ConnectionOptionsWrapper.sanitizeUri(proxyUri.toString()).replace('socks://', '');
+    return proxyUri.toString().replace('socks://', '');
   }
 
   get uri(): URL {
@@ -64,10 +64,6 @@ export default class ConnectionOptionsWrapper {
 
   get uriAsString(): string {
     return this.uri.toString();
-  }
-
-  get sanitizedUriAsString(): string {
-    return ConnectionOptionsWrapper.sanitizeUri(this.uriAsString);
   }
 
   get dialect(): Dialect {
@@ -101,15 +97,5 @@ export default class ConnectionOptionsWrapper {
     if (!this.port) throw new DatabaseConnectError('Port is required');
     if (!this.host) throw new DatabaseConnectError('Host is required');
     if (!this.dialect) throw new DatabaseConnectError('Dialect is required');
-  }
-
-  private static sanitizeUri(uri: string): string {
-    const uriObject = new URL(uri);
-
-    if (uriObject.password) {
-      uriObject.password = '**sanitizedPassword**';
-    }
-
-    return uriObject.toString();
   }
 }

@@ -3,6 +3,16 @@ import ConnectionOptionsWrapper from '../connection-options-wrapper';
 
 export type SourceError = 'Proxy' | 'Database';
 
+function sanitizeUri(uri: string): string {
+  const uriObject = new URL(uri);
+
+  if (uriObject.password) {
+    uriObject.password = '**sanitizedPassword**';
+  }
+
+  return uriObject.toString();
+}
+
 class BaseError extends Error {
   public source: SourceError;
   public uri: string;
@@ -23,15 +33,15 @@ export class DatabaseConnectError extends BaseError {
     source: SourceError = 'Database',
   ) {
     if (options) {
-      const sanitizedUri = options.sanitizedUriAsString;
+      const sanitizedUri = sanitizeUri(options.uriAsString);
       super(`Unable to connect to the given uri: ${sanitizedUri}.`, message);
-
-      this.name = this.constructor.name;
-      this.source = source;
       this.uri = sanitizedUri;
     } else {
       super(`Unable to connect to the given uri.`, message);
     }
+
+    this.name = this.constructor.name;
+    this.source = source;
   }
 }
 
@@ -40,7 +50,7 @@ export class ProxyConnectError extends BaseError {
     const defaultMessage = 'Your proxy has encountered an error.';
 
     if (options) {
-      const sanitizedUri = options.sanitizedProxySocksAsUriString;
+      const sanitizedUri = sanitizeUri(options.proxyUriAsString);
       super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);
       this.uri = sanitizedUri;
     } else {
