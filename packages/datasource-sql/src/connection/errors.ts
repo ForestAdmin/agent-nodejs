@@ -50,7 +50,8 @@ export class ProxyConnectError extends BaseError {
     const defaultMessage = 'Your proxy has encountered an error.';
 
     if (options) {
-      const sanitizedUri = sanitizeUri(options.proxyUriAsString);
+      // remove tcp protocol because its not added by the user
+      const sanitizedUri = sanitizeUri(options.proxyUriAsString).replace('tcp://', '');
       super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);
       this.uri = sanitizedUri;
     } else {

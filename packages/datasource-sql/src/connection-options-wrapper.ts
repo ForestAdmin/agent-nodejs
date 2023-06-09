@@ -40,11 +40,11 @@ export default class ConnectionOptionsWrapper {
   }
 
   get proxyUriAsString(): string {
-    const proxyUri = new URL(`socks://${this.proxySocks.host}:${this.proxySocks.port}`);
+    const proxyUri = new URL(`tcp://${this.proxySocks.host}:${this.proxySocks.port}`);
     if (this.proxySocks.userId) proxyUri.username = this.proxySocks.userId;
     if (this.proxySocks.password) proxyUri.password = this.proxySocks.password;
 
-    return proxyUri.toString().replace('socks://', '');
+    return proxyUri.toString();
   }
 
   get uri(): URL {
