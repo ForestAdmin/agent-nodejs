@@ -34,7 +34,7 @@ Port 2222
 #MaxAuthTries 6
 #MaxSessions 10
 
-PubkeyAuthentication yes
+#PubkeyAuthentication yes
 
 # The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
 # but this is overridden so installations will only check .ssh/authorized_keys
@@ -76,7 +76,7 @@ PasswordAuthentication no
 # PasswordAuthentication.  Depending on your PAM configuration,
 # PAM authentication via KbdInteractiveAuthentication may bypass
 # the setting of "PermitRootLogin without-password".
-# If you just want the P    AM account and session checks to run without
+# If you just want the PAM account and session checks to run without
 # PAM authentication, then enable this but set PasswordAuthentication
 # and KbdInteractiveAuthentication to 'no'.
 #UsePAM no
@@ -85,7 +85,6 @@ PasswordAuthentication no
 # Feel free to re-enable these if your use case requires them.
 AllowTcpForwarding yes
 GatewayPorts clientspecified
-#PermitOpen 0.0.0.0:0
 X11Forwarding no
 #X11DisplayOffset 10
 #X11UseLocalhost yes

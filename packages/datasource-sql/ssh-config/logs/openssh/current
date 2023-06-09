@@ -1,0 +1,12 @@
+2023-06-09 08:27:33.256467200  Server listening on 0.0.0.0 port 2222.
+2023-06-09 08:27:33.257861400  Server listening on :: port 2222.
+2023-06-09 08:27:34.270456200  kex_exchange_identification: Connection closed by remote host
+2023-06-09 08:27:34.270472200  Connection closed by 127.0.0.1 port 36056
+2023-06-09 08:29:43.215863200  Connection closed by 172.24.0.1 port 64350 [preauth]
+2023-06-09 08:35:37.172348800  Connection closed by 172.24.0.1 port 64362 [preauth]
+2023-06-09 08:37:21.681089700  Connection closed by authenticating user forest 172.24.0.1 port 64366 [preauth]
+2023-06-09 08:38:28.881037300  Accepted publickey for forest from 172.24.0.1 port 64370 ssh2: RSA SHA256:PoArYHgEew9HOEr2ZKS9984Nk8f6f02NtrSaZWuVsIE
+2023-06-09 08:38:28.894509800  Attempt to write login records by non-root user (aborting)
+2023-06-09 08:38:33.447510900  Attempt to write login records by non-root user (aborting)
+2023-06-09 08:38:33.449204700  Received disconnect from 172.24.0.1 port 64370:11: disconnected by user
+2023-06-09 08:38:33.450658800  Disconnected from user forest 172.24.0.1 port 64370

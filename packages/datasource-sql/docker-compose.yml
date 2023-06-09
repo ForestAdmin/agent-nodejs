@@ -50,13 +50,13 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
-      - PUBLIC_KEY_FILE=/config/id_rsa.pub
+      - PUBLIC_KEY_FILE=/config/id_rsa.pub # path to the public key file inside the container
       - USER_NAME=forest
       - DOCKER_MODS=linuxserver/mods:openssh-server-ssh-tunnel # enable AllowTcpForwarding here
     expose:
       - 5432
     volumes:
-      - .:/config
+      - ./ssh-config:/config
     ports:
       - '2222:2222'
     restart: unless-stopped
