@@ -36,20 +36,20 @@ async function resolveSslMode(wrapper: ConnectionOptionsWrapper): Promise<SslMod
  * Allows to speed up the connection process by avoiding attempts to connect to the database.
  *
  * It ensures that
- * - both sslMode and dialectFromUriOrOptions are set
+ * - both sslMode and dialect are set
  * - the automatic 'preferred' sslMode is resolved to the most appropriate value
  */
 export default async function preprocessOptions(
   uriOrOptions: ConnectionOptions,
 ): Promise<ConnectionOptionsObj> {
   const wrapper = new ConnectionOptionsWrapper(uriOrOptions);
-  const { uri, dialectFromUriOrOptions } = wrapper.checkUri();
-  uri.protocol = dialectFromUriOrOptions;
+  const { uri, dialect } = wrapper.checkUri();
+  uri.protocol = dialect;
 
   return {
     ...wrapper.options,
     uri: uri.toString(),
-    dialect: dialectFromUriOrOptions,
+    dialect,
     sslMode: await resolveSslMode(wrapper),
   };
 }

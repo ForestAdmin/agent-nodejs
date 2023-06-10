@@ -620,7 +620,7 @@ describe('SequelizeDataSource > Collection', () => {
           });
         });
 
-        describe('when dialectFromUriOrOptions is mssql', () => {
+        describe('when dialect is mssql', () => {
           it('should add field to group', async () => {
             const { findAll, sequelizeCollection } = setup('mssql');
 
@@ -685,7 +685,7 @@ describe('SequelizeDataSource > Collection', () => {
           );
         });
 
-        describe('when dialectFromUriOrOptions is mssql', () => {
+        describe('when dialect is mssql', () => {
           it('should add date aggregation to group', async () => {
             const { findAll, sequelizeCollection } = setup('mssql');
 
@@ -725,7 +725,7 @@ describe('SequelizeDataSource > Collection', () => {
     });
 
     describe('on sort', () => {
-      describe('when dialectFromUriOrOptions is postgres', () => {
+      describe('when dialect is postgres', () => {
         it('should sort on aggregate by default', async () => {
           const { findAll, sequelizeCollection } = setup();
           const aggregation = new Aggregation({
@@ -746,7 +746,7 @@ describe('SequelizeDataSource > Collection', () => {
         });
       });
 
-      describe('when dialectFromUriOrOptions is mssql', () => {
+      describe('when dialect is mssql', () => {
         it('should sort on aggregate by default', async () => {
           const { findAll, sequelizeCollection } = setup('mssql');
           const aggregation = new Aggregation({

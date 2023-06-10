@@ -12,7 +12,7 @@ function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
     case 'postgres':
       return literal('now()');
     default:
-      throw new Error('Unexpected dialectFromUriOrOptions');
+      throw new Error('Unexpected dialect');
   }
 }
 

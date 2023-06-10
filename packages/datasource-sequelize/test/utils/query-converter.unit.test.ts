@@ -253,7 +253,7 @@ describe('Utils > QueryConverter', () => {
           },
         );
 
-        describe('with  "sqlite" dialectFromUriOrOptions', () => {
+        describe('with  "sqlite" dialect', () => {
           const model = setupModel('sqlite');
           const queryConverter = new QueryConverter(model);
 

@@ -13,7 +13,7 @@ describe('index', () => {
 
         await expect(() => factory(logger)).rejects.toThrow(
           'Connection Uri "invalid" provided to SQL data source is not valid.' +
-            ' Should be <dialectFromUriOrOptions>://<connection>.',
+            ' Should be <dialect>://<connection>.',
         );
       });
     });

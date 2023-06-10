@@ -62,7 +62,7 @@ export default class ConnectionOptionsWrapper {
     return this.uri?.toString();
   }
 
-  get dialectFromUriOrOptions(): Dialect {
+  get dialect(): Dialect {
     let dialect: string;
 
     if (this.originalOptions.dialect) {
@@ -87,7 +87,7 @@ export default class ConnectionOptionsWrapper {
   checkUri(): this {
     const message =
       `Connection Uri "${this.originalOptions.uri}" provided to SQL data source is not valid.` +
-      ' Should be <dialectFromUriOrOptions>://<connection>.';
+      ' Should be <dialect>://<connection>.';
 
     try {
       if (this.uriAsString === 'sqlite::memory:') return this;
@@ -98,7 +98,7 @@ export default class ConnectionOptionsWrapper {
     if (!/.*:\/\//g.test(this.uriAsString)) throw new DatabaseConnectError(message);
     if (!this.portFromUriOrOptions) throw new DatabaseConnectError('Port is required');
     if (!this.hostFromUriOrOptions) throw new DatabaseConnectError('Host is required');
-    if (!this.dialectFromUriOrOptions) throw new DatabaseConnectError('Dialect is required');
+    if (!this.dialect) throw new DatabaseConnectError('Dialect is required');
 
     return this;
   }
