@@ -5,13 +5,13 @@ import DateAggregationConverter from '../../src/utils/date-aggregation-converter
 
 describe('Utils > DateAggregationConverter', () => {
   describe('convertToDialect', () => {
-    describe('when the dialect is unsupported', () => {
+    describe('when the dialectFromUriOrOptions is unsupported', () => {
       it('should throw an error', () => {
         const sequelize = new Sequelize({ dialect: 'postgres' });
         sequelize.getDialect = jest.fn().mockReturnValue('unknown');
         const dateAggregationConverter = new DateAggregationConverter(sequelize);
         expect(() => dateAggregationConverter.convertToDialect('a__field', 'Day')).toThrow(
-          'Unsupported dialect: "unknown"',
+          'Unsupported dialectFromUriOrOptions: "unknown"',
         );
       });
     });

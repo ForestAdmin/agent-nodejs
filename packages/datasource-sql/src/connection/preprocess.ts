@@ -3,9 +3,9 @@ import type { ConnectionOptions, ConnectionOptionsObj, SslMode } from '../types'
 import connect from './index';
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
 
-async function resolveSslMode(options: ConnectionOptionsWrapper): Promise<SslMode> {
+async function resolveSslMode(wrapper: ConnectionOptionsWrapper): Promise<SslMode> {
   // Try to connect with the different sslModes in order of preference
-  if (options.sslMode === 'preferred') {
+  if (wrapper.options.sslMode === 'preferred') {
     // When NODE_TLS_REJECT_UNAUTHORIZED is set to 0, we skip the 'verify' mode, as we know it will
     // always work locally, but not when deploying to another environment.
     const modes = ['verify', 'required', 'disabled'] as SslMode[];
@@ -16,7 +16,7 @@ async function resolveSslMode(options: ConnectionOptionsWrapper): Promise<SslMod
     for (const sslMode of modes) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const sequelize = await connect({ ...options.originalOptions, sslMode });
+        const sequelize = await connect({ ...wrapper.options, sslMode });
         await sequelize.close(); // eslint-disable-line no-await-in-loop
 
         return sslMode;
@@ -28,7 +28,7 @@ async function resolveSslMode(options: ConnectionOptionsWrapper): Promise<SslMod
     throw error;
   }
 
-  return options.sslMode ?? 'manual';
+  return wrapper.options.sslMode ?? 'manual';
 }
 
 /**
@@ -36,19 +36,20 @@ async function resolveSslMode(options: ConnectionOptionsWrapper): Promise<SslMod
  * Allows to speed up the connection process by avoiding attempts to connect to the database.
  *
  * It ensures that
- * - both sslMode and dialect are set
+ * - both sslMode and dialectFromUriOrOptions are set
  * - the automatic 'preferred' sslMode is resolved to the most appropriate value
  */
 export default async function preprocessOptions(
   uriOrOptions: ConnectionOptions,
 ): Promise<ConnectionOptionsObj> {
-  const options = new ConnectionOptionsWrapper(uriOrOptions);
-  const sslMode = await resolveSslMode(options);
+  const wrapper = new ConnectionOptionsWrapper(uriOrOptions);
+  const { uri, dialectFromUriOrOptions } = wrapper.checkUri();
+  uri.protocol = dialectFromUriOrOptions;
 
   return {
-    ...options.originalOptions,
-    uri: options.uriAsString,
-    dialect: options.dialect,
-    sslMode,
+    ...wrapper.options,
+    uri: uri.toString(),
+    dialect: dialectFromUriOrOptions,
+    sslMode: await resolveSslMode(wrapper),
   };
 }

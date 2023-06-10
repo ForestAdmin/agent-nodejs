@@ -6,7 +6,7 @@ import { Sequelize } from 'sequelize';
 import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
-import { getLogger, getSchema, getSslConfiguration } from './utils';
+import { getLogger, getSslConfiguration } from './utils';
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
 
 /** Attempt to connect to the database */
@@ -17,16 +17,10 @@ export default async function connect(
   let proxy: ReverseProxy;
   let sequelize: Sequelize;
   let options: ConnectionOptionsObj;
-  let servername: string;
 
   try {
     options = await preprocessOptions(uriOrOptions);
-
-    try {
-      servername = new ConnectionOptionsWrapper(options).host;
-    } catch {
-      // don't crash if using unix socket, sqlite, etc...
-    }
+    const wrapper = new ConnectionOptionsWrapper(options);
 
     if (options.proxySocks) {
       proxy = new ReverseProxy(options);
@@ -35,14 +29,14 @@ export default async function connect(
     }
 
     const { uri, sslMode, ...opts } = options;
-    const schema = opts.schema ?? getSchema(uri);
     const logging = logger ? getLogger(logger) : false;
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, servername, logger),
+      ...getSslConfiguration(opts.dialect, sslMode, wrapper.uriIfValidOrNull, logger),
     };
 
+    const schema = wrapper.schemaFromUriOrOptions;
     sequelize = uri
       ? new Sequelize(uri, { ...opts, schema, logging })
       : new Sequelize({ ...opts, schema, logging });

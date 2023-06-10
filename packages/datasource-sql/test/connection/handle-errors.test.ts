@@ -141,8 +141,7 @@ describe('connect errors', () => {
       it('should throw a DatabaseConnectError error', async () => {
         await expect(() =>
           connect({
-            uri: `postgres://test:password@postgres:5432/test_connection`,
-            dialect: 'mysql',
+            uri: `mysql://test:password@postgres:5432/test_connection`,
             proxySocks,
           }),
         ).rejects.toThrow(DatabaseConnectError);
@@ -153,8 +152,7 @@ describe('connect errors', () => {
       it('should throw a DatabaseConnectError error', async () => {
         await expect(() =>
           connect({
-            uri: `postgres://test:password@localhost:5443/test_connection`,
-            dialect: 'mysql',
+            uri: `mysql://test:password@localhost:5443/test_connection`,
           }),
         ).rejects.toThrow(DatabaseConnectError);
       }, 15000);

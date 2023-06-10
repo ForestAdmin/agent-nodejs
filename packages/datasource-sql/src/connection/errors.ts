@@ -5,10 +5,7 @@ export type SourceError = 'Proxy' | 'Database';
 
 function sanitizeUri(uri: string): string {
   const uriObject = new URL(uri);
-
-  if (uriObject.password) {
-    uriObject.password = '**sanitizedPassword**';
-  }
+  if (uriObject.password) uriObject.password = '**sanitizedPassword**';
 
   return uriObject.toString();
 }
@@ -32,12 +29,12 @@ export class DatabaseConnectError extends BaseError {
     options?: ConnectionOptionsWrapper,
     source: SourceError = 'Database',
   ) {
-    if (options) {
+    if (options && options.uriAsString) {
       const sanitizedUri = sanitizeUri(options.uriAsString);
       super(`Unable to connect to the given uri: ${sanitizedUri}.`, message);
       this.uri = sanitizedUri;
     } else {
-      super(`Unable to connect to the given uri.`, message);
+      super(`Unable to connect to the given uri/options.`, message);
     }
 
     this.name = this.constructor.name;
@@ -49,7 +46,7 @@ export class ProxyConnectError extends BaseError {
   constructor(message: string, options?: ConnectionOptionsWrapper) {
     const defaultMessage = 'Your proxy has encountered an error.';
 
-    if (options) {
+    if (options && options.uriAsString) {
       // remove tcp protocol because its not added by the user
       const sanitizedUri = sanitizeUri(options.proxyUriAsString).replace('tcp://', '');
       super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);

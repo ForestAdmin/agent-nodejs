@@ -13,10 +13,10 @@ function handleProxyErrors(error: Error, proxy: ReverseProxy): void {
       error.message.includes('Socket closed') ||
       error.message.includes('Socks5 proxy rejected connection')
     ) {
-      throw new DatabaseConnectError(null, proxy.options, 'Proxy');
+      throw new DatabaseConnectError(null, proxy.wrapperOptions, 'Proxy');
     }
 
-    throw new ProxyConnectError(error.message, proxy?.options);
+    throw new ProxyConnectError(error.message, proxy?.wrapperOptions);
   }
 }
 

@@ -4,10 +4,6 @@ import { Dialect } from 'sequelize';
 
 import { SslMode } from '../types';
 
-export function getSchema(uri: string): string {
-  return uri ? new URL(uri).searchParams.get('schema') : null;
-}
-
 export function getLogger(logger: Logger): (sql: string) => void {
   return (sql: string) => logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
 }

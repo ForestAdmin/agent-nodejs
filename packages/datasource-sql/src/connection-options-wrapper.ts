@@ -1,10 +1,10 @@
 import { Dialect } from 'sequelize';
 
 import { DatabaseConnectError } from './connection/errors';
-import { ConnectionOptions, ConnectionOptionsObj, ProxySocks, SslMode } from './types';
+import { ConnectionOptions, ConnectionOptionsObj } from './types';
 
 export default class ConnectionOptionsWrapper {
-  public readonly originalOptions: ConnectionOptionsObj;
+  private readonly originalOptions: ConnectionOptionsObj;
 
   constructor(options: ConnectionOptions) {
     if (!options) throw new Error('Options are required');
@@ -14,20 +14,16 @@ export default class ConnectionOptionsWrapper {
     } else {
       this.originalOptions = options;
     }
-
-    this.checkUri();
   }
 
-  get sslMode(): SslMode {
-    return this.originalOptions.sslMode;
+  get options(): ConnectionOptionsObj {
+    return { ...this.originalOptions };
   }
 
-  get proxySocks(): ProxySocks {
-    return this.originalOptions.proxySocks;
-  }
-
-  get port(): number {
+  get portFromUriOrOptions(): number {
     if (this.uri.port) return Number(this.uri.port);
+    if (this.originalOptions.port) return this.originalOptions.port;
+
     // Use default port for known dialects otherwise
     if (this.originalOptions.dialect === 'postgres') return 5432;
     if (this.originalOptions.dialect === 'mssql') return 1433;
@@ -35,38 +31,38 @@ export default class ConnectionOptionsWrapper {
       return 3306;
   }
 
-  get host(): string {
-    return this.uri.hostname;
+  get hostFromUriOrOptions(): string {
+    return this.uri.hostname || this.originalOptions.host;
   }
 
   get proxyUriAsString(): string {
-    const proxyUri = new URL(`tcp://${this.proxySocks.host}:${this.proxySocks.port}`);
-    if (this.proxySocks.userId) proxyUri.username = this.proxySocks.userId;
-    if (this.proxySocks.password) proxyUri.password = this.proxySocks.password;
+    if (!this.originalOptions.proxySocks) return null;
+
+    const proxy = this.originalOptions.proxySocks;
+    const proxyUri = new URL(`tcp://${proxy.host}:${proxy.port}`);
+    if (proxy.userId) proxyUri.username = proxy.userId;
+    if (proxy.password) proxyUri.password = proxy.password;
 
     return proxyUri.toString();
   }
 
+  get uriIfValidOrNull(): string {
+    try {
+      return this.checkUri().uriAsString;
+    } catch (err) {
+      return null;
+    }
+  }
+
   get uri(): URL {
-    const uriObject = this.originalOptions.uri
-      ? new URL(this.originalOptions.uri)
-      : new URL(`${this.originalOptions.dialect}://`);
-
-    if (this.originalOptions.database) uriObject.pathname = this.originalOptions.database;
-    if (this.originalOptions.host) uriObject.host = this.originalOptions.host;
-    if (this.originalOptions.port) uriObject.port = this.originalOptions.port.toString();
-    if (this.originalOptions.username) uriObject.username = this.originalOptions.username;
-    if (this.originalOptions.password) uriObject.password = this.originalOptions.password;
-    if (this.originalOptions.dialect) uriObject.protocol = this.originalOptions.dialect;
-
-    return uriObject;
+    return this.originalOptions.uri ? new URL(this.originalOptions.uri) : null;
   }
 
   get uriAsString(): string {
-    return this.uri.toString();
+    return this.uri?.toString();
   }
 
-  get dialect(): Dialect {
+  get dialectFromUriOrOptions(): Dialect {
     let dialect: string;
 
     if (this.originalOptions.dialect) {
@@ -82,20 +78,28 @@ export default class ConnectionOptionsWrapper {
     return dialect as Dialect;
   }
 
-  private checkUri(): void {
+  get schemaFromUriOrOptions(): string {
+    return this.originalOptions.uri
+      ? new URL(this.originalOptions.uri).searchParams.get('schema')
+      : this.originalOptions.schema;
+  }
+
+  checkUri(): this {
     const message =
       `Connection Uri "${this.originalOptions.uri}" provided to SQL data source is not valid.` +
-      ' Should be <dialect>://<connection>.';
+      ' Should be <dialectFromUriOrOptions>://<connection>.';
 
     try {
-      if (this.uriAsString === 'sqlite::memory:') return;
+      if (this.uriAsString === 'sqlite::memory:') return this;
     } catch (err) {
       throw new DatabaseConnectError(message);
     }
 
     if (!/.*:\/\//g.test(this.uriAsString)) throw new DatabaseConnectError(message);
-    if (!this.port) throw new DatabaseConnectError('Port is required');
-    if (!this.host) throw new DatabaseConnectError('Host is required');
-    if (!this.dialect) throw new DatabaseConnectError('Dialect is required');
+    if (!this.portFromUriOrOptions) throw new DatabaseConnectError('Port is required');
+    if (!this.hostFromUriOrOptions) throw new DatabaseConnectError('Host is required');
+    if (!this.dialectFromUriOrOptions) throw new DatabaseConnectError('Dialect is required');
+
+    return this;
   }
 }
