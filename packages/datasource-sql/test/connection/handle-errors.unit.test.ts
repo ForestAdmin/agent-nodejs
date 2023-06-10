@@ -8,6 +8,7 @@ describe('handleErrors', () => {
     return new ReverseProxy({
       port: 1080,
       host: 'localhost',
+      dialect: 'postgres',
       proxySocks: {
         host: 'localhost',
         port: 1080,
@@ -16,7 +17,7 @@ describe('handleErrors', () => {
   };
 
   describe('when the databaseUri is null', () => {
-    it('should throw an error', () => {
+    it('should throw an error without display the uri', () => {
       const error = new ConnectionError(new Error('Connection timed out'));
       expect(() => handleErrors(error, null, makeAProxy())).toThrow(
         'Connection error: Connection timed out',

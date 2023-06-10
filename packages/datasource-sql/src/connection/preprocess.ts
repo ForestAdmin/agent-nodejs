@@ -43,13 +43,9 @@ export default async function preprocessOptions(
   uriOrOptions: ConnectionOptions,
 ): Promise<ConnectionOptionsObj> {
   const wrapper = new ConnectionOptionsWrapper(uriOrOptions);
-  const { uri, dialect } = wrapper.checkUri();
-  uri.protocol = dialect;
+  wrapper.checkUri();
+  const { uri, dialectFromUriOrOptions: dialect, options } = wrapper;
+  if (uri) uri.protocol = dialect;
 
-  return {
-    ...wrapper.options,
-    uri: uri.toString(),
-    dialect,
-    sslMode: await resolveSslMode(wrapper),
-  };
+  return { ...options, uri: uri?.toString(), dialect, sslMode: await resolveSslMode(wrapper) };
 }

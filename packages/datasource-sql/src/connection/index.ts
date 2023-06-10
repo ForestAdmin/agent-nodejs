@@ -20,7 +20,6 @@ export default async function connect(
 
   try {
     options = await preprocessOptions(uriOrOptions);
-    const wrapper = new ConnectionOptionsWrapper(options);
 
     if (options.proxySocks) {
       proxy = new ReverseProxy(options);
@@ -30,13 +29,15 @@ export default async function connect(
 
     const { uri, sslMode, ...opts } = options;
     const logging = logger ? getLogger(logger) : false;
+    const { uriIfValidOrNull, schemaFromUriOrOptions: schema } = new ConnectionOptionsWrapper(
+      options,
+    );
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, wrapper.uriIfValidOrNull, logger),
+      ...getSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
     };
 
-    const schema = wrapper.schemaFromUriOrOptions;
     sequelize = uri
       ? new Sequelize(uri, { ...opts, schema, logging })
       : new Sequelize({ ...opts, schema, logging });

@@ -14,7 +14,6 @@ export default class ReverseProxy {
   constructor(connectionOptions: ConnectionOptionsObj) {
     this.wrapperOptions = new ConnectionOptionsWrapper(connectionOptions);
     this.server = net.createServer(this.onConnection.bind(this));
-    this.wrapperOptions.checkUri();
   }
 
   start(): Promise<void> {

@@ -21,18 +21,20 @@ export default class ConnectionOptionsWrapper {
   }
 
   get portFromUriOrOptions(): number {
-    if (this.uri.port) return Number(this.uri.port);
-    if (this.originalOptions.port) return this.originalOptions.port;
-
+    let port: number;
+    port = Number(this.uri?.port) || this.originalOptions.port;
+    if (port) return port;
+    const { dialect } = this.originalOptions;
     // Use default port for known dialects otherwise
-    if (this.originalOptions.dialect === 'postgres') return 5432;
-    if (this.originalOptions.dialect === 'mssql') return 1433;
-    if (this.originalOptions.dialect === 'mysql' || this.originalOptions.dialect === 'mariadb')
-      return 3306;
+    if (dialect === 'postgres') port = 5432;
+    if (dialect === 'mssql') port = 1433;
+    if (dialect === 'mysql' || dialect === 'mariadb') port = 3306;
+
+    return port;
   }
 
   get hostFromUriOrOptions(): string {
-    return this.uri.hostname || this.originalOptions.host;
+    return this.uri?.hostname || this.originalOptions.host;
   }
 
   get proxyUriAsString(): string {
@@ -48,7 +50,9 @@ export default class ConnectionOptionsWrapper {
 
   get uriIfValidOrNull(): string {
     try {
-      return this.checkUri().uriAsString;
+      this.checkUri();
+
+      return this.uriAsString;
     } catch (err) {
       return null;
     }
@@ -62,15 +66,8 @@ export default class ConnectionOptionsWrapper {
     return this.uri?.toString();
   }
 
-  get dialect(): Dialect {
-    let dialect: string;
-
-    if (this.originalOptions.dialect) {
-      dialect = this.originalOptions.dialect;
-    } else if (this.uriAsString) {
-      dialect = new URL(this.uriAsString).protocol.slice(0, -1);
-    }
-
+  get dialectFromUriOrOptions(): Dialect {
+    const dialect = this.uri?.protocol?.slice(0, -1) || this.originalOptions.dialect;
     if (dialect === 'mysql2') return 'mysql';
     if (dialect === 'tedious') return 'mssql';
     if (dialect === 'pg' || dialect === 'postgresql') return 'postgres';
@@ -79,27 +76,24 @@ export default class ConnectionOptionsWrapper {
   }
 
   get schemaFromUriOrOptions(): string {
-    return this.originalOptions.uri
-      ? new URL(this.originalOptions.uri).searchParams.get('schema')
-      : this.originalOptions.schema;
+    return this.uri?.searchParams.get('schema') || this.originalOptions.schema || null;
   }
 
-  checkUri(): this {
+  checkUri(): void {
     const message =
       `Connection Uri "${this.originalOptions.uri}" provided to SQL data source is not valid.` +
       ' Should be <dialect>://<connection>.';
 
     try {
-      if (this.uriAsString === 'sqlite::memory:') return this;
+      if (this.uriAsString === 'sqlite::memory:') return;
     } catch (err) {
       throw new DatabaseConnectError(message);
     }
 
-    if (!/.*:\/\//g.test(this.uriAsString)) throw new DatabaseConnectError(message);
+    if (this.uriAsString && !/.*:\/\//g.test(this.uriAsString))
+      throw new DatabaseConnectError(message);
     if (!this.portFromUriOrOptions) throw new DatabaseConnectError('Port is required');
     if (!this.hostFromUriOrOptions) throw new DatabaseConnectError('Host is required');
-    if (!this.dialect) throw new DatabaseConnectError('Dialect is required');
-
-    return this;
+    if (!this.dialectFromUriOrOptions) throw new DatabaseConnectError('Dialect is required');
   }
 }
