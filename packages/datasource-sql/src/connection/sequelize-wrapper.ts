@@ -2,7 +2,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { Sequelize } from 'sequelize';
 
-import { getLogger, getSslConfiguration } from './utils';
+import getLogger from './utils';
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
 import { ConnectionOptionsObj } from '../types';
 
@@ -12,15 +12,16 @@ export default class SequelizeWrapper {
 
   constructor(options: ConnectionOptionsObj, logger?: Logger) {
     const logging = logger ? getLogger(logger) : false;
+    const wrapper = new ConnectionOptionsWrapper(options);
     const {
       uriIfValidOrNull,
       schemaFromUriOrOptions: schema,
       options: { sslMode, ...opts },
-    } = new ConnectionOptionsWrapper(options);
+    } = wrapper;
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
+      ...wrapper.computeSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
     };
 
     this.sequelize = uriIfValidOrNull
