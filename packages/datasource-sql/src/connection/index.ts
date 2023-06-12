@@ -14,7 +14,7 @@ export default async function connect(
   logger?: Logger,
 ): Promise<Sequelize> {
   let proxy: ReverseProxy;
-  let sequelize: Sequelize;
+  let sequelizeWrapper: SequelizeWrapper;
   let options: ConnectionOptionsObj;
 
   try {
@@ -26,13 +26,13 @@ export default async function connect(
       options = proxy.connectionOptions;
     }
 
-    const sequelizeWrapper = new SequelizeWrapper(options, logger);
+    sequelizeWrapper = new SequelizeWrapper(options, logger);
     sequelizeWrapper.onClose(async () => proxy?.stop());
     await sequelizeWrapper.sequelize.authenticate(); // Test connection
 
     return sequelizeWrapper.sequelize;
   } catch (e) {
-    await sequelize?.close();
+    await sequelizeWrapper?.sequelize.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
     handleErrors(proxy?.error || e, options, proxy);
   }

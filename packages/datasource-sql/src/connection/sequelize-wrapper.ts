@@ -11,28 +11,27 @@ export default class SequelizeWrapper {
   private onCloseCallbacks: (() => Promise<void> | null)[] = [];
 
   constructor(options: ConnectionOptionsObj, logger?: Logger) {
-    const logging = logger ? getLogger(logger) : false;
     const wrapper = new ConnectionOptionsWrapper(options);
-    const { uri, sslMode, ...opts } = wrapper.options;
+    const { uri, sslMode, ...opts } = options;
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
       ...wrapper.computeSslConfiguration(opts.dialect, sslMode, uri, logger),
     };
+    const logging = logger ? getLogger(logger) : false;
     const config = { ...opts, schema: wrapper.schemaFromUriOrOptions, logging };
     this.sequelize = uri ? new Sequelize(uri, config) : new Sequelize(config);
-
-    this.overrideClose();
+    this.overrideClose(this.sequelize);
   }
 
   onClose(callback: () => Promise<void>) {
     this.onCloseCallbacks.push(callback);
   }
 
-  private overrideClose() {
+  private overrideClose(sequelize: Sequelize) {
     const callbacks = this.onCloseCallbacks;
     let error: Error;
 
-    this.sequelize.close = async function close() {
+    sequelize.close = async function close() {
       try {
         await Sequelize.prototype.close.call(this);
       } catch (e) {
