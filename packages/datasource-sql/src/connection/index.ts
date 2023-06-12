@@ -6,7 +6,7 @@ import { Sequelize } from 'sequelize';
 import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
-import { getLogger, getSslConfiguration } from './utils';
+import getLogger from './utils';
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
 
 /** Attempt to connect to the database */
@@ -29,13 +29,12 @@ export default async function connect(
 
     const { uri, sslMode, ...opts } = options;
     const logging = logger ? getLogger(logger) : false;
-    const { uriIfValidOrNull, schemaFromUriOrOptions: schema } = new ConnectionOptionsWrapper(
-      options,
-    );
+    const wrapper = new ConnectionOptionsWrapper(options);
+    const { uriIfValidOrNull, schemaFromUriOrOptions: schema } = wrapper;
 
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
+      ...wrapper.computeSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
     };
 
     sequelize = uri
