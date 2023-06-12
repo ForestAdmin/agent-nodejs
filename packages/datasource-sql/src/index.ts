@@ -59,7 +59,7 @@ export function createSqlDataSource(
   };
 }
 
-/** Preprocess the connection options so that they can be cached so faster connections */
+/** Preprocess the connection options so that they can be cached for faster connections */
 export async function preprocessOptions(
   uriOrOptions: PlainConnectionOptionsOrUri,
 ): Promise<PlainConnectionOptions> {
