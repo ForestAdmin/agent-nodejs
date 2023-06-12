@@ -1,15 +1,6 @@
 import { Options } from 'sequelize/types';
 
-export type ProxyOptions = {
-  userId?: string;
-  password?: string;
-  host: string;
-  port: number;
-  version?: 5;
-  command?: 'connect';
-};
-
-export type PickedSequelizeOptions = Pick<
+type PickedSequelizeOptions = Pick<
   Options,
   | 'database'
   | 'dialect'
@@ -29,6 +20,15 @@ export type PickedSequelizeOptions = Pick<
   | 'storage'
   | 'username'
 >;
+
+export type ProxyOptions = {
+  userId?: string;
+  password?: string;
+  host: string;
+  port: number;
+  version?: 5;
+  command?: 'connect';
+};
 
 export type PlainConnectionOptions = PickedSequelizeOptions & {
   uri?: string;

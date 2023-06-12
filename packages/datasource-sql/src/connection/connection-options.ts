@@ -3,12 +3,7 @@ import { Dialect, Sequelize, Options as SequelizeOptions } from 'sequelize';
 
 import { DatabaseConnectError } from './errors';
 import connect from './index';
-import {
-  PickedSequelizeOptions,
-  PlainConnectionOptionsOrUri,
-  ProxyOptions,
-  SslMode,
-} from '../types';
+import { PlainConnectionOptionsOrUri, ProxyOptions, SslMode } from '../types';
 
 export default class ConnectionOptions {
   proxyOptions?: ProxyOptions;
@@ -16,7 +11,7 @@ export default class ConnectionOptions {
   private initialHost: string;
   private initialPort: number;
   private logger?: Logger;
-  private sequelizeOptions: PickedSequelizeOptions;
+  private sequelizeOptions: SequelizeOptions;
   private sslMode: SslMode;
   private uri?: URL;
 
@@ -102,16 +97,15 @@ export default class ConnectionOptions {
 
   /** Options that can be passed to the sequelize constructor */
   async buildSequelizeCtorOptions(): Promise<[SequelizeOptions] | [string, SequelizeOptions]> {
-    const options: SequelizeOptions = { ...this.sequelizeOptions };
+    const options = { ...this.sequelizeOptions };
 
     options.dialect = this.dialect;
+    options.logging = this.makeSequelizeLogging();
     options.schema = this.makeSequelizeSchema();
     options.dialectOptions = {
       ...(options.dialectOptions ?? {}),
       ...(await this.makeSequelizeDialectOptions()),
     };
-
-    if (this.logger) options.logging = this.makeSequelizeLogging();
 
     return this.uri ? [this.uri.toString(), options] : [options];
   }
@@ -172,7 +166,9 @@ export default class ConnectionOptions {
 
   /** Helper to fill the sequelize's options.logging */
   private makeSequelizeLogging(): SequelizeOptions['logging'] {
-    return (sql: string) => this.logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
+    return this.logger
+      ? (sql: string) => this.logger?.('Debug', sql.substring(sql.indexOf(':') + 2))
+      : false;
   }
 
   /** Helper to fill the sequelize's options.dialectOptions */
