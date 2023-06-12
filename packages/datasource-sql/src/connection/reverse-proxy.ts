@@ -2,17 +2,32 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
-import ConnectionOptionsWrapper from '../connection-options-wrapper';
-import { ConnectionOptionsObj } from '../types';
+import { ProxyOptions } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly connectedClients: Set<net.Socket> = new Set();
-  public readonly wrapperOptions: ConnectionOptionsWrapper;
+  private readonly options: ProxyOptions;
+  private readonly targetHost: string;
+  private readonly targetPort: number;
 
-  constructor(connectionOptions: ConnectionOptionsObj) {
-    this.wrapperOptions = new ConnectionOptionsWrapper(connectionOptions);
+  get host(): string {
+    const { address } = this.server.address() as net.AddressInfo;
+
+    return address;
+  }
+
+  get port(): number {
+    const { port } = this.server.address() as net.AddressInfo;
+
+    return port;
+  }
+
+  constructor(proxyOptions: ProxyOptions, targetHost: string, targetPort: number) {
+    this.options = proxyOptions;
+    this.targetHost = targetHost;
+    this.targetPort = targetPort;
     this.server = net.createServer(this.onConnection.bind(this));
   }
 
@@ -34,23 +49,6 @@ export default class ReverseProxy {
     });
   }
 
-  get connectionOptions(): ConnectionOptionsObj {
-    const { address, port } = this.server.address() as net.AddressInfo;
-    const connection = this.wrapperOptions.options;
-
-    if (connection.uri) {
-      const uri = new URL(connection.uri);
-      uri.host = address;
-      uri.port = port.toString();
-      connection.uri = uri.toString();
-    }
-
-    connection.host = address;
-    connection.port = port;
-
-    return connection;
-  }
-
   get error(): Error | null {
     return this.errors.length > 0 ? this.errors[0] : null;
   }
@@ -70,12 +68,9 @@ export default class ReverseProxy {
 
     try {
       socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...this.wrapperOptions.options.proxySocks, type: 5 },
+        proxy: { ...this.options, type: 5 },
         command: 'connect',
-        destination: {
-          host: this.wrapperOptions.hostFromUriOrOptions,
-          port: this.wrapperOptions.portFromUriOrOptions,
-        },
+        destination: { host: this.targetHost, port: this.targetPort },
         timeout: 4000,
       });
 

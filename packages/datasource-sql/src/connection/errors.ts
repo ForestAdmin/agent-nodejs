@@ -1,61 +1,42 @@
-// eslint-disable-next-line max-classes-per-file
-import ConnectionOptionsWrapper from '../connection-options-wrapper';
+/* eslint-disable max-classes-per-file */
 
-export type SourceError = 'Proxy' | 'Database';
+export type ErrorSource = 'Proxy' | 'Database';
 
-function sanitizeUri(uri: string): string {
-  const uriObject = new URL(uri);
-  if (uriObject.password) uriObject.password = '**sanitizedPassword**';
+abstract class BaseError extends Error {
+  abstract readonly source: ErrorSource;
+  readonly uri: string;
+  readonly details: string;
 
-  return uriObject.toString();
-}
+  constructor(message: string, uri: string, details?: string) {
+    super(details ? `${message}\n${details}` : message);
 
-class BaseError extends Error {
-  public source: SourceError;
-  public uri: string;
-  public readonly details: string;
-
-  constructor(message: string, details?: string) {
-    const messageWithDetails = details ? `${message}\n${details}` : message;
-    super(messageWithDetails);
-
+    this.name = this.constructor.name;
     this.details = details;
+    this.uri = uri;
   }
 }
 
 export class DatabaseConnectError extends BaseError {
-  constructor(
-    message: string,
-    options?: ConnectionOptionsWrapper,
-    source: SourceError = 'Database',
-  ) {
-    if (options && options.uriAsString) {
-      const sanitizedUri = sanitizeUri(options.uriAsString);
-      super(`Unable to connect to the given uri: ${sanitizedUri}.`, message);
-      this.uri = sanitizedUri;
-    } else {
-      super(`Unable to connect to the given uri/options.`, message);
-    }
+  readonly source: ErrorSource;
 
-    this.name = this.constructor.name;
+  constructor(message: string, debugDatabaseUri: string, source: ErrorSource = 'Database') {
+    super(`Unable to connect to the given uri: ${debugDatabaseUri}.`, debugDatabaseUri, message);
+
     this.source = source;
   }
 }
 
 export class ProxyConnectError extends BaseError {
-  constructor(message: string, options?: ConnectionOptionsWrapper) {
-    const defaultMessage = 'Your proxy has encountered an error.';
+  readonly source = 'Proxy';
 
-    if (options && options.uriAsString) {
-      // remove tcp protocol because its not added by the user
-      const sanitizedUri = sanitizeUri(options.proxyUriAsString).replace('tcp://', '');
-      super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);
-      this.uri = sanitizedUri;
-    } else {
-      super(defaultMessage, message);
-    }
+  constructor(message: string, debugProxyUri: string) {
+    // remove tcp protocol because its not added by the user
+    const sanitizedUri = debugProxyUri.replace('tcp://', '');
 
-    this.name = this.constructor.name;
-    this.source = 'Proxy';
+    super(
+      `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizedUri}.`,
+      sanitizedUri,
+      message,
+    );
   }
 }

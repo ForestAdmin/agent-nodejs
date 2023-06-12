@@ -1,0 +1,225 @@
+import { Logger } from '@forestadmin/datasource-toolkit';
+import { Dialect, Sequelize, Options as SequelizeOptions } from 'sequelize';
+
+import { DatabaseConnectError } from './errors';
+import connect from './index';
+import {
+  PickedSequelizeOptions,
+  PlainConnectionOptionsOrUri,
+  ProxyOptions,
+  SslMode,
+} from '../types';
+
+export default class ConnectionOptions {
+  proxyOptions?: ProxyOptions;
+
+  private initialHost: string;
+  private initialPort: number;
+  private logger?: Logger;
+  private sequelizeOptions: PickedSequelizeOptions;
+  private sslMode: SslMode;
+  private uri?: URL;
+
+  /**
+   * Database URI without credentials, which can be used in error messages.
+   * Ensure that this is never substituted by the proxy, nor that it includes credentials.
+   */
+  get debugDatabaseUri(): string {
+    return `${this.dialect}://${this.initialHost}:${this.initialPort}`;
+  }
+
+  /** Proxy URI without credentials, which can be used in error messages INTERNALLY */
+  get debugProxyUri(): string {
+    return this.proxyOptions ? `tcp://${this.proxyOptions.host}:${this.proxyOptions.port}` : 'none';
+  }
+
+  get dialect(): Dialect {
+    let dialect = this.uri?.protocol?.slice(0, -1) || this.sequelizeOptions.dialect;
+    if (dialect === 'mysql2') dialect = 'mysql';
+    else if (dialect === 'tedious') dialect = 'mssql';
+    else if (dialect === 'pg' || dialect === 'postgresql') dialect = 'postgres';
+
+    if (!dialect) throw new DatabaseConnectError('Dialect is required', this.debugDatabaseUri);
+
+    return dialect as Dialect;
+  }
+
+  get host(): string {
+    const host = this.uri?.hostname || this.sequelizeOptions.host;
+    if (!host) throw new DatabaseConnectError('Host is required', this.debugDatabaseUri);
+
+    return host;
+  }
+
+  get port(): number {
+    let port = Number(this.uri?.port) || this.sequelizeOptions.port;
+
+    if (!port) {
+      // Use default port for known dialects otherwise
+      if (this.dialect === 'postgres') port = 5432;
+      else if (this.dialect === 'mssql') port = 1433;
+      else if (this.dialect === 'mysql' || this.dialect === 'mariadb') port = 3306;
+      else throw new DatabaseConnectError('Port is required', this.debugDatabaseUri);
+    }
+
+    return port;
+  }
+
+  constructor(options: PlainConnectionOptionsOrUri, logger?: Logger) {
+    this.logger = logger;
+
+    if (typeof options === 'string') {
+      this.uri = this.parseDatabaseUri(options);
+      this.sequelizeOptions = {};
+    } else {
+      const { uri, sslMode, proxySocks, ...sequelizeOptions } = options;
+
+      this.proxyOptions = proxySocks;
+      this.sequelizeOptions = sequelizeOptions;
+      this.sslMode = sslMode ?? 'manual';
+      this.uri = uri ? this.parseDatabaseUri(uri) : null;
+    }
+
+    // Save initial host & port (for SSL and error messages)
+    if (this.uri?.toString?.() !== 'sqlite::memory:') {
+      this.initialHost = this.host;
+      this.initialPort = this.port;
+    } else {
+      this.initialHost = ':memory:';
+      this.initialPort = 0;
+    }
+  }
+
+  changeHostAndPort(host: string, port: number): void {
+    // Host
+    if (this.uri) this.uri.hostname = host;
+    else this.sequelizeOptions.host = host;
+
+    // Port
+    if (this.uri) this.uri.port = String(port);
+    else this.sequelizeOptions.port = port;
+  }
+
+  /** Options that can be passed to the sequelize constructor */
+  async buildSequelizeCtorOptions(): Promise<[SequelizeOptions] | [string, SequelizeOptions]> {
+    const options: SequelizeOptions = { ...this.sequelizeOptions };
+
+    options.dialect = this.dialect;
+    options.schema = this.makeSequelizeSchema();
+    options.dialectOptions = {
+      ...(options.dialectOptions ?? {}),
+      ...(await this.makeSequelizeDialectOptions()),
+    };
+
+    if (this.logger) options.logging = this.makeSequelizeLogging();
+
+    return this.uri ? [this.uri.toString(), options] : [options];
+  }
+
+  async computeSslMode(): Promise<SslMode> {
+    if (this.sslMode !== 'preferred') return this.sslMode;
+
+    // When NODE_TLS_REJECT_UNAUTHORIZED is set to 0, we skip the 'verify' mode, as we know it will
+    // always work locally, but not when deploying to another environment.
+    const modes: SslMode[] = ['verify', 'required', 'disabled'];
+    if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') modes.shift();
+
+    let error: Error;
+
+    for (const sslMode of modes) {
+      let sequelize: Sequelize;
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        sequelize = await connect(
+          new ConnectionOptions({
+            uri: this.uri?.toString(),
+            sslMode,
+            ...this.sequelizeOptions,
+          }),
+        );
+
+        return sslMode;
+      } catch (e) {
+        error = e;
+      } finally {
+        await sequelize?.close(); // eslint-disable-line no-await-in-loop
+      }
+    }
+
+    throw error;
+  }
+
+  private parseDatabaseUri(str: string): URL {
+    const error = new DatabaseConnectError(
+      `Connection Uri provided to SQL data source cannot be parsed. Should be <dialect>://<connection>.`,
+      str,
+    );
+
+    if (str !== 'sqlite::memory:' && !/.*:\/\//g.test(str)) throw error;
+
+    try {
+      return new URL(str);
+    } catch {
+      throw error;
+    }
+  }
+
+  /** Helper to fill the sequelize's options.schema  */
+  private makeSequelizeSchema(): SequelizeOptions['schema'] {
+    return this.uri?.searchParams.get('schema') || this.sequelizeOptions.schema || null;
+  }
+
+  /** Helper to fill the sequelize's options.logging */
+  private makeSequelizeLogging(): SequelizeOptions['logging'] {
+    return (sql: string) => this.logger?.('Debug', sql.substring(sql.indexOf(':') + 2));
+  }
+
+  /** Helper to fill the sequelize's options.dialectOptions */
+  private async makeSequelizeDialectOptions(): Promise<SequelizeOptions['dialectOptions']> {
+    const sslMode = await this.computeSslMode();
+
+    switch (this.dialect) {
+      case 'mssql':
+        if (sslMode === 'disabled') return { options: { encrypt: false } };
+        if (sslMode === 'required')
+          return { options: { encrypt: true, trustServerCertificate: true } };
+        if (sslMode === 'verify')
+          return { options: { encrypt: true, trustServerCertificate: false } };
+        break;
+
+      case 'mariadb':
+      case 'mysql':
+      case 'postgres':
+        // Pass servername to the net.tlsSocket constructor.
+
+        // This is done so that
+        // - Certificate verification still work when using a proxy server to reach the db (we are
+        //   forced to use a tcp reverse proxy because some drivers do not support them)
+        // - Providers which use SNI to route requests to the correct database still work (most
+        //   notably neon.tech).
+
+        // Note that we should either do that for the other vendors (if possible), or
+        // replace the reverse proxy by a forward proxy (when supported).
+        if (sslMode === 'disabled') return { ssl: false };
+        if (sslMode === 'required')
+          return {
+            ssl: { require: true, rejectUnauthorized: false, servername: this.initialHost },
+          };
+        if (sslMode === 'verify')
+          return { ssl: { require: true, rejectUnauthorized: true, servername: this.initialHost } };
+        break;
+
+      case 'db2':
+      case 'oracle':
+      case 'snowflake':
+      case 'sqlite':
+      default:
+        if (sslMode && sslMode !== 'manual') {
+          this.logger?.('Warn', `ignoring sslMode=${sslMode} (not supported for ${this.dialect})`);
+        }
+
+        return {};
+    }
+  }
+}

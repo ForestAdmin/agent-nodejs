@@ -1,6 +1,6 @@
 import { Options } from 'sequelize/types';
 
-export type ProxySocks = {
+export type ProxyOptions = {
   userId?: string;
   password?: string;
   host: string;
@@ -9,32 +9,33 @@ export type ProxySocks = {
   command?: 'connect';
 };
 
-export type ConnectionOptionsObj =
-  | {
-      uri?: string;
-      sslMode?: SslMode;
-      proxySocks?: ProxySocks;
-    } & Pick<
-      Options,
-      | 'database'
-      | 'dialect'
-      | 'dialectModule'
-      | 'dialectModulePath'
-      | 'dialectOptions'
-      | 'host'
-      | 'minifyAliases'
-      | 'native'
-      | 'password'
-      | 'pool'
-      | 'port'
-      | 'protocol'
-      | 'replication'
-      | 'schema'
-      | 'ssl'
-      | 'storage'
-      | 'username'
-    >;
+export type PickedSequelizeOptions = Pick<
+  Options,
+  | 'database'
+  | 'dialect'
+  | 'dialectModule'
+  | 'dialectModulePath'
+  | 'dialectOptions'
+  | 'host'
+  | 'minifyAliases'
+  | 'native'
+  | 'password'
+  | 'pool'
+  | 'port'
+  | 'protocol'
+  | 'replication'
+  | 'schema'
+  | 'ssl'
+  | 'storage'
+  | 'username'
+>;
 
-export type ConnectionOptions = ConnectionOptionsObj | string;
+export type PlainConnectionOptions = PickedSequelizeOptions & {
+  uri?: string;
+  sslMode?: SslMode;
+  proxySocks?: ProxyOptions;
+};
+
+export type PlainConnectionOptionsOrUri = PlainConnectionOptions | string;
 
 export type SslMode = 'preferred' | 'disabled' | 'required' | 'verify' | 'manual';
