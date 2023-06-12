@@ -6,8 +6,7 @@ import { Sequelize } from 'sequelize';
 import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
-import { getLogger, getSslConfiguration } from './utils';
-import ConnectionOptionsWrapper from '../connection-options-wrapper';
+import SequelizeWrapper from './sequelize-wrapper';
 
 /** Attempt to connect to the database */
 export default async function connect(
@@ -27,33 +26,11 @@ export default async function connect(
       options = proxy.connectionOptions;
     }
 
-    const { uri, sslMode, ...opts } = options;
-    const logging = logger ? getLogger(logger) : false;
-    const { uriIfValidOrNull, schemaFromUriOrOptions: schema } = new ConnectionOptionsWrapper(
-      options,
-    );
+    const sequelizeWrapper = new SequelizeWrapper(options, logger);
+    sequelizeWrapper.onClose(() => proxy?.stop());
+    await sequelizeWrapper.sequelize.authenticate(); // Test connection
 
-    opts.dialectOptions = {
-      ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
-    };
-
-    sequelize = uri
-      ? new Sequelize(uri, { ...opts, schema, logging })
-      : new Sequelize({ ...opts, schema, logging });
-
-    // we want to stop the proxy when the sequelize connection is closed
-    sequelize.close = async function close() {
-      try {
-        await Sequelize.prototype.close.call(this);
-      } finally {
-        await proxy?.stop();
-      }
-    };
-
-    await sequelize.authenticate(); // Test connection
-
-    return sequelize;
+    return sequelizeWrapper.sequelize;
   } catch (e) {
     await sequelize?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
