@@ -1,4 +1,4 @@
-import type { ConnectionOptions, ConnectionOptionsObj } from '../types';
+import type { ConnectionOptions, ConnectionOptionsObj, ProxySocks } from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { Sequelize } from 'sequelize';
@@ -7,6 +7,30 @@ import handleErrors from './handle-errors';
 import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
 import SequelizeWrapper from './sequelize-wrapper';
+import SshClient from './ssh-client';
+
+async function startProxy(options: ConnectionOptionsObj): Promise<ReverseProxy> {
+  let proxy: ReverseProxy;
+
+  if (options.ssh) {
+    // destination is now the ssh server
+    proxy = new ReverseProxy({
+      port: options.ssh.port,
+      host: options.ssh.dockerHost || options.ssh.host,
+      proxySocks: options.proxySocks as ProxySocks,
+    });
+    // open a ssh connection when the proxy receives a connection
+    proxy.on('connect', async socket => {
+      await new SshClient(socket, options).connect();
+    });
+  } else {
+    proxy = new ReverseProxy(options);
+  }
+
+  await proxy.start();
+
+  return proxy;
+}
 
 /** Attempt to connect to the database */
 export default async function connect(
@@ -21,8 +45,7 @@ export default async function connect(
     options = await preprocessOptions(uriOrOptions);
 
     if (options.proxySocks) {
-      proxy = new ReverseProxy(options);
-      await proxy.start();
+      proxy = await startProxy(options);
       options = proxy.connectionOptions;
     }
 

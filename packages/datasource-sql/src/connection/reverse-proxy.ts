@@ -3,12 +3,13 @@ import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
-import { ConnectionOptionsObj } from '../types';
+import { ConnectionOptionsObj, ProxySocks } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
   private readonly server: net.Server;
   private readonly connectedClients: Set<net.Socket> = new Set();
+  private onConnectHandler?: (clientSocket: net.Socket) => Promise<void>;
   public readonly wrapperOptions: ConnectionOptionsWrapper;
 
   constructor(connectionOptions: ConnectionOptionsObj) {
@@ -55,6 +56,10 @@ export default class ReverseProxy {
     return this.errors.length > 0 ? this.errors[0] : null;
   }
 
+  on(event: 'connect', connectionHandler: (clientSocket: net.Socket) => Promise<void>): void {
+    this.onConnectHandler = connectionHandler;
+  }
+
   private async onConnection(socket: net.Socket): Promise<void> {
     let socks5Proxy: SocksClientEstablishedEvent;
     this.connectedClients.add(socket);
@@ -70,7 +75,7 @@ export default class ReverseProxy {
 
     try {
       socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...this.wrapperOptions.options.proxySocks, type: 5 },
+        proxy: { ...(this.wrapperOptions.options.proxySocks as ProxySocks), type: 5 },
         command: 'connect',
         destination: {
           host: this.wrapperOptions.hostFromUriOrOptions,
@@ -84,8 +89,9 @@ export default class ReverseProxy {
         if (!socket.closed) socket.destroy();
       });
       socks5Proxy.socket.on('error', socket.destroy);
-
       socks5Proxy.socket.pipe(socket).pipe(socks5Proxy.socket);
+
+      await this.onConnectHandler?.(socket);
     } catch (err) {
       socket.destroy(err as Error);
     }
