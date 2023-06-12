@@ -5,6 +5,15 @@ import { DatabaseConnectError } from './errors';
 import connect from './index';
 import { PlainConnectionOptionsOrUri, ProxyOptions, SslMode } from '../types';
 
+/**
+ * Connection options.
+ * This wrapper is constructed from a plain object or a URI string.
+ *
+ * It is capable of parsing them, and providing an interface to the rest of the code to:
+ * - Construct Sequelize instances
+ * - Provide safe urls for error messages (without credentials)
+ * - Play with the host and port, which can be changed by the proxy
+ */
 export default class ConnectionOptions {
   proxyOptions?: ProxyOptions;
 
