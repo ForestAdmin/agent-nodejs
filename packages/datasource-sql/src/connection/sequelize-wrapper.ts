@@ -22,18 +22,33 @@ export default class SequelizeWrapper {
     this.sequelize = uri
       ? new Sequelize(uri, { ...opts, schema: wrapper.schemaFromUriOrOptions, logging })
       : new Sequelize({ ...opts, schema: wrapper.schemaFromUriOrOptions, logging });
+
+    this.overrideClose();
   }
 
   onClose(callback: () => Promise<void>) {
     this.onCloseCallbacks.push(callback);
+  }
+
+  private overrideClose() {
     const callbacks = this.onCloseCallbacks;
+    let error: Error;
 
     this.sequelize.close = async function close() {
       try {
         await Sequelize.prototype.close.call(this);
-      } finally {
-        // run all callbacks even if one fails
-        await Promise.allSettled(callbacks.map(cb => cb()));
+      } catch (e) {
+        error = e;
+      }
+
+      // run all callbacks even if one fails
+      const result = await Promise.allSettled(callbacks.map(cb => cb()));
+      if (error) throw error;
+
+      const errors = result.filter(r => r.status === 'rejected');
+
+      if (errors.length > 0) {
+        throw new Error(errors.map((e: PromiseRejectedResult) => e.reason).join('\n'));
       }
     };
   }

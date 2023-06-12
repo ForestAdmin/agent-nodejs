@@ -27,7 +27,7 @@ export default async function connect(
     }
 
     const sequelizeWrapper = new SequelizeWrapper(options, logger);
-    sequelizeWrapper.onClose(() => proxy?.stop());
+    sequelizeWrapper.onClose(async () => proxy?.stop());
     await sequelizeWrapper.sequelize.authenticate(); // Test connection
 
     return sequelizeWrapper.sequelize;
