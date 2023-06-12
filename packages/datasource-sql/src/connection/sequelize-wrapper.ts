@@ -33,7 +33,7 @@ export default class SequelizeWrapper {
         await Sequelize.prototype.close.call(this);
       } finally {
         // run all callbacks even if one fails
-        await Promise.all(callbacks.map(cb => cb()));
+        await Promise.allSettled(callbacks.map(cb => cb()));
       }
     };
   }
