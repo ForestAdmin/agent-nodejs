@@ -157,4 +157,21 @@ export default class ConnectionOptionsWrapper {
         return {};
     }
   }
+
+  updatePortAndHost(port: number, host: string): ConnectionOptionsObj {
+    const { options } = this;
+
+    if (options.uri) {
+      this.checkUri();
+      const { uri } = this;
+      uri.host = host;
+      uri.port = port.toString();
+      options.uri = uri.toString();
+    }
+
+    options.host = host;
+    options.port = port;
+
+    return options;
+  }
 }

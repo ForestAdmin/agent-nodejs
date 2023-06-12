@@ -3,7 +3,7 @@ import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
-import { ConnectionOptionsObj, ProxySocks } from '../types';
+import { ConnectionOptions, ConnectionOptionsObj, ProxySocks } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
@@ -35,28 +35,17 @@ export default class ReverseProxy {
     });
   }
 
-  get connectionOptions(): ConnectionOptionsObj {
+  updateOptionsToUseProxy(options: ConnectionOptions): ConnectionOptionsObj {
     const { address, port } = this.server.address() as net.AddressInfo;
-    const connection = this.wrapperOptions.options;
 
-    if (connection.uri) {
-      const uri = new URL(connection.uri);
-      uri.host = address;
-      uri.port = port.toString();
-      connection.uri = uri.toString();
-    }
-
-    connection.host = address;
-    connection.port = port;
-
-    return connection;
+    return new ConnectionOptionsWrapper(options).updatePortAndHost(port, address);
   }
 
   get error(): Error | null {
     return this.errors.length > 0 ? this.errors[0] : null;
   }
 
-  on(event: 'connect', connectionHandler: (clientSocket: net.Socket) => Promise<void>): void {
+  onConnect(connectionHandler: (clientSocket: net.Socket) => Promise<void>): void {
     this.onConnectHandler = connectionHandler;
   }
 

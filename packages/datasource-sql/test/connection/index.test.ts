@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
@@ -28,8 +30,8 @@ describe('Connect', () => {
   });
 
   describe('when proxy socks configuration is provided', () => {
-    describe('when the password is wrong', () => {
-      it('should not blocked the promise', async () => {
+    describe('when the uri is wrong', () => {
+      it('should not block the promise', async () => {
         const baseUri = 'postgres://test:password@localhost:5443';
         await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
 
@@ -72,6 +74,33 @@ describe('Connect', () => {
     });
   });
 
+  describe('when there is also a provided ssh configuration', () => {
+    it('should be able to connect at the db', async () => {
+      const baseUri = 'postgres://test:password@localhost:5443';
+      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+
+      const uri = `postgres://test:password@postgres:5432/test_connection`;
+      const seq = await connect({
+        uri,
+        proxySocks: {
+          host: 'localhost',
+          port: 1080,
+          password: 'password',
+          userId: 'username',
+        },
+        ssh: {
+          host: 'localhost',
+          dockerHost: 'ssh-server',
+          port: 2222,
+          username: 'forest',
+          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
+        },
+      });
+      await seq.close();
+      expect(seq).toBeInstanceOf(Sequelize);
+    });
+  });
+
   describe.each([
     ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 5432, 'postgres'],
     ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, 3306, 'mysql'],
@@ -88,7 +117,7 @@ describe('Connect', () => {
       });
 
       describe('when proxy socks configuration is provided', () => {
-        it('should work with proxy auth and not throwing error when seq is closing', async () => {
+        it('should be authenticated and close sequelize without error', async () => {
           const updatedUri = uri
             .replace('localhost', dockerServiceName)
             .replace(containerPort.toString(), port.toString());

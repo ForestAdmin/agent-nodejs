@@ -20,7 +20,7 @@ async function startProxy(options: ConnectionOptionsObj): Promise<ReverseProxy> 
       proxySocks: options.proxySocks as ProxySocks,
     });
     // open a ssh connection when the proxy receives a connection
-    proxy.on('connect', async socket => {
+    proxy.onConnect(async socket => {
       await new SshClient(socket, options).connect();
     });
   } else {
@@ -46,7 +46,7 @@ export default async function connect(
 
     if (options.proxySocks) {
       proxy = await startProxy(options);
-      options = proxy.connectionOptions;
+      options = proxy.updateOptionsToUseProxy(options);
     }
 
     const sequelizeWrapper = new SequelizeWrapper(options, logger);

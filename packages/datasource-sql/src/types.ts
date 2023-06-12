@@ -22,6 +22,7 @@ export type ProxySocksWithOptionalSsh = {
   ssh?: Ssh;
 };
 
+/** Shh is only available if a proxySocks configuration is provided * */
 export type NotProxySocks = {
   proxySocks?: void;
   ssh?: void;
