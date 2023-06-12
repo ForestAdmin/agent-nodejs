@@ -13,20 +13,15 @@ export default class SequelizeWrapper {
   constructor(options: ConnectionOptionsObj, logger?: Logger) {
     const logging = logger ? getLogger(logger) : false;
     const wrapper = new ConnectionOptionsWrapper(options);
-    const {
-      uriIfValidOrNull,
-      schemaFromUriOrOptions: schema,
-      options: { sslMode, ...opts },
-    } = wrapper;
-
+    const { uri, sslMode, ...opts } = wrapper.options;
     opts.dialectOptions = {
       ...(opts.dialectOptions ?? {}),
-      ...wrapper.computeSslConfiguration(opts.dialect, sslMode, uriIfValidOrNull, logger),
+      ...wrapper.computeSslConfiguration(opts.dialect, sslMode, uri, logger),
     };
 
-    this.sequelize = uriIfValidOrNull
-      ? new Sequelize(uriIfValidOrNull, { ...opts, schema, logging })
-      : new Sequelize({ ...opts, schema, logging });
+    this.sequelize = uri
+      ? new Sequelize(uri, { ...opts, schema: wrapper.schemaFromUriOrOptions, logging })
+      : new Sequelize({ ...opts, schema: wrapper.schemaFromUriOrOptions, logging });
   }
 
   onClose(callback: () => Promise<void>) {
