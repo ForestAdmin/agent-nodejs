@@ -18,10 +18,8 @@ export default class SequelizeWrapper {
       ...(opts.dialectOptions ?? {}),
       ...wrapper.computeSslConfiguration(opts.dialect, sslMode, uri, logger),
     };
-
-    this.sequelize = uri
-      ? new Sequelize(uri, { ...opts, schema: wrapper.schemaFromUriOrOptions, logging })
-      : new Sequelize({ ...opts, schema: wrapper.schemaFromUriOrOptions, logging });
+    const config = { ...opts, schema: wrapper.schemaFromUriOrOptions, logging };
+    this.sequelize = uri ? new Sequelize(uri, config) : new Sequelize(config);
 
     this.overrideClose();
   }

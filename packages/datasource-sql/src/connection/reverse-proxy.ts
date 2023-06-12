@@ -3,7 +3,7 @@ import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import ConnectionOptionsWrapper from '../connection-options-wrapper';
-import { ConnectionOptionsObj, ProxySocks } from '../types';
+import { ConnectionOptionsObj } from '../types';
 
 export default class ReverseProxy {
   private readonly errors: Error[] = [];
@@ -70,7 +70,7 @@ export default class ReverseProxy {
 
     try {
       socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...(this.wrapperOptions.options.proxySocks as ProxySocks), type: 5 },
+        proxy: { ...this.wrapperOptions.options.proxySocks, type: 5 },
         command: 'connect',
         destination: {
           host: this.wrapperOptions.hostFromUriOrOptions,
