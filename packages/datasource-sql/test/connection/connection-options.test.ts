@@ -15,6 +15,21 @@ describe('ConnectionOptionsWrapper', () => {
     });
   });
 
+  describe('when dialect is missing', () => {
+    it('should throw', () => {
+      const fn = () =>
+        new ConnectionOptions({
+          host: 'localhost',
+          port: 5432,
+          username: 'user',
+          password: 'password',
+          database: 'db',
+        });
+
+      expect(fn).toThrow('Dialect is required');
+    });
+  });
+
   describe('when changing host and port', () => {
     describe.each([
       ['connection string', 'postgres://user:password@localhost:5432/db'],
@@ -39,8 +54,6 @@ describe('ConnectionOptionsWrapper', () => {
         expect(options.port).toEqual(1234);
       });
     });
-
-    describe('when using a connection string', () => {});
   });
 
   describe('when the port is not defined', () => {

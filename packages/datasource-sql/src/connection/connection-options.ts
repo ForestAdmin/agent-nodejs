@@ -53,8 +53,6 @@ export default class ConnectionOptions {
     else if (dialect === 'tedious') dialect = 'mssql';
     else if (dialect === 'pg' || dialect === 'postgresql') dialect = 'postgres';
 
-    if (!dialect) throw new DatabaseConnectError('Dialect is required', this.debugDatabaseUri);
-
     return dialect as Dialect;
   }
 
