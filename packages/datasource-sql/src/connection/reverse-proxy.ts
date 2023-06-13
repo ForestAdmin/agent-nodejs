@@ -28,6 +28,9 @@ export default class ReverseProxy {
     this.options = proxyOptions;
     this.targetHost = targetHost;
     this.targetPort = targetPort;
+    if (!this.targetHost) throw new Error('Host is required');
+    if (!this.targetPort) throw new Error('Port is required');
+
     this.server = net.createServer(this.onConnection.bind(this));
   }
 

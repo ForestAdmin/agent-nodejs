@@ -35,7 +35,11 @@ export default class ConnectionOptions {
    * Ensure that this is never substituted by the proxy, nor that it includes credentials.
    */
   get debugDatabaseUri(): string {
-    return `${this.dialect}://${this.initialHost}:${this.initialPort}`;
+    const dialect = this.dialect ?? '?';
+    const port = this.initialPort ?? '?';
+    const database = this.database ?? '?';
+
+    return `${dialect}://${this.initialHost}:${port}/${database}`;
   }
 
   /** Proxy URI without credentials, which can be used in error messages INTERNALLY */
@@ -55,10 +59,7 @@ export default class ConnectionOptions {
   }
 
   get host(): string {
-    const host = this.uri?.hostname ?? this.sequelizeOptions.host ?? 'localhost';
-    if (!host) throw new DatabaseConnectError('Host is required', this.debugDatabaseUri);
-
-    return host;
+    return this.uri?.hostname ?? this.sequelizeOptions.host ?? 'localhost';
   }
 
   get port(): number {
@@ -69,10 +70,13 @@ export default class ConnectionOptions {
       if (this.dialect === 'postgres') port = 5432;
       else if (this.dialect === 'mssql') port = 1433;
       else if (this.dialect === 'mysql' || this.dialect === 'mariadb') port = 3306;
-      else throw new DatabaseConnectError('Port is required', this.debugDatabaseUri);
     }
 
     return port;
+  }
+
+  get database(): string {
+    return this.uri?.pathname?.slice(1) || this.sequelizeOptions.database;
   }
 
   constructor(options: PlainConnectionOptionsOrUri, logger?: Logger) {
@@ -90,10 +94,16 @@ export default class ConnectionOptions {
       this.uri = uri ? this.parseDatabaseUri(uri) : null;
     }
 
-    // Save initial host & port (for SSL and error messages)
     if (this.uri?.toString?.() !== 'sqlite::memory:') {
+      // Save initial host & port (for SSL and error messages)
       this.initialHost = this.host;
       this.initialPort = this.port;
+
+      // Check required options
+      if (!this.host) throw new DatabaseConnectError(`Host is required`, this.debugDatabaseUri);
+      if (!this.port) throw new DatabaseConnectError(`Port is required`, this.debugDatabaseUri);
+      if (!this.dialect)
+        throw new DatabaseConnectError(`Dialect is required`, this.debugDatabaseUri);
     } else {
       this.initialHost = ':memory:';
       this.initialPort = 0;
@@ -134,17 +144,17 @@ export default class ConnectionOptions {
   }
 
   private parseDatabaseUri(str: string): URL {
-    const error = new DatabaseConnectError(
-      `Connection Uri provided to SQL data source cannot be parsed. Should be <dialect>://<connection>.`,
-      str, // leaking password
-    );
+    const message =
+      `Connection Uri "${str}" provided to SQL data source is not valid. ` +
+      `Should be <dialect>://<connection>.`;
 
-    if (str !== 'sqlite::memory:' && !/.*:\/\//g.test(str)) throw error;
+    if (str !== 'sqlite::memory:' && !/.*:\/\//g.test(str))
+      throw new DatabaseConnectError(message, str);
 
     try {
       return new URL(str);
     } catch {
-      throw error;
+      throw new DatabaseConnectError(message, str);
     }
   }
 
@@ -165,6 +175,12 @@ export default class ConnectionOptions {
     const sslMode = await this.computeSslMode();
 
     switch (this.dialect) {
+      case 'mariadb':
+        if (sslMode === 'disabled') return { ssl: false };
+        if (sslMode === 'required') return { ssl: { rejectUnauthorized: false } };
+        if (sslMode === 'verify') return { ssl: true };
+        break;
+
       case 'mssql':
         if (sslMode === 'disabled') return { options: { encrypt: false } };
         if (sslMode === 'required')
@@ -173,9 +189,15 @@ export default class ConnectionOptions {
           return { options: { encrypt: true, trustServerCertificate: false } };
         break;
 
-      case 'mariadb':
       case 'mysql':
+        if (sslMode === 'disabled') return { ssl: false };
+        if (sslMode === 'required') return { ssl: { rejectUnauthorized: false } };
+        if (sslMode === 'verify') return { ssl: { rejectUnauthorized: true } };
+        break;
+
       case 'postgres':
+        if (sslMode === 'disabled') return { ssl: false };
+
         // Pass servername to the net.tlsSocket constructor.
 
         // This is done so that
@@ -186,7 +208,6 @@ export default class ConnectionOptions {
 
         // Note that we should either do that for the other vendors (if possible), or
         // replace the reverse proxy by a forward proxy (when supported).
-        if (sslMode === 'disabled') return { ssl: false };
         if (sslMode === 'required')
           return {
             ssl: { require: true, rejectUnauthorized: false, servername: this.initialHost },
