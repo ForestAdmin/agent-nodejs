@@ -51,8 +51,9 @@ describe('handleErrors', () => {
         const error = new Error('An error');
         error.stack = 'SocksClient.connect: Socks connection failed to proxy: Socket closed';
 
-        expect(() => handleErrors(error, optionsWithoutProxy)).toThrow(
-          'Your proxy has encountered an error.\nAn error',
+        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
+          'Your proxy has encountered an error. ' +
+            'Unable to connect to the given uri: localhost:1080.\nAn error',
         );
       });
     });
