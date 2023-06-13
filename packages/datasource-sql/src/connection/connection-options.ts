@@ -100,7 +100,6 @@ export default class ConnectionOptions {
       this.initialPort = this.port;
 
       // Check required options
-      if (!this.host) throw new DatabaseConnectError(`Host is required`, this.debugDatabaseUri);
       if (!this.port) throw new DatabaseConnectError(`Port is required`, this.debugDatabaseUri);
       if (!this.dialect)
         throw new DatabaseConnectError(`Dialect is required`, this.debugDatabaseUri);
@@ -122,6 +121,7 @@ export default class ConnectionOptions {
 
   async buildPreprocessedOptions(): Promise<PlainConnectionOptions> {
     const options = { ...this.sequelizeOptions } as PlainConnectionOptions;
+    if (this.uri) options.uri = this.uri.toString();
     options.dialect = this.dialect;
     options.sslMode = await this.computeSslMode();
 
@@ -230,7 +230,9 @@ export default class ConnectionOptions {
   }
 
   private async computeSslMode(): Promise<SslMode> {
-    if (this.sslMode !== 'preferred') return this.sslMode;
+    if (this.sslMode !== 'preferred') {
+      return this.sslMode ?? 'manual';
+    }
 
     // When NODE_TLS_REJECT_UNAUTHORIZED is set to 0, we skip the 'verify' mode, as we know it will
     // always work locally, but not when deploying to another environment.

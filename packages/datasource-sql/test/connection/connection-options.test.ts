@@ -2,12 +2,45 @@ import { Dialect } from 'sequelize';
 
 import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';
+import { PlainConnectionOptionsOrUri } from '../../src/types';
 
 describe('ConnectionOptionsWrapper', () => {
   describe('when url is not parsable', () => {
-    it('should throw', () => {
+    it('should throw when not matching regexp in code', () => {
       expect(() => new ConnectionOptions('wrong url')).toThrow(DatabaseConnectError);
     });
+
+    it('should also throw when matching regexp in code', () => {
+      expect(() => new ConnectionOptions(':::://toto')).toThrow(DatabaseConnectError);
+    });
+  });
+
+  describe('when changing host and port', () => {
+    describe.each([
+      ['connection string', 'postgres://user:password@localhost:5432/db'],
+      [
+        'connection object',
+        {
+          dialect: 'postgres',
+          host: 'localhost',
+          port: 5432,
+          username: 'user',
+          password: 'password',
+          database: 'db',
+        },
+      ],
+    ] as [string, PlainConnectionOptionsOrUri][])('when using a %s', (_, plainOptions) => {
+      it('should change the host and port', () => {
+        const options = new ConnectionOptions(plainOptions);
+
+        options.changeHostAndPort('new-host', 1234);
+
+        expect(options.host).toEqual('new-host');
+        expect(options.port).toEqual(1234);
+      });
+    });
+
+    describe('when using a connection string', () => {});
   });
 
   describe('when the port is not defined', () => {
