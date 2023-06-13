@@ -39,8 +39,6 @@ export default async (baseUri: string, database: string): Promise<Sequelize> => 
       .addConstraint(member.name, { type: 'unique', fields: ['groupId', 'role'] });
 
     return sequelize;
-  } catch (error) {
-    throw new Error(`Test initialization fail: ${error.message}`);
   } finally {
     await sequelize?.close();
   }

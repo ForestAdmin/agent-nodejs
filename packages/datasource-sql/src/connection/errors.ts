@@ -1,75 +1,42 @@
-// eslint-disable-next-line max-classes-per-file
-import { ConnectionOptionsObj } from '../types';
+/* eslint-disable max-classes-per-file */
 
-function sanitizeUri(uri: string): string {
-  const uriObject = new URL(uri);
+export type ErrorSource = 'Proxy' | 'Database';
 
-  if (uriObject.password) {
-    uriObject.password = '**sanitizedPassword**';
-  }
+abstract class BaseError extends Error {
+  abstract readonly source: ErrorSource;
+  readonly uri: string;
+  readonly details: string;
 
-  return uriObject.toString();
-}
+  constructor(message: string, uri: string, details?: string) {
+    super(details ? `${message}\n${details}` : message);
 
-export type SourceError = 'Proxy' | 'Database';
-
-class BaseError extends Error {
-  public source: SourceError;
-  public uri: string;
-  public readonly details: string;
-
-  constructor(message: string, details?: string) {
-    const messageWithDetails = details ? `${message}\n${details}` : message;
-    super(messageWithDetails);
-
+    this.name = this.constructor.name;
     this.details = details;
+    this.uri = uri;
   }
 }
 
 export class DatabaseConnectError extends BaseError {
-  constructor(message: string, databaseUri?: string, source: SourceError = 'Database') {
-    if (databaseUri) {
-      const sanitizedUri = sanitizeUri(databaseUri);
-      super(`Unable to connect to the given uri: ${sanitizedUri}.`, message);
-      this.uri = sanitizedUri;
-    } else {
-      super(`Unable to connect to the given uri.`, message);
-    }
+  readonly source: ErrorSource;
 
-    this.name = this.constructor.name;
+  constructor(message: string, debugDatabaseUri: string, source: ErrorSource = 'Database') {
+    super(`Unable to connect to the given uri: ${debugDatabaseUri}.`, debugDatabaseUri, message);
+
     this.source = source;
   }
 }
 
 export class ProxyConnectError extends BaseError {
-  constructor(message: string, proxyConfig?: ConnectionOptionsObj['proxySocks']) {
-    const defaultMessage = 'Your proxy has encountered an error.';
+  readonly source = 'Proxy';
 
-    if (proxyConfig) {
-      const sanitizedUri = ProxyConnectError.buildSanitizedUriFromConfig(proxyConfig);
-      super(`${defaultMessage} Unable to connect to the given uri: ${sanitizedUri}.`, message);
-      this.uri = sanitizedUri;
-    } else {
-      super(defaultMessage, message);
-    }
+  constructor(message: string, debugProxyUri: string) {
+    // remove tcp protocol because its not added by the user
+    const sanitizedUri = debugProxyUri.replace('tcp://', '');
 
-    this.name = this.constructor.name;
-    this.source = 'Proxy';
-  }
-
-  private static buildSanitizedUriFromConfig(
-    proxyConfig: ConnectionOptionsObj['proxySocks'],
-  ): string {
-    const proxyUri = new URL(`socks://${proxyConfig.host}:${proxyConfig.port}`);
-
-    if (proxyConfig.userId) {
-      proxyUri.username = proxyConfig.userId;
-    }
-
-    if (proxyConfig.password) {
-      proxyUri.password = proxyConfig.password;
-    }
-
-    return sanitizeUri(proxyUri.toString()).replace('socks://', '');
+    super(
+      `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizedUri}.`,
+      sanitizedUri,
+      message,
+    );
   }
 }

@@ -1,50 +1,29 @@
-import type { ConnectionOptions, ConnectionOptionsObj } from '../types';
-import type { Logger } from '@forestadmin/datasource-toolkit';
-
 import { Sequelize } from 'sequelize';
 
+import ConnectionOptions from './connection-options';
 import handleErrors from './handle-errors';
-import preprocessOptions from './preprocess';
 import ReverseProxy from './reverse-proxy';
-import { getLogger, getSchema, getSslConfiguration } from './utils';
 
 /** Attempt to connect to the database */
-export default async function connect(
-  uriOrOptions: ConnectionOptions,
-  logger?: Logger,
-): Promise<Sequelize> {
+export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
   let proxy: ReverseProxy;
   let sequelize: Sequelize;
-  let options: ConnectionOptionsObj;
-  let servername: string;
 
   try {
-    options = await preprocessOptions(uriOrOptions);
-
-    try {
-      servername = options?.host ?? new URL(options.uri).hostname;
-    } catch {
-      // don't crash if using unix socket, sqlite, etc...
-    }
-
-    if (options.proxySocks) {
-      proxy = new ReverseProxy(options);
+    if (options.proxyOptions) {
+      // start the proxy
+      proxy = new ReverseProxy(options.proxyOptions, options.host, options.port);
       await proxy.start();
-      options = proxy.connectionOptions;
+
+      // swap database host and port with the ones from the proxy.
+      options.changeHostAndPort(proxy.host, proxy.port);
     }
 
-    const { uri, sslMode, ...opts } = options;
-    const schema = opts.schema ?? getSchema(uri);
-    const logging = logger ? getLogger(logger) : false;
-
-    opts.dialectOptions = {
-      ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, servername, logger),
-    };
-
-    sequelize = uri
-      ? new Sequelize(uri, { ...opts, schema, logging })
-      : new Sequelize({ ...opts, schema, logging });
+    const sequelizeCtorOptions = await options.buildSequelizeCtorOptions();
+    sequelize =
+      sequelizeCtorOptions.length === 1
+        ? new Sequelize(sequelizeCtorOptions[0])
+        : new Sequelize(sequelizeCtorOptions[0], sequelizeCtorOptions[1]);
 
     // we want to stop the proxy when the sequelize connection is closed
     sequelize.close = async function close() {
@@ -61,6 +40,6 @@ export default async function connect(
   } catch (e) {
     await sequelize?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
-    handleErrors(proxy?.error || e, options, proxy);
+    handleErrors(proxy?.error ?? e, options);
   }
 }

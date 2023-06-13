@@ -283,8 +283,6 @@ export default async (baseUri: string, dialect: string, database: string): Promi
     await sequelize.sync({ force: true });
 
     return sequelize;
-  } catch (error) {
-    throw new Error(`Test initialization fail: ${error.message}`);
   } finally {
     await sequelize?.close();
   }

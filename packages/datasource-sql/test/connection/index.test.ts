@@ -1,6 +1,7 @@
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
+import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';
 import { SslMode } from '../../src/types';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
@@ -8,7 +9,7 @@ import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 describe('Connect', () => {
   describe('on database which do not support automatic ssl (sqlite)', () => {
     it('should work in manual mode with nothing specified', async () => {
-      const seq = await connect('sqlite::memory:');
+      const seq = await connect(new ConnectionOptions('sqlite::memory:'));
       await seq.close();
 
       expect(seq).toBeInstanceOf(Sequelize);
@@ -16,7 +17,9 @@ describe('Connect', () => {
 
     it('should work but print a warning when setting ssl options', async () => {
       const logger = jest.fn();
-      const seq = await connect({ uri: 'sqlite::memory:', sslMode: 'verify' }, logger);
+      const seq = await connect(
+        new ConnectionOptions({ uri: 'sqlite::memory:', sslMode: 'verify' }, logger),
+      );
       await seq.close();
 
       expect(seq).toBeInstanceOf(Sequelize);
@@ -33,18 +36,12 @@ describe('Connect', () => {
         const baseUri = 'postgres://test:password@localhost:5443';
         await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
 
-        const badUri = `postgres://BADUSER:password@postgres:5432/test_connection`;
-        await expect(() =>
-          connect({
-            uri: badUri,
-            proxySocks: {
-              host: 'localhost',
-              port: 1080,
-              password: 'password',
-              userId: 'username',
-            },
-          }),
-        ).rejects.toThrow(DatabaseConnectError);
+        const options = new ConnectionOptions({
+          uri: `postgres://BADUSER:password@postgres:5432/test_connection`,
+          proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
+        });
+
+        await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);
       });
     });
 
@@ -53,20 +50,14 @@ describe('Connect', () => {
         const baseUri = 'postgres://test:password@localhost:5443';
         await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
 
-        const uri = `postgres://test:password@postgres:5432/test_connection`;
-        await expect(() =>
-          connect({
-            uri,
-            proxySocks: {
-              host: 'BADHOST',
-              port: 1080,
-              password: 'password',
-              userId: 'username',
-            },
-          }),
-        ).rejects.toThrow(
+        const options = new ConnectionOptions({
+          uri: `postgres://test:password@postgres:5432/test_connection`,
+          proxySocks: { host: 'BADHOST', port: 1080, password: 'password', userId: 'username' },
+        });
+
+        await expect(() => connect(options)).rejects.toThrow(
           // eslint-disable-next-line max-len
-          'Your proxy has encountered an error. Unable to connect to the given uri: username:**sanitizedPassword**@BADHOST:1080',
+          'Your proxy has encountered an error. Unable to connect to the given uri: BADHOST:1080',
         );
       });
     });
@@ -89,18 +80,14 @@ describe('Connect', () => {
 
       describe('when proxy socks configuration is provided', () => {
         it('should work with proxy auth and not throwing error when seq is closing', async () => {
-          const updatedUri = uri
-            .replace('localhost', dockerServiceName)
-            .replace(containerPort.toString(), port.toString());
-          const seq = await connect({
-            uri: updatedUri,
-            proxySocks: {
-              host: 'localhost',
-              port: 1080,
-              password: 'password',
-              userId: 'username',
-            },
+          const options = new ConnectionOptions({
+            uri: uri
+              .replace('localhost', dockerServiceName)
+              .replace(containerPort.toString(), port.toString()),
+            proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
           });
+
+          const seq = await connect(options);
           await seq.close();
 
           expect(seq).toBeInstanceOf(Sequelize);
@@ -108,14 +95,14 @@ describe('Connect', () => {
       });
 
       it('should work in manual mode with nothing specified', async () => {
-        const seq = await connect(uri);
+        const seq = await connect(new ConnectionOptions(uri));
         await seq.close();
 
         expect(seq).toBeInstanceOf(Sequelize);
       });
 
       it.each([['preferred'], ['disabled']])('should work when using sslMode %s', async sslMode => {
-        const seq = await connect({ uri, sslMode: sslMode as SslMode });
+        const seq = await connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
         await seq.close();
 
         expect(seq).toBeInstanceOf(Sequelize);
@@ -135,7 +122,7 @@ describe('Connect', () => {
     });
 
     it.each([['required'], ['verify']])('should fail when using sslMode %s', async sslMode => {
-      const fn = () => connect({ uri, sslMode: sslMode as SslMode });
+      const fn = () => connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
 
       await expect(fn).rejects.toThrow(/ssl not enabled|does not support SSL connections/);
     });
@@ -153,14 +140,14 @@ describe('Connect', () => {
     });
 
     it.each([['preferred'], ['required']])('should work when using sslMode %s', async sslMode => {
-      const seq = await connect({ uri, sslMode: sslMode as SslMode });
+      const seq = await connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
       await seq.close();
 
       expect(seq).toBeInstanceOf(Sequelize);
     });
 
     it("should fail when using sslMode 'verify'", async () => {
-      const fn = () => connect({ uri, sslMode: 'verify' });
+      const fn = () => connect(new ConnectionOptions({ uri, sslMode: 'verify' }));
 
       await expect(fn).rejects.toThrow(/self[- ]signed certificate/);
     });
