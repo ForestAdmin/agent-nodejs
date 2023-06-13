@@ -2,21 +2,17 @@ import {
   ActionScope,
   ModelCustomization,
   ModelCustomizationService,
-  WebhookAction,
-  WebhookActionConfiguration,
   WebhookActionConfigurationApi,
 } from './types';
 import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
-function mapApiValues(
-  modelCustomization: ModelCustomization<WebhookActionConfigurationApi>,
-): ModelCustomization<WebhookActionConfiguration> {
+function mapApiValues<T>(modelCustomization: ModelCustomization<T>): ModelCustomization<T> {
   if (modelCustomization.type !== 'action') {
     throw new Error('Only action customizations are supported for now.');
   }
 
   const configuration = modelCustomization.configuration as WebhookActionConfigurationApi;
-  const mappedConfiguration: WebhookActionConfiguration = {
+  const mappedConfiguration = {
     ...configuration,
     scope: configuration.scope
       ? ((configuration.scope.slice(0, 1).toUpperCase() +
@@ -26,7 +22,7 @@ function mapApiValues(
 
   return {
     ...modelCustomization,
-    configuration: mappedConfiguration,
+    configuration: mappedConfiguration as T,
   };
 }
 
@@ -36,7 +32,7 @@ export default class ModelCustomizationFromApiService implements ModelCustomizat
     private readonly options: ForestAdminClientOptionsWithDefaults,
   ) {}
 
-  async getConfiguration(): Promise<WebhookAction[]> {
+  async getConfiguration(): Promise<ModelCustomization[]> {
     const result = await this.forestadminServerInterface.getModelCustomizations(this.options);
 
     return result.map(mapApiValues);

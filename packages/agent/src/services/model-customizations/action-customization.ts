@@ -5,6 +5,7 @@ import {
   ForestAdminClient,
   ModelCustomization,
   ModelCustomizationType,
+  UpdateRecordActionConfiguration,
   WebhookActionConfiguration,
 } from '@forestadmin/forestadmin-client';
 
@@ -32,28 +33,12 @@ export default class ActionCustomizationService {
     this.client = agentOptions.forestAdminClient;
   }
 
-  public addWebhookActions: Plugin<boolean | undefined> = async (
-    datasourceCustomizer,
-    _,
-    enabled,
-  ) => {
-    if (!enabled) return;
-
-    const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
-
-    await ActionCustomizationService.addWebhookActions(
-      datasourceCustomizer,
-      _,
-      modelCustomizations,
-    );
-  };
-
-  public static addWebhookActions: Plugin<ModelCustomization[]> = async (
+  public static addWebhookActions: Plugin<ModelCustomization[]> = (
     datasourceCustomizer,
     _,
     modelCustomizations,
   ) => {
-    const actions = await getActions<WebhookActionConfiguration>('webhook', modelCustomizations);
+    const actions = getActions<WebhookActionConfiguration>('webhook', modelCustomizations);
     actions.forEach(action => {
       const collection = datasourceCustomizer.getCollection(action.modelName);
 
@@ -62,5 +47,36 @@ export default class ActionCustomizationService {
         execute: context => executeWebhook(action, context),
       });
     });
+
+    return Promise.resolve();
+  };
+
+  public static addUpdateRecord: Plugin<ModelCustomization[]> = (
+    datasourceCustomizer,
+    _,
+    modelCustomizations,
+  ) => {
+    const actions = getActions<UpdateRecordActionConfiguration>(
+      'update-record',
+      modelCustomizations,
+    );
+    actions.forEach(action => {
+      const collection = datasourceCustomizer.getCollection(action.modelName);
+
+      collection.addAction(action.name, {
+        scope: action.configuration.scope,
+        execute: async context => {
+          const {
+            configuration: {
+              configuration: { fields },
+            },
+          } = action;
+
+          await context.collection.update(context.filter, fields);
+        },
+      });
+    });
+
+    return Promise.resolve();
   };
 }
