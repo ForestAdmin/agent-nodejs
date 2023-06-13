@@ -24,6 +24,20 @@ describe('ReverseProxy', () => {
     }
   });
 
+  describe('when port is not provided', () => {
+    it('should throw an error', async () => {
+      const options = { ...makeProxyOptions(), uri: null, port: null, host: 'localhost' };
+      expect(() => new ReverseProxy(options)).toThrow();
+    });
+  });
+
+  describe('when host is not provided', () => {
+    it('should throw an error', async () => {
+      const options = { ...makeProxyOptions(), uri: null, host: null };
+      expect(() => new ReverseProxy(options)).toThrow();
+    });
+  });
+
   describe('getError', () => {
     describe('when a connection fails because of the proxy', () => {
       it('should retrieve the error', async () => {

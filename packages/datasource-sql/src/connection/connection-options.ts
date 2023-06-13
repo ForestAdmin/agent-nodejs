@@ -49,7 +49,7 @@ export default class ConnectionOptions {
   }
 
   get host(): string {
-    const host = this.uri?.hostname || this.sequelizeOptions.host;
+    const host = this.uri?.hostname ?? this.sequelizeOptions.host ?? 'localhost';
     if (!host) throw new DatabaseConnectError('Host is required', this.debugDatabaseUri);
 
     return host;
