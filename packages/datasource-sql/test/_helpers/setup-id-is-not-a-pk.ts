@@ -26,8 +26,6 @@ export default async (baseUri: string, database: string): Promise<Sequelize> => 
     await sequelize.query('ALTER TABLE person DROP COLUMN anid CASCADE');
 
     return sequelize;
-  } catch (error) {
-    throw new Error(`Test initialization fail: ${error.message}`);
   } finally {
     await sequelize?.close();
   }

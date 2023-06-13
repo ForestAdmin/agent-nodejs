@@ -1,21 +1,16 @@
 import * as net from 'net';
 import { SocksClient } from 'socks';
+import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import ReverseProxy from '../../src/connection/reverse-proxy';
 
 beforeEach(() => jest.clearAllMocks());
 
+const proxyOptions = { host: 'localhost', port: 1088 };
+
 describe('ReverseProxy', () => {
-  const makeProxyOptions = () => ({
-    host: 'localhost',
-    port: 10,
-    uri: 'http://localhost:10',
-    proxySocks: {
-      host: 'localhost',
-      port: 1088,
-    },
-  });
   let proxy: ReverseProxy;
+
   afterEach(async () => {
     try {
       await proxy?.stop();
@@ -24,13 +19,30 @@ describe('ReverseProxy', () => {
     }
   });
 
+  describe('when port is not provided', () => {
+    it('should throw an error', async () => {
+      const fn = () => new ReverseProxy(proxyOptions, 'localhost', null);
+
+      expect(fn).toThrow();
+    });
+  });
+
+  describe('when host is not provided', () => {
+    it('should throw an error', async () => {
+      const fn = () => new ReverseProxy(proxyOptions, null, 10);
+
+      expect(fn).toThrow();
+    });
+  });
+
   describe('getError', () => {
     describe('when a connection fails because of the proxy', () => {
       it('should retrieve the error', async () => {
         jest.spyOn(SocksClient, 'createConnection').mockImplementation(() => {
           throw new Error('a proxy error');
         });
-        proxy = new ReverseProxy(makeProxyOptions());
+
+        proxy = new ReverseProxy(proxyOptions, 'localhost', 10);
         await proxy.start();
 
         const client = new net.Socket();
@@ -40,8 +52,7 @@ describe('ReverseProxy', () => {
             resolve();
           });
 
-          const { port, host } = proxy.connectionOptions;
-          client.connect({ port: Number(port), host });
+          client.connect({ port: proxy.port, host: proxy.host });
         });
 
         expect(proxy.error).toEqual(new Error('a proxy error'));
@@ -52,8 +63,11 @@ describe('ReverseProxy', () => {
   describe('when client open a connection', () => {
     it('should branch the socks5 to the socket', async () => {
       const socks5ProxyMock = { socket: { on: jest.fn(), pipe: jest.fn(), destroy: jest.fn() } };
-      jest.spyOn(SocksClient, 'createConnection').mockResolvedValue(socks5ProxyMock as any);
-      proxy = new ReverseProxy(makeProxyOptions());
+      jest
+        .spyOn(SocksClient, 'createConnection')
+        .mockResolvedValue(socks5ProxyMock as unknown as SocksClientEstablishedEvent);
+
+      proxy = new ReverseProxy(proxyOptions, 'localhost', 10);
 
       await proxy.start();
       const client = new net.Socket();
@@ -63,8 +77,7 @@ describe('ReverseProxy', () => {
           resolve();
         });
 
-        const { port, host } = proxy.connectionOptions;
-        client.connect({ port: Number(port), host });
+        client.connect({ port: proxy.port, host: proxy.host });
       });
 
       expect(socks5ProxyMock.socket.on).toHaveBeenCalledWith('error', expect.any(Function));
@@ -72,56 +85,10 @@ describe('ReverseProxy', () => {
     });
   });
 
-  describe('connectionOptions', () => {
-    describe('when it takes an options with uri', () => {
-      it('gives updated options with updated uri, host and port', async () => {
-        const options = {
-          ...makeProxyOptions(),
-          host: null,
-          port: null,
-          uri: 'http://localhost:10',
-        };
-        proxy = new ReverseProxy(options);
-
-        await proxy.start();
-
-        expect(proxy.connectionOptions.host).not.toEqual(options.host);
-        expect(proxy.connectionOptions.port).not.toEqual(options.port);
-        expect(proxy.connectionOptions.uri).not.toEqual(options.uri);
-
-        expect(proxy.connectionOptions).toEqual({
-          host: expect.any(String),
-          port: expect.any(Number),
-          proxySocks: options.proxySocks,
-          uri: expect.any(String),
-        });
-      });
-    });
-
-    describe('when it takes an options without uri', () => {
-      it('gives updated options with host and port', async () => {
-        const options = { ...makeProxyOptions(), uri: null, port: 10, host: 'localhost' };
-        proxy = new ReverseProxy(options);
-
-        await proxy.start();
-
-        expect(proxy.connectionOptions.host).not.toEqual(options.host);
-        expect(proxy.connectionOptions.port).not.toEqual(options.port);
-
-        expect(proxy.connectionOptions).toEqual({
-          host: expect.any(String),
-          port: expect.any(Number),
-          proxySocks: options.proxySocks,
-          uri: null,
-        });
-      });
-    });
-  });
-
   describe('stop', () => {
     describe('when the server is not started', () => {
       it('should throw an error', async () => {
-        proxy = new ReverseProxy(makeProxyOptions());
+        proxy = new ReverseProxy(proxyOptions, 'localhost', 10);
 
         await expect(proxy.stop()).rejects.toThrow();
       });
@@ -129,7 +96,7 @@ describe('ReverseProxy', () => {
 
     describe('when the server is started', () => {
       it('should stop the proxy without error', async () => {
-        proxy = new ReverseProxy(makeProxyOptions());
+        proxy = new ReverseProxy(proxyOptions, 'localhost', 10);
 
         await proxy.start();
 
@@ -140,9 +107,11 @@ describe('ReverseProxy', () => {
     describe('when a connection is opened', () => {
       it('should stop the proxy without throwing error', async () => {
         const socks5ProxyMock = { socket: { on: jest.fn(), pipe: jest.fn(), destroy: jest.fn() } };
-        jest.spyOn(SocksClient, 'createConnection').mockResolvedValue(socks5ProxyMock as any);
+        jest
+          .spyOn(SocksClient, 'createConnection')
+          .mockResolvedValue(socks5ProxyMock as unknown as SocksClientEstablishedEvent);
 
-        proxy = new ReverseProxy(makeProxyOptions());
+        proxy = new ReverseProxy(proxyOptions, 'localhost', 10);
 
         await proxy.start();
 
@@ -153,8 +122,7 @@ describe('ReverseProxy', () => {
             resolve();
           });
 
-          const { port, host } = proxy.connectionOptions;
-          client.connect({ port: Number(port), host });
+          client.connect({ port: proxy.port, host: proxy.host });
         });
 
         await expect(proxy.stop()).resolves.not.toThrow();

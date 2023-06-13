@@ -1,43 +1,37 @@
-import { BaseError } from 'sequelize';
+import { BaseError as SequelizeError } from 'sequelize';
 
+import ConnectionOptions from './connection-options';
 import { DatabaseConnectError, ProxyConnectError } from './errors';
-import ReverseProxy from './reverse-proxy';
-import ConnectionOptionsWrapper from '../connection-options-wrapper';
-import { ConnectionOptionsObj } from '../types';
 
-function handleProxyErrors(error: Error, proxy: ReverseProxy): void {
-  // eslint-disable-next-line max-len
-  // @link: list of errors thrown by the proxy https://github.com/JoshGlazebrook/socks/blob/76d013e4c9a2d956f07868477d8f12ec0b96edfc/src/common/constants.ts#LL10C10-L10C10
-  if (error?.stack?.includes('SocksClient')) {
-    if (
-      error.message.includes('Socket closed') ||
-      error.message.includes('Socks5 proxy rejected connection')
-    ) {
-      throw new DatabaseConnectError(null, proxy.wrapperOptions, 'Proxy');
-    }
-
-    throw new ProxyConnectError(error.message, proxy?.wrapperOptions);
+function handleProxyErrors(error: Error, options: ConnectionOptions): void {
+  /** @see https://github.com/JoshGlazebrook/socks/blob/76d013/src/common/constants.ts#L10 */
+  if (
+    error.message.includes('Socket closed') ||
+    error.message.includes('Socks5 proxy rejected connection')
+  ) {
+    throw new DatabaseConnectError(null, options.debugDatabaseUri, 'Proxy');
   }
+
+  throw new ProxyConnectError(error.message, options.debugProxyUri);
 }
 
-export default function handleErrors(
-  error: Error,
-  options?: ConnectionOptionsObj,
-  proxy?: ReverseProxy,
-) {
-  handleProxyErrors(error, proxy);
+function handleSequelizeError(error: SequelizeError, options: ConnectionOptions): void {
+  const nameWithoutSequelize = error.name.replace('Sequelize', '');
+  const nameWithSpaces = nameWithoutSequelize.replace(
+    /([a-z])([A-Z])/g,
+    (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
+  );
 
-  if (error instanceof BaseError) {
-    const nameWithoutSequelize = error.name.replace('Sequelize', '');
-    const nameWithSpaces = nameWithoutSequelize.replace(
-      /([a-z])([A-Z])/g,
-      (_, m1, m2) => `${m1} ${m2.toLowerCase()}`,
-    );
+  throw new DatabaseConnectError(`${nameWithSpaces}: ${error.message}`, options.debugDatabaseUri);
+}
 
-    throw new DatabaseConnectError(
-      `${nameWithSpaces}: ${error.message}`,
-      options ? new ConnectionOptionsWrapper(options) : null,
-    );
+export default function handleErrors(error: Error, options: ConnectionOptions) {
+  if (error?.stack?.includes('SocksClient')) {
+    handleProxyErrors(error, options);
+  }
+
+  if (error instanceof SequelizeError) {
+    handleSequelizeError(error, options);
   }
 
   throw error;

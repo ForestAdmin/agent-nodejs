@@ -1,37 +1,25 @@
 import { ConnectionError } from 'sequelize';
 
+import ConnectionOptions from '../../src/connection/connection-options';
 import handleErrors from '../../src/connection/handle-errors';
-import ReverseProxy from '../../src/connection/reverse-proxy';
+
+const optionsWithoutProxy = new ConnectionOptions({
+  uri: 'postgres://user:password@localhost:5432/db',
+});
+
+const optionsWithProxy = new ConnectionOptions({
+  uri: 'postgres://user:password@localhost:5432/db',
+  proxySocks: { host: 'localhost', port: 1080 },
+});
 
 describe('handleErrors', () => {
-  const makeAProxy = () => {
-    return new ReverseProxy({
-      port: 1080,
-      host: 'localhost',
-      dialect: 'postgres',
-      proxySocks: {
-        host: 'localhost',
-        port: 1080,
-      },
-    });
-  };
-
-  describe('when the databaseUri is null', () => {
-    it('should throw an error without display the uri', () => {
-      const error = new ConnectionError(new Error('Connection timed out'));
-      expect(() => handleErrors(error, null, makeAProxy())).toThrow(
-        'Connection error: Connection timed out',
-      );
-    });
-  });
-
   describe('when the error is thrown by Sequelize', () => {
     it('should throw an error', () => {
       const error = new ConnectionError(new Error('Connection timed out'));
-      const databaseUri = { uri: 'postgres://user:password@localhost:5432/db' };
-      expect(() => handleErrors(error, databaseUri, makeAProxy())).toThrow(
+
+      expect(() => handleErrors(error, optionsWithoutProxy)).toThrow(
         // eslint-disable-next-line max-len
-        'Unable to connect to the given uri: postgres://user:**sanitizedPassword**@localhost:5432/db.\n' +
+        'Unable to connect to the given uri: postgres://localhost:5432/db.\n' +
           'Connection error: Connection timed out',
       );
     });
@@ -40,8 +28,8 @@ describe('handleErrors', () => {
   describe('when the error has an empty stack trace', () => {
     it('should throw an error', () => {
       const error = new Error('An error');
-      error.stack = null;
-      expect(() => handleErrors(error, null, null)).toThrow(error);
+      error.stack = undefined;
+      expect(() => handleErrors(error, optionsWithoutProxy)).toThrow(error);
     });
   });
 
@@ -50,16 +38,10 @@ describe('handleErrors', () => {
       it('should throw an error', () => {
         const error = new Error('Socket closed');
         error.stack = 'SocksClient.connect: Socks connection failed to proxy: Socket closed';
-        const proxy = new ReverseProxy({
-          uri: 'postgres://user:password@localhost:5432/db',
-          proxySocks: {
-            host: 'localhost',
-            port: 1080,
-          },
-        });
-        expect(() => handleErrors(error, null, proxy)).toThrow(
+
+        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
           // eslint-disable-next-line max-len
-          'Unable to connect to the given uri: postgres://user:**sanitizedPassword**@localhost:5432/db.',
+          'Unable to connect to the given uri: postgres://localhost:5432/db.',
         );
       });
     });
@@ -68,10 +50,10 @@ describe('handleErrors', () => {
       it('should throw an error', () => {
         const error = new Error('An error');
         error.stack = 'SocksClient.connect: Socks connection failed to proxy: Socket closed';
-        const databaseUri = { uri: 'postgres://user:password@localhost:5432/db' };
-        const proxyConfig = null;
-        expect(() => handleErrors(error, databaseUri, proxyConfig)).toThrow(
-          'Your proxy has encountered an error.\nAn error',
+
+        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
+          'Your proxy has encountered an error. ' +
+            'Unable to connect to the given uri: localhost:1080.\nAn error',
         );
       });
     });
@@ -80,14 +62,8 @@ describe('handleErrors', () => {
       it('should throw an error', () => {
         const error = new Error();
         error.stack = 'SocksClient.connect: Socks connection failed to proxy: Connection refused';
-        const proxy = new ReverseProxy({
-          uri: 'postgres://user:password@localhost:5432/db',
-          proxySocks: {
-            host: 'localhost',
-            port: 1080,
-          },
-        });
-        expect(() => handleErrors(error, null, proxy)).toThrow(
+
+        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
           // eslint-disable-next-line max-len
           'Your proxy has encountered an error. Unable to connect to the given uri: localhost:1080',
         );
