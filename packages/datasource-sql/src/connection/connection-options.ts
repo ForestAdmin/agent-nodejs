@@ -3,16 +3,22 @@ import { Dialect, Sequelize, Options as SequelizeOptions } from 'sequelize';
 
 import { DatabaseConnectError } from './errors';
 import connect from './index';
-import { PlainConnectionOptionsOrUri, ProxyOptions, SslMode } from '../types';
+import {
+  PlainConnectionOptions,
+  PlainConnectionOptionsOrUri,
+  ProxyOptions,
+  SslMode,
+} from '../types';
 
 /**
  * Connection options.
  * This wrapper is constructed from a plain object or a URI string.
  *
  * It is capable of parsing them, and providing an interface to the rest of the code to:
- * - Construct Sequelize instances
+ * - Build parameters to create sequelize instances
+ * - Build connections options with both dialect and sslmode resolved (for quick startup in cloud)
  * - Provide safe urls for error messages (without credentials)
- * - Play with the host and port, which can be changed by the proxy
+ * - Play with the host and port without breaking SSL servername / error messages (for the proxy)
  */
 export default class ConnectionOptions {
   proxyOptions?: ProxyOptions;
@@ -104,6 +110,14 @@ export default class ConnectionOptions {
     else this.sequelizeOptions.port = port;
   }
 
+  async buildPreprocessedOptions(): Promise<PlainConnectionOptions> {
+    const options = { ...this.sequelizeOptions } as PlainConnectionOptions;
+    options.dialect = this.dialect;
+    options.sslMode = await this.computeSslMode();
+
+    return options;
+  }
+
   /** Options that can be passed to the sequelize constructor */
   async buildSequelizeCtorOptions(): Promise<[SequelizeOptions] | [string, SequelizeOptions]> {
     const options = { ...this.sequelizeOptions };
@@ -119,44 +133,10 @@ export default class ConnectionOptions {
     return this.uri ? [this.uri.toString(), options] : [options];
   }
 
-  async computeSslMode(): Promise<SslMode> {
-    if (this.sslMode !== 'preferred') return this.sslMode;
-
-    // When NODE_TLS_REJECT_UNAUTHORIZED is set to 0, we skip the 'verify' mode, as we know it will
-    // always work locally, but not when deploying to another environment.
-    const modes: SslMode[] = ['verify', 'required', 'disabled'];
-    if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') modes.shift();
-
-    let error: Error;
-
-    for (const sslMode of modes) {
-      let sequelize: Sequelize;
-
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        sequelize = await connect(
-          new ConnectionOptions({
-            uri: this.uri?.toString(),
-            sslMode,
-            ...this.sequelizeOptions,
-          }),
-        );
-
-        return sslMode;
-      } catch (e) {
-        error = e;
-      } finally {
-        await sequelize?.close(); // eslint-disable-line no-await-in-loop
-      }
-    }
-
-    throw error;
-  }
-
   private parseDatabaseUri(str: string): URL {
     const error = new DatabaseConnectError(
       `Connection Uri provided to SQL data source cannot be parsed. Should be <dialect>://<connection>.`,
-      str,
+      str, // leaking password
     );
 
     if (str !== 'sqlite::memory:' && !/.*:\/\//g.test(str)) throw error;
@@ -226,5 +206,39 @@ export default class ConnectionOptions {
 
         return {};
     }
+  }
+
+  private async computeSslMode(): Promise<SslMode> {
+    if (this.sslMode !== 'preferred') return this.sslMode;
+
+    // When NODE_TLS_REJECT_UNAUTHORIZED is set to 0, we skip the 'verify' mode, as we know it will
+    // always work locally, but not when deploying to another environment.
+    const modes: SslMode[] = ['verify', 'required', 'disabled'];
+    if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') modes.shift();
+
+    let error: Error;
+
+    for (const sslMode of modes) {
+      let sequelize: Sequelize;
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        sequelize = await connect(
+          new ConnectionOptions({
+            uri: this.uri?.toString(),
+            sslMode,
+            ...this.sequelizeOptions,
+          }),
+        );
+
+        return sslMode;
+      } catch (e) {
+        error = e;
+      } finally {
+        await sequelize?.close(); // eslint-disable-line no-await-in-loop
+      }
+    }
+
+    throw error;
   }
 }

@@ -1,5 +1,5 @@
 import type { Table } from './introspection/types';
-import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } from './types';
+import type { PlainConnectionOptions, PlainConnectionOptionsOrUri } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -63,15 +63,7 @@ export function createSqlDataSource(
 export async function preprocessOptions(
   uriOrOptions: PlainConnectionOptionsOrUri,
 ): Promise<PlainConnectionOptions> {
-  const options = new ConnectionOptions(uriOrOptions);
-  const plainOptions: PlainConnectionOptions =
-    typeof uriOrOptions === 'string' ? { uri: uriOrOptions } : { ...uriOrOptions };
-
-  plainOptions.dialect = options.dialect;
-  plainOptions.sslMode = await options.computeSslMode();
-
-  return plainOptions;
+  return new ConnectionOptions(uriOrOptions).buildPreprocessedOptions();
 }
 
-export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode };
 export * from './connection/errors';
