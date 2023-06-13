@@ -3,42 +3,35 @@ import { Sequelize } from 'sequelize';
 import ConnectionOptions from './connection-options';
 import handleErrors from './handle-errors';
 import ReverseProxy from './reverse-proxy';
+import SequelizeWrapper from './services/sequelize-wrapper';
+import TcpServer from './services/tcp-server';
 
 /** Attempt to connect to the database */
 export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
   let proxy: ReverseProxy;
-  let sequelize: Sequelize;
+  let tcpServer: TcpServer;
+  let sequelizeWrapper: SequelizeWrapper;
 
   try {
     if (options.proxyOptions) {
-      // start the proxy
+      tcpServer = new TcpServer();
+      await tcpServer.start();
       proxy = new ReverseProxy(options.proxyOptions, options.host, options.port);
-      await proxy.start();
-
+      tcpServer.onConnect(proxy.whenConnecting.bind(proxy));
+      tcpServer.onClose(proxy.whenClosing.bind(proxy));
       // swap database host and port with the ones from the proxy.
-      options.changeHostAndPort(proxy.host, proxy.port);
+      options.changeHostAndPort(tcpServer.host, tcpServer.port);
     }
 
-    const sequelizeCtorOptions = await options.buildSequelizeCtorOptions();
-    sequelize =
-      sequelizeCtorOptions.length === 1
-        ? new Sequelize(sequelizeCtorOptions[0])
-        : new Sequelize(sequelizeCtorOptions[0], sequelizeCtorOptions[1]);
+    sequelizeWrapper = new SequelizeWrapper(await options.buildSequelizeCtorOptions());
 
-    // we want to stop the proxy when the sequelize connection is closed
-    sequelize.close = async function close() {
-      try {
-        await Sequelize.prototype.close.call(this);
-      } finally {
-        await proxy?.stop();
-      }
-    };
+    if (tcpServer) sequelizeWrapper.onClose(tcpServer.whenClosing.bind(tcpServer));
 
-    await sequelize.authenticate(); // Test connection
+    await sequelizeWrapper.connect(); // Test connection
 
-    return sequelize;
+    return sequelizeWrapper.sequelizeInstance;
   } catch (e) {
-    await sequelize?.close();
+    await sequelizeWrapper?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
     handleErrors(proxy?.error ?? e, options);
   }

@@ -2,61 +2,38 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
+import Events from './services/events';
 import { ProxyOptions } from '../types';
 
-export default class ReverseProxy {
+export default class ReverseProxy extends Events {
   private readonly errors: Error[] = [];
-  private readonly server: net.Server;
   private readonly connectedClients: Set<net.Socket> = new Set();
   private readonly options: ProxyOptions;
   private readonly targetHost: string;
   private readonly targetPort: number;
 
-  get host(): string {
-    const { address } = this.server.address() as net.AddressInfo;
-
-    return address;
-  }
-
-  get port(): number {
-    const { port } = this.server.address() as net.AddressInfo;
-
-    return port;
+  get error(): Error | null {
+    return this.errors.length > 0 ? this.errors[0] : null;
   }
 
   constructor(proxyOptions: ProxyOptions, targetHost: string, targetPort: number) {
+    super();
     this.options = proxyOptions;
     this.targetHost = targetHost;
     this.targetPort = targetPort;
     if (!this.targetHost) throw new Error('Host is required');
     if (!this.targetPort) throw new Error('Port is required');
-
-    this.server = net.createServer(this.onConnection.bind(this));
   }
 
-  start(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.server.on('error', reject);
-      this.server.listen(0, '127.0.0.1', resolve);
-    });
-  }
-
-  stop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.server.close(e => {
-        if (e) reject(e);
-        else resolve();
-      });
-
+  override async whenClosing(): Promise<void> {
+    await super.whenClosing();
+    await new Promise<void>(resolve => {
       this.connectedClients.forEach(client => client.destroy());
+      resolve();
     });
   }
 
-  get error(): Error | null {
-    return this.errors.length > 0 ? this.errors[0] : null;
-  }
-
-  private async onConnection(socket: net.Socket): Promise<void> {
+  override async whenConnecting(socket: net.Socket): Promise<void> {
     let socks5Proxy: SocksClientEstablishedEvent;
     this.connectedClients.add(socket);
 
@@ -84,6 +61,7 @@ export default class ReverseProxy {
       socks5Proxy.socket.on('error', socket.destroy);
 
       socks5Proxy.socket.pipe(socket).pipe(socks5Proxy.socket);
+      await super.whenConnecting(socks5Proxy.socket);
     } catch (err) {
       socket.destroy(err as Error);
     }
