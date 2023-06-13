@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-import { buildSequelizeInstance, createSqlDataSource } from '../src';
+import { buildSequelizeInstance, createSqlDataSource, preprocessOptions } from '../src';
 
 jest.mock('sequelize');
 
@@ -69,6 +69,40 @@ describe('index', () => {
           dialect: 'postgres',
           dialectOptions: {},
         });
+      });
+    });
+  });
+
+  describe('preprocessOptions', () => {
+    test('generate an object with dialect and sslmode from uri', async () => {
+      const result = await preprocessOptions('postgres://example:password@localhost:5442/example');
+
+      expect(result).toStrictEqual({
+        dialect: 'postgres',
+        sslMode: 'manual',
+        uri: 'postgres://example:password@localhost:5442/example',
+      });
+    });
+
+    test('generate an object with dialect and sslmode from object', async () => {
+      const result = await preprocessOptions({
+        database: 'example',
+        dialect: 'postgres',
+        host: 'localhost',
+        password: 'password',
+        port: 5442,
+        sslMode: 'required',
+        username: 'example',
+      });
+
+      expect(result).toStrictEqual({
+        database: 'example',
+        dialect: 'postgres',
+        host: 'localhost',
+        password: 'password',
+        port: 5442,
+        sslMode: 'required',
+        username: 'example',
       });
     });
   });
