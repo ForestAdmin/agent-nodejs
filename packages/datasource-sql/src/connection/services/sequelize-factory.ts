@@ -1,9 +1,9 @@
 import { Sequelize } from 'sequelize';
 import { Options as SequelizeOptions } from 'sequelize/types/sequelize';
 
-import Events from './events';
+import Service from './service';
 
-export default class SequelizeFactory extends Events {
+export default class SequelizeFactory extends Service {
   build(sequelizeCtorOptions: [SequelizeOptions] | [string, SequelizeOptions]) {
     const sequelize =
       sequelizeCtorOptions.length === 1
@@ -16,14 +16,14 @@ export default class SequelizeFactory extends Events {
   }
 
   private overrideCloseMethod(sequelize: Sequelize): void {
-    // override close method to ensure to handle the 'close' event
-    const whenClosing = this.whenClosing.bind(this);
+    const closeListener = this.closeListener.bind(this);
 
+    // override close method to ensure to execute the closeListener
     sequelize.close = async function close() {
       try {
         await Sequelize.prototype.close.call(this);
       } finally {
-        await whenClosing();
+        await closeListener();
       }
     };
   }

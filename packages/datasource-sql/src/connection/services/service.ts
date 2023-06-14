@@ -3,28 +3,27 @@ import net from 'net';
 export type ConnectionCallback = (socket: net.Socket) => Promise<void>;
 export type CloseCallback = () => Promise<void>;
 
-/** This class is used to handle events. */
-export default abstract class Events {
+export default abstract class Service {
   private connectionCallback: ConnectionCallback;
   private closeCallback: CloseCallback;
 
-  /** attach a callback when the 'connect' event is emit. */
+  /** attach a callback when there is a new connection on the service. */
   onConnect(callback: ConnectionCallback): void {
     this.connectionCallback = callback;
   }
 
-  /** callback when the 'connect' event is emit. */
-  async whenConnecting(socket: net.Socket): Promise<void> {
+  /** callback to execute when there is a new connection. */
+  async connectListener(socket: net.Socket): Promise<void> {
     await this.connectionCallback?.(socket);
   }
 
-  /** attach a callback when the 'close' event is emit. */
+  /** attach a callback when a service is closing. */
   onClose(callback: CloseCallback): void {
     this.closeCallback = callback;
   }
 
-  /** callback when the 'close' event is emit. */
-  async whenClosing(): Promise<void> {
+  /** callback to execute when the service is closing. */
+  async closeListener(): Promise<void> {
     await this.closeCallback?.();
   }
 }

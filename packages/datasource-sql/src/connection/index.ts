@@ -17,14 +17,14 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
       tcpServer = new TcpServer();
       await tcpServer.start();
       proxy = new ReverseProxy(options.proxyOptions, options.host, options.port);
-      tcpServer.onConnect(proxy.whenConnecting.bind(proxy));
-      tcpServer.onClose(proxy.whenClosing.bind(proxy));
+      tcpServer.onConnect(proxy.connectListener.bind(proxy));
+      tcpServer.onClose(proxy.closeListener.bind(proxy));
       // swap database host and port with the ones from the proxy.
       options.changeHostAndPort(tcpServer.host, tcpServer.port);
     }
 
     const sequelizeFactory = new SequelizeFactory();
-    if (tcpServer) sequelizeFactory.onClose(tcpServer.whenClosing.bind(tcpServer));
+    if (tcpServer) sequelizeFactory.onClose(tcpServer.closeListener.bind(tcpServer));
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
     await sequelize.authenticate(); // Test connection
