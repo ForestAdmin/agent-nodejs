@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
@@ -150,6 +152,33 @@ describe('Connect', () => {
       const fn = () => connect(new ConnectionOptions({ uri, sslMode: 'verify' }));
 
       await expect(fn).rejects.toThrow(/self[- ]signed certificate/);
+    });
+  });
+
+  describe('when there is also a provided ssh configuration', () => {
+    it('should be able to connect at the db', async () => {
+      const baseUri = 'postgres://test:password@localhost:5443';
+      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+
+      const options = new ConnectionOptions({
+        uri: `postgres://test:password@postgres:5432/test_connection`,
+        proxySocks: {
+          host: 'localhost',
+          port: 1080,
+          password: 'password',
+          userId: 'username',
+        },
+        ssh: {
+          host: 'localhost',
+          dockerHost: 'ssh-server',
+          port: 2222,
+          username: 'forest',
+          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
+        },
+      });
+      const seq = await connect(options);
+      await seq.close();
+      expect(seq).toBeInstanceOf(Sequelize);
     });
   });
 });

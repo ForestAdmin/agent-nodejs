@@ -30,10 +30,19 @@ export type ProxyOptions = {
   command?: 'connect';
 };
 
+export type SshOptions = {
+  port: number;
+  host: string;
+  username: string;
+  privateKey: string;
+  dockerHost?: string;
+};
+
 export type PlainConnectionOptions = SupportedSequelizeOptions & {
   uri?: string;
   sslMode?: SslMode;
   proxySocks?: ProxyOptions;
+  ssh?: SshOptions;
 };
 
 export type PlainConnectionOptionsOrUri = PlainConnectionOptions | string;

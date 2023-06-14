@@ -43,3 +43,20 @@ services:
       - PROXY_USER=username
       - PROXY_PASSWORD=password
 
+  ssh-server:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: ssh_server
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - PUBLIC_KEY_FILE=/config/id_rsa.pub # path to the public key file inside the container
+      - USER_NAME=forest
+      - DOCKER_MODS=linuxserver/mods:openssh-server-ssh-tunnel # enable AllowTcpForwarding here
+    expose:
+      - 5432
+    volumes:
+      - ./ssh-config:/config
+    ports:
+      - '2222:2222'
+    restart: unless-stopped

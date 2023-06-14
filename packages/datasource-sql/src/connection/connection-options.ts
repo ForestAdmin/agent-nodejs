@@ -7,6 +7,7 @@ import {
   PlainConnectionOptions,
   PlainConnectionOptionsOrUri,
   ProxyOptions,
+  SshOptions,
   SslMode,
 } from '../types';
 
@@ -22,6 +23,7 @@ import {
  */
 export default class ConnectionOptions {
   proxyOptions?: ProxyOptions;
+  sshOptions?: SshOptions;
 
   private initialHost: string;
   private initialPort: number;
@@ -84,9 +86,10 @@ export default class ConnectionOptions {
       this.uri = this.parseDatabaseUri(options);
       this.sequelizeOptions = {};
     } else {
-      const { uri, sslMode, proxySocks, ...sequelizeOptions } = options;
+      const { uri, sslMode, proxySocks, ssh, ...sequelizeOptions } = options;
 
       this.proxyOptions = proxySocks;
+      this.sshOptions = ssh;
       this.sequelizeOptions = sequelizeOptions;
       this.sslMode = sslMode ?? 'manual';
       this.uri = uri ? this.parseDatabaseUri(uri) : null;
