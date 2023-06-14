@@ -2,8 +2,8 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
-import Events from './services/events';
-import { ProxyOptions } from '../types';
+import Events from './events';
+import { ProxyOptions } from '../../types';
 
 export default class ReverseProxy extends Events {
   private readonly errors: Error[] = [];

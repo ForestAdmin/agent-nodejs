@@ -1,4 +1,4 @@
-import ReverseProxy from '../../src/connection/reverse-proxy';
+import ReverseProxy from '../../src/connection/services/reverse-proxy';
 
 beforeEach(() => jest.clearAllMocks());
 

@@ -2,15 +2,15 @@ import { Sequelize } from 'sequelize';
 
 import ConnectionOptions from './connection-options';
 import handleErrors from './handle-errors';
-import ReverseProxy from './reverse-proxy';
-import SequelizeWrapper from './services/sequelize-wrapper';
+import ReverseProxy from './services/reverse-proxy';
+import SequelizeFactory from './services/sequelize-factory';
 import TcpServer from './services/tcp-server';
 
 /** Attempt to connect to the database */
 export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
   let proxy: ReverseProxy;
   let tcpServer: TcpServer;
-  let sequelizeWrapper: SequelizeWrapper;
+  let sequelize: Sequelize;
 
   try {
     if (options.proxyOptions) {
@@ -23,14 +23,15 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
       options.changeHostAndPort(tcpServer.host, tcpServer.port);
     }
 
-    sequelizeWrapper = new SequelizeWrapper(await options.buildSequelizeCtorOptions());
-    if (tcpServer) sequelizeWrapper.onClose(tcpServer.whenClosing.bind(tcpServer));
+    const sequelizeFactory = new SequelizeFactory();
+    if (tcpServer) sequelizeFactory.onClose(tcpServer.whenClosing.bind(tcpServer));
 
-    await sequelizeWrapper.connect(); // Test connection
+    sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
+    await sequelize.authenticate(); // Test connection
 
-    return sequelizeWrapper.sequelizeInstance;
+    return sequelize;
   } catch (e) {
-    await sequelizeWrapper?.close();
+    await sequelize?.close();
     // if proxy encountered an error, we want to throw it instead of the sequelize error
     handleErrors(proxy?.error ?? e, options);
   }
