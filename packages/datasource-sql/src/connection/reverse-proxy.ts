@@ -61,6 +61,7 @@ export default class ReverseProxy extends Events {
       socks5Proxy.socket.on('error', socket.destroy);
 
       socks5Proxy.socket.pipe(socket).pipe(socks5Proxy.socket);
+
       await super.whenConnecting(socks5Proxy.socket);
     } catch (err) {
       socket.destroy(err as Error);
