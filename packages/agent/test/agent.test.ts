@@ -19,7 +19,6 @@ jest.mock('../src/routes', () => ({
 
 // Mock options
 const mockPostSchema = jest.fn();
-const mockAddWebhookActions = Symbol('addWebhookActions');
 
 const mockCustomizer = {
   addDataSource: jest.fn(),
@@ -37,15 +36,6 @@ const mockNocodeCustomizer = {
 };
 
 const mockDatasourceCustomizer = DataSourceCustomizer as jest.Mock;
-
-jest.mock('../src/services/model-customizations/action-customization', () => ({
-  __esModule: true,
-  default: class {
-    public static VERSION = '3.14.15';
-    public static FEATURE = 'webhook-custom-actions';
-    addWebhookActions = mockAddWebhookActions;
-  },
-}));
 
 jest.mock('@forestadmin/datasource-customizer', () => ({
   __esModule: true,
@@ -182,14 +172,14 @@ describe('Agent', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: {
-            'webhook-custom-actions': '3.14.15',
+            'webhook-custom-actions': expect.stringMatching(/\d+\.\d+\.\d+.*/),
           },
           stack: expect.anything(),
         },
       });
 
       expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
-      expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(mockAddWebhookActions, true);
+      expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(expect.any(Function));
     });
 
     test('start should subscribe server events and add listener to restart', async () => {

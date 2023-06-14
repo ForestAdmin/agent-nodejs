@@ -7,3 +7,4 @@ export { default as serializer } from './serializer';
 export { default as superagent } from './superagent';
 export { default as authorization } from './authorization/authorization';
 export { default as forestAdminClient } from './forest-admin-client';
+export { default as customization } from './model-customizations/customization';

@@ -40,9 +40,11 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
 
     describe('when experimental.webhookCustomActions is define', () => {
       it('should add all webhook action customizations', async () => {
-        const options = forestAdminHttpDriverOptions.build();
-
-        options.experimental.webhookCustomActions = true;
+        const options = forestAdminHttpDriverOptions.build({
+          experimental: {
+            webhookCustomActions: true,
+          },
+        });
 
         const actionCustomization = new CustomizationPluginService(options);
 
@@ -67,9 +69,11 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
 
     describe('when experimental.updateRecordCustomActions is define', () => {
       it('should add all update record action customizations', async () => {
-        const options = forestAdminHttpDriverOptions.build();
-
-        options.experimental.updateRecordCustomActions = true;
+        const options = forestAdminHttpDriverOptions.build({
+          experimental: {
+            updateRecordCustomActions: true,
+          },
+        });
 
         const actionCustomization = new CustomizationPluginService(options);
 
@@ -98,10 +102,12 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
     it.each([false, undefined])(
       'should not add customizations when the feature is disabled (using %s)',
       async optionValue => {
-        const options = forestAdminHttpDriverOptions.build();
-
-        options.experimental.webhookCustomActions = optionValue;
-        options.experimental.updateRecordCustomActions = optionValue;
+        const options = forestAdminHttpDriverOptions.build({
+          experimental: {
+            webhookCustomActions: optionValue,
+            updateRecordCustomActions: optionValue,
+          },
+        });
 
         const actionCustomization = new CustomizationPluginService(options);
 
@@ -130,10 +136,12 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
       'should return all feature activated (using options.experimental) ' +
         'with their name and their version',
       async () => {
-        const options = forestAdminHttpDriverOptions.build();
-
-        options.experimental.webhookCustomActions = true;
-        options.experimental.updateRecordCustomActions = true;
+        const options = forestAdminHttpDriverOptions.build({
+          experimental: {
+            webhookCustomActions: true,
+            updateRecordCustomActions: true,
+          },
+        });
 
         const actionCustomization = new CustomizationPluginService(options);
 
@@ -147,7 +155,12 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
     );
 
     it('should return null when nothing is activated (using options.experimental)', async () => {
-      const options = forestAdminHttpDriverOptions.build();
+      const options = forestAdminHttpDriverOptions.build({
+        experimental: {
+          webhookCustomActions: false,
+          updateRecordCustomActions: false,
+        },
+      });
 
       const actionCustomization = new CustomizationPluginService(options);
 
