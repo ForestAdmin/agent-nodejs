@@ -38,7 +38,5 @@ export default class WebhookActionsPlugin {
         execute: context => executeWebhook(action, context),
       });
     });
-
-    return Promise.resolve();
   };
 }

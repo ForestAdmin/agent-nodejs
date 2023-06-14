@@ -47,7 +47,5 @@ export default class UpdateRecordActionsPlugin {
         },
       });
     });
-
-    return Promise.resolve();
   };
 }

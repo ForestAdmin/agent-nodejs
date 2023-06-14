@@ -45,7 +45,7 @@ export default class CustomizationPluginService {
     return CustomizationPluginService.buildFeatures(this.getFeatures());
   }
 
-  public static addCustomizations: Plugin<ModelCustomization[]> = async (
+  public static addCustomizations: Plugin<ModelCustomization[]> = (
     datasourceCustomizer,
     _,
     modelCustomizations,
