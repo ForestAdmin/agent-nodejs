@@ -170,12 +170,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   private async buildRouterAndSendSchema(): Promise<Router> {
-    const { isProduction, logger, typingsPath, typingsMaxDepth, experimental } = this.options;
+    const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations
     this.nocodeCustomizer = new DataSourceCustomizer<S>();
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
-    this.nocodeCustomizer.use(this.customizationService.addCustomizations, { experimental });
+    this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
     const dataSource = await this.nocodeCustomizer.getDataSource(logger);
     const [router] = await Promise.all([

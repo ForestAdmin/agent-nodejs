@@ -16,20 +16,20 @@ export default class CustomizationPluginService {
     this.options = agentOptions;
   }
 
-  public addCustomizations: Plugin<Pick<AgentOptionsWithDefaults, 'experimental'> | undefined> =
-    async (datasourceCustomizer, _, options) => {
-      if (!options?.experimental) return;
+  public addCustomizations: Plugin<void> = async (datasourceCustomizer, _) => {
+    const { experimental } = this.options;
+    if (!experimental) return;
 
-      const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
+    const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
 
-      if (options?.experimental.webhookCustomActions) {
-        WebhookActionsPlugin.addWebhookActions(datasourceCustomizer, _, modelCustomizations);
-      }
+    if (experimental.webhookCustomActions) {
+      WebhookActionsPlugin.addWebhookActions(datasourceCustomizer, _, modelCustomizations);
+    }
 
-      if (options?.experimental.webhookCustomActions) {
-        UpdateRecordActionsPlugin.addUpdateRecord(datasourceCustomizer, _, modelCustomizations);
-      }
-    };
+    if (experimental.webhookCustomActions) {
+      UpdateRecordActionsPlugin.addUpdateRecord(datasourceCustomizer, _, modelCustomizations);
+    }
+  };
 
   public getFeatures(): string[] | null {
     const mapping: Record<keyof AgentOptionsWithDefaults['experimental'], string> = {
