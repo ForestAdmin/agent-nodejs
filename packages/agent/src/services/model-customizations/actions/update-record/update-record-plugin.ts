@@ -1,22 +1,10 @@
 import { Plugin } from '@forestadmin/datasource-customizer';
 import {
-  ActionConfiguration,
-  ActionType,
   ModelCustomization,
-  ModelCustomizationType,
   UpdateRecordActionConfiguration,
 } from '@forestadmin/forestadmin-client';
 
-function getActions<TConfiguration>(
-  type: ActionType,
-  configuration: ModelCustomization[],
-): ModelCustomization<TConfiguration>[] {
-  return configuration.filter(
-    customization =>
-      customization.type === ModelCustomizationType.action &&
-      (customization as ModelCustomization<ActionConfiguration>).configuration.type === type,
-  ) as ModelCustomization<TConfiguration>[];
-}
+import getActions from '../get-actions';
 
 export default class UpdateRecordActionsPlugin {
   public static VERSION = '1.0.0';

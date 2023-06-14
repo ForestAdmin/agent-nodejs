@@ -1,8 +1,8 @@
 import {
+  ActionConfigurationApi,
   ActionScope,
   ModelCustomization,
   ModelCustomizationService,
-  WebhookActionConfigurationApi,
 } from './types';
 import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
@@ -11,7 +11,7 @@ function mapApiValues<T>(modelCustomization: ModelCustomization<T>): ModelCustom
     throw new Error('Only action customizations are supported for now.');
   }
 
-  const configuration = modelCustomization.configuration as WebhookActionConfigurationApi;
+  const configuration = modelCustomization.configuration as ActionConfigurationApi;
   const mappedConfiguration = {
     ...configuration,
     scope: configuration.scope
