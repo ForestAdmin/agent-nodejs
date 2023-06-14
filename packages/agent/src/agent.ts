@@ -19,7 +19,6 @@ import bodyParser from 'koa-bodyparser';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
-import ActionCustomizationService from './services/model-customizations/actions/update-record/update-record-plugin';
 import CustomizationService from './services/model-customizations/customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
@@ -217,7 +216,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(dataSource, this.buildSchemaFeatures());
+      schema = await SchemaGenerator.buildSchema(
+        dataSource,
+        this.customizationService.buildFeatures(),
+      );
 
       const pretty = stringify(schema, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
@@ -230,15 +232,5 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       : 'Schema was not updated since last run';
 
     this.options.logger('Info', message);
-  }
-
-  private buildSchemaFeatures(): string[] | null {
-    const mapping: Record<keyof AgentOptions['experimental'], string> = {
-      webhookCustomActions: ActionCustomizationService.FEATURE,
-    };
-
-    return Object.entries(mapping)
-      .filter(([experimentalFeature]) => this.options.experimental?.[experimentalFeature])
-      .map(([, feature]) => feature);
   }
 }
