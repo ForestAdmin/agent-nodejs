@@ -1,5 +1,5 @@
 import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
-import { ModelCustomization, WebhookActionConfigurationApi } from '../model-customizations/types';
+import { ModelCustomization } from '../model-customizations/types';
 import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import ServerUtils from '../utils/server';
 
@@ -25,10 +25,6 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   }
 
   async getModelCustomizations(options: HttpOptions): Promise<ModelCustomization[]> {
-    return ServerUtils.query<ModelCustomization<WebhookActionConfigurationApi>[]>(
-      options,
-      'get',
-      '/liana/model-customizations',
-    );
+    return ServerUtils.query<ModelCustomization[]>(options, 'get', '/liana/model-customizations');
   }
 }

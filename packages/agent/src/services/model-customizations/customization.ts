@@ -59,15 +59,15 @@ export default class CustomizationPluginService {
     };
   };
 
-  public buildFeatures(): Record<string, string> {
+  public buildFeatures() {
     return CustomizationPluginService.buildFeatures(this.options?.experimental);
   }
 
-  public static buildFeatures(experimental: ExperimentalOptions): Record<string, string> {
+  public static buildFeatures(experimental: ExperimentalOptions): Record<string, string> | null {
     const features = CustomizationPluginService.getFeatures(experimental);
 
     const enabledFeaturesFormattedWithVersion = featuresFormattedWithVersion
-      .filter(({ feature }) => features.includes(feature))
+      .filter(({ feature }) => features?.includes(feature))
       .reduce(
         (acc, { feature, version }) => ({
           ...acc,
@@ -81,7 +81,7 @@ export default class CustomizationPluginService {
       : null;
   }
 
-  private static getFeatures(experimental: ExperimentalOptions): string[] | null {
+  private static getFeatures(experimental: ExperimentalOptions): string[] {
     return Object.entries(optionsToFeatureMapping)
       .filter(([experimentalFeature]) => experimental?.[experimentalFeature])
       .map(([, feature]) => feature);

@@ -20,20 +20,15 @@ export type ActionConfigurationApi<TActionConfigurationSpecific = unknown> = {
   configuration: TActionConfigurationSpecific;
 };
 
-export type WebhookActionConfigurationSpecific = {
-  url: string;
-  integration: string;
-};
-
-export type WebhookActionConfigurationApi =
-  ActionConfigurationApi<WebhookActionConfigurationSpecific> & {
-    type: 'webhook';
-  };
-
 export type ActionConfiguration<TActionConfigurationSpecific = unknown> = {
   scope: ActionScope;
   type: ActionType;
   configuration: TActionConfigurationSpecific;
+};
+
+export type WebhookActionConfigurationSpecific = {
+  url: string;
+  integration: string;
 };
 
 export type WebhookActionConfiguration = ActionConfiguration<WebhookActionConfigurationSpecific> & {
