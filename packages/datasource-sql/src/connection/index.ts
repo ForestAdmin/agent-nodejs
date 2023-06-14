@@ -15,8 +15,8 @@ function makeProxy(
   tcpServer: TcpServer,
 ): ReverseProxy {
   const proxy = new ReverseProxy(proxyOptions, targetHost, targetPort);
-  tcpServer.onConnect(proxy.whenConnecting.bind(proxy));
-  tcpServer.onClose(proxy.whenClosing.bind(proxy));
+  tcpServer.onConnect(proxy.connectListener.bind(proxy));
+  tcpServer.onClose(proxy.closeListener.bind(proxy));
 
   return proxy;
 }
@@ -37,11 +37,11 @@ function makeSshClient(
   );
 
   if (proxy) {
-    proxy.onConnect(sshClient.whenConnecting.bind(sshClient));
-    proxy.onClose(sshClient.whenClosing.bind(sshClient));
+    proxy.onConnect(sshClient.connectListener.bind(sshClient));
+    proxy.onClose(sshClient.closeListener.bind(sshClient));
   } else {
-    tcpServer.onConnect(sshClient.whenConnecting.bind(sshClient));
-    tcpServer.onClose(sshClient.whenClosing.bind(sshClient));
+    tcpServer.onConnect(sshClient.connectListener.bind(sshClient));
+    tcpServer.onClose(sshClient.closeListener.bind(sshClient));
   }
 
   return sshClient;
@@ -58,6 +58,9 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     if (options.proxyOptions || options.sshOptions) {
       tcpServer = new TcpServer();
       await tcpServer.start();
+      proxy = new ReverseProxy(options.proxyOptions, options.host, options.port);
+      tcpServer.onConnect(proxy.connectListener.bind(proxy));
+      tcpServer.onClose(proxy.closeListener.bind(proxy));
     }
 
     if (options.proxyOptions) {
@@ -72,7 +75,7 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     }
 
     const sequelizeFactory = new SequelizeFactory();
-    if (tcpServer) sequelizeFactory.onClose(tcpServer.whenClosing.bind(tcpServer));
+    if (tcpServer) sequelizeFactory.onClose(tcpServer.closeListener.bind(tcpServer));
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
     await sequelize.authenticate(); // Test connection

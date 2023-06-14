@@ -1,9 +1,9 @@
 import net from 'net';
 
-import Events from './events';
+import Service from './service';
 
 /** TcpServer is used as proxy to redirect all the database requests */
-export default class TcpServer extends Events {
+export default class TcpServer extends Service {
   private readonly server: net.Server;
 
   get host(): string {
@@ -16,7 +16,7 @@ export default class TcpServer extends Events {
 
   constructor() {
     super();
-    this.server = net.createServer(this.whenConnecting.bind(this));
+    this.server = net.createServer(this.connectListener.bind(this));
   }
 
   start(): Promise<void> {
@@ -30,7 +30,7 @@ export default class TcpServer extends Events {
 
   async stop(): Promise<void> {
     try {
-      await super.whenClosing();
+      await super.closeListener();
     } finally {
       await new Promise<void>((resolve, reject) => {
         this.server.close(e => {
@@ -41,7 +41,7 @@ export default class TcpServer extends Events {
     }
   }
 
-  override async whenClosing(): Promise<void> {
+  override async closeListener(): Promise<void> {
     await this.stop();
   }
 }
