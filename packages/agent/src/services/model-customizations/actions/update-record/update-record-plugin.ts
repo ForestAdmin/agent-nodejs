@@ -10,7 +10,7 @@ export default class UpdateRecordActionsPlugin {
   public static VERSION = '1.0.0';
   public static FEATURE = 'update-record-actions';
 
-  public static addUpdateRecord: Plugin<ModelCustomization[]> = (
+  public static addUpdateRecordActions: Plugin<ModelCustomization[]> = (
     datasourceCustomizer,
     _,
     modelCustomizations,
@@ -19,6 +19,7 @@ export default class UpdateRecordActionsPlugin {
       'update-record',
       modelCustomizations,
     );
+
     actions.forEach(action => {
       const collection = datasourceCustomizer.getCollection(action.modelName);
 

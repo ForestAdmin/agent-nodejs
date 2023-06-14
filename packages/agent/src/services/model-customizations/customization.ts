@@ -50,7 +50,11 @@ export default class CustomizationPluginService {
       }
 
       if (experimental.updateRecordCustomActions) {
-        UpdateRecordActionsPlugin.addUpdateRecord(datasourceCustomizer, _, modelCustomizations);
+        UpdateRecordActionsPlugin.addUpdateRecordActions(
+          datasourceCustomizer,
+          _,
+          modelCustomizations,
+        );
       }
     };
   };
