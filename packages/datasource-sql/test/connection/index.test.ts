@@ -170,7 +170,6 @@ describe('Connect', () => {
         },
         ssh: {
           host: 'localhost',
-          dockerHost: 'ssh-server',
           port: 2222,
           username: 'forest',
           privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
@@ -191,7 +190,6 @@ describe('Connect', () => {
         uri: `postgres://test:password@postgres:5432/test_connection`,
         ssh: {
           host: 'localhost',
-          dockerHost: 'ssh-server',
           port: 2222,
           username: 'forest',
           privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),

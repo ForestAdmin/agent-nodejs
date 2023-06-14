@@ -35,7 +35,6 @@ export type SshOptions = {
   host: string;
   username: string;
   privateKey: string;
-  dockerHost?: string;
 };
 
 export type PlainConnectionOptions = SupportedSequelizeOptions & {

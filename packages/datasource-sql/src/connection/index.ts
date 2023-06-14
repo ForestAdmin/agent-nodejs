@@ -23,10 +23,18 @@ function makeProxy(
 
 function makeSshClient(
   sshOptions: SshOptions,
+  targetHost: string,
+  targetPort: number,
   tcpServer: TcpServer,
   proxy: ReverseProxy,
 ): SshClient {
-  const sshClient = new SshClient(sshOptions, tcpServer.host, tcpServer.port);
+  const sshClient = new SshClient(
+    sshOptions,
+    tcpServer.host,
+    tcpServer.port,
+    targetHost,
+    targetPort,
+  );
 
   if (proxy) {
     proxy.onConnect(sshClient.whenConnecting.bind(sshClient));
@@ -55,13 +63,12 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     if (options.proxyOptions) {
       proxy = makeProxy(options.proxyOptions, options.host, options.port, tcpServer);
       // swap database host and port with the ones from the proxy.
-      options.changeHostAndPort(tcpServer.host, tcpServer.port);
     }
 
     if (options.sshOptions) {
-      sshClient = await makeSshClient(options.sshOptions, tcpServer, proxy);
       // swap database host and port with the ones from the proxy.
-      if (!proxy) options.changeHostAndPort(tcpServer.host, tcpServer.port);
+      sshClient = makeSshClient(options.sshOptions, options.host, options.port, tcpServer, proxy);
+      options.changeHostAndPort(tcpServer.host, tcpServer.port);
     }
 
     const sequelizeFactory = new SequelizeFactory();

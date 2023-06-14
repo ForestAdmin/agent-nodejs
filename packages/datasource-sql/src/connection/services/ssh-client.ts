@@ -9,12 +9,22 @@ export default class SshClient extends Events {
   private readonly options: SshOptions;
   private readonly sourceHost: string;
   private readonly sourcePort: number;
+  private readonly targetHost: string;
+  private readonly targetPort: number;
 
-  constructor(options: SshOptions, sourceHost: string, sourcePort: number) {
+  constructor(
+    options: SshOptions,
+    sourceHost: string,
+    sourcePort: number,
+    targetHost: string,
+    targetPort: number,
+  ) {
     super();
     this.options = options;
     this.sourceHost = sourceHost;
     this.sourcePort = sourcePort;
+    this.targetHost = targetHost;
+    this.targetPort = targetPort;
     this.client = new Client();
   }
 
@@ -30,19 +40,19 @@ export default class SshClient extends Events {
     return new Promise((resolve, reject) => {
       this.client.on('error', e => reject(e));
       this.client.on('ready', () => {
-        this.onReady(socket, this.sourceHost, this.sourcePort);
+        this.onReady(socket);
         resolve();
       });
       this.client.connect(this.options);
     });
   }
 
-  private onReady(clientSocket: net.Socket, sourceAddress: string, sourcePort: number): void {
+  private onReady(socket: net.Socket): void {
     this.client.forwardOut(
-      sourceAddress,
-      sourcePort,
-      this.options.dockerHost ?? this.options.host,
-      this.options.port,
+      this.sourceHost,
+      this.sourcePort,
+      this.targetHost,
+      this.targetPort,
       async (err, stream) => {
         if (err) {
           this.errors.push(err);
@@ -51,8 +61,8 @@ export default class SshClient extends Events {
 
         stream.on('close', () => this.client.end());
         stream.on('error', e => this.errors.push(e));
-        stream.pipe(clientSocket).pipe(stream);
-        await this.whenConnecting(stream);
+        stream.pipe(socket).pipe(stream);
+        await super.whenConnecting(stream);
       },
     );
   }
