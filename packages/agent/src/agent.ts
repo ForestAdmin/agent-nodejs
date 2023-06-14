@@ -19,7 +19,7 @@ import bodyParser from 'koa-bodyparser';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
-import ActionCustomizationService from './services/model-customizations/action-customization';
+import ActionCustomizationService from './services/model-customizations/actions/update-record/update-record-plugin';
 import CustomizationService from './services/model-customizations/customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';

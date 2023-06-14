@@ -2,15 +2,12 @@ import { Plugin } from '@forestadmin/datasource-customizer';
 import {
   ActionConfiguration,
   ActionType,
-  ForestAdminClient,
   ModelCustomization,
   ModelCustomizationType,
-  UpdateRecordActionConfiguration,
   WebhookActionConfiguration,
 } from '@forestadmin/forestadmin-client';
 
 import executeWebhook from './execute-webhook';
-import { AgentOptionsWithDefaults } from '../../types';
 
 function getActions<TConfiguration>(
   type: ActionType,
@@ -23,15 +20,9 @@ function getActions<TConfiguration>(
   ) as ModelCustomization<TConfiguration>[];
 }
 
-export default class ActionCustomizationService {
+export default class WebhookActionsPlugin {
   public static VERSION = '1.0.0';
   public static FEATURE = 'webhook-custom-actions';
-
-  private readonly client: ForestAdminClient;
-
-  public constructor(agentOptions: Pick<AgentOptionsWithDefaults, 'forestAdminClient'>) {
-    this.client = agentOptions.forestAdminClient;
-  }
 
   public static addWebhookActions: Plugin<ModelCustomization[]> = (
     datasourceCustomizer,
@@ -45,35 +36,6 @@ export default class ActionCustomizationService {
       collection.addAction(action.name, {
         scope: action.configuration.scope,
         execute: context => executeWebhook(action, context),
-      });
-    });
-
-    return Promise.resolve();
-  };
-
-  public static addUpdateRecord: Plugin<ModelCustomization[]> = (
-    datasourceCustomizer,
-    _,
-    modelCustomizations,
-  ) => {
-    const actions = getActions<UpdateRecordActionConfiguration>(
-      'update-record',
-      modelCustomizations,
-    );
-    actions.forEach(action => {
-      const collection = datasourceCustomizer.getCollection(action.modelName);
-
-      collection.addAction(action.name, {
-        scope: action.configuration.scope,
-        execute: async context => {
-          const {
-            configuration: {
-              configuration: { fields },
-            },
-          } = action;
-
-          await context.collection.update(context.filter, fields);
-        },
       });
     });
 

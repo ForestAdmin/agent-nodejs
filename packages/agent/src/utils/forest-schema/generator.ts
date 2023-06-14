@@ -2,7 +2,7 @@ import { DataSource } from '@forestadmin/datasource-toolkit';
 import { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorCollection from './generator-collection';
-import ActionCustomizationService from '../../services/model-customizations/action-customization';
+import ActionCustomizationService from '../../services/model-customizations/actions/update-record/update-record-plugin';
 
 export default class SchemaGenerator {
   static async buildSchema(dataSource: DataSource, features: string[]): Promise<ForestSchema> {

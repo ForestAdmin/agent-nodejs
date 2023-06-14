@@ -1,10 +1,10 @@
 import { Plugin } from '@forestadmin/datasource-customizer';
 import { ForestAdminClient, ModelCustomization } from '@forestadmin/forestadmin-client';
 
-import ActionCustomizationService from './action-customization';
+import ActionCustomizationService from './actions/update-record/update-record-plugin';
 import { AgentOptionsWithDefaults } from '../../types';
 
-export default class CustomizationService {
+export default class CustomizationPluginService {
   private readonly client: ForestAdminClient;
 
   public constructor(agentOptions: Pick<AgentOptionsWithDefaults, 'forestAdminClient'>) {
