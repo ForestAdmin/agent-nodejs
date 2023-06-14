@@ -5,6 +5,18 @@ import UpdateRecordActionsPlugin from './actions/update-record/update-record-plu
 import WebhookActionsPlugin from './actions/webhook/webhook-plugin';
 import { AgentOptionsWithDefaults } from '../../types';
 
+type ExperimentalOptions = AgentOptionsWithDefaults['experimental'];
+
+const optionsToFeatureMapping: Record<keyof ExperimentalOptions, string> = {
+  webhookCustomActions: WebhookActionsPlugin.FEATURE,
+  updateRecordCustomActions: UpdateRecordActionsPlugin.FEATURE,
+};
+
+const featuresFormattedWithVersion = [
+  { feature: WebhookActionsPlugin.FEATURE, version: WebhookActionsPlugin.VERSION },
+  { feature: UpdateRecordActionsPlugin.FEATURE, version: UpdateRecordActionsPlugin.VERSION },
+];
+
 export default class CustomizationPluginService {
   private readonly client: ForestAdminClient;
 
@@ -22,53 +34,35 @@ export default class CustomizationPluginService {
 
     const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
 
-    if (experimental.webhookCustomActions) {
-      WebhookActionsPlugin.addWebhookActions(datasourceCustomizer, _, modelCustomizations);
-    }
-
-    if (experimental.webhookCustomActions) {
-      UpdateRecordActionsPlugin.addUpdateRecord(datasourceCustomizer, _, modelCustomizations);
-    }
+    CustomizationPluginService.makeAddCustomizations(experimental)(
+      datasourceCustomizer,
+      _,
+      modelCustomizations,
+    );
   };
 
-  public getFeatures(): string[] | null {
-    const mapping: Record<keyof AgentOptionsWithDefaults['experimental'], string> = {
-      webhookCustomActions: WebhookActionsPlugin.FEATURE,
-    };
+  public static makeAddCustomizations: (
+    experimental: ExperimentalOptions,
+  ) => Plugin<ModelCustomization[]> = (experimental: ExperimentalOptions) => {
+    return (datasourceCustomizer, _, modelCustomizations) => {
+      if (experimental.webhookCustomActions) {
+        WebhookActionsPlugin.addWebhookActions(datasourceCustomizer, _, modelCustomizations);
+      }
 
-    return Object.entries(mapping)
-      .filter(([experimentalFeature]) => this.options.experimental?.[experimentalFeature])
-      .map(([, feature]) => feature);
-  }
+      if (experimental.updateRecordCustomActions) {
+        UpdateRecordActionsPlugin.addUpdateRecord(datasourceCustomizer, _, modelCustomizations);
+      }
+    };
+  };
 
   public buildFeatures(): Record<string, string> {
-    return CustomizationPluginService.buildFeatures(this.getFeatures());
+    return CustomizationPluginService.buildFeatures(this.options?.experimental);
   }
 
-  public static addCustomizations: Plugin<ModelCustomization[]> = (
-    datasourceCustomizer,
-    _,
-    modelCustomizations,
-  ) => {
-    WebhookActionsPlugin.addWebhookActions(datasourceCustomizer, _, modelCustomizations);
+  public static buildFeatures(experimental: ExperimentalOptions): Record<string, string> {
+    const features = CustomizationPluginService.getFeatures(experimental);
 
-    UpdateRecordActionsPlugin.addUpdateRecord(datasourceCustomizer, _, modelCustomizations);
-  };
-
-  public static getFeatures() {
-    return [WebhookActionsPlugin.FEATURE, UpdateRecordActionsPlugin.FEATURE];
-  }
-
-  /**
-   * By default all plugins are loaded
-   */
-  public static buildFeatures(
-    features = CustomizationPluginService.getFeatures(),
-  ): Record<string, string> {
-    const enabledFeaturesFormattedWithVersion = [
-      { feature: WebhookActionsPlugin.FEATURE, version: WebhookActionsPlugin.VERSION },
-      { feature: UpdateRecordActionsPlugin.FEATURE, version: UpdateRecordActionsPlugin.VERSION },
-    ]
+    const enabledFeaturesFormattedWithVersion = featuresFormattedWithVersion
       .filter(({ feature }) => features.includes(feature))
       .reduce(
         (acc, { feature, version }) => ({
@@ -81,5 +75,11 @@ export default class CustomizationPluginService {
     return Object.keys(enabledFeaturesFormattedWithVersion).length
       ? enabledFeaturesFormattedWithVersion
       : null;
+  }
+
+  private static getFeatures(experimental: ExperimentalOptions): string[] | null {
+    return Object.entries(optionsToFeatureMapping)
+      .filter(([experimentalFeature]) => experimental?.[experimentalFeature])
+      .map(([, feature]) => feature);
   }
 }
