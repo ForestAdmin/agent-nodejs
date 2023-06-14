@@ -7,6 +7,11 @@ export type CloseCallback = () => Promise<void>;
 export default abstract class Events {
   private connectionCallback: ConnectionCallback;
   private closeCallback: CloseCallback;
+  protected readonly errors: Error[] = [];
+
+  get error(): Error | null {
+    return this.errors.length > 0 ? this.errors[0] : null;
+  }
 
   /** attach a callback when the 'connect' event is emit. */
   onConnect(callback: ConnectionCallback): void {

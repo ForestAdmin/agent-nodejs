@@ -44,8 +44,13 @@ export default class SshClient extends Events {
       this.options.host,
       this.options.port,
       async (err, stream) => {
-        if (err) throw err;
+        if (err) {
+          this.errors.push(err);
+          throw err;
+        }
+
         stream.on('close', () => this.client.end());
+        stream.on('error', e => this.errors.push(e));
         stream.pipe(clientSocket).pipe(stream);
         await this.whenConnecting(stream);
       },

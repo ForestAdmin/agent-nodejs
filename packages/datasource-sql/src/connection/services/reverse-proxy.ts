@@ -6,15 +6,10 @@ import Events from './events';
 import { ProxyOptions } from '../../types';
 
 export default class ReverseProxy extends Events {
-  private readonly errors: Error[] = [];
   private readonly connectedClients: Set<net.Socket> = new Set();
   private readonly options: ProxyOptions;
   private readonly targetHost: string;
   private readonly targetPort: number;
-
-  get error(): Error | null {
-    return this.errors.length > 0 ? this.errors[0] : null;
-  }
 
   constructor(proxyOptions: ProxyOptions, targetHost: string, targetPort: number) {
     super();
