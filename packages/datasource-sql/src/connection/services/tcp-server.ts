@@ -28,20 +28,20 @@ export default class TcpServer extends Events {
     });
   }
 
-  stop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.server.close(e => {
-        if (e) reject(e);
-        else resolve();
-      });
-    });
-  }
-
-  override async whenClosing(): Promise<void> {
+  async stop(): Promise<void> {
     try {
       await super.whenClosing();
     } finally {
-      await this.stop();
+      await new Promise<void>((resolve, reject) => {
+        this.server.close(e => {
+          if (e) reject(e);
+          else resolve();
+        });
+      });
     }
+  }
+
+  override async whenClosing(): Promise<void> {
+    await this.stop();
   }
 }

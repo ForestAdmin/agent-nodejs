@@ -155,7 +155,7 @@ describe('Connect', () => {
     });
   });
 
-  describe('when there is also a provided ssh configuration', () => {
+  describe('when there is a ssh and proxy configuration', () => {
     it('should be able to connect at the db', async () => {
       const baseUri = 'postgres://test:password@localhost:5443';
       await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
@@ -168,6 +168,27 @@ describe('Connect', () => {
           password: 'password',
           userId: 'username',
         },
+        ssh: {
+          host: 'localhost',
+          dockerHost: 'ssh-server',
+          port: 2222,
+          username: 'forest',
+          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
+        },
+      });
+      const seq = await connect(options);
+      await seq.close();
+      expect(seq).toBeInstanceOf(Sequelize);
+    });
+  });
+
+  describe('when there is only a ssh configuration', () => {
+    it('should be able to connect at the db', async () => {
+      const baseUri = 'postgres://test:password@localhost:5443';
+      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+
+      const options = new ConnectionOptions({
+        uri: `postgres://test:password@postgres:5432/test_connection`,
         ssh: {
           host: 'localhost',
           dockerHost: 'ssh-server',

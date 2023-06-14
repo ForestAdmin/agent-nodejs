@@ -41,7 +41,7 @@ export default class SshClient extends Events {
     this.client.forwardOut(
       sourceAddress,
       sourcePort,
-      this.options.host,
+      this.options.dockerHost ?? this.options.host,
       this.options.port,
       async (err, stream) => {
         if (err) {
