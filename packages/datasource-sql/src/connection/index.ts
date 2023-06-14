@@ -24,7 +24,6 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     }
 
     sequelizeWrapper = new SequelizeWrapper(await options.buildSequelizeCtorOptions());
-
     if (tcpServer) sequelizeWrapper.onClose(tcpServer.whenClosing.bind(tcpServer));
 
     await sequelizeWrapper.connect(); // Test connection

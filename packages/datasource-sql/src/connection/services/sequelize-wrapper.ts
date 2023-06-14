@@ -16,6 +16,8 @@ export default class SequelizeWrapper extends Events {
       sequelizeCtorOptions.length === 1
         ? new Sequelize(sequelizeCtorOptions[0])
         : new Sequelize(sequelizeCtorOptions[0], sequelizeCtorOptions[1]);
+
+    this.overrideCloseMethod();
   }
 
   async connect(): Promise<void> {
@@ -24,6 +26,18 @@ export default class SequelizeWrapper extends Events {
 
   async close(): Promise<void> {
     await this.sequelize.close();
-    await this.whenClosing();
+  }
+
+  private overrideCloseMethod(): void {
+    // override close method to ensure to handle the 'close' event
+    const whenClosing = this.whenClosing.bind(this);
+
+    this.sequelize.close = async function close() {
+      try {
+        await Sequelize.prototype.close.call(this);
+      } finally {
+        await whenClosing();
+      }
+    };
   }
 }

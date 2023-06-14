@@ -27,10 +27,7 @@ export default class ReverseProxy extends Events {
 
   override async whenClosing(): Promise<void> {
     await super.whenClosing();
-    await new Promise<void>(resolve => {
-      this.connectedClients.forEach(client => client.destroy());
-      resolve();
-    });
+    this.connectedClients.forEach(client => client.destroy());
   }
 
   override async whenConnecting(socket: net.Socket): Promise<void> {
@@ -59,7 +56,6 @@ export default class ReverseProxy extends Events {
         if (!socket.closed) socket.destroy();
       });
       socks5Proxy.socket.on('error', socket.destroy);
-
       socks5Proxy.socket.pipe(socket).pipe(socks5Proxy.socket);
 
       await super.whenConnecting(socks5Proxy.socket);
