@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.10.0...@forestadmin/agent@1.11.0) (2023-06-15)
+
+
+### Features
+
+* **agent:** allow to create update record custom actions from the frontend ([#729](https://github.com/ForestAdmin/agent-nodejs/issues/729)) ([e06ac79](https://github.com/ForestAdmin/agent-nodejs/commit/e06ac79111378c7bdf6e7ab9219e9ea2377e6649))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.9.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.4.0
+
 # @forestadmin/agent [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.9.2...@forestadmin/agent@1.10.0) (2023-06-08)
 
 
