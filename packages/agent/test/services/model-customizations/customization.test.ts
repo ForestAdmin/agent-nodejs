@@ -38,7 +38,7 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
       },
     };
 
-    describe('when experimental.webhookCustomActions is define', () => {
+    describe('when experimental.webhookCustomActions is defined', () => {
       it('should add all webhook action customizations', async () => {
         const options = forestAdminHttpDriverOptions.build({
           experimental: {
@@ -67,7 +67,7 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
       });
     });
 
-    describe('when experimental.updateRecordCustomActions is define', () => {
+    describe('when experimental.updateRecordCustomActions is defined', () => {
       it('should add all update record action customizations', async () => {
         const options = forestAdminHttpDriverOptions.build({
           experimental: {
@@ -133,7 +133,7 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
 
   describe('buildFeatures', () => {
     it(
-      'should return all feature activated (using options.experimental) ' +
+      'should return all activated features (using options.experimental) ' +
         'with their name and their version',
       async () => {
         const options = forestAdminHttpDriverOptions.build({
