@@ -2,38 +2,31 @@ import { Sequelize } from 'sequelize';
 
 import ConnectionOptions from './connection-options';
 import handleErrors from './handle-errors';
-import ReverseProxy from './reverse-proxy';
+import ReverseProxy from './services/reverse-proxy';
+import SequelizeFactory from './services/sequelize-factory';
+import TcpServer from './services/tcp-server';
 
 /** Attempt to connect to the database */
 export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
   let proxy: ReverseProxy;
+  let tcpServer: TcpServer;
   let sequelize: Sequelize;
 
   try {
     if (options.proxyOptions) {
-      // start the proxy
+      tcpServer = new TcpServer();
+      await tcpServer.start();
       proxy = new ReverseProxy(options.proxyOptions, options.host, options.port);
-      await proxy.start();
-
+      tcpServer.onConnect(proxy.connectListener.bind(proxy));
+      tcpServer.onClose(proxy.closeListener.bind(proxy));
       // swap database host and port with the ones from the proxy.
-      options.changeHostAndPort(proxy.host, proxy.port);
+      options.changeHostAndPort(tcpServer.host, tcpServer.port);
     }
 
-    const sequelizeCtorOptions = await options.buildSequelizeCtorOptions();
-    sequelize =
-      sequelizeCtorOptions.length === 1
-        ? new Sequelize(sequelizeCtorOptions[0])
-        : new Sequelize(sequelizeCtorOptions[0], sequelizeCtorOptions[1]);
+    const sequelizeFactory = new SequelizeFactory();
+    if (tcpServer) sequelizeFactory.onClose(tcpServer.closeListener.bind(tcpServer));
 
-    // we want to stop the proxy when the sequelize connection is closed
-    sequelize.close = async function close() {
-      try {
-        await Sequelize.prototype.close.call(this);
-      } finally {
-        await proxy?.stop();
-      }
-    };
-
+    sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
     await sequelize.authenticate(); // Test connection
 
     return sequelize;
