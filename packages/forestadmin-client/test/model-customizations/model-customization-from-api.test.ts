@@ -1,9 +1,5 @@
 import ModelCustomizationService from '../../src/model-customizations/model-customization-from-api';
-import {
-  ActionScope,
-  ModelCustomization,
-  WebhookActionConfigurationApi,
-} from '../../src/model-customizations/types';
+import { ActionScope, ModelCustomization } from '../../src/model-customizations/types';
 import { forestAdminServerInterface } from '../__factories__';
 import forestadminClientOptionsFactory from '../__factories__/forest-admin-client-options';
 
@@ -33,7 +29,7 @@ describe('ModelCustomizationFromApiService', () => {
                   },
                 },
               },
-            ] as ModelCustomization<WebhookActionConfigurationApi>[]);
+            ] as ModelCustomization[]);
 
             const options = forestadminClientOptionsFactory.build();
 

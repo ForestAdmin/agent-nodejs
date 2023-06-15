@@ -6,7 +6,7 @@ import {
 } from '@forestadmin/forestadmin-client/src/model-customizations/types';
 import superagent from 'superagent';
 
-import executeWebhook from '../../../src/services/model-customizations/execute-webhook';
+import executeWebhook from '../../../../../src/services/model-customizations/actions/webhook/execute-webhook';
 
 jest.mock('superagent', () => ({
   post: jest.fn().mockReturnThis(),
@@ -28,7 +28,7 @@ const SchemaUtilsMock = SchemaUtils as unknown as {
   getPrimaryKeys: jest.Mock;
 };
 
-describe('Services > ModelCustomizations > WebhookExecutor', () => {
+describe('Services > ModelCustomizations > Actions > WebhookExecutor', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

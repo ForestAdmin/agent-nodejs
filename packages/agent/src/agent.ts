@@ -19,7 +19,7 @@ import bodyParser from 'koa-bodyparser';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
-import ActionCustomizationService from './services/model-customizations/action-customization';
+import CustomizationService from './services/model-customizations/customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
@@ -38,7 +38,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private options: AgentOptionsWithDefaults;
   private customizer: DataSourceCustomizer<S>;
   private nocodeCustomizer: DataSourceCustomizer<S>;
-  private actionCustomizationService: ActionCustomizationService;
+  private customizationService: CustomizationService;
 
   /**
    * Create a new Agent Builder.
@@ -62,7 +62,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
-    this.actionCustomizationService = new ActionCustomizationService(allOptions);
+    this.customizationService = new CustomizationService(allOptions);
   }
 
   /**
@@ -170,15 +170,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   private async buildRouterAndSendSchema(): Promise<Router> {
-    const { isProduction, logger, typingsPath, typingsMaxDepth, experimental } = this.options;
+    const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations
     this.nocodeCustomizer = new DataSourceCustomizer<S>();
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
-    this.nocodeCustomizer.use(
-      this.actionCustomizationService.addWebhookActions,
-      experimental?.webhookCustomActions,
-    );
+    this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
     const dataSource = await this.nocodeCustomizer.getDataSource(logger);
     const [router] = await Promise.all([
@@ -219,7 +216,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(dataSource, this.buildSchemaFeatures());
+      schema = await SchemaGenerator.buildSchema(
+        dataSource,
+        this.customizationService.buildFeatures(),
+      );
 
       const pretty = stringify(schema, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
@@ -232,15 +232,5 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       : 'Schema was not updated since last run';
 
     this.options.logger('Info', message);
-  }
-
-  private buildSchemaFeatures(): string[] | null {
-    const mapping: Record<keyof AgentOptions['experimental'], string> = {
-      webhookCustomActions: ActionCustomizationService.FEATURE,
-    };
-
-    return Object.entries(mapping)
-      .filter(([experimentalFeature]) => this.options.experimental?.[experimentalFeature])
-      .map(([, feature]) => feature);
   }
 }
