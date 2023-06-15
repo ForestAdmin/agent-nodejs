@@ -39,6 +39,10 @@ export default class ConnectionOptions {
     const port = this.initialPort ?? '?';
     const database = this.database ?? '?';
 
+    if (dialect === 'sqlite') {
+      return this.uri ? this.uri.href : `sqlite:${this.sequelizeOptions.storage}`;
+    }
+
     return `${dialect}://${this.initialHost}:${port}/${database}`;
   }
 
