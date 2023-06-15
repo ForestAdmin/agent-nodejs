@@ -49,6 +49,11 @@ export default class ConnectionOptions {
     return this.proxyOptions ? `tcp://${this.proxyOptions.host}:${this.proxyOptions.port}` : 'none';
   }
 
+  /** Ssh URI without credentials, which can be used in error messages INTERNALLY */
+  get debugSshUri(): string {
+    return this.sshOptions ? `tcp://${this.sshOptions.host}:${this.sshOptions.port}` : 'none';
+  }
+
   get dialect(): Dialect {
     let dialect = this.uri?.protocol?.slice(0, -1) || this.sequelizeOptions.dialect;
     if (dialect === 'mysql2') dialect = 'mysql';

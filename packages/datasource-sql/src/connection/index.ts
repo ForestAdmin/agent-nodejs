@@ -4,78 +4,51 @@ import ConnectionOptions from './connection-options';
 import handleErrors from './handle-errors';
 import ReverseProxy from './services/reverse-proxy';
 import SequelizeFactory from './services/sequelize-factory';
+import Service from './services/service';
 import SshClient from './services/ssh-client';
 import TcpServer from './services/tcp-server';
-import { ProxyOptions, SshOptions } from '../types';
 
-function makeProxy(
-  proxyOptions: ProxyOptions,
-  targetHost: string,
-  targetPort: number,
-  tcpServer: TcpServer,
-): ReverseProxy {
-  const proxy = new ReverseProxy(proxyOptions, targetHost, targetPort);
-  tcpServer.onConnect(proxy.connectListener.bind(proxy));
-  tcpServer.onClose(proxy.closeListener.bind(proxy));
-
-  return proxy;
-}
-
-function makeSshClient(
-  sshOptions: SshOptions,
-  targetHost: string,
-  targetPort: number,
-  tcpServer: TcpServer,
-  proxy: ReverseProxy,
-): SshClient {
-  const sshClient = new SshClient(
-    sshOptions,
-    tcpServer.host,
-    tcpServer.port,
-    targetHost,
-    targetPort,
-  );
-
-  if (proxy) {
-    proxy.onConnect(sshClient.connectListener.bind(sshClient));
-    proxy.onClose(sshClient.closeListener.bind(sshClient));
-  } else {
-    tcpServer.onConnect(sshClient.connectListener.bind(sshClient));
-    tcpServer.onClose(sshClient.closeListener.bind(sshClient));
-  }
-
-  return sshClient;
+function bindListeners(from: Service, to: Service): void {
+  from.onConnect(to.connectListener.bind(to));
+  from.onClose(to.closeListener.bind(to));
 }
 
 /** Attempt to connect to the database */
 export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
   let proxy: ReverseProxy;
   let sshClient: SshClient;
-  let tcpServer: TcpServer;
+  let server: TcpServer;
   let sequelize: Sequelize;
 
   try {
     if (options.proxyOptions || options.sshOptions) {
-      tcpServer = new TcpServer();
-      await tcpServer.start();
-      proxy = new ReverseProxy(options.proxyOptions, options.host, options.port);
-      tcpServer.onConnect(proxy.connectListener.bind(proxy));
-      tcpServer.onClose(proxy.closeListener.bind(proxy));
+      server = new TcpServer();
+      await server.start();
     }
 
     if (options.proxyOptions) {
-      proxy = makeProxy(options.proxyOptions, options.host, options.port, tcpServer);
-      // swap database host and port with the ones from the proxy.
+      // destination is the ssh server or the database
+      const { host, port } = options.sshOptions ?? options;
+      proxy = new ReverseProxy(options.proxyOptions, host, port);
+      bindListeners(server, proxy);
     }
 
     if (options.sshOptions) {
-      // swap database host and port with the ones from the proxy.
-      sshClient = makeSshClient(options.sshOptions, options.host, options.port, tcpServer, proxy);
-      options.changeHostAndPort(tcpServer.host, tcpServer.port);
+      // database is the destination
+      const sshOptions = { ...options.sshOptions };
+      const proxyOrServer: Service = proxy ?? server;
+      // ssh host is localhost because the proxy will forward the connection to the ssh server
+      if (proxy) sshOptions.host = 'localhost';
+
+      sshClient = new SshClient(sshOptions, server.host, server.port, options.host, options.port);
+      bindListeners(proxyOrServer, sshClient);
     }
 
+    // swap database host and port with the ones from the tcp server proxy.
+    if (server) options.changeHostAndPort(server.host, server.port);
+
     const sequelizeFactory = new SequelizeFactory();
-    if (tcpServer) sequelizeFactory.onClose(tcpServer.closeListener.bind(tcpServer));
+    if (server) sequelizeFactory.onClose(server.closeListener.bind(server));
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
     await sequelize.authenticate(); // Test connection

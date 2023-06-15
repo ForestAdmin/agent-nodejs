@@ -1,13 +1,13 @@
 /* eslint-disable max-classes-per-file */
 
-export type ErrorSource = 'Proxy' | 'Database';
+export type ErrorSource = 'Proxy' | 'Database' | 'Ssh';
 
 abstract class BaseError extends Error {
   abstract readonly source: ErrorSource;
   readonly uri: string;
   readonly details: string;
 
-  constructor(message: string, uri: string, details?: string) {
+  protected constructor(message: string, uri: string, details?: string) {
     super(details ? `${message}\n${details}` : message);
 
     this.name = this.constructor.name;
@@ -35,6 +35,20 @@ export class ProxyConnectError extends BaseError {
 
     super(
       `Your proxy has encountered an error. Unable to connect to the given uri: ${sanitizedUri}.`,
+      sanitizedUri,
+      message,
+    );
+  }
+}
+
+export class SshConnectError extends BaseError {
+  readonly source = 'Ssh';
+
+  constructor(message: string, debugSshUri: string) {
+    const sanitizedUri = debugSshUri.replace('tcp://', '');
+
+    super(
+      `Your ssh has encountered an error. Unable to connect to the given uri: ${sanitizedUri}.`,
       sanitizedUri,
       message,
     );

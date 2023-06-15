@@ -1,10 +1,10 @@
 import net from 'net';
 import { Client } from 'ssh2';
 
-import Events from './events';
+import Service from './service';
 import { SshOptions } from '../../types';
 
-export default class SshClient extends Events {
+export default class SshClient extends Service {
   private readonly client: Client;
   private readonly options: SshOptions;
   private readonly sourceHost: string;
@@ -25,45 +25,55 @@ export default class SshClient extends Events {
     this.sourcePort = sourcePort;
     this.targetHost = targetHost;
     this.targetPort = targetPort;
+
     this.client = new Client();
   }
 
-  override async whenClosing(): Promise<void> {
+  override async closeListener(): Promise<void> {
     try {
-      await super.whenClosing();
+      await super.closeListener();
     } finally {
       this.client.end();
     }
   }
 
-  override async whenConnecting(socket: net.Socket): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.client.on('error', e => reject(e));
-      this.client.on('ready', () => {
-        this.onReady(socket);
-        resolve();
+  override async connectListener(socket: net.Socket): Promise<void> {
+    try {
+      return await new Promise((resolve, reject) => {
+        this.client.on('error', reject);
+        this.client.on('ready', () => {
+          // when connection is ready
+          this.onReady(socket);
+          resolve();
+        });
+        // connect to the SSH server
+        this.client.connect(this.options);
       });
-      this.client.connect(this.options);
-    });
+    } catch (e) {
+      this.saveErrorAndDestroySocket(e, socket);
+    }
   }
 
   private onReady(socket: net.Socket): void {
+    // tell to the SSH server to forward all the traffic to the target host and port
     this.client.forwardOut(
       this.sourceHost,
       this.sourcePort,
       this.targetHost,
       this.targetPort,
-      async (err, stream) => {
-        if (err) {
-          this.errors.push(err);
-          throw err;
-        }
+      async (error, stream) => {
+        if (error) this.saveErrorAndDestroySocket(error, socket);
 
+        stream.on('error', e => this.saveErrorAndDestroySocket(e, socket));
         stream.on('close', () => this.client.end());
-        stream.on('error', e => this.errors.push(e));
-        stream.pipe(socket).pipe(stream);
-        await super.whenConnecting(stream);
+        socket.pipe(stream).pipe(socket);
+        await super.connectListener(stream);
       },
     );
+  }
+
+  saveErrorAndDestroySocket(error: Error, socket: net.Socket): void {
+    this.errors.push(error);
+    if (!socket.destroyed) socket.destroy();
   }
 }

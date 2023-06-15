@@ -1,7 +1,7 @@
 import { BaseError as SequelizeError } from 'sequelize';
 
 import ConnectionOptions from './connection-options';
-import { DatabaseConnectError, ProxyConnectError } from './errors';
+import { DatabaseConnectError, ProxyConnectError, SshConnectError } from './errors';
 
 function handleProxyErrors(error: Error, options: ConnectionOptions): void {
   /** @see https://github.com/JoshGlazebrook/socks/blob/76d013/src/common/constants.ts#L10 */
@@ -28,6 +28,10 @@ function handleSequelizeError(error: SequelizeError, options: ConnectionOptions)
 export default function handleErrors(error: Error, options: ConnectionOptions) {
   if (error?.stack?.includes('SocksClient')) {
     handleProxyErrors(error, options);
+  }
+
+  if (error?.stack?.includes('ssh2')) {
+    throw new SshConnectError(error.message, options.debugSshUri);
   }
 
   if (error instanceof SequelizeError) {

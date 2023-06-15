@@ -34,7 +34,7 @@ export type SshOptions = {
   port: number;
   host: string;
   username: string;
-  privateKey: string;
+  privateKey: Buffer;
 };
 
 export type PlainConnectionOptions = SupportedSequelizeOptions & {

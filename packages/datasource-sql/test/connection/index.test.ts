@@ -4,7 +4,7 @@ import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
-import { DatabaseConnectError } from '../../src/connection/errors';
+import { DatabaseConnectError, SshConnectError } from '../../src/connection/errors';
 import { SslMode } from '../../src/types';
 import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
 
@@ -157,22 +157,32 @@ describe('Connect', () => {
 
   describe('when there is a ssh and proxy configuration', () => {
     it('should be able to connect at the db', async () => {
-      const baseUri = 'postgres://test:password@localhost:5443';
-      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+      // const baseUri = 'postgres://test:password@localhost:5443';
+      const baseUri = 'mariadb://root:password@localhost:3809';
+      await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
 
-      const options = new ConnectionOptions({
-        uri: `postgres://test:password@postgres:5432/test_connection`,
-        proxySocks: {
-          host: 'localhost',
+      /*
+      proxySocks: {
+          host: 'bici.usefixie.com',
           port: 1080,
-          password: 'password',
-          userId: 'username',
+          password: 'vaUKoMNV1khEHN7',
+          userId: 'fixie',
         },
         ssh: {
-          host: 'localhost',
+          host: '0.tcp.eu.ngrok.io',
+          port: 12733,
+          username: 'forest',
+          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+        },
+       */
+      const options = new ConnectionOptions({
+        uri: 'mariadb://root:password@mariadb:3306/test_connection',
+        proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
+        ssh: {
+          host: 'ssh-server',
           port: 2222,
           username: 'forest',
-          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
+          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
         },
       });
       const seq = await connect(options);
@@ -183,21 +193,43 @@ describe('Connect', () => {
 
   describe('when there is only a ssh configuration', () => {
     it('should be able to connect at the db', async () => {
-      const baseUri = 'postgres://test:password@localhost:5443';
-      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
+      // const baseUri = 'postgres://test:password@localhost:5443';
+      const baseUri = 'mariadb://root:password@localhost:3809';
+      await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
 
+      // postgres://test:password@postgres:5432/test_connection
       const options = new ConnectionOptions({
-        uri: `postgres://test:password@postgres:5432/test_connection`,
+        uri: 'mariadb://root:password@mariadb:3306/test_connection',
         ssh: {
           host: 'localhost',
           port: 2222,
           username: 'forest',
-          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa'), 'utf8'),
+          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
         },
       });
       const seq = await connect(options);
       await seq.close();
       expect(seq).toBeInstanceOf(Sequelize);
+    });
+
+    describe('when the ssh has a wrong configuration', () => {
+      it('should catch the error', async () => {
+        // const baseUri = 'postgres://test:password@localhost:5443';
+        const baseUri = 'mariadb://root:password@localhost:3809';
+        await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
+
+        // postgres://test:password@postgres:5432/test_connection
+        const options = new ConnectionOptions({
+          uri: 'mariadb://root:password@mariadb:3306/test_connection',
+          ssh: {
+            host: 'localhost',
+            port: 2222,
+            username: 'BADUSER',
+            privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+          },
+        });
+        await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+      });
     });
   });
 });
