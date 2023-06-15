@@ -11,6 +11,7 @@ import {
   PaginatedFilter,
   Projection,
   RecordData,
+  RecordValidator,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
@@ -83,6 +84,8 @@ export default class RelaxedCollection<
    * ]);
    */
   create(data: TPartialSimpleRow<S, N>[]): Promise<TPartialSimpleRow<S, N>[]> {
+    RecordValidator.validate(this.collection, data);
+
     return this.collection.create(this.caller, data) as Promise<TPartialSimpleRow<S, N>[]>;
   }
 
@@ -131,6 +134,8 @@ export default class RelaxedCollection<
    */
   update(filter: TFilter<S, N>, patch: TPartialSimpleRow<S, N>): Promise<void> {
     const filterInstance = this.buildFilter(filter);
+
+    RecordValidator.validate(this.collection, patch);
 
     return this.collection.update(this.caller, filterInstance, patch);
   }
