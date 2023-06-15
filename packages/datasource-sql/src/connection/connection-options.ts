@@ -39,11 +39,9 @@ export default class ConnectionOptions {
     const port = this.initialPort ?? '?';
     const database = this.database ?? '?';
 
-    if (dialect === 'sqlite') {
-      return this.uri ? this.uri.href : `sqlite:${this.sequelizeOptions.storage}`;
-    }
-
-    return `${dialect}://${this.initialHost}:${port}/${database}`;
+    return dialect === 'sqlite'
+      ? this.uri?.href ?? `sqlite:${this.sequelizeOptions.storage}`
+      : `${dialect}://${this.initialHost}:${port}/${database}`;
   }
 
   /** Proxy URI without credentials, which can be used in error messages INTERNALLY */
