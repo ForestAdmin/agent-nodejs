@@ -38,7 +38,13 @@ describe('RelaxedWrappers', () => {
 
     beforeEach(() => {
       caller = factories.caller.build();
-      collection = factories.collection.build();
+      collection = factories.collection.build({
+        schema: {
+          fields: {
+            name: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        },
+      });
       relaxed = new RelatedCollection(collection, caller);
     });
 
@@ -152,6 +158,14 @@ describe('RelaxedWrappers', () => {
         new Filter({ segment: 'some_segment' }),
         { name: 'something' },
       );
+    });
+
+    test('should validate patch operation before forwarding update', async () => {
+      await expect(() =>
+        relaxed.update({ segment: 'some_segment' }, { nonexistingField: 'newValue' }),
+      ).toThrow('Unknown field "nonexistingField"');
+
+      expect(collection.update).not.toHaveBeenCalled();
     });
 
     test('should forward delete and transform filter', async () => {

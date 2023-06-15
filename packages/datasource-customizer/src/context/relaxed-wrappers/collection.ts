@@ -84,8 +84,6 @@ export default class RelaxedCollection<
    * ]);
    */
   create(data: TPartialSimpleRow<S, N>[]): Promise<TPartialSimpleRow<S, N>[]> {
-    RecordValidator.validate(this.collection, data);
-
     return this.collection.create(this.caller, data) as Promise<TPartialSimpleRow<S, N>[]>;
   }
 
