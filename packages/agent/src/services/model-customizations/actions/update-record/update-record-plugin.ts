@@ -1,4 +1,5 @@
-import { Plugin } from '@forestadmin/datasource-customizer';
+import { ActionContext, Plugin } from '@forestadmin/datasource-customizer';
+import { RecordValidator } from '@forestadmin/datasource-toolkit';
 import {
   ModelCustomization,
   UpdateRecordActionConfiguration,
@@ -25,12 +26,16 @@ export default class UpdateRecordActionsPlugin {
 
       collection.addAction(action.name, {
         scope: action.configuration.scope,
-        execute: async context => {
+        execute: async (context: ActionContext) => {
           const {
             configuration: {
               configuration: { fields },
             },
           } = action;
+
+          // Validate the fields before updating them.
+          // @ts-expect-error: accessing private property but we don't want user to access it
+          RecordValidator.validate(context.collection.collection, fields);
 
           await context.collection.update(context.filter, fields);
         },
