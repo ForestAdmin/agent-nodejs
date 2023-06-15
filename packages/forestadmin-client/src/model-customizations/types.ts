@@ -14,6 +14,11 @@ export type ModelCustomization<TConfiguration = unknown> = {
   configuration: TConfiguration;
 };
 
+export type ConfigurationApi<TConfigurationSpecific = unknown> = {
+  type: string;
+  configuration: TConfigurationSpecific;
+};
+
 export type ActionConfigurationApi<TActionConfigurationSpecific = unknown> = {
   scope: ActionScopeApi;
   type: ActionType;

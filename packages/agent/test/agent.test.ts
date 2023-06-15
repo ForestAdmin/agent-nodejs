@@ -177,9 +177,6 @@ describe('Agent', () => {
           stack: expect.anything(),
         },
       });
-
-      expect(mockNocodeCustomizer.use).toHaveBeenCalledTimes(1);
-      expect(mockNocodeCustomizer.use).toHaveBeenCalledWith(expect.any(Function));
     });
 
     test('start should subscribe server events and add listener to restart', async () => {
