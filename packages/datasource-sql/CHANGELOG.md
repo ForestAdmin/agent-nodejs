@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.6.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.6...@forestadmin/datasource-sql@1.6.7) (2023-06-16)
+
+
+### Bug Fixes
+
+* **datasource-sql:** repair sqlite support ([#733](https://github.com/ForestAdmin/agent-nodejs/issues/733)) ([a1e1a86](https://github.com/ForestAdmin/agent-nodejs/commit/a1e1a8615c89c86b1c5f849fb60e44f3a7296254))
+
 ## @forestadmin/datasource-sql [1.6.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.5...@forestadmin/datasource-sql@1.6.6) (2023-06-09)
 
 
