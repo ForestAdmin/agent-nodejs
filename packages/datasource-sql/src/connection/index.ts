@@ -41,11 +41,12 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
       bindListeners(socksOrReverseProxy, sshClient);
     }
 
-    // swap database host and port with the ones from the tcp reverseProxy socksProxy.
-    if (reverseProxy) options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
-
     const sequelizeFactory = new SequelizeFactory();
-    if (reverseProxy) sequelizeFactory.onClose(reverseProxy.closeListener.bind(reverseProxy));
+
+    if (reverseProxy) {
+      options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
+      sequelizeFactory.onClose(reverseProxy.closeListener.bind(reverseProxy));
+    }
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
     await sequelize.authenticate(); // Test connection

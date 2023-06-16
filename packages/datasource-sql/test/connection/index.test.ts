@@ -81,7 +81,7 @@ describe('Connect', () => {
       });
 
       describe('when proxy socks configuration is provided', () => {
-        it('should work with proxy auth and not throwing error when seq is closing', async () => {
+        it('should not throwing error when seq is closing', async () => {
           const options = new ConnectionOptions({
             uri: uri
               .replace('localhost', dockerServiceName)
@@ -157,7 +157,6 @@ describe('Connect', () => {
 
   describe('when there is a ssh and proxy configuration', () => {
     it('should be able to connect at the db', async () => {
-      // const baseUri = 'postgres://test:password@localhost:5443';
       const baseUri = 'mariadb://root:password@localhost:3809';
       await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
 
@@ -175,17 +174,55 @@ describe('Connect', () => {
       await seq.close();
       expect(seq).toBeInstanceOf(Sequelize);
     });
+
+    describe('when the ssh has a wrong configuration', () => {
+      describe('when the host is wrong', () => {
+        it('should throw the SshConnectError', async () => {
+          const baseUri = 'mariadb://root:password@localhost:3809';
+          await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
+
+          const options = new ConnectionOptions({
+            uri: 'mariadb://root:password@mariadb:3306/test_connection',
+            proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
+            ssh: {
+              host: 'BADHOST',
+              port: 2222,
+              username: 'forest',
+              privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+            },
+          });
+          await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+        });
+      });
+
+      describe('when the username is wrong', () => {
+        it('should throw the SshConnectError', async () => {
+          const baseUri = 'mariadb://root:password@localhost:3809';
+          await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
+
+          const options = new ConnectionOptions({
+            uri: 'mariadb://root:password@mariadb:3306/test_connection',
+            proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
+            ssh: {
+              host: 'ssh-server',
+              port: 2222,
+              username: 'BADUSER',
+              privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+            },
+          });
+          await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+        });
+      });
+    });
   });
 
   describe('when there is only a ssh configuration', () => {
     it('should be able to connect at the db', async () => {
-      // const baseUri = 'postgres://test:password@localhost:5443';
-      const baseUri = 'mariadb://root:password@localhost:3809';
-      await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
+      const baseUri = 'postgres://test:password@localhost:5443';
+      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
 
-      // postgres://test:password@postgres:5432/test_connection
       const options = new ConnectionOptions({
-        uri: 'mariadb://root:password@mariadb:3306/test_connection',
+        uri: 'postgres://test:password@postgres:5432/test_connection',
         ssh: {
           host: 'localhost',
           port: 2222,
@@ -200,11 +237,9 @@ describe('Connect', () => {
 
     describe('when the ssh has a wrong configuration', () => {
       it('should catch the error', async () => {
-        // const baseUri = 'postgres://test:password@localhost:5443';
         const baseUri = 'mariadb://root:password@localhost:3809';
         await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
 
-        // postgres://test:password@postgres:5432/test_connection
         const options = new ConnectionOptions({
           uri: 'mariadb://root:password@mariadb:3306/test_connection',
           ssh: {

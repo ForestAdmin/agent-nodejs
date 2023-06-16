@@ -19,7 +19,7 @@ export default class SocksProxy extends Service {
     if (!this.targetPort) throw new Error('Port is required');
   }
 
-  override async connectListener(socket: net.Socket): Promise<net.Socket> {
+  override async connectListener(): Promise<net.Socket> {
     let socks5Proxy: SocksClientEstablishedEvent;
 
     try {
@@ -30,12 +30,14 @@ export default class SocksProxy extends Service {
         timeout: 4000,
       });
 
-      socks5Proxy.socket.on('close', () => this.destroySocketAndSaveError(socket));
-      socks5Proxy.socket.on('error', error => this.destroySocketAndSaveError(socket, error));
+      socks5Proxy.socket.on('close', () => this.destroySocketIfUnclosed(socks5Proxy.socket));
+      socks5Proxy.socket.on('error', error =>
+        this.destroySocketIfUnclosed(socks5Proxy.socket, error),
+      );
 
       return await super.connectListener(socks5Proxy.socket);
-    } catch (err) {
-      this.destroySocketAndSaveError(socks5Proxy?.socket, err);
+    } catch (error) {
+      this.errors.push(error);
     }
   }
 }

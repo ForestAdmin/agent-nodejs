@@ -49,7 +49,7 @@ export default class SshClient extends Service {
         this.client.connect({ ...this.options, sock: socket });
       });
     } catch (error) {
-      this.destroySocketAndSaveError(socket, error);
+      this.errors.push(error);
     }
   }
 
@@ -63,14 +63,14 @@ export default class SshClient extends Service {
         this.targetPort,
         async (error, stream) => {
           if (error) {
-            this.destroySocketAndSaveError(stream, error);
+            this.destroySocketIfUnclosed(stream, error);
             reject(error);
           }
 
-          stream.on('error', e => this.destroySocketAndSaveError(stream, e));
+          stream.on('error', e => this.destroySocketIfUnclosed(stream, e));
           stream.on('close', () => {
             this.client.end();
-            this.destroySocketAndSaveError(stream);
+            this.destroySocketIfUnclosed(stream);
           });
           resolve(await super.connectListener(stream));
         },

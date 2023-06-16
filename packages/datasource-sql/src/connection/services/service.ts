@@ -32,8 +32,8 @@ export default abstract class Service {
     await this.closeCallback?.();
   }
 
-  destroySocketAndSaveError(socket?: net.Socket, error?: Error): void {
-    if (socket && !socket.destroyed) socket.destroy();
+  destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
+    if (socket && !socket.closed) socket.destroy(error);
     if (error) this.errors.push(error);
   }
 }

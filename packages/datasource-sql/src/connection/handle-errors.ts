@@ -9,7 +9,14 @@ function handleProxyErrors(error: Error, options: ConnectionOptions): void {
     error.message.includes('Socket closed') ||
     error.message.includes('Socks5 proxy rejected connection')
   ) {
-    throw new DatabaseConnectError(null, options.debugDatabaseUri, 'Proxy');
+    // means that the proxy is not reachable
+    if (options.sshOptions) {
+      throw new SshConnectError(error.message, options.debugSshUri);
+    } else {
+      // if there is no sshOptions, then the database is the destination and
+      // it means that the database is not reachable
+      throw new DatabaseConnectError(null, options.debugDatabaseUri, 'Proxy');
+    }
   }
 
   throw new ProxyConnectError(error.message, options.debugProxyUri);

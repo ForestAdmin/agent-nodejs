@@ -4,7 +4,7 @@ import { Options as SequelizeOptions } from 'sequelize/types/sequelize';
 import Service from './service';
 
 export default class SequelizeFactory extends Service {
-  build(sequelizeCtorOptions: [SequelizeOptions] | [string, SequelizeOptions]) {
+  build(sequelizeCtorOptions: [SequelizeOptions] | [string, SequelizeOptions]): Sequelize {
     const sequelize =
       sequelizeCtorOptions.length === 1
         ? new Sequelize(sequelizeCtorOptions[0])
