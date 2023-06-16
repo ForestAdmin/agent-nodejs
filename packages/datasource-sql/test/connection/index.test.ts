@@ -33,8 +33,8 @@ describe('Connect', () => {
   });
 
   describe('when proxy socks configuration is provided', () => {
-    describe('when the password is wrong', () => {
-      it('should not blocked the promise', async () => {
+    describe('when the database password is wrong', () => {
+      it('should not block the promise and throw an error', async () => {
         const baseUri = 'postgres://test:password@localhost:5443';
         await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
 
@@ -161,20 +161,6 @@ describe('Connect', () => {
       const baseUri = 'mariadb://root:password@localhost:3809';
       await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
 
-      /*
-      proxySocks: {
-          host: 'bici.usefixie.com',
-          port: 1080,
-          password: 'vaUKoMNV1khEHN7',
-          userId: 'fixie',
-        },
-        ssh: {
-          host: '0.tcp.eu.ngrok.io',
-          port: 12733,
-          username: 'forest',
-          privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
-        },
-       */
       const options = new ConnectionOptions({
         uri: 'mariadb://root:password@mariadb:3306/test_connection',
         proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },

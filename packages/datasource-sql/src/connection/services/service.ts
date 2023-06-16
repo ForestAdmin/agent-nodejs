@@ -1,6 +1,6 @@
 import net from 'net';
 
-export type ConnectionCallback = (socket: net.Socket) => Promise<void>;
+export type ConnectionCallback = (socket: net.Socket) => Promise<net.Socket>;
 export type CloseCallback = () => Promise<void>;
 
 export default abstract class Service {
@@ -18,8 +18,8 @@ export default abstract class Service {
   }
 
   /** callback to execute when there is a new connection. */
-  async connectListener(socket: net.Socket): Promise<void> {
-    await this.connectionCallback?.(socket);
+  async connectListener(socket?: net.Socket): Promise<net.Socket> {
+    return this.connectionCallback?.(socket) || socket;
   }
 
   /** attach a callback when a service is closing. */
@@ -30,5 +30,10 @@ export default abstract class Service {
   /** callback to execute when the service is closing. */
   async closeListener(): Promise<void> {
     await this.closeCallback?.();
+  }
+
+  destroySocketAndSaveError(socket?: net.Socket, error?: Error): void {
+    if (socket && !socket.destroyed) socket.destroy();
+    if (error) this.errors.push(error);
   }
 }

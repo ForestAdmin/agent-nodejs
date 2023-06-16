@@ -37,43 +37,44 @@ export default class SshClient extends Service {
     }
   }
 
-  override async connectListener(socket: net.Socket): Promise<void> {
+  override async connectListener(socket: net.Socket): Promise<net.Socket> {
     try {
       return await new Promise((resolve, reject) => {
         this.client.on('error', reject);
-        this.client.on('ready', () => {
+        this.client.on('ready', async () => {
           // when connection is ready
-          this.onReady(socket);
-          resolve();
+          resolve(await this.buildTunnel());
         });
         // connect to the SSH server
-        this.client.connect(this.options);
+        this.client.connect({ ...this.options, sock: socket });
       });
-    } catch (e) {
-      this.saveErrorAndDestroySocket(e, socket);
+    } catch (error) {
+      this.destroySocketAndSaveError(socket, error);
     }
   }
 
-  private onReady(socket: net.Socket): void {
+  private async buildTunnel(): Promise<net.Socket> {
     // tell to the SSH server to forward all the traffic to the target host and port
-    this.client.forwardOut(
-      this.sourceHost,
-      this.sourcePort,
-      this.targetHost,
-      this.targetPort,
-      async (error, stream) => {
-        if (error) this.saveErrorAndDestroySocket(error, socket);
+    return new Promise<net.Socket>((resolve, reject) => {
+      this.client.forwardOut(
+        this.sourceHost,
+        this.sourcePort,
+        this.targetHost,
+        this.targetPort,
+        async (error, stream) => {
+          if (error) {
+            this.destroySocketAndSaveError(stream, error);
+            reject(error);
+          }
 
-        stream.on('error', e => this.saveErrorAndDestroySocket(e, socket));
-        stream.on('close', () => this.client.end());
-        socket.pipe(stream).pipe(socket);
-        await super.connectListener(stream);
-      },
-    );
-  }
-
-  saveErrorAndDestroySocket(error: Error, socket: net.Socket): void {
-    this.errors.push(error);
-    if (!socket.destroyed) socket.destroy();
+          stream.on('error', e => this.destroySocketAndSaveError(stream, e));
+          stream.on('close', () => {
+            this.client.end();
+            this.destroySocketAndSaveError(stream);
+          });
+          resolve(await super.connectListener(stream));
+        },
+      );
+    });
   }
 }

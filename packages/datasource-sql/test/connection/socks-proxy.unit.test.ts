@@ -1,13 +1,13 @@
-import ReverseProxy from '../../src/connection/services/reverse-proxy';
+import SocksProxy from '../../src/connection/services/socks-proxy';
 
 beforeEach(() => jest.clearAllMocks());
 
 const proxyOptions = { host: 'localhost', port: 1088 };
 
-describe('ReverseProxy', () => {
+describe('SocksProxy', () => {
   describe('when port is not provided', () => {
     it('should throw an error', async () => {
-      const fn = () => new ReverseProxy(proxyOptions, 'localhost', null);
+      const fn = () => new SocksProxy(proxyOptions, 'localhost', null);
 
       expect(fn).toThrow();
     });
@@ -15,7 +15,7 @@ describe('ReverseProxy', () => {
 
   describe('when host is not provided', () => {
     it('should throw an error', async () => {
-      const fn = () => new ReverseProxy(proxyOptions, null, 10);
+      const fn = () => new SocksProxy(proxyOptions, null, 10);
 
       expect(fn).toThrow();
     });
