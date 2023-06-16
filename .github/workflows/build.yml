@@ -31,6 +31,8 @@ jobs:
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+      - name: Install
+        run: yarn
       - name: Bootstrap
         run: yarn bootstrap --ci
       - name: Build

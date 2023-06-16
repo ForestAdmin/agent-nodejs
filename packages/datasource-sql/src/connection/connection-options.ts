@@ -41,7 +41,9 @@ export default class ConnectionOptions {
     const port = this.initialPort ?? '?';
     const database = this.database ?? '?';
 
-    return `${dialect}://${this.initialHost}:${port}/${database}`;
+    return dialect === 'sqlite'
+      ? this.uri?.href ?? `sqlite:${this.sequelizeOptions.storage}`
+      : `${dialect}://${this.initialHost}:${port}/${database}`;
   }
 
   /** Proxy URI without credentials, which can be used in error messages INTERNALLY */
@@ -100,19 +102,14 @@ export default class ConnectionOptions {
       this.uri = uri ? this.parseDatabaseUri(uri) : null;
     }
 
-    if (this.uri?.toString?.() !== 'sqlite::memory:') {
-      // Save initial host & port (for SSL and error messages)
-      this.initialHost = this.host;
-      this.initialPort = this.port;
+    // Save initial host & port (for SSL and error messages)
+    this.initialHost = this.host;
+    this.initialPort = this.port;
 
-      // Check required options
-      if (!this.port) throw new DatabaseConnectError(`Port is required`, this.debugDatabaseUri);
-      if (!this.dialect)
-        throw new DatabaseConnectError(`Dialect is required`, this.debugDatabaseUri);
-    } else {
-      this.initialHost = ':memory:';
-      this.initialPort = 0;
-    }
+    // Check required options
+    if (!this.dialect) throw new DatabaseConnectError(`Dialect is required`, this.debugDatabaseUri);
+    if (this.dialect !== 'sqlite' && !this.port)
+      throw new DatabaseConnectError(`Port is required`, this.debugDatabaseUri);
   }
 
   changeHostAndPort(host: string, port: number): void {
@@ -156,7 +153,7 @@ export default class ConnectionOptions {
       `Connection Uri "${str}" provided to SQL data source is not valid. ` +
       `Should be <dialect>://<connection>.`;
 
-    if (str !== 'sqlite::memory:' && !/.*:\/\//g.test(str))
+    if (!str.startsWith('sqlite') && !/.*:\/\//g.test(str))
       throw new DatabaseConnectError(message, str);
 
     try {

@@ -29,4 +29,4 @@ export type Plugin<Options> = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   collectionCustomizer: CollectionCustomizer<any, any>,
   options?: Options,
-) => Promise<void>;
+) => Promise<void> | void;

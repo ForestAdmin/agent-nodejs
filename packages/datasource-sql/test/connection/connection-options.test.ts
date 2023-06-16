@@ -5,6 +5,20 @@ import { DatabaseConnectError } from '../../src/connection/errors';
 import { PlainConnectionOptionsOrUri } from '../../src/types';
 
 describe('ConnectionOptionsWrapper', () => {
+  describe('when using sqlite', () => {
+    it.each([
+      ['url (memory)', 'sqlite::memory:', 'sqlite::memory:'],
+      ['object (memory)', { dialect: 'sqlite', storage: ':memory:' }, 'sqlite::memory:'],
+      ['url (file)', 'sqlite:./db.sqlite', 'sqlite:./db.sqlite'],
+      ['object (file)', { dialect: 'sqlite', storage: './db.sqlite' }, 'sqlite:./db.sqlite'],
+    ])('should work using a %s', (_, plainOptions, debugUrl) => {
+      const options = new ConnectionOptions(plainOptions as PlainConnectionOptionsOrUri);
+
+      expect(options.dialect).toEqual('sqlite');
+      expect(options.debugDatabaseUri).toEqual(debugUrl);
+    });
+  });
+
   describe('when url is not parsable', () => {
     it('should throw when not matching regexp in code', () => {
       expect(() => new ConnectionOptions('wrong url')).toThrow(DatabaseConnectError);

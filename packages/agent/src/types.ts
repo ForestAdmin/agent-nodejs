@@ -21,6 +21,7 @@ export type AgentOptions = {
   forestAdminClient?: ForestAdminClient;
   experimental?: {
     webhookCustomActions?: boolean;
+    updateRecordCustomActions?: boolean;
   };
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;

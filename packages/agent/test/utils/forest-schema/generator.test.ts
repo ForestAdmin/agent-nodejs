@@ -6,7 +6,8 @@ describe('SchemaGenerator', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'books' }),
     );
-    const schema = await SchemaGenerator.buildSchema(dataSource, []);
+
+    const schema = await SchemaGenerator.buildSchema(dataSource, null);
 
     expect(schema).toStrictEqual({
       collections: [expect.objectContaining({ name: 'books' })],
@@ -29,7 +30,8 @@ describe('SchemaGenerator', () => {
       factories.collection.build({ name: 'b' }),
       factories.collection.build({ name: 'a' }),
     ]);
-    const schema = await SchemaGenerator.buildSchema(dataSource, []);
+
+    const schema = await SchemaGenerator.buildSchema(dataSource, null);
 
     expect(schema.collections.map(c => c.name)).toStrictEqual(['a', 'b', 'B', 'ba']);
   });
@@ -38,7 +40,10 @@ describe('SchemaGenerator', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'books' }),
     );
-    const schema = await SchemaGenerator.buildSchema(dataSource, ['webhook-custom-actions']);
+    const schema = await SchemaGenerator.buildSchema(dataSource, {
+      'webhook-custom-actions': '1.0.0',
+      'awesome-feature': '3.0.0',
+    });
 
     expect(schema).toStrictEqual({
       collections: [expect.objectContaining({ name: 'books' })],
@@ -47,6 +52,7 @@ describe('SchemaGenerator', () => {
         liana_version: expect.any(String),
         liana_features: {
           'webhook-custom-actions': '1.0.0',
+          'awesome-feature': '3.0.0',
         },
         stack: {
           engine: 'nodejs',

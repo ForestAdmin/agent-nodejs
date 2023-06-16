@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.8.0...@forestadmin/datasource-customizer@1.9.0) (2023-06-15)
+
+
+### Features
+
+* **agent:** allow to create update record custom actions from the frontend ([#729](https://github.com/ForestAdmin/agent-nodejs/issues/729)) ([e06ac79](https://github.com/ForestAdmin/agent-nodejs/commit/e06ac79111378c7bdf6e7ab9219e9ea2377e6649))
+
 # @forestadmin/datasource-customizer [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.2...@forestadmin/datasource-customizer@1.8.0) (2023-06-08)
 
 

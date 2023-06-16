@@ -5,7 +5,7 @@ export enum ModelCustomizationType {
 export type ActionScopeApi = 'global' | 'single' | 'bulk';
 export type ActionScope = 'Global' | 'Single' | 'Bulk';
 
-export type ActionType = 'webhook';
+export type ActionType = 'webhook' | 'update-record';
 
 export type ModelCustomization<TConfiguration = unknown> = {
   name: string;
@@ -14,8 +14,19 @@ export type ModelCustomization<TConfiguration = unknown> = {
   configuration: TConfiguration;
 };
 
+export type ConfigurationApi<TConfigurationSpecific = unknown> = {
+  type: string;
+  configuration: TConfigurationSpecific;
+};
+
 export type ActionConfigurationApi<TActionConfigurationSpecific = unknown> = {
   scope: ActionScopeApi;
+  type: ActionType;
+  configuration: TActionConfigurationSpecific;
+};
+
+export type ActionConfiguration<TActionConfigurationSpecific = unknown> = {
+  scope: ActionScope;
   type: ActionType;
   configuration: TActionConfigurationSpecific;
 };
@@ -25,22 +36,23 @@ export type WebhookActionConfigurationSpecific = {
   integration: string;
 };
 
-export type WebhookActionConfigurationApi =
-  ActionConfigurationApi<WebhookActionConfigurationSpecific> & {
-    type: 'webhook';
-  };
-
-export type ActionConfiguration<TActionConfigurationSpecific = unknown> = {
-  scope: ActionScope;
-  type: ActionType;
-  configuration: TActionConfigurationSpecific;
-};
-
 export type WebhookActionConfiguration = ActionConfiguration<WebhookActionConfigurationSpecific> & {
   type: 'webhook';
 };
+
+export type UpdateRecordActionConfigurationSpecific = {
+  fields: Record<string, unknown>;
+};
+
+export type UpdateRecordActionConfiguration =
+  ActionConfiguration<UpdateRecordActionConfigurationSpecific> & {
+    type: 'update-record';
+  };
+
 export interface ModelCustomizationService {
   getConfiguration(): Promise<ModelCustomization[]>;
 }
 
 export type WebhookAction = ModelCustomization<WebhookActionConfiguration>;
+
+export type UpdateRecordAction = ModelCustomization<UpdateRecordActionConfiguration>;
