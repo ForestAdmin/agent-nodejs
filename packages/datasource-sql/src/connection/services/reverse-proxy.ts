@@ -12,7 +12,6 @@ import Service from './service';
  */
 export default class ReverseProxy extends Service {
   private readonly server: net.Server;
-  private readonly connectedClients: Set<net.Socket> = new Set();
 
   get host(): string {
     return (this.server.address() as net.AddressInfo).address;
@@ -57,10 +56,10 @@ export default class ReverseProxy extends Service {
   async stop(): Promise<void> {
     try {
       await super.closeListener();
-      // close all the connected clients to be able to close the server
-      this.connectedClients.forEach(client => client.destroy());
     } finally {
       await new Promise<void>((resolve, reject) => {
+        // close all the connected clients to be able to close the server
+        this.connectedClients.forEach(client => client.destroy());
         this.server.close(e => {
           if (e) reject(e);
           else resolve();

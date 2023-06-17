@@ -4,14 +4,8 @@ import ConnectionOptions from './connection-options';
 import handleErrors from './handle-errors';
 import ReverseProxy from './services/reverse-proxy';
 import SequelizeFactory from './services/sequelize-factory';
-import Service from './services/service';
 import SocksProxy from './services/socks-proxy';
 import SshClient from './services/ssh-client';
-
-function bindListeners(from: Service, to: Service): void {
-  from.onConnect(to.connectListener.bind(to));
-  from.onClose(to.closeListener.bind(to));
-}
 
 /** Attempt to connect to the database */
 export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
@@ -30,15 +24,17 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
       // destination is the ssh or the database
       const { host, port } = options.sshOptions ?? options;
       socksProxy = new SocksProxy(options.proxyOptions, host, port);
-      bindListeners(reverseProxy, socksProxy);
+      reverseProxy.bindListeners(socksProxy);
     }
 
     if (options.sshOptions) {
-      const socksOrReverseProxy: Service = socksProxy ?? reverseProxy;
       const { host, port, sshOptions } = options;
       // database is the destination
       sshClient = new SshClient(sshOptions, reverseProxy.host, reverseProxy.port, host, port);
-      bindListeners(socksOrReverseProxy, sshClient);
+      // if socksProxy is defined, it means that we are using a proxy
+      // so we need to bind the listeners to the socksProxy
+      // otherwise, we bind the listeners to the reverseProxy
+      (socksProxy ?? reverseProxy).bindListeners(sshClient);
     }
 
     const sequelizeFactory = new SequelizeFactory();
@@ -54,7 +50,8 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     return sequelize;
   } catch (e) {
     await sequelize?.close();
-    // if ssh or socksProxy encountered an error, we want to throw it instead of the sequelize error
+    // if ssh or socksProxy or reverseProxy encountered an error,
+    // we want to throw it instead of the sequelize error
     handleErrors(sshClient?.error ?? socksProxy?.error ?? reverseProxy?.error ?? e, options);
   }
 }

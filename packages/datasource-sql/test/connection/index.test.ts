@@ -139,7 +139,7 @@ describe('Connect', () => {
 
     beforeAll(async () => {
       await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
-    }, 100000);
+    });
 
     it.each([['preferred'], ['required']])('should work when using sslMode %s', async sslMode => {
       const seq = await connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));

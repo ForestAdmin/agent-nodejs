@@ -7,6 +7,7 @@ export default abstract class Service {
   private connectionCallback: ConnectionCallback;
   private closeCallback: CloseCallback;
   protected readonly errors: Error[] = [];
+  protected readonly connectedClients: Set<net.Socket> = new Set();
 
   get error(): Error | null {
     return this.errors.length > 0 ? this.errors[0] : null;
@@ -30,6 +31,11 @@ export default abstract class Service {
   /** callback to execute when the service is closing. */
   async closeListener(): Promise<void> {
     await this.closeCallback?.();
+  }
+
+  bindListeners(to: Service): void {
+    this.onConnect(to.connectListener.bind(to));
+    this.onClose(to.closeListener.bind(to));
   }
 
   destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
