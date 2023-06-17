@@ -9,7 +9,7 @@ function handleProxyErrors(error: Error, options: ConnectionOptions): void {
     error.message.includes('Socket closed') ||
     error.message.includes('Socks5 proxy rejected connection')
   ) {
-    // means that the proxy is not reachable
+    // means that the ssh is not reachable
     if (options.sshOptions) {
       throw new SshConnectError(error.message, options.debugSshUri);
     } else {

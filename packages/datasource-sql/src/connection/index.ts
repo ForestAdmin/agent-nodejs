@@ -27,7 +27,7 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     }
 
     if (options.proxyOptions) {
-      // destination is the ssh reverseProxy or the database
+      // destination is the ssh or the database
       const { host, port } = options.sshOptions ?? options;
       socksProxy = new SocksProxy(options.proxyOptions, host, port);
       bindListeners(reverseProxy, socksProxy);

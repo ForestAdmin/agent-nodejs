@@ -38,6 +38,7 @@ export default class SocksProxy extends Service {
       return await super.connectListener(socks5Proxy.socket);
     } catch (error) {
       this.errors.push(error);
+      throw error;
     }
   }
 }

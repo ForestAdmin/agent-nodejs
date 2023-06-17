@@ -2,7 +2,14 @@ import net from 'net';
 
 import Service from './service';
 
-/** ReverseProxy is used to redirect all the database requests */
+/**
+ * ReverseProxy is used to redirect all the database requests.
+ * Sequelize does not take a socket as an argument,
+ * so we need to redirect all the traffic to a new socket.
+ * This is done by creating a server that will listen on a random port.
+ * We change the host and port of the Sequelize options to point to the reverse proxy.
+ * The reverse proxy will then redirect all the traffic to the database through the tunnel.
+ */
 export default class ReverseProxy extends Service {
   private readonly server: net.Server;
   private readonly connectedClients: Set<net.Socket> = new Set();
@@ -28,14 +35,13 @@ export default class ReverseProxy extends Service {
         this.destroySocketIfUnclosed(socket);
         this.connectedClients.delete(socket);
       });
-
       const tunnel = await super.connectListener();
-      // tunnel was not built, close the connection
-      if (!tunnel) return socket.destroy();
 
       return tunnel.pipe(socket).pipe(tunnel);
     } catch (error) {
+      this.errors.push(error);
       socket.emit('error', error);
+      // don't throw the error to avoid crashing the server because the error is already handled
     }
   }
 
