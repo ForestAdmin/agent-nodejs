@@ -41,7 +41,7 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
 
     if (reverseProxy) {
       options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
-      sequelizeFactory.onClose(reverseProxy.closeListener.bind(reverseProxy));
+      sequelizeFactory.onClose(reverseProxy.stop.bind(reverseProxy));
     }
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());

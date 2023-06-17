@@ -65,10 +65,12 @@ export default class SshClient extends Service {
         async (error, stream) => {
           if (error) {
             this.destroySocketIfUnclosed(stream, error);
+            this.client.end();
             reject(error);
           }
 
-          stream.on('error', e => this.destroySocketIfUnclosed(stream, e));
+          this.connectedClients.add(stream);
+          this.onErrorEventDestroySocket(stream, stream);
           stream.on('close', () => {
             this.destroySocketIfUnclosed(stream);
             this.client.end();

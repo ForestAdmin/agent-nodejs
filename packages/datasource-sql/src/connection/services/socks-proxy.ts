@@ -19,14 +19,6 @@ export default class SocksProxy extends Service {
     if (!this.targetPort) throw new Error('Port is required');
   }
 
-  override async closeListener(): Promise<void> {
-    try {
-      await super.closeListener();
-    } finally {
-      this.connectedClients.forEach(client => client.destroy());
-    }
-  }
-
   override async connectListener(): Promise<net.Socket> {
     let socks5Proxy: SocksClientEstablishedEvent;
 
@@ -38,24 +30,18 @@ export default class SocksProxy extends Service {
         timeout: 4000,
       });
       this.connectedClients.add(socks5Proxy.socket);
-
-      socks5Proxy.socket.on('close', () => this.destroySocketIfUnclosed(socks5Proxy.socket));
-      socks5Proxy.socket.on('error', error => this.onError(socks5Proxy, error));
+      this.onCloseEventDestroySocket(socks5Proxy.socket, socks5Proxy.socket);
+      this.onErrorEventDestroySocket(socks5Proxy.socket, socks5Proxy.socket);
 
       const tunnel = await super.connectListener(socks5Proxy.socket);
       // close the the proxy socket when the tunnel is closed or an error occurs
-      tunnel.on('close', () => this.destroySocketIfUnclosed(socks5Proxy.socket));
-      tunnel.on('error', error => this.onError(socks5Proxy, error));
+      this.onCloseEventDestroySocket(tunnel, socks5Proxy.socket);
+      this.onErrorEventDestroySocket(tunnel, socks5Proxy.socket);
 
       return tunnel;
     } catch (error) {
       this.errors.push(error);
       throw error;
     }
-  }
-
-  onError(socks5Proxy: SocksClientEstablishedEvent, error: Error): void {
-    this.destroySocketIfUnclosed(socks5Proxy.socket, error);
-    this.connectedClients.delete(socks5Proxy.socket);
   }
 }

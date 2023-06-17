@@ -29,11 +29,8 @@ export default class ReverseProxy extends Service {
   override async connectListener(socket: net.Socket): Promise<net.Socket> {
     try {
       this.connectedClients.add(socket);
-      socket.on('error', error => this.destroySocketIfUnclosed(socket, error));
-      socket.on('close', () => {
-        this.destroySocketIfUnclosed(socket);
-        this.connectedClients.delete(socket);
-      });
+      this.onCloseEventDestroySocket(socket, socket);
+      this.onErrorEventDestroySocket(socket, socket);
       const tunnel = await super.connectListener();
 
       return tunnel.pipe(socket).pipe(tunnel);
@@ -55,20 +52,14 @@ export default class ReverseProxy extends Service {
 
   async stop(): Promise<void> {
     try {
-      await super.closeListener();
+      await this.closeListener();
     } finally {
       await new Promise<void>((resolve, reject) => {
-        // close all the connected clients to be able to close the server
-        this.connectedClients.forEach(client => client.destroy());
         this.server.close(e => {
           if (e) reject(e);
           else resolve();
         });
       });
     }
-  }
-
-  override async closeListener(): Promise<void> {
-    await this.stop();
   }
 }

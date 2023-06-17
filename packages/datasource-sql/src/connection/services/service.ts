@@ -30,7 +30,11 @@ export default abstract class Service {
 
   /** callback to execute when the service is closing. */
   async closeListener(): Promise<void> {
-    await this.closeCallback?.();
+    try {
+      await this.closeCallback?.();
+    } finally {
+      this.connectedClients.forEach(client => client.destroy());
+    }
   }
 
   bindListeners(to: Service): void {
@@ -41,5 +45,18 @@ export default abstract class Service {
   destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
     if (socket && !socket.closed) socket.destroy(error);
     if (error) this.errors.push(error);
+  }
+
+  onCloseEventDestroySocket(socketToListen: net.Socket, socketToDestroy: net.Socket): void {
+    socketToListen.on('close', () => {
+      this.destroySocketIfUnclosed(socketToDestroy);
+    });
+  }
+
+  onErrorEventDestroySocket(socketToListen: net.Socket, socketToDestroy: net.Socket): void {
+    socketToListen.on('error', error => {
+      this.destroySocketIfUnclosed(socketToDestroy, error);
+      this.connectedClients.delete(socketToDestroy);
+    });
   }
 }
