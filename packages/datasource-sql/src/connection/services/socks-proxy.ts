@@ -20,20 +20,22 @@ export default class SocksProxy extends Service {
 
   override async connectListener(): Promise<net.Socket> {
     try {
-      const socks5Proxy = await SocksClient.createConnection({
+      const { socket } = await SocksClient.createConnection({
         proxy: { ...this.options, type: 5 },
         command: 'connect',
         destination: { host: this.targetHost, port: this.targetPort },
         timeout: 4000,
       });
-      this.onCloseEventDestroySocket(socks5Proxy.socket, socks5Proxy.socket);
-      this.onErrorEventDestroySocket(socks5Proxy.socket, socks5Proxy.socket);
+      this.connectedClients.add(socket);
+      this.onCloseEventDestroySocket(socket, socket);
+      this.onErrorEventDestroySocket(socket, socket);
 
-      const tunnel = await super.connectListener(socks5Proxy.socket);
+      const tunnel = await super.connectListener(socket);
 
-      // close the proxy socket when the tunnel is closed or an error occurs
-      this.onCloseEventDestroySocket(tunnel, socks5Proxy.socket);
-      this.onErrorEventDestroySocket(tunnel, socks5Proxy.socket);
+      // destroy the proxy socket when the tunnel is closed or an error occurs
+      // this is very important to avoid unclose database connections
+      this.onCloseEventDestroySocket(tunnel, socket);
+      this.onErrorEventDestroySocket(tunnel, socket);
 
       return tunnel;
     } catch (error) {
