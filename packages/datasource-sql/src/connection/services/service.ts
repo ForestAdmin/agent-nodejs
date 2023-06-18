@@ -20,6 +20,8 @@ export default abstract class Service {
 
   /** callback to execute when there is a new connection. */
   async connectListener(socket?: net.Socket): Promise<net.Socket> {
+    if (socket) this.connectedClients.add(socket);
+
     return this.connectionCallback?.(socket) || socket;
   }
 

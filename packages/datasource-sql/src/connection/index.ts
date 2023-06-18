@@ -21,7 +21,7 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     }
 
     if (options.proxyOptions) {
-      // destination is the ssh or the database
+      // destination is the ssh server or the database
       const { host, port } = options.sshOptions ?? options;
       socksProxy = new SocksProxy(options.proxyOptions, host, port);
       reverseProxy.bindListeners(socksProxy);
@@ -40,7 +40,9 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     const sequelizeFactory = new SequelizeFactory();
 
     if (reverseProxy) {
+      // change the host and port of the sequelize options to point to the reverse proxy
       options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
+      // stop the reverse proxy when the sequelize connection is closed
       sequelizeFactory.onClose(reverseProxy.stop.bind(reverseProxy));
     }
 

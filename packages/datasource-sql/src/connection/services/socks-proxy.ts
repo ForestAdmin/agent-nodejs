@@ -1,6 +1,5 @@
 import net from 'net';
 import { SocksClient } from 'socks';
-import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import Service from './service';
 import { ProxyOptions } from '../../types';
@@ -20,21 +19,19 @@ export default class SocksProxy extends Service {
   }
 
   override async connectListener(): Promise<net.Socket> {
-    let socks5Proxy: SocksClientEstablishedEvent;
-
     try {
-      socks5Proxy = await SocksClient.createConnection({
+      const socks5Proxy = await SocksClient.createConnection({
         proxy: { ...this.options, type: 5 },
         command: 'connect',
         destination: { host: this.targetHost, port: this.targetPort },
         timeout: 4000,
       });
-      this.connectedClients.add(socks5Proxy.socket);
       this.onCloseEventDestroySocket(socks5Proxy.socket, socks5Proxy.socket);
       this.onErrorEventDestroySocket(socks5Proxy.socket, socks5Proxy.socket);
 
       const tunnel = await super.connectListener(socks5Proxy.socket);
-      // close the the proxy socket when the tunnel is closed or an error occurs
+
+      // close the proxy socket when the tunnel is closed or an error occurs
       this.onCloseEventDestroySocket(tunnel, socks5Proxy.socket);
       this.onErrorEventDestroySocket(tunnel, socks5Proxy.socket);
 

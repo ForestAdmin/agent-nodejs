@@ -52,7 +52,8 @@ export default class ReverseProxy extends Service {
 
   async stop(): Promise<void> {
     try {
-      await this.closeListener();
+      // close all the connected clients before closing the server
+      await super.closeListener();
     } finally {
       await new Promise<void>((resolve, reject) => {
         this.server.close(e => {
