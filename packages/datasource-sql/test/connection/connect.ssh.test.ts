@@ -46,7 +46,7 @@ describe('when there is only a ssh configuration', () => {
   describe('when the db has a wrong configuration', () => {
     it('should throw a database error', async () => {
       const options = new ConnectionOptions({
-        uri: 'mariadb://root:password@BADHOST:3306/test_connection',
+        uri: 'mariadb://root:password@localhost:3306/test_connection',
         ssh: sshConfig,
       });
       await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);

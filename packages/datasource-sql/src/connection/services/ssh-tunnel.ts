@@ -37,7 +37,9 @@ export default class SshTunnel extends Service {
   }
 
   override async connect(socket?: net.Socket): Promise<net.Socket> {
-    const client = this.newClient();
+    const client = new Client();
+    // list all the clients to be able to close them all when the service is stopped
+    this.clients.add(client);
 
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
@@ -52,6 +54,7 @@ export default class SshTunnel extends Service {
 
         try {
           // connect to the SSH server
+          // will trigger the 'ready' event if the connection is successful
           client.connect({ ...this.options, sock: socket });
         } catch (error) {
           reject(new SshConnectServiceError(error as Error));
@@ -73,11 +76,7 @@ export default class SshTunnel extends Service {
         this.targetHost,
         this.targetPort,
         async (error, stream) => {
-          if (error) {
-            this.endClient(client);
-
-            return reject(new SshForwardServiceError(error as Error));
-          }
+          if (error) return reject(new SshForwardServiceError(error as Error));
 
           this.connectedClients.add(stream);
           stream.on('error', e =>
@@ -92,13 +91,6 @@ export default class SshTunnel extends Service {
         },
       );
     });
-  }
-
-  private newClient(): Client {
-    const client = new Client();
-    this.clients.add(client);
-
-    return client;
   }
 
   private endClient(client: Client): void {
