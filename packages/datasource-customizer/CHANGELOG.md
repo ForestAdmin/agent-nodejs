@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.0...@forestadmin/datasource-customizer@1.9.1) (2023-06-19)
+
+
+### Bug Fixes
+
+* **customizer:** validate fields on user facing collection interface ([#731](https://github.com/ForestAdmin/agent-nodejs/issues/731)) ([56d4278](https://github.com/ForestAdmin/agent-nodejs/commit/56d42788d9f66fddc88bb79ccf6573bb88202687))
+
 # @forestadmin/datasource-customizer [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.8.0...@forestadmin/datasource-customizer@1.9.0) (2023-06-15)
 
 
