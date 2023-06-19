@@ -1,5 +1,5 @@
 import type { Table } from './introspection/types';
-import type { PlainConnectionOptions, PlainConnectionOptionsOrUri } from './types';
+import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -67,3 +67,4 @@ export async function preprocessOptions(
 }
 
 export * from './connection/errors';
+export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode };
