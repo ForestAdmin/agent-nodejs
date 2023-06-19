@@ -3,7 +3,7 @@ import { Dialect, Sequelize } from 'sequelize';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
 import { SslMode } from '../../src/types';
-import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
+import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 describe('Connect', () => {
   describe('on database which do not support automatic ssl (sqlite)', () => {
@@ -41,7 +41,7 @@ describe('Connect', () => {
       const uri = `${baseUri}/test_connection`;
 
       beforeAll(async () => {
-        await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
+        await createDatabaseIfNotExist(baseUri, dialect, 'test_connection');
       });
 
       describe('when proxy socks configuration is provided', () => {
@@ -84,7 +84,7 @@ describe('Connect', () => {
     const uri = `${baseUri}/test_connection`;
 
     beforeAll(async () => {
-      await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
+      await createDatabaseIfNotExist(baseUri, dialect, 'test_connection');
     });
 
     it.each([['required'], ['verify']])('should fail when using sslMode %s', async sslMode => {
@@ -102,7 +102,7 @@ describe('Connect', () => {
     const uri = `${baseUri}/test_connection`;
 
     beforeAll(async () => {
-      await setupDatabaseWithTypes(baseUri, dialect, 'test_connection');
+      await createDatabaseIfNotExist(baseUri, dialect, 'test_connection');
     });
 
     it.each([['preferred'], ['required']])('should work when using sslMode %s', async sslMode => {

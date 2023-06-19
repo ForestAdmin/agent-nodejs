@@ -5,7 +5,7 @@ import { Dialect } from 'sequelize';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';
-import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
+import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId: 'username' };
 const ssh = {
@@ -26,6 +26,13 @@ describe('connect errors with all the databases', () => {
     (dialect, username, password, host, containerPort, port, dockerServiceName) => {
       const db = `test_connection`;
 
+      beforeAll(async () => {
+        await createDatabaseIfNotExist(
+          `${dialect}://${username}:${password}@${host}:${containerPort}`,
+          dialect,
+          'test_connection',
+        );
+      });
       describe.each([
         ['password', `${dialect}://${username}:BADPASSWORD@${dockerServiceName}:${port}/${db}`],
         ['user', `${dialect}://BADUSER:${password}@${dockerServiceName}:${port}/${db}`],

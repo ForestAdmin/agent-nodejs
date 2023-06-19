@@ -5,16 +5,24 @@ import { Sequelize } from 'sequelize';
 import { DatabaseConnectError, SshConnectError } from '../../src';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
-import setupDatabaseWithTypes from '../_helpers/setup-using-all-types';
-
-const sshConfig = {
-  host: 'localhost',
-  port: 2222,
-  username: 'forest',
-  privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
-};
+import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 describe('when there is only a ssh configuration', () => {
+  const sshConfig = {
+    host: 'localhost',
+    port: 2222,
+    username: 'forest',
+    privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+  };
+
+  beforeAll(async () => {
+    await createDatabaseIfNotExist(
+      'mariadb://root:password@localhost:3307',
+      'mariadb',
+      'test_connection',
+    );
+  });
+
   it('should be able to connect at the db', async () => {
     const options = new ConnectionOptions({
       uri: 'mariadb://root:password@mariadb:3306/test_connection',
