@@ -38,11 +38,14 @@ export default class SshClient extends Service {
 
   override async connectListener(socket?: net.Socket): Promise<net.Socket> {
     try {
-      return await new Promise((resolve, reject) => {
+      return await new Promise<net.Socket>((resolve, reject) => {
         this.client.on('error', reject);
         this.client.on('ready', async () => {
-          // when connection is ready
-          resolve(await this.buildTunnel());
+          try {
+            resolve(await this.buildTunnel());
+          } catch (error) {
+            reject(error);
+          }
         });
         // connect to the SSH server
         this.client.connect({ ...this.options, sock: socket });
@@ -63,9 +66,9 @@ export default class SshClient extends Service {
         this.targetPort,
         async (error, stream) => {
           if (error) {
-            this.destroySocketIfUnclosed(stream, error);
             this.client.end();
-            reject(error);
+
+            return reject(error);
           }
 
           this.connectedClients.add(stream);
@@ -74,7 +77,8 @@ export default class SshClient extends Service {
             this.destroySocketIfUnclosed(stream);
             this.client.end();
           });
-          resolve(await super.connectListener(stream));
+
+          return resolve(await super.connectListener(stream));
         },
       );
     });

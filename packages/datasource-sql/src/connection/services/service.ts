@@ -43,7 +43,7 @@ export default abstract class Service {
   }
 
   destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
-    if (socket && !socket.closed) socket.destroy(error);
+    if (socket && !socket.closed) socket.destroy();
     if (error) this.errors.push(error);
   }
 

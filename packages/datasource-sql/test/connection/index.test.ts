@@ -175,6 +175,25 @@ describe('Connect', () => {
       expect(seq).toBeInstanceOf(Sequelize);
     });
 
+    describe('when the db has a wrong configuration', () => {
+      it('should catch the error', async () => {
+        const baseUri = 'mariadb://root:password@localhost:3809';
+        await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
+
+        const options = new ConnectionOptions({
+          uri: 'mariadb://root:password@badhost:3306/test_connection',
+          proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
+          ssh: {
+            host: 'ssh-server',
+            port: 2222,
+            username: 'forest',
+            privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+          },
+        });
+        await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+      });
+    });
+
     describe('when the ssh has a wrong configuration', () => {
       describe('when the host is wrong', () => {
         it('should throw the SshConnectError', async () => {
@@ -246,6 +265,24 @@ describe('Connect', () => {
             host: 'localhost',
             port: 2222,
             username: 'BADUSER',
+            privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+          },
+        });
+        await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+      });
+    });
+
+    describe('when the db has a wrong configuration', () => {
+      it('should catch the error', async () => {
+        const baseUri = 'mariadb://root:password@localhost:3809';
+        await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
+
+        const options = new ConnectionOptions({
+          uri: 'mariadb://root:password@BADHOST:3306/test_connection',
+          ssh: {
+            host: 'localhost',
+            port: 2222,
+            username: 'forest',
             privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
           },
         });

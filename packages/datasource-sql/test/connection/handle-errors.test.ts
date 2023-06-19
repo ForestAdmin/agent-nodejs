@@ -125,10 +125,11 @@ describe('connect errors', () => {
     // eslint-disable-next-line jest/no-disabled-tests
     describe.skip('when fixie proxy close the socket', () => {
       // This test is disabled because it requires a fixie proxy to be configured
-      // and we can't reproduce the use case with the local proxy that is in the docker-compose
+      // and we can't reproduce the use case: 'Socket closed' error
+      // with the local proxy that is in the docker-compose
       it('should throw a DatabaseConnectError error', async () => {
         const options = new ConnectionOptions({
-          uri: 'postgres://example:password@5.tcp.eu.ngrok.io:14817/example',
+          uri: 'postgres://example:password@badhost:14817/example',
           proxySocks: {
             host: 'bici.usefixie.com',
             port: 1080,
