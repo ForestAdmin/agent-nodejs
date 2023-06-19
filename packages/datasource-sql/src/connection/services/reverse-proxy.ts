@@ -33,7 +33,9 @@ export default class ReverseProxy extends Service {
       this.onErrorEventDestroySocket(socket, socket);
       const tunnel = await super.connectListener();
 
-      return tunnel.pipe(socket).pipe(tunnel);
+      if (tunnel) {
+        return tunnel.pipe(socket).pipe(tunnel);
+      }
     } catch (error) {
       this.errors.push(error);
       socket.emit('error', error);
