@@ -1,11 +1,10 @@
 import net from 'net';
 
 export type ConnectionCallback = (socket: net.Socket) => Promise<net.Socket>;
-export type CloseCallback = () => Promise<void>;
+export type StopCallback = () => Promise<void>;
 
 export default abstract class Service {
-  private connectionCallback: ConnectionCallback;
-  private closeCallback: CloseCallback;
+  private linkedService: Service;
   protected readonly errors: Error[] = [];
   protected readonly connectedClients: Set<net.Socket> = new Set();
 
@@ -13,40 +12,32 @@ export default abstract class Service {
     return this.errors.length > 0 ? this.errors[0] : null;
   }
 
-  /** attach a callback when there is a new connection on the service. */
-  onConnect(callback: ConnectionCallback): void {
-    this.connectionCallback = callback;
+  /** link a service */
+  link(service: Service): void {
+    this.linkedService = service;
   }
 
-  /** callback to execute when there is a new connection. */
-  async connectListener(socket?: net.Socket): Promise<net.Socket> {
-    return this.connectionCallback?.(socket) || socket;
+  /** call the linked service connection callback */
+  protected async connect(socket?: net.Socket): Promise<net.Socket> {
+    return this.linkedService?.connect(socket) || socket;
   }
 
-  /** attach a callback when a service is closing. */
-  onClose(callback: CloseCallback): void {
-    this.closeCallback = callback;
-  }
-
-  /** callback to execute when the service is closing. */
-  async closeListener(): Promise<void> {
+  /** stop the service by stopping the linked service and destroying all its clients. */
+  async stop(): Promise<void> {
     try {
-      await this.closeCallback?.();
+      await this.linkedService?.stop?.();
     } finally {
       this.connectedClients.forEach(client => client.destroy());
     }
   }
 
-  bindListeners(to: Service): void {
-    this.onConnect(to.connectListener.bind(to));
-    this.onClose(to.closeListener.bind(to));
-  }
-
+  /** destroy socket if it is not closed and add the error to the errors array */
   destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
     if (socket && !socket.closed) socket.destroy();
     if (error) this.errors.push(error);
   }
 
+  /** on the socket close event, destroy the socket if it is not closed and delete the client */
   onCloseEventDestroySocket(socketToListen: net.Socket, socketToDestroy: net.Socket): void {
     socketToListen.on('close', () => {
       this.destroySocketIfUnclosed(socketToDestroy);
@@ -54,6 +45,7 @@ export default abstract class Service {
     });
   }
 
+  /** on the socket error event, destroy the socket if it is not closed and delete the client */
   onErrorEventDestroySocket(socketToListen: net.Socket, socketToDestroy: net.Socket): void {
     socketToListen.on('error', error => {
       this.destroySocketIfUnclosed(socketToDestroy, error);

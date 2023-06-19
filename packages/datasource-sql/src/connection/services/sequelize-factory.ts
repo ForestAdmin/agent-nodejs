@@ -16,14 +16,14 @@ export default class SequelizeFactory extends Service {
   }
 
   private overrideCloseMethod(sequelize: Sequelize): void {
-    const closeListener = this.closeListener.bind(this);
+    const stop = this.stop.bind(this);
 
-    // override close method to ensure to execute the closeListener
+    // override close method to ensure to execute the stop
     sequelize.close = async function close() {
       try {
         await Sequelize.prototype.close.call(this);
       } finally {
-        await closeListener();
+        await stop();
       }
     };
   }

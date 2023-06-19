@@ -23,24 +23,7 @@ export default class ReverseProxy extends Service {
 
   constructor() {
     super();
-    this.server = net.createServer(this.connectListener.bind(this));
-  }
-
-  override async connectListener(socket: net.Socket): Promise<net.Socket> {
-    try {
-      this.connectedClients.add(socket);
-      this.onCloseEventDestroySocket(socket, socket);
-      this.onErrorEventDestroySocket(socket, socket);
-      const tunnel = await super.connectListener();
-
-      if (tunnel) {
-        return tunnel.pipe(socket).pipe(tunnel);
-      }
-    } catch (error) {
-      this.errors.push(error);
-      socket.emit('error', error);
-      // don't throw the error to avoid crashing the server because the error is already handled
-    }
+    this.server = net.createServer(this.connect.bind(this));
   }
 
   start(): Promise<void> {
@@ -52,10 +35,10 @@ export default class ReverseProxy extends Service {
     });
   }
 
-  async stop(): Promise<void> {
+  override async stop(): Promise<void> {
     try {
       // close all the connected clients before closing the server
-      await super.closeListener();
+      await super.stop();
     } finally {
       await new Promise<void>((resolve, reject) => {
         this.server.close(e => {
@@ -63,6 +46,23 @@ export default class ReverseProxy extends Service {
           else resolve();
         });
       });
+    }
+  }
+
+  protected override async connect(socket: net.Socket): Promise<net.Socket> {
+    try {
+      this.connectedClients.add(socket);
+      this.onCloseEventDestroySocket(socket, socket);
+      this.onErrorEventDestroySocket(socket, socket);
+      const tunnel = await super.connect();
+
+      if (tunnel) {
+        return tunnel.pipe(socket).pipe(tunnel);
+      }
+    } catch (error) {
+      this.errors.push(error);
+      socket.emit('error', error);
+      // don't throw the error to avoid crashing the server because the error is already handled
     }
   }
 }

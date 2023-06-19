@@ -18,7 +18,7 @@ export default class SocksProxy extends Service {
     if (!this.targetPort) throw new Error('Port is required');
   }
 
-  override async connectListener(): Promise<net.Socket> {
+  protected override async connect(): Promise<net.Socket> {
     try {
       const { socket } = await SocksClient.createConnection({
         proxy: { ...this.options, type: 5 },
@@ -30,7 +30,7 @@ export default class SocksProxy extends Service {
       this.onCloseEventDestroySocket(socket, socket);
       this.onErrorEventDestroySocket(socket, socket);
 
-      const tunnel = await super.connectListener(socket);
+      const tunnel = await super.connect(socket);
 
       // destroy the proxy socket when the tunnel is closed or an error occurs
       // this is very important to avoid unclose database connections

@@ -4,13 +4,13 @@ import { Client } from 'ssh2';
 import Service from './service';
 import { SshOptions } from '../../types';
 
-export default class SshClient extends Service {
-  private readonly client: Client;
+export default class SshTunnel extends Service {
   private readonly options: SshOptions;
   private readonly sourceHost: string;
   private readonly sourcePort: number;
   private readonly targetHost: string;
   private readonly targetPort: number;
+  private readonly clients = new Set<Client>();
 
   constructor(
     options: SshOptions,
@@ -25,30 +25,30 @@ export default class SshClient extends Service {
     this.sourcePort = sourcePort;
     this.targetHost = targetHost;
     this.targetPort = targetPort;
-    this.client = new Client();
   }
 
-  override async closeListener(): Promise<void> {
+  override async stop(): Promise<void> {
     try {
-      await super.closeListener();
+      await super.stop();
     } finally {
-      this.client.end();
+      this.clients.forEach(client => this.endClient(client));
     }
   }
 
-  override async connectListener(socket?: net.Socket): Promise<net.Socket> {
+  override async connect(socket?: net.Socket): Promise<net.Socket> {
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
-        this.client.on('error', reject);
-        this.client.on('ready', async () => {
+        const client = this.newClient();
+        client.on('error', reject);
+        client.on('ready', async () => {
           try {
-            resolve(await this.buildTunnel());
+            resolve(await this.buildTunnel(client));
           } catch (error) {
             reject(error);
           }
         });
         // connect to the SSH server
-        this.client.connect({ ...this.options, sock: socket });
+        client.connect({ ...this.options, sock: socket });
       });
     } catch (error) {
       this.errors.push(error);
@@ -56,17 +56,17 @@ export default class SshClient extends Service {
     }
   }
 
-  private async buildTunnel(): Promise<net.Socket> {
+  private async buildTunnel(client): Promise<net.Socket> {
     // tell to the SSH server to forward all the traffic to the target host and port
     return new Promise<net.Socket>((resolve, reject) => {
-      this.client.forwardOut(
+      client.forwardOut(
         this.sourceHost,
         this.sourcePort,
         this.targetHost,
         this.targetPort,
         async (error, stream) => {
           if (error) {
-            this.client.end();
+            this.endClient(client);
 
             return reject(error);
           }
@@ -75,12 +75,24 @@ export default class SshClient extends Service {
           this.onErrorEventDestroySocket(stream, stream);
           stream.on('close', () => {
             this.destroySocketIfUnclosed(stream);
-            this.client.end();
+            this.endClient(client);
           });
 
-          return resolve(await super.connectListener(stream));
+          return resolve(await super.connect(stream));
         },
       );
     });
+  }
+
+  private newClient(): Client {
+    const client = new Client();
+    this.clients.add(client);
+
+    return client;
+  }
+
+  private endClient(client: Client): void {
+    client.end();
+    this.clients.delete(client);
   }
 }

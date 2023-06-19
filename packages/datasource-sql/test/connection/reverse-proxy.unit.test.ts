@@ -1,8 +1,19 @@
 import net from 'net';
 
 import ReverseProxy from '../../src/connection/services/reverse-proxy';
+import Service from '../../src/connection/services/service';
 
 describe('Reverse proxy', () => {
+  const makeAServiceWithAnErrorWhenConnecting = (error: Error) => {
+    class Service1 extends Service {
+      protected override async connect(): Promise<net.Socket> {
+        throw error;
+      }
+    }
+
+    return new Service1();
+  };
+
   describe('stop', () => {
     it('should stop the reverse proxy', async () => {
       const reverseProxy = new ReverseProxy();
@@ -26,14 +37,13 @@ describe('Reverse proxy', () => {
       });
     });
 
-    describe('when there is an error', () => {
+    describe('when there is an error on the connect', () => {
       it('should throw the error', async () => {
         const expectedError = new Error('an error occurred');
         const reverseProxy = new ReverseProxy();
         // throw an error when a client connects
-        reverseProxy.onConnect(() => {
-          throw expectedError;
-        });
+        const service = makeAServiceWithAnErrorWhenConnecting(expectedError);
+        reverseProxy.link(service);
         await reverseProxy.start();
 
         // connect a client
