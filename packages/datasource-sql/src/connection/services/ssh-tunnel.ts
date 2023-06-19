@@ -37,9 +37,10 @@ export default class SshTunnel extends Service {
   }
 
   override async connect(socket?: net.Socket): Promise<net.Socket> {
+    const client = this.newClient();
+
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
-        const client = this.newClient();
         client.on('error', e => reject(new SshConnectServiceError(e as Error)));
         client.on('ready', async () => {
           try {
@@ -57,6 +58,7 @@ export default class SshTunnel extends Service {
         }
       });
     } catch (error) {
+      this.endClient(client);
       this.errors.push(error);
       throw error;
     }

@@ -6,13 +6,13 @@ import Service from '../../src/connection/services/service';
 describe('Reverse proxy', () => {
   const makeAServiceWithAnErrorWhenConnecting = () => {
     class Service1 extends Service {
-      connectedEnded: () => void;
+      connectEnded: () => void;
       errorToThrow: Error = null;
       protected override async connect(): Promise<net.Socket> {
         try {
           throw this.errorToThrow;
         } finally {
-          this.connectedEnded();
+          this.connectEnded();
         }
       }
     }
@@ -56,7 +56,7 @@ describe('Reverse proxy', () => {
         // connect a client
         await new Promise<void>(resolve => {
           const client = new net.Socket();
-          service.connectedEnded = resolve;
+          service.connectEnded = resolve;
           client.connect(reverseProxy.port, reverseProxy.host);
         });
 

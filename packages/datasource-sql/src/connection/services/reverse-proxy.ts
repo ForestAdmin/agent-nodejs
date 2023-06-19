@@ -60,8 +60,8 @@ export default class ReverseProxy extends Service {
 
       return tunnel;
     } catch (error) {
-      this.errors.push(error);
       this.destroySocketIfUnclosed(socket, error);
+      this.errors.push(error);
       // don't throw the error to avoid crashing the server because the error is already handled
     }
   }
