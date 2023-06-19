@@ -1,6 +1,7 @@
 import net from 'net';
 import { SocksClient } from 'socks';
 
+import { SocksProxyServiceError } from './errors';
 import Service from './service';
 import { ProxyOptions } from '../../types';
 
@@ -27,20 +28,25 @@ export default class SocksProxy extends Service {
         timeout: 4000,
       });
       this.connectedClients.add(socket);
-      this.onCloseEventDestroySocket(socket, socket);
-      this.onErrorEventDestroySocket(socket, socket);
+      socket.on('close', () => this.destroySocketIfUnclosed(socket));
+      socket.on('error', error =>
+        this.destroySocketIfUnclosed(socket, new SocksProxyServiceError(error as Error)),
+      );
 
       const tunnel = await super.connect(socket);
 
       // destroy the proxy socket when the tunnel is closed or an error occurs
       // this is very important to avoid unclose database connections
-      this.onCloseEventDestroySocket(tunnel, socket);
-      this.onErrorEventDestroySocket(tunnel, socket);
+      tunnel.on('close', () => this.destroySocketIfUnclosed(socket));
+      tunnel.on('error', error =>
+        this.destroySocketIfUnclosed(socket, new SocksProxyServiceError(error as Error)),
+      );
 
       return tunnel;
     } catch (error) {
-      this.errors.push(error);
-      throw error;
+      const serviceError = new SocksProxyServiceError(error as Error);
+      this.errors.push(serviceError);
+      throw serviceError;
     }
   }
 }

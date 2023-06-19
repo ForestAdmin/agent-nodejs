@@ -1,6 +1,7 @@
 import net from 'net';
 import { Client } from 'ssh2';
 
+import { SshConnectServiceError, SshForwardServiceError } from './errors';
 import Service from './service';
 import { SshOptions } from '../../types';
 
@@ -39,7 +40,7 @@ export default class SshTunnel extends Service {
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
         const client = this.newClient();
-        client.on('error', reject);
+        client.on('error', e => reject(new SshConnectServiceError(e as Error)));
         client.on('ready', async () => {
           try {
             resolve(await this.buildTunnel(client));
@@ -47,8 +48,13 @@ export default class SshTunnel extends Service {
             reject(error);
           }
         });
-        // connect to the SSH server
-        client.connect({ ...this.options, sock: socket });
+
+        try {
+          // connect to the SSH server
+          client.connect({ ...this.options, sock: socket });
+        } catch (error) {
+          reject(new SshConnectServiceError(error as Error));
+        }
       });
     } catch (error) {
       this.errors.push(error);
@@ -68,11 +74,13 @@ export default class SshTunnel extends Service {
           if (error) {
             this.endClient(client);
 
-            return reject(error);
+            return reject(new SshForwardServiceError(error as Error));
           }
 
           this.connectedClients.add(stream);
-          this.onErrorEventDestroySocket(stream, stream);
+          stream.on('error', e =>
+            this.destroySocketIfUnclosed(stream, new SshForwardServiceError(e as Error)),
+          );
           stream.on('close', () => {
             this.destroySocketIfUnclosed(stream);
             this.endClient(client);

@@ -42,15 +42,16 @@ export class ProxyConnectError extends BaseError {
 }
 
 export class SshConnectError extends BaseError {
-  readonly source = 'Ssh';
+  readonly source: ErrorSource;
 
-  constructor(message: string, debugSshUri: string) {
+  constructor(message: string, debugSshUri: string, source: ErrorSource = 'Ssh') {
     const sanitizedUri = debugSshUri.replace('tcp://', '');
 
     super(
-      `Your ssh has encountered an error. Unable to connect to the given uri: ${sanitizedUri}.`,
+      `Your ssh has encountered an error. Unable to connect to the given ssh uri: ${sanitizedUri}`,
       sanitizedUri,
       message,
     );
+    this.source = source;
   }
 }

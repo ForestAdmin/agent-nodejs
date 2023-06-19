@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import { Dialect, Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';

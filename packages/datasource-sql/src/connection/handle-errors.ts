@@ -2,8 +2,9 @@ import { BaseError as SequelizeError } from 'sequelize';
 
 import ConnectionOptions from './connection-options';
 import { DatabaseConnectError, ProxyConnectError, SshConnectError } from './errors';
+import { SocksProxyServiceError, SshForwardServiceError, SshServiceError } from './services/errors';
 
-function handleProxyErrors(error: Error, options: ConnectionOptions): void {
+function handleProxyErrors(error: SocksProxyServiceError, options: ConnectionOptions): void {
   /** @see https://github.com/JoshGlazebrook/socks/blob/76d013/src/common/constants.ts#L10 */
   if (
     error.message.includes('Socket closed') ||
@@ -11,7 +12,7 @@ function handleProxyErrors(error: Error, options: ConnectionOptions): void {
   ) {
     // means that the ssh is not reachable
     if (options.sshOptions) {
-      throw new SshConnectError(error.message, options.debugSshUri);
+      throw new SshConnectError(error.message, options.debugSshUri, 'Proxy');
     } else {
       // if there is no sshOptions, then the database is the destination and
       // it means that the database is not reachable
@@ -32,13 +33,21 @@ function handleSequelizeError(error: SequelizeError, options: ConnectionOptions)
   throw new DatabaseConnectError(`${nameWithSpaces}: ${error.message}`, options.debugDatabaseUri);
 }
 
+function handleSshErrors(error: SshServiceError, options: ConnectionOptions): void {
+  if (error instanceof SshForwardServiceError) {
+    throw new DatabaseConnectError(null, options.debugDatabaseUri, 'Ssh');
+  } else {
+    throw new SshConnectError(error.message, options.debugSshUri);
+  }
+}
+
 export default function handleErrors(error: Error, options: ConnectionOptions) {
-  if (error?.stack?.includes('SocksClient')) {
+  if (error instanceof SocksProxyServiceError) {
     handleProxyErrors(error, options);
   }
 
-  if (error?.stack?.includes('ssh2')) {
-    throw new SshConnectError(error.message, options.debugSshUri);
+  if (error instanceof SshServiceError) {
+    handleSshErrors(error, options);
   }
 
   if (error instanceof SequelizeError) {

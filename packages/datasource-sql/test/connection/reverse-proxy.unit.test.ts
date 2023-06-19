@@ -4,10 +4,16 @@ import ReverseProxy from '../../src/connection/services/reverse-proxy';
 import Service from '../../src/connection/services/service';
 
 describe('Reverse proxy', () => {
-  const makeAServiceWithAnErrorWhenConnecting = (error: Error) => {
+  const makeAServiceWithAnErrorWhenConnecting = () => {
     class Service1 extends Service {
+      connectedEnded: () => void;
+      errorToThrow: Error = null;
       protected override async connect(): Promise<net.Socket> {
-        throw error;
+        try {
+          throw this.errorToThrow;
+        } finally {
+          this.connectedEnded();
+        }
       }
     }
 
@@ -19,7 +25,7 @@ describe('Reverse proxy', () => {
       const reverseProxy = new ReverseProxy();
       await reverseProxy.start();
       await reverseProxy.stop();
-      expect('the stop should render the hand').toBe('the stop should render the hand');
+      expect(reverseProxy.error).toBe(null);
     });
 
     describe('when the reverse proxy is started and has already a connected client', () => {
@@ -33,7 +39,7 @@ describe('Reverse proxy', () => {
         });
 
         await reverseProxy.stop();
-        expect('the stop should render the hand').toBe('the stop should render the hand');
+        expect(reverseProxy.error).toBe(null);
       });
     });
 
@@ -42,14 +48,16 @@ describe('Reverse proxy', () => {
         const expectedError = new Error('an error occurred');
         const reverseProxy = new ReverseProxy();
         // throw an error when a client connects
-        const service = makeAServiceWithAnErrorWhenConnecting(expectedError);
+        const service = makeAServiceWithAnErrorWhenConnecting();
+        service.errorToThrow = expectedError;
         reverseProxy.link(service);
         await reverseProxy.start();
 
         // connect a client
         await new Promise<void>(resolve => {
           const client = new net.Socket();
-          client.connect(reverseProxy.port, reverseProxy.host, resolve);
+          service.connectedEnded = resolve;
+          client.connect(reverseProxy.port, reverseProxy.host);
         });
 
         await reverseProxy.stop();
