@@ -26,14 +26,6 @@ describe('connect errors with all the databases', () => {
     (dialect, username, password, host, containerPort, port, dockerServiceName) => {
       const db = `test_connection`;
 
-      beforeEach(async () => {
-        await setupDatabaseWithTypes(
-          `${dialect}://${username}:${password}@${host}:${containerPort}`,
-          dialect,
-          db,
-        );
-      });
-
       describe.each([
         ['password', `${dialect}://${username}:BADPASSWORD@${dockerServiceName}:${port}/${db}`],
         ['user', `${dialect}://BADUSER:${password}@${dockerServiceName}:${port}/${db}`],

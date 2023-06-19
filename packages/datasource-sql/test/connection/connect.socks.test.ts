@@ -8,9 +8,6 @@ const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId
 describe('when proxy socks configuration is provided', () => {
   describe('when the database password is wrong', () => {
     it('should not block the promise and throw an error', async () => {
-      const baseUri = 'postgres://test:password@localhost:5443';
-      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
-
       const options = new ConnectionOptions({
         uri: `postgres://BADUSER:password@postgres:5432/test_connection`,
         proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
@@ -22,9 +19,6 @@ describe('when proxy socks configuration is provided', () => {
 
   describe('when the proxy configuration is wrong', () => {
     it('should throw an error', async () => {
-      const baseUri = 'postgres://test:password@localhost:5443';
-      await setupDatabaseWithTypes(baseUri, 'postgres', 'test_connection');
-
       const options = new ConnectionOptions({
         uri: `postgres://test:password@postgres:5432/test_connection`,
         proxySocks: { host: 'BADHOST', port: 1080, password: 'password', userId: 'username' },

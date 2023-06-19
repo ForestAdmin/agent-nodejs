@@ -35,12 +35,14 @@ export default class SocksProxy extends Service {
 
       const tunnel = await super.connect(socket);
 
-      // destroy the proxy socket when the tunnel is closed or an error occurs
-      // this is very important to avoid unclose database connections
-      tunnel.on('close', () => this.destroySocketIfUnclosed(socket));
-      tunnel.on('error', error =>
-        this.destroySocketIfUnclosed(socket, new SocksProxyServiceError(error as Error)),
-      );
+      if (tunnel) {
+        // destroy the proxy socket when the tunnel is closed or an error occurs
+        // this is very important to avoid unclose database connections
+        tunnel.on('close', () => this.destroySocketIfUnclosed(socket));
+        tunnel.on('error', error =>
+          this.destroySocketIfUnclosed(socket, new SocksProxyServiceError(error as Error)),
+        );
+      }
 
       return tunnel;
     } catch (error) {

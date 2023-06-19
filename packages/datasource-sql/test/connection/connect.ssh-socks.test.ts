@@ -17,9 +17,6 @@ const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId
 
 describe('when there is a ssh and proxy configuration', () => {
   it('should be able to connect at the db', async () => {
-    const baseUri = 'mariadb://root:password@localhost:3809';
-    await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
-
     const options = new ConnectionOptions({
       uri: 'mariadb://root:password@mariadb:3306/test_connection',
       proxySocks,
@@ -32,9 +29,6 @@ describe('when there is a ssh and proxy configuration', () => {
 
   describe('when the db has a wrong configuration', () => {
     it('should throw the DatabaseConnectError', async () => {
-      const baseUri = 'mariadb://root:password@localhost:3809';
-      await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
-
       const options = new ConnectionOptions({
         uri: 'mariadb://root:password@badhost:3306/test_connection',
         proxySocks,
@@ -47,9 +41,6 @@ describe('when there is a ssh and proxy configuration', () => {
   describe('when the ssh has a wrong configuration', () => {
     describe('when the host is wrong', () => {
       it('should throw the SshConnectError', async () => {
-        const baseUri = 'mariadb://root:password@localhost:3809';
-        await setupDatabaseWithTypes(baseUri, 'mariadb', 'test_connection');
-
         const options = new ConnectionOptions({
           uri: 'mariadb://root:password@mariadb:3306/test_connection',
           proxySocks,
