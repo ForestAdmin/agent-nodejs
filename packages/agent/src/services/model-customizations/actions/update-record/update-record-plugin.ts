@@ -1,4 +1,4 @@
-import { Plugin } from '@forestadmin/datasource-customizer';
+import { ActionContext, Plugin } from '@forestadmin/datasource-customizer';
 import {
   ModelCustomization,
   UpdateRecordActionConfiguration,
@@ -25,12 +25,16 @@ export default class UpdateRecordActionsPlugin {
 
       collection.addAction(action.name, {
         scope: action.configuration.scope,
-        execute: async context => {
+        execute: async (context: ActionContext) => {
           const {
             configuration: {
-              configuration: { fields },
+              configuration: { fields: fieldsToUpdate },
             },
           } = action;
+
+          const fields = fieldsToUpdate.reduce((acc, fieldToUpdate) => {
+            return { ...acc, [fieldToUpdate.fieldName]: fieldToUpdate.value };
+          }, {});
 
           await context.collection.update(context.filter, fields);
         },

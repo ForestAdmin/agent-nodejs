@@ -41,7 +41,7 @@ export type WebhookActionConfiguration = ActionConfiguration<WebhookActionConfig
 };
 
 export type UpdateRecordActionConfigurationSpecific = {
-  fields: Record<string, unknown>;
+  fields: Array<{ fieldName: string; value: unknown }>;
 };
 
 export type UpdateRecordActionConfiguration =
