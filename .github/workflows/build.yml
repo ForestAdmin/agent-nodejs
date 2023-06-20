@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    name: Building
+    name: Installing & Building
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
@@ -29,20 +29,18 @@ jobs:
           node-version: 16.14.0
       - uses: actions/cache@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Install
-        run: yarn
-      - name: Bootstrap
-        run: yarn bootstrap --ci
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+      - name: Install & Bootstrap
+        run: yarn && yarn bootstrap --ci
       - name: Build
         run: yarn build
-      - name: Upload build
-        uses: actions/upload-artifact@v3
+      - uses: actions/cache/save@v3
         with:
-          name: build
-          path: 'packages/**/dist/*'
-          retention-days: 1
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
 
   lint:
     name: Linting
@@ -55,16 +53,20 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Download build
-        uses: actions/download-artifact@v3
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
         with:
-          name: build
-          path: 'packages/'
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v5
       - name: Lint Typescript
@@ -75,33 +77,82 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
+    strategy:
+      matrix:
+        package:
+          - agent
+          - datasource-customizer
+          - datasource-dummy
+          - datasource-mongoose
+          - datasource-sequelize
+          - datasource-sql
+          - datasource-toolkit
+          - forestadmin-client
+          - plugin-aws-s3
+          - plugin-export-advanced
+          - plugin-flattener
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
+      - name: Start docker containers
+        if: ${{ matrix.package == 'datasource-mongoose' }}
+        run: docker-compose -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 5
+      - name: Start docker containers
+        if: ${{ matrix.package == 'datasource-sql' }}
+        run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 5
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Download build
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
+      - name: test
+        run: yarn test:coverage packages/${{ matrix.package }}/test
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.package }}
+          path: coverage/lcov.info
+          retention-days: 1
+
+  send-coverage:
+    name: Send Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download coverage reports
         uses: actions/download-artifact@v3
         with:
-          name: build
-          path: 'packages/'
-      - name: Start docker datasource-sql containers
-        run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 5
-      - name: Start docker datasource-mongoose containers
-        run: docker-compose -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 5
+          path: reports
       - name: Send coverage
         uses: paambaati/codeclimate-action@84cea27117a473d605400ca3a97fcef7e433e2d6
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageLocations: |
-            ${{github.workspace}}/coverage/lcov.info:lcov
-          coverageCommand: yarn test:coverage
+            ${{github.workspace}}/reports/agent/lcov.info:lcov
+            ${{github.workspace}}/reports/datasource-customizer/lcov.info:lcov
+            ${{github.workspace}}/reports/datasource-dummy/lcov.info:lcov
+            ${{github.workspace}}/reports/datasource-mongoose/lcov.info:lcov
+            ${{github.workspace}}/reports/datasource-sequelize/lcov.info:lcov
+            ${{github.workspace}}/reports/datasource-sql/lcov.info:lcov
+            ${{github.workspace}}/reports/datasource-toolkit/lcov.info:lcov
+            ${{github.workspace}}/reports/forestadmin-client/lcov.info:lcov
+            ${{github.workspace}}/reports/plugin-aws-s3/lcov.info:lcov
+            ${{github.workspace}}/reports/plugin-export-advanced/lcov.info:lcov
+            ${{github.workspace}}/reports/plugin-flattener/lcov.info:lcov
 
   build-api-reference:
     name: Build API Reference
@@ -112,11 +163,20 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
@@ -127,7 +187,7 @@ jobs:
   release:
     name: Release packages
     runs-on: ubuntu-latest
-    needs: [build-api-reference, test, lint]
+    needs: [build-api-reference, send-coverage, lint]
     if: |
       github.event_name == 'push' 
       && (
@@ -145,16 +205,21 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Download build
-        uses: actions/download-artifact@v3
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
         with:
-          name: build
-          path: 'packages/'
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
+      # TODO: this can be done as a oneliner using the registry option in actions/setup-node step
       - name: Configure npm
         run: |
           echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
@@ -181,7 +246,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' 
-    needs: [build-api-reference, release]
+    needs: [build-api-reference, send-coverage, lint]
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v2
