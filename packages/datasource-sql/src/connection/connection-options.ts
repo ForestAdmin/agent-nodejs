@@ -115,11 +115,7 @@ export default class ConnectionOptions {
   }
 
   async buildPreprocessedOptions(): Promise<PlainConnectionOptions> {
-    const options = { ...this.sequelizeOptions } as PlainConnectionOptions;
-
-    if (this.uri) options.uri = this.uri.toString();
-    if (this.proxyOptions) options.proxySocks = this.proxyOptions;
-    options.dialect = this.dialect;
+    const options = this.getPlainConnectionOptions();
     options.sslMode = await this.computeSslMode();
 
     return options;
@@ -244,11 +240,7 @@ export default class ConnectionOptions {
       try {
         // eslint-disable-next-line no-await-in-loop
         sequelize = await connect(
-          new ConnectionOptions({
-            uri: this.uri?.toString(),
-            sslMode,
-            ...this.sequelizeOptions,
-          }),
+          new ConnectionOptions({ ...this.getPlainConnectionOptions(), sslMode }),
         );
 
         return sslMode;
@@ -260,5 +252,16 @@ export default class ConnectionOptions {
     }
 
     throw error;
+  }
+
+  private getPlainConnectionOptions(): PlainConnectionOptions {
+    const options = { ...this.sequelizeOptions } as PlainConnectionOptions;
+
+    if (this.uri) options.uri = this.uri.toString();
+    if (this.proxyOptions) options.proxySocks = this.proxyOptions;
+    options.dialect = this.dialect;
+    options.sslMode = this.sslMode;
+
+    return options;
   }
 }
