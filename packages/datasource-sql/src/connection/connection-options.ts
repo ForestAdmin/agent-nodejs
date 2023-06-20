@@ -79,6 +79,17 @@ export default class ConnectionOptions {
     return this.uri?.pathname?.slice(1) || this.sequelizeOptions.database;
   }
 
+  private get plainConnectionOptions(): PlainConnectionOptions {
+    const options = { ...this.sequelizeOptions } as PlainConnectionOptions;
+
+    if (this.uri) options.uri = this.uri.toString();
+    if (this.proxyOptions) options.proxySocks = this.proxyOptions;
+    options.dialect = this.dialect;
+    options.sslMode = this.sslMode;
+
+    return options;
+  }
+
   constructor(options: PlainConnectionOptionsOrUri, logger?: Logger) {
     this.logger = logger;
 
@@ -115,7 +126,7 @@ export default class ConnectionOptions {
   }
 
   async buildPreprocessedOptions(): Promise<PlainConnectionOptions> {
-    const options = this.getPlainConnectionOptions();
+    const options = this.plainConnectionOptions;
     options.sslMode = await this.computeSslMode();
 
     return options;
@@ -240,7 +251,7 @@ export default class ConnectionOptions {
       try {
         // eslint-disable-next-line no-await-in-loop
         sequelize = await connect(
-          new ConnectionOptions({ ...this.getPlainConnectionOptions(), sslMode }),
+          new ConnectionOptions({ ...this.plainConnectionOptions, sslMode }),
         );
 
         return sslMode;
@@ -252,16 +263,5 @@ export default class ConnectionOptions {
     }
 
     throw error;
-  }
-
-  private getPlainConnectionOptions(): PlainConnectionOptions {
-    const options = { ...this.sequelizeOptions } as PlainConnectionOptions;
-
-    if (this.uri) options.uri = this.uri.toString();
-    if (this.proxyOptions) options.proxySocks = this.proxyOptions;
-    options.dialect = this.dialect;
-    options.sslMode = this.sslMode;
-
-    return options;
   }
 }
