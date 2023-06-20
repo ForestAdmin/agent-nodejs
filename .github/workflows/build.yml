@@ -31,6 +31,8 @@ jobs:
         with:
           path: 'node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-modules-
       - name: Install & Bootstrap
         run: yarn && yarn bootstrap --ci
       - name: Build
