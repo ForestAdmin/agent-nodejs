@@ -171,6 +171,12 @@ jobs:
             packages/*/node_modules
           key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
           fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
