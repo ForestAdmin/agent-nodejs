@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    name: Building
+    name: Installing & Building
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
@@ -27,22 +27,15 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Install
-        run: yarn
-      - name: Bootstrap
-        run: yarn bootstrap --ci
+          cache: yarn
+      - name: Install & Bootstrap
+        run: yarn && yarn bootstrap --ci
       - name: Build
         run: yarn build
-      - name: Upload build
-        uses: actions/upload-artifact@v3
+      - uses: actions/cache/save@v3
         with:
-          name: build
-          path: 'packages/**/dist/*'
-          retention-days: 1
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
 
   lint:
     name: Linting
@@ -55,16 +48,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Download build
-        uses: actions/download-artifact@v3
-        with:
-          name: build
-          path: 'packages/'
+          cache: yarn
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v5
       - name: Lint Typescript
@@ -80,16 +64,13 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
+          cache: yarn
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
-      - name: Download build
-        uses: actions/download-artifact@v3
-        with:
-          name: build
-          path: 'packages/'
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
       - name: Start docker datasource-sql containers
         run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 5
       - name: Start docker datasource-mongoose containers
@@ -112,11 +93,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
+          cache: yarn
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
@@ -145,16 +122,13 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
+          cache: yarn
       - name: Download build
         uses: actions/download-artifact@v3
         with:
           name: build
           path: 'packages/'
+      # TODO: this can be done as a oneliner using the registry option in actions/setup-node step
       - name: Configure npm
         run: |
           echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
