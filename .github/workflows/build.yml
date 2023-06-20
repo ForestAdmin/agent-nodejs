@@ -30,7 +30,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
       - name: Install
         run: yarn
       - name: Bootstrap
@@ -59,7 +59,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
       - name: Download build
         uses: actions/download-artifact@v3
         with:
@@ -84,7 +84,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
       - name: Download build
         uses: actions/download-artifact@v3
         with:
@@ -116,7 +116,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
@@ -149,7 +149,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json', 'patches/*.patch') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock', 'packages/**/package.json') }}
       - name: Download build
         uses: actions/download-artifact@v3
         with:
