@@ -27,7 +27,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-          cache: yarn
+      - uses: actions/cache@v3
+        with:
+          path: 'node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
       - name: Install & Bootstrap
         run: yarn && yarn bootstrap --ci
       - name: Build
@@ -48,9 +51,18 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-          cache: yarn
-      - name: Install & Bootstrap
-        run: yarn && yarn bootstrap --ci
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: 'node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v5
       - name: Lint Typescript
@@ -66,9 +78,12 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-          cache: yarn
-      - name: Install & Bootstrap
-        run: yarn && yarn bootstrap --ci
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: 'node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
       - name: Restore build from cache
         uses: actions/cache/restore@v3
         with:
@@ -97,9 +112,12 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-          cache: yarn
-      - name: Install & Bootstrap
-        run: yarn && yarn bootstrap --ci
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: 'node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
       - name: Build doc
         run: yarn docs
       - name: Archive documentation artifacts
@@ -128,9 +146,12 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
-          cache: yarn
-      - name: Install & Bootstrap
-        run: yarn && yarn bootstrap --ci
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v3
+        with:
+          path: 'node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
       - name: Restore build from cache
         uses: actions/cache/restore@v3
         with:
