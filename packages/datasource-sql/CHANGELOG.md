@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.6.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.7...@forestadmin/datasource-sql@1.6.8) (2023-06-19)
+
+
+### Bug Fixes
+
+* **datasource-sql:** export missing types ([#737](https://github.com/ForestAdmin/agent-nodejs/issues/737)) ([4fa72e3](https://github.com/ForestAdmin/agent-nodejs/commit/4fa72e3223530476382de284dc0472159776775d))
+
 ## @forestadmin/datasource-sql [1.6.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.6...@forestadmin/datasource-sql@1.6.7) (2023-06-16)
 
 

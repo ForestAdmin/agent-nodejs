@@ -24,7 +24,7 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
           configuration: {
             type: 'update-record',
             scope,
-            configuration: { fields: { field: 'value' } },
+            configuration: { fields: [{ fieldName: 'field', value: 'value' }] },
           },
         };
 
@@ -56,7 +56,7 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
         configuration: {
           type: 'update-record',
           scope: 'Global',
-          configuration: { fields: { field: 'value' } },
+          configuration: { fields: [{ fieldName: 'field', value: 'value' }] },
         },
       };
 

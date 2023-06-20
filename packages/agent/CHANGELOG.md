@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.11.0...@forestadmin/agent@1.12.0) (2023-06-19)
+
+
+### Features
+
+* handle field names containing underscores on update record actions ([#735](https://github.com/ForestAdmin/agent-nodejs/issues/735)) ([d5d7661](https://github.com/ForestAdmin/agent-nodejs/commit/d5d76616e883c51dccf2a5c8e52f8b15d7ff072e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.9.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.0
+
 # @forestadmin/agent [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.10.0...@forestadmin/agent@1.11.0) (2023-06-15)
 
 
