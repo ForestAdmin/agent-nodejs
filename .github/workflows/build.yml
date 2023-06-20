@@ -123,11 +123,12 @@ jobs:
         with:
           node-version: 16.14.0
           cache: yarn
-      - name: Download build
-        uses: actions/download-artifact@v3
+      - name: Restore build from cache
+        uses: actions/cache/restore@v3
         with:
-          name: build
-          path: 'packages/'
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
       # TODO: this can be done as a oneliner using the registry option in actions/setup-node step
       - name: Configure npm
         run: |
