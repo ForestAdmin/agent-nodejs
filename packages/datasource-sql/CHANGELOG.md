@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.6.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.9...@forestadmin/datasource-sql@1.6.10) (2023-06-20)
+
+
+### Bug Fixes
+
+* **datasource-sql:** add proxy configuration when computing ssl ([#740](https://github.com/ForestAdmin/agent-nodejs/issues/740)) ([3ca8a5d](https://github.com/ForestAdmin/agent-nodejs/commit/3ca8a5ddb0598b7acd24a9e67b04a952c77ed160))
+
 ## @forestadmin/datasource-sql [1.6.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.8...@forestadmin/datasource-sql@1.6.9) (2023-06-20)
 
 
