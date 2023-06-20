@@ -2,7 +2,7 @@ import { Sequelize } from 'sequelize';
 
 import { DatabaseConnectError } from './errors';
 
-export default async function testConnectionWithtimeOut(
+export default async function testConnectionWithTimeOut(
   sequelize: Sequelize,
   databaseUri: string,
   timeout = 10000,

@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 
 import ConnectionOptions from './connection-options';
-import testConnectionWithtimeOut from './connection-tester';
+import testConnectionWithTimeOut from './connection-tester';
 import handleErrors from './handle-errors';
 import ReverseProxy from './services/reverse-proxy';
 import SequelizeFactory from './services/sequelize-factory';
@@ -29,7 +29,7 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
 
-    await testConnectionWithtimeOut(sequelize, options.debugDatabaseUri);
+    await testConnectionWithTimeOut(sequelize, options.debugDatabaseUri);
 
     return sequelize;
   } catch (e) {

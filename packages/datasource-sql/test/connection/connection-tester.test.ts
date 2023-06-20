@@ -1,9 +1,9 @@
 import { Sequelize } from 'sequelize';
 
-import testConnectionWithtimeOut from '../../src/connection/connection-tester';
+import testConnectionWithTimeOut from '../../src/connection/connection-tester';
 import { DatabaseConnectError } from '../../src/connection/errors';
 
-describe('testConnectionWithtimeOut', () => {
+describe('testConnectionWithTimeOut', () => {
   it('should time out', async () => {
     jest.useFakeTimers();
 
@@ -14,7 +14,7 @@ describe('testConnectionWithtimeOut', () => {
         }),
     };
 
-    const promise = testConnectionWithtimeOut(sequelize as unknown as Sequelize, 'a db URI', 3000);
+    const promise = testConnectionWithTimeOut(sequelize as unknown as Sequelize, 'a db URI', 3000);
 
     jest.advanceTimersByTime(3000);
 
@@ -31,7 +31,7 @@ describe('testConnectionWithtimeOut', () => {
         }),
     };
 
-    const promise = testConnectionWithtimeOut(sequelize as unknown as Sequelize, 'a db URI', 3000);
+    const promise = testConnectionWithTimeOut(sequelize as unknown as Sequelize, 'a db URI', 3000);
 
     jest.advanceTimersByTime(2000);
 
