@@ -16,11 +16,7 @@ describe('when there is only a ssh configuration', () => {
   };
 
   beforeAll(async () => {
-    await createDatabaseIfNotExist(
-      'mariadb://root:password@localhost:3307',
-      'mariadb',
-      'test_connection',
-    );
+    await createDatabaseIfNotExist('mariadb://root:password@localhost:3307', 'test_connection');
   });
 
   it('should be able to connect at the db', async () => {

@@ -18,11 +18,7 @@ const uri = 'postgres://test:password@postgres:5432/test_connection';
 
 describe('when there is a ssh and proxy configuration', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist(
-      'postgres://test:password@localhost:5443',
-      'postgres',
-      'test_connection',
-    );
+    await createDatabaseIfNotExist('postgres://test:password@localhost:5443', 'test_connection');
   });
 
   it('should be able to connect at the db', async () => {

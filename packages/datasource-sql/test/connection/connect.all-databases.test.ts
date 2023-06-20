@@ -29,7 +29,6 @@ describe('connect errors with all the databases', () => {
       beforeAll(async () => {
         await createDatabaseIfNotExist(
           `${dialect}://${username}:${password}@${host}:${containerPort}`,
-          dialect,
           'test_connection',
         );
       });

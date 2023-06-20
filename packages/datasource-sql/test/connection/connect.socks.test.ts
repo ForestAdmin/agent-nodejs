@@ -7,11 +7,7 @@ const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId
 
 describe('when proxy socks configuration is provided', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist(
-      'postgres://test:password@localhost:5443',
-      'postgres',
-      'test_connection',
-    );
+    await createDatabaseIfNotExist('postgres://test:password@localhost:5443', 'test_connection');
   });
 
   describe('when the database password is wrong', () => {

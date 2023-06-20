@@ -31,7 +31,7 @@ export default abstract class Service {
     }
   }
 
-  /** destroy socket if it is not closed and add the error to the errors array */
+  /** destroy socket if it is not closed and save the error */
   destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
     if (socket) {
       if (!socket.closed) socket.destroy();

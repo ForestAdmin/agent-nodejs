@@ -91,6 +91,7 @@ export default class ConnectionOptions {
 
     if (this.uri) options.uri = this.uri.toString();
     if (this.proxyOptions) options.proxySocks = this.proxyOptions;
+    if (this.sshOptions) options.ssh = this.sshOptions;
     options.dialect = this.dialect;
     options.sslMode = this.sslMode;
 

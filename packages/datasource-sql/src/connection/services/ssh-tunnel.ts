@@ -43,7 +43,9 @@ export default class SshTunnel extends Service {
 
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
-        client.on('error', e => reject(new SshConnectServiceError(e as Error)));
+        client.on('error', e => {
+          reject(new SshConnectServiceError(e as Error));
+        });
         client.on('ready', async () => {
           try {
             resolve(await this.buildTunnel(client));
@@ -52,13 +54,10 @@ export default class SshTunnel extends Service {
           }
         });
 
-        try {
-          // connect to the SSH server
-          // will trigger the 'ready' event if the connection is successful
-          client.connect({ ...this.options, sock: socket });
-        } catch (error) {
-          reject(new SshConnectServiceError(error as Error));
-        }
+        // connect to the SSH server
+        // will trigger the 'ready' event if the connection is successful
+        // if the connection fails, the 'error' event will be triggered
+        client.connect({ ...this.options, sock: socket });
       });
     } catch (error) {
       this.endClient(client);
