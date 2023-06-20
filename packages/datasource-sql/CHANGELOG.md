@@ -1,3 +1,17 @@
+## @forestadmin/datasource-sql [1.6.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.9...@forestadmin/datasource-sql@1.6.10) (2023-06-20)
+
+
+### Bug Fixes
+
+* **datasource-sql:** add proxy configuration when computing ssl ([#740](https://github.com/ForestAdmin/agent-nodejs/issues/740)) ([3ca8a5d](https://github.com/ForestAdmin/agent-nodejs/commit/3ca8a5ddb0598b7acd24a9e67b04a952c77ed160))
+
+## @forestadmin/datasource-sql [1.6.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.8...@forestadmin/datasource-sql@1.6.9) (2023-06-20)
+
+
+### Bug Fixes
+
+* **datasource-sql:** fix worker crash on authentication testing ([#736](https://github.com/ForestAdmin/agent-nodejs/issues/736)) ([e81f101](https://github.com/ForestAdmin/agent-nodejs/commit/e81f10128a868f13dbcaef8b097d7799889e6e46))
+
 ## @forestadmin/datasource-sql [1.6.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.7...@forestadmin/datasource-sql@1.6.8) (2023-06-19)
 
 
