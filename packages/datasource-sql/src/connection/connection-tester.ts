@@ -8,11 +8,9 @@ export default async function testConnectionWithtimeOut(
   timeout = 10000,
 ) {
   // Test connection. If this doesn't resolve after 10s, throw a timeout error
-  const delay = ms =>
-    new Promise(resolve => {
-      setTimeout(resolve, ms);
-    });
-  const timeoutPromise = delay(timeout).then(() =>
+  const timeoutPromise = new Promise(resolve => {
+    setTimeout(resolve, timeout);
+  }).then(() =>
     Promise.reject(new DatabaseConnectError('Connection to database timed out', databaseUri)),
   );
 
