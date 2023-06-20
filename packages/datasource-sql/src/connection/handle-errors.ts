@@ -12,7 +12,7 @@ function handleProxyErrors(error: SocksProxyServiceError, options: ConnectionOpt
   ) {
     // means that the ssh is not reachable
     if (options.sshOptions) {
-      throw new SshConnectError(error.message, options.debugSshUri, 'Proxy');
+      throw new SshConnectError(null, options.debugSshUri, 'Proxy');
     } else {
       // if there is no sshOptions, then the database is the destination and
       // it means that the database is not reachable

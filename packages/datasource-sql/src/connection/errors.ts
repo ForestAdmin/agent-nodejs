@@ -48,7 +48,8 @@ export class SshConnectError extends BaseError {
     const sanitizedUri = debugSshUri.replace('tcp://', '');
 
     super(
-      `Your ssh has encountered an error. Unable to connect to the given ssh uri: ${sanitizedUri}`,
+      `Your ssh connection has encountered an error. ` +
+        `Unable to connect to the given ssh uri: ${sanitizedUri}`,
       sanitizedUri,
       message,
     );

@@ -39,7 +39,7 @@ describe('when there is a ssh and proxy configuration', () => {
         proxySocks,
         ssh,
       });
-      await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);
+      await expect(() => connect(options, 2000)).rejects.toThrow(DatabaseConnectError);
     });
   });
 
@@ -51,7 +51,7 @@ describe('when there is a ssh and proxy configuration', () => {
           proxySocks,
           ssh: { ...ssh, host: 'BADHOST' },
         });
-        await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+        await expect(() => connect(options, 2000)).rejects.toThrow(SshConnectError);
       });
     });
 

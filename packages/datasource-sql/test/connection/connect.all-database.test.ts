@@ -51,7 +51,7 @@ describe('connect errors with all the databases', () => {
               ssh: sshValue,
             });
 
-            await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);
+            await expect(() => connect(options, 2000)).rejects.toThrow(DatabaseConnectError);
           });
         });
       });

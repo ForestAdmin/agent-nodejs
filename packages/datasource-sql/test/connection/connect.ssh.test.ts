@@ -39,7 +39,7 @@ describe('when there is only a ssh configuration', () => {
         uri: 'mariadb://root:password@mariadb:3306/test_connection',
         ssh: { ...sshConfig, username: 'BADUSER' },
       });
-      await expect(() => connect(options)).rejects.toThrow(SshConnectError);
+      await expect(() => connect(options, 2000)).rejects.toThrow(SshConnectError);
     });
   });
 
