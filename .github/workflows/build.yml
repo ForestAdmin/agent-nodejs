@@ -77,47 +77,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
-    services:
-      postgres:
-        image: postgres:12.7
-        ports: ['5443:5432']
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: password
-      mysql:
-        image: mysql:oracle
-        ports: ['3307:3306']
-        env:
-          MYSQL_ROOT_PASSWORD: password
-      mssql:
-        image: mcr.microsoft.com/azure-sql-edge
-        ports: ['1434:1433']
-        env:
-          MSSQL_SA_PASSWORD: yourStrong(!)Password
-          ACCEPT_EULA: Y
-      mariadb:
-        image: mariadb:latest
-        ports: ['3809:3306']
-        env:
-          MARIADB_ROOT_PASSWORD: password
-      socks-proxy:
-        image: serjs/go-socks5-proxy
-        ports: ['1080:1080']
-        env:
-          PROXY_USER: username
-          PROXY_PASSWORD: password
-      mongodb:
-        image: mongo:latest
-        ports: ['27019:27017']
-        env:
-          MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: password
-
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: 16.14.0
+      - name: Start docker containers
+        run: docker-compose -f ./packages/datasource-sql/docker-compose.yml -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v3
         with:
