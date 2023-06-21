@@ -43,37 +43,18 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.sha }}
 
   lint:
-    name: Linting
+    name: Lint commit messages
     runs-on: ubuntu-latest
     needs: [build]
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16.14.0
-      - name: Restore dependencies from cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
-          fail-on-cache-miss: true
-      - name: Restore build from cache
-        uses: actions/cache/restore@v3
-        with:
-          path: packages/*/dist
-          key: ${{ runner.os }}-build-${{ github.sha }}
-          fail-on-cache-miss: true
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v5
-      - name: Lint Typescript
-        run: yarn lint
 
   test:
-    name: Testing
+    name: Linting & Testing
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
@@ -97,11 +78,8 @@ jobs:
         with:
           node-version: 16.14.0
       - name: Start docker containers
-        if: ${{ matrix.package == 'datasource-mongoose' }}
-        run: docker-compose -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 5
-      - name: Start docker containers
-        if: ${{ matrix.package == 'datasource-sql' }}
-        run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 5
+        if: ${{ matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' }}
+        run: docker-compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v3
         with:
@@ -116,13 +94,15 @@ jobs:
           path: packages/*/dist
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
-      - name: test
-        run: yarn test:coverage packages/${{ matrix.package }}/test
+      - name: Lint Typescript
+        run: cd packages/${{ matrix.package }} && yarn lint && cd -
+      - name: Test code
+        run: cd packages/${{ matrix.package }} && yarn test --coverage && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.package }}
-          path: coverage/lcov.info
+          path: packages/${{ matrix.package }}/coverage/clover.xml
           retention-days: 1
 
   send-coverage:
@@ -142,17 +122,17 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageLocations: |
-            ${{github.workspace}}/reports/agent/lcov.info:lcov
-            ${{github.workspace}}/reports/datasource-customizer/lcov.info:lcov
-            ${{github.workspace}}/reports/datasource-dummy/lcov.info:lcov
-            ${{github.workspace}}/reports/datasource-mongoose/lcov.info:lcov
-            ${{github.workspace}}/reports/datasource-sequelize/lcov.info:lcov
-            ${{github.workspace}}/reports/datasource-sql/lcov.info:lcov
-            ${{github.workspace}}/reports/datasource-toolkit/lcov.info:lcov
-            ${{github.workspace}}/reports/forestadmin-client/lcov.info:lcov
-            ${{github.workspace}}/reports/plugin-aws-s3/lcov.info:lcov
-            ${{github.workspace}}/reports/plugin-export-advanced/lcov.info:lcov
-            ${{github.workspace}}/reports/plugin-flattener/lcov.info:lcov
+            ${{github.workspace}}/reports/agent/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-customizer/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-dummy/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-mongoose/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-sequelize/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-sql/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-toolkit/clover.xml:clover
+            ${{github.workspace}}/reports/forestadmin-client/clover.xml:clover
+            ${{github.workspace}}/reports/plugin-aws-s3/clover.xml:clover
+            ${{github.workspace}}/reports/plugin-export-advanced/clover.xml:clover
+            ${{github.workspace}}/reports/plugin-flattener/clover.xml:clover
 
   build-api-reference:
     name: Build API Reference
