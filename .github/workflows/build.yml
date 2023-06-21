@@ -43,37 +43,18 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.sha }}
 
   lint:
-    name: Linting
+    name: Lint commit messages
     runs-on: ubuntu-latest
     needs: [build]
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16.14.0
-      - name: Restore dependencies from cache
-        uses: actions/cache/restore@v3
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
-          fail-on-cache-miss: true
-      - name: Restore build from cache
-        uses: actions/cache/restore@v3
-        with:
-          path: packages/*/dist
-          key: ${{ runner.os }}-build-${{ github.sha }}
-          fail-on-cache-miss: true
       - name: Lint commit message
         uses: wagoid/commitlint-github-action@v5
-      - name: Lint Typescript
-        run: yarn lint
 
   test:
-    name: Testing
+    name: Linting & Testing
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
@@ -113,7 +94,9 @@ jobs:
           path: packages/*/dist
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
-      - name: test
+      - name: Lint Typescript
+        run: cd packages/${{ matrix.package }} && yarn lint && cd -
+      - name: Test code
         run: cd packages/${{ matrix.package }} && yarn test --coverage && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v3
