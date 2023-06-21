@@ -19,7 +19,13 @@ export default class ServerUtils {
       request.set('forest-secret-key', options.envSecret);
       if (headers) request.set(headers);
 
-      const response = await request.send(body);
+      const timeoutPromise = new Promise(resolve => {
+        setTimeout(resolve, 10000);
+      }).then(() => Promise.reject(new Error('The request to ForestAdmin server has timeout')));
+
+      const responsePromise = request.send(body);
+
+      const response = await Promise.race([responsePromise, timeoutPromise]);
 
       return response.body;
     } catch (error) {

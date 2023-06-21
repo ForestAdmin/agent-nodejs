@@ -91,6 +91,32 @@ describe('ServerUtils', () => {
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(unknownError);
   });
 
+  it('should timeout if the server take more than 10s to respond', async () => {
+    const message = 'The request to ForestAdmin server has timeout';
+    nock(options.forestServerUrl, {
+      reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
+    })
+      .get('/endpoint')
+      .delay(11000)
+      .reply(200, { data: 'ok' });
+
+    await expect(
+      ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' }),
+    ).rejects.toThrow(message);
+  }, 12000);
+
+  it('should not timeout if the server take less than 10s to respond', async () => {
+    nock(options.forestServerUrl, {
+      reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
+    })
+      .get('/endpoint')
+      .delay(9000)
+      .reply(200, { data: 'ok' });
+
+    const result = await ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' });
+    expect(result).toStrictEqual({ data: 'ok' });
+  }, 10000);
+
   describe('when the server send back a message', () => {
     it('should forward a new error containing the message', async () => {
       const message = 'this is a message sent from forest server';
