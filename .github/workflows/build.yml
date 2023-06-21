@@ -117,7 +117,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
       - name: test
-        run: cd packages/${{ matrix.package }} && yarn test:coverage & cd -
+        run: cd packages/${{ matrix.package }} && yarn test --coverage & cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v3
         with:
