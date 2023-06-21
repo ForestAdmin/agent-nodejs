@@ -97,11 +97,8 @@ jobs:
         with:
           node-version: 16.14.0
       - name: Start docker containers
-        if: ${{ matrix.package == 'datasource-mongoose' }}
-        run: docker-compose -f ./packages/datasource-mongoose/docker-compose.yml up -d; sleep 5
-      - name: Start docker containers
-        if: ${{ matrix.package == 'datasource-sql' }}
-        run: docker-compose -f ./packages/datasource-sql/docker-compose.yml up -d; sleep 5
+        if: ${{ matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' }}
+        run: docker-compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v3
         with:
