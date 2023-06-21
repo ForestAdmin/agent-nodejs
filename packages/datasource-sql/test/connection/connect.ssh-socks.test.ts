@@ -11,7 +11,7 @@ const ssh = {
   host: 'ssh-server',
   port: 2222,
   username: 'forest',
-  privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+  privateKey: readFileSync(resolve(__dirname, '../ssh-config/id_rsa')),
 };
 const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId: 'username' };
 const uri = 'postgres://test:password@postgres:5432/test_connection';
@@ -34,8 +34,9 @@ describe('when there is a ssh and proxy configuration', () => {
         uri: 'postgres://test:password@badhost:5432/test_connection',
         proxySocks,
         ssh,
+        connectionTimeoutInMs: 2000,
       });
-      await expect(() => connect(options, 2000)).rejects.toThrow(DatabaseConnectError);
+      await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);
     });
   });
 
@@ -46,8 +47,9 @@ describe('when there is a ssh and proxy configuration', () => {
           uri,
           proxySocks,
           ssh: { ...ssh, host: 'BADHOST' },
+          connectionTimeoutInMs: 2000,
         });
-        await expect(() => connect(options, 2000)).rejects.toThrow(SshConnectError);
+        await expect(() => connect(options)).rejects.toThrow(SshConnectError);
       });
     });
 

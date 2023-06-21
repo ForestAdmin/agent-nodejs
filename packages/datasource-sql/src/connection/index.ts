@@ -9,10 +9,7 @@ import SocksProxy from './services/socks-proxy';
 import SshTunnel from './services/ssh-tunnel';
 
 /** Attempt to connect to the database */
-export default async function connect(
-  options: ConnectionOptions,
-  timeoutInMs?: number,
-): Promise<Sequelize> {
+export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
   let socksProxy: SocksProxy;
   let sshTunnel: SshTunnel;
   let reverseProxy: ReverseProxy;
@@ -51,7 +48,11 @@ export default async function connect(
 
     sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
 
-    await testConnectionWithTimeOut(sequelize, options.debugDatabaseUri, timeoutInMs);
+    await testConnectionWithTimeOut(
+      sequelize,
+      options.debugDatabaseUri,
+      options.connectionTimeoutInMs,
+    );
 
     return sequelize;
   } catch (e) {

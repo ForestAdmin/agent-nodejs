@@ -1,4 +1,5 @@
 import { Options } from 'sequelize/types';
+import { ConnectConfig } from 'ssh2';
 
 type SupportedSequelizeOptions = Pick<
   Options,
@@ -30,18 +31,14 @@ export type ProxyOptions = {
   command?: 'connect';
 };
 
-export type SshOptions = {
-  port: number;
-  host: string;
-  username: string;
-  privateKey: Buffer;
-};
+export type SshOptions = Omit<ConnectConfig, 'sock'>;
 
 export type PlainConnectionOptions = SupportedSequelizeOptions & {
   uri?: string;
   sslMode?: SslMode;
   proxySocks?: ProxyOptions;
   ssh?: SshOptions;
+  connectionTimeoutInMs?: number;
 };
 
 export type PlainConnectionOptionsOrUri = PlainConnectionOptions | string;

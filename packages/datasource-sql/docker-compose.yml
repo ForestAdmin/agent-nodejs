@@ -57,4 +57,3 @@ services:
       - ./ssh-config:/config
     ports:
       - '2222:2222'
-    restart: unless-stopped

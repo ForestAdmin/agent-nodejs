@@ -12,7 +12,7 @@ const ssh = {
   host: 'ssh-server',
   port: 2222,
   username: 'forest',
-  privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+  privateKey: readFileSync(resolve(__dirname, '../ssh-config/id_rsa')),
 };
 
 describe('connect errors with all the databases', () => {
@@ -48,9 +48,10 @@ describe('connect errors with all the databases', () => {
               uri,
               proxySocks: proxySockValue,
               ssh: sshValue,
+              connectionTimeoutInMs: 2000,
             });
 
-            await expect(() => connect(options, 2000)).rejects.toThrow(DatabaseConnectError);
+            await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);
           });
         });
       });

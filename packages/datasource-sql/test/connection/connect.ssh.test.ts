@@ -12,7 +12,7 @@ describe('when there is only a ssh configuration', () => {
     host: 'localhost',
     port: 2222,
     username: 'forest',
-    privateKey: readFileSync(resolve(__dirname, '../../ssh-config/id_rsa')),
+    privateKey: readFileSync(resolve(__dirname, '../ssh-config/id_rsa')),
   };
 
   beforeAll(async () => {
@@ -34,8 +34,9 @@ describe('when there is only a ssh configuration', () => {
       const options = new ConnectionOptions({
         uri: 'mariadb://root:password@mariadb:3306/test_connection',
         ssh: { ...sshConfig, username: 'BADUSER' },
+        connectionTimeoutInMs: 2000,
       });
-      await expect(() => connect(options, 2000)).rejects.toThrow(SshConnectError);
+      await expect(() => connect(options)).rejects.toThrow(SshConnectError);
     });
   });
 

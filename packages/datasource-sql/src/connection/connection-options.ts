@@ -24,6 +24,7 @@ import {
 export default class ConnectionOptions {
   proxyOptions?: ProxyOptions;
   sshOptions?: SshOptions;
+  connectionTimeoutInMs?: number;
 
   private initialHost: string;
   private initialPort: number;
@@ -92,6 +93,7 @@ export default class ConnectionOptions {
     if (this.uri) options.uri = this.uri.toString();
     if (this.proxyOptions) options.proxySocks = this.proxyOptions;
     if (this.sshOptions) options.ssh = this.sshOptions;
+    if (this.connectionTimeoutInMs) options.connectionTimeoutInMs = this.connectionTimeoutInMs;
     options.dialect = this.dialect;
     options.sslMode = this.sslMode;
 
