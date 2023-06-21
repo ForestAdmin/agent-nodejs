@@ -54,6 +54,6 @@ services:
       - USER_NAME=forest
       - DOCKER_MODS=linuxserver/mods:openssh-server-ssh-tunnel # enable AllowTcpForwarding here
     volumes:
-      - ./ssh-config:/config
+      - ./test/ssh-config:/config
     ports:
       - '2222:2222'

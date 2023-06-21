@@ -43,9 +43,7 @@ export default class SshTunnel extends Service {
 
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
-        client.on('error', e => {
-          reject(new SshConnectServiceError(e as Error));
-        });
+        client.on('error', e => reject(new SshConnectServiceError(e)));
         client.on('ready', async () => {
           try {
             resolve(await this.buildTunnel(client));
@@ -75,11 +73,11 @@ export default class SshTunnel extends Service {
         this.targetHost,
         this.targetPort,
         async (error, stream) => {
-          if (error) return reject(new SshForwardServiceError(error as Error));
+          if (error) return reject(new SshForwardServiceError(error));
 
           this.connectedClients.add(stream);
           stream.on('error', e =>
-            this.destroySocketIfUnclosed(stream, new SshForwardServiceError(e as Error)),
+            this.destroySocketIfUnclosed(stream, new SshForwardServiceError(e)),
           );
           stream.on('close', () => {
             this.destroySocketIfUnclosed(stream);

@@ -107,10 +107,11 @@ export default class ConnectionOptions {
       this.uri = this.parseDatabaseUri(options);
       this.sequelizeOptions = {};
     } else {
-      const { uri, sslMode, proxySocks, ssh, ...sequelizeOptions } = options;
+      const { uri, sslMode, proxySocks, ssh, connectionTimeoutInMs, ...sequelizeOptions } = options;
 
       this.proxyOptions = proxySocks;
       this.sshOptions = ssh;
+      this.connectionTimeoutInMs = connectionTimeoutInMs;
       this.sequelizeOptions = sequelizeOptions;
       this.sslMode = sslMode ?? 'manual';
       this.uri = uri ? this.parseDatabaseUri(uri) : null;

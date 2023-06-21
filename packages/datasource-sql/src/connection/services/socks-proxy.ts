@@ -31,10 +31,7 @@ export default class SocksProxy extends Service {
       this.connectedClients.add(socks5Client.socket);
       socks5Client.socket.on('close', () => this.destroySocketIfUnclosed(socks5Client.socket));
       socks5Client.socket.on('error', error =>
-        this.destroySocketIfUnclosed(
-          socks5Client.socket,
-          new SocksProxyServiceError(error as Error),
-        ),
+        this.destroySocketIfUnclosed(socks5Client.socket, new SocksProxyServiceError(error)),
       );
 
       const tunnel = await super.connect(socks5Client.socket);
@@ -44,17 +41,14 @@ export default class SocksProxy extends Service {
         // this is very important to avoid unclose database connections
         tunnel.on('close', () => this.destroySocketIfUnclosed(socks5Client.socket));
         tunnel.on('error', error =>
-          this.destroySocketIfUnclosed(
-            socks5Client.socket,
-            new SocksProxyServiceError(error as Error),
-          ),
+          this.destroySocketIfUnclosed(socks5Client.socket, new SocksProxyServiceError(error)),
         );
       }
 
       return tunnel;
     } catch (error) {
       if (socks5Client?.socket) this.destroySocketIfUnclosed(socks5Client.socket);
-      const serviceError = new SocksProxyServiceError(error as Error);
+      const serviceError = new SocksProxyServiceError(error);
       this.errors.push(serviceError);
       throw serviceError;
     }
