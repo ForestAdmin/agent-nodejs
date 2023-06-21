@@ -18,7 +18,7 @@ describe('connect errors', () => {
     (dialect, username, password, host, containerPort, port, dockerServiceName) => {
       const db = `test_connection`;
 
-      beforeEach(async () => {
+      beforeAll(async () => {
         await setupDatabaseWithTypes(
           `${dialect}://${username}:${password}@${host}:${containerPort}`,
           dialect,
