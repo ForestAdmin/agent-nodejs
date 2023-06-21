@@ -14,21 +14,25 @@ export default class ServerUtils {
     body?: string | object,
   ): Promise<T> {
     try {
+      const maxTimeAllowed = 10000;
       const url = new URL(path, options.forestServerUrl).toString();
-      const request = superagent[method](url);
+      
+      const request = superagent[method](url).timeout(maxTimeAllowed)
+
       request.set('forest-secret-key', options.envSecret);
       if (headers) request.set(headers);
 
-      const timeoutPromise = new Promise(resolve => {
-        setTimeout(resolve, 10000);
-      }).then(() => Promise.reject(new Error('The request to ForestAdmin server has timeout')));
+      const response = await request.send(body);
 
-      const responsePromise = request.send(body);
-
-      const response = await Promise.race([responsePromise, timeoutPromise]);
+      if (response.body === `Timeout of ${maxTimeAllowed} exceeded`){
+        throw new Error(response.body);
+      }
 
       return response.body;
     } catch (error) {
+      if (error.timeout) {
+        throw new Error("The request to ForestAdmin server has timeout");
+      }
       this.handleResponseError(error);
     }
   }

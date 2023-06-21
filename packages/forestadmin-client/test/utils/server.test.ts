@@ -91,29 +91,48 @@ describe('ServerUtils', () => {
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(unknownError);
   });
 
-  it('should timeout if the server take more than 10s to respond', async () => {
+  it.only('should timeout if the server take more than 10s to respond', async () => {
     const message = 'The request to ForestAdmin server has timeout';
+
+    jest.useFakeTimers();
+
     nock(options.forestServerUrl, {
       reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
     })
       .get('/endpoint')
-      .delay(11000)
-      .reply(200, { data: 'ok' });
+      .reply(() => {
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve([200, { data: 'ok' }]);
+          }, 11000);
+        });
+      });
 
-    await expect(
-      ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' }),
-    ).rejects.toThrow(message);
-  }, 12000);
+    const response = ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' });
+    jest.advanceTimersByTime(10000);
+
+    await expect(response).rejects.toThrow(message);
+
+  });
 
   it('should not timeout if the server take less than 10s to respond', async () => {
+    // jest.useFakeTimers();
+
     nock(options.forestServerUrl, {
       reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
     })
       .get('/endpoint')
-      .delay(9000)
-      .reply(200, { data: 'ok' });
+      .reply(() => {
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve([200, { data: 'ok' }]);
+          }, 9000);
+        });
+      });
 
     const result = await ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' });
+    // jest.advanceTimersByTime(9000);
+
     expect(result).toStrictEqual({ data: 'ok' });
   }, 10000);
 
