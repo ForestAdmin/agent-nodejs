@@ -51,16 +51,16 @@ export default class ReverseProxy extends Service {
 
   protected override async connect(socket: net.Socket): Promise<net.Socket> {
     try {
-      this.connectedClients.add(socket);
-      socket.on('close', () => this.destroySocketIfUnclosed(socket));
-      socket.on('error', error => this.destroySocketIfUnclosed(socket, error));
+      this.addConnectedClient(socket);
+      socket.on('close', () => this.destroySocketIfUnclosedAndSaveError(socket));
+      socket.on('error', error => this.destroySocketIfUnclosedAndSaveError(socket, error));
 
       const tunnel = await super.connect();
       if (tunnel) tunnel.pipe(socket).pipe(tunnel);
 
       return tunnel;
     } catch (error) {
-      this.destroySocketIfUnclosed(socket, error);
+      this.destroySocketIfUnclosedAndSaveError(socket, error);
       this.errors.push(error);
       // don't throw the error to avoid crashing the server because the error is already handled
     }

@@ -28,10 +28,15 @@ export default class SocksProxy extends Service {
         destination: { host: this.targetHost, port: this.targetPort },
         timeout: 4000,
       });
-      this.connectedClients.add(socks5Client.socket);
-      socks5Client.socket.on('close', () => this.destroySocketIfUnclosed(socks5Client.socket));
+      this.addConnectedClient(socks5Client.socket);
+      socks5Client.socket.on('close', () =>
+        this.destroySocketIfUnclosedAndSaveError(socks5Client.socket),
+      );
       socks5Client.socket.on('error', error =>
-        this.destroySocketIfUnclosed(socks5Client.socket, new SocksProxyServiceError(error)),
+        this.destroySocketIfUnclosedAndSaveError(
+          socks5Client.socket,
+          new SocksProxyServiceError(error),
+        ),
       );
 
       const tunnel = await super.connect(socks5Client.socket);
@@ -39,15 +44,18 @@ export default class SocksProxy extends Service {
       if (tunnel) {
         // destroy the proxy socket when the tunnel is closed or an error occurs
         // this is very important to avoid unclose database connections
-        tunnel.on('close', () => this.destroySocketIfUnclosed(socks5Client.socket));
+        tunnel.on('close', () => this.destroySocketIfUnclosedAndSaveError(socks5Client.socket));
         tunnel.on('error', error =>
-          this.destroySocketIfUnclosed(socks5Client.socket, new SocksProxyServiceError(error)),
+          this.destroySocketIfUnclosedAndSaveError(
+            socks5Client.socket,
+            new SocksProxyServiceError(error),
+          ),
         );
       }
 
       return tunnel;
     } catch (error) {
-      if (socks5Client?.socket) this.destroySocketIfUnclosed(socks5Client.socket);
+      if (socks5Client?.socket) this.destroySocketIfUnclosedAndSaveError(socks5Client.socket);
       const serviceError = new SocksProxyServiceError(error);
       this.errors.push(serviceError);
       throw serviceError;

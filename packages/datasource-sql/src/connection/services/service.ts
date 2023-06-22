@@ -5,8 +5,8 @@ export type StopCallback = () => Promise<void>;
 
 export default abstract class Service {
   private linkedService: Service;
+  private readonly connectedClients: Set<net.Socket> = new Set();
   protected readonly errors: Error[] = [];
-  protected readonly connectedClients: Set<net.Socket> = new Set();
 
   get error(): Error | null {
     return this.errors.length > 0 ? this.errors[0] : null;
@@ -15,11 +15,6 @@ export default abstract class Service {
   /** link a service */
   link(service: Service): void {
     this.linkedService = service;
-  }
-
-  /** call the linked service connection callback */
-  protected async connect(socket?: net.Socket): Promise<net.Socket> {
-    return (await this.linkedService?.connect(socket)) || socket;
   }
 
   /** stop the service by stopping the linked service and destroying all its clients. */
@@ -31,13 +26,23 @@ export default abstract class Service {
     }
   }
 
-  /** destroy socket if it is not closed and save the error */
-  destroySocketIfUnclosed(socket?: net.Socket, error?: Error): void {
+  /** call the linked service connection callback */
+  protected async connect(socket?: net.Socket): Promise<net.Socket> {
+    return (await this.linkedService?.connect(socket)) || socket;
+  }
+
+  /** destroy the given socket if it is not closed and save the error */
+  protected destroySocketIfUnclosedAndSaveError(socket?: net.Socket, error?: Error): void {
     if (socket) {
       if (!socket.closed) socket.destroy();
       this.connectedClients.delete(socket);
     }
 
     if (error) this.errors.push(error);
+  }
+
+  /** register a socket as a client to be destroyed when the service is stopped */
+  protected addConnectedClient(client: net.Socket): void {
+    this.connectedClients.add(client);
   }
 }

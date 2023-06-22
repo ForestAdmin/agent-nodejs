@@ -75,12 +75,12 @@ export default class SshTunnel extends Service {
         async (error, stream) => {
           if (error) return reject(new SshForwardServiceError(error));
 
-          this.connectedClients.add(stream);
+          this.addConnectedClient(stream);
           stream.on('error', e =>
-            this.destroySocketIfUnclosed(stream, new SshForwardServiceError(e)),
+            this.destroySocketIfUnclosedAndSaveError(stream, new SshForwardServiceError(e)),
           );
           stream.on('close', () => {
-            this.destroySocketIfUnclosed(stream);
+            this.destroySocketIfUnclosedAndSaveError(stream);
             this.endClient(client);
           });
 
