@@ -7,10 +7,10 @@ export default abstract class Service {
   private linkedService: Service;
   private readonly connectedClients: Set<net.Socket> = new Set();
   protected readonly errors: Error[] = [];
-  protected readonly sourceHost?: string;
-  protected readonly sourcePort?: number;
-  protected readonly targetHost?: string;
-  protected readonly targetPort?: number;
+  protected readonly sourceHost: string;
+  protected readonly sourcePort: number;
+  protected readonly targetHost: string;
+  protected readonly targetPort: number;
 
   get error(): Error | null {
     return this.errors.length > 0 ? this.errors[0] : null;
@@ -24,7 +24,7 @@ export default abstract class Service {
     return `${this.targetHost}:${this.targetPort}`;
   }
 
-  constructor(sourceHost?: string, sourcePort?: number, targetHost?: string, targetPort?: number) {
+  constructor(sourceHost: string, sourcePort: number, targetHost: string, targetPort: number) {
     this.sourceHost = sourceHost;
     this.sourcePort = sourcePort;
     this.targetHost = targetHost;

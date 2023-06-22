@@ -17,7 +17,7 @@ describe('Reverse proxy', () => {
       }
     }
 
-    return new Service1();
+    return new Service1(null, null, null, null);
   };
 
   describe('stop', () => {

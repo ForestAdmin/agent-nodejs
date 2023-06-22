@@ -22,7 +22,7 @@ export default class ReverseProxy extends Service {
   }
 
   constructor() {
-    super();
+    super(null, null, null, null);
     this.server = net.createServer(this.connect.bind(this));
   }
 

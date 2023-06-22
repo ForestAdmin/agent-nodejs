@@ -3,8 +3,8 @@ import { Sequelize } from 'sequelize';
 import ConnectionOptions from './connection-options';
 import testConnectionWithTimeOut from './connection-tester';
 import handleErrors from './handle-errors';
+import SequelizeFactory from './sequelize-factory';
 import ReverseProxy from './services/reverse-proxy';
-import SequelizeFactory from './services/sequelize-factory';
 import SocksProxy from './services/socks-proxy';
 import SshTunnel from './services/ssh-tunnel';
 
@@ -37,16 +37,14 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
       (socksProxy ?? reverseProxy).link(sshTunnel);
     }
 
-    const sequelizeFactory = new SequelizeFactory();
+    // change the host and port of the sequelize options to point to the reverse proxy
+    if (reverseProxy) options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
 
-    if (reverseProxy) {
-      // change the host and port of the sequelize options to point to the reverse proxy
-      options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
+    sequelize = SequelizeFactory.build(
+      await options.buildSequelizeCtorOptions(),
       // stop the reverse proxy when the sequelize connection is closed
-      sequelizeFactory.link(reverseProxy);
-    }
-
-    sequelize = sequelizeFactory.build(await options.buildSequelizeCtorOptions());
+      reverseProxy?.stop.bind(reverseProxy),
+    );
 
     await testConnectionWithTimeOut(
       sequelize,
