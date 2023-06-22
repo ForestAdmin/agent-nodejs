@@ -26,7 +26,7 @@ This package serves as an example agent for Forest Admin. Its purpose is to demo
     cd packages/_example
     ```
 
-3. **Setup and Seed Databases**
+2. **Setup and Seed Databases**
 
    The agent utilizes multiple databases. You can conveniently spin up all the required databases in Docker containers using:
 
