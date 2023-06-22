@@ -3,7 +3,7 @@ import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
-const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId: 'username' };
+const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };
 
 describe('when proxy socks configuration is provided', () => {
   beforeAll(async () => {
@@ -14,7 +14,7 @@ describe('when proxy socks configuration is provided', () => {
     it('should not block the promise and throw an error', async () => {
       const options = new ConnectionOptions({
         uri: `postgres://BADUSER:password@postgres:5432/test_connection`,
-        proxySocks: { host: 'localhost', port: 1080, password: 'password', userId: 'username' },
+        proxySocks: { host: 'localhost', port: 1083, password: 'password', userId: 'username' },
       });
 
       await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);
@@ -25,12 +25,12 @@ describe('when proxy socks configuration is provided', () => {
     it('should throw an error', async () => {
       const options = new ConnectionOptions({
         uri: `postgres://test:password@postgres:5432/test_connection`,
-        proxySocks: { host: 'BADHOST', port: 1080, password: 'password', userId: 'username' },
+        proxySocks: { host: 'BADHOST', port: 1083, password: 'password', userId: 'username' },
       });
 
       await expect(() => connect(options)).rejects.toThrow(
         // eslint-disable-next-line max-len
-        'Your proxy has encountered an error. Unable to connect to the given uri: BADHOST:1080',
+        'Your proxy has encountered an error. Unable to connect to the given uri: BADHOST:1083',
       );
     });
   });
@@ -58,7 +58,7 @@ describe('when proxy socks configuration is provided', () => {
       it('should throw a ProxyConnectError error', async () => {
         const options = new ConnectionOptions({
           uri,
-          proxySocks: { host: 'google.com', port: 1080, password: 'password', userId: 'username' },
+          proxySocks: { host: 'google.com', port: 1083, password: 'password', userId: 'username' },
         });
 
         await expect(() => connect(options)).rejects.toThrow(ProxyConnectError);
@@ -75,7 +75,7 @@ describe('when proxy socks configuration is provided', () => {
           uri: 'postgres://example:password@badhost:14817/example',
           proxySocks: {
             host: 'bici.usefixie.com',
-            port: 1080,
+            port: 1083,
             password: 'TO CHANGE, go to heroku to get a value',
             userId: 'fixie',
           },

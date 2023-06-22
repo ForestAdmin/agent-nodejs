@@ -38,7 +38,7 @@ services:
     image: serjs/go-socks5-proxy
     container_name: socks_proxy
     ports:
-      - '1080:1080'
+      - '1083:1080'
     environment:
       - PROXY_USER=username
       - PROXY_PASSWORD=password

@@ -7,7 +7,7 @@ import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
-const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId: 'username' };
+const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };
 const ssh = {
   host: 'ssh-server',
   port: 2222,

@@ -13,7 +13,7 @@ const ssh = {
   username: 'forest',
   privateKey: readFileSync(resolve(__dirname, '../ssh-config/id_rsa')),
 };
-const proxySocks = { host: 'localhost', port: 1080, password: 'password', userId: 'username' };
+const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };
 const uri = 'postgres://test:password@postgres:5432/test_connection';
 
 describe('when there is a ssh and proxy configuration', () => {

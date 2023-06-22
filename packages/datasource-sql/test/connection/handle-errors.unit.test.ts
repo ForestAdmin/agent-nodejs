@@ -10,7 +10,7 @@ const optionsWithoutProxy = new ConnectionOptions({
 
 const optionsWithProxy = new ConnectionOptions({
   uri: 'postgres://user:password@localhost:5432/db',
-  proxySocks: { host: 'localhost', port: 1080 },
+  proxySocks: { host: 'localhost', port: 1083 },
 });
 
 describe('handleErrors', () => {
@@ -54,7 +54,7 @@ describe('handleErrors', () => {
 
         expect(() => handleErrors(error, optionsWithProxy)).toThrow(
           'Your proxy has encountered an error. ' +
-            'Unable to connect to the given uri: localhost:1080.\nAn error',
+            'Unable to connect to the given uri: localhost:1083.\nAn error',
         );
       });
     });
@@ -66,7 +66,7 @@ describe('handleErrors', () => {
 
         expect(() => handleErrors(error, optionsWithProxy)).toThrow(
           // eslint-disable-next-line max-len
-          'Your proxy has encountered an error. Unable to connect to the given uri: localhost:1080',
+          'Your proxy has encountered an error. Unable to connect to the given uri: localhost:1083',
         );
       });
     });
