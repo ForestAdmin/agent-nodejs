@@ -20,13 +20,12 @@ export default class CollectionDecorator implements Collection {
   protected childCollection: Collection;
 
   private lastSchema: CollectionSchema;
-  private lastSubSchema: CollectionSchema;
 
   get schema(): CollectionSchema {
     if (!this.lastSchema) {
+      // If the schema is not cached (at the first call, or after a markSchemaAsDirty call),
       const subSchema = this.childCollection.schema;
       this.lastSchema = this.refineSchema(subSchema);
-      this.lastSubSchema = subSchema;
     }
 
     return this.lastSchema;
@@ -40,12 +39,18 @@ export default class CollectionDecorator implements Collection {
     this.childCollection = childCollection;
     this.dataSource = dataSource;
 
+    // When the child collection invalidates its schema, we also invalidate ours.
+    // This is done like this, and not in the markSchemaAsDirty method, because we don't have
+    // a reference to parent collections from children.
     if (childCollection instanceof CollectionDecorator) {
-      const { markSchemaAsDirty } = childCollection;
+      const originalChildMarkSchemaAsDirty = childCollection.markSchemaAsDirty;
 
       childCollection.markSchemaAsDirty = () => {
+        // Call the original method (the child)
+        originalChildMarkSchemaAsDirty.call(childCollection);
+
+        // Invalidate our schema (the parent)
         this.markSchemaAsDirty();
-        markSchemaAsDirty.call(childCollection);
       };
     }
   }
