@@ -2,20 +2,16 @@ import net from 'net';
 import { SocksClient } from 'socks';
 import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
-import { SocksProxyServiceError } from './errors';
 import Service from './service';
 import { ProxyOptions } from '../../types';
+import { ProxyConnectError, ProxyForwardError } from '../errors';
 
 export default class SocksProxy extends Service {
   private readonly options: ProxyOptions;
-  private readonly targetHost: string;
-  private readonly targetPort: number;
 
   constructor(proxyOptions: ProxyOptions, targetHost: string, targetPort: number) {
-    super();
+    super(proxyOptions.host, proxyOptions.port, targetHost, targetPort);
     this.options = proxyOptions;
-    this.targetHost = targetHost;
-    this.targetPort = targetPort;
   }
 
   protected override async connect(): Promise<net.Socket> {
@@ -35,7 +31,7 @@ export default class SocksProxy extends Service {
       socks5Client.socket.on('error', error =>
         this.destroySocketIfUnclosedAndSaveError(
           socks5Client.socket,
-          new SocksProxyServiceError(error),
+          new ProxyConnectError(error.message, this.debugUri),
         ),
       );
 
@@ -48,7 +44,7 @@ export default class SocksProxy extends Service {
         tunnel.on('error', error =>
           this.destroySocketIfUnclosedAndSaveError(
             socks5Client.socket,
-            new SocksProxyServiceError(error),
+            new ProxyConnectError(error.message, this.debugUri),
           ),
         );
       }
@@ -56,7 +52,15 @@ export default class SocksProxy extends Service {
       return tunnel;
     } catch (error) {
       if (socks5Client?.socket) this.destroySocketIfUnclosedAndSaveError(socks5Client.socket);
-      const serviceError = new SocksProxyServiceError(error);
+      let serviceError = new ProxyConnectError(error.message, this.debugUri);
+
+      if (
+        error.message.includes('Socket closed') ||
+        error.message.includes('Socks5 proxy rejected connection')
+      ) {
+        serviceError = new ProxyForwardError(error.message, this.debugForwardUri);
+      }
+
       this.errors.push(serviceError);
       throw serviceError;
     }

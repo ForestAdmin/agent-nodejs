@@ -31,7 +31,7 @@ export default async function connect(options: ConnectionOptions): Promise<Seque
     if (options.sshOptions) {
       const { host, port, sshOptions } = options;
       // database is the destination
-      sshTunnel = new SshTunnel(sshOptions, reverseProxy.host, reverseProxy.port, host, port);
+      sshTunnel = new SshTunnel(sshOptions, host, port);
       // if socksProxy is defined, it means that we are using a proxy
       // so we need to link to the socksProxy otherwise to the reverseProxy
       (socksProxy ?? reverseProxy).link(sshTunnel);

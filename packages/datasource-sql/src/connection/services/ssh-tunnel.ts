@@ -1,31 +1,17 @@
 import net from 'net';
 import { Client } from 'ssh2';
 
-import { SshConnectServiceError, SshForwardServiceError } from './errors';
 import Service from './service';
 import { SshOptions } from '../../types';
+import { SshConnectError, SshForwardError } from '../errors';
 
 export default class SshTunnel extends Service {
   private readonly options: SshOptions;
-  private readonly sourceHost: string;
-  private readonly sourcePort: number;
-  private readonly targetHost: string;
-  private readonly targetPort: number;
   private readonly clients = new Set<Client>();
 
-  constructor(
-    options: SshOptions,
-    sourceHost: string,
-    sourcePort: number,
-    targetHost: string,
-    targetPort: number,
-  ) {
-    super();
+  constructor(options: SshOptions, targetHost: string, targetPort: number) {
+    super(options.host, options.port, targetHost, targetPort);
     this.options = options;
-    this.sourceHost = sourceHost;
-    this.sourcePort = sourcePort;
-    this.targetHost = targetHost;
-    this.targetPort = targetPort;
   }
 
   override async stop(): Promise<void> {
@@ -43,7 +29,7 @@ export default class SshTunnel extends Service {
 
     try {
       return await new Promise<net.Socket>((resolve, reject) => {
-        client.on('error', e => reject(new SshConnectServiceError(e)));
+        client.on('error', e => reject(new SshConnectError(e.message, this.debugUri)));
         client.on('ready', async () => {
           try {
             resolve(await this.buildTunnel(client));
@@ -67,26 +53,24 @@ export default class SshTunnel extends Service {
   private async buildTunnel(client): Promise<net.Socket> {
     // tell to the SSH server to forward all the traffic to the target host and port
     return new Promise<net.Socket>((resolve, reject) => {
-      client.forwardOut(
-        this.sourceHost,
-        this.sourcePort,
-        this.targetHost,
-        this.targetPort,
-        async (error, stream) => {
-          if (error) return reject(new SshForwardServiceError(error));
+      // source host and port are not used by the SSH server
+      client.forwardOut('', 0, this.targetHost, this.targetPort, async (error, stream) => {
+        if (error) return reject(new SshForwardError(error.message, this.debugForwardUri));
 
-          this.addConnectedClient(stream);
-          stream.on('error', e =>
-            this.destroySocketIfUnclosedAndSaveError(stream, new SshForwardServiceError(e)),
-          );
-          stream.on('close', () => {
-            this.destroySocketIfUnclosedAndSaveError(stream);
-            this.endClient(client);
-          });
+        this.addConnectedClient(stream);
+        stream.on('error', e =>
+          this.destroySocketIfUnclosedAndSaveError(
+            stream,
+            new SshConnectError(e.message, this.debugUri),
+          ),
+        );
+        stream.on('close', () => {
+          this.destroySocketIfUnclosedAndSaveError(stream);
+          this.endClient(client);
+        });
 
-          return resolve(await super.connect(stream));
-        },
-      );
+        return resolve(await super.connect(stream));
+      });
     });
   }
 
