@@ -34,7 +34,7 @@ describe('when there is only a ssh configuration', () => {
       const options = new ConnectionOptions({
         uri: 'mariadb://root:password@mariadb:3306/test_connection',
         ssh: { ...sshConfig, username: 'BADUSER' },
-        connectionTimeoutInMs: 2000,
+        connectionTimeoutInMs: 1000,
       });
       await expect(() => connect(options)).rejects.toThrow(SshConnectError);
     });

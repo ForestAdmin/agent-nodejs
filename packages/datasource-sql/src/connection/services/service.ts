@@ -52,12 +52,12 @@ export default abstract class Service {
 
   /** destroy the given socket if it is not closed and save the error */
   protected destroySocketIfUnclosedAndSaveError(socket?: net.Socket, error?: Error): void {
+    if (error) this.errors.push(error);
+
     if (socket) {
       if (!socket.closed) socket.destroy();
       this.connectedClients.delete(socket);
     }
-
-    if (error) this.errors.push(error);
   }
 
   /** register a socket as a client to be destroyed when the service is stopped */
