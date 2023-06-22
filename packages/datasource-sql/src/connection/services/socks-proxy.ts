@@ -29,7 +29,6 @@ export default class SocksProxy extends Service {
         this.destroySocketIfUnclosedAndSaveError(socks5Client.socket),
       );
       socks5Client.socket.on('error', error =>
-        // istanbul ignore next
         this.destroySocketIfUnclosedAndSaveError(
           socks5Client.socket,
           new ProxyConnectError(error.message, this.debugUri),
@@ -43,7 +42,6 @@ export default class SocksProxy extends Service {
         // this is very important to avoid unclose database connections
         tunnel.on('close', () => this.destroySocketIfUnclosedAndSaveError(socks5Client.socket));
         tunnel.on('error', error =>
-          // istanbul ignore next
           this.destroySocketIfUnclosedAndSaveError(
             socks5Client.socket,
             new ProxyConnectError(error.message, this.debugUri),
@@ -53,7 +51,6 @@ export default class SocksProxy extends Service {
 
       return tunnel;
     } catch (error) {
-      if (socks5Client?.socket) this.destroySocketIfUnclosedAndSaveError(socks5Client.socket);
       let serviceError = new ProxyConnectError(error.message, this.debugUri);
 
       if (
@@ -63,7 +60,7 @@ export default class SocksProxy extends Service {
         serviceError = new ProxyForwardError(error.message, this.debugForwardUri);
       }
 
-      this.errors.push(serviceError);
+      this.destroySocketIfUnclosedAndSaveError(socks5Client?.socket, serviceError);
       throw serviceError;
     }
   }
