@@ -5,8 +5,19 @@ import {
   ModelCustomizationType,
 } from '@forestadmin/forestadmin-client/src/model-customizations/types';
 
+import executeUpdateRecord from '../../../../../src/services/model-customizations/actions/update-record/execute-update-record';
 import UpdateRecordActionsPlugin from '../../../../../src/services/model-customizations/actions/update-record/update-record-plugin';
 import dataSourceCustomizerFactory from '../../../../__factories__/datasource-customizer';
+
+jest.mock(
+  '../../../../../src/services/model-customizations/actions/update-record/execute-update-record',
+  () => ({
+    __esModule: true,
+    default: jest.fn(),
+  }),
+);
+
+const executeWebhookMock = executeUpdateRecord as jest.Mock;
 
 describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin', () => {
   beforeEach(() => {
@@ -76,12 +87,11 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
 
       const context = {
         filter: 'filter',
-        collection: { update: jest.fn() },
       } as unknown as ActionContext;
 
       await execute(context);
 
-      expect(context.collection.update).toHaveBeenCalledWith('filter', { field: 'value' });
+      expect(executeWebhookMock).toHaveBeenCalledWith(action, context);
     });
 
     it('should not use actions that are not update records', async () => {

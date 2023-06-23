@@ -4,7 +4,7 @@ import { UpdateRecordAction } from '@forestadmin/forestadmin-client/src/model-cu
 
 import executeUpdateRecord from '../../../../../src/services/model-customizations/actions/update-record/execute-update-record';
 
-describe('Services > ModelCustomizations > Actions > WebhookExecutor', () => {
+describe('Services > ModelCustomizations > Actions > ExecuteUpdateRecord', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
