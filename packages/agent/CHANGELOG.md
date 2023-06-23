@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.12.0...@forestadmin/agent@1.12.1) (2023-06-23)
+
+
+### Bug Fixes
+
+* **agent:** handle json field in csv export ([#746](https://github.com/ForestAdmin/agent-nodejs/issues/746)) ([8437f02](https://github.com/ForestAdmin/agent-nodejs/commit/8437f02a26e181ebfec306a0250de5af6d9a31fc))
+
 # @forestadmin/agent [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.11.0...@forestadmin/agent@1.12.0) (2023-06-19)
 
 
