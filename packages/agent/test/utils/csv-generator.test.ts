@@ -177,5 +177,51 @@ describe('CsvGenerator', () => {
         );
       });
     });
+
+    describe('when there are Json fields', () => {
+      const setupWithJsonField = () => {
+        const records = [{ data: { name: 'ab', price: 5 } }, { data: { name: 'abc', price: 5 } }];
+        const filter = factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build(),
+          sort: new Sort(),
+          page: new Page(),
+        });
+        const collection = factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              data: factories.columnSchema.build({ columnType: 'Json' }),
+            },
+          }),
+        });
+        const projection = new Projection('data');
+
+        return { records, filter, collection, projection };
+      };
+
+      test('should return all the records by fetching several time the list', async () => {
+        const { records, filter, collection, projection } = setupWithJsonField();
+
+        collection.list = jest.fn().mockReturnValue(records);
+
+        const caller = factories.caller.build();
+        const generator = CsvGenerator.generate(
+          caller,
+          projection,
+          'data',
+          filter,
+          collection,
+          collection.list,
+        );
+        const csv = await readCsv(generator);
+
+        expect(collection.list).toHaveBeenCalledTimes(1);
+
+        expect(csv).toStrictEqual([
+          'data\n',
+          '"{""name"":""ab"",""price"":5}"\n"{""name"":""abc"",""price"":5}"\n',
+        ]);
+      });
+    });
   });
 });
