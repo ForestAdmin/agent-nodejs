@@ -44,8 +44,8 @@ describe('Services > ModelCustomizations > Actions > ExecuteUpdateRecord', () =>
 
           expect(result).toStrictEqual({
             message:
-              'The no-code action myAction cannot be triggered due to misconfiguration. ' +
-              'Please contact your administrator.\n(BusinessError: Managed error)',
+              // eslint-disable-next-line max-len
+              'The no-code action <strong>myAction</strong> cannot be triggered due to a misconfiguration. Please contact your administrator.<br/>(BusinessError: Managed error)',
             type: 'Error',
           });
         });
@@ -62,8 +62,8 @@ describe('Services > ModelCustomizations > Actions > ExecuteUpdateRecord', () =>
 
           expect(result).toStrictEqual({
             message:
-              'The no-code action myAction cannot be triggered due to misconfiguration. ' +
-              'Please contact your administrator.',
+              // eslint-disable-next-line max-len
+              'The no-code action <strong>myAction</strong> cannot be triggered due to a misconfiguration. Please contact your administrator.',
             type: 'Error',
           });
         });
