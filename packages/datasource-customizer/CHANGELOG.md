@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.1...@forestadmin/datasource-customizer@1.9.2) (2023-06-26)
+
+
+### Bug Fixes
+
+* **rename field decorator:** throw when put space inside fieldName ([#748](https://github.com/ForestAdmin/agent-nodejs/issues/748)) ([5793eff](https://github.com/ForestAdmin/agent-nodejs/commit/5793eff8040c04b33afe31932b050fb6f0beb578))
+
 ## @forestadmin/datasource-customizer [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.0...@forestadmin/datasource-customizer@1.9.1) (2023-06-19)
 
 
