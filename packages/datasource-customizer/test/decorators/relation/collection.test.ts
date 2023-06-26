@@ -4,6 +4,7 @@ import {
   ColumnSchema,
   ConditionTreeLeaf,
   DataSource,
+  DataSourceDecorator,
   Filter,
   ManyToManySchema,
   PaginatedFilter,
@@ -12,7 +13,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import RelationCollectionDecorator from '../../../src/decorators/relation/collection';
 
 describe('RelationCollectionDecorator', () => {

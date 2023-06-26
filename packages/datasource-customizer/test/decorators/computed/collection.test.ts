@@ -2,13 +2,13 @@ import {
   Aggregation,
   Collection,
   DataSource,
+  DataSourceDecorator,
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ComputedCollection from '../../../src/decorators/computed/collection';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
 describe('ComputedDecorator', () => {
   // State

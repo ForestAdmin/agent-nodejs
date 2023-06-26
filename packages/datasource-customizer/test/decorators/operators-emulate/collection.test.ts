@@ -3,13 +3,13 @@ import {
   ColumnSchema,
   ConditionTreeLeaf,
   DataSource,
+  DataSourceDecorator,
   PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import OperatorsEmulateCollectionDecorator from '../../../src/decorators/operators-emulate/collection';
 
 describe('OperatorsEmulateCollectionDecorator', () => {

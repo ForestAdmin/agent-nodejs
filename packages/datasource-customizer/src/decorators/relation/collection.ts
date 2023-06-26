@@ -3,10 +3,12 @@ import {
   Aggregation,
   Caller,
   Collection,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ConditionTree,
   ConditionTreeLeaf,
+  DataSourceDecorator,
   Filter,
   PaginatedFilter,
   Projection,
@@ -17,8 +19,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import { RelationDefinition } from './types';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 export default class RelationCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<RelationCollectionDecorator>;

@@ -1,19 +1,13 @@
-import {
-  ActionField,
-  ActionResult,
-  AggregateResult,
-  Aggregation,
-  Caller,
-  Chart,
-  Collection,
-  CollectionSchema,
-  CompositeId,
-  DataSource,
-  Filter,
-  PaginatedFilter,
-  Projection,
-  RecordData,
-} from '@forestadmin/datasource-toolkit';
+import { ActionField, ActionResult } from '../interfaces/action';
+import { Caller } from '../interfaces/caller';
+import { Chart } from '../interfaces/chart';
+import { Collection, DataSource } from '../interfaces/collection';
+import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
+import PaginatedFilter from '../interfaces/query/filter/paginated';
+import Filter from '../interfaces/query/filter/unpaginated';
+import Projection from '../interfaces/query/projection';
+import { CompositeId, RecordData } from '../interfaces/record';
+import { CollectionSchema } from '../interfaces/schema';
 
 export default class CollectionDecorator implements Collection {
   readonly dataSource: DataSource;

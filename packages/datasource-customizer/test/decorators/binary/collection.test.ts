@@ -4,6 +4,7 @@ import {
   Collection,
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  DataSourceDecorator,
   Filter,
   PaginatedFilter,
   Projection,
@@ -12,7 +13,6 @@ import {
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import BinaryCollectionDecorator from '../../../src/decorators/binary/collection';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
 // Sample records
 const bookRecord = {

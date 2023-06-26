@@ -1,5 +1,6 @@
 import {
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ConditionTreeFactory,
@@ -9,8 +10,6 @@ import {
   RecordData,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../collection-decorator';
 
 type ValidationRule = ColumnSchema['validation'][number];
 

@@ -1,8 +1,13 @@
-import { ActionScope, Collection, DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import {
+  ActionScope,
+  Collection,
+  DataSource,
+  DataSourceDecorator,
+  Filter,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ActionCollection from '../../../src/decorators/actions/collection';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
 describe('ActionDecorator', () => {
   // State

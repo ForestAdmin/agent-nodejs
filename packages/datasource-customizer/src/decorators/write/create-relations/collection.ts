@@ -1,13 +1,12 @@
 import {
   Caller,
+  CollectionDecorator,
   ConditionTreeLeaf,
   Filter,
   ManyToOneSchema,
   OneToOneSchema,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../../collection-decorator';
 
 type RecordWithIndex = { subRecord: RecordData; index: number };
 

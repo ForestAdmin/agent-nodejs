@@ -2,7 +2,9 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   CollectionSchema,
+  DataSourceDecorator,
   FieldValidator,
   Filter,
   PaginatedFilter,
@@ -15,8 +17,6 @@ import computeFromRecords from './helpers/compute-fields';
 import rewriteField from './helpers/rewrite-projection';
 import { ComputedDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 /** Decorator injects computed fields */
 export default class ComputedCollection extends CollectionDecorator {

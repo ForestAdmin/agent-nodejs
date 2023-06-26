@@ -2,6 +2,7 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
@@ -10,8 +11,6 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../collection-decorator';
 
 /**
  * Avoid performing useless database requests:
