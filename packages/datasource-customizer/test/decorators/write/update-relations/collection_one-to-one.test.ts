@@ -1,8 +1,13 @@
 /* eslint-disable no-plusplus */
-import { Collection, ConditionTreeLeaf, Filter, Projection } from '@forestadmin/datasource-toolkit';
+import {
+  Collection,
+  ConditionTreeLeaf,
+  DataSourceDecorator,
+  Filter,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import DataSourceDecorator from '../../../../src/decorators/datasource-decorator';
 import UpdateRelationCollectionDecorator from '../../../../src/decorators/write/update-relations/collection';
 
 const caller = factories.caller.build();
