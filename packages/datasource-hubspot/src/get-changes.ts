@@ -1,7 +1,7 @@
-/* eslint-disable */
 import { SynchronizeOutput } from '@forestadmin/datasource-cached';
 import { Client } from '@hubspot/api-client';
-import { HubSpotOptions, State } from './types';
+
+import { HubSpotOptions } from './types';
 
 const pageSize = 100;
 
@@ -9,8 +9,8 @@ export default async function getChanges(
   client: Client,
   options: HubSpotOptions,
   name: string,
-  state: State,
-): Promise<SynchronizeOutput<State>> {
+  state: unknown,
+): Promise<SynchronizeOutput> {
   const response = await client.crm[name].searchApi.doSearch({
     filterGroups: state
       ? [{ filters: [{ propertyName: 'lastmodifieddate', operator: 'GT', value: state }] }]
@@ -29,9 +29,9 @@ export default async function getChanges(
   );
 
   return {
-    more: records,
+    newOrUpdatedRecords: records,
     deletedRecords: [],
-    done: records.length < pageSize,
+    more: records.length === pageSize,
     newState: response.results.at(-1)?.properties.lastmodifieddate ?? state,
   };
 }

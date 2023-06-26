@@ -35,6 +35,10 @@ export default class RelaxedCollection<
   private collection: Collection;
   private caller: Caller;
 
+  get name(): N {
+    return this.collection.name as N;
+  }
+
   get schema(): CollectionSchema {
     return this.collection.schema;
   }
