@@ -140,6 +140,13 @@ describe('RenameFieldCollectionDecorator', () => {
     expect(() => newPersons.renameField('id', 'primaryKey')).toThrow(`No such field 'id'`);
   });
 
+  test('should throw when renaming with a name including space', () => {
+    expect(() => newPersons.renameField('id', 'the key')).toThrow(
+      `The renaming of field 'id' must not contain space.` +
+        ` Something like 'theKey' should work has expected.`,
+    );
+  });
+
   test('should allow renaming multiple times the same field', () => {
     newPersons.renameField('id', 'key');
     newPersons.renameField('key', 'primaryKey');
