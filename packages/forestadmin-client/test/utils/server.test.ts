@@ -91,33 +91,31 @@ describe('ServerUtils', () => {
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(unknownError);
   });
 
-  it.only('should timeout if the server take more than 10s to respond', async () => {
+  it('should timeout if the server take more than maxTimeAllowed to respond', async () => {
     const message = 'The request to ForestAdmin server has timeout';
 
-    jest.useFakeTimers();
-
     nock(options.forestServerUrl, {
       reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
     })
       .get('/endpoint')
       .reply(() => {
         return new Promise(resolve => {
-          setTimeout(() => {
-            resolve([200, { data: 'ok' }]);
-          }, 11000);
+          setTimeout(resolve, 110);
         });
       });
 
-    const response = ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' });
-    jest.advanceTimersByTime(10000);
-
-    await expect(response).rejects.toThrow(message);
-
+    const result = await ServerUtils.query(
+      options,
+      'get',
+      '/endpoint',
+      { 'x-foo': 'bar' },
+      '',
+      100, // maxTimeAllowed to respond
+    );
+    await expect(result).rejects.toThrow(message);
   });
 
-  it('should not timeout if the server take less than 10s to respond', async () => {
-    // jest.useFakeTimers();
-
+  it('should not timeout if the server take less than the maxTimeAllowed to respond', async () => {
     nock(options.forestServerUrl, {
       reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
     })
@@ -126,12 +124,18 @@ describe('ServerUtils', () => {
         return new Promise(resolve => {
           setTimeout(() => {
             resolve([200, { data: 'ok' }]);
-          }, 9000);
+          }, 90);
         });
       });
 
-    const result = await ServerUtils.query(options, 'get', '/endpoint', { 'x-foo': 'bar' });
-    // jest.advanceTimersByTime(9000);
+    const result = await ServerUtils.query(
+      options,
+      'get',
+      '/endpoint',
+      { 'x-foo': 'bar' },
+      '',
+      100, // maxTimeAllowed to respond
+    );
 
     expect(result).toStrictEqual({ data: 'ok' });
   }, 10000);
