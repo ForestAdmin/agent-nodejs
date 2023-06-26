@@ -1,6 +1,7 @@
 import {
   Caller,
   Collection,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ConditionTree,
@@ -13,7 +14,6 @@ import { validate as uuidValidate } from 'uuid';
 
 import { SearchDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
-import CollectionDecorator from '../collection-decorator';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   replacer: SearchDefinition = null;

@@ -1,14 +1,11 @@
 /* eslint-disable max-classes-per-file */
 
-import {
-  Caller,
-  Collection,
-  CollectionSchema,
-  PaginatedFilter,
-} from '@forestadmin/datasource-toolkit';
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-
 import CollectionDecorator from '../../src/decorators/collection-decorator';
+import { Caller } from '../../src/interfaces/caller';
+import { Collection } from '../../src/interfaces/collection';
+import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
+import { CollectionSchema } from '../../src/interfaces/schema';
+import * as factories from '../__factories__';
 
 class DecoratedCollection extends CollectionDecorator {
   public override childCollection: Collection;

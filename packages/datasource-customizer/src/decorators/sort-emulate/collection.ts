@@ -1,8 +1,10 @@
 import {
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ConditionTreeFactory,
+  DataSourceDecorator,
   FieldSchema,
   FieldValidator,
   Filter,
@@ -14,9 +16,6 @@ import {
   RelationSchema,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;

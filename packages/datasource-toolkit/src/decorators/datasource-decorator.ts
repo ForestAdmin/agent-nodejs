@@ -1,11 +1,8 @@
-import {
-  BaseDataSource,
-  Caller,
-  Chart,
-  Collection,
-  DataSource,
-  DataSourceSchema,
-} from '@forestadmin/datasource-toolkit';
+import BaseDataSource from '../base-datasource';
+import { Caller } from '../interfaces/caller';
+import { Chart } from '../interfaces/chart';
+import { Collection, DataSource } from '../interfaces/collection';
+import { DataSourceSchema } from '../interfaces/schema';
 
 type CollectionDecoratorConstructor<CollectionDecorator extends Collection> = {
   new (c: Collection, d: DataSource): CollectionDecorator;

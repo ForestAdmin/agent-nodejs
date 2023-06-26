@@ -1,5 +1,6 @@
 import {
   Caller,
+  CollectionDecorator,
   ConditionTreeFactory,
   Filter,
   ManyToOneSchema,
@@ -7,8 +8,6 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../../collection-decorator';
 
 export default class UpdateRelationCollectionDecorator extends CollectionDecorator {
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {

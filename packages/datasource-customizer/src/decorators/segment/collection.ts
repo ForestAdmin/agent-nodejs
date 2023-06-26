@@ -1,5 +1,6 @@
 import {
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   ConditionTree,
   ConditionTreeFactory,
@@ -9,7 +10,6 @@ import {
 
 import { SegmentDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
-import CollectionDecorator from '../collection-decorator';
 
 export default class SegmentCollectionDecorator extends CollectionDecorator {
   private segments: { [name: string]: SegmentDefinition } = {};

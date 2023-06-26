@@ -1,11 +1,13 @@
 import {
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   ConditionTreeValidator,
+  DataSourceDecorator,
   FieldSchema,
   FieldValidator,
   Operator,
@@ -16,8 +18,6 @@ import {
 
 import { OperatorDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 export default class OperatorsEmulateCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;

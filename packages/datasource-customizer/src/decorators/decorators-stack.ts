@@ -1,10 +1,9 @@
-import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
+import { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
 import BinaryCollectionDecorator from './binary/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
-import DataSourceDecorator from './datasource-decorator';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
