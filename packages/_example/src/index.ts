@@ -1,42 +1,57 @@
+import { AgentOptions, createAgent } from '@forestadmin/agent';
+import { createHubspotDataSource } from '@forestadmin/datasource-hubspot';
 import dotenv from 'dotenv';
 
-import makeAgent from './forest/agent';
-import startExpress from './frameworks/express-v4';
-import startFastifyV2 from './frameworks/fastify-v2';
-import startFastifyV3 from './frameworks/fastify-v3';
-import startKoa from './frameworks/koa-v2';
-import startNestExpressV8 from './frameworks/nest-express-v8';
-import startNestFastifyV8 from './frameworks/nest-fastify-v8';
+import { Schema } from './typings';
 
 dotenv.config();
 
 export default async () => {
-  // Create customer apps
-  const expressAppV4 = startExpress();
-  const koaAppV2 = startKoa();
-  const fastifyAppV2 = startFastifyV2();
-  const fastifyAppV3 = startFastifyV3();
-  const nestExpressV8 = await startNestExpressV8();
-  const nestFastifyV8 = await startNestFastifyV8();
-
   // Make and mount agent.
-  const agent = makeAgent()
-    .mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE))
-    .mountOnExpress(expressAppV4)
-    .mountOnKoa(koaAppV2)
-    .mountOnFastify(fastifyAppV2)
-    .mountOnFastify(fastifyAppV3)
-    .mountOnNestJs(nestExpressV8)
-    .mountOnNestJs(nestFastifyV8);
+  const envOptions: AgentOptions = {
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: false,
+    loggerLevel: 'Info',
+    typingsPath: 'src/typings.ts',
+  };
 
-  // Run the servers!
-  expressAppV4.listen(Number(process.env.HTTP_PORT_EXPRESS));
-  koaAppV2.listen(Number(process.env.HTTP_PORT_KOA));
-  await fastifyAppV2.listen(Number(process.env.HTTP_PORT_FASTIFY_V2));
-  await fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
-  await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
-  await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
+  const agent = createAgent<Schema>(envOptions);
 
-  // We can start agent later.
+  agent.addDataSource(
+    createHubspotDataSource({
+      accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      collections: {
+        contacts: ['firstname', 'lastname', 'mycustomfield'],
+      },
+    }),
+  );
+
+  // agent.addDataSource(
+  //   createCachedDataSource<string>({
+  //     namespace: 'typicode',
+  //     cacheUrl: 'postgres://mabasesurneon',
+  //     upgradeStategy: ['on-access', 'on-start', 'on-interval'],
+  //     schema: async () => [
+  //       { collection: 'posts', columns: [{ name: 'title', type: 'string' }] },
+  //     ],
+  //     getChanges: async (collectionName, state) => {
+  //       const response = await axios.get(`http://typicode.com/${collectionName}?sort=updatedAt&limit=100&updatedAt_gte=${state}`);
+
+  //       return {
+  //         done: response.data.length < 100,
+  //         newOrUpdatedRecords: response.data,
+  //         deletedRecords: [],
+  //         state: response.data.at(-1)?.updatedAt ?? state,
+  //       }
+  //     },
+  //     createRecord: async (collectionName, record) => {
+  //       await axios.post(`http://typicode.com/${collectionName}`, record);
+  //     }
+  //   })
+  // )
+
+  agent.mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
   await agent.start();
 };
