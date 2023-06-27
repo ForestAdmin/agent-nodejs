@@ -92,8 +92,6 @@ describe('ServerUtils', () => {
   });
 
   it('should timeout if the server take more than maxTimeAllowed to respond', async () => {
-    const message = 'The request to ForestAdmin server has timeout';
-
     nock(options.forestServerUrl, {
       reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
     })
@@ -104,15 +102,16 @@ describe('ServerUtils', () => {
         });
       });
 
-    const result = await ServerUtils.query(
-      options,
-      'get',
-      '/endpoint',
-      { 'x-foo': 'bar' },
-      '',
-      100, // maxTimeAllowed to respond
-    );
-    await expect(result).rejects.toThrow(message);
+    await expect(
+      ServerUtils.query(
+        options,
+        'get',
+        '/endpoint',
+        { 'x-foo': 'bar' },
+        '',
+        100, // maxTimeAllowed to respond
+      ),
+    ).rejects.toThrow('The request to ForestAdmin server has timeout');
   });
 
   it('should not timeout if the server take less than the maxTimeAllowed to respond', async () => {
