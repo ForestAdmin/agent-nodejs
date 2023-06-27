@@ -14,9 +14,9 @@ export function createHubspotDataSource(options: HubSpotOptions) {
     cacheInto: 'sqlite::memory:',
     schema: getSchema(client, options),
 
-    syncStrategy: 'incremental',
-    loadOnStart: ctx => getChanges(client, options, ctx.collection.name, null),
-    syncOnBeforeList: ctx => getChanges(client, options, ctx.collection.name, ctx.state),
-    syncOnBeforeAggregate: ctx => getChanges(client, options, ctx.collection.name, ctx.state),
+    // Use delta synchronization
+    getDelta: request => getChanges(client, options, request),
+    deltaOnBeforeList: true,
+    deltaOnBeforeAggregate: true,
   });
 }

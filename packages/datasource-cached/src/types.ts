@@ -1,37 +1,76 @@
+import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
 import { ConnectionOptions } from '@forestadmin/datasource-sql';
-import { RecordData } from '@forestadmin/datasource-toolkit';
+import {
+  Aggregation,
+  Caller,
+  Filter,
+  PaginatedFilter,
+  Projection,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
 import { DataType } from 'sequelize';
 
-import {
-  AfterCreateIncrementalSyncContext,
-  AfterDeleteIncrementalSyncContext,
-  AfterUpdateIncrementalSyncContext,
-  BeforeAggregateIncrementalSyncContext,
-  BeforeListIncrementalSyncContext,
-  IncrementalSyncContext,
-  SyncContext,
-} from './decorators/incremental/context';
+type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
+type RecordDataWithCollection = { collection: string; record: RecordData };
+
+/// //////
+// Schema
+/// //////
 
 export type CachedCollectionSchema = {
   name: string;
-  columns: Record<string, { isPrimaryKey: boolean; columnType: DataType }>;
+  columns: Record<string, { isPrimaryKey?: boolean; columnType: DataType }>;
 };
 
-type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
+/// //////
+// Requests & responses from user functions
+/// //////
 
-export type InitialOutput = {
+export type DumpReason = {
+  reason: 'startup' | 'timer';
+  collections: string[];
+};
+
+export type DeltaReason = { collections: string[] } & (
+  | { reason: 'startup' }
+  | { reason: 'timer' }
+  | { caller: Caller; reason: 'before-list'; filter: PaginatedFilter; projection: Projection }
+  | { caller: Caller; reason: 'before-aggregate'; filter: Filter; aggregation: Aggregation }
+  | { caller: Caller; reason: 'after-create'; records: RecordData[] }
+  | { caller: Caller; reason: 'after-update'; filter: Filter; patch: RecordData }
+  | { caller: Caller; reason: 'after-delete'; filter: Filter }
+);
+
+export type DeltaRequest = {
+  previousDeltaState: unknown;
+  cache: RelaxedDataSource;
+  collections: string[];
+  reasons: Array<DeltaReason & { at: Date }>;
+};
+
+export type DumpRequest = {
+  previousDumpState: unknown;
+  cache: RelaxedDataSource;
+  collections: string[];
+  reasons: Array<DumpReason & { at: Date }>;
+};
+
+export type DumpResponse =
+  | { more: true; records: RecordDataWithCollection[]; nextDumpState: unknown }
+  | { more: false; records: RecordDataWithCollection[]; nextDeltaState?: unknown };
+
+export type DeltaResponse = {
   more: boolean;
-  records: RecordData[];
+  nextDeltaState: unknown;
+  newOrUpdatedRecords: RecordDataWithCollection[];
+  deletedRecords: RecordDataWithCollection[];
 };
 
-export type IncrementalOutput = {
-  more: boolean;
-  newState: unknown;
-  newOrUpdatedRecords: RecordData[];
-  deletedRecords: RecordData[];
-};
+/// //////
+// Options
+/// //////
 
-type Options = {
+export type BaseOptions = {
   /** prefix that should be used when caching */
   namespace: string;
 
@@ -47,32 +86,24 @@ type Options = {
   deleteRecord?: (name: string, record: RecordData) => Promise<void>;
 };
 
-export type FullLoadOptions = Options & {
-  syncStrategy: 'full-load';
-
-  minDelayBeforeReload?: number;
-  maxDelayBeforeReload?: number;
-
-  getRecords: (context: SyncContext) => Promise<RecordData[]>;
+export type DumpOptions = {
+  getDump: (request: DumpRequest) => Promise<DumpResponse>;
+  dumpOnStartup?: boolean;
+  dumpOnTimer?: number;
 };
 
-export type IncrementalOptions = Options & {
-  syncStrategy: 'incremental';
-
-  loadOnStart?: (context: SyncContext) => Promise<InitialOutput>;
-
-  syncOnInterval?: (context: IncrementalSyncContext) => Promise<IncrementalOutput>;
-  syncOnBeforeList?: (context: BeforeListIncrementalSyncContext) => Promise<IncrementalOutput>;
-  syncOnBeforeAggregate?: (
-    context: BeforeAggregateIncrementalSyncContext,
-  ) => Promise<IncrementalOutput>;
-
-  syncOnAfterCreate?: (context: AfterCreateIncrementalSyncContext) => Promise<IncrementalOutput>;
-  syncOnAfterUpdate?: (context: AfterUpdateIncrementalSyncContext) => Promise<IncrementalOutput>;
-  syncOnAfterDelete?: (context: AfterDeleteIncrementalSyncContext) => Promise<IncrementalOutput>;
-
-  minDelayBetweenSync?: number;
-  maxDelayBeforeChanges?: number;
+export type DeltaOptions = {
+  getDelta: (request: DeltaRequest) => Promise<DeltaResponse>;
+  deltaOnStartup?: boolean;
+  deltaOnTimer?: number;
+  deltaOnBeforeList?: boolean;
+  deltaOnBeforeAggregate?: boolean;
+  deltaOnAfterCreate?: boolean;
+  deltaOnAfterUpdate?: boolean;
+  deltaOnAfterDelete?: boolean;
 };
 
-export type CachedDataSourceOptions = FullLoadOptions | IncrementalOptions;
+export type CachedDataSourceOptions =
+  | (BaseOptions & DumpOptions & DeltaOptions)
+  | (BaseOptions & DumpOptions)
+  | (BaseOptions & DeltaOptions);

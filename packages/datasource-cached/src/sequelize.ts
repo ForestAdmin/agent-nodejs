@@ -7,7 +7,11 @@ export default async function createSequelize(
   options: CachedDataSourceOptions,
   schema: CachedCollectionSchema[],
 ) {
-  const sequelize = await buildSequelizeInstance(options.cacheInto, () => {}, []);
+  const sequelize = await buildSequelizeInstance(
+    options.cacheInto ?? 'sqlite::memory:',
+    () => {},
+    [],
+  );
 
   sequelize.define(`forest_sync_state`, {
     id: { type: DataTypes.STRING, primaryKey: true },

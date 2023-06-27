@@ -1,5 +1,7 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
+import { DataTypes, createCachedDataSource } from '@forestadmin/datasource-cached';
 import { createHubspotDataSource } from '@forestadmin/datasource-hubspot';
+import axios from 'axios';
 import dotenv from 'dotenv';
 
 import { Schema } from './typings';
@@ -19,38 +21,57 @@ export default async () => {
 
   const agent = createAgent<Schema>(envOptions);
 
+  // agent.addDataSource(
+  //   createHubspotDataSource({
+  //     accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+  //     collections: {
+  //       contacts: ['firstname', 'lastname', 'mycustomfield'],
+  //     },
+  //   }),
+  // );
+
   agent.addDataSource(
-    createHubspotDataSource({
-      accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
-      collections: {
-        contacts: ['firstname', 'lastname', 'mycustomfield'],
+    createCachedDataSource({
+      cacheInto: 'sqlite::memory:',
+      namespace: 'typicode',
+      schema: [
+        {
+          name: 'posts',
+          columns: {
+            userId: { columnType: DataTypes.INTEGER },
+            id: { columnType: DataTypes.INTEGER, isPrimaryKey: true },
+            title: { columnType: DataTypes.STRING },
+            body: { columnType: DataTypes.STRING },
+          },
+        },
+        {
+          name: 'comments',
+          columns: {
+            postId: { columnType: DataTypes.INTEGER },
+            id: { columnType: DataTypes.INTEGER, isPrimaryKey: true },
+            name: { columnType: DataTypes.STRING },
+            email: { columnType: DataTypes.STRING },
+            body: { columnType: DataTypes.STRING },
+          },
+        },
+      ],
+
+      getDump: async request => {
+        const records = [];
+        const promises = request.collections.map(async collection => {
+          const url = `https://jsonplaceholder.typicode.com/${collection}`;
+          const response = await axios.get(url);
+
+          records.push(...response.data.map(record => ({ collection, record })));
+        });
+
+        await Promise.all(promises);
+
+        return { more: false, records };
       },
+      dumpOnStartup: true,
     }),
   );
-
-  // agent.addDataSource(
-  //   createCachedDataSource<string>({
-  //     namespace: 'typicode',
-  //     cacheUrl: 'postgres://mabasesurneon',
-  //     upgradeStategy: ['on-access', 'on-start', 'on-interval'],
-  //     schema: async () => [
-  //       { collection: 'posts', columns: [{ name: 'title', type: 'string' }] },
-  //     ],
-  //     getChanges: async (collectionName, state) => {
-  //       const response = await axios.get(`http://typicode.com/${collectionName}?sort=updatedAt&limit=100&updatedAt_gte=${state}`);
-
-  //       return {
-  //         done: response.data.length < 100,
-  //         newOrUpdatedRecords: response.data,
-  //         deletedRecords: [],
-  //         state: response.data.at(-1)?.updatedAt ?? state,
-  //       }
-  //     },
-  //     createRecord: async (collectionName, record) => {
-  //       await axios.post(`http://typicode.com/${collectionName}`, record);
-  //     }
-  //   })
-  // )
 
   agent.mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
   await agent.start();

@@ -27,6 +27,7 @@ export { default as FilterFactory } from './interfaces/query/filter/factory';
 export { default as ProjectionFactory } from './interfaces/query/projection/factory';
 export { default as SortFactory } from './interfaces/query/sort/factory';
 
+export * from './analyzer';
 export * from './interfaces/action';
 export * from './interfaces/caller';
 export * from './interfaces/chart';
@@ -60,3 +61,4 @@ export { default as SortValidator } from './validation/sort';
 export { default as CollectionUtils } from './utils/collection';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
+export { default as Deferred } from './deferred';

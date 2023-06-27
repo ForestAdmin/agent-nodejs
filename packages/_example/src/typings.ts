@@ -1,21 +1,22 @@
 /* eslint-disable */
 export type Schema = {
-  'forest_sync_state': {
+  'typicode_comments': {
     plain: {
-      'id': string;
-      'state': string;
-      'createdAt': string;
-      'updatedAt': string;
+      'postId': number;
+      'id': number;
+      'name': string;
+      'email': string;
+      'body': string;
     };
     nested: {};
     flat: {};
   };
-  'hubspot_contacts': {
+  'typicode_posts': {
     plain: {
-      'id': string;
-      'firstname': string;
-      'lastname': string;
-      'mycustomfield': string;
+      'userId': number;
+      'id': number;
+      'title': string;
+      'body': string;
     };
     nested: {};
     flat: {};
