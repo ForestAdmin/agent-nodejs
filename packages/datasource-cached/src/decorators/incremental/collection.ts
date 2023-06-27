@@ -27,15 +27,8 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = await this.childCollection.create(caller, data);
-
-    if (this.options.syncOnAfterCreate) {
-      await this.incrementalSync(state => {
-        const context = new AfterCreateIncrementalSyncContext(this, caller, data, records);
-        context.state = state;
-
-        return this.options.syncOnAfterCreate(context);
-      }, true);
-    }
+    if (this.options.syncOnAfterCreate)
+      await this.onAfterCreate(new AfterCreateIncrementalSyncContext(this, caller, data, records));
 
     return records;
   }
@@ -43,27 +36,15 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await super.update(caller, filter, patch);
 
-    if (this.options.syncOnAfterUpdate) {
-      await this.incrementalSync(state => {
-        const context = new AfterUpdateIncrementalSyncContext(this, caller, filter, patch);
-        context.state = state;
-
-        return this.options.syncOnAfterUpdate(context);
-      }, true);
-    }
+    if (this.options.syncOnAfterUpdate)
+      await this.onAfterUpdate(new AfterUpdateIncrementalSyncContext(this, caller, filter, patch));
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
     await super.delete(caller, filter);
 
-    if (this.options.syncOnAfterDelete) {
-      await this.incrementalSync(state => {
-        const context = new AfterDeleteIncrementalSyncContext(this, caller, filter);
-        context.state = state;
-
-        return this.options.syncOnAfterDelete(context);
-      }, true);
-    }
+    if (this.options.syncOnAfterDelete)
+      await this.onAfterDelete(new AfterDeleteIncrementalSyncContext(this, caller, filter));
   }
 
   override async list(
@@ -72,12 +53,16 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
     projection: Projection,
   ): Promise<RecordData[]> {
     if (this.options.syncOnBeforeList) {
-      await this.incrementalSync(state => {
-        const context = new BeforeListIncrementalSyncContext(this, caller, filter, projection);
-        context.state = state;
-
-        return this.options.syncOnBeforeList(context);
-      });
+      for (const collection of this.getCollectionsFromProjection(projection)) {
+        // We need nesting here.
+        const context = new BeforeListIncrementalSyncContext(
+          collection,
+          caller,
+          filter,
+          projection,
+        );
+        await collection.onBeforeList(context);
+      }
     }
 
     return super.list(caller, filter, projection);
@@ -89,14 +74,52 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
+    if (this.options.syncOnBeforeAggregate)
+      await this.onBeforeAggregate(
+        new BeforeAggregateIncrementalSyncContext(this, caller, filter, aggregation, limit),
+      );
+
+    return super.aggregate(caller, filter, aggregation, limit);
+  }
+
+  private async onAfterCreate(context: AfterCreateIncrementalSyncContext): Promise<void> {
     await this.incrementalSync(state => {
-      const context = new BeforeAggregateIncrementalSyncContext(this, caller, filter, aggregation);
+      context.state = state;
+
+      return this.options.syncOnAfterCreate(context);
+    }, true);
+  }
+
+  private async onAfterUpdate(context: AfterUpdateIncrementalSyncContext): Promise<void> {
+    await this.incrementalSync(state => {
+      context.state = state;
+
+      return this.options.syncOnAfterUpdate(context);
+    }, true);
+  }
+
+  private async onAfterDelete(context: AfterDeleteIncrementalSyncContext): Promise<void> {
+    await this.incrementalSync(state => {
+      context.state = state;
+
+      return this.options.syncOnAfterDelete(context);
+    }, true);
+  }
+
+  private async onBeforeList(context: BeforeListIncrementalSyncContext): Promise<void> {
+    await this.incrementalSync(state => {
+      context.state = state;
+
+      return this.options.syncOnBeforeList(context);
+    });
+  }
+
+  private async onBeforeAggregate(context: BeforeAggregateIncrementalSyncContext): Promise<void> {
+    await this.incrementalSync(state => {
       context.state = state;
 
       return this.options.syncOnBeforeAggregate(context);
     });
-
-    return super.aggregate(caller, filter, aggregation, limit);
   }
 
   private async incrementalSync(
@@ -119,10 +142,8 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
       const stateRecord = await stateModel.findByPk(this.name);
       const state = stateRecord ? JSON.parse(stateRecord.dataValues.state) : undefined;
 
-      // Fetch changes
-      const changes = await handler(state);
-
       // Update records in database
+      const changes = await handler(state);
       for (const record of changes.newOrUpdatedRecords) await model.upsert(record);
       for (const record of changes.deletedRecords) await model.destroy({ where: record });
 
@@ -131,6 +152,25 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
 
       more = changes.more;
     }
+  }
+
+  private getCollectionsFromProjection(projection: Projection): IncrementalCollectionDecorator[] {
+    const set = new Set<IncrementalCollectionDecorator>();
+
+    for (const field of projection) {
+      set.add(this.getCollectionFromPath(field));
+    }
+
+    return [...set];
+  }
+
+  private getCollectionFromPath(path: string): IncrementalCollectionDecorator {
+    const [prefix, suffix] = path.split(/:(.*)/);
+    const schema = this.childCollection.schema.fields[prefix];
+
+    return schema.type === 'Column'
+      ? this
+      : this.dataSource.getCollection(schema.foreignCollection).getCollectionFromPath(suffix);
   }
 
   private get options() {

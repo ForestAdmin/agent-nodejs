@@ -45,8 +45,8 @@ type Options = {
 export type FullLoadOptions = Options & {
   syncStrategy: 'full-load';
 
-  minDelayBeforeChanges?: number;
-  maxDelayBeforeChanges?: number;
+  minDelayBeforeReload?: number;
+  maxDelayBeforeReload?: number;
 
   getRecords: (context: SyncContext) => Promise<RecordData[]>;
 };

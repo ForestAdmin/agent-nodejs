@@ -4,7 +4,7 @@ import { Sequelize } from 'sequelize';
 import IncrementalCollectionDecorator from './collection';
 import { IncrementalOptions } from '../../types';
 
-export default class IncrementalDataSourceDecorator extends DataSourceDecorator {
+export default class IncrementalDataSourceDecorator extends DataSourceDecorator<IncrementalCollectionDecorator> {
   connection: Sequelize;
   options: IncrementalOptions;
 
