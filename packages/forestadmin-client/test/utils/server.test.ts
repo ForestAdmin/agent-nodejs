@@ -91,6 +91,54 @@ describe('ServerUtils', () => {
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(unknownError);
   });
 
+  it('should timeout if the server take more than maxTimeAllowed to respond', async () => {
+    nock(options.forestServerUrl, {
+      reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
+    })
+      .get('/endpoint')
+      .reply(() => {
+        return new Promise(resolve => {
+          setTimeout(resolve, 110);
+        });
+      });
+
+    await expect(
+      ServerUtils.query(
+        options,
+        'get',
+        '/endpoint',
+        { 'x-foo': 'bar' },
+        '',
+        100, // maxTimeAllowed to respond
+      ),
+    ).rejects.toThrow('The request to ForestAdmin server has timeout');
+  });
+
+  it('should not timeout if the server take less than the maxTimeAllowed to respond', async () => {
+    nock(options.forestServerUrl, {
+      reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
+    })
+      .get('/endpoint')
+      .reply(() => {
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve([200, { data: 'ok' }]);
+          }, 90);
+        });
+      });
+
+    const result = await ServerUtils.query(
+      options,
+      'get',
+      '/endpoint',
+      { 'x-foo': 'bar' },
+      '',
+      100, // maxTimeAllowed to respond
+    );
+
+    expect(result).toStrictEqual({ data: 'ok' });
+  }, 10000);
+
   describe('when the server send back a message', () => {
     it('should forward a new error containing the message', async () => {
       const message = 'this is a message sent from forest server';

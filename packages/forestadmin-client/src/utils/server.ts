@@ -12,10 +12,13 @@ export default class ServerUtils {
     path: string,
     headers: Record<string, string> = {},
     body?: string | object,
+    maxTimeAllowed = 10000, // Set a default value if not provided
   ): Promise<T> {
     try {
       const url = new URL(path, options.forestServerUrl).toString();
-      const request = superagent[method](url);
+
+      const request = superagent[method](url).timeout(maxTimeAllowed);
+
       request.set('forest-secret-key', options.envSecret);
       if (headers) request.set(headers);
 
@@ -23,6 +26,10 @@ export default class ServerUtils {
 
       return response.body;
     } catch (error) {
+      if (error.timeout) {
+        throw new Error('The request to ForestAdmin server has timeout');
+      }
+
       this.handleResponseError(error);
     }
   }
