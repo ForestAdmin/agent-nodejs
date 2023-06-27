@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.12.3...@forestadmin/agent@1.13.0) (2023-06-27)
+
+
+### Features
+
+* **agent:** no-code update record should handle errors correctly ([#747](https://github.com/ForestAdmin/agent-nodejs/issues/747)) ([6c5e344](https://github.com/ForestAdmin/agent-nodejs/commit/6c5e344650752d87e2f96506bb70eb9a4587220c))
+
 ## @forestadmin/agent [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.12.2...@forestadmin/agent@1.12.3) (2023-06-27)
 
 
