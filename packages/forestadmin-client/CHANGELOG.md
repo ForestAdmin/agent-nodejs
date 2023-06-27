@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.0...@forestadmin/forestadmin-client@1.5.1) (2023-06-27)
+
+
+### Bug Fixes
+
+* add a timeout on superagent call ([#741](https://github.com/ForestAdmin/agent-nodejs/issues/741)) ([3b85766](https://github.com/ForestAdmin/agent-nodejs/commit/3b8576673a51f7c1809dd6a63bf276c8a92fad10))
+
 # @forestadmin/forestadmin-client [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.4.0...@forestadmin/forestadmin-client@1.5.0) (2023-06-19)
 
 
