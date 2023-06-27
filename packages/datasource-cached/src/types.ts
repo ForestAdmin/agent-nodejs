@@ -19,7 +19,12 @@ export type CachedCollectionSchema = {
 
 type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 
-export type SynchronizeOutput = {
+export type InitialOutput = {
+  more: boolean;
+  records: RecordData[];
+};
+
+export type IncrementalOutput = {
   more: boolean;
   newState: unknown;
   newOrUpdatedRecords: RecordData[];
@@ -54,17 +59,17 @@ export type FullLoadOptions = Options & {
 export type IncrementalOptions = Options & {
   syncStrategy: 'incremental';
 
-  loadOnStart?: (context: SyncContext) => Promise<SynchronizeOutput>;
+  loadOnStart?: (context: SyncContext) => Promise<InitialOutput>;
 
-  syncOnInterval?: (context: IncrementalSyncContext) => Promise<SynchronizeOutput>;
-  syncOnBeforeList?: (context: BeforeListIncrementalSyncContext) => Promise<SynchronizeOutput>;
+  syncOnInterval?: (context: IncrementalSyncContext) => Promise<IncrementalOutput>;
+  syncOnBeforeList?: (context: BeforeListIncrementalSyncContext) => Promise<IncrementalOutput>;
   syncOnBeforeAggregate?: (
     context: BeforeAggregateIncrementalSyncContext,
-  ) => Promise<SynchronizeOutput>;
+  ) => Promise<IncrementalOutput>;
 
-  syncOnAfterCreate?: (context: AfterCreateIncrementalSyncContext) => Promise<SynchronizeOutput>;
-  syncOnAfterUpdate?: (context: AfterUpdateIncrementalSyncContext) => Promise<SynchronizeOutput>;
-  syncOnAfterDelete?: (context: AfterDeleteIncrementalSyncContext) => Promise<SynchronizeOutput>;
+  syncOnAfterCreate?: (context: AfterCreateIncrementalSyncContext) => Promise<IncrementalOutput>;
+  syncOnAfterUpdate?: (context: AfterUpdateIncrementalSyncContext) => Promise<IncrementalOutput>;
+  syncOnAfterDelete?: (context: AfterDeleteIncrementalSyncContext) => Promise<IncrementalOutput>;
 
   minDelayBetweenSync?: number;
   maxDelayBeforeChanges?: number;

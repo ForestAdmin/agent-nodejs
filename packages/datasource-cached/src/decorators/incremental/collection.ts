@@ -18,7 +18,7 @@ import {
   BeforeListIncrementalSyncContext,
 } from './context';
 import IncrementalDataSourceDecorator from './data-source';
-import { SynchronizeOutput } from '../../types';
+import { IncrementalOutput } from '../../types';
 
 export default class IncrementalCollectionDecorator extends CollectionDecorator {
   override dataSource: IncrementalDataSourceDecorator;
@@ -123,7 +123,7 @@ export default class IncrementalCollectionDecorator extends CollectionDecorator 
   }
 
   private async incrementalSync(
-    handler: (state: unknown) => Promise<SynchronizeOutput>,
+    handler: (state: unknown) => Promise<IncrementalOutput>,
     ignoreTimers = false,
   ) {
     this.syncLastStarted = new Date();
