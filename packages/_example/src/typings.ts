@@ -1,5 +1,15 @@
 /* eslint-disable */
 export type Schema = {
+  'hubspot_contacts': {
+    plain: {
+      'id': string;
+      'firstname': string;
+      'lastname': string;
+      'mycustomfield': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'typicode_comments': {
     plain: {
       'postId': number;

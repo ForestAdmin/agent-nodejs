@@ -21,14 +21,14 @@ export default async () => {
 
   const agent = createAgent<Schema>(envOptions);
 
-  // agent.addDataSource(
-  //   createHubspotDataSource({
-  //     accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
-  //     collections: {
-  //       contacts: ['firstname', 'lastname', 'mycustomfield'],
-  //     },
-  //   }),
-  // );
+  agent.addDataSource(
+    createHubspotDataSource({
+      accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      collections: {
+        contacts: ['firstname', 'lastname', 'mycustomfield'],
+      },
+    }),
+  );
 
   agent.addDataSource(
     createCachedDataSource({
