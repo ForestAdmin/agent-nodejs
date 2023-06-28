@@ -1,7 +1,10 @@
 /* eslint-disable max-len */
 import { ObjectCannedACL } from '@aws-sdk/client-s3';
+import { TCollectionName, TSchema } from '@forestadmin/datasource-customizer';
+import WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
 
 import Client from './utils/s3';
+
 
 export type File = {
   name: string;
@@ -24,7 +27,17 @@ export type Options = {
    * Where should the file be stored on S3?
    * Defaults to '<collection_name>/<field_name>/`.
    */
-  storeAt?: (recordId: string, originalFilename: string) => string;
+  storeAt?: <S extends TSchema = TSchema, N extends TCollectionName<S> = TCollectionName<S>>(
+    recordId: string,
+    originalFilename: string,
+    context: WriteCustomizationContext<S, N>,
+  ) => Promise<string | { AWSPath: string; databasePath: string }>;
+
+  // TODO unknown should be Tshema and dependencies as-well and context
+  buildFilePathFromDatabase?: {
+    dependencies: string[];
+    builder: (record: unknown, context: unknown) => Promise<string>;
+  };
 
   /** Either if old files should be deleted when updating or deleting a record. */
 
@@ -71,7 +84,7 @@ export type Options = {
 };
 
 export type Configuration = Required<
-  Pick<Options, 'acl' | 'deleteFiles' | 'readMode' | 'storeAt'> & {
+  Pick<Options, 'acl' | 'deleteFiles' | 'readMode' | 'storeAt' | 'buildFilePathFromDatabase'> & {
     client: Client;
     sourcename: string;
     filename: string;

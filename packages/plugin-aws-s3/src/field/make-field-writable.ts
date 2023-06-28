@@ -23,10 +23,20 @@ export default function makeFieldWritable(
     if (value) {
       const recordId = getRecordId(collection, context.record).join('|');
       const file = parseDataUri(value);
-      const key = config.storeAt(recordId, file.name);
+      const storeConfig = await config.storeAt(recordId, file.name, context);
+      let databasePath: string;
+      let awsPath: string;
 
-      await config.client.save(key, file, config.acl);
-      patch[config.sourcename] = key;
+      if (typeof storeConfig === 'string') {
+        databasePath = storeConfig;
+        awsPath = storeConfig;
+      } else {
+        databasePath = storeConfig.databasePath;
+        awsPath = storeConfig.AWSPath;
+      }
+
+      await config.client.save(awsPath, file, config.acl);
+      patch[config.sourcename] = databasePath;
     }
 
     return patch;

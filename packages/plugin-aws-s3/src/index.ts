@@ -37,7 +37,9 @@ export async function createFileField(
     deleteFiles: options?.deleteFiles ?? false,
     readMode: options?.readMode ?? 'url',
     acl: options?.acl ?? 'private',
-    storeAt: options?.storeAt ?? ((id, name) => `${collection.name}/${id}/${name}`),
+    storeAt:
+      options?.storeAt ?? ((id, name) => Promise.resolve(`${collection.name}/${id}/${name}`)),
+    buildFilePathFromDatabase: options?.buildFilePathFromDatabase,
   };
 
   createField(collection, config);
