@@ -56,14 +56,14 @@ export type DumpRequest = {
 };
 
 export type DumpResponse =
-  | { more: true; records: RecordDataWithCollection[]; nextDumpState: unknown }
-  | { more: false; records: RecordDataWithCollection[]; nextDeltaState?: unknown };
+  | { more: true; entries: RecordDataWithCollection[]; nextDumpState: unknown }
+  | { more: false; entries: RecordDataWithCollection[]; nextDeltaState?: unknown };
 
 export type DeltaResponse = {
   more: boolean;
   nextDeltaState: unknown;
-  newOrUpdatedRecords: RecordDataWithCollection[];
-  deletedRecords: RecordDataWithCollection[];
+  newOrUpdatedEntries: RecordDataWithCollection[];
+  deletedEntries: RecordDataWithCollection[];
 };
 
 /// //////

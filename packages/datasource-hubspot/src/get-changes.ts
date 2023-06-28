@@ -30,7 +30,7 @@ export default async function getDelta(
   options: HubSpotOptions,
   request: DeltaRequest,
 ): Promise<DeltaResponse> {
-  const newOrUpdatedRecords = [];
+  const newOrUpdatedEntries = [];
   const nextDeltaState = { ...((request.previousDeltaState as object) ?? {}) };
 
   let more = false;
@@ -42,11 +42,11 @@ export default async function getDelta(
       const fields = options.collections[name];
       const records = await getRecords(client, name, fields, after);
 
-      newOrUpdatedRecords.push(...records.map(r => ({ collection: name, record: r })));
+      newOrUpdatedEntries.push(...records.map(r => ({ collection: name, record: r })));
       nextDeltaState[name] = records.at(-1)?.lastmodifieddate ?? after;
       more ||= records.length === pageSize;
     }),
   );
 
-  return { more, nextDeltaState, newOrUpdatedRecords, deletedRecords: [] };
+  return { more, nextDeltaState, newOrUpdatedEntries, deletedEntries: [] };
 }

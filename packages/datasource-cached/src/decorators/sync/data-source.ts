@@ -130,9 +130,9 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
       const recordsByCollection = {} as Record<string, RecordData[]>;
 
-      for (const record of changes.records) {
-        if (!recordsByCollection[record.collection]) recordsByCollection[record.collection] = [];
-        recordsByCollection[record.collection].push(record.record);
+      for (const entry of changes.entries) {
+        if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
+        recordsByCollection[entry.collection].push(entry.record);
       }
 
       for (const [collection, records] of Object.entries(recordsByCollection))
@@ -166,10 +166,10 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
         previousDeltaState: previousState,
       });
 
-      for (const record of changes.newOrUpdatedRecords)
-        await this.getModel(record.collection).upsert(record);
-      for (const record of changes.deletedRecords)
-        await this.getModel(record.collection).destroy({ where: record });
+      for (const entry of changes.newOrUpdatedEntries)
+        await this.getModel(entry.collection).upsert(entry.record);
+      for (const entry of changes.deletedEntries)
+        await this.getModel(entry.collection).destroy({ where: entry.record });
 
       // Update state in database
       await this.setDeltaState(changes.nextDeltaState);

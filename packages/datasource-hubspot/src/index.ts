@@ -16,6 +16,7 @@ export function createHubspotDataSource(options: HubSpotOptions) {
 
     // Use delta synchronization
     getDelta: request => getChanges(client, options, request),
+    deltaOnStartup: true,
     deltaOnBeforeList: true,
     deltaOnBeforeAggregate: true,
   });

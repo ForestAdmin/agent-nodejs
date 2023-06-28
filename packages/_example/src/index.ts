@@ -67,7 +67,7 @@ export default async () => {
 
         await Promise.all(promises);
 
-        return { more: false, records };
+        return { more: false, entries: records };
       },
       dumpOnStartup: true,
     }),
