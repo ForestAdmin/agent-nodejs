@@ -1,66 +1,67 @@
 import net from 'net';
-import { SocksClient } from 'socks';
-import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import Service from './service';
-import { ProxyOptions } from '../../types';
 
+/**
+ * ReverseProxy is used to redirect all the database requests.
+ * Sequelize does not take a socket as an argument,
+ * so we need to redirect all the traffic to a new socket.
+ * This is done by creating a server that will listen on a random port.
+ * We change the host and port of the Sequelize options to point to the reverse proxy.
+ * The reverse proxy will then redirect all the traffic to the database through the tunnel.
+ */
 export default class ReverseProxy extends Service {
-  private readonly errors: Error[] = [];
-  private readonly connectedClients: Set<net.Socket> = new Set();
-  private readonly options: ProxyOptions;
-  private readonly targetHost: string;
-  private readonly targetPort: number;
+  private readonly server: net.Server;
 
-  get error(): Error | null {
-    return this.errors.length > 0 ? this.errors[0] : null;
+  get host(): string {
+    return (this.server.address() as net.AddressInfo).address;
   }
 
-  constructor(proxyOptions: ProxyOptions, targetHost: string, targetPort: number) {
-    super();
-    this.options = proxyOptions;
-    this.targetHost = targetHost;
-    this.targetPort = targetPort;
-    if (!this.targetHost) throw new Error('Host is required');
-    if (!this.targetPort) throw new Error('Port is required');
+  get port(): number {
+    return (this.server.address() as net.AddressInfo).port;
   }
 
-  override async closeListener(): Promise<void> {
-    await super.closeListener();
-    this.connectedClients.forEach(client => client.destroy());
+  constructor() {
+    super(null, null, null, null);
+    this.server = net.createServer(this.connect.bind(this));
   }
 
-  override async connectListener(socket: net.Socket): Promise<void> {
-    let socks5Proxy: SocksClientEstablishedEvent;
-    this.connectedClients.add(socket);
-
-    socket.on('error', error => {
-      this.errors.push(error);
-      if (!socket.closed) socket.destroy(error);
+  start(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      this.server.on('error', reject);
+      // By using port 0, the operating system
+      // will assign an available port for the server to listen on.
+      this.server.listen(0, '127.0.0.1', resolve);
     });
-    socket.on('close', () => {
-      this.connectedClients.delete(socket);
-      if (!socks5Proxy?.socket.closed) socks5Proxy?.socket.destroy();
-    });
+  }
 
+  override async stop(): Promise<void> {
     try {
-      socks5Proxy = await SocksClient.createConnection({
-        proxy: { ...this.options, type: 5 },
-        command: 'connect',
-        destination: { host: this.targetHost, port: this.targetPort },
-        timeout: 4000,
+      // close all the connected clients before closing the server
+      await super.stop();
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        this.server.close(e => {
+          if (e) reject(e);
+          else resolve();
+        });
       });
+    }
+  }
 
-      socks5Proxy.socket.on('close', () => {
-        this.connectedClients.delete(socks5Proxy.socket);
-        if (!socket.closed) socket.destroy();
-      });
-      socks5Proxy.socket.on('error', socket.destroy);
-      socks5Proxy.socket.pipe(socket).pipe(socks5Proxy.socket);
+  protected override async connect(socket: net.Socket): Promise<net.Socket> {
+    try {
+      this.addConnectedClient(socket);
+      socket.on('close', () => this.destroySocketIfUnclosedAndSaveError(socket));
+      socket.on('error', error => this.destroySocketIfUnclosedAndSaveError(socket, error));
 
-      await super.connectListener(socks5Proxy.socket);
-    } catch (err) {
-      socket.destroy(err as Error);
+      const tunnel = await super.connect();
+      if (tunnel) tunnel.pipe(socket).pipe(tunnel);
+
+      return tunnel;
+    } catch (error) {
+      this.destroySocketIfUnclosedAndSaveError(socket, error);
+      // don't throw the error to avoid crashing the server because the error is already handled
     }
   }
 }

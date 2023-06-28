@@ -7,6 +7,7 @@ import {
   PlainConnectionOptions,
   PlainConnectionOptionsOrUri,
   ProxyOptions,
+  SshOptions,
   SslMode,
 } from '../types';
 
@@ -22,6 +23,8 @@ import {
  */
 export default class ConnectionOptions {
   proxyOptions?: ProxyOptions;
+  sshOptions?: SshOptions;
+  connectionTimeoutInMs?: number;
 
   private initialHost: string;
   private initialPort: number;
@@ -42,11 +45,6 @@ export default class ConnectionOptions {
     return dialect === 'sqlite'
       ? this.uri?.href ?? `sqlite:${this.sequelizeOptions.storage}`
       : `${dialect}://${this.initialHost}:${port}/${database}`;
-  }
-
-  /** Proxy URI without credentials, which can be used in error messages INTERNALLY */
-  get debugProxyUri(): string {
-    return this.proxyOptions ? `tcp://${this.proxyOptions.host}:${this.proxyOptions.port}` : 'none';
   }
 
   get dialect(): Dialect {
@@ -84,6 +82,8 @@ export default class ConnectionOptions {
 
     if (this.uri) options.uri = this.uri.toString();
     if (this.proxyOptions) options.proxySocks = this.proxyOptions;
+    if (this.sshOptions) options.ssh = this.sshOptions;
+    if (this.connectionTimeoutInMs) options.connectionTimeoutInMs = this.connectionTimeoutInMs;
     options.dialect = this.dialect;
     options.sslMode = this.sslMode;
 
@@ -97,9 +97,11 @@ export default class ConnectionOptions {
       this.uri = this.parseDatabaseUri(options);
       this.sequelizeOptions = {};
     } else {
-      const { uri, sslMode, proxySocks, ...sequelizeOptions } = options;
+      const { uri, sslMode, proxySocks, ssh, connectionTimeoutInMs, ...sequelizeOptions } = options;
 
       this.proxyOptions = proxySocks;
+      this.sshOptions = ssh;
+      this.connectionTimeoutInMs = connectionTimeoutInMs;
       this.sequelizeOptions = sequelizeOptions;
       this.sslMode = sslMode ?? 'manual';
       this.uri = uri ? this.parseDatabaseUri(uri) : null;

@@ -1,15 +1,23 @@
 import { ConnectionError } from 'sequelize';
 
+import { ProxyConnectError, SshConnectError } from '../../dist';
+import { ProxyForwardError, SshForwardError } from '../../src';
 import ConnectionOptions from '../../src/connection/connection-options';
 import handleErrors from '../../src/connection/handle-errors';
 
-const optionsWithoutProxy = new ConnectionOptions({
-  uri: 'postgres://user:password@localhost:5432/db',
+const optionsWithOnlyDatabase = new ConnectionOptions({
+  uri: 'postgres://localhost:5432/db',
 });
 
-const optionsWithProxy = new ConnectionOptions({
+const optionsWithDatabaseAndProxy = new ConnectionOptions({
   uri: 'postgres://user:password@localhost:5432/db',
-  proxySocks: { host: 'localhost', port: 1080 },
+  proxySocks: { host: 'localhost', port: 1083 },
+});
+
+const optionsWithDatabaseAndProxyAndSsh = new ConnectionOptions({
+  uri: 'postgres://user:password@localhost:5432/db',
+  proxySocks: { host: 'localhost', port: 1083 },
+  ssh: { host: 'ssh-server', port: 2222, username: 'forest' },
 });
 
 describe('handleErrors', () => {
@@ -17,7 +25,7 @@ describe('handleErrors', () => {
     it('should throw an error', () => {
       const error = new ConnectionError(new Error('Connection timed out'));
 
-      expect(() => handleErrors(error, optionsWithoutProxy)).toThrow(
+      expect(() => handleErrors(error, optionsWithOnlyDatabase)).toThrow(
         // eslint-disable-next-line max-len
         'Unable to connect to the given uri: postgres://localhost:5432/db.\n' +
           'Connection error: Connection timed out',
@@ -25,49 +33,71 @@ describe('handleErrors', () => {
     });
   });
 
-  describe('when the error has an empty stack trace', () => {
-    it('should throw an error', () => {
-      const error = new Error('An error');
-      error.stack = undefined;
-      expect(() => handleErrors(error, optionsWithoutProxy)).toThrow(error);
+  describe('when the error is thrown by the proxy', () => {
+    describe('when the proxy has an error when forwarded', () => {
+      describe('when it forwards to a database', () => {
+        it('should throw an error', () => {
+          const error = new ProxyForwardError('Socket closed', 'localhost:5432');
+
+          expect(() => handleErrors(error, optionsWithDatabaseAndProxy)).toThrow(
+            'Unable to connect to the given uri: localhost:5432.',
+          );
+        });
+      });
+
+      describe('when it forwards to a ssh', () => {
+        it('should throw an error', () => {
+          const error = new ProxyForwardError('Socket closed', 'localhost:5432');
+
+          expect(() => handleErrors(error, optionsWithDatabaseAndProxyAndSsh)).toThrow(
+            // eslint-disable-next-line max-len
+            'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: localhost:5432',
+          );
+        });
+      });
+    });
+
+    describe('when the proxy has an error when connected', () => {
+      it('should throw an error', () => {
+        const error = new ProxyConnectError('Socket closed', 'localhost:1083');
+
+        expect(() => handleErrors(error, optionsWithDatabaseAndProxy)).toThrow(
+          'Unable to connect to the given uri: localhost:1083.',
+        );
+      });
     });
   });
 
-  describe('when the error is thrown by the proxy', () => {
-    describe('when the proxy has an error with database uri', () => {
-      it('should throw an error', () => {
-        const error = new Error('Socket closed');
-        error.stack = 'SocksClient.connect: Socks connection failed to proxy: Socket closed';
+  describe('when the error is thrown by the ssh', () => {
+    it('should throw an error', () => {
+      const error = new SshConnectError('Socket closed', 'localhost:1083');
 
-        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
+      expect(() => handleErrors(error, optionsWithDatabaseAndProxyAndSsh)).toThrow(
+        // eslint-disable-next-line max-len
+        'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: localhost:1083',
+      );
+    });
+
+    describe('when the ssh has an error when forwarded', () => {
+      it('should throw an error', () => {
+        const error = new SshForwardError('Socket closed', 'localhost:1083');
+
+        expect(() => handleErrors(error, optionsWithDatabaseAndProxyAndSsh)).toThrow(
           // eslint-disable-next-line max-len
-          'Unable to connect to the given uri: postgres://localhost:5432/db.',
+          'Unable to connect to the given uri: localhost:1083',
         );
       });
     });
+  });
 
-    describe('when the proxy config is null', () => {
-      it('should throw an error', () => {
-        const error = new Error('An error');
-        error.stack = 'SocksClient.connect: Socks connection failed to proxy: Socket closed';
+  describe('when the error is thrown by the database', () => {
+    it('should throw an error', () => {
+      const error = new ConnectionError(new Error('Connection timed out'));
 
-        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
-          'Your proxy has encountered an error. ' +
-            'Unable to connect to the given uri: localhost:1080.\nAn error',
-        );
-      });
-    });
-
-    describe('when the proxy has an error', () => {
-      it('should throw an error', () => {
-        const error = new Error();
-        error.stack = 'SocksClient.connect: Socks connection failed to proxy: Connection refused';
-
-        expect(() => handleErrors(error, optionsWithProxy)).toThrow(
-          // eslint-disable-next-line max-len
-          'Your proxy has encountered an error. Unable to connect to the given uri: localhost:1080',
-        );
-      });
+      expect(() => handleErrors(error, optionsWithOnlyDatabase)).toThrow(
+        // eslint-disable-next-line max-len
+        'Unable to connect to the given uri: postgres://localhost:5432/db.\nConnection error: Connection timed out',
+      );
     });
   });
 });
