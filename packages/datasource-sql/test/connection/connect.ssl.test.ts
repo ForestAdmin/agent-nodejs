@@ -38,10 +38,10 @@ describe('Connect', () => {
     'on %s database (supports unencrypted)',
     (dialect, username, password, host, containerPort) => {
       const baseUri = `${dialect}://${username}:${password}@${host}:${containerPort}`;
-      const uri = `${baseUri}/test_connection`;
+      const uri = `${baseUri}/test_connection_ssl`;
 
       beforeAll(async () => {
-        await createDatabaseIfNotExist(baseUri, 'test_connection');
+        await createDatabaseIfNotExist(baseUri, 'test_connection_ssl');
       });
 
       it('should work in manual mode with nothing specified', async () => {
@@ -65,10 +65,10 @@ describe('Connect', () => {
     ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
   ])('on %s database (no ssl support)', (dialect, username, password, host, port) => {
     const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
-    const uri = `${baseUri}/test_connection`;
+    const uri = `${baseUri}/test_connection_ssl_2`;
 
     beforeAll(async () => {
-      await createDatabaseIfNotExist(baseUri, 'test_connection');
+      await createDatabaseIfNotExist(baseUri, 'test_connection_ssl_2');
     });
 
     it.each([['required'], ['verify']])('should fail when using sslMode %s', async sslMode => {
@@ -83,10 +83,10 @@ describe('Connect', () => {
     ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
   ])('on %s database (supports self-signed ssl)', (dialect, username, password, host, port) => {
     const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
-    const uri = `${baseUri}/test_connection`;
+    const uri = `${baseUri}/test_connection_ssl`;
 
     beforeAll(async () => {
-      await createDatabaseIfNotExist(baseUri, 'test_connection');
+      await createDatabaseIfNotExist(baseUri, 'test_connection_ssl');
     });
 
     it.each([['preferred'], ['required']])('should work when using sslMode %s', async sslMode => {

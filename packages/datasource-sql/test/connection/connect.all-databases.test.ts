@@ -24,12 +24,12 @@ describe('connect errors with all the databases', () => {
   ])(
     'on %s database',
     (dialect, username, password, host, containerPort, port, dockerServiceName) => {
-      const db = `test_connection`;
+      const db = `test_connection_all-databases`;
 
       beforeAll(async () => {
         await createDatabaseIfNotExist(
           `${dialect}://${username}:${password}@${host}:${containerPort}`,
-          'test_connection',
+          db,
         );
       });
       describe.each([

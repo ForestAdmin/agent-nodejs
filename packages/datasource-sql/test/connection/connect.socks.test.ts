@@ -7,13 +7,16 @@ const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId
 
 describe('when proxy socks configuration is provided', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist('postgres://test:password@localhost:5443', 'test_connection');
+    await createDatabaseIfNotExist(
+      'postgres://test:password@localhost:5443',
+      'test_connection_socks',
+    );
   });
 
   describe('when the database password is wrong', () => {
     it('should not block the promise and throw an error', async () => {
       const options = new ConnectionOptions({
-        uri: `postgres://BADUSER:password@postgres:5432/test_connection`,
+        uri: `postgres://BADUSER:password@postgres:5432/test_connection_socks`,
         proxySocks: { host: 'localhost', port: 1083, password: 'password', userId: 'username' },
       });
 
@@ -24,7 +27,7 @@ describe('when proxy socks configuration is provided', () => {
   describe('when the proxy configuration is wrong', () => {
     it('should throw an error', async () => {
       const options = new ConnectionOptions({
-        uri: `postgres://test:password@postgres:5432/test_connection`,
+        uri: `postgres://test:password@postgres:5432/test_connection_socks`,
         proxySocks: { host: 'BADHOST', port: 1083, password: 'password', userId: 'username' },
       });
 
@@ -36,7 +39,7 @@ describe('when proxy socks configuration is provided', () => {
   });
 
   describe('when the proxy is badly configured', () => {
-    const uri = 'postgres://test:password@localhost:5443/test_connection';
+    const uri = 'postgres://test:password@localhost:5443/test_connection_socks';
 
     describe.each([
       ['port', { port: 10 }],

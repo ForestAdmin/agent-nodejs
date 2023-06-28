@@ -30,6 +30,7 @@ describe('Reverse proxy', () => {
 
         await new Promise<void>(resolve => {
           const client = new net.Socket();
+          client.on('error', () => {});
           client.connect(reverseProxy.port, reverseProxy.host, resolve);
         });
 

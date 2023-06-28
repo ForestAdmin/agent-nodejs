@@ -16,12 +16,12 @@ describe('when there is only a ssh configuration', () => {
   };
 
   beforeAll(async () => {
-    await createDatabaseIfNotExist('mariadb://root:password@localhost:3307', 'test_connection');
+    await createDatabaseIfNotExist('mariadb://root:password@localhost:3307', 'test_connection_ssh');
   });
 
   it('should be able to connect at the db', async () => {
     const options = new ConnectionOptions({
-      uri: 'mariadb://root:password@mariadb:3306/test_connection',
+      uri: 'mariadb://root:password@mariadb:3306/test_connection_ssh',
       ssh: sshConfig,
     });
     const seq = await connect(options);
@@ -32,9 +32,9 @@ describe('when there is only a ssh configuration', () => {
   describe('when the ssh has a wrong configuration', () => {
     it('should throw a ssh error', async () => {
       const options = new ConnectionOptions({
-        uri: 'mariadb://root:password@mariadb:3306/test_connection',
+        uri: 'mariadb://root:password@mariadb:3306/test_connection_ssh',
         ssh: { ...sshConfig, username: 'BADUSER' },
-        connectionTimeoutInMs: 1000,
+        connectionTimeoutInMs: 4000,
       });
       await expect(() => connect(options)).rejects.toThrow(SshConnectError);
     });
@@ -43,7 +43,7 @@ describe('when there is only a ssh configuration', () => {
   describe('when the db has a wrong configuration', () => {
     it('should throw a database error', async () => {
       const options = new ConnectionOptions({
-        uri: 'mariadb://root:password@localhost:3306/test_connection',
+        uri: 'mariadb://root:password@localhost:3306/test_connection_ssh',
         ssh: sshConfig,
       });
       await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);

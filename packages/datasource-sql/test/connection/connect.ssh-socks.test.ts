@@ -14,11 +14,14 @@ const ssh = {
   privateKey: readFileSync(resolve(__dirname, '../ssh-config/id_rsa')),
 };
 const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };
-const uri = 'postgres://test:password@postgres:5432/test_connection';
+const uri = 'postgres://test:password@postgres:5432/test_connection_ssh-socks';
 
 describe('when there is a ssh and proxy configuration', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist('postgres://test:password@localhost:5443', 'test_connection');
+    await createDatabaseIfNotExist(
+      'postgres://test:password@localhost:5443',
+      'test_connection_ssh-socks',
+    );
   });
 
   it('should be able to connect at the db', async () => {
@@ -31,7 +34,7 @@ describe('when there is a ssh and proxy configuration', () => {
   describe('when the db has a wrong configuration', () => {
     it('should throw the DatabaseConnectError', async () => {
       const options = new ConnectionOptions({
-        uri: 'postgres://test:password@badhost:5432/test_connection',
+        uri: 'postgres://test:password@badhost:5432/test_connection_ssh-socks',
         proxySocks,
         ssh,
         connectionTimeoutInMs: 1000,
@@ -68,7 +71,7 @@ describe('when there is a ssh and proxy configuration', () => {
     ])('%s', (proxyText, proxySockValue, sshValue) => {
       it('should throw a DatabaseConnectError error', async () => {
         const options = new ConnectionOptions({
-          uri: `mysql://test:password@postgres:5432/test_connection`,
+          uri: `mysql://test:password@postgres:5432/test_connection_ssh-socks`,
           proxySocks: proxySockValue,
           ssh: sshValue,
         });
