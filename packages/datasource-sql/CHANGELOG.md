@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.10...@forestadmin/datasource-sql@1.7.0) (2023-06-28)
+
+
+### Features
+
+* **datasource-sql:** create a ssh tunnel when a user provide ssh options ([#730](https://github.com/ForestAdmin/agent-nodejs/issues/730)) ([a188765](https://github.com/ForestAdmin/agent-nodejs/commit/a188765ca793a4ab226ad7b09f99fbad12934816))
+
 ## @forestadmin/datasource-sql [1.6.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.6.9...@forestadmin/datasource-sql@1.6.10) (2023-06-20)
 
 
