@@ -18,7 +18,14 @@ import {
 } from '../../types';
 
 type Queue<Reason> = {
+  /**
+   * A deferred which allows callers of queueDump/queueDelta to wait that their request is processed
+   */
   deferred: Deferred<void>;
+
+  /**
+   * The list of reasons why we want to dump/delta
+   */
   reasons: (Reason & { at: Date })[];
 };
 
