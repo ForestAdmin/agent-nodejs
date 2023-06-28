@@ -81,9 +81,9 @@ export type BaseOptions = {
   schema?: ValueOrPromiseOrFactory<CachedCollectionSchema[]>;
 
   /** */
-  createRecord?: (name: string, record: RecordData) => Promise<RecordData>;
-  updateRecord?: (name: string, record: RecordData) => Promise<RecordData>;
-  deleteRecord?: (name: string, record: RecordData) => Promise<void>;
+  createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
+  updateRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
+  deleteRecord?: (collectionName: string, record: RecordData) => Promise<void>;
 };
 
 export type DumpOptions = {
