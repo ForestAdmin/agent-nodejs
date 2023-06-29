@@ -7,7 +7,6 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import Get from '../../../src/routes/access/get';
 import { HttpCode } from '../../../src/types';
-import QueryStringParser from '../../../src/utils/query-string';
 import * as factories from '../../__factories__';
 
 describe('GetRoute', () => {
@@ -67,7 +66,7 @@ describe('GetRoute', () => {
       await get.handleGet(context);
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         {
           conditionTree: {
             field: 'id',
@@ -128,7 +127,7 @@ describe('GetRoute', () => {
       );
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        QueryStringParser.parseCaller(context),
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new PaginatedFilter({
           conditionTree: ConditionTreeFactory.fromPlainObject({
             aggregator: 'And',

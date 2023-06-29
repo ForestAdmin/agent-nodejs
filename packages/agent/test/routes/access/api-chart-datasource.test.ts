@@ -41,7 +41,7 @@ describe('DataSourceApiChartRoute', () => {
       await route.handleApiChart(context);
 
       expect(dataSource.renderChart).toHaveBeenCalledWith(
-        { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
+        { email: 'marty@doclabs.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         'myChart',
       );
       expect(context.response.body).toMatchObject({
@@ -63,7 +63,7 @@ describe('DataSourceApiChartRoute', () => {
       await route.handleSmartChart(context);
 
       expect(dataSource.renderChart).toHaveBeenCalledWith(
-        { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
+        { email: 'marty@doclabs.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         'myChart',
       );
       expect(context.response.body).toStrictEqual({ countCurrent: 12 });
