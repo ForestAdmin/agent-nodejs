@@ -47,7 +47,7 @@ export type Options<
     | Promise<string | { AWSPath: string; databasePath: string }>;
 
   /**
-   * If and how should the database key be computed to match the actual bucket file name
+   * If and how should the database key be computed to match the actual bucket file path
    */
   bucketFilePathFromDatabaseKey?: {
     dependencies?: TFieldName<S, N>[];
