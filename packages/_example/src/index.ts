@@ -1,5 +1,5 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { DataTypes, createCachedDataSource } from '@forestadmin/datasource-cached';
+import { createCachedDataSource } from '@forestadmin/datasource-cached';
 import { createHubspotDataSource } from '@forestadmin/datasource-hubspot';
 import axios from 'axios';
 import dotenv from 'dotenv';
@@ -37,21 +37,33 @@ export default async () => {
       schema: [
         {
           name: 'posts',
-          columns: {
-            userId: { columnType: DataTypes.INTEGER },
-            id: { columnType: DataTypes.INTEGER, isPrimaryKey: true },
-            title: { columnType: DataTypes.STRING },
-            body: { columnType: DataTypes.STRING },
+          fields: {
+            userId: { type: 'Column', columnType: 'Number' },
+            id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+            title: { type: 'Column', columnType: 'String' },
+            body: { type: 'Column', columnType: 'String' },
+            comments: {
+              type: 'OneToMany',
+              foreignCollection: 'comments',
+              originKey: 'postId',
+              originKeyTarget: 'id',
+            },
           },
         },
         {
           name: 'comments',
-          columns: {
-            postId: { columnType: DataTypes.INTEGER },
-            id: { columnType: DataTypes.INTEGER, isPrimaryKey: true },
-            name: { columnType: DataTypes.STRING },
-            email: { columnType: DataTypes.STRING },
-            body: { columnType: DataTypes.STRING },
+          fields: {
+            post: {
+              type: 'ManyToOne',
+              foreignCollection: 'posts',
+              foreignKey: 'postId',
+              foreignKeyTarget: 'id',
+            },
+            postId: { type: 'Column', columnType: 'Number' },
+            id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+            name: { type: 'Column', columnType: 'String' },
+            email: { type: 'Column', columnType: 'String' },
+            body: { type: 'Column', columnType: 'String' },
           },
         },
       ],

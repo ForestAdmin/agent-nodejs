@@ -1,4 +1,4 @@
-import { CachedCollectionSchema, DataType, DataTypes } from '@forestadmin/datasource-cached';
+import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
 import { Client } from '@hubspot/api-client';
 
 import { HubSpotOptions } from './types';
@@ -10,8 +10,8 @@ async function getCollectionSchema(
 ): Promise<CachedCollectionSchema> {
   const collection: CachedCollectionSchema = {
     name: collectionName,
-    columns: {
-      id: { columnType: DataTypes.STRING, isPrimaryKey: true },
+    fields: {
+      id: { type: 'Column', columnType: 'String', isPrimaryKey: true },
     },
   };
 
@@ -21,11 +21,11 @@ async function getCollectionSchema(
     const property = properties.results.find(p => p.name === fieldName);
     if (!property) throw new Error(`property ${fieldName} does not exists`);
 
-    let type: DataType;
-    if (property.type === 'string') type = DataTypes.STRING;
+    let columnType: ColumnType;
+    if (property.type === 'string') columnType = 'String';
     else throw new Error(`property ${fieldName} has unsupported type ${property.type}`);
 
-    collection.columns[fieldName] = { columnType: type, isPrimaryKey: false };
+    collection.fields[fieldName] = { type: 'Column', columnType, isPrimaryKey: false };
   }
 
   return collection;

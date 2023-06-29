@@ -26,6 +26,6 @@ function createCachedDataSource(options: CachedDataSourceOptions): DataSourceFac
   };
 }
 
-export { DataType, DataTypes } from 'sequelize';
+export { ColumnType } from '@forestadmin/datasource-toolkit';
 export * from './types';
 export { createCachedDataSource };

@@ -18,8 +18,15 @@ export type Schema = {
       'email': string;
       'body': string;
     };
-    nested: {};
-    flat: {};
+    nested: {
+      'post': Schema['typicode_posts']['plain'] & Schema['typicode_posts']['nested'];
+    };
+    flat: {
+      'post:userId': number;
+      'post:id': number;
+      'post:title': string;
+      'post:body': string;
+    };
   };
   'typicode_posts': {
     plain: {

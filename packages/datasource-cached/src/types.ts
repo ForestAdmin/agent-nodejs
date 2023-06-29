@@ -3,12 +3,13 @@ import { ConnectionOptions } from '@forestadmin/datasource-sql';
 import {
   Aggregation,
   Caller,
+  ColumnSchema,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
+  RelationSchema,
 } from '@forestadmin/datasource-toolkit';
-import { DataType } from 'sequelize';
 
 type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 type RecordDataWithCollection = { collection: string; record: RecordData };
@@ -19,7 +20,14 @@ type RecordDataWithCollection = { collection: string; record: RecordData };
 
 export type CachedCollectionSchema = {
   name: string;
-  columns: Record<string, { isPrimaryKey?: boolean; columnType: DataType }>;
+  fields: Record<
+    string,
+    | Pick<
+        ColumnSchema,
+        'type' | 'columnType' | 'defaultValue' | 'enumValues' | 'isPrimaryKey' | 'isReadOnly'
+      >
+    | RelationSchema
+  >;
 };
 
 /// //////
