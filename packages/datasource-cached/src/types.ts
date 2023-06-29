@@ -35,11 +35,12 @@ export type CachedCollectionSchema = {
 /// //////
 
 export type DumpReason = {
-  reason: 'startup' | 'timer';
+  reason: 'schema-discovery' | 'startup' | 'timer';
   collections: string[];
 };
 
 export type DeltaReason = { collections: string[] } & (
+  | { reason: 'schema-discovery' }
   | { reason: 'startup' }
   | { reason: 'timer' }
   | { caller: Caller; reason: 'before-list'; filter: PaginatedFilter; projection: Projection }

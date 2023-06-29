@@ -10,6 +10,15 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'typicode_albums': {
+    plain: {
+      'userId': number;
+      'id': number;
+      'title': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'typicode_comments': {
     plain: {
       'postId': number;
@@ -18,15 +27,19 @@ export type Schema = {
       'email': string;
       'body': string;
     };
-    nested: {
-      'post': Schema['typicode_posts']['plain'] & Schema['typicode_posts']['nested'];
+    nested: {};
+    flat: {};
+  };
+  'typicode_photos': {
+    plain: {
+      'albumId': number;
+      'id': number;
+      'title': string;
+      'url': string;
+      'thumbnailUrl': string;
     };
-    flat: {
-      'post:userId': number;
-      'post:id': number;
-      'post:title': string;
-      'post:body': string;
-    };
+    nested: {};
+    flat: {};
   };
   'typicode_posts': {
     plain: {
@@ -34,6 +47,30 @@ export type Schema = {
       'id': number;
       'title': string;
       'body': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'typicode_todos': {
+    plain: {
+      'userId': number;
+      'id': number;
+      'title': string;
+      'completed': boolean;
+    };
+    nested: {};
+    flat: {};
+  };
+  'typicode_users': {
+    plain: {
+      'id': number;
+      'name': string;
+      'username': string;
+      'email': string;
+      'address': any;
+      'phone': string;
+      'website': string;
+      'company': any;
     };
     nested: {};
     flat: {};

@@ -34,54 +34,18 @@ export default async () => {
     createCachedDataSource({
       cacheInto: 'sqlite::memory:',
       namespace: 'typicode',
-      schema: [
-        {
-          name: 'posts',
-          fields: {
-            userId: { type: 'Column', columnType: 'Number' },
-            id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
-            title: { type: 'Column', columnType: 'String' },
-            body: { type: 'Column', columnType: 'String' },
-            comments: {
-              type: 'OneToMany',
-              foreignCollection: 'comments',
-              originKey: 'postId',
-              originKeyTarget: 'id',
-            },
-          },
-        },
-        {
-          name: 'comments',
-          fields: {
-            post: {
-              type: 'ManyToOne',
-              foreignCollection: 'posts',
-              foreignKey: 'postId',
-              foreignKeyTarget: 'id',
-            },
-            postId: { type: 'Column', columnType: 'Number' },
-            id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
-            name: { type: 'Column', columnType: 'String' },
-            email: { type: 'Column', columnType: 'String' },
-            body: { type: 'Column', columnType: 'String' },
-          },
-        },
-      ],
-
-      getDump: async request => {
-        const records = [];
-        const promises = request.collections.map(async collection => {
-          const url = `https://jsonplaceholder.typicode.com/${collection}`;
-          const response = await axios.get(url);
-
-          records.push(...response.data.map(record => ({ collection, record })));
-        });
-
-        await Promise.all(promises);
-
-        return { more: false, entries: records };
-      },
       dumpOnStartup: true,
+      getDump: async () => {
+        const collections = ['users', 'posts', 'comments', 'albums', 'photos', 'todos'];
+        const promises = collections.map(async collection => {
+          const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
+
+          return response.data.map(record => ({ collection, record }));
+        });
+        const records = await Promise.all(promises);
+
+        return { more: false, entries: records.flat() };
+      },
     }),
   );
 

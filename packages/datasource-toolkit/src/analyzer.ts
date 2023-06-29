@@ -1,4 +1,3 @@
-import { RecordData } from './interfaces/record';
 import { PrimitiveTypes } from './interfaces/schema';
 
 export type Primitive = 'Null' | 'Object' | 'Array' | PrimitiveTypes;
@@ -13,26 +12,11 @@ export type NodeStudy = {
 };
 
 export class RecordAnalyzer {
-  static async analyzeStream(
-    generator: AsyncGenerator<RecordData[]>,
-    referenceSampleSize: number,
-  ): Promise<NodeStudy> {
-    const node = this.createNode();
-
-    for await (const batch of generator) {
-      for (const sample of batch) {
-        this.walkNode(node, sample, referenceSampleSize);
-      }
-    }
-
-    return node;
-  }
-
-  private static createNode(): NodeStudy {
+  static createNode(): NodeStudy {
     return { types: {}, seen: 0, isReferenceCandidate: true, referenceSamples: new Set() };
   }
 
-  private static walkNode(node: NodeStudy, sample: unknown, referenceSampleSize: number): void {
+  static walkNode(node: NodeStudy, sample: unknown, referenceSampleSize: number): void {
     if (Array.isArray(sample)) this.walkArrayNode(node, sample, referenceSampleSize);
     if (sample?.constructor === Object)
       this.walkObjectNode(node, sample as Record<string, unknown>, referenceSampleSize);
