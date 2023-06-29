@@ -1,7 +1,4 @@
-import type {
-  CollectionCustomizer,
-  DataSourceCustomizer,
-} from '@forestadmin/datasource-customizer';
+import type { TCollectionName, TSchema } from '@forestadmin/datasource-customizer';
 
 import createField from './field/create-field';
 import makeFieldDeleteable from './field/make-field-deleteable';
@@ -15,11 +12,10 @@ import Client from './utils/s3';
 
 export { Options, File };
 
-export async function createFileField(
-  dataSource: DataSourceCustomizer,
-  collection: CollectionCustomizer,
-  options?: Options,
-): Promise<void> {
+export async function createFileField<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+>(dataSource, collection, options?: Options<S, N>): Promise<void> {
   if (!collection) throw new Error('createFileField can only be used on collections.');
   if (!options) throw new Error('Options must be provided.');
 
@@ -39,7 +35,7 @@ export async function createFileField(
     acl: options?.acl ?? 'private',
     storeAt:
       options?.storeAt ?? ((id, name) => Promise.resolve(`${collection.name}/${id}/${name}`)),
-    buildFilePathFromDatabase: options?.buildFilePathFromDatabase,
+    bucketFilePathFromDatabaseKey: options?.bucketFilePathFromDatabaseKey || null,
   };
 
   createField(collection, config);

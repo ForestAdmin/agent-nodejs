@@ -1,10 +1,17 @@
 /* eslint-disable max-len */
+import type {
+  TCollectionName,
+  TColumnName,
+  TFieldName,
+  TSchema,
+} from '@forestadmin/datasource-customizer';
+import type CollectionCustomizationContext from '@forestadmin/datasource-customizer/dist/context/collection-context';
+import type WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
+import type { RecordData } from '@forestadmin/datasource-toolkit';
+
 import { ObjectCannedACL } from '@aws-sdk/client-s3';
-import { TCollectionName, TSchema } from '@forestadmin/datasource-customizer';
-import WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
 
 import Client from './utils/s3';
-
 
 export type File = {
   name: string;
@@ -19,24 +26,35 @@ export type File = {
  * It can be included in the global agent configuration under the "s3" key and overriden for
  * specific fields by using the "config" property on `AmazonS3File`.
  */
-export type Options = {
+export type Options<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
   /** Name of the field that you want to use as a file-picker on the frontend */
-  fieldname: string;
+  fieldname: TColumnName<S, N>;
 
   /**
    * Where should the file be stored on S3?
    * Defaults to '<collection_name>/<field_name>/`.
    */
-  storeAt?: <S extends TSchema = TSchema, N extends TCollectionName<S> = TCollectionName<S>>(
+  storeAt?: (
     recordId: string,
     originalFilename: string,
     context: WriteCustomizationContext<S, N>,
-  ) => Promise<string | { AWSPath: string; databasePath: string }>;
+  ) =>
+    | string
+    | { AWSPath: string; databasePath: string }
+    | Promise<string | { AWSPath: string; databasePath: string }>;
 
-  // TODO unknown should be Tshema and dependencies as-well and context
-  buildFilePathFromDatabase?: {
-    dependencies: string[];
-    builder: (record: unknown, context: unknown) => Promise<string>;
+  /**
+   * If and how should the database key be computed to match the actual bucket file name
+   */
+  bucketFilePathFromDatabaseKey?: {
+    dependencies?: TFieldName<S, N>[];
+    mappingFunction: (
+      record: RecordData,
+      context: CollectionCustomizationContext<S, N>,
+    ) => string | Promise<string>;
   };
 
   /** Either if old files should be deleted when updating or deleting a record. */
@@ -83,10 +101,16 @@ export type Options = {
   };
 };
 
-export type Configuration = Required<
-  Pick<Options, 'acl' | 'deleteFiles' | 'readMode' | 'storeAt' | 'buildFilePathFromDatabase'> & {
+export type Configuration<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = Required<
+  Pick<
+    Options<S, N>,
+    'acl' | 'deleteFiles' | 'readMode' | 'storeAt' | 'bucketFilePathFromDatabaseKey'
+  > & {
     client: Client;
-    sourcename: string;
-    filename: string;
+    sourcename: TColumnName<S, N>;
+    filename: TColumnName<S, N>;
   }
 >;

@@ -1,3 +1,4 @@
+import { ObjectCannedACL } from '@aws-sdk/client-s3';
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { ColumnSchema, DataSource, Projection, Sort } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
@@ -213,7 +214,7 @@ describe('plugin-aws-s3', () => {
           books.use(createFileField, {
             fieldname: 'file',
             aws: { bucket: 'myBucket', region: 'myRegion' },
-            acl: 'public-read',
+            acl: 'public-read' as ObjectCannedACL,
           }),
         )
         .getDataSource(logger);
@@ -243,7 +244,7 @@ describe('plugin-aws-s3', () => {
           books.use(createFileField, {
             fieldname: 'file',
             aws: { bucket: 'myBucket', region: 'myRegion' },
-            readMode: 'proxy',
+            readMode: 'proxy' as 'url' | 'proxy',
           }),
         )
         .getDataSource(logger);
@@ -318,6 +319,190 @@ describe('plugin-aws-s3', () => {
         type: 'DeleteObject',
         Bucket: 'myBucket',
         Key: 'myKey',
+      });
+    });
+  });
+
+  describe('when using a storeAt configuration', () => {
+    describe('when using a common storeAt configuration', () => {
+      test('should take the storeAt result as file path', async () => {
+        const dataSource = await customizer
+          .customizeCollection('books', books =>
+            books.use(createFileField, {
+              storeAt: () => 'customStoreAtConfig',
+              fieldname: 'file',
+              aws: { bucket: 'myBucket', region: 'myRegion' },
+            }),
+          )
+          .getDataSource(logger);
+
+        await dataSource
+          .getCollection('books')
+          .update(factories.caller.build(), factories.filter.build(), {
+            id: 1,
+            file: 'data:text/plain;name=myfile.txt;charset=utf-8;base64,SGVsbG8gV29ybGQ=',
+          });
+
+        expect(mockSend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            Key: 'customStoreAtConfig',
+          }),
+        );
+
+        expect(baseDataSource.getCollection('books').update).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          { id: 1, file: 'customStoreAtConfig' },
+        );
+      });
+    });
+
+    describe('when using different storeAt config for S3 and database', () => {
+      test('should use correct given path for both AWS and database', async () => {
+        const dataSource = await customizer
+          .customizeCollection('books', books =>
+            books.use(createFileField, {
+              storeAt: () => ({ AWSPath: 'AWSStoreAtPath', databasePath: 'databaseStoreAtPath' }),
+              fieldname: 'file',
+              aws: { bucket: 'myBucket', region: 'myRegion' },
+            }),
+          )
+          .getDataSource(logger);
+
+        await dataSource
+          .getCollection('books')
+          .update(factories.caller.build(), factories.filter.build(), {
+            id: 1,
+            file: 'data:text/plain;name=myfile.txt;charset=utf-8;base64,SGVsbG8gV29ybGQ=',
+          });
+
+        expect(mockSend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            Key: 'AWSStoreAtPath',
+          }),
+        );
+
+        expect(baseDataSource.getCollection('books').update).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          { id: 1, file: 'databaseStoreAtPath' },
+        );
+      });
+    });
+  });
+
+  describe('when using a bucketFilePathFromDatabaseKey configuration', () => {
+    describe('handling the mapping function', () => {
+      test('should use the mapping function to transform stored values', async () => {
+        const mappingFunction = jest.fn().mockImplementation(() => 'AWSKey');
+
+        const dataSource = await customizer
+          .customizeCollection('books', books => {
+            books.use(createFileField, {
+              storeAt: () => 'customStoreAtConfig',
+              fieldname: 'file',
+              bucketFilePathFromDatabaseKey: {
+                mappingFunction,
+              },
+              aws: { bucket: 'myBucket', region: 'myRegion' },
+            });
+          })
+          .getDataSource(logger);
+
+        await dataSource
+          .getCollection('books')
+          .list(factories.caller.build(), factories.filter.build({}), new Projection('id', 'file'));
+
+        expect(mappingFunction).toHaveBeenCalled();
+        expect(mockSign).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            Key: 'AWSKey',
+          }),
+          expect.anything(),
+        );
+      });
+    });
+
+    describe('handling dependencies', () => {
+      describe('with no dependencies', () => {
+        test('should use every field available as dependencies', async () => {
+          let addFieldSpy;
+
+          await customizer
+            .customizeCollection('books', books => {
+              addFieldSpy = jest.spyOn(books, 'addField');
+              books.use(createFileField, {
+                storeAt: () => 'customStoreAtConfig',
+                fieldname: 'file',
+                bucketFilePathFromDatabaseKey: {
+                  mappingFunction: () => 'AWSKey',
+                },
+                aws: { bucket: 'myBucket', region: 'myRegion' },
+              });
+            })
+            .getDataSource(logger);
+
+          expect(addFieldSpy).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              dependencies: ['id', 'file', 'mandatoryFile'],
+            }),
+          );
+        });
+      });
+      describe('with some dependencies', () => {
+        test('should use the specified fields as dependencies', async () => {
+          let addFieldSpy;
+
+          await customizer
+            .customizeCollection('books', books => {
+              addFieldSpy = jest.spyOn(books, 'addField');
+              books.use(createFileField, {
+                storeAt: () => 'customStoreAtConfig',
+                fieldname: 'file',
+                bucketFilePathFromDatabaseKey: {
+                  mappingFunction: () => 'AWSKey',
+                  dependencies: ['file', 'id'],
+                },
+                aws: { bucket: 'myBucket', region: 'myRegion' },
+              });
+            })
+            .getDataSource(logger);
+
+          expect(addFieldSpy).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              dependencies: ['file', 'id'],
+            }),
+          );
+        });
+
+        test('should automatically add `fieldname` field as dependencies', async () => {
+          let addFieldSpy;
+
+          await customizer
+            .customizeCollection('books', books => {
+              addFieldSpy = jest.spyOn(books, 'addField');
+              books.use(createFileField, {
+                storeAt: () => 'customStoreAtConfig',
+                fieldname: 'file',
+                bucketFilePathFromDatabaseKey: {
+                  mappingFunction: () => 'AWSKey',
+                  dependencies: ['id', 'mandatoryFile'],
+                },
+                aws: { bucket: 'myBucket', region: 'myRegion' },
+              });
+            })
+            .getDataSource(logger);
+
+          expect(addFieldSpy).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              dependencies: ['id', 'mandatoryFile', 'file'],
+            }),
+          );
+        });
       });
     });
   });
