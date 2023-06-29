@@ -96,11 +96,16 @@ export type DeltaOptions = {
   getDelta: (request: DeltaRequest) => Promise<DeltaResponse>;
   deltaOnStartup?: boolean;
   deltaOnTimer?: number;
-  deltaOnBeforeList?: boolean;
-  deltaOnBeforeAggregate?: boolean;
-  deltaOnAfterCreate?: boolean;
-  deltaOnAfterUpdate?: boolean;
-  deltaOnAfterDelete?: boolean;
+  deltaOnBeforeAccess?: boolean;
+  deltaOnAfterWrite?: boolean;
+
+  /**
+   * Delay that should be waited before each cache access to give the opportunity for
+   * multiple requests to be batched together.
+   *
+   * Note that this delay will add latency to each request, so set it to a low value (< 100ms)
+   */
+  accessDelay?: number;
 };
 
 export type CachedDataSourceOptions =

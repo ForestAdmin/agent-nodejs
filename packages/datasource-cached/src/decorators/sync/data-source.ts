@@ -98,7 +98,10 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
     const { deferred } = this.queuedDeltaReasons;
     this.queuedDeltaReasons.reasons.push({ ...reason, at: new Date() });
-    this.tick();
+
+    // We wait for the access delay before running the delta
+    // This allows to batch delta requests at the cost of adding a floor delay to all requests.
+    setTimeout(() => this.tick(), (this.options as DeltaOptions).accessDelay ?? 0);
 
     return deferred.promise;
   }
@@ -106,17 +109,17 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   private tick(): void {
     if (!this.dumpRunning && !this.deltaRunning) {
       if (this.queuedDumpReasons) {
-        this.runDump();
+        this.runDump(this.queuedDumpReasons);
+        this.queuedDumpReasons = null;
       } else if (this.queuedDeltaReasons) {
-        this.delta();
+        this.runDelta(this.queuedDeltaReasons);
+        this.queuedDeltaReasons = null;
       }
     }
   }
 
-  private async runDump(): Promise<void> {
-    const queue = this.queuedDumpReasons;
+  private async runDump(queue: Queue<DumpReason>): Promise<void> {
     this.dumpRunning = true;
-    this.queuedDumpReasons = null;
 
     let state = null;
     let more = true;
@@ -156,10 +159,8 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
     this.tick();
   }
 
-  private async delta() {
-    const queue = this.queuedDeltaReasons;
+  private async runDelta(queue: Queue<DeltaReason>) {
     this.deltaRunning = true;
-    this.queuedDeltaReasons = null;
 
     let more = true;
 

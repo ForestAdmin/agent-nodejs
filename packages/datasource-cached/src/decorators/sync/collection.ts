@@ -22,7 +22,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = await this.childCollection.create(caller, data);
 
-    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnAfterCreate) {
+    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnAfterWrite) {
       const reason = 'after-create';
       const collections = [this.shortName];
       await this.dataSource.queueDelta({ reason, caller, collections, records });
@@ -34,7 +34,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     await super.update(caller, filter, patch);
 
-    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnAfterUpdate) {
+    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnAfterWrite) {
       const reason = 'after-update';
       const collections = [this.shortName];
       await this.dataSource.queueDelta({ reason, caller, filter, patch, collections });
@@ -44,7 +44,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
   override async delete(caller: Caller, filter: Filter): Promise<void> {
     await super.delete(caller, filter);
 
-    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnAfterDelete) {
+    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnAfterWrite) {
       // Deletes may cascade to other collections!
       // Let's find out which one are affected assuming that all deletes cascade
       // (which is the worst case scenario)
@@ -59,7 +59,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnBeforeList) {
+    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnBeforeAccess) {
       const reason = 'before-list';
       const collections = this.getCollectionsFromProjection(projection);
       await this.dataSource.queueDelta({ reason, caller, filter, projection, collections });
@@ -74,7 +74,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnBeforeList) {
+    if ('getDelta' in this.dataSource.options && this.dataSource.options.deltaOnBeforeAccess) {
       const reason = 'before-aggregate';
       const collections = this.getCollectionsFromProjection(aggregation.projection);
       await this.dataSource.queueDelta({ reason, caller, filter, aggregation, collections });
