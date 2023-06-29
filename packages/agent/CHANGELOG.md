@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.13.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.0...@forestadmin/agent@1.13.1) (2023-06-29)
+
+
+### Bug Fixes
+
+* **agent:** add request identifier to context.caller ([#753](https://github.com/ForestAdmin/agent-nodejs/issues/753)) ([19a8618](https://github.com/ForestAdmin/agent-nodejs/commit/19a86180a6e087492cbffebf5fa010a4a4c691a7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.9.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.2
+
 # @forestadmin/agent [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.12.3...@forestadmin/agent@1.13.0) (2023-06-27)
 
 
