@@ -106,12 +106,12 @@ describe('UpdateField', () => {
       });
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('itemList'),
       );
       expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         {
           itemList: [
@@ -162,12 +162,12 @@ describe('UpdateField', () => {
       });
 
       expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('itemList'),
       );
       expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         {
           itemList: [

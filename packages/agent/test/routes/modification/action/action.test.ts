@@ -301,7 +301,12 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MySingleAction',
         { firstname: 'John' },
         {
@@ -516,7 +521,12 @@ describe('ActionRoute', () => {
       await route.handleHook(context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MySingleAction',
         null,
         {
@@ -551,7 +561,12 @@ describe('ActionRoute', () => {
       await route.handleHook(context);
 
       expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MySingleAction',
         { firstname: 'John' },
         {
@@ -608,7 +623,12 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MyBulkAction',
         { firstname: 'John' },
         {
@@ -662,7 +682,12 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MyGlobalAction',
         expect.any(Object),
         new Filter({
@@ -729,7 +754,12 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MySingleAction',
         expect.any(Object),
         new Filter({
@@ -810,7 +840,12 @@ describe('ActionRoute', () => {
       await route.handleExecute(context);
 
       expect(dataSource.getCollection('reviews').execute).toHaveBeenCalledWith(
-        { id: '42', email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        {
+          id: '42',
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+        },
         'MyBulkAction',
         expect.any(Object),
         new Filter({

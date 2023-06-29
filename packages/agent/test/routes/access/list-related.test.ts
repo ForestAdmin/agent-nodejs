@@ -103,7 +103,7 @@ describe('ListRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new PaginatedFilter({
             search: 'aName',
             searchExtended: false,
@@ -208,7 +208,7 @@ describe('ListRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new PaginatedFilter({
             search: 'aName',
             searchExtended: false,

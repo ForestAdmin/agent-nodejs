@@ -202,7 +202,7 @@ describe('DissociateDeleteRelatedRoute', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',

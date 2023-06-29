@@ -5,6 +5,7 @@ export type Caller = {
   lastName: string;
   team: string;
   renderingId: number;
+  requestId: string;
   role: string;
   tags: { [key: string]: string };
   timezone: string;

@@ -72,7 +72,7 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -114,7 +114,7 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -190,7 +190,7 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenCalledTimes(1);
         expect(dataSource.getCollection('owner').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
@@ -224,7 +224,7 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           1,
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
@@ -237,7 +237,7 @@ describe('UpdateRelationRoute', () => {
 
         expect(dataSource.getCollection('owner').update).toHaveBeenNthCalledWith(
           2,
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',

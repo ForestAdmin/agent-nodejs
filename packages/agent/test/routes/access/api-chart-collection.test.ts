@@ -48,7 +48,7 @@ describe('CollectionApiChartRoute', () => {
       await route.handleApiChart(context);
 
       expect(dataSource.getCollection('books').renderChart).toHaveBeenCalledWith(
-        { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
+        { email: 'marty@doclabs.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         'myChart',
         [123],
       );
@@ -71,7 +71,7 @@ describe('CollectionApiChartRoute', () => {
       await route.handleSmartChart(context);
 
       expect(dataSource.getCollection('books').renderChart).toHaveBeenCalledWith(
-        { email: 'marty@doclabs.com', timezone: 'Europe/Paris' },
+        { email: 'marty@doclabs.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         'myChart',
         [123],
       );

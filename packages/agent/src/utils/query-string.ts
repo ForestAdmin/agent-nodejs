@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
+import { v4 as uuidv4 } from 'uuid';
 
 import ConditionTreeParser from './condition-tree-parser';
 
@@ -139,7 +140,7 @@ export default class QueryStringParser {
       QueryStringParser.VALID_TIMEZONES.add(timezone);
     }
 
-    return { ...context.state.user, timezone };
+    return { ...context.state.user, timezone, requestId: uuidv4() };
   }
 
   static parsePagination(context: Context): Page {
