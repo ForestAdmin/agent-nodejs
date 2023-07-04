@@ -189,6 +189,28 @@ describe('plugin-aws-s3', () => {
         { id: 1, file: 'books/1/myfile.txt' },
       );
     });
+
+    test('create should decode the url, and upload the new version', async () => {
+      await dataSource.getCollection('books').create(factories.caller.build(), [
+        {
+          file: 'data:text/plain;name=myfile.txt;charset=utf-8;base64,SGVsbG8gV29ybGQ=',
+        },
+      ]);
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ACL: 'private',
+          Body: Buffer.from('Hello World'),
+          Bucket: 'myBucket',
+          ContentType: 'text/plain',
+          Key: 'books/null/myfile.txt',
+        }),
+      );
+
+      expect(baseDataSource.getCollection('books').create).toHaveBeenCalledWith(expect.anything(), [
+        { file: 'books/null/myfile.txt' },
+      ]);
+    });
   });
 
   describe('when using a required field for the path', () => {
