@@ -93,7 +93,7 @@ function flatten(
       .map(f => f.substring(prefix.length + 1));
 
       for (const field of fields) {
-        const value = RecordUtils.getFieldValue(record, field.)
+        const value = getFieldValue(record, field.)
 
       }
     
