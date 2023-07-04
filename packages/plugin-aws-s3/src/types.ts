@@ -34,23 +34,43 @@ export type Options<
   fieldname: TColumnName<S, N>;
 
   /**
-   * Where should the file be stored on S3?
-   * Defaults to '<collection_name>/<field_name>/`.
+   * This function allows customizing the string that will be saved in the database.
+   * If the objectKeyFromRecord option is not set, the output of that function will also
+   * be used as the object key in S3.
+   *
+   * Note that the recordId parameter will _not_ be provided when records are created.
+   *
+   * Defaults to '<collection name>/<id>/<originalFilename>`.
+   *
+   * @example
+   * ```js
+   * storeAt: (recordId, originalFilename, context) => {
+   *   return `${context.collection.name}/${recordId ?? 'new-record'}/${originalFilename}`;
+   * }
+   * ```
    */
   storeAt?: (
     recordId: string,
     originalFilename: string,
     context: WriteCustomizationContext<S, N>,
-  ) =>
-    | string
-    | { AWSPath: string; databasePath: string }
-    | Promise<string | { AWSPath: string; databasePath: string }>;
+  ) => string | Promise<string>;
 
   /**
-   * If and how should the database key be computed to match the actual bucket file path
+   * This function allows customizing the object key that will be used in S3 without interfering
+   * with what is stored in the database.
+   *
+   * @example
+   * ```
+   * objectKeyFromRecord: {
+   *   extraDependencies: ['firstname', 'lastname'],
+   *   mappingFunction: (record, context) => {
+   *     return `avatars/${record.firstname}-${record.lastname}.png`;
+   *   }
+   * };
+   * ```
    */
-  bucketFilePathFromDatabaseKey?: {
-    dependencies?: TFieldName<S, N>[];
+  objectKeyFromRecord?: {
+    extraDependencies?: TFieldName<S, N>[];
     mappingFunction: (
       record: RecordData,
       context: CollectionCustomizationContext<S, N>,
@@ -105,10 +125,7 @@ export type Configuration<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = Required<
-  Pick<
-    Options<S, N>,
-    'acl' | 'deleteFiles' | 'readMode' | 'storeAt' | 'bucketFilePathFromDatabaseKey'
-  > & {
+  Pick<Options<S, N>, 'acl' | 'deleteFiles' | 'readMode' | 'storeAt' | 'objectKeyFromRecord'> & {
     client: Client;
     sourcename: TColumnName<S, N>;
     filename: TColumnName<S, N>;

@@ -4,7 +4,7 @@ import { ColumnSchema, DataSource, Projection, Sort } from '@forestadmin/datasou
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Readable } from 'stream';
 
-import { createFileField } from '../src/index';
+import { Options, createFileField } from '../src/index';
 
 const logger = () => {};
 
@@ -81,7 +81,9 @@ describe('plugin-aws-s3', () => {
   it('should crash if without options', async () => {
     await expect(
       customizer
-        .customizeCollection('books', books => books.use(createFileField))
+        .customizeCollection('books', books =>
+          books.use<Options>(createFileField, undefined as unknown as Options),
+        )
         .getDataSource(logger),
     ).rejects.toThrow('Options must be provided.');
   });
@@ -89,7 +91,9 @@ describe('plugin-aws-s3', () => {
   it('should crash if used on column with type !== string', async () => {
     await expect(
       customizer
-        .customizeCollection('books', books => books.use(createFileField, { fieldname: 'id' }))
+        .customizeCollection('books', books =>
+          books.use<Options>(createFileField, { fieldname: 'id' }),
+        )
         .getDataSource(logger),
     ).rejects.toThrow("The field 'books.id' does not exist or is not a string.");
   });
@@ -100,7 +104,7 @@ describe('plugin-aws-s3', () => {
     beforeEach(async () => {
       dataSource = await customizer
         .customizeCollection('books', books =>
-          books.use(createFileField, {
+          books.use<Options>(createFileField, {
             fieldname: 'file',
             aws: { bucket: 'myBucket', region: 'myRegion' },
           }),
@@ -194,7 +198,7 @@ describe('plugin-aws-s3', () => {
         aws: { bucket: 'myBucket', region: 'myRegion' },
       };
       const dataSource = await customizer
-        .customizeCollection('books', books => books.use(createFileField, options))
+        .customizeCollection('books', books => books.use<Options>(createFileField, options))
         .getDataSource(logger);
 
       const schema = dataSource.getCollection('books').schema.fields.mandatoryFile as ColumnSchema;
@@ -211,7 +215,7 @@ describe('plugin-aws-s3', () => {
     beforeEach(async () => {
       dataSource = await customizer
         .customizeCollection('books', books =>
-          books.use(createFileField, {
+          books.use<Options>(createFileField, {
             fieldname: 'file',
             aws: { bucket: 'myBucket', region: 'myRegion' },
             acl: 'public-read' as ObjectCannedACL,
@@ -241,7 +245,7 @@ describe('plugin-aws-s3', () => {
     beforeEach(async () => {
       dataSource = await customizer
         .customizeCollection('books', books =>
-          books.use(createFileField, {
+          books.use<Options>(createFileField, {
             fieldname: 'file',
             aws: { bucket: 'myBucket', region: 'myRegion' },
             readMode: 'proxy' as 'url' | 'proxy',
@@ -287,7 +291,7 @@ describe('plugin-aws-s3', () => {
     beforeEach(async () => {
       dataSource = await customizer
         .customizeCollection('books', books =>
-          books.use(createFileField, {
+          books.use<Options>(createFileField, {
             fieldname: 'file',
             aws: { bucket: 'myBucket', region: 'myRegion' },
             deleteFiles: true,
@@ -328,7 +332,7 @@ describe('plugin-aws-s3', () => {
       test('should take the storeAt result as file path', async () => {
         const dataSource = await customizer
           .customizeCollection('books', books =>
-            books.use(createFileField, {
+            books.use<Options>(createFileField, {
               storeAt: () => 'customStoreAtConfig',
               fieldname: 'file',
               aws: { bucket: 'myBucket', region: 'myRegion' },
@@ -361,8 +365,9 @@ describe('plugin-aws-s3', () => {
       test('should use correct given path for both AWS and database', async () => {
         const dataSource = await customizer
           .customizeCollection('books', books =>
-            books.use(createFileField, {
-              storeAt: () => ({ AWSPath: 'AWSStoreAtPath', databasePath: 'databaseStoreAtPath' }),
+            books.use<Options>(createFileField, {
+              storeAt: () => 'databaseStoreAtPath',
+              objectKeyFromRecord: { mappingFunction: () => 'AWSStoreAtPath' },
               fieldname: 'file',
               aws: { bucket: 'myBucket', region: 'myRegion' },
             }),
@@ -376,11 +381,7 @@ describe('plugin-aws-s3', () => {
             file: 'data:text/plain;name=myfile.txt;charset=utf-8;base64,SGVsbG8gV29ybGQ=',
           });
 
-        expect(mockSend).toHaveBeenCalledWith(
-          expect.objectContaining({
-            Key: 'AWSStoreAtPath',
-          }),
-        );
+        expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ Key: 'AWSStoreAtPath' }));
 
         expect(baseDataSource.getCollection('books').update).toHaveBeenCalledWith(
           expect.anything(),
@@ -391,19 +392,17 @@ describe('plugin-aws-s3', () => {
     });
   });
 
-  describe('when using a bucketFilePathFromDatabaseKey configuration', () => {
+  describe('when using a objectKeyFromRecord configuration', () => {
     describe('handling the mapping function', () => {
       test('should use the mapping function to transform stored values', async () => {
         const mappingFunction = jest.fn().mockImplementation(() => 'AWSKey');
 
         const dataSource = await customizer
           .customizeCollection('books', books => {
-            books.use(createFileField, {
+            books.use<Options>(createFileField, {
               storeAt: () => 'customStoreAtConfig',
               fieldname: 'file',
-              bucketFilePathFromDatabaseKey: {
-                mappingFunction,
-              },
+              objectKeyFromRecord: { mappingFunction },
               aws: { bucket: 'myBucket', region: 'myRegion' },
             });
           })
@@ -416,9 +415,7 @@ describe('plugin-aws-s3', () => {
         expect(mappingFunction).toHaveBeenCalled();
         expect(mockSign).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            Key: 'AWSKey',
-          }),
+          expect.objectContaining({ Key: 'AWSKey' }),
           expect.anything(),
         );
       });
@@ -426,18 +423,16 @@ describe('plugin-aws-s3', () => {
 
     describe('handling dependencies', () => {
       describe('with no dependencies', () => {
-        test('should use every field available as dependencies', async () => {
+        test('should use only the fieldname as dependency', async () => {
           let addFieldSpy;
 
           await customizer
             .customizeCollection('books', books => {
               addFieldSpy = jest.spyOn(books, 'addField');
-              books.use(createFileField, {
+              books.use<Options>(createFileField, {
                 storeAt: () => 'customStoreAtConfig',
                 fieldname: 'file',
-                bucketFilePathFromDatabaseKey: {
-                  mappingFunction: () => 'AWSKey',
-                },
+                objectKeyFromRecord: { mappingFunction: () => 'AWSKey' },
                 aws: { bucket: 'myBucket', region: 'myRegion' },
               });
             })
@@ -445,9 +440,7 @@ describe('plugin-aws-s3', () => {
 
           expect(addFieldSpy).toHaveBeenCalledWith(
             expect.anything(),
-            expect.objectContaining({
-              dependencies: ['id', 'file', 'mandatoryFile'],
-            }),
+            expect.objectContaining({ dependencies: ['file'] }),
           );
         });
       });
@@ -458,12 +451,12 @@ describe('plugin-aws-s3', () => {
           await customizer
             .customizeCollection('books', books => {
               addFieldSpy = jest.spyOn(books, 'addField');
-              books.use(createFileField, {
+              books.use<Options>(createFileField, {
                 storeAt: () => 'customStoreAtConfig',
                 fieldname: 'file',
-                bucketFilePathFromDatabaseKey: {
+                objectKeyFromRecord: {
                   mappingFunction: () => 'AWSKey',
-                  dependencies: ['file', 'id'],
+                  extraDependencies: ['file', 'id'],
                 },
                 aws: { bucket: 'myBucket', region: 'myRegion' },
               });
@@ -484,12 +477,12 @@ describe('plugin-aws-s3', () => {
           await customizer
             .customizeCollection('books', books => {
               addFieldSpy = jest.spyOn(books, 'addField');
-              books.use(createFileField, {
+              books.use<Options>(createFileField, {
                 storeAt: () => 'customStoreAtConfig',
                 fieldname: 'file',
-                bucketFilePathFromDatabaseKey: {
+                objectKeyFromRecord: {
                   mappingFunction: () => 'AWSKey',
-                  dependencies: ['id', 'mandatoryFile'],
+                  extraDependencies: ['id', 'mandatoryFile'],
                 },
                 aws: { bucket: 'myBucket', region: 'myRegion' },
               });

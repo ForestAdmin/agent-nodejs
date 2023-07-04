@@ -1,7 +1,7 @@
-import { Caller, Collection } from '@forestadmin/datasource-toolkit';
+import { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../../context/collection-context';
-import { TCollectionName, TPartialSimpleRow, TSchema } from '../../../templates';
+import { TCollectionName, TFilter, TPartialSimpleRow, TSchema } from '../../../templates';
 
 export default class WriteCustomizationContext<
   S extends TSchema = TSchema,
@@ -9,16 +9,19 @@ export default class WriteCustomizationContext<
 > extends CollectionCustomizationContext<S, N> {
   readonly action: 'update' | 'create';
   readonly record: TPartialSimpleRow<S, N>;
+  readonly filter?: TFilter<S, N>;
 
   constructor(
     collection: Collection,
     caller: Caller,
     action: 'update' | 'create',
     record: TPartialSimpleRow<S, N>,
+    filter?: Filter,
   ) {
     super(collection, caller);
 
     this.action = action;
+    this.filter = filter as unknown as TFilter<S, N>;
     this.record = Object.freeze({ ...record });
   }
 }

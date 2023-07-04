@@ -34,7 +34,7 @@ export async function createFileField<
     readMode: options?.readMode ?? 'url',
     acl: options?.acl ?? 'private',
     storeAt: options?.storeAt ?? ((id, name) => `${collection.name}/${id}/${name}`),
-    bucketFilePathFromDatabaseKey: options?.bucketFilePathFromDatabaseKey || null,
+    objectKeyFromRecord: options?.objectKeyFromRecord || null,
   };
 
   createField(collection, config);

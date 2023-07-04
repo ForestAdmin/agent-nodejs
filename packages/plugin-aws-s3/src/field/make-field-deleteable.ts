@@ -9,10 +9,28 @@ async function deleteFiles(
   config: Configuration,
   context: HookBeforeUpdateContext | HookBeforeDeleteContext,
 ): Promise<void> {
-  const records = await context.collection.list(context.filter, [config.sourcename]);
-  const keys = [...new Set(records.map(r => r[config.sourcename]).filter(path => !!path))];
+  const projection = config.objectKeyFromRecord?.extraDependencies ?? [];
 
-  await Promise.all(keys.map(k => config.client.delete(k)));
+  if (!projection.includes(config.sourcename)) {
+    projection.push(config.sourcename);
+  }
+
+  const records = await context.collection.list(context.filter, projection);
+  let keys: string[];
+
+  if (config.objectKeyFromRecord?.mappingFunction) {
+    keys = await Promise.all(
+      records.map(record => config.objectKeyFromRecord.mappingFunction(record, context)),
+    );
+  } else {
+    keys = records.map(record => record[config.sourcename]);
+  }
+
+  const uniqueNonNull = [...new Set(keys.filter(path => !!path))];
+
+  if (uniqueNonNull.length > 0) {
+    await Promise.all(uniqueNonNull.map(k => config.client.delete(k)));
+  }
 }
 
 export default function makeFieldDeleteable(

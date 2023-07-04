@@ -4,15 +4,9 @@ import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
 import { encodeDataUri } from '../utils/data-uri';
 
 export default function createField(collection: CollectionCustomizer, config: Configuration): void {
-  const dependencies = [];
+  const dependencies = config.objectKeyFromRecord?.extraDependencies ?? [];
 
-  if (config.bucketFilePathFromDatabaseKey?.dependencies) {
-    dependencies.push(...config.bucketFilePathFromDatabaseKey.dependencies);
-  } else {
-    dependencies.push(...Object.keys(collection.schema.fields));
-  }
-
-  if (dependencies.indexOf(config.sourcename) < 0) {
+  if (!dependencies.includes(config.sourcename)) {
     dependencies.push(config.sourcename);
   }
 
@@ -27,8 +21,8 @@ export default function createField(collection: CollectionCustomizer, config: Co
           return null;
         }
 
-        key = config.bucketFilePathFromDatabaseKey?.mappingFunction
-          ? await config.bucketFilePathFromDatabaseKey.mappingFunction(record, context)
+        key = config.objectKeyFromRecord?.mappingFunction
+          ? await config.objectKeyFromRecord.mappingFunction(record, context)
           : key;
 
         if (config.readMode === 'proxy') {
