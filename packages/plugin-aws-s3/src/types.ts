@@ -3,11 +3,11 @@ import type {
   TCollectionName,
   TColumnName,
   TFieldName,
+  TPartialSimpleRow,
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import type CollectionCustomizationContext from '@forestadmin/datasource-customizer/dist/context/collection-context';
 import type WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
-import type { RecordData } from '@forestadmin/datasource-toolkit';
 
 import { ObjectCannedACL } from '@aws-sdk/client-s3';
 
@@ -72,7 +72,7 @@ export type Options<
   objectKeyFromRecord?: {
     extraDependencies?: TFieldName<S, N>[];
     mappingFunction: (
-      record: RecordData,
+      record: TPartialSimpleRow<S, N>,
       context: CollectionCustomizationContext<S, N>,
     ) => string | Promise<string>;
   };

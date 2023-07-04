@@ -4,7 +4,7 @@ import { ColumnSchema, DataSource, Projection, Sort } from '@forestadmin/datasou
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Readable } from 'stream';
 
-import { Options, createFileField } from '../src/index';
+import { Options, createFileField } from '../src';
 
 const logger = () => {};
 
@@ -418,6 +418,33 @@ describe('plugin-aws-s3', () => {
           expect.objectContaining({ Key: 'AWSKey' }),
           expect.anything(),
         );
+      });
+
+      test('should use the mapping function to delete the correct path on S3', async () => {
+        const mappingFunction = jest.fn().mockReturnValue('AWSKey');
+
+        const dataSource = await customizer
+          .customizeCollection('books', books => {
+            books.use<Options>(createFileField, {
+              storeAt: () => 'customStoreAtConfig',
+              fieldname: 'file',
+              objectKeyFromRecord: { mappingFunction },
+              aws: { bucket: 'myBucket', region: 'myRegion' },
+              deleteFiles: true,
+            });
+          })
+          .getDataSource(logger);
+
+        await dataSource
+          .getCollection('books')
+          .delete(factories.caller.build(), factories.filter.build({}));
+
+        expect(mappingFunction).toHaveBeenCalled();
+        expect(mockSend).toHaveBeenCalledWith({
+          Bucket: 'myBucket',
+          Key: 'AWSKey',
+          type: 'DeleteObject',
+        });
       });
     });
 
