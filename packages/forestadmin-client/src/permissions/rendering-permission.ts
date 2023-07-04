@@ -1,4 +1,4 @@
-import LruCache from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
@@ -23,17 +23,17 @@ export type RenderingPermission = {
 };
 
 export default class RenderingPermissionService {
-  private readonly permissionsByRendering: LruCache<string, RenderingPermission>;
+  private readonly permissionsByRendering: LRUCache<string, RenderingPermission>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly userPermissions: UserPermissionService,
     private readonly forestAdminServerInterface: ForestAdminServerInterface,
   ) {
-    this.permissionsByRendering = new LruCache({
+    this.permissionsByRendering = new LRUCache({
       max: 256,
       ttl: this.options.permissionsCacheDurationInSeconds * 1000,
-      fetchMethod: renderingId => this.loadPermissions(Number(renderingId)),
+      fetchMethod: async renderingId => this.loadPermissions(Number(renderingId)),
     });
   }
 
@@ -66,7 +66,7 @@ export default class RenderingPermissionService {
     userId: number | string;
     allowRetry: boolean;
   }): Promise<RawTree> {
-    const [permissions, userInfo]: [RenderingPermission, UserPermissionV4] = await Promise.all([
+    const [permissions, userInfo] = await Promise.all([
       this.permissionsByRendering.fetch(`${renderingId}`),
       this.userPermissions.getUserInfo(userId),
     ]);
@@ -125,9 +125,7 @@ export default class RenderingPermissionService {
     segmentQuery: string;
     allowRetry: boolean;
   }): Promise<boolean> {
-    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
-      `${renderingId}`,
-    );
+    const permissions = await this.permissionsByRendering.fetch(`${renderingId}`);
 
     const collectionPermissions = permissions?.collections?.[collectionName];
 
@@ -266,9 +264,7 @@ export default class RenderingPermissionService {
   }
 
   public async getTeam(renderingId: number | string): Promise<Team> {
-    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
-      `${renderingId}`,
-    );
+    const permissions = await this.permissionsByRendering.fetch(`${renderingId}`);
 
     return permissions.team;
   }
