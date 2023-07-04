@@ -1,19 +1,29 @@
 import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
-import { ColumnType } from '@forestadmin/datasource-toolkit';
 import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
 
-import { CachedCollectionSchema, CachedDataSourceOptions } from './types';
+import { CachedCollectionSchema, CachedDataSourceOptions, Field } from './types';
 
-function convertType(column: ColumnType): DataType {
-  if (column === 'Binary') return DataTypes.BLOB('long');
-  if (column === 'Boolean') return DataTypes.BOOLEAN;
-  if (column === 'Date') return DataTypes.DATE;
-  if (column === 'Dateonly') return DataTypes.DATEONLY;
-  if (column === 'Json') return DataTypes.JSON;
-  if (column === 'Number') return DataTypes.DOUBLE;
-  if (column === 'String') return DataTypes.TEXT;
+function convertField(field: Field): ModelAttributes[string] {
+  if (field.type === 'Object' || field.type === 'Array') {
+    return { type: DataTypes.JSON, allowNull: true, primaryKey: false };
+  }
 
-  return DataTypes.STRING;
+  let type: DataType = DataTypes.JSON;
+  if (field.type === 'Binary') type = DataTypes.BLOB('long');
+  if (field.type === 'Boolean') type = DataTypes.BOOLEAN;
+  if (field.type === 'Date') type = DataTypes.DATE;
+  if (field.type === 'Dateonly') type = DataTypes.DATEONLY;
+  if (field.type === 'Integer') type = DataTypes.INTEGER;
+  if (field.type === 'Number') type = DataTypes.DOUBLE;
+  if (field.type === 'String') type = DataTypes.TEXT;
+  if (field.type === 'Enum') type = new DataTypes.ENUM(...field.enumValues);
+
+  return {
+    type,
+    allowNull: true,
+    primaryKey: field.isPrimaryKey,
+    defaultValue: field.defaultValue,
+  };
 }
 
 function defineModels(
@@ -25,18 +35,8 @@ function defineModels(
     const modelName = `${options.namespace}_${model.name}`;
     const attributes: ModelAttributes = {};
 
-    for (const [name, column] of Object.entries(model.fields)) {
-      if (column.type === 'Column') {
-        attributes[name] = {
-          type:
-            column.columnType === 'Enum'
-              ? new DataTypes.ENUM(...column.enumValues)
-              : convertType(column.columnType),
-          allowNull: true,
-          primaryKey: column.isPrimaryKey,
-          defaultValue: column.defaultValue,
-        };
-      }
+    for (const [name, field] of Object.entries(model.fields)) {
+      attributes[name] = convertField(field);
     }
 
     sequelize.define(modelName, attributes, { timestamps: false });
@@ -52,22 +52,22 @@ function defineRelationships(
     const modelName = `${options.namespace}_${model.name}`;
     const sequelizeModel = sequelize.model(modelName);
 
-    for (const [name, relation] of Object.entries(model.fields)) {
-      if (relation.type !== 'Column') {
-        const otherModelName = `${options.namespace}_${relation.foreignCollection}`;
+    for (const [name, field] of Object.entries(model.fields)) {
+      if (field.type !== 'Array' && field.type !== 'Object' && field.reference) {
+        const otherModelName = `${options.namespace}_${field.reference.targetCollection}`;
         const otherSequelizeModel = sequelize.model(otherModelName);
 
-        if (relation.type === 'ManyToOne') {
-          sequelizeModel.belongsTo(otherSequelizeModel, {
-            as: name,
-            foreignKey: relation.foreignKey,
-            targetKey: relation.foreignKeyTarget,
-          });
-        } else if (relation.type === 'OneToMany') {
-          sequelizeModel.hasMany(otherSequelizeModel, {
-            as: name,
-            foreignKey: relation.originKey,
-            sourceKey: relation.originKeyTarget,
+        sequelizeModel.belongsTo(otherSequelizeModel, {
+          as: field.reference.relationName,
+          foreignKey: name,
+          targetKey: field.reference.targetField,
+        });
+
+        if (field.reference.relationInverse) {
+          otherSequelizeModel.hasMany(sequelizeModel, {
+            as: field.reference.relationName,
+            foreignKey: name,
+            sourceKey: field.reference.targetField,
           });
         }
       }

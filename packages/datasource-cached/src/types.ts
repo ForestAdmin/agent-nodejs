@@ -3,31 +3,41 @@ import { ConnectionOptions } from '@forestadmin/datasource-sql';
 import {
   Aggregation,
   Caller,
-  ColumnSchema,
   Filter,
   PaginatedFilter,
+  PrimitiveTypes,
   Projection,
   RecordData,
-  RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
 type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
-type RecordDataWithCollection = { collection: string; record: RecordData };
+export type RecordDataWithCollection = { collection: string; record: RecordData };
 
 /// //////
 // Schema
 /// //////
 
+export type ObjectField = { type: 'Object'; fields: Record<string, Field> };
+export type ArrayField = { type: 'Array'; items: Field };
+export type LeafField = {
+  type: PrimitiveTypes | 'Integer';
+  defaultValue?: unknown;
+  enumValues?: string[];
+  isPrimaryKey?: boolean;
+  isReadOnly?: boolean;
+  reference?: {
+    relationName: string;
+    targetCollection: string;
+    targetField: string;
+    relationInverse?: string;
+  };
+};
+
+export type Field = ArrayField | ObjectField | LeafField;
+
 export type CachedCollectionSchema = {
   name: string;
-  fields: Record<
-    string,
-    | Pick<
-        ColumnSchema,
-        'type' | 'columnType' | 'defaultValue' | 'enumValues' | 'isPrimaryKey' | 'isReadOnly'
-      >
-    | RelationSchema
-  >;
+  fields: Record<string, Field>;
 };
 
 /// //////
@@ -88,6 +98,8 @@ export type BaseOptions = {
 
   /**  */
   schema?: ValueOrPromiseOrFactory<CachedCollectionSchema[]>;
+
+  flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
 
   /** */
   createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;

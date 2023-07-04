@@ -35,9 +35,33 @@ export default async () => {
       cacheInto: 'sqlite::memory:',
       namespace: 'typicode',
       dumpOnStartup: true,
-      getDump: async () => {
-        const collections = ['users', 'posts', 'comments', 'albums', 'photos', 'todos'];
-        const promises = collections.map(async collection => {
+      schema: [
+        {
+          name: 'users',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+          },
+        },
+        {
+          name: 'posts',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+            userId: {
+              type: 'Integer',
+              reference: {
+                relationInverse: 'posts',
+                relationName: 'user',
+                targetCollection: 'users',
+                targetField: 'id',
+              },
+            },
+            title: { type: 'String' },
+            body: { type: 'String' },
+          },
+        },
+      ],
+      getDump: async request => {
+        const promises = request.collections.map(async collection => {
           const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
 
           return response.data.map(record => ({ collection, record }));

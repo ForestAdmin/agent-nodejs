@@ -15,6 +15,7 @@ import {
   DeltaReason,
   DumpOptions,
   DumpReason,
+  RecordDataWithCollection,
 } from '../../types';
 
 type Queue<Reason> = {
@@ -174,10 +175,10 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
         previousDeltaState: previousState,
       });
 
-      for (const entry of changes.newOrUpdatedEntries)
-        await this.getModel(entry.collection).upsert(entry.record);
       for (const entry of changes.deletedEntries)
         await this.getModel(entry.collection).destroy({ where: entry.record });
+      for (const entry of changes.newOrUpdatedEntries)
+        await this.getModel(entry.collection).upsert(entry.record);
 
       // Update state in database
       await this.setDeltaState(changes.nextDeltaState);
@@ -205,4 +206,85 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   private getModel(shortName: string): ModelStatic<Model> {
     return this.connection.model(`${this.options.namespace}_${shortName}`);
   }
+
+  /**
+   * input: {
+   *   collection: 'user',
+   *   record: { id: 1, name: 'toto', friends: [{ id: 2, name: 'titi' }, { id: 3, name: 'tata' }] }
+   * }
+   *
+   * output: [
+   *   { collection: 'user.fields', record: { _fuid: '', _fpid: '', id: 1, name: 'titi' } },
+   *   { collection: 'user.fields', record: { id: 1, name: 'tata' } }
+   *   { collection: 'user', record: { id: 1, name: 'toto' } }
+   */
+  private flatten(recordWithCollection: RecordDataWithCollection): RecordDataWithCollection[] {
+    const records: RecordDataWithCollection[] = [];
+    const { asFields, asModels } = this.options.flattenOptions[recordWithCollection.collection];
+
+    if (asModels) {
+      // On déplie le modele
+    }
+
+    if (asFields) {
+      // on flatten les champs
+    }
+
+    return records;
+  }
+
+  private *unflatten(
+    collection: string,
+    record: RecordData,
+    asModels: AsModels,
+  ): Generator<RecordDataWithCollection> {
+    // record = { id: 1, name: 'toto', friends: [{ id: 2, name: 'titi', entries: {a: 1} }]}
+    // asModels = ['friends', 'friend.entries']
+
+    for (const [prefix, subAsModels] of Object.entries(asModels)) {
+    }
+
+    yield { collection, record };
+  }
+}
+
+type AsModels = { [path: string]: AsModels };
+
+function* generatePaths(
+  record: RecordData,
+  path: string,
+  collection: string,
+): Generator<RecordData> {
+  const [prefix, suffix] = path.split(/\.(.*)/);
+
+  if (record[prefix] !== undefined) {
+    if (!suffix) {
+      yield { collection, record: record[prefix] };
+      delete record[prefix];
+    } else if (Array.isArray(record[prefix])) {
+      yield* record[prefix].map(r => generatePaths(r, suffix, `${collection}.${prefix}`));
+    } else {
+      yield generatePaths(record[prefix], suffix, `${collection}.${prefix}`);
+    }
+  }
+}
+
+function nest(asModels: string[]) {
+  asModels.sort();
+
+  const entries = {};
+
+  for (let i = 0; i < asModels.length; i += 1) {
+    const path = asModels[i];
+    let j = i + 1;
+
+    for (; j < asModels.length && asModels[j].startsWith(`${path}.`); j += 1) {
+      // count items
+    }
+
+    entries[path] = nest(asModels.slice(i + 1, j).map(p => p.substring(path.length + 1)));
+    i = j - 1;
+  }
+
+  return entries;
 }
