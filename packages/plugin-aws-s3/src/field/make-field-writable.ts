@@ -39,7 +39,7 @@ export default function makeFieldWritable(
         // On updates, we fetch the missing information from the database.
         const pks = getPks(collection);
         const projection = computeProjection(collection, config);
-        const records = await context.collection.list(context.filter, projection);
+        const records = await context.collection.list(context.filter || {}, projection);
 
         // context.record is the patch coming from the frontend.
         record = { ...(records?.[0] ?? {}), ...context.record };
