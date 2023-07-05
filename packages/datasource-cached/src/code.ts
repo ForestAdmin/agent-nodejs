@@ -5,18 +5,13 @@ import { RecordDataWithCollection } from './types';
 
 type AsModels = { [path: string]: AsModels };
 
-
-function getValue(record: RecordData, path: string) {
-  if (!path) 
-return record;
+function extractValue(record: RecordData, path: string) {
+  if (!path) return record;
 
   const [prefix, suffix] = path.split(/\.(.*)/);
-  const value = getValue(record[prefix], suffix);
-  if (!suffix || !Object.keys(record[prefix]).length)
-    delete record[prefix];
-  
+  const value = extractValue(record[prefix], suffix);
+  if (!suffix || !Object.keys(record[prefix]).length) delete record[prefix];
 
-  
   return value;
 }
 
@@ -78,7 +73,7 @@ function* split(
   yield { collection, record };
 }
 
-function flatten(
+export default function flatten(
   recordWithCollection: RecordDataWithCollection,
   asFields: string[],
   asModels: string[],
@@ -88,15 +83,13 @@ function flatten(
 
   for (const { collection, record } of newRecords) {
     const prefix = collection.substring(recordWithCollection.collection.length + 1);
-    const fields = asFields
+    const paths = asFields
       .filter(f => f.startsWith(prefix))
       .map(f => f.substring(prefix.length + 1));
 
-      for (const field of fields) {
-        const value = getFieldValue(record, field.)
-
-      }
-    
+    for (const path of paths) {
+      record[path.replace(/\./g, '@@@')] = extractValue(record, path);
+    }
   }
 
   return newRecords;
@@ -107,6 +100,6 @@ const record = { id: 1, name: 'toto', friends: [{ id: 2, name: 'titi', entries: 
 // console.log([...extractValuesInPlace(record, 'friends')]);
 // console.log(record);
 
-const generator = split({ collection: 'users', record }, { friends: { entries: {} } });
+const generator = flatten({ collection: 'users', record }, ['friends.entries.a'], ['friends']);
 
 console.log([...generator]);
