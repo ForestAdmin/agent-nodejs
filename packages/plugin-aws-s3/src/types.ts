@@ -1,4 +1,14 @@
 /* eslint-disable max-len */
+import type {
+  TCollectionName,
+  TColumnName,
+  TFieldName,
+  TPartialSimpleRow,
+  TSchema,
+} from '@forestadmin/datasource-customizer';
+import type CollectionCustomizationContext from '@forestadmin/datasource-customizer/dist/context/collection-context';
+import type WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
+
 import { ObjectCannedACL } from '@aws-sdk/client-s3';
 
 import Client from './utils/s3';
@@ -16,15 +26,56 @@ export type File = {
  * It can be included in the global agent configuration under the "s3" key and overriden for
  * specific fields by using the "config" property on `AmazonS3File`.
  */
-export type Options = {
+export type Options<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = {
   /** Name of the field that you want to use as a file-picker on the frontend */
-  fieldname: string;
+  fieldname: TColumnName<S, N>;
 
   /**
-   * Where should the file be stored on S3?
-   * Defaults to '<collection_name>/<field_name>/`.
+   * This function allows customizing the string that will be saved in the database.
+   * If the objectKeyFromRecord option is not set, the output of that function will also
+   * be used as the object key in S3.
+   *
+   * Note that the recordId parameter will _not_ be provided when records are created.
+   *
+   * Defaults to '<collection name>/<id>/<originalFilename>`.
+   *
+   * @example
+   * ```js
+   * storeAt: (recordId, originalFilename, context) => {
+   *   return `${context.collection.name}/${recordId ?? 'new-record'}/${originalFilename}`;
+   * }
+   * ```
    */
-  storeAt?: (recordId: string, originalFilename: string) => string;
+  storeAt?: (
+    recordId: string,
+    originalFilename: string,
+    context: WriteCustomizationContext<S, N>,
+  ) => string | Promise<string>;
+
+  /**
+   * This function allows customizing the object key that will be used in S3 without interfering
+   * with what is stored in the database.
+   *
+   * @example
+   * ```
+   * objectKeyFromRecord: {
+   *   extraDependencies: ['firstname', 'lastname'],
+   *   mappingFunction: (record, context) => {
+   *     return `avatars/${record.firstname}-${record.lastname}.png`;
+   *   }
+   * };
+   * ```
+   */
+  objectKeyFromRecord?: {
+    extraDependencies?: TFieldName<S, N>[];
+    mappingFunction: (
+      record: TPartialSimpleRow<S, N>,
+      context: CollectionCustomizationContext<S, N>,
+    ) => string | Promise<string>;
+  };
 
   /** Either if old files should be deleted when updating or deleting a record. */
 
@@ -70,10 +121,13 @@ export type Options = {
   };
 };
 
-export type Configuration = Required<
-  Pick<Options, 'acl' | 'deleteFiles' | 'readMode' | 'storeAt'> & {
+export type Configuration<
+  S extends TSchema = TSchema,
+  N extends TCollectionName<S> = TCollectionName<S>,
+> = Required<
+  Pick<Options<S, N>, 'acl' | 'deleteFiles' | 'readMode' | 'storeAt' | 'objectKeyFromRecord'> & {
     client: Client;
-    sourcename: string;
-    filename: string;
+    sourcename: TColumnName<S, N>;
+    filename: TColumnName<S, N>;
   }
 >;
