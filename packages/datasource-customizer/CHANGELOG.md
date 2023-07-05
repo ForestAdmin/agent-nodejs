@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.3...@forestadmin/datasource-customizer@1.10.0) (2023-07-05)
+
+
+### Features
+
+* **config:** configuration now allows to differenciate bucket path and database path ([#752](https://github.com/ForestAdmin/agent-nodejs/issues/752)) ([dbc3b78](https://github.com/ForestAdmin/agent-nodejs/commit/dbc3b788585857107c1baf3f0d134408b9eaec2b))
+
 ## @forestadmin/datasource-customizer [1.9.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.2...@forestadmin/datasource-customizer@1.9.3) (2023-06-29)
 
 
