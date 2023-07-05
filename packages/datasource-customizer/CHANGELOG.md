@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.10.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.10.0...@forestadmin/datasource-customizer@1.10.1) (2023-07-05)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** attempt to fix install when using latest nestjs version ([#758](https://github.com/ForestAdmin/agent-nodejs/issues/758)) ([04098ab](https://github.com/ForestAdmin/agent-nodejs/commit/04098abee10495c83881e08a231ecae266c2fefa))
+
 # @forestadmin/datasource-customizer [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.3...@forestadmin/datasource-customizer@1.10.0) (2023-07-05)
 
 
