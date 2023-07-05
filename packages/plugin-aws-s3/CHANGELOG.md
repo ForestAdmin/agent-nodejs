@@ -1,3 +1,18 @@
+# @forestadmin/plugin-aws-s3 [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.2.5...@forestadmin/plugin-aws-s3@1.3.0) (2023-07-05)
+
+
+### Features
+
+* **config:** configuration now allows to differenciate bucket path and database path ([#752](https://github.com/ForestAdmin/agent-nodejs/issues/752)) ([dbc3b78](https://github.com/ForestAdmin/agent-nodejs/commit/dbc3b788585857107c1baf3f0d134408b9eaec2b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.10.0
+
 ## @forestadmin/plugin-aws-s3 [1.2.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.2.4...@forestadmin/plugin-aws-s3@1.2.5) (2023-06-29)
 
 
