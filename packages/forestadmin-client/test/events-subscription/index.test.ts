@@ -11,11 +11,14 @@ const once = jest.fn((event, callback) => {
   events[event] = callback;
 });
 
+const close = jest.fn();
+
 jest.mock('eventsource', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
     addEventListener,
     once,
+    close,
   })),
 }));
 
@@ -62,6 +65,40 @@ describe('EventsSubscriptionService', () => {
         eventsSubscriptionService.subscribeEvents();
 
         expect(addEventListener).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('close', () => {
+    test('should close current Event Source', async () => {
+      const eventsSubscriptionService = factories.eventsSubscription.build();
+      eventsSubscriptionService.subscribeEvents();
+
+      eventsSubscriptionService.close();
+
+      expect(close).toHaveBeenCalled();
+    });
+
+    describe('when server events are deactivated', () => {
+      test('should not do anything', async () => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          { ...options, instantCacheRefresh: false },
+          refreshEventsHandlerService,
+        );
+
+        eventsSubscriptionService.close();
+
+        expect(close).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when no event source instantiated yet', () => {
+      test('should not do anything', async () => {
+        const eventsSubscriptionService = factories.eventsSubscription.build();
+
+        eventsSubscriptionService.close();
+
+        expect(close).not.toHaveBeenCalled();
       });
     });
   });

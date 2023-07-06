@@ -8,6 +8,7 @@ export class EventsSubscriptionServiceFactory extends Factory<EventsSubscription
   mockAllMethods() {
     return this.afterBuild(service => {
       service.subscribeEvents = jest.fn();
+      service.close = jest.fn();
     });
   }
 }

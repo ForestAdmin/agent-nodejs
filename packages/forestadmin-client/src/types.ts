@@ -55,6 +55,7 @@ export interface ForestAdminClient {
   markScopesAsUpdated(renderingId: number | string): void;
 
   subscribeToServerEvents(): Promise<void>;
+  close(): void;
   onRefreshCustomizations(handler: () => void | Promise<void>): void;
 }
 

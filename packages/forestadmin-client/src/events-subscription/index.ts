@@ -9,6 +9,8 @@ import {
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 
 export default class EventsSubscriptionService implements BaseEventsSubscriptionService {
+  private eventSource: EventSource;
+
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly refreshEventsHandlerService: RefreshEventsHandlerService,
@@ -35,30 +37,41 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     };
     const url = new URL('/liana/v4/subscribe-to-events', this.options.forestServerUrl).toString();
 
-    const source = new EventSource(url, eventSourceConfig);
+    const eventSource = new EventSource(url, eventSourceConfig);
     // Override reconnect interval to 5 seconds
-    source.reconnectInterval = 5000;
+    eventSource.reconnectInterval = 5000;
 
-    source.addEventListener('error', this.onEventError.bind(this));
+    eventSource.addEventListener('error', this.onEventError.bind(this));
 
     // Only listen after first open
-    source.once('open', () => source.addEventListener('open', () => this.onEventOpenAgain()));
+    eventSource.once('open', () =>
+      eventSource.addEventListener('open', () => this.onEventOpenAgain()),
+    );
 
-    source.addEventListener(ServerEventType.RefreshUsers, async () =>
+    eventSource.addEventListener(ServerEventType.RefreshUsers, async () =>
       this.refreshEventsHandlerService.refreshUsers(),
     );
 
-    source.addEventListener(ServerEventType.RefreshRoles, async () =>
+    eventSource.addEventListener(ServerEventType.RefreshRoles, async () =>
       this.refreshEventsHandlerService.refreshRoles(),
     );
 
-    source.addEventListener(ServerEventType.RefreshRenderings, async (event: ServerEvent) =>
+    eventSource.addEventListener(ServerEventType.RefreshRenderings, async (event: ServerEvent) =>
       this.handleSeverEventRefreshRenderings(event),
     );
 
-    source.addEventListener(ServerEventType.RefreshCustomizations, async () =>
+    eventSource.addEventListener(ServerEventType.RefreshCustomizations, async () =>
       this.refreshEventsHandlerService.refreshCustomizations(),
     );
+
+    this.eventSource = eventSource;
+  }
+
+  /**
+   * Close the current EventSource
+   */
+  public close() {
+    this.eventSource?.close();
   }
 
   private async handleSeverEventRefreshRenderings(event: ServerEvent) {

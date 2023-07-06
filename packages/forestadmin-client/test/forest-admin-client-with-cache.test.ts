@@ -232,7 +232,7 @@ describe('ForestAdminClientWithCache', () => {
   });
 
   describe('subscribeToServerEvents', () => {
-    it('should subscribes to Server Events rendering service', async () => {
+    it('should subscribes to Server Events service', async () => {
       const eventsSubscriptionService = factories.eventsSubscription.mockAllMethods().build();
       const forestAdminClient = new ForestAdminClient(
         factories.forestAdminClientOptions.build(),
@@ -254,8 +254,31 @@ describe('ForestAdminClientWithCache', () => {
     });
   });
 
+  describe('close', () => {
+    it('should close', () => {
+      const eventsSubscriptionService = factories.eventsSubscription.mockAllMethods().build();
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        factories.permission.build(),
+        factories.renderingPermission.build(),
+        factories.contextVariablesInstantiator.build(),
+        factories.chartHandler.build(),
+        factories.ipWhiteList.build(),
+        factories.schema.build(),
+        factories.auth.build(),
+        factories.modelCustomization.build(),
+        eventsSubscriptionService,
+        factories.eventsHandler.build(),
+      );
+
+      forestAdminClient.close();
+
+      expect(eventsSubscriptionService.close).toHaveBeenCalledWith();
+    });
+  });
+
   describe('onRefreshCustomizations', () => {
-    it('should subscribes to Server Events rendering service', async () => {
+    it('should subscribes the handler to the eventsHandler service', async () => {
       const eventsHandlerService = factories.eventsHandler.mockAllMethods().build();
       const forestAdminClient = new ForestAdminClient(
         factories.forestAdminClientOptions.build(),
