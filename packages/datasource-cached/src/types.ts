@@ -17,8 +17,8 @@ export type RecordDataWithCollection = { collection: string; record: RecordData 
 // Schema
 /// //////
 
-export type ObjectField = { type: 'Object'; fields: Record<string, Field> };
-export type ArrayField = { type: 'Array'; items: Field };
+export type ObjectField = { [key: string]: Field };
+export type ArrayField = [Field];
 export type LeafField = {
   type: PrimitiveTypes | 'Integer';
   defaultValue?: unknown;
