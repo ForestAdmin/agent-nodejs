@@ -1,34 +1,35 @@
 /* eslint-disable */
 export type Schema = {
-  'hubspot_contacts': {
-    plain: {
-      'id': any;
-      'firstname': any;
-      'lastname': any;
-      'mycustomfield': any;
-    };
-    nested: {};
-    flat: {};
-  };
-  'typicode_posts': {
+  'users': {
     plain: {
       'id': number;
-      'userId': number;
-      'title': string;
-      'body': string;
+      'name': string;
     };
     nested: {
-      'user': Schema['typicode_users']['plain'] & Schema['typicode_users']['nested'];
+      'address': Schema['users_address']['plain'] & Schema['users_address']['nested'];
     };
     flat: {
-      'user:id': number;
+      'address:street': string;
+      'address:city': string;
+      'address:zipCodes': Array<number>;
+      'address:_fid': string;
+      'address:_fpid': number;
     };
   };
-  'typicode_users': {
+  'users_address': {
     plain: {
-      'id': number;
+      'street': string;
+      'city': string;
+      'zipCodes': Array<number>;
+      '_fid': string;
+      '_fpid': number;
     };
-    nested: {};
-    flat: {};
+    nested: {
+      'parent': Schema['users']['plain'] & Schema['users']['nested'];
+    };
+    flat: {
+      'parent:id': number;
+      'parent:name': string;
+    };
   };
 };

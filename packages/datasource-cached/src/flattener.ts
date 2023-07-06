@@ -1,6 +1,10 @@
 /* eslint-disable */
 import { RecordData } from '@forestadmin/datasource-toolkit';
-import { CachedCollectionSchema, RecordDataWithCollection } from './types';
+import { CachedCollectionSchema, FlattenOptions, RecordDataWithCollection } from './types';
+
+function escape(strings: TemplateStringsArray, ...exps: unknown[]): string {
+  return strings.reduce((acc, str, i) => acc + str + (exps[i] ?? ''), '').replace(/\./g, '_');
+}
 
 function deepclone(any: unknown) {
   return JSON.parse(JSON.stringify(any));
@@ -77,7 +81,7 @@ function flattenRecordRec(
 
         flattenedRecords.push(
           ...flattenRecordRec(
-            { collection: `${collection}.${asModel}`, record: subRecord },
+            { collection: escape`${collection}.${asModel}`, record: subRecord },
             subFields,
             subAsFields,
             subAsModels,
@@ -114,7 +118,7 @@ export function flattenRecord(
  * Abuse the flattenRecordRec logic with ❤️
  * And then fix the _fpid and _fid fields which are not correct
  */
-export function flattenSchema(
+export function flattenCollectionSchema(
   schema: CachedCollectionSchema,
   asFields: string[],
   asModels: string[],
@@ -143,4 +147,17 @@ export function flattenSchema(
   }
 
   return output.map(({ collection, record }) => ({ name: collection, fields: record }));
+}
+
+export function flattenSchema(
+  schema: CachedCollectionSchema[],
+  flattenOptions: FlattenOptions,
+): CachedCollectionSchema[] {
+  return schema.flatMap(collectionSchema =>
+    flattenCollectionSchema(
+      collectionSchema,
+      flattenOptions?.[collectionSchema.name]?.asFields ?? [],
+      flattenOptions?.[collectionSchema.name]?.asModels ?? [],
+    ),
+  );
 }

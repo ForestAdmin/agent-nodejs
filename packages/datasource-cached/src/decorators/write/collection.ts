@@ -20,7 +20,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
     }
 
     const promises = data.map(async record => {
-      const newRecord = await this.options.createRecord(this.shortName, record);
+      const newRecord = await this.options.createRecord(this.name, record);
       Object.assign(record, newRecord);
     });
 
@@ -37,7 +37,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
     const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
     const promises = recordsPks.map(async record => {
       Object.assign(record, patch);
-      await this.options.updateRecord(this.shortName, record);
+      await this.options.updateRecord(this.name, record);
     });
 
     await Promise.all(promises);
@@ -52,7 +52,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
 
     const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
     const promises = recordsPks.map(async record => {
-      await this.options.deleteRecord(this.shortName, record);
+      await this.options.deleteRecord(this.name, record);
     });
 
     await Promise.all(promises);
@@ -62,9 +62,5 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
 
   private get options(): CachedDataSourceOptions {
     return this.dataSource.options as CachedDataSourceOptions;
-  }
-
-  protected get shortName(): string {
-    return this.name.substring(this.options.namespace.length + 1);
   }
 }

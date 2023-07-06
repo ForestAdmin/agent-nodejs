@@ -6,16 +6,17 @@ import {
   Deferred,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Model, ModelStatic, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import SyncCollectionDecorator from './collection';
+import { flattenRecord } from '../../flattener';
 import {
-  CachedDataSourceOptions,
   DeltaOptions,
   DeltaReason,
   DumpOptions,
   DumpReason,
   RecordDataWithCollection,
+  ResolvedOptions,
 } from '../../types';
 
 type Queue<Reason> = {
@@ -31,7 +32,7 @@ type Queue<Reason> = {
 };
 
 export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCollectionDecorator> {
-  options: CachedDataSourceOptions;
+  options: ResolvedOptions;
 
   private connection: Sequelize;
   private dumpRunning = false;
@@ -41,11 +42,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
   private timers: NodeJS.Timer[] = [];
 
-  constructor(
-    childDataSource: DataSource,
-    connection: Sequelize,
-    options: CachedDataSourceOptions,
-  ) {
+  constructor(childDataSource: DataSource, connection: Sequelize, options: ResolvedOptions) {
     super(childDataSource, SyncCollectionDecorator);
 
     this.connection = connection;
@@ -53,7 +50,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   }
 
   async start(): Promise<void> {
-    const collections = this.collections.map(c => c.shortName);
+    const collections = this.collections.map(c => c.name);
 
     if ('getDump' in this.options && this.options.dumpOnStartup)
       await this.queueDump({ reason: 'startup', collections });
@@ -127,7 +124,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
     // Truncate tables (we should write to a temporary table and swap the tables to avoid downtime)
     for (const collection of this.collections) {
-      await this.getModel(collection.shortName).destroy({ truncate: true });
+      await this.connection.model(collection.name).destroy({ truncate: true });
     }
 
     // Fill table with dump
@@ -140,14 +137,15 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
       });
 
       const recordsByCollection = {} as Record<string, RecordData[]>;
+      const entries = changes.entries.flatMap(entry => this.flattenRecord(entry));
 
-      for (const entry of changes.entries) {
+      for (const entry of entries) {
         if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
         recordsByCollection[entry.collection].push(entry.record);
       }
 
       for (const [collection, records] of Object.entries(recordsByCollection))
-        await this.getModel(collection).bulkCreate(records);
+        await this.connection.model(collection).bulkCreate(records);
 
       more = changes.more;
       if (changes.more === true) state = changes.nextDumpState;
@@ -175,10 +173,15 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
         previousDeltaState: previousState,
       });
 
-      for (const entry of changes.deletedEntries)
-        await this.getModel(entry.collection).destroy({ where: entry.record });
-      for (const entry of changes.newOrUpdatedEntries)
-        await this.getModel(entry.collection).upsert(entry.record);
+      // FIXME update & deletes should be broken because of the flattenRecord
+      const updatedEntries = changes.newOrUpdatedEntries.flatMap(entry =>
+        this.flattenRecord(entry),
+      );
+      const deletedEntries = changes.deletedEntries.flatMap(entry => this.flattenRecord(entry));
+      for (const entry of deletedEntries)
+        await this.connection.model(entry.collection).destroy({ where: entry.record });
+      for (const entry of updatedEntries)
+        await this.connection.model(entry.collection).upsert(entry.record);
 
       // Update state in database
       await this.setDeltaState(changes.nextDeltaState);
@@ -203,88 +206,14 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
     await stateModel.upsert({ id: this.options.namespace, state: JSON.stringify(state) });
   }
 
-  private getModel(shortName: string): ModelStatic<Model> {
-    return this.connection.model(`${this.options.namespace}_${shortName}`);
+  private flattenRecord(
+    recordWithCollection: RecordDataWithCollection,
+  ): RecordDataWithCollection[] {
+    return flattenRecord(
+      recordWithCollection,
+      this.options.schema.find(s => s.name === recordWithCollection.collection).fields,
+      this.options?.flattenOptions?.[recordWithCollection.collection]?.asFields ?? [],
+      this.options?.flattenOptions?.[recordWithCollection.collection]?.asModels ?? [],
+    );
   }
-
-  /**
-   * input: {
-   *   collection: 'user',
-   *   record: { id: 1, name: 'toto', friends: [{ id: 2, name: 'titi' }, { id: 3, name: 'tata' }] }
-   * }
-   *
-   * output: [
-   *   { collection: 'user.fields', record: { _fuid: '', _fpid: '', id: 1, name: 'titi' } },
-   *   { collection: 'user.fields', record: { id: 1, name: 'tata' } }
-   *   { collection: 'user', record: { id: 1, name: 'toto' } }
-   */
-  private flatten(recordWithCollection: RecordDataWithCollection): RecordDataWithCollection[] {
-    const records: RecordDataWithCollection[] = [];
-    const { asFields, asModels } = this.options.flattenOptions[recordWithCollection.collection];
-
-    if (asModels) {
-      // On déplie le modele
-    }
-
-    if (asFields) {
-      // on flatten les champs
-    }
-
-    return records;
-  }
-
-  private *unflatten(
-    collection: string,
-    record: RecordData,
-    asModels: AsModels,
-  ): Generator<RecordDataWithCollection> {
-    // record = { id: 1, name: 'toto', friends: [{ id: 2, name: 'titi', entries: {a: 1} }]}
-    // asModels = ['friends', 'friend.entries']
-
-    for (const [prefix, subAsModels] of Object.entries(asModels)) {
-    }
-
-    yield { collection, record };
-  }
-}
-
-type AsModels = { [path: string]: AsModels };
-
-function* generatePaths(
-  record: RecordData,
-  path: string,
-  collection: string,
-): Generator<RecordData> {
-  const [prefix, suffix] = path.split(/\.(.*)/);
-
-  if (record[prefix] !== undefined) {
-    if (!suffix) {
-      yield { collection, record: record[prefix] };
-      delete record[prefix];
-    } else if (Array.isArray(record[prefix])) {
-      yield* record[prefix].map(r => generatePaths(r, suffix, `${collection}.${prefix}`));
-    } else {
-      yield generatePaths(record[prefix], suffix, `${collection}.${prefix}`);
-    }
-  }
-}
-
-function nest(asModels: string[]) {
-  asModels.sort();
-
-  const entries = {};
-
-  for (let i = 0; i < asModels.length; i += 1) {
-    const path = asModels[i];
-    let j = i + 1;
-
-    for (; j < asModels.length && asModels[j].startsWith(`${path}.`); j += 1) {
-      // count items
-    }
-
-    entries[path] = nest(asModels.slice(i + 1, j).map(p => p.substring(path.length + 1)));
-    i = j - 1;
-  }
-
-  return entries;
 }

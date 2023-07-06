@@ -10,12 +10,16 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
+export type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 export type RecordDataWithCollection = { collection: string; record: RecordData };
 
 /// //////
 // Schema
 /// //////
+
+export function isLeafField(field: Field): field is LeafField {
+  return typeof field === 'object' && 'type' in field;
+}
 
 export type ObjectField = { [key: string]: Field };
 export type ArrayField = [Field];
@@ -25,6 +29,7 @@ export type LeafField = {
   enumValues?: string[];
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
+  unique?: boolean;
   reference?: {
     relationName: string;
     targetCollection: string;
@@ -88,6 +93,9 @@ export type DeltaResponse = {
 /// //////
 // Options
 /// //////
+export type FlattenOptions = {
+  [modelName: string]: { asModels?: string[]; asFields?: string[] };
+};
 
 export type BaseOptions = {
   /** prefix that should be used when caching */
@@ -98,8 +106,7 @@ export type BaseOptions = {
 
   /**  */
   schema?: ValueOrPromiseOrFactory<CachedCollectionSchema[]>;
-
-  flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
+  flattenOptions?: ValueOrPromiseOrFactory<FlattenOptions>;
 
   /** */
   createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
@@ -108,13 +115,13 @@ export type BaseOptions = {
 };
 
 export type DumpOptions = {
-  getDump: (request: DumpRequest) => Promise<DumpResponse>;
+  getDump?: (request: DumpRequest) => Promise<DumpResponse>;
   dumpOnStartup?: boolean;
   dumpOnTimer?: number;
 };
 
 export type DeltaOptions = {
-  getDelta: (request: DeltaRequest) => Promise<DeltaResponse>;
+  getDelta?: (request: DeltaRequest) => Promise<DeltaResponse>;
   deltaOnStartup?: boolean;
   deltaOnTimer?: number;
   deltaOnBeforeAccess?: boolean;
@@ -129,7 +136,9 @@ export type DeltaOptions = {
   accessDelay?: number;
 };
 
-export type CachedDataSourceOptions =
-  | (BaseOptions & DumpOptions & DeltaOptions)
-  | (BaseOptions & DumpOptions)
-  | (BaseOptions & DeltaOptions);
+export type CachedDataSourceOptions = BaseOptions & DumpOptions & DeltaOptions;
+
+export type ResolvedOptions = CachedDataSourceOptions & {
+  schema?: CachedCollectionSchema[];
+  flattenOptions?: FlattenOptions;
+};

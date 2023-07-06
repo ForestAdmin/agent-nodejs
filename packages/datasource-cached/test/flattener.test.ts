@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { flattenRecord, flattenSchema } from '../src/flattener';
+import { flattenRecord, flattenCollectionSchema } from '../src/flattener';
 import { CachedCollectionSchema, RecordDataWithCollection } from '../src/types';
 
 const schema: CachedCollectionSchema = {
@@ -149,7 +149,7 @@ describe('should flatten schema', () => {
   test('should do nothing if no fields or models', () => {
     const asFields = [];
     const asModels = [];
-    const result = flattenSchema(schema, asFields, asModels);
+    const result = flattenCollectionSchema(schema, asFields, asModels);
 
     expect(result).toEqual([schema]);
   });
@@ -157,7 +157,7 @@ describe('should flatten schema', () => {
   test('should work with only fields', () => {
     const asFields = ['address.streetName', 'address.streetNumber', 'address.city'];
     const asModels = [];
-    const result = flattenSchema(schema, asFields, asModels);
+    const result = flattenCollectionSchema(schema, asFields, asModels);
 
     expect(result).toEqual([
       {
@@ -177,7 +177,7 @@ describe('should flatten schema', () => {
   test('should work with only models', () => {
     const asFields = [];
     const asModels = ['address', 'metadata.tags', 'metadata.tags.nested.subTag'];
-    const result = flattenSchema(schema, asFields, asModels);
+    const result = flattenCollectionSchema(schema, asFields, asModels);
 
     expect(result).toEqual([
       {
@@ -253,7 +253,7 @@ describe('should flatten schema', () => {
       'address.city',
       'metadata.tags.nested.id',
     ];
-    const result = flattenSchema(schema, asFields, asModels);
+    const result = flattenCollectionSchema(schema, asFields, asModels);
 
     expect(result).toEqual([
       {

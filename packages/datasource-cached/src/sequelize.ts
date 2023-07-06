@@ -1,61 +1,55 @@
 import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
 import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
 
-import { CachedCollectionSchema, CachedDataSourceOptions, Field } from './types';
+import { flattenSchema } from './flattener';
+import { CachedCollectionSchema, Field, ResolvedOptions, isLeafField } from './types';
 
 function convertField(field: Field): ModelAttributes[string] {
-  if (field.type === 'Object' || field.type === 'Array') {
-    return { type: DataTypes.JSON, allowNull: true, primaryKey: false };
+  if (isLeafField(field)) {
+    let type: DataType = DataTypes.JSON;
+    if (field.type === 'Binary') type = DataTypes.BLOB('long');
+    if (field.type === 'Boolean') type = DataTypes.BOOLEAN;
+    if (field.type === 'Date') type = DataTypes.DATE;
+    if (field.type === 'Dateonly') type = DataTypes.DATEONLY;
+    if (field.type === 'Integer') type = DataTypes.INTEGER;
+    if (field.type === 'Number') type = DataTypes.DOUBLE;
+    if (field.type === 'String') type = DataTypes.TEXT;
+    if (field.type === 'Enum') type = new DataTypes.ENUM(...field.enumValues);
+
+    return {
+      type,
+      allowNull: true,
+      primaryKey: field.isPrimaryKey,
+      defaultValue: field.defaultValue,
+    };
   }
 
-  let type: DataType = DataTypes.JSON;
-  if (field.type === 'Binary') type = DataTypes.BLOB('long');
-  if (field.type === 'Boolean') type = DataTypes.BOOLEAN;
-  if (field.type === 'Date') type = DataTypes.DATE;
-  if (field.type === 'Dateonly') type = DataTypes.DATEONLY;
-  if (field.type === 'Integer') type = DataTypes.INTEGER;
-  if (field.type === 'Number') type = DataTypes.DOUBLE;
-  if (field.type === 'String') type = DataTypes.TEXT;
-  if (field.type === 'Enum') type = new DataTypes.ENUM(...field.enumValues);
-
-  return {
-    type,
-    allowNull: true,
-    primaryKey: field.isPrimaryKey,
-    defaultValue: field.defaultValue,
-  };
+  return { type: DataTypes.JSON, allowNull: true, primaryKey: false };
 }
 
-function defineModels(
-  options: CachedDataSourceOptions,
-  schema: CachedCollectionSchema[],
-  sequelize: Sequelize,
-) {
+function defineModels(namespace: string, schema: CachedCollectionSchema[], sequelize: Sequelize) {
   for (const model of schema) {
-    const modelName = `${options.namespace}_${model.name}`;
+    // const modelName = `${namespace}_${model.name}`;
     const attributes: ModelAttributes = {};
 
     for (const [name, field] of Object.entries(model.fields)) {
       attributes[name] = convertField(field);
     }
 
-    sequelize.define(modelName, attributes, { timestamps: false });
+    sequelize.define(model.name, attributes, {
+      timestamps: false,
+      tableName: `${namespace}_${model.name}`,
+    });
   }
 }
 
-function defineRelationships(
-  options: CachedDataSourceOptions,
-  schema: CachedCollectionSchema[],
-  sequelize: Sequelize,
-) {
+function defineRelationships(schema: CachedCollectionSchema[], sequelize: Sequelize) {
   for (const model of schema) {
-    const modelName = `${options.namespace}_${model.name}`;
-    const sequelizeModel = sequelize.model(modelName);
+    const sequelizeModel = sequelize.model(model.name);
 
     for (const [name, field] of Object.entries(model.fields)) {
-      if (field.type !== 'Array' && field.type !== 'Object' && field.reference) {
-        const otherModelName = `${options.namespace}_${field.reference.targetCollection}`;
-        const otherSequelizeModel = sequelize.model(otherModelName);
+      if (isLeafField(field) && field.reference) {
+        const otherSequelizeModel = sequelize.model(field.reference.targetCollection);
 
         sequelizeModel.belongsTo(otherSequelizeModel, {
           as: field.reference.relationName,
@@ -64,8 +58,10 @@ function defineRelationships(
         });
 
         if (field.reference.relationInverse) {
-          otherSequelizeModel.hasMany(sequelizeModel, {
-            as: field.reference.relationName,
+          // not sure why this breaks the frontend
+          const handler = field.unique ? otherSequelizeModel.hasOne : otherSequelizeModel.hasMany;
+          handler.call(otherSequelizeModel, sequelizeModel, {
+            as: field.reference.relationInverse,
             foreignKey: name,
             sourceKey: field.reference.targetField,
           });
@@ -75,10 +71,7 @@ function defineRelationships(
   }
 }
 
-export default async function createSequelize(
-  options: CachedDataSourceOptions,
-  schema: CachedCollectionSchema[],
-) {
+export default async function createSequelize(options: ResolvedOptions) {
   const sequelize = await buildSequelizeInstance(
     options.cacheInto ?? 'sqlite::memory:',
     () => {},
@@ -90,14 +83,15 @@ export default async function createSequelize(
     state: DataTypes.TEXT,
   });
 
-  defineModels(options, schema, sequelize);
+  const flattenedSchema = flattenSchema(options.schema, options.flattenOptions);
+  defineModels(options.namespace, flattenedSchema, sequelize);
 
   // Sync models before defining associations
   // This ensure that the foreign key contraints are not set which is convenient
   // for a caching use-case: we want to be able to load records in any order.
   await sequelize.sync();
 
-  defineRelationships(options, schema, sequelize);
+  defineRelationships(flattenedSchema, sequelize);
 
   return sequelize;
 }

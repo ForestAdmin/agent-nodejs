@@ -2,10 +2,11 @@ import PublicationCollectionDataSourceDecorator from '@forestadmin/datasource-cu
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
+import SchemaDataSourceDecorator from './decorators/schema/data-source';
 import SyncDataSourceDecorator from './decorators/sync/data-source';
 import WriteDataSourceDecorator from './decorators/write/data-source';
 import createSequelize from './sequelize';
-import { CachedDataSourceOptions } from './types';
+import { CachedDataSourceOptions, ResolvedOptions, ValueOrPromiseOrFactory } from './types';
 
 // function convertAnalysisToSchema(node: NodeStudy): CachedCollectionSchema['fields'] {
 //   const schema: CachedCollectionSchema['fields'] = {};
@@ -63,15 +64,28 @@ import { CachedDataSourceOptions } from './types';
 //   return schema;
 // }
 
-function createCachedDataSource(options: CachedDataSourceOptions): DataSourceFactory {
+async function resolveValueOrPromiseOrFactory<T extends object>(
+  v: ValueOrPromiseOrFactory<T>,
+): Promise<T> {
+  return typeof v === 'function' ? v() : v;
+}
+
+function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSourceFactory {
   return async (logger: Logger) => {
-    const schema = await (typeof options.schema === 'function' ? options.schema() : options.schema);
+    const options: ResolvedOptions = {
+      ...rawOptions,
+      schema: await resolveValueOrPromiseOrFactory(rawOptions.schema),
+      flattenOptions: await resolveValueOrPromiseOrFactory(rawOptions.flattenOptions),
+    };
 
-    // if (!schema && 'getDump' in options) {
-    //   schema = await guessSchema(options);
-    // }
+    if (
+      options.flattenOptions &&
+      (options.createRecord || options.updateRecord || options.deleteRecord)
+    ) {
+      throw new Error('Cannot use flattenOptions with createRecord, updateRecord or deleteRecord');
+    }
 
-    const connection = await createSequelize(options, schema);
+    const connection = await createSequelize(options);
     const factory = createSequelizeDataSource(connection);
 
     const sequelizeDs = await factory(logger);
@@ -82,8 +96,9 @@ function createCachedDataSource(options: CachedDataSourceOptions): DataSourceFac
     await syncDataSource.start();
 
     const writeDataSource = new WriteDataSourceDecorator(syncDataSource, options);
+    const schemaDataSource = new SchemaDataSourceDecorator(writeDataSource, options);
 
-    return writeDataSource;
+    return schemaDataSource;
   };
 }
 
