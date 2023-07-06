@@ -36,6 +36,8 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     const url = new URL('/liana/v4/subscribe-to-events', this.options.forestServerUrl).toString();
 
     const source = new EventSource(url, eventSourceConfig);
+    // Override reconnect interval to 5 seconds
+    source.reconnectInterval = 5000;
 
     source.addEventListener('error', this.onEventError.bind(this));
 
