@@ -71,14 +71,22 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
   }
 
   private onEventError(event: { type: string; status?: number; message?: string }) {
-    if (event.status === 502) {
-      this.options.logger('Debug', 'Server Event - Connection lost');
+    const { status, message } = event;
+
+    if ([502, 503, 504].includes(status)) {
+      this.options.logger('Debug', 'Server Event - Connection lost trying to reconnect…');
 
       return;
     }
 
-    if (event.message)
-      this.options.logger('Warn', `Server Event - Error: ${JSON.stringify(event)}`);
+    if (status === 404)
+      throw new Error(
+        'Forest Admin server failed to find the environment ' +
+          'related to the envSecret you configured. ' +
+          'Can you check that you copied it properly during initialization?',
+      );
+
+    if (message) this.options.logger('Warn', `Server Event - Error: ${JSON.stringify(event)}`);
   }
 
   private onEventOpenAgain() {

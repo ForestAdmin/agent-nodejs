@@ -53,7 +53,7 @@ describe('EventsSubscriptionService', () => {
     });
 
     describe('when server events are deactivated', () => {
-      test('should not do anything', async () => {
+      test('should not do anything', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           { ...options, instantCacheRefresh: false },
           refreshEventsHandlerService,
@@ -68,7 +68,7 @@ describe('EventsSubscriptionService', () => {
 
   describe('handleSeverEvents', () => {
     describe('on RefreshUsers event', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
+      test('should delegate to refreshEventsHandlerService', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
           refreshEventsHandlerService,
@@ -84,7 +84,7 @@ describe('EventsSubscriptionService', () => {
     });
 
     describe('on RefreshRoles event', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
+      test('should delegate to refreshEventsHandlerService', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
           refreshEventsHandlerService,
@@ -100,7 +100,7 @@ describe('EventsSubscriptionService', () => {
     });
 
     describe('on RefreshCustomizations event', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
+      test('should delegate to refreshEventsHandlerService', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
           refreshEventsHandlerService,
@@ -116,7 +116,7 @@ describe('EventsSubscriptionService', () => {
     });
 
     describe('on RefreshRenderings event', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
+      test('should delegate to refreshEventsHandlerService', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
           refreshEventsHandlerService,
@@ -134,7 +134,7 @@ describe('EventsSubscriptionService', () => {
         expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith(['13', 24]);
       });
       describe('on malformed event', () => {
-        test('should not do anything', async () => {
+        test('should not do anything', () => {
           const eventsSubscriptionService = new EventsSubscriptionService(
             options,
             refreshEventsHandlerService,
@@ -153,7 +153,7 @@ describe('EventsSubscriptionService', () => {
   });
 
   describe('onEventOpenAgain', () => {
-    test('should add new open listener on first open event', async () => {
+    test('should add new open listener on first open event', () => {
       const eventsSubscriptionService = new EventsSubscriptionService(
         options,
         refreshEventsHandlerService,
@@ -169,7 +169,7 @@ describe('EventsSubscriptionService', () => {
       expect(refreshEventsHandlerService.refreshEverything).not.toHaveBeenCalled();
     });
 
-    test('should refreshEverything using refreshEventsHandlerService on re-open', async () => {
+    test('should refreshEverything using refreshEventsHandlerService on re-open', () => {
       const eventsSubscriptionService = new EventsSubscriptionService(
         options,
         refreshEventsHandlerService,
@@ -192,8 +192,8 @@ describe('EventsSubscriptionService', () => {
   });
 
   describe('onEventError', () => {
-    describe('when error status is Bad Gateway (502)', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
+    describe('when error status is Not Found (404)', () => {
+      test('should warn the user', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
           refreshEventsHandlerService,
@@ -202,14 +202,36 @@ describe('EventsSubscriptionService', () => {
         eventsSubscriptionService.subscribeEvents();
 
         // eslint-disable-next-line @typescript-eslint/dot-notation
-        events['error']({ status: 502 });
-
-        expect(options.logger).toHaveBeenCalledWith('Debug', 'Server Event - Connection lost');
+        expect(() => events['error']({ status: 404 })).toThrow(
+          'Forest Admin server failed to find the environment ' +
+            'related to the envSecret you configured. ' +
+            'Can you check that you copied it properly during initialization?',
+        );
       });
     });
 
+    test.each([502, 503, 504])(
+      'should warn the user about reconnection when error status is %s',
+      status => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          refreshEventsHandlerService,
+        );
+
+        eventsSubscriptionService.subscribeEvents();
+
+        // eslint-disable-next-line @typescript-eslint/dot-notation
+        events['error']({ status });
+
+        expect(options.logger).toHaveBeenCalledWith(
+          'Debug',
+          'Server Event - Connection lost trying to reconnect…',
+        );
+      },
+    );
+
     describe('other error case', () => {
-      test('should delegate to refreshEventsHandlerService', async () => {
+      test('should warn with error message information the user', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
           options,
           refreshEventsHandlerService,
@@ -219,12 +241,12 @@ describe('EventsSubscriptionService', () => {
 
         // eslint-disable-next-line @typescript-eslint/dot-notation
         events['error']({
-          status: 404,
+          status: 403,
           message: 'some error message that might help customer to track issues',
         });
         expect(options.logger).toHaveBeenCalledWith(
           'Warn',
-          'Server Event - Error: {"status":404,"message":"some error message that' +
+          'Server Event - Error: {"status":403,"message":"some error message that' +
             ' might help customer to track issues"}',
         );
       });
