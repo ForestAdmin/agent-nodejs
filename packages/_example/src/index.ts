@@ -24,7 +24,7 @@ export default async () => {
   agent.addDataSource(
     createCachedDataSource({
       cacheInto: 'sqlite::memory:',
-      namespace: 'whatever',
+      cacheNamespace: 'whatever',
       dumpOnStartup: true,
       flattenOptions: {
         users: { asModels: ['address'] },
@@ -89,59 +89,62 @@ export default async () => {
       //   console.log('delete', collectionName, record);
       // },
     }),
+    { rename: collectionName => `whatever_${collectionName}` },
   );
 
-  // agent.addDataSource(
-  //   createHubspotDataSource({
-  //     accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
-  //     collections: {
-  //       contacts: ['firstname', 'lastname', 'mycustomfield'],
-  //     },
-  //   }),
-  // );
+  agent.addDataSource(
+    createHubspotDataSource({
+      accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      collections: {
+        contacts: ['firstname', 'lastname', 'mycustomfield'],
+      },
+    }),
+    { rename: collectionName => `hubspot_${collectionName}` },
+  );
 
-  // agent.addDataSource(
-  //   createCachedDataSource({
-  //     cacheInto: 'sqlite::memory:',
-  //     namespace: 'typicode',
-  //     dumpOnStartup: true,
-  //     schema: [
-  //       {
-  //         name: 'users',
-  //         fields: {
-  //           id: { type: 'Integer', isPrimaryKey: true },
-  //         },
-  //       },
-  //       {
-  //         name: 'posts',
-  //         fields: {
-  //           id: { type: 'Integer', isPrimaryKey: true },
-  //           userId: {
-  //             type: 'Integer',
-  //             reference: {
-  //               relationInverse: 'posts',
-  //               relationName: 'user',
-  //               targetCollection: 'users',
-  //               targetField: 'id',
-  //             },
-  //           },
-  //           title: { type: 'String' },
-  //           body: { type: 'String' },
-  //         },
-  //       },
-  //     ],
-  //     getDump: async request => {
-  //       const promises = request.collections.map(async collection => {
-  //         const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
+  agent.addDataSource(
+    createCachedDataSource({
+      cacheInto: 'sqlite::memory:',
+      cacheNamespace: 'typicode',
+      dumpOnStartup: true,
+      schema: [
+        {
+          name: 'users',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+          },
+        },
+        {
+          name: 'posts',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+            userId: {
+              type: 'Integer',
+              reference: {
+                relationInverse: 'posts',
+                relationName: 'user',
+                targetCollection: 'users',
+                targetField: 'id',
+              },
+            },
+            title: { type: 'String' },
+            body: { type: 'String' },
+          },
+        },
+      ],
+      getDump: async request => {
+        const promises = request.collections.map(async collection => {
+          const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
 
-  //         return response.data.map(record => ({ collection, record }));
-  //       });
-  //       const records = await Promise.all(promises);
+          return response.data.map(record => ({ collection, record }));
+        });
+        const records = await Promise.all(promises);
 
-  //       return { more: false, entries: records.flat() };
-  //     },
-  //   }),
-  // );
+        return { more: false, entries: records.flat() };
+      },
+    }),
+    { rename: collectionName => `typicode_${collectionName}` },
+  );
 
   agent.mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
   await agent.start();

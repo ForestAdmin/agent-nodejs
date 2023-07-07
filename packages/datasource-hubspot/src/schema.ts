@@ -11,7 +11,7 @@ async function getCollectionSchema(
   const collection: CachedCollectionSchema = {
     name: collectionName,
     fields: {
-      id: { type: 'Column', columnType: 'String', isPrimaryKey: true },
+      id: { type: 'String', isPrimaryKey: true },
     },
   };
 
@@ -21,11 +21,11 @@ async function getCollectionSchema(
     const property = properties.results.find(p => p.name === fieldName);
     if (!property) throw new Error(`property ${fieldName} does not exists`);
 
-    let columnType: ColumnType;
-    if (property.type === 'string') columnType = 'String';
+    let type: ColumnType;
+    if (property.type === 'string') type = 'String';
     else throw new Error(`property ${fieldName} has unsupported type ${property.type}`);
 
-    collection.fields[fieldName] = { type: 'Column', columnType, isPrimaryKey: false };
+    collection.fields[fieldName] = { type, isPrimaryKey: false };
   }
 
   return collection;

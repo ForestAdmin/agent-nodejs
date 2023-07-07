@@ -10,14 +10,7 @@ import { Sequelize } from 'sequelize';
 
 import SyncCollectionDecorator from './collection';
 import { flattenRecord } from '../../flattener';
-import {
-  DeltaOptions,
-  DeltaReason,
-  DumpOptions,
-  DumpReason,
-  RecordDataWithCollection,
-  ResolvedOptions,
-} from '../../types';
+import { DeltaReason, DumpReason, RecordDataWithCollection, ResolvedOptions } from '../../types';
 
 type Queue<Reason> = {
   /**
@@ -99,7 +92,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
     // We wait for the access delay before running the delta
     // This allows to batch delta requests at the cost of adding a floor delay to all requests.
-    setTimeout(() => this.tick(), (this.options as DeltaOptions).accessDelay ?? 0);
+    setTimeout(() => this.tick(), this.options.deltaAccessDelay ?? 0);
 
     return deferred.promise;
   }
@@ -129,7 +122,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
     // Fill table with dump
     while (more) {
-      const changes = await (this.options as DumpOptions).getDump({
+      const changes = await this.options.getDump({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
         cache: new RelaxedDataSource(this, null),
@@ -166,7 +159,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
     while (more) {
       // Update records in database
       const previousState = await this.getDeltaState();
-      const changes = await (this.options as DeltaOptions).getDelta({
+      const changes = await this.options.getDelta({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
         cache: new RelaxedDataSource(this, null),
@@ -196,14 +189,14 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
   private async getDeltaState(): Promise<unknown> {
     const stateModel = this.connection.model(`forest_sync_state`);
-    const stateRecord = await stateModel.findByPk(this.options.namespace);
+    const stateRecord = await stateModel.findByPk(this.options.cacheNamespace);
 
     return stateRecord ? JSON.parse(stateRecord.dataValues.state) : null;
   }
 
   private async setDeltaState(state: unknown): Promise<void> {
     const stateModel = this.connection.model(`forest_sync_state`);
-    await stateModel.upsert({ id: this.options.namespace, state: JSON.stringify(state) });
+    await stateModel.upsert({ id: this.options.cacheNamespace, state: JSON.stringify(state) });
   }
 
   private flattenRecord(

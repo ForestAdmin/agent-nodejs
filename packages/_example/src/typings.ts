@@ -1,12 +1,43 @@
 /* eslint-disable */
 export type Schema = {
-  'users': {
+  'hubspot_contacts': {
+    plain: {
+      'id': string;
+      'firstname': string;
+      'lastname': string;
+      'mycustomfield': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'typicode_posts': {
+    plain: {
+      'id': number;
+      'userId': number;
+      'title': string;
+      'body': string;
+    };
+    nested: {
+      'user': Schema['typicode_users']['plain'] & Schema['typicode_users']['nested'];
+    };
+    flat: {
+      'user:id': number;
+    };
+  };
+  'typicode_users': {
+    plain: {
+      'id': number;
+    };
+    nested: {};
+    flat: {};
+  };
+  'whatever_users': {
     plain: {
       'id': number;
       'name': string;
     };
     nested: {
-      'address': Schema['users_address']['plain'] & Schema['users_address']['nested'];
+      'address': Schema['whatever_users_address']['plain'] & Schema['whatever_users_address']['nested'];
     };
     flat: {
       'address:street': string;
@@ -16,7 +47,7 @@ export type Schema = {
       'address:_fpid': number;
     };
   };
-  'users_address': {
+  'whatever_users_address': {
     plain: {
       'street': string;
       'city': string;
@@ -25,7 +56,7 @@ export type Schema = {
       '_fpid': number;
     };
     nested: {
-      'parent': Schema['users']['plain'] & Schema['users']['nested'];
+      'parent': Schema['whatever_users']['plain'] & Schema['whatever_users']['nested'];
     };
     flat: {
       'parent:id': number;

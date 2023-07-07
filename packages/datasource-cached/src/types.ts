@@ -97,30 +97,29 @@ export type FlattenOptions = {
   [modelName: string]: { asModels?: string[]; asFields?: string[] };
 };
 
-export type BaseOptions = {
-  /** prefix that should be used when caching */
-  namespace: string;
-
+export type CachedDataSourceOptions = {
   /** URL of the cache database (default to in-memory sqlite) */
   cacheInto?: ConnectionOptions;
 
-  /**  */
+  /** Prefix that should be used when creating the tables on the cache */
+  cacheNamespace: string;
+
+  /** Schema options */
   schema?: ValueOrPromiseOrFactory<CachedCollectionSchema[]>;
+  flattenMode?: 'auto' | 'manual' | 'none';
   flattenOptions?: ValueOrPromiseOrFactory<FlattenOptions>;
 
-  /** */
+  /** Writing options */
   createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
   updateRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
   deleteRecord?: (collectionName: string, record: RecordData) => Promise<void>;
-};
 
-export type DumpOptions = {
+  /** Dump options */
   getDump?: (request: DumpRequest) => Promise<DumpResponse>;
   dumpOnStartup?: boolean;
   dumpOnTimer?: number;
-};
 
-export type DeltaOptions = {
+  /** Delta options */
   getDelta?: (request: DeltaRequest) => Promise<DeltaResponse>;
   deltaOnStartup?: boolean;
   deltaOnTimer?: number;
@@ -133,12 +132,10 @@ export type DeltaOptions = {
    *
    * Note that this delay will add latency to each request, so set it to a low value (< 100ms)
    */
-  accessDelay?: number;
+  deltaAccessDelay?: number;
 };
 
-export type CachedDataSourceOptions = BaseOptions & DumpOptions & DeltaOptions;
-
-export type ResolvedOptions = CachedDataSourceOptions & {
+export type ResolvedOptions = Omit<CachedDataSourceOptions, 'schema' | 'flattenOptions'> & {
   schema?: CachedCollectionSchema[];
   flattenOptions?: FlattenOptions;
 };

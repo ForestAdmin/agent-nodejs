@@ -10,14 +10,14 @@ export function createHubspotDataSource(options: HubSpotOptions) {
   const client = new Client({ accessToken: options.accessToken });
 
   return createCachedDataSource({
-    namespace: 'hubspot',
     cacheInto: 'sqlite::memory:',
+    cacheNamespace: 'hubspot',
     schema: getSchema(client, options),
 
     // Use delta synchronization
     getDelta: request => getChanges(client, options, request),
     deltaOnStartup: true,
     deltaOnBeforeAccess: true,
-    accessDelay: 50,
+    deltaAccessDelay: 50,
   });
 }

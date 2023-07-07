@@ -58,7 +58,6 @@ function defineRelationships(schema: CachedCollectionSchema[], sequelize: Sequel
         });
 
         if (field.reference.relationInverse) {
-          // not sure why this breaks the frontend
           const handler = field.unique ? otherSequelizeModel.hasOne : otherSequelizeModel.hasMany;
           handler.call(otherSequelizeModel, sequelizeModel, {
             as: field.reference.relationInverse,
@@ -84,11 +83,14 @@ export default async function createSequelize(options: ResolvedOptions) {
   });
 
   const flattenedSchema = flattenSchema(options.schema, options.flattenOptions);
-  defineModels(options.namespace, flattenedSchema, sequelize);
+  defineModels(options.cacheNamespace, flattenedSchema, sequelize);
 
   // Sync models before defining associations
   // This ensure that the foreign key contraints are not set which is convenient
   // for a caching use-case: we want to be able to load records in any order.
+
+  // FIXME note that this will break if the schema changes
+  // Ideally we should destroy the tables and recreate them, but only if the schema changed
   await sequelize.sync();
 
   defineRelationships(flattenedSchema, sequelize);
