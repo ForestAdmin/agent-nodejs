@@ -125,7 +125,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
       const changes = await this.options.getDump({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
-        cache: new RelaxedDataSource(this, null),
+        cache: new RelaxedDataSource(this.childDataSource, null),
         previousDumpState: state,
       });
 
@@ -162,7 +162,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
       const changes = await this.options.getDelta({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
-        cache: new RelaxedDataSource(this, null),
+        cache: new RelaxedDataSource(this.childDataSource, null),
         previousDeltaState: previousState,
       });
 
