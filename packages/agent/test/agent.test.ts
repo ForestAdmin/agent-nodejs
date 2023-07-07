@@ -280,4 +280,15 @@ describe('Agent', () => {
       expect(mockPostSchema).not.toHaveBeenCalled();
     });
   });
+
+  describe('stop', () => {
+    test('stop should close the Forest Admin client', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      await agent.stop();
+
+      expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
+    });
+  });
 });

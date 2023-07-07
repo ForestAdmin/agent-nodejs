@@ -34,7 +34,7 @@ export default class FrameworkMounter {
     for (const task of this.onEachStart) await task(router); // eslint-disable-line no-await-in-loop
   }
 
-  async stop(): Promise<void> {
+  public async stop(): Promise<void> {
     for (const task of this.onStop) await task(); // eslint-disable-line no-await-in-loop
   }
 
