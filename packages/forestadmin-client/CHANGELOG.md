@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.2...@forestadmin/forestadmin-client@1.5.3) (2023-07-07)
+
+
+### Bug Fixes
+
+* **client:** handle more errors on Server Sent Event issues to better reflect what is going on ([#759](https://github.com/ForestAdmin/agent-nodejs/issues/759)) ([48d4972](https://github.com/ForestAdmin/agent-nodejs/commit/48d4972e85ef7b20bfeeeaf74494a2ac61a7c6c8))
+
 ## @forestadmin/forestadmin-client [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.1...@forestadmin/forestadmin-client@1.5.2) (2023-06-29)
 
 
