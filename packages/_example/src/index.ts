@@ -26,9 +26,10 @@ export default async () => {
       cacheInto: 'sqlite::memory:',
       cacheNamespace: 'whatever',
       dumpOnStartup: true,
+      flattenMode: 'manual',
       flattenOptions: {
-        users: { asModels: ['address'] },
-        // users: { asFields: ['address.street', 'address.city'], asModels: ['address.zipCodes'] },
+        // users: { asModels: ['address'] },
+        users: { asFields: [{ field: 'address', level: 99 }], asModels: ['address.zipCodes'] },
       },
       schema: [
         {

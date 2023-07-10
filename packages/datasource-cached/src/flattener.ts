@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { RecordData } from '@forestadmin/datasource-toolkit';
-import { CachedCollectionSchema, FlattenOptions, RecordDataWithCollection } from './types';
+import { CachedCollectionSchema, RecordDataWithCollection, ResolvedOptions } from './types';
 
 function escape(strings: TemplateStringsArray, ...exps: unknown[]): string {
   return strings.reduce((acc, str, i) => acc + str + (exps[i] ?? ''), '').replace(/\./g, '_');
@@ -151,7 +151,7 @@ export function flattenCollectionSchema(
 
 export function flattenSchema(
   schema: CachedCollectionSchema[],
-  flattenOptions: FlattenOptions,
+  flattenOptions: ResolvedOptions['flattenOptions'],
 ): CachedCollectionSchema[] {
   return schema.flatMap(collectionSchema =>
     flattenCollectionSchema(

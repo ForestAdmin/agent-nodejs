@@ -3,6 +3,7 @@ import { ConnectionOptions } from '@forestadmin/datasource-sql';
 import {
   Aggregation,
   Caller,
+  ColumnSchema,
   Filter,
   PaginatedFilter,
   PrimitiveTypes,
@@ -30,6 +31,7 @@ export type LeafField = {
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   unique?: boolean;
+  validation?: ColumnSchema['validation'];
   reference?: {
     relationName: string;
     targetCollection: string;
@@ -94,7 +96,10 @@ export type DeltaResponse = {
 // Options
 /// //////
 export type FlattenOptions = {
-  [modelName: string]: { asModels?: string[]; asFields?: string[] };
+  [modelName: string]: {
+    asModels?: string[];
+    asFields?: Array<string | { field: string; level: number }>;
+  };
 };
 
 export type CachedDataSourceOptions = {
@@ -137,5 +142,5 @@ export type CachedDataSourceOptions = {
 
 export type ResolvedOptions = Omit<CachedDataSourceOptions, 'schema' | 'flattenOptions'> & {
   schema?: CachedCollectionSchema[];
-  flattenOptions?: FlattenOptions;
+  flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
 };
