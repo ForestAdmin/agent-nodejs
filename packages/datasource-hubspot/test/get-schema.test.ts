@@ -1,7 +1,7 @@
 import { Client } from '@hubspot/api-client';
 
-import companiesData from './companies.json';
-import contactsData from './contacts.json';
+import companiesData from './data/companies.json';
+import contactsData from './data/contacts.json';
 import getSchema from '../src/schema';
 
 describe('getSchema', () => {
@@ -28,6 +28,29 @@ describe('getSchema', () => {
   });
 
   describe('different field types', () => {
+    describe('specific cases', () => {
+      describe('when the field type is not supported', () => {
+        it('should throw an error', async () => {
+          const data = { results: [{ name: 'unsupported', type: 'unsupported' }] };
+          const client = makeClient(jest.fn().mockResolvedValue(data));
+          await expect(() => getSchema(client, { companies: ['unsupported'] })).rejects.toThrow(
+            'Property "unsupported" has unsupported type unsupported',
+          );
+        });
+      });
+
+      describe('when the field is an enum and options is empty', () => {
+        it('should not import the field', async () => {
+          const data = {
+            results: [{ name: 'emptyEnumOptions', type: 'enumeration', options: [] }],
+          };
+          const client = makeClient(jest.fn().mockResolvedValue(data));
+          const [collectionSchema] = await getSchema(client, { companies: ['emptyEnumOptions'] });
+          expect(collectionSchema.fields.emptyEnumOptions).toBeUndefined();
+        });
+      });
+    });
+
     test.each([
       // type, expectedAttributes, field, dataSample
       ['string', { type: 'String' }, 'about_us', companiesData],

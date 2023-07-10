@@ -5,6 +5,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 
 import { Schema } from './typings';
+import { TypingsHubspot } from './typings-hubspot';
 
 dotenv.config();
 
@@ -93,10 +94,15 @@ export default async () => {
   );
 
   agent.addDataSource(
-    createHubspotDataSource({
+    await createHubspotDataSource<TypingsHubspot>({
+      generateCollectionTypes: true,
+      typingsPath: 'src/typings-hubspot.ts',
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
-        contacts: ['firstname', 'lastname', 'mycustomfield'],
+        companies: ['address', 'description', 'days_to_close', 'city', 'facebookfans'],
+        quotes: ['hs_all_assigned_business_unit_ids'],
+        deals: ['closed_lost_reason', 'closed_won_reason'],
+        contacts: ['city', 'annualrevenue'],
       },
     }),
     { rename: collectionName => `hubspot_${collectionName}` },

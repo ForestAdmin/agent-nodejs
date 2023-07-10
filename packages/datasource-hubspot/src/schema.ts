@@ -1,4 +1,5 @@
 import { CachedCollectionSchema, ColumnType, LeafField } from '@forestadmin/datasource-cached';
+import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { HubSpotOptions } from './types';
@@ -7,6 +8,7 @@ async function getCollectionSchema(
   client: Client,
   collectionName: string,
   fields: string[],
+  logger?: Logger,
 ): Promise<CachedCollectionSchema> {
   const collection: CachedCollectionSchema = {
     name: collectionName,
@@ -32,22 +34,27 @@ async function getCollectionSchema(
       enumValues = property.options.map(option => option.value);
     } else if (property.type === 'bool') type = 'Boolean';
     else if (property.type === 'phone_number') type = 'String';
-    else throw new Error(`property ${fieldName} has unsupported type ${property.type}`);
+    else throw new Error(`Property "${fieldName}" has unsupported type ${property.type}`);
 
     collection.fields[fieldName] = { type, isPrimaryKey: false, isReadOnly: true };
-    if (enumValues) (collection.fields[fieldName] as LeafField).enumValues = enumValues;
+
+    if (enumValues?.length === 0) {
+      delete collection.fields[fieldName];
+      logger?.('Warn', `Property "${fieldName}" has no enum values, it will be ignored`);
+    } else if (enumValues) (collection.fields[fieldName] as LeafField).enumValues = enumValues;
   }
 
   return collection;
 }
 
-export default async function getSchema(
+export default async function getSchema<TypingsHubspot>(
   client: Client,
-  collections: HubSpotOptions['collections'],
+  collections: HubSpotOptions<TypingsHubspot>['collections'],
+  logger?: Logger,
 ): Promise<CachedCollectionSchema[]> {
   return Promise.all(
     Object.entries(collections).map(([collectionName, fields]) =>
-      getCollectionSchema(client, collectionName, fields),
+      getCollectionSchema(client, collectionName, fields, logger),
     ),
   );
 }

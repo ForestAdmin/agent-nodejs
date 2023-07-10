@@ -1,11 +1,38 @@
 /* eslint-disable */
 export type Schema = {
+  'hubspot_companies': {
+    plain: {
+      'id': string;
+      'address': string;
+      'description': string;
+      'days_to_close': number;
+      'city': string;
+      'facebookfans': number;
+    };
+    nested: {};
+    flat: {};
+  };
   'hubspot_contacts': {
     plain: {
       'id': string;
-      'firstname': string;
-      'lastname': string;
-      'mycustomfield': string;
+      'city': string;
+      'annualrevenue': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'hubspot_deals': {
+    plain: {
+      'id': string;
+      'closed_lost_reason': string;
+      'closed_won_reason': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'hubspot_quotes': {
+    plain: {
+      'id': string;
     };
     nested: {};
     flat: {};

@@ -25,9 +25,9 @@ async function getRecords(client: Client, name: string, fields: string[], after?
   );
 }
 
-export default async function getDelta(
+export default async function getDelta<TypingsHubspot>(
   client: Client,
-  options: HubSpotOptions,
+  options: HubSpotOptions<TypingsHubspot>,
   request: DeltaRequest,
 ): Promise<DeltaResponse> {
   const newOrUpdatedEntries = [];

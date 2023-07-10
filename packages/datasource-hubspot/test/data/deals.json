@@ -1,0 +1,3353 @@
+{
+  "results": [
+    {
+      "updatedAt": "2022-05-27T23:42:42.612Z",
+      "createdAt": "2020-06-30T15:57:38.455Z",
+      "name": "amount_in_home_currency",
+      "label": "Amount in company currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "The amount of the deal, using the exchange rate, in your company's currency",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(string(deal_currency_code)) then if bool(hs_is_closed) then (amount * dated_exchange_rate(string(deal_currency_code), if is_present(string(closedate)) then string(closedate) else timestamp(hs_is_closed))) else (amount * exchange_rate(string(deal_currency_code))) else amount"
+    },
+    {
+      "updatedAt": "2023-06-20T22:32:28.368Z",
+      "createdAt": "2019-08-06T02:41:52.984Z",
+      "name": "days_to_close",
+      "label": "Days to close",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "The number of days the deal took to close",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "max(0, round_down(((closedate - createdate) / 86400000), 0))"
+    },
+    {
+      "updatedAt": "2023-06-20T20:54:31.310Z",
+      "createdAt": "2020-06-30T15:57:38.478Z",
+      "name": "deal_currency_code",
+      "label": "Currency",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Currency code for the deal.",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-27T23:49:19.828Z",
+      "createdAt": "2020-06-30T15:57:38.357Z",
+      "name": "hs_acv",
+      "label": "Annual contract value",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The annual contract value (ACV) of this deal.",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-04-26T17:53:32.982Z",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "name": "hs_all_assigned_business_unit_ids",
+      "label": "Business units",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "The business units this record is assigned to.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-15T18:53:29.419Z",
+      "createdAt": "2022-05-02T19:41:37.305Z",
+      "name": "hs_all_collaborator_owner_ids",
+      "label": "Deal Collaborator",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "Owner ids of the users involved in closing the deal",
+      "groupName": "dealinformation",
+      "options": [],
+      "referencedObjectType": "OWNER",
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:11:07.210Z",
+      "createdAt": "2021-11-23T15:31:07.889Z",
+      "name": "hs_all_deal_split_owner_ids",
+      "label": "Deal Split Users",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "The owner ids of all associated Deal Splits. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-06T19:22:23.694Z",
+      "name": "hs_analytics_latest_source",
+      "label": "Latest Source",
+      "type": "enumeration",
+      "fieldType": "number",
+      "description": "Source for the contact either directly or indirectly associated with the last session activity for this deal",
+      "groupName": "analyticsinformation",
+      "options": [
+        {
+          "label": "Organic Search",
+          "value": "ORGANIC_SEARCH",
+          "description": "",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Paid Search",
+          "value": "PAID_SEARCH",
+          "description": "",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Email Marketing",
+          "value": "EMAIL_MARKETING",
+          "description": "",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Organic Social",
+          "value": "SOCIAL_MEDIA",
+          "description": "",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Referrals",
+          "value": "REFERRALS",
+          "description": "",
+          "displayOrder": 4,
+          "hidden": false
+        },
+        {
+          "label": "Other Campaigns",
+          "value": "OTHER_CAMPAIGNS",
+          "description": "",
+          "displayOrder": 5,
+          "hidden": false
+        },
+        {
+          "label": "Direct Traffic",
+          "value": "DIRECT_TRAFFIC",
+          "description": "",
+          "displayOrder": 6,
+          "hidden": false
+        },
+        {
+          "label": "Offline Sources",
+          "value": "OFFLINE",
+          "description": "",
+          "displayOrder": 7,
+          "hidden": false
+        },
+        {
+          "label": "Paid Social",
+          "value": "PAID_SOCIAL",
+          "description": "",
+          "displayOrder": 8,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(string(hs_analytics_latest_source_contact)) then string(hs_analytics_latest_source_contact) else string(hs_analytics_latest_source_company)"
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:06:22.930Z",
+      "name": "hs_analytics_latest_source_company",
+      "label": "Latest Source Company",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Source for the company with an associated contact with the last session activity for this deal",
+      "groupName": "analyticsinformation",
+      "options": [
+        {
+          "label": "Organic Search",
+          "value": "ORGANIC_SEARCH",
+          "description": "",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Paid Search",
+          "value": "PAID_SEARCH",
+          "description": "",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Email Marketing",
+          "value": "EMAIL_MARKETING",
+          "description": "",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Organic Social",
+          "value": "SOCIAL_MEDIA",
+          "description": "",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Referrals",
+          "value": "REFERRALS",
+          "description": "",
+          "displayOrder": 4,
+          "hidden": false
+        },
+        {
+          "label": "Other Campaigns",
+          "value": "OTHER_CAMPAIGNS",
+          "description": "",
+          "displayOrder": 5,
+          "hidden": false
+        },
+        {
+          "label": "Direct Traffic",
+          "value": "DIRECT_TRAFFIC",
+          "description": "",
+          "displayOrder": 6,
+          "hidden": false
+        },
+        {
+          "label": "Offline Sources",
+          "value": "OFFLINE",
+          "description": "",
+          "displayOrder": 7,
+          "hidden": false
+        },
+        {
+          "label": "Paid Social",
+          "value": "PAID_SOCIAL",
+          "description": "",
+          "displayOrder": 8,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:03:52.928Z",
+      "name": "hs_analytics_latest_source_contact",
+      "label": "Latest Source Contact",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Source for the directly associated contact with the last session activity for this deal",
+      "groupName": "analyticsinformation",
+      "options": [
+        {
+          "label": "Organic Search",
+          "value": "ORGANIC_SEARCH",
+          "description": "",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Paid Search",
+          "value": "PAID_SEARCH",
+          "description": "",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Email Marketing",
+          "value": "EMAIL_MARKETING",
+          "description": "",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Organic Social",
+          "value": "SOCIAL_MEDIA",
+          "description": "",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Referrals",
+          "value": "REFERRALS",
+          "description": "",
+          "displayOrder": 4,
+          "hidden": false
+        },
+        {
+          "label": "Other Campaigns",
+          "value": "OTHER_CAMPAIGNS",
+          "description": "",
+          "displayOrder": 5,
+          "hidden": false
+        },
+        {
+          "label": "Direct Traffic",
+          "value": "DIRECT_TRAFFIC",
+          "description": "",
+          "displayOrder": 6,
+          "hidden": false
+        },
+        {
+          "label": "Offline Sources",
+          "value": "OFFLINE",
+          "description": "",
+          "displayOrder": 7,
+          "hidden": false
+        },
+        {
+          "label": "Paid Social",
+          "value": "PAID_SOCIAL",
+          "description": "",
+          "displayOrder": 8,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-06T19:25:58.108Z",
+      "name": "hs_analytics_latest_source_data_1",
+      "label": "Latest Source Data 1",
+      "type": "string",
+      "fieldType": "number",
+      "description": "Additional source details of the last session attributed to any contacts that are directly or indirectly associated with this deal",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(string(hs_analytics_latest_source_contact)) then string(hs_analytics_latest_source_data_1_contact) else string(hs_analytics_latest_source_data_1_company)"
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:10:23.992Z",
+      "name": "hs_analytics_latest_source_data_1_company",
+      "label": "Latest Source Data 1 Company",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Additional source details of the last session attributed to any contacts that are indirectly associated with this deal (via a company association)",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:09:39.907Z",
+      "name": "hs_analytics_latest_source_data_1_contact",
+      "label": "Latest Source Data 1 Contact",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Additional source details of the last session attributed to any contacts that are directly associated with this deal",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-06T19:26:53.632Z",
+      "name": "hs_analytics_latest_source_data_2",
+      "label": "Latest Source Data 2",
+      "type": "string",
+      "fieldType": "number",
+      "description": "Additional source details of the last session attributed to any contacts that are directly or indirectly associated with this deal",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(string(hs_analytics_latest_source_contact)) then string(hs_analytics_latest_source_data_2_contact) else string(hs_analytics_latest_source_data_2_company)"
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:13:35.323Z",
+      "name": "hs_analytics_latest_source_data_2_company",
+      "label": "Latest Source Data 2 Company",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Additional source details of the last session attributed to any contacts that are indirectly associated with this deal",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:12:11.033Z",
+      "name": "hs_analytics_latest_source_data_2_contact",
+      "label": "Latest Source Data 2 Contact",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Additional source details of the last session attributed to any contacts that are directly associated with this deal",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-06T19:28:22.477Z",
+      "name": "hs_analytics_latest_source_timestamp",
+      "label": "Latest Source Timestamp",
+      "type": "datetime",
+      "fieldType": "number",
+      "description": "Timestamp of when latest source occurred for either a directly or indirectly associated contact",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(string(hs_analytics_latest_source_contact)) then hs_analytics_latest_source_timestamp_contact else hs_analytics_latest_source_timestamp_company"
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:23:31.015Z",
+      "name": "hs_analytics_latest_source_timestamp_company",
+      "label": "Latest Source Timestamp Company",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "Timestamp of when latest source occurred for an indirectly associated contact",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-09-14T18:51:50.301Z",
+      "createdAt": "2022-05-02T21:16:19.566Z",
+      "name": "hs_analytics_latest_source_timestamp_contact",
+      "label": "Latest Source Timestamp Contact",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "Timestamp of when latest source occurred for a directly associated contact",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2019-08-06T02:41:53.038Z",
+      "name": "hs_analytics_source",
+      "label": "Original Source Type",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Original source for the contact with the earliest activity for this deal.",
+      "groupName": "analyticsinformation",
+      "options": [
+        {
+          "label": "Organic Search",
+          "value": "ORGANIC_SEARCH",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Paid Search",
+          "value": "PAID_SEARCH",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Email Marketing",
+          "value": "EMAIL_MARKETING",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Organic Social",
+          "value": "SOCIAL_MEDIA",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Referrals",
+          "value": "REFERRALS",
+          "displayOrder": 4,
+          "hidden": false
+        },
+        {
+          "label": "Other Campaigns",
+          "value": "OTHER_CAMPAIGNS",
+          "displayOrder": 5,
+          "hidden": false
+        },
+        {
+          "label": "Direct Traffic",
+          "value": "DIRECT_TRAFFIC",
+          "displayOrder": 6,
+          "hidden": false
+        },
+        {
+          "label": "Offline Sources",
+          "value": "OFFLINE",
+          "displayOrder": 7,
+          "hidden": false
+        },
+        {
+          "label": "Paid Social",
+          "value": "PAID_SOCIAL",
+          "displayOrder": 8,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyOptions": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2019-08-06T02:41:53.115Z",
+      "name": "hs_analytics_source_data_1",
+      "label": "Original Source Data 1",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Additional information about the original source for the associated contact, or associated company if there is no contact, with the oldest value for the Time first seen property.",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2019-08-06T02:41:53.170Z",
+      "name": "hs_analytics_source_data_2",
+      "label": "Original Source Data 2",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Additional information about the original source for the associated contact, or associated company if there is no contact, with the oldest value for the Time first seen property.",
+      "groupName": "analyticsinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-27T23:55:02.326Z",
+      "createdAt": "2020-06-30T15:57:38.247Z",
+      "name": "hs_arr",
+      "label": "Annual recurring revenue",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The annual recurring revenue (ARR) of this deal.",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:30:05.213Z",
+      "createdAt": "2019-08-06T02:41:53.315Z",
+      "name": "hs_campaign",
+      "label": "HubSpot Campaign",
+      "type": "string",
+      "fieldType": "text",
+      "description": "The marketing campaign the deal is associated with",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:32:28.368Z",
+      "createdAt": "2019-10-14T20:45:57.018Z",
+      "name": "hs_closed_amount",
+      "label": "Closed Deal Amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Returns the amount if the deal is closed. Else, returns 0.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(pipeline_probability(string(dealstage))) and pipeline_probability(string(dealstage)) >= 1) then amount else 0"
+    },
+    {
+      "updatedAt": "2023-06-20T22:11:07.210Z",
+      "createdAt": "2019-10-14T20:45:57.070Z",
+      "name": "hs_closed_amount_in_home_currency",
+      "label": "Closed Deal Amount In Home Currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Returns the amount in home currency if the deal is closed. Else, returns 0.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(pipeline_probability(string(dealstage))) and pipeline_probability(string(dealstage)) >= 1) then amount_in_home_currency else 0"
+    },
+    {
+      "updatedAt": "2023-05-16T20:21:20.155Z",
+      "createdAt": "2023-05-16T20:21:20.155Z",
+      "name": "hs_closed_won_count",
+      "label": "Closed won count",
+      "type": "number",
+      "fieldType": "number",
+      "description": "Returns 1 if this deal is closed won",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if bool(hs_is_closed_won) then 1 endif"
+    },
+    {
+      "updatedAt": "2023-05-30T18:46:14.363Z",
+      "createdAt": "2023-05-18T17:56:28.363Z",
+      "name": "hs_closed_won_date",
+      "label": "Closed Won Date (Internal)",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "Returns closedate if this deal is closed won",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if bool(hs_is_closed_won) then closedate endif"
+    },
+    {
+      "updatedAt": "2022-06-14T16:46:55.819Z",
+      "createdAt": "2020-02-24T15:51:11.435Z",
+      "name": "hs_created_by_user_id",
+      "label": "Created by user ID",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The user that created this object. This value is automatically set by HubSpot and may not be modified.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:38:49.710Z",
+      "createdAt": "2020-02-11T18:42:41.452Z",
+      "name": "hs_date_entered_appointmentscheduled",
+      "label": "Date entered 'Appointment Scheduled (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Appointment Scheduled' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:47:20.508Z",
+      "createdAt": "2020-02-11T18:44:30.382Z",
+      "name": "hs_date_entered_closedlost",
+      "label": "Date entered 'Closed Lost (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Closed Lost' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:29:49.239Z",
+      "createdAt": "2020-02-11T18:44:13.551Z",
+      "name": "hs_date_entered_closedwon",
+      "label": "Date entered 'Closed Won (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Closed Won' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:34:06.588Z",
+      "createdAt": "2020-02-11T18:43:57.538Z",
+      "name": "hs_date_entered_contractsent",
+      "label": "Date entered 'Contract Sent (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Contract Sent' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:26:54.092Z",
+      "createdAt": "2020-02-11T18:43:41.289Z",
+      "name": "hs_date_entered_decisionmakerboughtin",
+      "label": "Date entered 'Decision Maker Bought-In (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Decision Maker Bought-In' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:50:13.523Z",
+      "createdAt": "2020-02-11T18:43:26.610Z",
+      "name": "hs_date_entered_presentationscheduled",
+      "label": "Date entered 'Presentation Scheduled (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Presentation Scheduled' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:26:54.092Z",
+      "createdAt": "2020-02-11T18:43:10.231Z",
+      "name": "hs_date_entered_qualifiedtobuy",
+      "label": "Date entered 'Qualified To Buy (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal entered the 'Qualified To Buy' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:26:54.092Z",
+      "createdAt": "2020-02-11T18:42:49.082Z",
+      "name": "hs_date_exited_appointmentscheduled",
+      "label": "Date exited 'Appointment Scheduled (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Appointment Scheduled' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:29:49.239Z",
+      "createdAt": "2020-02-11T18:44:38.966Z",
+      "name": "hs_date_exited_closedlost",
+      "label": "Date exited 'Closed Lost (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Closed Lost' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:50:13.523Z",
+      "createdAt": "2020-02-11T18:44:18.739Z",
+      "name": "hs_date_exited_closedwon",
+      "label": "Date exited 'Closed Won (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Closed Won' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:47:20.508Z",
+      "createdAt": "2020-02-11T18:44:02.815Z",
+      "name": "hs_date_exited_contractsent",
+      "label": "Date exited 'Contract Sent (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Contract Sent' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:50:13.523Z",
+      "createdAt": "2020-02-11T18:43:46.148Z",
+      "name": "hs_date_exited_decisionmakerboughtin",
+      "label": "Date exited 'Decision Maker Bought-In (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Decision Maker Bought-In' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:26:54.092Z",
+      "createdAt": "2020-02-11T18:43:31.307Z",
+      "name": "hs_date_exited_presentationscheduled",
+      "label": "Date exited 'Presentation Scheduled (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Presentation Scheduled' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:34:06.588Z",
+      "createdAt": "2020-02-11T18:43:15.688Z",
+      "name": "hs_date_exited_qualifiedtobuy",
+      "label": "Date exited 'Qualified To Buy (Sales Pipeline)'",
+      "type": "datetime",
+      "fieldType": "calculation_read_time",
+      "description": "The date and time when the deal exited the 'Qualified To Buy' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:37:00.799Z",
+      "createdAt": "2019-08-06T02:41:53.235Z",
+      "name": "hs_deal_amount_calculation_preference",
+      "label": "Deal amount calculation preference",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "description": "Specifies how deal amount should be calculated from line items",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "Total Contract Value",
+          "value": "TCV",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Annual Recurring Revenue",
+          "value": "ARR",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Monthly Recurring Revenue",
+          "value": "MRR",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Custom",
+          "value": "CUSTOM",
+          "displayOrder": 3,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyOptions": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-18T15:40:41.523Z",
+      "createdAt": "2021-07-29T14:25:44.469Z",
+      "name": "hs_deal_stage_probability",
+      "label": "Deal probability",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The probability a deal will close. This defaults to the deal stage probability setting.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-16T17:49:44.961Z",
+      "createdAt": "2021-05-20T13:32:10.289Z",
+      "name": "hs_deal_stage_probability_shadow",
+      "label": "Deal stage probability shadow",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Fall back property for calculating the deal stage when no customer override exist.  Probability between 0 and 1 of deal stage. Defaults to 0 for unknown deal stages.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(pipeline_probability(string(dealstage))) then pipeline_probability(string(dealstage)) else 0"
+    },
+    {
+      "updatedAt": "2023-04-27T15:54:45.429Z",
+      "createdAt": "2022-09-12T17:18:10.467Z",
+      "name": "hs_exchange_rate",
+      "label": "Exchange rate",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "This is the exchange rate used to convert the deal amount into your company currency.",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(string(deal_currency_code)) then (amount_in_home_currency / amount) endif"
+    },
+    {
+      "updatedAt": "2023-05-18T15:40:41.523Z",
+      "createdAt": "2020-10-29T20:22:45.530Z",
+      "name": "hs_forecast_amount",
+      "label": "Forecast amount",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The custom forecasted deal value calculated by multiplying the forecast probability and deal amount in your company’s currency.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if is_present(hs_forecast_probability) then (hs_forecast_probability * amount_in_home_currency) else amount_in_home_currency"
+    },
+    {
+      "updatedAt": "2023-05-16T17:51:55.879Z",
+      "createdAt": "2020-10-29T20:17:48.778Z",
+      "name": "hs_forecast_probability",
+      "label": "Forecast probability",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The custom percent probability a deal will close.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:37:00.799Z",
+      "createdAt": "2019-10-07T15:45:48.973Z",
+      "name": "hs_is_closed",
+      "label": "Is Deal Closed?",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "description": "True if the deal was won or lost.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "(pipeline_probability(string(dealstage)) <= 0 or pipeline_probability(string(dealstage)) >= 1)"
+    },
+    {
+      "updatedAt": "2023-06-21T19:08:46.054Z",
+      "createdAt": "2021-03-19T17:16:09.655Z",
+      "name": "hs_is_closed_won",
+      "label": "Is Closed Won",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "description": "True if the deal is in the closed won state, false otherwise",
+      "groupName": "deal_activity",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(pipeline_probability(string(dealstage))) and pipeline_probability(string(dealstage)) >= 1) then true else false"
+    },
+    {
+      "updatedAt": "2023-05-18T15:40:41.523Z",
+      "createdAt": "2021-09-01T17:20:22.955Z",
+      "name": "hs_is_deal_split",
+      "label": "Deal Split Added",
+      "type": "bool",
+      "fieldType": "calculation_equation",
+      "description": "Indicates if the deal is split between multiple users.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(hs_num_associated_deal_splits) and hs_num_associated_deal_splits > 1) then true else false"
+    },
+    {
+      "updatedAt": "2022-05-28T00:02:40.168Z",
+      "createdAt": "2020-06-30T15:57:38.258Z",
+      "name": "hs_lastmodifieddate",
+      "label": "Last Modified Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "Most recent timestamp of any property update for this deal. This includes HubSpot internal properties, which can be visible or hidden. This property is updated automatically.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-28T00:03:10.610Z",
+      "createdAt": "2020-02-07T22:31:06.307Z",
+      "name": "hs_likelihood_to_close",
+      "label": "Likelihood to close by the close date",
+      "type": "number",
+      "fieldType": "number",
+      "description": "Hubspot predicted likelihood between 0 and 1 of the deal to close by the close date.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:42:11.216Z",
+      "createdAt": "2020-08-04T17:58:31.672Z",
+      "name": "hs_line_item_global_term_hs_discount_percentage",
+      "label": "Global Term Line Item Discount Percentage",
+      "type": "string",
+      "fieldType": "text",
+      "description": "For internal HubSpot Application use only. Global term for the discount percentage applied.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:05:24.809Z",
+      "createdAt": "2020-09-11T16:26:50.864Z",
+      "name": "hs_line_item_global_term_hs_discount_percentage_enabled",
+      "label": "Global Term Line Item Discount Percentage Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for the discount percentage is enabled.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:42:11.216Z",
+      "createdAt": "2020-08-04T17:58:44.389Z",
+      "name": "hs_line_item_global_term_hs_recurring_billing_period",
+      "label": "Global Term Line Item Recurring Billing Period",
+      "type": "string",
+      "fieldType": "text",
+      "description": "For internal HubSpot Application use only. Global term for product recurring billing duration.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:42:11.374Z",
+      "createdAt": "2020-09-11T16:27:03.492Z",
+      "name": "hs_line_item_global_term_hs_recurring_billing_period_enabled",
+      "label": "Global Term Line Item Recurring Billing Period Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for product recurring billing duration is enabled.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:42:11.216Z",
+      "createdAt": "2020-08-04T17:58:50.722Z",
+      "name": "hs_line_item_global_term_hs_recurring_billing_start_date",
+      "label": "Global Term Line Item Recurring Billing Start Date",
+      "type": "string",
+      "fieldType": "text",
+      "description": "For internal HubSpot Application use only. Global term for recurring billing start date for a line item.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:43:51.982Z",
+      "createdAt": "2020-09-11T16:27:10.044Z",
+      "name": "hs_line_item_global_term_hs_recurring_billing_start_date_enabled",
+      "label": "Global Term Line Item Recurring Billing Start Date Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for recurring billing start date for a line item is enabled.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:42:11.374Z",
+      "createdAt": "2020-08-04T17:58:37.932Z",
+      "name": "hs_line_item_global_term_recurringbillingfrequency",
+      "label": "Global Term Line Item Recurring Billing Frequency",
+      "type": "string",
+      "fieldType": "text",
+      "description": "For internal HubSpot Application use only. Global term for how frequently the product is billed.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:10:51.287Z",
+      "createdAt": "2020-09-11T16:26:57.093Z",
+      "name": "hs_line_item_global_term_recurringbillingfrequency_enabled",
+      "label": "Global Term Line Item Recurring Billing Frequency Enabled",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "description": "For internal HubSpot Application use only. Indicates if the Global term for how frequently the product is billed is enabled",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": false,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-16T17:51:55.879Z",
+      "createdAt": "2020-06-30T15:57:38.339Z",
+      "name": "hs_manual_forecast_category",
+      "label": "Forecast category",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "The likelihood a deal will close. This property is used for manual forecasting your deals.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "Not forecasted",
+          "value": "OMIT",
+          "description": "",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "Pipeline",
+          "value": "PIPELINE",
+          "description": "",
+          "displayOrder": 2,
+          "hidden": false
+        },
+        {
+          "label": "Best case",
+          "value": "BEST_CASE",
+          "description": "",
+          "displayOrder": 3,
+          "hidden": false
+        },
+        {
+          "label": "Commit",
+          "value": "COMMIT",
+          "description": "",
+          "displayOrder": 4,
+          "hidden": false
+        },
+        {
+          "label": "Closed won",
+          "value": "CLOSED",
+          "description": "",
+          "displayOrder": 5,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyOptions": false,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-03-28T20:14:03.925Z",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "name": "hs_merged_object_ids",
+      "label": "Merged Deal IDs",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "The list of Deal record IDs that have been merged into this Deal. This value is automatically set by HubSpot and may not be modified.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-28T00:06:29.497Z",
+      "createdAt": "2020-06-30T15:57:38.442Z",
+      "name": "hs_mrr",
+      "label": "Monthly recurring revenue",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The monthly recurring revenue (MRR) of this deal.",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-18T15:40:41.523Z",
+      "createdAt": "2020-07-10T20:41:18.146Z",
+      "name": "hs_next_step",
+      "label": "Next step",
+      "type": "string",
+      "fieldType": "textarea",
+      "description": "A short description of the next step for the deal",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-28T00:07:00.029Z",
+      "createdAt": "2021-09-07T12:44:12.716Z",
+      "name": "hs_num_associated_active_deal_registrations",
+      "label": "Number of Active Deal Registrations",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The number of active deal registrations associated with this deal. This property is set automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-28T00:07:15.269Z",
+      "createdAt": "2021-09-07T12:43:20.975Z",
+      "name": "hs_num_associated_deal_registrations",
+      "label": "Number of Deal Registrations",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The number of deal registrations associated with this deal. This property is set automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-16T17:49:44.961Z",
+      "createdAt": "2021-03-18T20:41:32.514Z",
+      "name": "hs_num_associated_deal_splits",
+      "label": "Number of Deal Splits",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The number of deal splits associated with this deal. This property is set automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-22T13:37:58.912Z",
+      "createdAt": "2023-05-22T13:37:58.912Z",
+      "name": "hs_num_of_associated_line_items",
+      "label": "Number of Associated Line Items",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The number of line items associated with this deal",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:37:00.799Z",
+      "createdAt": "2021-04-02T19:12:50.614Z",
+      "name": "hs_num_target_accounts",
+      "label": "Number of target accounts",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The number of target account companies associated with this deal. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "name": "hs_object_id",
+      "label": "Record ID",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The unique ID for this record. This value is automatically set by HubSpot and may not be modified.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-07-25T20:58:45.636Z",
+      "createdAt": "2022-07-25T20:58:45.636Z",
+      "name": "hs_pinned_engagement_id",
+      "label": "Pinned Engagement ID",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The object ID of the current pinned engagement. This value is automatically set by HubSpot and may not be modified. ",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2020-02-07T22:33:43.508Z",
+      "name": "hs_predicted_amount",
+      "label": "The predicted deal amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Returns the multiplication of the deal amount times the predicted likelihood of the deal to close by the close date.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(hs_likelihood_to_close) and hs_likelihood_to_close >= 0 and hs_likelihood_to_close <= 1 and is_present(amount)) then (hs_likelihood_to_close * amount) else ''"
+    },
+    {
+      "updatedAt": "2022-05-28T00:08:31.557Z",
+      "createdAt": "2020-02-07T22:38:42.351Z",
+      "name": "hs_predicted_amount_in_home_currency",
+      "label": "The predicted deal amount in your company's currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Returns the multiplication of the deal amount in your company's currency times the predicted likelihood of the deal to close by the close date.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(hs_likelihood_to_close) and hs_likelihood_to_close >= 0 and hs_likelihood_to_close <= 1 and is_present(amount_in_home_currency)) then (hs_likelihood_to_close * amount_in_home_currency) else ''"
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2021-04-13T18:44:53.526Z",
+      "name": "hs_priority",
+      "label": "Priority",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "Low",
+          "value": "low",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Medium",
+          "value": "medium",
+          "displayOrder": 1,
+          "hidden": false
+        },
+        {
+          "label": "High",
+          "value": "high",
+          "displayOrder": 2,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-18T15:40:41.523Z",
+      "createdAt": "2021-07-29T14:26:39.754Z",
+      "name": "hs_projected_amount",
+      "label": "Weighted amount",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Returns the multiplication of the amount times the probability of the deal closing.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(hs_deal_stage_probability) and hs_deal_stage_probability >= 0) then (hs_deal_stage_probability * amount) else 0"
+    },
+    {
+      "updatedAt": "2023-05-18T15:39:50.422Z",
+      "createdAt": "2021-07-29T14:27:23.100Z",
+      "name": "hs_projected_amount_in_home_currency",
+      "label": "Weighted amount in company currency",
+      "type": "number",
+      "fieldType": "calculation_equation",
+      "description": "Returns the multiplication of the amount in home currency times the probability of the deal closing.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false,
+      "calculationFormula": "if (is_present(hs_deal_stage_probability) and hs_deal_stage_probability >= 0) then (hs_deal_stage_probability * amount_in_home_currency) else 0"
+    },
+    {
+      "name": "hs_read_only",
+      "label": "Read Only Object",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "description": "Is the object read only",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-04-20T17:16:59.235Z",
+      "createdAt": "2023-04-20T17:16:59.235Z",
+      "name": "hs_source_object_id",
+      "label": "Source Object ID",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The ID of the object from which the data was migrated. This is set automatically during portal data migration.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-05-22T19:29:20.264Z",
+      "createdAt": "2023-05-22T19:29:20.264Z",
+      "name": "hs_tag_ids",
+      "label": "Deal Tags",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "List of tag ids applicable to a deal. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-28T00:10:33.836Z",
+      "createdAt": "2020-06-30T15:57:38.369Z",
+      "name": "hs_tcv",
+      "label": "Total contract value",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The total contract value (TCV) of this deal.",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:38:49.710Z",
+      "createdAt": "2020-02-11T18:43:02.193Z",
+      "name": "hs_time_in_appointmentscheduled",
+      "label": "Time in 'Appointment Scheduled (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Appointment Scheduled' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:47:20.508Z",
+      "createdAt": "2020-02-11T18:44:44.326Z",
+      "name": "hs_time_in_closedlost",
+      "label": "Time in 'Closed Lost (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Closed Lost' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:34:06.588Z",
+      "createdAt": "2020-02-11T18:44:24.100Z",
+      "name": "hs_time_in_closedwon",
+      "label": "Time in 'Closed Won (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Closed Won' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:50:13.523Z",
+      "createdAt": "2020-02-11T18:44:08.472Z",
+      "name": "hs_time_in_contractsent",
+      "label": "Time in 'Contract Sent (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Contract Sent' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:34:06.588Z",
+      "createdAt": "2020-02-11T18:43:51.900Z",
+      "name": "hs_time_in_decisionmakerboughtin",
+      "label": "Time in 'Decision Maker Bought-In (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Decision Maker Bought-In' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:34:06.588Z",
+      "createdAt": "2020-02-11T18:43:36.284Z",
+      "name": "hs_time_in_presentationscheduled",
+      "label": "Time in 'Presentation Scheduled (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Presentation Scheduled' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:34:06.588Z",
+      "createdAt": "2020-02-11T18:43:21.488Z",
+      "name": "hs_time_in_qualifiedtobuy",
+      "label": "Time in 'Qualified To Buy (Sales Pipeline)'",
+      "type": "number",
+      "fieldType": "calculation_read_time",
+      "description": "The total time in seconds spent by the deal in the 'Qualified To Buy' stage, 'Sales Pipeline' pipeline",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "name": "hs_unique_creation_key",
+      "label": "Unique creation key",
+      "type": "string",
+      "fieldType": "text",
+      "description": "Unique property used for idempotent creates",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": true,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-28T00:12:36.053Z",
+      "createdAt": "2020-02-24T15:53:25.402Z",
+      "name": "hs_updated_by_user_id",
+      "label": "Updated by user ID",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The user that last updated this object. This value is automatically set by HubSpot and may not be modified.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "name": "hs_user_ids_of_all_notification_followers",
+      "label": "User IDs of all notification followers",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "The user IDs of all users that have clicked follow within the object to opt-in to getting follow notifications",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "name": "hs_user_ids_of_all_notification_unfollowers",
+      "label": "User IDs of all notification unfollowers",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "The user IDs of all object owners that have clicked unfollow within the object to opt-out of getting follow notifications",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "name": "hs_user_ids_of_all_owners",
+      "label": "User IDs of all owners",
+      "type": "enumeration",
+      "fieldType": "checkbox",
+      "description": "The user IDs of all owners of this object",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "name": "hs_was_imported",
+      "label": "Performed in an import",
+      "type": "bool",
+      "fieldType": "booleancheckbox",
+      "description": "Object is part of an import",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "True",
+          "value": "true",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "False",
+          "value": "false",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-01-10T23:43:41.247Z",
+      "createdAt": "2020-06-30T15:57:38.224Z",
+      "name": "hubspot_owner_assigneddate",
+      "label": "Owner Assigned Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The date the most recent deal owner was assigned to a deal. This is updated automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": -1,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2019-08-06T02:41:52.132Z",
+      "name": "dealname",
+      "label": "Deal Name",
+      "type": "string",
+      "fieldType": "text",
+      "description": "The name given to this deal.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 0,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2020-06-30T15:57:38.293Z",
+      "name": "amount",
+      "label": "Amount",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The total amount of the deal",
+      "groupName": "deal_revenue",
+      "options": [],
+      "displayOrder": 2,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "showCurrencySymbol": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:38:49.710Z",
+      "createdAt": "2020-06-30T15:57:38.180Z",
+      "name": "dealstage",
+      "label": "Deal Stage",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "description": "The stage of the deal. Deal stages allow you to categorize and track the progress of the deals that you are working on.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 3,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyOptions": false,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:29:49.239Z",
+      "createdAt": "2020-06-30T15:57:38.191Z",
+      "name": "pipeline",
+      "label": "Pipeline",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "The pipeline the deal is in. This determines which stages are options for the deal.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 4,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:58:22.852Z",
+      "createdAt": "2020-06-30T15:57:38.500Z",
+      "name": "closedate",
+      "label": "Close Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "Date the deal was closed. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 5,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-04-12T20:49:12.385Z",
+      "createdAt": "2020-06-30T15:57:38.305Z",
+      "name": "createdate",
+      "label": "Create Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "Date the deal was created. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:57:32.710Z",
+      "createdAt": "2020-06-30T15:57:38.391Z",
+      "name": "engagements_last_meeting_booked",
+      "label": "Date of last meeting booked in meetings tool",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The date of the most recent meeting an associated contact has booked through the meetings tool.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:59:02.276Z",
+      "createdAt": "2020-06-30T15:57:38.202Z",
+      "name": "engagements_last_meeting_booked_campaign",
+      "label": "Campaign of last booking in meetings tool",
+      "type": "string",
+      "fieldType": "text",
+      "description": "This UTM parameter shows which marketing campaign (e.g. a specific email) referred an associated contact to the meetings tool for their most recent booking. This property is only populated when you add tracking parameters to your meeting link.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:59:02.276Z",
+      "createdAt": "2020-06-30T15:57:38.512Z",
+      "name": "engagements_last_meeting_booked_medium",
+      "label": "Medium of last booking in meetings tool",
+      "type": "string",
+      "fieldType": "text",
+      "description": "This UTM parameter shows which channel (e.g. email) referred an associated contact to the meetings tool for their most recent booking. This property is only populated when you add tracking parameters to your meeting link.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T20:59:02.276Z",
+      "createdAt": "2020-06-30T15:57:38.235Z",
+      "name": "engagements_last_meeting_booked_source",
+      "label": "Source of last booking in meetings tool",
+      "type": "string",
+      "fieldType": "text",
+      "description": "This UTM parameter shows which site (e.g. Twitter) referred an associated contact to the meetings tool for their most recent booking. This property is only populated when you add tracking parameters to your meeting link. ",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2020-02-07T22:25:22.440Z",
+      "name": "hs_latest_meeting_activity",
+      "label": "Latest meeting activity",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The date of the most recent meeting (past or upcoming) logged for, scheduled with, or booked by a contact associated with this deal.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:30:05.213Z",
+      "createdAt": "2019-08-06T02:41:53.649Z",
+      "name": "hs_sales_email_last_replied",
+      "label": "Recent Sales Email Replied Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The last time a tracked sales email was replied to for this deal",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-01-10T23:43:41.247Z",
+      "createdAt": "2020-06-30T15:57:38.418Z",
+      "name": "hubspot_owner_id",
+      "label": "Deal owner",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "User the deal is assigned to. Assign additional users to a deal record by creating a custom user property.",
+      "groupName": "dealinformation",
+      "options": [],
+      "referencedObjectType": "OWNER",
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2020-06-30T15:57:38.430Z",
+      "name": "notes_last_contacted",
+      "label": "Last Contacted",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The last time a call, sales email, or meeting was logged for this deal. This is set automatically by HubSpot based on user actions.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:11:07.210Z",
+      "createdAt": "2020-06-30T15:57:38.281Z",
+      "name": "notes_last_updated",
+      "label": "Last Activity Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The last time a note, call, email, meeting, or task was logged for a deal. This is updated automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:32:28.368Z",
+      "createdAt": "2020-06-30T15:57:38.326Z",
+      "name": "notes_next_activity_date",
+      "label": "Next Activity Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The date of the next upcoming activity for a deal. This property is set automatically by HubSpot based on user action. This includes logging a future call, sales email, or meeting using the Log feature, as well as creating a future task or scheduling a future meeting. This is updated automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:32:28.368Z",
+      "createdAt": "2020-06-30T15:57:38.490Z",
+      "name": "num_contacted_notes",
+      "label": "Number of times contacted",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The total number of sales activities (notes, calls, emails, meetings, or tasks) logged for a deal. This is updated automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2020-06-30T15:57:38.523Z",
+      "name": "num_notes",
+      "label": "Number of Sales Activities",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The total number of times a sales email or call has been logged for a deal. This is updated automatically by HubSpot.",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 6,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2022-05-27T23:56:18.537Z",
+      "createdAt": "2019-08-06T02:41:52.503Z",
+      "name": "hs_createdate",
+      "label": "HubSpot Create Date",
+      "type": "datetime",
+      "fieldType": "date",
+      "description": "The date the deal was created. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 7,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-01-10T23:43:41.247Z",
+      "createdAt": "2020-06-30T15:57:38.380Z",
+      "name": "hubspot_team_id",
+      "label": "HubSpot Team",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "Primary team of the deal owner. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 7,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:11:07.210Z",
+      "createdAt": "2019-08-06T02:41:52.542Z",
+      "name": "dealtype",
+      "label": "Deal Type",
+      "type": "enumeration",
+      "fieldType": "radio",
+      "description": "The type of deal. By default, categorize your deal as either a New Business or Existing Business.",
+      "groupName": "dealinformation",
+      "options": [
+        {
+          "label": "New Business",
+          "value": "newbusiness",
+          "displayOrder": 0,
+          "hidden": false
+        },
+        {
+          "label": "Existing Business",
+          "value": "existingbusiness",
+          "displayOrder": 1,
+          "hidden": false
+        }
+      ],
+      "displayOrder": 8,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyOptions": false,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-01-10T23:43:41.247Z",
+      "createdAt": "2019-08-06T02:41:53.824Z",
+      "name": "hs_all_owner_ids",
+      "label": "All owner ids",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "The value of all owner referencing properties for this object, both default and custom",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 8,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T21:58:22.852Z",
+      "createdAt": "2019-08-06T02:41:52.595Z",
+      "name": "description",
+      "label": "Deal Description",
+      "type": "string",
+      "fieldType": "textarea",
+      "description": "Description of the deal",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 9,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-01-10T23:43:41.247Z",
+      "createdAt": "2019-08-06T02:41:53.865Z",
+      "name": "hs_all_team_ids",
+      "label": "All team ids",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "The team ids corresponding to all owner referencing properties for this object, both default and custom",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 9,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-01-10T23:43:41.247Z",
+      "createdAt": "2019-08-06T02:41:53.903Z",
+      "name": "hs_all_accessible_team_ids",
+      "label": "All accessible team ids",
+      "type": "enumeration",
+      "fieldType": "select",
+      "description": "The team ids, including up the team hierarchy, corresponding to all owner referencing properties for this object, both default and custom",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 10,
+      "calculated": false,
+      "externalOptions": true,
+      "hasUniqueValue": false,
+      "hidden": true,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:34:28.356Z",
+      "createdAt": "2019-08-06T02:41:52.683Z",
+      "name": "num_associated_contacts",
+      "label": "Number of Associated Contacts",
+      "type": "number",
+      "fieldType": "number",
+      "description": "The number of contacts associated with this deal. This property is set automatically by HubSpot.",
+      "groupName": "dealinformation",
+      "options": [],
+      "displayOrder": 10,
+      "calculated": true,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": true,
+        "readOnlyDefinition": true,
+        "readOnlyValue": true
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:32:28.368Z",
+      "createdAt": "2020-06-30T15:57:38.315Z",
+      "name": "closed_lost_reason",
+      "label": "Closed Lost Reason",
+      "type": "string",
+      "fieldType": "textarea",
+      "description": "Reason why this deal was lost",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 11,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": false,
+        "readOnlyDefinition": false,
+        "readOnlyValue": false
+      },
+      "formField": false
+    },
+    {
+      "updatedAt": "2023-06-20T22:30:05.213Z",
+      "createdAt": "2020-06-30T15:57:38.269Z",
+      "name": "closed_won_reason",
+      "label": "Closed Won Reason",
+      "type": "string",
+      "fieldType": "textarea",
+      "description": "Reason why this deal was won",
+      "groupName": "deal_activity",
+      "options": [],
+      "displayOrder": 12,
+      "calculated": false,
+      "externalOptions": false,
+      "hasUniqueValue": false,
+      "hidden": false,
+      "hubspotDefined": true,
+      "modificationMetadata": {
+        "archivable": false,
+        "readOnlyDefinition": false,
+        "readOnlyValue": false
+      },
+      "formField": false
+    }
+  ]
+}

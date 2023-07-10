@@ -20,7 +20,8 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "node ./src/scripts/generate-types.ts"
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "^1.5.0",
