@@ -104,9 +104,9 @@ export default class MongooseCollection extends BaseCollection {
     if (this.stack.length < 2) {
       const { insertedIds } = await this.model.insertMany(data, { rawResult: true });
 
-      return flatData.map((record, index) => ({
+      return flatData.map((flatRecord, index) => ({
         _id: replaceMongoTypes(insertedIds[index]),
-        ...record,
+        ...flatRecord,
       }));
     }
 
@@ -125,7 +125,8 @@ export default class MongooseCollection extends BaseCollection {
     const updates: Record<string, { rootId: unknown; path: string; records: unknown[] }> = {};
     const results = [];
 
-    for (const record of data) {
+    for (const [index, record] of data.entries()) {
+      const flatRecord = flatData[index];
       const { parentId, ...rest } = record;
       if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
 
@@ -138,7 +139,7 @@ export default class MongooseCollection extends BaseCollection {
 
       results.push({
         _id: `${rootId}.${path}.${updates[rootIdString].records.length - 1}`,
-        ...record,
+        ...flatRecord,
       });
     }
 
