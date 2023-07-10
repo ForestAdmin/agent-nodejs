@@ -12,7 +12,7 @@ export function createHubspotDataSource(options: HubSpotOptions) {
   return createCachedDataSource({
     cacheInto: 'sqlite::memory:',
     cacheNamespace: 'hubspot',
-    schema: getSchema(client, options),
+    schema: getSchema(client, options.collections),
 
     // Use delta synchronization
     getDelta: request => getChanges(client, options, request),
