@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.1...@forestadmin/datasource-mongoose@1.4.2) (2023-07-10)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** when combining asModels and asFields, collection.create returns invalid records for subcollections ([#763](https://github.com/ForestAdmin/agent-nodejs/issues/763)) ([dda1008](https://github.com/ForestAdmin/agent-nodejs/commit/dda1008dff0362c5784e325dfe55e021cfe390b0))
+
 ## @forestadmin/datasource-mongoose [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.0...@forestadmin/datasource-mongoose@1.4.1) (2023-06-29)
 
 
