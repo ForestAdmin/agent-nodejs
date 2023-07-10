@@ -78,6 +78,16 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
+   * Stop the agent.
+   */
+  override async stop(): Promise<void> {
+    // Close anything related to ForestAdmin client
+    this.options.forestAdminClient.close();
+    // Stop at framework level
+    await super.stop();
+  }
+
+  /**
    * Restart the agent at runtime (remount routes).
    */
   private async restart(): Promise<void> {

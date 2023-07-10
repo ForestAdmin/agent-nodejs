@@ -25,4 +25,5 @@ export interface RefreshEventsHandlerService {
  */
 export interface BaseEventsSubscriptionService {
   subscribeEvents(): Promise<void>;
+  close(): void;
 }
