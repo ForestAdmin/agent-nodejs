@@ -21,7 +21,9 @@ export default async function setupFlattener(dbName = 'test') {
         }),
         horsePower: String,
         owner: { type: Schema.Types.ObjectId, ref: 'companies' },
-        comments: [{ date: Date, comment: String }],
+        comments: [
+          { date: Date, comment: String, nested: { subNested: String, subNested2: String } },
+        ],
         companies: [{ type: Schema.Types.ObjectId, ref: 'companies' }],
       },
       company: { type: Schema.Types.ObjectId, ref: 'companies' },

@@ -131,6 +131,44 @@ describe('Complex flattening', () => {
     );
   });
 
+  /** @see https://community.forestadmin.com/t/bug-report-with-smart-models-on-node-js-agent/6480/6 */
+  it('should work when creating a submodel with nested fields', async () => {
+    const flatRecord = {
+      date: '2010-01-01T00:00:00.000Z',
+      comment: 'hi!',
+      'nested@@@subNested': 'hi!',
+      'nested@@@subNested2': 'hi!',
+    };
+
+    connection = await setupFlattener('collection_flattener_create');
+
+    const dataSource = new MongooseDatasource(connection, {
+      flattenMode: 'manual',
+      flattenOptions: {
+        cars: {
+          asFields: ['engine.comments.nested'],
+          asModels: ['engine.comments'],
+        },
+      },
+    });
+
+    const [car] = await dataSource.getCollection('cars').create(caller, [{ name: 'my fiesta' }]);
+    const [carCommentFromApp] = await dataSource
+      .getCollection('cars_engine_comments')
+      .create(caller, [{ parentId: car._id, ...flatRecord }]);
+
+    const carSeenFromDb = await connection.model('cars').findOne({ _id: car._id });
+
+    expect(carCommentFromApp).toMatchObject(flatRecord);
+    expect(carSeenFromDb.engine.comments[0]).toEqual(
+      expect.objectContaining({
+        date: expect.any(Date),
+        comment: 'hi!',
+        nested: { subNested: 'hi!', subNested2: 'hi!' },
+      }),
+    );
+  });
+
   it('creating a subModel should fail', async () => {
     connection = await setupFlattener('collection_flattener_create');
 
