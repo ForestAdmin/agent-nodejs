@@ -112,6 +112,7 @@ export default async () => {
         ],
         feedback_submissions: ['hs_agent_name'],
         tickets: ['createdate'],
+        contacts: ['city'],
         // error when loading to much table, max - 10 sec by sec
       },
     }),

@@ -1,6 +1,7 @@
 import { DeltaRequest, DeltaResponse } from '@forestadmin/datasource-cached';
 import { Client } from '@hubspot/api-client';
 
+import { RATE_LIMIT_SEARCH_REQUEST } from './constants';
 import { HubSpotOptions } from './types';
 
 /**
@@ -52,22 +53,19 @@ export default async function getDelta<TypingsHubspot>(
 
   let more = false;
 
-  // Fetch changes for each collection mentioned in the request.
   await Promise.all(
     request.collections.map(async (name, index) => {
       const after = request.previousDeltaState?.[name];
       const fields = options.collections[name];
 
-      // wait between each request to avoid hubspot rate limit
-      // it is very useful when we fetch all the collections
-      // more than 4 requests per second is not allowed
-      if (index > 0) {
-        await new Promise(resolve => {
-          setTimeout(resolve, 200 * index);
-        });
-      }
-
-      const records = await getRecords(client, name, fields, after);
+      // this is a workaround to avoid hitting the hubspot rate limit
+      // waiting 1 second every RATE_LIMIT_SEARCH_REQUEST requests
+      const records: Array<Record<string, any>> = await new Promise(resolve => {
+        setTimeout(
+          () => getRecords(client, name, fields, after).then(resolve),
+          Math.floor((index + 1) / RATE_LIMIT_SEARCH_REQUEST) * 1000,
+        );
+      });
 
       newOrUpdatedEntries.push(...records.map(r => ({ collection: name, record: r })));
       nextDeltaState[name] = records.at(-1)?.lastmodifieddate ?? after;

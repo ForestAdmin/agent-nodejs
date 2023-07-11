@@ -10,3 +10,5 @@ export const HUBSPOT_COLLECTIONS = [
   'tickets',
   HUBSPOT_CUSTOM_COLLECTION,
 ];
+
+export const RATE_LIMIT_SEARCH_REQUEST = 4;

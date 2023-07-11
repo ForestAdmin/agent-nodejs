@@ -12,6 +12,14 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'hubspot_contacts': {
+    plain: {
+      'id': string;
+      'city': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'hubspot_deals': {
     plain: {
       'id': string;
