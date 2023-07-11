@@ -51,12 +51,12 @@ export type CachedCollectionSchema = {
 // Requests & responses from user functions
 /// //////
 
-export type DumpReason = {
+export type PullDumpReason = {
   reason: 'schema-discovery' | 'startup' | 'timer';
   collections: string[];
 };
 
-export type DeltaReason = { collections: string[] } & (
+export type PullDeltaReason = { collections: string[] } & (
   | { reason: 'schema-discovery' }
   | { reason: 'startup' }
   | { reason: 'timer' }
@@ -67,29 +67,39 @@ export type DeltaReason = { collections: string[] } & (
   | { caller: Caller; reason: 'after-delete'; filter: Filter }
 );
 
-export type DeltaRequest = {
+export type PullDeltaRequest = {
   previousDeltaState: unknown;
   cache: RelaxedDataSource;
   collections: string[];
-  reasons: Array<DeltaReason & { at: Date }>;
+  reasons: Array<PullDeltaReason & { at: Date }>;
 };
 
-export type DumpRequest = {
+export type PullDumpRequest = {
   previousDumpState: unknown;
   cache: RelaxedDataSource;
   collections: string[];
-  reasons: Array<DumpReason & { at: Date }>;
+  reasons: Array<PullDumpReason & { at: Date }>;
 };
 
-export type DumpResponse =
+export type PushDeltaRequest = {
+  previousDeltaState: unknown;
+  cache: RelaxedDataSource;
+};
+
+export type PullDumpResponse =
   | { more: true; entries: RecordDataWithCollection[]; nextDumpState: unknown }
   | { more: false; entries: RecordDataWithCollection[]; nextDeltaState?: unknown };
 
-export type DeltaResponse = {
+export type PullDeltaResponse = {
   more: boolean;
   nextDeltaState: unknown;
   newOrUpdatedEntries: RecordDataWithCollection[];
   deletedEntries: RecordDataWithCollection[];
+};
+
+export type PushDeltaResponse = Omit<PullDeltaResponse, 'more' | 'nextDeltaState'> & {
+  // optional nextDeltaState (leaving this undefined will keep the previous one)
+  nextDeltaState?: unknown;
 };
 
 /// //////
@@ -125,17 +135,23 @@ export type CachedDataSourceOptions = {
   updateRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
   deleteRecord?: (collectionName: string, record: RecordData) => Promise<void>;
 
-  /** Dump options */
-  getDump?: (request: DumpRequest) => Promise<DumpResponse>;
-  dumpOnStartup?: boolean;
-  dumpOnTimer?: number;
+  /** Push options */
+  pushDeltaHandler?: (
+    request: PushDeltaRequest,
+    onChanges: (changes: PushDeltaResponse) => Promise<void>,
+  ) => void | Promise<void>;
 
-  /** Delta options */
-  getDelta?: (request: DeltaRequest) => Promise<DeltaResponse>;
-  deltaOnStartup?: boolean;
-  deltaOnTimer?: number;
-  deltaOnBeforeAccess?: boolean;
-  deltaOnAfterWrite?: boolean;
+  /** Pull dump options */
+  pullDumpHandler?: (request: PullDumpRequest) => Promise<PullDumpResponse>;
+  pullDumpOnStartup?: boolean;
+  pullDumpOnTimer?: number;
+
+  /** Pull delta options */
+  pullDeltaHandler?: (request: PullDeltaRequest) => Promise<PullDeltaResponse>;
+  pullDeltaOnStartup?: boolean;
+  pullDeltaOnTimer?: number;
+  pullDeltaOnBeforeAccess?: boolean;
+  pullDeltaOnAfterWrite?: boolean;
 
   /**
    * Delay that should be waited before each cache access to give the opportunity for
@@ -143,7 +159,7 @@ export type CachedDataSourceOptions = {
    *
    * Note that this delay will add latency to each request, so set it to a low value (< 100ms)
    */
-  deltaAccessDelay?: number;
+  accessDelay?: number;
 };
 
 export type ResolvedOptions = Omit<
