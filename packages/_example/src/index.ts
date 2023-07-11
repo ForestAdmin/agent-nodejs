@@ -40,6 +40,7 @@ export default async () => {
           },
         },
       ],
+      pullDeltaOnBeforeAccess: true,
       pullDeltaHandler: async () => {
         return {
           more: false,
