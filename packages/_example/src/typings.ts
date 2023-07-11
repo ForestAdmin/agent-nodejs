@@ -3,20 +3,11 @@ export type Schema = {
   'hubspot_companies': {
     plain: {
       'id': string;
-      'address': string;
       'description': string;
       'days_to_close': number;
       'city': string;
-      'facebookfans': number;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_contacts': {
-    plain: {
-      'id': string;
-      'city': string;
-      'annualrevenue': string;
+      'owneremail': string;
+      'state': string;
     };
     nested: {};
     flat: {};
@@ -30,9 +21,35 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'hubspot_feedback_submissions': {
+    plain: {
+      'id': string;
+      'hs_agent_name': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'hubspot_line_items': {
+    plain: {
+      'id': string;
+      'hs_product_id': number;
+      'description': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'hubspot_quotes': {
     plain: {
       'id': string;
+      'hs_proposal_domain': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'hubspot_tickets': {
+    plain: {
+      'id': string;
+      'createdate': string;
     };
     nested: {};
     flat: {};

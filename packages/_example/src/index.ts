@@ -95,14 +95,22 @@ export default async () => {
 
   agent.addDataSource(
     await createHubspotDataSource<TypingsHubspot>({
-      generateCollectionTypes: true,
+      skipTypings: false,
       typingsPath: 'src/typings-hubspot.ts',
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
-        companies: ['address', 'description', 'days_to_close', 'city', 'facebookfans'],
-        quotes: ['hs_all_assigned_business_unit_ids'],
+        companies: ['description', 'days_to_close', 'city', 'owneremail', 'state'],
+        quotes: ['hs_all_assigned_business_unit_ids', 'hs_proposal_domain'],
         deals: ['closed_lost_reason', 'closed_won_reason'],
-        contacts: ['city', 'annualrevenue'],
+        line_items: [
+          'hs_product_id',
+          'hs_all_owner_ids',
+          'description',
+          'hs_user_ids_of_all_notification_followers',
+        ],
+        feedback_submissions: ['hs_agent_name'],
+        tickets: ['createdate'],
+        // error when loading to much table, max - 10 sec by sec
       },
     }),
     { rename: collectionName => `hubspot_${collectionName}` },

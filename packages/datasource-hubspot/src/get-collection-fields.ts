@@ -11,8 +11,18 @@ async function getCollectionTypes(
 
     return properties.results.map(property => property.name).sort((a, b) => a.localeCompare(b));
   } catch (e) {
-    logger?.('Warn', `Unable to get properties for collection ${collectionName}`);
-    logger?.('Warn', e.body.message);
+    if (e.code === 429) {
+      // to much requests
+      logger?.(
+        'Warn',
+        `Unable to get properties for collection ${collectionName}` +
+          ' because we have reached the limit of requests in one second. Please try again.',
+      );
+    } else if (e.code === 403) {
+      logger?.('Warn', `Unable to get properties for collection "${collectionName}".`);
+    } else {
+      throw e;
+    }
   }
 }
 

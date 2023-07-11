@@ -9,8 +9,25 @@ import { HubSpotOptions } from './types';
  */
 const pageSize = 100;
 
-async function getRecords(client: Client, name: string, fields: string[], after?: string) {
-  const response = await client.crm[name].searchApi.doSearch({
+function getDiscovery(client: Client, collectionName: string) {
+  if (collectionName === 'feedback_submissions') {
+    return client.crm.objects.feedbackSubmissions;
+  }
+
+  if (collectionName === 'line_items') {
+    return client.crm.lineItems;
+  }
+
+  return client.crm[collectionName];
+}
+
+async function getRecords(
+  client: Client,
+  collectionName: string,
+  fields: string[],
+  after?: string,
+) {
+  const response = await getDiscovery(client, collectionName).searchApi.doSearch({
     filterGroups: after
       ? [{ filters: [{ propertyName: 'lastmodifieddate', operator: 'GT', value: after }] }]
       : [],
@@ -37,9 +54,13 @@ export default async function getDelta<TypingsHubspot>(
 
   // Fetch changes for each collection mentioned in the request.
   await Promise.all(
-    request.collections.map(async name => {
+    request.collections.map(async (name, index) => {
       const after = request.previousDeltaState?.[name];
       const fields = options.collections[name];
+      // wait between each request to avoid hubspot rate limit
+      await new Promise(resolve => {
+        setTimeout(resolve, 400 * index);
+      });
       const records = await getRecords(client, name, fields, after);
 
       newOrUpdatedEntries.push(...records.map(r => ({ collection: name, record: r })));

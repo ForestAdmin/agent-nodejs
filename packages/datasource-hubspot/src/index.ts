@@ -4,6 +4,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 import * as fs from 'fs';
 
+import ALLOWED_COLLECTIONS from './constants';
 import getChanges from './get-changes';
 import getSchema from './schema';
 import { HubSpotOptions } from './types';
@@ -15,10 +16,13 @@ export async function createHubspotDataSource<TypingsHubspot>(
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
 
-    if (options.generateCollectionTypes) {
-      await writeCollectionTypesFile(client, '/tmp/typingsPath.ts', logger);
+    if (!options.skipTypings) {
+      await writeCollectionTypesFile(client, ALLOWED_COLLECTIONS, '/tmp/typingsPath.ts', logger);
       const newTypings = fs.readFileSync('/tmp/typingsPath.ts', 'utf-8');
-      const oldTypings = fs.readFileSync(options.typingsPath, { encoding: 'utf-8', flag: 'a+' });
+      const oldTypings = fs.readFileSync(options.typingsPath ?? 'typings-hubspot.ts', {
+        encoding: 'utf-8',
+        flag: 'a+', // create file if not exists
+      });
 
       // avoid to write the same content
       if (oldTypings !== newTypings) {

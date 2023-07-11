@@ -8,27 +8,22 @@ import getCollectionFields from './get-collection-fields';
 
 export default async function writeCollectionTypesFile(
   client: Client,
-  typingsPath: string,
+  collectionsNames: string[],
+  path: string,
   logger?: Logger,
 ): Promise<void> {
-  const collections = [
-    'companies',
-    'contacts',
-    'deals',
-    'feedback_submissions',
-    'goal_targets',
-    'line_items',
-    'products',
-    'quotes',
-    'tickets',
-  ];
-  const fieldsByCollection = await getCollectionFields(client, collections, logger);
-  const stream = fs.createWriteStream(typingsPath);
+  const fieldsByCollection = await getCollectionFields(client, collectionsNames, logger);
+
+  if (Object.values(fieldsByCollection).flat().length === 0) {
+    return logger?.('Warn', 'No collection found. Nothing to write.');
+  }
+
+  const stream = fs.createWriteStream(path);
   stream.write('/** This file is auto-generated. Do not edit manually. */\n');
   stream.write('export type TypingsHubspot = {\n');
 
   // iterate over collections to keep the same order
-  collections.forEach(collection => {
+  collectionsNames.forEach(collection => {
     if (!fieldsByCollection[collection]) return;
 
     stream.write(`  ${collection}?: Array<\n`);
