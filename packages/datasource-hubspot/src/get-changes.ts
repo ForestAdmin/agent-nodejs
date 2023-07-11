@@ -27,7 +27,7 @@ async function getRecords(
   collectionName: string,
   fields: string[],
   after?: string,
-) {
+): Promise<Record<string, any>[]> {
   const response = await getDiscovery(client, collectionName).searchApi.doSearch({
     filterGroups: after
       ? [{ filters: [{ propertyName: 'lastmodifieddate', operator: 'GT', value: after }] }]

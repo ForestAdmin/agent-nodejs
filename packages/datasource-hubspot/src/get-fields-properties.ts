@@ -31,9 +31,10 @@ export default async function getFieldsPropertiesByCollections(
       if (collectionName === HUBSPOT_CUSTOM_COLLECTION) {
         // todo: get all the custom collections
         //  await client.crm.schemas.coreApi.getAll(false);
+        // [flo: [{}], alban: [{}]]
       } else {
-        const { results } = await client.crm.properties.coreApi.getAll(collectionName);
-        fieldsByCollection[collectionName] = results;
+        const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
+        fieldsByCollection[collectionName] = fields;
       }
     } catch (e) {
       handleErrors(e, collectionName, logger);
