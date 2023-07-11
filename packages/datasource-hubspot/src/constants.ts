@@ -1,4 +1,5 @@
-const DEFAULT_COLLECTIONS = [
+export const HUBSPOT_CUSTOM_COLLECTION = 'schemas';
+export const HUBSPOT_COLLECTIONS = [
   'companies',
   'contacts',
   'deals',
@@ -7,8 +8,5 @@ const DEFAULT_COLLECTIONS = [
   'products',
   'quotes',
   'tickets',
+  HUBSPOT_CUSTOM_COLLECTION,
 ];
-
-const CUSTOM_COLLECTION = 'schema';
-
-export default DEFAULT_COLLECTIONS;

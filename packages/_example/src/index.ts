@@ -109,7 +109,6 @@ export default async () => {
           'hs_user_ids_of_all_notification_followers',
           'discount',
           'createdate',
-          'createdate',
         ],
         feedback_submissions: ['hs_agent_name'],
         tickets: ['createdate'],

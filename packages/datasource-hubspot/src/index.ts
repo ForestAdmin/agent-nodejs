@@ -3,7 +3,7 @@ import { createCachedDataSource } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import DEFAULT_COLLECTIONS from './constants';
+import { HUBSPOT_COLLECTIONS } from './constants';
 import getChanges from './get-changes';
 import getFieldsPropertiesByCollections from './get-fields-properties';
 import getSchema from './schema';
@@ -17,7 +17,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
     const client = new Client({ accessToken: options.accessToken });
     const fieldsProperties = await getFieldsPropertiesByCollections(
       client,
-      DEFAULT_COLLECTIONS,
+      HUBSPOT_COLLECTIONS,
       logger,
     );
 
