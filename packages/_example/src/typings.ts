@@ -34,6 +34,8 @@ export type Schema = {
       'id': string;
       'hs_product_id': number;
       'description': string;
+      'discount': number;
+      'createdate': string;
     };
     nested: {};
     flat: {};

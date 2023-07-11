@@ -1,15 +1,14 @@
 import { CachedCollectionSchema, ColumnType, LeafField } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Client } from '@hubspot/api-client';
 
-import { HubSpotOptions } from './types';
+import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 
-async function getCollectionSchema(
-  client: Client,
+function getCollectionSchema(
   collectionName: string,
   fields: string[],
+  fieldProperties: FieldProperties,
   logger?: Logger,
-): Promise<CachedCollectionSchema> {
+): CachedCollectionSchema {
   const collection: CachedCollectionSchema = {
     name: collectionName,
     fields: {
@@ -17,10 +16,8 @@ async function getCollectionSchema(
     },
   };
 
-  const properties = await client.crm.properties.coreApi.getAll(collectionName);
-
   for (const fieldName of fields) {
-    const property = properties.results.find(p => p.name === fieldName);
+    const property = fieldProperties.find(p => p.name === fieldName);
     if (!property) throw new Error(`property ${fieldName} does not exists`);
 
     let type: ColumnType;
@@ -47,14 +44,17 @@ async function getCollectionSchema(
   return collection;
 }
 
-export default async function getSchema<TypingsHubspot>(
-  client: Client,
+export default function getSchema<TypingsHubspot>(
+  fieldPropertiesByCollection: FieldPropertiesByCollection,
   collections: HubSpotOptions<TypingsHubspot>['collections'],
   logger?: Logger,
-): Promise<CachedCollectionSchema[]> {
-  return Promise.all(
-    Object.entries(collections).map(([collectionName, fields]) =>
-      getCollectionSchema(client, collectionName, fields, logger),
+): CachedCollectionSchema[] {
+  return Object.entries(collections).map(([collectionName, fields]) =>
+    getCollectionSchema(
+      collectionName,
+      fields,
+      fieldPropertiesByCollection[collectionName],
+      logger,
     ),
   );
 }

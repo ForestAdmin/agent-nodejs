@@ -2,7 +2,7 @@ import { Client } from '@hubspot/api-client';
 
 import companiesData from './data/companies.json';
 import contactsData from './data/contacts.json';
-import getCollectionFields from '../src/get-collection-fields';
+import getCollectionFields from '../src/get-fields-properties';
 
 describe('getCollectionFields', () => {
   const makeClient = (getAllMock: jest.Mock = jest.fn()) => {

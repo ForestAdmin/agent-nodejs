@@ -1,4 +1,4 @@
-const ALLOWED_COLLECTIONS = [
+const DEFAULT_COLLECTIONS = [
   'companies',
   'contacts',
   'deals',
@@ -9,4 +9,6 @@ const ALLOWED_COLLECTIONS = [
   'tickets',
 ];
 
-export default ALLOWED_COLLECTIONS;
+const CUSTOM_COLLECTION = 'schema';
+
+export default DEFAULT_COLLECTIONS;

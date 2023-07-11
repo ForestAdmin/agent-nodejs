@@ -11,3 +11,6 @@ export type HubSpotOptions<TypingCollections = undefined> = {
    * */
   skipTypings?: boolean;
 };
+
+export type FieldProperties = Record<string, any>[];
+export type FieldPropertiesByCollection = { [collectionName: string]: FieldProperties };

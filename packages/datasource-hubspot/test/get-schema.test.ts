@@ -1,25 +1,12 @@
-import { Client } from '@hubspot/api-client';
-
-import companiesData from './data/companies.json';
-import contactsData from './data/contacts.json';
 import getSchema from '../src/schema';
 
 describe('getSchema', () => {
-  const makeClient = (getAllMock: jest.Mock = jest.fn()) => {
-    return {
-      crm: {
-        properties: {
-          coreApi: {
-            getAll: getAllMock,
-          },
-        },
-      },
-    } as unknown as Client;
-  };
+  it('should always return an id field', () => {
+    const fieldPropertiesByCollection = {
+      companies: [{ name: 'about_us', type: 'string' }],
+    };
 
-  it('should always return an id field', async () => {
-    const client = makeClient(jest.fn().mockResolvedValue(companiesData));
-    const [collectionSchema] = await getSchema(client, { companies: ['about_us'] });
+    const [collectionSchema] = getSchema(fieldPropertiesByCollection, { companies: ['about_us'] });
     expect(collectionSchema.fields.id).toEqual({
       isPrimaryKey: true,
       type: 'String',
@@ -30,71 +17,52 @@ describe('getSchema', () => {
   describe('different field types', () => {
     describe('specific cases', () => {
       describe('when the field type is not supported', () => {
-        it('should throw an error', async () => {
-          const data = { results: [{ name: 'unsupported', type: 'unsupported' }] };
-          const client = makeClient(jest.fn().mockResolvedValue(data));
-          await expect(() => getSchema(client, { companies: ['unsupported'] })).rejects.toThrow(
-            'Property "unsupported" has unsupported type unsupported',
-          );
+        it('should throw an error', () => {
+          const fieldPropertiesByCollection = {
+            companies: [{ name: 'unsupported', type: 'unsupported' }],
+          };
+          expect(() =>
+            getSchema(fieldPropertiesByCollection, { companies: ['unsupported'] }),
+          ).toThrow('Property "unsupported" has unsupported type unsupported');
         });
       });
 
       describe('when the field is an enum and options is empty', () => {
-        it('should not import the field', async () => {
-          const data = {
-            results: [{ name: 'emptyEnumOptions', type: 'enumeration', options: [] }],
+        it('should not import the field', () => {
+          const fieldPropertiesByCollection = {
+            companies: [{ name: 'emptyEnumOptions', type: 'enumeration', options: [] }],
           };
-          const client = makeClient(jest.fn().mockResolvedValue(data));
-          const [collectionSchema] = await getSchema(client, { companies: ['emptyEnumOptions'] });
+          const [collectionSchema] = getSchema(fieldPropertiesByCollection, {
+            companies: ['emptyEnumOptions'],
+          });
           expect(collectionSchema.fields.emptyEnumOptions).toBeUndefined();
         });
       });
     });
 
     test.each([
-      // type, expectedAttributes, field, dataSample
-      ['string', { type: 'String' }, 'about_us', companiesData],
-      ['datetime', { type: 'Date' }, 'closedate_timestamp_earliest_value_a2a17e6e', companiesData],
-      ['number', { type: 'Number' }, 'facebookfans', companiesData],
+      [{ type: 'String' }, { type: 'string' }],
+      [{ type: 'Date' }, { type: 'datetime' }],
+      [{ type: 'Number' }, { type: 'number' }],
       [
-        'enumeration',
+        { type: 'Enum', enumValues: ['ORGANIC_SEARCH', 'PAID_SEARCH'] },
         {
-          type: 'Enum',
-          enumValues: [
-            'ORGANIC_SEARCH',
-            'PAID_SEARCH',
-            'EMAIL_MARKETING',
-            'SOCIAL_MEDIA',
-            'REFERRALS',
-            'OTHER_CAMPAIGNS',
-            'DIRECT_TRAFFIC',
-            'OFFLINE',
-            'PAID_SOCIAL',
-          ],
+          type: 'enumeration',
+          options: [{ value: 'ORGANIC_SEARCH' }, { value: 'PAID_SEARCH' }],
         },
-        'hs_analytics_latest_source',
-        companiesData,
       ],
-      ['boolean', { type: 'Boolean' }, 'hs_is_target_account', companiesData],
-      [
-        'phone_number',
-        { type: 'String' },
-        'hs_searchable_calculated_international_mobile_number',
-        contactsData,
-      ],
-    ])(
-      'should return the expected attributes for %s type',
-      async (type, expectedAttributes, field, data) => {
-        const client = makeClient(jest.fn().mockResolvedValue(data));
-        const [collectionSchema] = await getSchema(client, {
-          companies: [field],
-        });
-        expect(collectionSchema.fields[field]).toEqual({
-          isPrimaryKey: false,
-          isReadOnly: true,
-          ...expectedAttributes,
-        });
-      },
-    );
+      [{ type: 'Boolean' }, { type: 'bool' }],
+      [{ type: 'String' }, { type: 'phone_number' }],
+    ])('should return the expected attributes for %s type', (expectedAttributes, property) => {
+      const [collectionSchema] = getSchema(
+        { companies: [{ name: 'name', ...property }] },
+        { companies: ['name'] },
+      );
+      expect(collectionSchema.fields.name).toEqual({
+        isPrimaryKey: false,
+        isReadOnly: true,
+        ...expectedAttributes,
+      });
+    });
   });
 });

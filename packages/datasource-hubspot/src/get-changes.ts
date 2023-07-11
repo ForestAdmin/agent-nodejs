@@ -57,10 +57,16 @@ export default async function getDelta<TypingsHubspot>(
     request.collections.map(async (name, index) => {
       const after = request.previousDeltaState?.[name];
       const fields = options.collections[name];
+
       // wait between each request to avoid hubspot rate limit
-      await new Promise(resolve => {
-        setTimeout(resolve, 400 * index);
-      });
+      // it is very useful when we fetch all the collections
+      // more than 4 requests per second is not allowed
+      if (index > 0) {
+        await new Promise(resolve => {
+          setTimeout(resolve, 200 * index);
+        });
+      }
+
       const records = await getRecords(client, name, fields, after);
 
       newOrUpdatedEntries.push(...records.map(r => ({ collection: name, record: r })));

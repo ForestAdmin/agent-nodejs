@@ -1,15 +1,17 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-async function getCollectionTypes(
+import { FieldProperties, FieldPropertiesByCollection } from './types';
+
+async function getProperties(
   client: Client,
   collectionName: string,
   logger?: Logger,
-): Promise<string[] | undefined> {
+): Promise<FieldProperties> {
   try {
     const properties = await client.crm.properties.coreApi.getAll(collectionName);
 
-    return properties.results.map(property => property.name).sort((a, b) => a.localeCompare(b));
+    return properties.results;
   } catch (e) {
     if (e.code === 429) {
       // to much requests
@@ -26,15 +28,15 @@ async function getCollectionTypes(
   }
 }
 
-export default async function getCollectionFields(
+export default async function getFieldsPropertiesByCollections(
   client: Client,
   collections: string[],
   logger?: Logger,
-): Promise<Record<string, string[]>> {
-  const fieldsByCollection: Record<string, string[]> = {};
+): Promise<FieldPropertiesByCollection> {
+  const fieldsByCollection = {};
   await Promise.all(
     collections.map(async collectionName => {
-      const types = await getCollectionTypes(client, collectionName, logger);
+      const types = await getProperties(client, collectionName, logger);
       if (types) fieldsByCollection[collectionName] = types;
     }),
   );
