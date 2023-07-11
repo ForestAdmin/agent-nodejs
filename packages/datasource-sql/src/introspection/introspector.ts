@@ -58,28 +58,7 @@ export default class Introspector {
       }),
     );
 
-    if (constraintNamesForForeignKey.length !== tableReferences.length) {
-      const constraintNames = new Set(
-        (constraintNamesForForeignKey as [{ constraint_name: string; table_name: string }]).map(
-          c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
-        ),
-      );
-      tableReferences.forEach(({ constraintName }) => {
-        constraintNames.forEach(obj => {
-          if (obj.constraint_name === constraintName) {
-            constraintNames.delete(obj);
-          }
-        });
-      });
-
-      constraintNames.forEach(obj => {
-        logger?.(
-          'Error',
-          // eslint-disable-next-line max-len
-          `Failed to load constraints on relation '${obj.constraint_name}' on table '${obj.table_name}'. The relation will be ignored.`,
-        );
-      });
-    }
+    this.detectBrokenRelationship(constraintNamesForForeignKey, tableReferences, logger);
 
     return {
       name: tableName,
@@ -153,6 +132,35 @@ export default class Introspector {
           return refTable && refColumn;
         });
       }
+    }
+  }
+
+  private static detectBrokenRelationship(
+    constraintNamesForForeignKey: unknown[],
+    tableReferences: SequelizeReference[],
+    logger: Logger,
+  ) {
+    if (constraintNamesForForeignKey.length !== tableReferences.length) {
+      const constraintNames = new Set(
+        (constraintNamesForForeignKey as [{ constraint_name: string; table_name: string }]).map(
+          c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
+        ),
+      );
+      tableReferences.forEach(({ constraintName }) => {
+        constraintNames.forEach(obj => {
+          if (obj.constraint_name === constraintName) {
+            constraintNames.delete(obj);
+          }
+        });
+      });
+
+      constraintNames.forEach(obj => {
+        logger?.(
+          'Error',
+          // eslint-disable-next-line max-len
+          `Failed to load constraints on relation '${obj.constraint_name}' on table '${obj.table_name}'. The relation will be ignored.`,
+        );
+      });
     }
   }
 }
