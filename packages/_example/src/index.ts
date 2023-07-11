@@ -40,31 +40,7 @@ export default async () => {
           },
         },
       ],
-
-      pushDeltaHandler: (request, onChanges) => {
-        setInterval(() => {
-          onChanges({
-            newOrUpdatedEntries: [
-              {
-                collection: 'users',
-                record: {
-                  id: 1,
-                  name: `John Doe${Math.random()}`,
-                  address: {
-                    street: '123 Main St',
-                    city: 'San Francisco',
-                    zipCodes: [94105, 94107],
-                  },
-                },
-              },
-            ],
-            deletedEntries: [],
-          });
-        }, 10000);
-      },
-
-      // pullDeltaOnStartup: true,
-      pullDelta: async () => {
+      pullDeltaHandler: async () => {
         return {
           more: false,
           nextDeltaState: null,
@@ -114,61 +90,61 @@ export default async () => {
     { rename: collectionName => `whatever_${collectionName}` },
   );
 
-  // agent.addDataSource(
-  //   createHubspotDataSource({
-  //     accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
-  //     collections: {
-  //       contacts: ['firstname', 'lastname', 'mycustomfield'],
-  //     },
-  //   }),
-  //   { rename: collectionName => `hubspot_${collectionName}` },
-  // );
+  agent.addDataSource(
+    createHubspotDataSource({
+      accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+      collections: {
+        contacts: ['firstname', 'lastname', 'mycustomfield'],
+      },
+    }),
+    { rename: collectionName => `hubspot_${collectionName}` },
+  );
 
-  // agent.addDataSource(
-  //   createCachedDataSource({
-  //     cacheInto: 'sqlite::memory:',
-  //     cacheNamespace: 'typicode',
+  agent.addDataSource(
+    createCachedDataSource({
+      cacheInto: 'sqlite::memory:',
+      cacheNamespace: 'typicode',
 
-  //     schema: [
-  //       {
-  //         name: 'users',
-  //         fields: {
-  //           id: { type: 'Integer', isPrimaryKey: true },
-  //         },
-  //       },
-  //       {
-  //         name: 'posts',
-  //         fields: {
-  //           id: { type: 'Integer', isPrimaryKey: true },
-  //           userId: {
-  //             type: 'Integer',
-  //             reference: {
-  //               relationInverse: 'posts',
-  //               relationName: 'user',
-  //               targetCollection: 'users',
-  //               targetField: 'id',
-  //             },
-  //           },
-  //           title: { type: 'String' },
-  //           body: { type: 'String' },
-  //         },
-  //       },
-  //     ],
+      schema: [
+        {
+          name: 'users',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+          },
+        },
+        {
+          name: 'posts',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+            userId: {
+              type: 'Integer',
+              reference: {
+                relationInverse: 'posts',
+                relationName: 'user',
+                targetCollection: 'users',
+                targetField: 'id',
+              },
+            },
+            title: { type: 'String' },
+            body: { type: 'String' },
+          },
+        },
+      ],
 
-  //     pullDumpOnStartup: true,
-  //     pullDump: async request => {
-  //       const promises = request.collections.map(async collection => {
-  //         const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
+      pullDumpOnStartup: true,
+      pullDumpHandler: async request => {
+        const promises = request.collections.map(async collection => {
+          const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
 
-  //         return response.data.map(record => ({ collection, record }));
-  //       });
-  //       const records = await Promise.all(promises);
+          return response.data.map(record => ({ collection, record }));
+        });
+        const records = await Promise.all(promises);
 
-  //       return { more: false, entries: records.flat() };
-  //     },
-  //   }),
-  //   { rename: collectionName => `typicode_${collectionName}` },
-  // );
+        return { more: false, entries: records.flat() };
+      },
+    }),
+    { rename: collectionName => `typicode_${collectionName}` },
+  );
 
   agent.mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
   await agent.start();

@@ -159,7 +159,7 @@ export type CachedDataSourceOptions = {
    *
    * Note that this delay will add latency to each request, so set it to a low value (< 100ms)
    */
-  accessDelay?: number;
+  pullDeltaOnBeforeAccessDelay?: number;
 };
 
 export type ResolvedOptions = Omit<

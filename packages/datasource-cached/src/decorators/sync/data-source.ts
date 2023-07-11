@@ -118,7 +118,8 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
     // We wait for the access delay before running the delta
     // This allows to batch delta requests at the cost of adding a floor delay to all requests.
-    if (this.options.accessDelay) setTimeout(() => this.tick(), this.options.accessDelay);
+    if (this.options.pullDeltaOnBeforeAccessDelay)
+      setTimeout(() => this.tick(), this.options.pullDeltaOnBeforeAccessDelay);
     else this.tick();
 
     return deferred.promise;
