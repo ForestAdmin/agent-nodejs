@@ -12,7 +12,7 @@ import { CachedDataSourceOptions } from './types';
 function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSourceFactory {
   return async (logger: Logger) => {
     const options = await resolveOptions(rawOptions);
-    const connection = await createSequelize(options);
+    const connection = await createSequelize(logger, options);
     const factory = createSequelizeDataSource(connection);
 
     const sequelizeDs = await factory(logger);

@@ -15,7 +15,7 @@ export default async () => {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Info',
+    loggerLevel: 'Debug',
     typingsPath: 'src/typings.ts',
   };
 
@@ -25,11 +25,11 @@ export default async () => {
     createCachedDataSource({
       cacheInto: 'sqlite::memory:',
       cacheNamespace: 'whatever',
-      dumpOnStartup: true,
-      flattenMode: 'manual',
+      deltaOnStartup: true,
+      flattenMode: 'auto',
       flattenOptions: {
-        // users: { asModels: ['address'] },
-        users: { asFields: [{ field: 'address', level: 99 }], asModels: ['address.zipCodes'] },
+        // users: { asModels: ['address'], asFields: ['address.street'] },
+        // users: { asFields: [{ field: 'address', level: 99 }], asModels: ['address.zipCodes'] },
       },
       schema: [
         {
@@ -45,10 +45,12 @@ export default async () => {
           },
         },
       ],
-      getDump: async () => {
+      getDelta: async () => {
         return {
           more: false,
-          entries: [
+          nextDeltaState: null,
+          deletedEntries: [],
+          newOrUpdatedEntries: [
             {
               collection: 'users',
               record: {

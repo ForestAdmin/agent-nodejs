@@ -106,8 +106,14 @@ export type CachedDataSourceOptions = {
   /** URL of the cache database (default to in-memory sqlite) */
   cacheInto?: ConnectionOptions;
 
-  /** Prefix that should be used when creating the tables on the cache */
-  cacheNamespace: string;
+  /**
+   * Prefix that should be used when creating the tables on the cache
+   * Defaults to 'forest_cache_'.
+   *
+   * Using a prefix allows to share the same database between multiple projects, environments, or
+   * datasources.
+   */
+  cacheNamespace?: string;
 
   /** Schema options */
   schema?: ValueOrPromiseOrFactory<CachedCollectionSchema[]>;
@@ -140,7 +146,10 @@ export type CachedDataSourceOptions = {
   deltaAccessDelay?: number;
 };
 
-export type ResolvedOptions = Omit<CachedDataSourceOptions, 'schema' | 'flattenOptions'> & {
+export type ResolvedOptions = Omit<
+  CachedDataSourceOptions,
+  'schema' | 'flattenMode' | 'flattenOptions'
+> & {
   schema?: CachedCollectionSchema[];
   flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
 };

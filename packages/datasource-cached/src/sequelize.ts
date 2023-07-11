@@ -1,4 +1,5 @@
 import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
+import { Logger } from '@forestadmin/datasource-toolkit';
 import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
 
 import { flattenSchema } from './flattener';
@@ -70,10 +71,10 @@ function defineRelationships(schema: CachedCollectionSchema[], sequelize: Sequel
   }
 }
 
-export default async function createSequelize(options: ResolvedOptions) {
+export default async function createSequelize(logger: Logger, options: ResolvedOptions) {
   const sequelize = await buildSequelizeInstance(
     options.cacheInto ?? 'sqlite::memory:',
-    () => {},
+    logger,
     [],
   );
 

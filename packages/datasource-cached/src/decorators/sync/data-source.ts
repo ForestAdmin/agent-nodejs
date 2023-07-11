@@ -6,11 +6,12 @@ import {
   Deferred,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 
 import SyncCollectionDecorator from './collection';
 import { flattenRecord } from '../../flattener';
 import { DeltaReason, DumpReason, RecordDataWithCollection, ResolvedOptions } from '../../types';
+import { escape, getRecordId } from '../../utils';
 
 type Queue<Reason> = {
   /**
@@ -166,15 +167,28 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
         previousDeltaState: previousState,
       });
 
-      // FIXME update & deletes should be broken because of the flattenRecord
-      const updatedEntries = changes.newOrUpdatedEntries.flatMap(entry =>
-        this.flattenRecord(entry),
-      );
-      const deletedEntries = changes.deletedEntries.flatMap(entry => this.flattenRecord(entry));
-      for (const entry of deletedEntries)
+      // Delete records from virtual collections
+      for (const entry of [...changes.newOrUpdatedEntries, ...changes.deletedEntries]) {
+        const { asModels } = this.options.flattenOptions[entry.collection];
+        const { fields } = this.options.schema.find(c => c.name === entry.collection);
+        const recordId = getRecordId(fields, entry.record);
+
+        for (const asModel of asModels) {
+          this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
+            where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
+          });
+        }
+      }
+
+      // Delete records from root collections
+      for (const entry of changes.deletedEntries)
         await this.connection.model(entry.collection).destroy({ where: entry.record });
-      for (const entry of updatedEntries)
-        await this.connection.model(entry.collection).upsert(entry.record);
+
+      // Usert records in both root and virtual collections
+      for (const entry of changes.newOrUpdatedEntries) {
+        for (const subEntry of this.flattenRecord(entry))
+          await this.connection.model(subEntry.collection).upsert(subEntry.record);
+      }
 
       // Update state in database
       await this.setDeltaState(changes.nextDeltaState);
