@@ -4,7 +4,7 @@ import { Client } from '@hubspot/api-client';
 
 import { HUBSPOT_MAX_PAGE_SIZE, HUBSPOT_RATE_LIMIT_SEARCH_REQUEST } from './constants';
 import { getManyToManyRelationNames } from './relations';
-import { DeltaState, HubSpotOptions } from './types';
+import { HubSpotOptions } from './types';
 
 type Records = Record<string, any>[];
 
@@ -77,7 +77,7 @@ export default async function getDelta<TypingsHubspot>(
   const collections = request.collections.filter(c => !relations.includes(c));
 
   const newOrUpdatedEntries = [];
-  const nextDeltaState: DeltaState = { ...((request.previousDeltaState as object) ?? {}) };
+  const nextDeltaState = { ...((request.previousDeltaState as object) ?? {}) };
 
   let more = false;
 
@@ -110,11 +110,6 @@ export default async function getDelta<TypingsHubspot>(
       more ||= records.length === HUBSPOT_MAX_PAGE_SIZE;
     });
   };
-
-  const reasons = request.reasons.map(r => r.reason);
-
-  if (reasons.includes('before-list')) {
-  }
 
   await Promise.all([...getUpdatedRecords(collections), ...getAllRelationRecords(relations)]);
   if (more === false) logger?.('Info', 'All the records are updated');

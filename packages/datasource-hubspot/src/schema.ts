@@ -26,7 +26,7 @@ function getCollectionSchema(
     let enumValues: string[];
 
     if (property.type === 'string') type = 'String';
-    else if (property.type === 'datetime') type = 'Date';
+    else if (property.type === 'datetime' || property.type === 'date') type = 'Date';
     else if (property.type === 'number') type = 'Number';
     else if (property.type === 'enumeration') {
       type = 'Enum';

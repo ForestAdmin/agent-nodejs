@@ -34,7 +34,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
       pullDeltaHandler: request => getChanges(client, options, request, logger),
       pullDeltaOnStartup: true,
       pullDeltaOnBeforeAccess: true,
-      pullDeltaOnBeforeAccessDelay: 50,
+      pullDeltaOnBeforeAccessDelay: 100,
     });
 
     return factory(logger);
