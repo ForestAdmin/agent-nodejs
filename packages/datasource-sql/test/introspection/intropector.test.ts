@@ -28,7 +28,7 @@ const mockQueryInterface = {
     },
   ]),
 };
-(mockSequelize as any).getQueryInterface =
+(mockSequelize as Sequelize).getQueryInterface =
   mockGetQueryInterface.mockReturnValue(mockQueryInterface);
 
 describe('Introspector', () => {
