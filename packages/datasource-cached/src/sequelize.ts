@@ -3,7 +3,13 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
 
 import { flattenSchema } from './flattener';
-import { CachedCollectionSchema, Field, ResolvedOptions, isLeafField } from './types';
+import {
+  CachedCollectionSchema,
+  CachedDataSourceOptions,
+  Field,
+  ResolvedOptions,
+  isLeafField,
+} from './types';
 
 function convertField(field: Field): ModelAttributes[string] {
   if (isLeafField(field)) {
@@ -71,18 +77,34 @@ function defineRelationships(schema: CachedCollectionSchema[], sequelize: Sequel
   }
 }
 
-export default async function createSequelize(logger: Logger, options: ResolvedOptions) {
-  const sequelize = await buildSequelizeInstance(
-    options.cacheInto ?? 'sqlite::memory:',
-    logger,
-    [],
-  );
+export async function createSequelize(
+  logger: Logger,
+  cacheInto: CachedDataSourceOptions['cacheInto'],
+) {
+  const sequelize = await buildSequelizeInstance(cacheInto ?? 'sqlite::memory:', logger, []);
 
   sequelize.define(`forest_sync_state`, {
     id: { type: DataTypes.STRING, primaryKey: true },
     state: DataTypes.TEXT,
   });
 
+  sequelize.define('forest_schema', {
+    id: { type: DataTypes.STRING, primaryKey: true },
+    schema: DataTypes.JSON,
+  });
+
+  sequelize.define(`forest_pending_records`, {
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    collection: DataTypes.STRING,
+    record: DataTypes.JSON,
+  });
+
+  await sequelize.sync();
+
+  return sequelize;
+}
+
+export async function createModels(sequelize: Sequelize, options: ResolvedOptions) {
   const flattenedSchema = flattenSchema(options.schema, options.flattenOptions);
   defineModels(options.cacheNamespace, flattenedSchema, sequelize);
 
@@ -95,6 +117,4 @@ export default async function createSequelize(logger: Logger, options: ResolvedO
   await sequelize.sync();
 
   defineRelationships(flattenedSchema, sequelize);
-
-  return sequelize;
 }

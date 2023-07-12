@@ -52,12 +52,11 @@ export type CachedCollectionSchema = {
 /// //////
 
 export type PullDumpReason = {
-  reason: 'schema-discovery' | 'startup' | 'timer';
+  reason: 'startup' | 'timer';
   collections: string[];
 };
 
 export type PullDeltaReason = { collections: string[] } & (
-  | { reason: 'schema-discovery' }
   | { reason: 'startup' }
   | { reason: 'timer' }
   | { caller: Caller; reason: 'before-list'; filter: PaginatedFilter; projection: Projection }
@@ -143,12 +142,12 @@ export type CachedDataSourceOptions = {
 
   /** Pull dump options */
   pullDumpHandler?: (request: PullDumpRequest) => Promise<PullDumpResponse>;
-  pullDumpOnStartup?: boolean;
+  pullDumpOnRestart?: boolean;
   pullDumpOnTimer?: number;
 
   /** Pull delta options */
   pullDeltaHandler?: (request: PullDeltaRequest) => Promise<PullDeltaResponse>;
-  pullDeltaOnStartup?: boolean;
+  pullDeltaOnRestart?: boolean;
   pullDeltaOnTimer?: number;
   pullDeltaOnBeforeAccess?: boolean;
   pullDeltaOnAfterWrite?: boolean;

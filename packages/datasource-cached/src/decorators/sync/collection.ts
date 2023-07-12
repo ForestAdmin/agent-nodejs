@@ -113,6 +113,8 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     const [prefix, suffix] = path.split(/:(.*)/);
     const schema = this.childCollection.schema.fields[prefix];
 
+    // FIXME need to handle many to many relationships here
+    // the through table is not included, and it should be
     return schema.type === 'Column'
       ? this.name
       : this.dataSource.getCollection(schema.foreignCollection).getCollectionFromPath(suffix);

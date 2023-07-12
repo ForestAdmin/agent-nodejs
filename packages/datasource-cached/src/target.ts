@@ -1,39 +1,34 @@
+/* eslint-disable max-classes-per-file */
 /* eslint-disable no-await-in-loop */
 import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
-import {
-  DataSource,
-  DataSourceDecorator,
-  Deferred,
-  RecordData,
-} from '@forestadmin/datasource-toolkit';
-import { Op, Sequelize } from 'sequelize';
+import { Deferred } from '@forestadmin/datasource-toolkit';
+import { Sequelize } from 'sequelize';
 
-import SyncCollectionDecorator from './collection';
-import { flattenRecord } from '../../flattener';
+import { flattenRecord } from './flattener';
 import {
+  CachedDataSourceOptions,
   PullDeltaReason,
   PullDumpReason,
+  PullDumpResponse,
   PushDeltaResponse,
   RecordDataWithCollection,
-  ResolvedOptions,
-} from '../../types';
-import { escape, getRecordId } from '../../utils';
+} from './types';
+import { getRecordId } from './utils';
 
-type Queue<Reason> = {
-  /**
-   * A deferred which allows callers of queueDump/queueDelta to wait that their request is processed
-   */
-  deferred: Deferred<void>;
+class PullDumpResponseEvent extends Event {
+  response: PullDumpResponse;
 
-  /**
-   * The list of reasons why we want to dump/delta
-   */
-  reasons: (Reason & { at: Date })[];
-};
+  constructor(response: PullDumpResponse) {
+    super('pullDumpResponse');
 
-export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCollectionDecorator> {
-  options: ResolvedOptions;
+    this.response = response;
+  }
+}
 
+export default class Target extends EventTarget {
+  cache: RelaxedDataSource = null;
+
+  private options: CachedDataSourceOptions;
   private connection: Sequelize;
   private isRunning = false;
 
@@ -43,9 +38,8 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
   private timers: NodeJS.Timer[] = [];
 
-  constructor(childDataSource: DataSource, connection: Sequelize, options: ResolvedOptions) {
-    super(childDataSource, SyncCollectionDecorator);
-
+  constructor(connection: Sequelize, options: CachedDataSourceOptions) {
+    super();
     this.connection = connection;
     this.options = options;
   }
@@ -54,9 +48,8 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
     const collections = this.collections.map(c => c.name);
 
     if (this.options.pushDeltaHandler) {
-      const cache = new RelaxedDataSource(this.childDataSource, null);
       const previousDeltaState = await this.getDeltaState();
-      this.options.pushDeltaHandler({ cache, previousDeltaState }, changes =>
+      this.options.pushDeltaHandler({ cache: this.cache, previousDeltaState }, changes =>
         this.runPushDelta(changes),
       );
     }
@@ -202,7 +195,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
       const changes = await this.options.pullDeltaHandler({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
-        cache: new RelaxedDataSource(this.childDataSource, null),
+        cache: this.cache,
         previousDeltaState: previousState,
       });
 
@@ -242,30 +235,5 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   private async setDeltaState(state: unknown): Promise<void> {
     const stateModel = this.connection.model(`forest_sync_state`);
     await stateModel.upsert({ id: this.options.cacheNamespace, state: JSON.stringify(state) });
-  }
-
-  private flattenRecord(
-    recordWithCollection: RecordDataWithCollection,
-  ): RecordDataWithCollection[] {
-    return flattenRecord(
-      recordWithCollection,
-      this.options.schema.find(s => s.name === recordWithCollection.collection).fields,
-      this.options?.flattenOptions?.[recordWithCollection.collection]?.asFields ?? [],
-      this.options?.flattenOptions?.[recordWithCollection.collection]?.asModels ?? [],
-    );
-  }
-
-  private async destroySubModels(entry: RecordDataWithCollection): Promise<void> {
-    const { asModels } = this.options.flattenOptions[entry.collection];
-    const { fields } = this.options.schema.find(c => c.name === entry.collection);
-    const promises = asModels.map(asModel => {
-      const recordId = getRecordId(fields, entry.record);
-
-      return this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
-        where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
-      });
-    });
-
-    await Promise.all(promises);
   }
 }

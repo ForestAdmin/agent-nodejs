@@ -1,4 +1,4 @@
-import { DeltaRequest, DeltaResponse } from '@forestadmin/datasource-cached';
+import { PullDeltaRequest, PullDeltaResponse } from '@forestadmin/datasource-cached';
 import { Client } from '@hubspot/api-client';
 
 import { HubSpotOptions } from './types';
@@ -28,8 +28,8 @@ async function getRecords(client: Client, name: string, fields: string[], after?
 export default async function getDelta(
   client: Client,
   options: HubSpotOptions,
-  request: DeltaRequest,
-): Promise<DeltaResponse> {
+  request: PullDeltaRequest,
+): Promise<PullDeltaResponse> {
   const newOrUpdatedEntries = [];
   const nextDeltaState = { ...((request.previousDeltaState as object) ?? {}) };
 

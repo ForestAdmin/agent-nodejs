@@ -6,18 +6,24 @@ import SchemaDataSourceDecorator from './decorators/schema/data-source';
 import SyncDataSourceDecorator from './decorators/sync/data-source';
 import WriteDataSourceDecorator from './decorators/write/data-source';
 import resolveOptions from './options';
-import createSequelize from './sequelize';
+import { createModels, createSequelize } from './sequelize';
 import { CachedDataSourceOptions } from './types';
 
 function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSourceFactory {
   return async (logger: Logger) => {
-    const options = await resolveOptions(rawOptions);
-    const connection = await createSequelize(logger, options);
+    const connection = await createSequelize(logger, rawOptions.cacheInto);
+    const options = await resolveOptions(rawOptions, connection);
+
+    await createModels(connection, options);
     const factory = createSequelizeDataSource(connection);
 
     const sequelizeDs = await factory(logger);
     const publicationDs = new PublicationCollectionDataSourceDecorator(sequelizeDs);
-    publicationDs.keepCollectionsMatching(null, ['forest_sync_state']);
+    publicationDs.keepCollectionsMatching(null, [
+      'forest_pending_records',
+      'forest_schema',
+      'forest_sync_state',
+    ]);
 
     const syncDataSource = new SyncDataSourceDecorator(publicationDs, connection, options);
     await syncDataSource.start();
