@@ -10,49 +10,48 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import SyncDataSourceDecorator from './data-source';
+import TriggerSyncDataSourceDecorator from './data-source';
 
 export default class SyncCollectionDecorator extends CollectionDecorator {
-  override dataSource: SyncDataSourceDecorator;
+  override dataSource: TriggerSyncDataSourceDecorator;
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    const { options } = this.dataSource;
     const records = await this.childCollection.create(caller, data);
 
-    if (this.dataSource.options.pullDeltaHandler && this.dataSource.options.pullDeltaOnAfterWrite) {
+    if (options.pullDeltaOnAfterWrite) {
       const reason = 'after-create';
       const collections = [this.name];
-      await this.dataSource.options.source.queuePullDelta({ reason, caller, collections, records });
+      await options.source.queuePullDelta({ reason, caller, collections, records });
     }
 
     return records;
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    const { options } = this.dataSource;
+
     await super.update(caller, filter, patch);
 
-    if (this.dataSource.options.pullDeltaHandler && this.dataSource.options.pullDeltaOnAfterWrite) {
+    if (options.pullDeltaOnAfterWrite) {
       const reason = 'after-update';
       const collections = [this.name];
-      await this.dataSource.options.source.queuePullDelta({
-        reason,
-        caller,
-        filter,
-        patch,
-        collections,
-      });
+      await options.source.queuePullDelta({ reason, caller, filter, patch, collections });
     }
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
+    const { options } = this.dataSource;
+
     await super.delete(caller, filter);
 
-    if (this.dataSource.options.pullDeltaHandler && this.dataSource.options.pullDeltaOnAfterWrite) {
+    if (options.pullDeltaOnAfterWrite) {
       // Deletes may cascade to other collections!
       // Let's find out which one are affected assuming that all deletes cascade
       // (which is the worst case scenario)
       const reason = 'after-delete';
       const collections = this.getLinkedCollections(new Set());
-      await this.dataSource.options.source.queuePullDelta({ reason, caller, filter, collections });
+      await options.source.queuePullDelta({ reason, caller, filter, collections });
     }
   }
 
@@ -61,19 +60,12 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    if (
-      this.dataSource.options.pullDeltaHandler &&
-      this.dataSource.options.pullDeltaOnBeforeAccess
-    ) {
+    const { options } = this.dataSource;
+
+    if (options.pullDeltaOnBeforeAccess) {
       const reason = 'before-list';
       const collections = this.getCollectionsFromProjection(projection);
-      await this.dataSource.options.source.queuePullDelta({
-        reason,
-        caller,
-        filter,
-        projection,
-        collections,
-      });
+      await options.source.queuePullDelta({ reason, caller, filter, projection, collections });
     }
 
     return super.list(caller, filter, projection);
@@ -85,19 +77,12 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    if (
-      this.dataSource.options.pullDeltaHandler &&
-      this.dataSource.options.pullDeltaOnBeforeAccess
-    ) {
+    const { options } = this.dataSource;
+
+    if (options.pullDeltaOnBeforeAccess) {
       const reason = 'before-aggregate';
       const collections = this.getCollectionsFromProjection(aggregation.projection);
-      await this.dataSource.options.source.queuePullDelta({
-        reason,
-        caller,
-        filter,
-        aggregation,
-        collections,
-      });
+      await options.source.queuePullDelta({ reason, caller, filter, aggregation, collections });
     }
 
     return super.aggregate(caller, filter, aggregation, limit);

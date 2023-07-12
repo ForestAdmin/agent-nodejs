@@ -4,7 +4,7 @@ import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import SchemaDataSourceDecorator from './decorators/schema/data-source';
-import SyncDataSourceDecorator from './decorators/sync/data-source';
+import TriggerSyncDataSourceDecorator from './decorators/sync/data-source';
 import WriteDataSourceDecorator from './decorators/write/data-source';
 import resolveOptions from './options';
 import { createModels, createSequelize } from './sequelize';
@@ -34,8 +34,8 @@ function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSource
     await options.source.start(new CacheTarget(connection, options));
 
     // Additional decorators
-    const syncDataSource = new SyncDataSourceDecorator(publicationDs, connection, options);
-    const writeDataSource = new WriteDataSourceDecorator(syncDataSource, options);
+    const triggerSyncDataSource = new TriggerSyncDataSourceDecorator(publicationDs, options);
+    const writeDataSource = new WriteDataSourceDecorator(triggerSyncDataSource, options);
 
     return new SchemaDataSourceDecorator(writeDataSource, options);
   };

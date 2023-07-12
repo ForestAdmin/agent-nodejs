@@ -44,40 +44,42 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     this.connection = connection;
     this.options = options;
 
-    if (
-      options.pullDeltaHandler &&
-      !(
-        options.pullDeltaOnRestart ||
-        options.pullDeltaOnTimer ||
-        options.pullDeltaOnAfterWrite ||
-        options.pullDeltaOnBeforeAccess
-      )
-    ) {
-      throw new Error('Cannot use pullDeltaHandler without any pullDelta[*] flags');
-    }
+    const hasPullDeltaFlag =
+      options.pullDeltaOnRestart ||
+      options.pullDeltaOnTimer ||
+      options.pullDeltaOnAfterWrite ||
+      options.pullDeltaOnBeforeAccess;
 
-    if (options.pullDumpHandler && !(options.pullDumpOnRestart || options.pullDumpOnTimer)) {
-      throw new Error('Cannot use pullDumpHandler without any pullDump[*] flags');
-    }
+    if (options.pullDeltaHandler && !hasPullDeltaFlag)
+      throw new Error('Using pullDeltaHandler without pullDelta[*] flags');
+
+    if (hasPullDeltaFlag && !options.pullDeltaHandler)
+      throw new Error('Using pullDelta[*] flags without pullDeltaHandler');
   }
 
   async start(target: SynchronizationTarget): Promise<void> {
+    if (this.target) throw new Error('Already started');
     this.target = target;
+
+    if (this.options.pullDumpHandler && this.options.pullDumpOnRestart)
+      await this.queuePullDump({ reason: 'startup', collections: [] });
+    else if (this.options.pullDumpHandler) {
+      // fixme we should check that this is the first startup, and not a restart
+      // and launch a dump if it is the first startup
+      if (true) await this.queuePullDump({ reason: 'startup', collections: [] });
+    }
+
+    if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
+      await this.queuePullDelta({ reason: 'startup', collections: [] });
 
     if (this.options.pushDeltaHandler) {
       const previousDeltaState = await this.getDeltaState();
       this.options.pushDeltaHandler(
         { cache: this.requestCache, previousDeltaState },
-        // bug? queuePushDelta is not returning a promise
+        // fixme queuePushDelta is not returning a promise
         async changes => this.queuePushDelta(changes),
       );
     }
-
-    if (this.options.pullDumpHandler && this.options.pullDumpOnRestart)
-      await this.queuePullDump({ reason: 'startup', collections: [] });
-
-    if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
-      await this.queuePullDelta({ reason: 'startup', collections: [] });
 
     if (this.options.pullDumpHandler && this.options.pullDumpOnTimer)
       this.timers.push(

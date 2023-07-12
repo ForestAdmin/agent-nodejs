@@ -1,27 +1,28 @@
 /* eslint-disable no-await-in-loop */
 import type { Sequelize } from 'sequelize';
 
+import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
 import { NodeStudy } from './analyzer';
-import { CachedCollectionSchema, CachedDataSourceOptions } from '../../types';
+import { CachedCollectionSchema, CachedDataSourceOptions, Field, isLeafField } from '../../types';
 import { resolveValueOrPromiseOrFactory } from '../utils';
 
-function convertAnalysisToSchema(node: NodeStudy): CachedCollectionSchema['fields'] {
-  const schema: CachedCollectionSchema['fields'] = {};
+function convertAnalysisToSchema(node: NodeStudy): Field {
+  const types = Object.keys(node.types).filter(t => t !== 'null');
 
-  for (const [key, value] of Object.entries(node.object)) {
-    const types = Object.keys(value.types).filter(t => t !== 'null');
-    let columnType = types.length === 1 ? types[0] : 'Json';
+  if (types.length > 1) return { type: 'Json' };
 
-    // if (columnType === 'Json')
-    if (columnType === 'Object' || columnType === 'Array') columnType = 'Json';
+  if (types[0] === 'Object') {
+    const entries = Object.entries(node.object).map(([k, v]) => [k, convertAnalysisToSchema(v)]);
 
-    schema[key] = {
-      type: columnType as ColumnType,
-      isPrimaryKey: key === 'id',
-    };
+    return Object.fromEntries(entries);
   }
 
-  return schema;
+  if (types[0] === 'Array') {
+    return [convertAnalysisToSchema(node.arrayElement)];
+  }
+
+  return { type: types[0] as PrimitiveTypes };
 }
 
 export async function getSchema(
@@ -46,10 +47,14 @@ export async function buildSchema(
   connection: Sequelize,
   analysis: Record<string, NodeStudy>,
 ): Promise<CachedCollectionSchema[]> {
-  const schema: CachedCollectionSchema[] = Object.entries(analysis).map(([name, node]) => ({
-    name,
-    fields: convertAnalysisToSchema(node),
-  }));
+  const schema: CachedCollectionSchema[] = Object.entries(analysis).map(([name, node]) => {
+    const fields = convertAnalysisToSchema(node) as Record<string, Field>;
+
+    if (isLeafField(fields.id)) fields.id.isPrimaryKey = true;
+    else throw new Error(`No primary key found in the schema of the collection ${name}`);
+
+    return { name, fields };
+  });
 
   const schemaCache = connection.model('forest_schema');
   schemaCache.upsert({ id: rawOptions.cacheNamespace, schema });

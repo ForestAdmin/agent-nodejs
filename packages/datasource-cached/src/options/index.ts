@@ -39,7 +39,7 @@ export default async function resolveOptions(
     createRecord: options.createRecord,
     updateRecord: options.updateRecord,
     deleteRecord: options.deleteRecord,
-    pullDeltaOnAfterWrite: options.pullDeltaOnAfterWrite ?? false,
-    pullDeltaOnBeforeAccess: options.pullDeltaOnBeforeAccess ?? false,
+    pullDeltaOnAfterWrite: options.pullDeltaHandler && options.pullDeltaOnAfterWrite,
+    pullDeltaOnBeforeAccess: options.pullDeltaHandler && options.pullDeltaOnBeforeAccess,
   };
 }

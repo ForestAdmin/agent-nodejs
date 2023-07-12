@@ -1,5 +1,6 @@
+/* eslint-disable no-await-in-loop */
 import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
-import { Model, ModelStatic, Sequelize } from 'sequelize';
+import { Model, ModelStatic, Op, Sequelize } from 'sequelize';
 
 import { NodeStudy, createNode, walkNode } from '../options/schema/analyzer';
 import {
@@ -32,10 +33,26 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
   }
 
   async start(target: SynchronizationTarget): Promise<void> {
-    // replay dump / delta on the target.
-    // truncate the record cache
-    // and passthrough all new changes to the target
-    this.target = target;
+    if (!this.target) {
+      let record: Model = { dataValues: { id: 0 } } as Model;
+
+      while (record) {
+        record = await this.recordCache.findOne({
+          where: { id: { [Op.gt]: record.dataValues.id } },
+          order: [['id', 'ASC']],
+        });
+
+        if (record)
+          await (record.dataValues.type === 'dump'
+            ? target.applyDump(...(record.dataValues.content as [PullDumpResponse, boolean]))
+            : target.applyDelta(...(record.dataValues.content as [PushDeltaResponse])));
+      }
+
+      await this.recordCache.truncate();
+      this.target = target;
+    } else {
+      throw new Error('Already started');
+    }
   }
 
   queuePullDump(reason: PullDumpReason): Promise<void> {
@@ -55,7 +72,7 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
         walkNode(this.nodes[record.collection], record.record);
       }
 
-      await this.recordCache.bulkCreate(changes.entries);
+      await this.recordCache.create({ type: 'dump', content: [changes, firstPage] });
     }
   }
 
@@ -68,7 +85,7 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
         walkNode(this.nodes[record.collection], record.record);
       }
 
-      await this.recordCache.bulkCreate(changes.newOrUpdatedEntries);
+      await this.recordCache.create({ type: 'delta', content: [changes] });
     }
   }
 }

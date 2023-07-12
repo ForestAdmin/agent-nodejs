@@ -84,7 +84,7 @@ export async function createSequelize(
 
   sequelize.define(`forest_sync_state`, {
     id: { type: DataTypes.STRING, primaryKey: true },
-    state: DataTypes.TEXT,
+    state: DataTypes.JSON,
   });
 
   sequelize.define('forest_schema', {
@@ -94,8 +94,8 @@ export async function createSequelize(
 
   sequelize.define(`forest_pending_records`, {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    collection: DataTypes.STRING,
-    record: DataTypes.JSON,
+    type: DataTypes.ENUM('dump', 'delta'),
+    content: DataTypes.JSON,
   });
 
   await sequelize.sync();
