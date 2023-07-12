@@ -16,7 +16,7 @@ export default async () => {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Info',
+    loggerLevel: 'Debug',
     typingsPath: 'src/typings.ts',
   };
 
@@ -26,11 +26,7 @@ export default async () => {
     createCachedDataSource({
       cacheInto: 'sqlite::memory:',
       cacheNamespace: 'whatever',
-      dumpOnStartup: true,
-      flattenOptions: {
-        users: { asModels: ['address'] },
-        // users: { asFields: ['address.street', 'address.city'], asModels: ['address.zipCodes'] },
-      },
+      flattenMode: 'auto',
       schema: [
         {
           name: 'users',
@@ -45,10 +41,13 @@ export default async () => {
           },
         },
       ],
-      getDump: async () => {
+      pullDeltaOnBeforeAccess: true,
+      pullDeltaHandler: async () => {
         return {
           more: false,
-          entries: [
+          nextDeltaState: null,
+          deletedEntries: [],
+          newOrUpdatedEntries: [
             {
               collection: 'users',
               record: {
@@ -122,7 +121,7 @@ export default async () => {
     createCachedDataSource({
       cacheInto: 'sqlite::memory:',
       cacheNamespace: 'typicode',
-      dumpOnStartup: true,
+
       schema: [
         {
           name: 'users',
@@ -148,7 +147,9 @@ export default async () => {
           },
         },
       ],
-      getDump: async request => {
+
+      pullDumpOnStartup: true,
+      pullDumpHandler: async request => {
         const promises = request.collections.map(async collection => {
           const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
 

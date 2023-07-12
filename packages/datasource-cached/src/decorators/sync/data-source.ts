@@ -6,11 +6,18 @@ import {
   Deferred,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 
 import SyncCollectionDecorator from './collection';
 import { flattenRecord } from '../../flattener';
-import { DeltaReason, DumpReason, RecordDataWithCollection, ResolvedOptions } from '../../types';
+import {
+  PullDeltaReason,
+  PullDumpReason,
+  PushDeltaResponse,
+  RecordDataWithCollection,
+  ResolvedOptions,
+} from '../../types';
+import { escape, getRecordId } from '../../utils';
 
 type Queue<Reason> = {
   /**
@@ -28,10 +35,11 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   options: ResolvedOptions;
 
   private connection: Sequelize;
-  private dumpRunning = false;
-  private deltaRunning = false;
-  private queuedDumpReasons: Queue<DumpReason> = null;
-  private queuedDeltaReasons: Queue<DeltaReason> = null;
+  private isRunning = false;
+
+  private queuedPullDumpReasons: Queue<PullDumpReason> = null;
+  private queuedPullDeltaReasons: Queue<PullDeltaReason> = null;
+  private queuedPushDeltaRequest: PushDeltaResponse = null;
 
   private timers: NodeJS.Timer[] = [];
 
@@ -45,25 +53,33 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   async start(): Promise<void> {
     const collections = this.collections.map(c => c.name);
 
-    if ('getDump' in this.options && this.options.dumpOnStartup)
-      await this.queueDump({ reason: 'startup', collections });
+    if (this.options.pushDeltaHandler) {
+      const cache = new RelaxedDataSource(this.childDataSource, null);
+      const previousDeltaState = await this.getDeltaState();
+      this.options.pushDeltaHandler({ cache, previousDeltaState }, changes =>
+        this.runPushDelta(changes),
+      );
+    }
 
-    if ('getDelta' in this.options && this.options.deltaOnStartup)
-      await this.queueDelta({ reason: 'startup', collections });
+    if (this.options.pullDumpHandler && this.options.pullDumpOnStartup)
+      await this.queuePullDump({ reason: 'startup', collections });
 
-    if ('getDump' in this.options && this.options.dumpOnTimer)
+    if (this.options.pullDeltaHandler && this.options.pullDeltaOnStartup)
+      await this.queuePullDelta({ reason: 'startup', collections });
+
+    if (this.options.pullDumpHandler && this.options.pullDumpOnTimer)
       this.timers.push(
         setInterval(
-          () => this.queueDump({ reason: 'timer', collections }),
-          this.options.dumpOnTimer,
+          () => this.queuePullDump({ reason: 'timer', collections }),
+          this.options.pullDumpOnTimer,
         ),
       );
 
-    if ('getDelta' in this.options && this.options.deltaOnTimer)
+    if (this.options.pullDeltaHandler && this.options.pullDeltaOnTimer)
       this.timers.push(
         setInterval(
-          () => this.queueDelta({ reason: 'timer', collections }),
-          this.options.deltaOnTimer,
+          () => this.queuePullDelta({ reason: 'timer', collections }),
+          this.options.pullDeltaOnTimer,
         ),
       );
   }
@@ -73,44 +89,68 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
     this.timers.length = 0;
   }
 
-  async queueDump(reason: DumpReason): Promise<void> {
-    if (!this.queuedDumpReasons) this.queuedDumpReasons = { deferred: new Deferred(), reasons: [] };
+  queuePushDelta(delta: PushDeltaResponse): void {
+    if (!this.queuedPushDeltaRequest)
+      this.queuedPushDeltaRequest = { newOrUpdatedEntries: [], deletedEntries: [] };
 
-    const { deferred } = this.queuedDumpReasons;
-    this.queuedDumpReasons.reasons.push({ ...reason, at: new Date() });
+    this.queuedPushDeltaRequest.deletedEntries.push(...delta.deletedEntries);
+    this.queuedPushDeltaRequest.newOrUpdatedEntries.push(...delta.newOrUpdatedEntries);
+    if (delta.nextDeltaState) this.queuedPushDeltaRequest.nextDeltaState = delta.nextDeltaState;
+  }
+
+  queuePullDump(reason: PullDumpReason): Promise<void> {
+    if (!this.queuedPullDumpReasons)
+      this.queuedPullDumpReasons = { deferred: new Deferred(), reasons: [] };
+
+    const { deferred } = this.queuedPullDumpReasons;
+    this.queuedPullDumpReasons.reasons.push({ ...reason, at: new Date() });
     this.tick();
 
     return deferred.promise;
   }
 
-  queueDelta(reason: DeltaReason): Promise<void> {
-    if (!this.queuedDeltaReasons)
-      this.queuedDeltaReasons = { deferred: new Deferred(), reasons: [] };
+  queuePullDelta(reason: PullDeltaReason): Promise<void> {
+    if (!this.queuedPullDeltaReasons)
+      this.queuedPullDeltaReasons = { deferred: new Deferred(), reasons: [] };
 
-    const { deferred } = this.queuedDeltaReasons;
-    this.queuedDeltaReasons.reasons.push({ ...reason, at: new Date() });
+    const { deferred } = this.queuedPullDeltaReasons;
+    this.queuedPullDeltaReasons.reasons.push({ ...reason, at: new Date() });
 
     // We wait for the access delay before running the delta
     // This allows to batch delta requests at the cost of adding a floor delay to all requests.
-    setTimeout(() => this.tick(), this.options.deltaAccessDelay ?? 0);
+    if (this.options.pullDeltaOnBeforeAccessDelay)
+      setTimeout(() => this.tick(), this.options.pullDeltaOnBeforeAccessDelay);
+    else this.tick();
 
     return deferred.promise;
   }
 
   private tick(): void {
-    if (!this.dumpRunning && !this.deltaRunning) {
-      if (this.queuedDumpReasons) {
-        this.runDump(this.queuedDumpReasons);
-        this.queuedDumpReasons = null;
-      } else if (this.queuedDeltaReasons) {
-        this.runDelta(this.queuedDeltaReasons);
-        this.queuedDeltaReasons = null;
+    if (!this.isRunning) {
+      if (this.queuedPushDeltaRequest) {
+        this.runPushDelta(this.queuedPushDeltaRequest);
+        this.queuedPushDeltaRequest = null;
+      } else if (this.queuedPullDumpReasons) {
+        this.runPullDump(this.queuedPullDumpReasons);
+        this.queuedPullDumpReasons = null;
+      } else if (this.queuedPullDeltaReasons) {
+        this.runPullDelta(this.queuedPullDeltaReasons);
+        this.queuedPullDeltaReasons = null;
       }
     }
   }
 
-  private async runDump(queue: Queue<DumpReason>): Promise<void> {
-    this.dumpRunning = true;
+  private async runPushDelta(changes: PushDeltaResponse): Promise<void> {
+    this.isRunning = true;
+
+    this.applyDelta(changes);
+
+    this.isRunning = false;
+    this.tick();
+  }
+
+  private async runPullDump(queue: Queue<PullDumpReason>): Promise<void> {
+    this.isRunning = true;
 
     let state = null;
     let more = true;
@@ -122,7 +162,7 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
 
     // Fill table with dump
     while (more) {
-      const changes = await this.options.getDump({
+      const changes = await this.options.pullDumpHandler({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
         cache: new RelaxedDataSource(this.childDataSource, null),
@@ -146,45 +186,50 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
         await this.setDeltaState(changes.nextDeltaState);
     }
 
-    this.dumpRunning = false;
+    this.isRunning = false;
     queue.deferred.resolve();
     this.tick();
   }
 
-  private async runDelta(queue: Queue<DeltaReason>) {
-    this.deltaRunning = true;
+  private async runPullDelta(queue: Queue<PullDeltaReason>) {
+    this.isRunning = true;
 
     let more = true;
 
     while (more) {
       // Update records in database
       const previousState = await this.getDeltaState();
-      const changes = await this.options.getDelta({
+      const changes = await this.options.pullDeltaHandler({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
         cache: new RelaxedDataSource(this.childDataSource, null),
         previousDeltaState: previousState,
       });
 
-      // FIXME update & deletes should be broken because of the flattenRecord
-      const updatedEntries = changes.newOrUpdatedEntries.flatMap(entry =>
-        this.flattenRecord(entry),
-      );
-      const deletedEntries = changes.deletedEntries.flatMap(entry => this.flattenRecord(entry));
-      for (const entry of deletedEntries)
-        await this.connection.model(entry.collection).destroy({ where: entry.record });
-      for (const entry of updatedEntries)
-        await this.connection.model(entry.collection).upsert(entry.record);
-
-      // Update state in database
-      await this.setDeltaState(changes.nextDeltaState);
-
+      await this.applyDelta(changes);
       more = changes.more;
     }
 
-    this.deltaRunning = false;
+    this.isRunning = false;
     queue.deferred.resolve();
     this.tick();
+  }
+
+  private async applyDelta(changes: PushDeltaResponse): Promise<void> {
+    for (const entry of changes.deletedEntries) {
+      await this.destroySubModels(entry);
+      await this.connection.model(entry.collection).destroy({ where: entry.record });
+    }
+
+    // Usert records in both root and virtual collections
+    for (const entry of changes.newOrUpdatedEntries) {
+      await this.destroySubModels(entry);
+      for (const subEntry of this.flattenRecord(entry))
+        await this.connection.model(subEntry.collection).upsert(subEntry.record);
+    }
+
+    // Update state in database
+    if (changes.nextDeltaState !== undefined) await this.setDeltaState(changes.nextDeltaState);
   }
 
   private async getDeltaState(): Promise<unknown> {
@@ -208,5 +253,18 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
       this.options?.flattenOptions?.[recordWithCollection.collection]?.asFields ?? [],
       this.options?.flattenOptions?.[recordWithCollection.collection]?.asModels ?? [],
     );
+  }
+
+  private async destroySubModels(entry: RecordDataWithCollection): Promise<void> {
+    const { asModels } = this.options.flattenOptions[entry.collection];
+    const { fields } = this.options.schema.find(c => c.name === entry.collection);
+    const recordId = getRecordId(fields, entry.record);
+    const promises = asModels.map(asModel =>
+      this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
+        where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
+      }),
+    );
+
+    await Promise.all(promises);
   }
 }

@@ -31,10 +31,10 @@ export async function createHubspotDataSource<TypingsHubspot>(
       cacheNamespace: 'hubspot',
       schema: getSchema(fieldsProperties, options.collections, logger),
       // Use delta synchronization
-      getDelta: request => getChanges(client, options, request),
-      deltaOnStartup: true,
-      deltaOnBeforeAccess: true,
-      deltaAccessDelay: 50,
+      pullDeltaHandler: request => getChanges(client, options, request),
+      pullDeltaOnStartup: true,
+      pullDeltaOnBeforeAccess: true,
+      pullDeltaOnBeforeAccessDelay: 50,
     });
 
     return factory(logger);

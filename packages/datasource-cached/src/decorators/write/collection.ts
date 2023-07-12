@@ -19,12 +19,17 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports creations');
     }
 
-    const promises = data.map(async record => {
-      const newRecord = await this.options.createRecord(this.name, record);
-      Object.assign(record, newRecord);
-    });
+    if (this.dataSource.options.schema[this.name]) {
+      // I am a root collection, I can forward the creation to the target
+      const promises = data.map(async record => {
+        const newRecord = await this.options.createRecord(this.name, record);
+        Object.assign(record, newRecord);
+      });
 
-    await Promise.all(promises);
+      await Promise.all(promises);
+    } else {
+      // I am a child collection, I need to transform this creation into an update
+    }
 
     return this.childCollection.create(caller, data);
   }
@@ -34,13 +39,18 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
-    const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
-    const promises = recordsPks.map(async record => {
-      Object.assign(record, patch);
-      await this.options.updateRecord(this.name, record);
-    });
+    if (this.dataSource.options.schema[this.name]) {
+      // I am a root collection, I can forward the update to the target
+      const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
+      const promises = recordsPks.map(async record => {
+        Object.assign(record, patch);
+        await this.options.updateRecord(this.name, record);
+      });
 
-    await Promise.all(promises);
+      await Promise.all(promises);
+    } else {
+      // I am a child collection, I need to send whole records to the target
+    }
 
     return super.update(caller, filter, patch);
   }
@@ -50,12 +60,17 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
-    const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
-    const promises = recordsPks.map(async record => {
-      await this.options.deleteRecord(this.name, record);
-    });
+    if (this.dataSource.options.schema[this.name]) {
+      // I am a root collection, I can forward the delete to the target
+      const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
+      const promises = recordsPks.map(async record => {
+        await this.options.deleteRecord(this.name, record);
+      });
 
-    await Promise.all(promises);
+      await Promise.all(promises);
+    } else {
+      // I am a child collection, I need to send whole records to the target
+    }
 
     return super.delete(caller, filter);
   }

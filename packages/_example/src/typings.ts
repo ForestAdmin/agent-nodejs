@@ -89,23 +89,15 @@ export type Schema = {
     plain: {
       'id': number;
       'name': string;
+      'address@@@city': string;
+      'address@@@street': string;
     };
-    nested: {
-      'address': Schema['whatever_users_address']['plain'] & Schema['whatever_users_address']['nested'];
-    };
-    flat: {
-      'address:street': string;
-      'address:city': string;
-      'address:zipCodes': Array<number>;
-      'address:_fid': string;
-      'address:_fpid': number;
-    };
+    nested: {};
+    flat: {};
   };
-  'whatever_users_address': {
+  'whatever_users_address_zipCodes': {
     plain: {
-      'street': string;
-      'city': string;
-      'zipCodes': Array<number>;
+      'value': number;
       '_fid': string;
       '_fpid': number;
     };
@@ -115,6 +107,8 @@ export type Schema = {
     flat: {
       'parent:id': number;
       'parent:name': string;
+      'parent:address@@@city': string;
+      'parent:address@@@street': string;
     };
   };
 };

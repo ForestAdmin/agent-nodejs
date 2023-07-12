@@ -18,6 +18,7 @@ export default class SchemaCollectionDecorator extends CollectionDecorator {
           columnType: this.computeType(baseField),
           isReadOnly: baseField.isReadOnly,
           defaultValue: baseField.defaultValue,
+          validation: baseField.validation,
         };
       }
     }
