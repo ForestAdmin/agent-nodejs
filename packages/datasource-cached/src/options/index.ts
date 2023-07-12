@@ -1,6 +1,6 @@
 import type { Sequelize } from 'sequelize';
 
-import computeFlattenOptions from './flattener';
+import computeFlattenOptions from './flattener/options';
 import { flattenSchema } from './flattener/schema';
 import { buildSchema, getSchema } from './schema';
 import AnalysisPassThough from '../synchronization/analysis-passthrough';
