@@ -161,10 +161,31 @@ export type CachedDataSourceOptions = {
   pullDeltaOnBeforeAccessDelay?: number;
 };
 
-export type ResolvedOptions = Omit<
+export type ResolvedOptions = Pick<
   CachedDataSourceOptions,
-  'schema' | 'flattenMode' | 'flattenOptions'
+  | 'cacheInto'
+  | 'cacheNamespace'
+  | 'createRecord'
+  | 'updateRecord'
+  | 'deleteRecord'
+  | 'pullDeltaOnBeforeAccess'
+  | 'pullDeltaOnAfterWrite'
 > & {
   schema?: CachedCollectionSchema[];
+  flattenSchema?: CachedCollectionSchema[];
   flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
+  source: SynchronizationSource;
 };
+
+export interface SynchronizationTarget {
+  applyDump(changes: PullDumpResponse, firstPage: boolean): Promise<void>;
+  applyDelta(changes: PushDeltaResponse): Promise<void>;
+}
+
+export interface SynchronizationSource {
+  requestCache: RelaxedDataSource;
+
+  start(target: SynchronizationTarget): Promise<void>;
+  queuePullDump(reason: PullDumpReason): Promise<void>;
+  queuePullDelta(reason: PullDeltaReason): Promise<void>;
+}

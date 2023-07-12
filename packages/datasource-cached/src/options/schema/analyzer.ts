@@ -49,6 +49,7 @@ function getSampleType(sample: unknown): Primitive {
   if (sample instanceof Date) return 'Date';
   if (Array.isArray(sample)) return 'Array';
   if (sample?.constructor === Object) return 'Object';
+  if (Number.isInteger(sample)) return 'Integer';
 
   const type = typeof sample;
 

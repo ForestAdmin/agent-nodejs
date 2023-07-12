@@ -1,30 +1,22 @@
 /* eslint-disable no-await-in-loop */
-// eslint-disable-next-line max-classes-per-file
-import { DataSource, DataSourceDecorator, RecordData } from '@forestadmin/datasource-toolkit';
+import { RecordData } from '@forestadmin/datasource-toolkit';
 import { Op, Sequelize } from 'sequelize';
 
-import SyncCollectionDecorator from './collection';
-import flattenRecord from '../../flattener';
+import flattenRecord from '../flattener';
 import {
   PullDumpResponse,
   PushDeltaResponse,
   RecordDataWithCollection,
   ResolvedOptions,
   SynchronizationTarget,
-} from '../../types';
-import { escape, getRecordId } from '../../utils';
+} from '../types';
+import { escape, getRecordId } from '../utils';
 
-export default class SyncDataSourceDecorator
-  extends DataSourceDecorator<SyncCollectionDecorator>
-  implements SynchronizationTarget
-{
+export default class CacheTarget implements SynchronizationTarget {
+  connection: Sequelize;
   options: ResolvedOptions;
 
-  private connection: Sequelize;
-
-  constructor(childDataSource: DataSource, connection: Sequelize, options: ResolvedOptions) {
-    super(childDataSource, SyncCollectionDecorator);
-
+  constructor(connection: Sequelize, options: ResolvedOptions) {
     this.connection = connection;
     this.options = options;
   }
@@ -32,7 +24,7 @@ export default class SyncDataSourceDecorator
   async applyDump(changes: PullDumpResponse, firstPage: boolean): Promise<void> {
     // Truncate tables (we should write to a temporary table and swap the tables to avoid downtime)
     if (firstPage) {
-      for (const collection of this.collections) {
+      for (const collection of this.options.flattenSchema) {
         await this.connection.model(collection.name).destroy({ truncate: true });
       }
     }
@@ -77,13 +69,12 @@ export default class SyncDataSourceDecorator
   private async destroySubModels(entry: RecordDataWithCollection): Promise<void> {
     const { asModels } = this.options.flattenOptions[entry.collection];
     const { fields } = this.options.schema.find(c => c.name === entry.collection);
-    const promises = asModels.map(asModel => {
-      const recordId = getRecordId(fields, entry.record);
-
-      return this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
+    const recordId = getRecordId(fields, entry.record);
+    const promises = asModels.map(asModel =>
+      this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
         where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
-      });
-    });
+      }),
+    );
 
     await Promise.all(promises);
   }

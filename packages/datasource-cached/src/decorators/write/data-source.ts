@@ -10,5 +10,12 @@ export default class WriteDataSourceDecorator extends DataSourceDecorator {
     super(childDataSource, WriteCollectionDecorator);
 
     this.options = options;
+
+    if (
+      options.flattenOptions &&
+      (options.createRecord || options.updateRecord || options.deleteRecord)
+    ) {
+      throw new Error('Cannot use flattenOptions with createRecord, updateRecord or deleteRecord');
+    }
   }
 }

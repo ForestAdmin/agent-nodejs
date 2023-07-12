@@ -1,46 +1,45 @@
 import type { Sequelize } from 'sequelize';
 
 import computeFlattenOptions from './flattener';
-import getSchema from './schema';
-import { CachedDataSourceOptions, ResolvedOptions } from '../types';
+import { flattenSchema } from './flattener/schema';
+import { buildSchema, getSchema } from './schema';
+import AnalysisPassThough from '../synchronization/analysis-passthrough';
+import CustomerSource from '../synchronization/customer-source';
+import {
+  CachedCollectionSchema,
+  CachedDataSourceOptions,
+  ResolvedOptions,
+  SynchronizationSource,
+} from '../types';
 
 export default async function resolveOptions(
-  rawOptions: CachedDataSourceOptions,
-  sequelize: Sequelize,
+  options: CachedDataSourceOptions,
+  connection: Sequelize,
 ): Promise<ResolvedOptions> {
-  const { flattenMode, flattenOptions, schema, ...rest } = rawOptions;
+  let source: SynchronizationSource = new CustomerSource(connection, options);
+  let resolvedSchema: CachedCollectionSchema[] = await getSchema(options, connection);
 
-  if (
-    flattenOptions &&
-    (rawOptions.createRecord || rawOptions.updateRecord || rawOptions.deleteRecord)
-  ) {
-    throw new Error('Cannot use flattenOptions with createRecord, updateRecord or deleteRecord');
+  if (!resolvedSchema) {
+    const passThrough = new AnalysisPassThough(connection, source);
+    await source.start(passThrough); // This should block until the analysis is done.
+
+    source = passThrough;
+    resolvedSchema = await buildSchema(options, connection, passThrough.nodes);
   }
 
-  if (
-    rest.pullDeltaHandler &&
-    !(
-      rest.pullDeltaOnRestart ||
-      rest.pullDeltaOnTimer ||
-      rest.pullDeltaOnAfterWrite ||
-      rest.pullDeltaOnBeforeAccess
-    )
-  ) {
-    throw new Error('Cannot use pullDeltaHandler without any pullDelta[*] flags');
-  }
-
-  if (rest.pullDumpHandler && !(rest.pullDumpOnRestart || rest.pullDumpOnTimer)) {
-    throw new Error('Cannot use pullDumpHandler without any pullDump[*] flags');
-  }
-
-  const resolvedSchema = await getSchema(rawOptions, sequelize);
-  const resolvedFlattenOptions = await computeFlattenOptions(resolvedSchema, rawOptions);
-  const resolvedCacheNamespace = rawOptions.cacheNamespace ?? 'forest_cache_';
+  const flattenOptions = await computeFlattenOptions(resolvedSchema, options);
 
   return {
-    ...rest,
-    cacheNamespace: resolvedCacheNamespace,
-    flattenOptions: resolvedFlattenOptions,
+    cacheNamespace: options.cacheNamespace ?? 'forest_cache_',
+    flattenOptions,
     schema: resolvedSchema,
+    flattenSchema: flattenSchema(resolvedSchema, flattenOptions),
+    source,
+    cacheInto: options.cacheInto,
+    createRecord: options.createRecord,
+    updateRecord: options.updateRecord,
+    deleteRecord: options.deleteRecord,
+    pullDeltaOnAfterWrite: options.pullDeltaOnAfterWrite ?? false,
+    pullDeltaOnBeforeAccess: options.pullDeltaOnBeforeAccess ?? false,
   };
 }

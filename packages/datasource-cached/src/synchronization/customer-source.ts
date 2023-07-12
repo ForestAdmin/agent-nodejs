@@ -4,29 +4,29 @@ import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/r
 import { Deferred } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 
-import { flattenRecord } from './flattener';
 import {
   CachedDataSourceOptions,
   PullDeltaReason,
   PullDumpReason,
-  PullDumpResponse,
   PushDeltaResponse,
-  RecordDataWithCollection,
-} from './types';
-import { getRecordId } from './utils';
+  SynchronizationSource,
+  SynchronizationTarget,
+} from '../types';
 
-class PullDumpResponseEvent extends Event {
-  response: PullDumpResponse;
+type Queue<Reason> = {
+  /**
+   * A deferred which allows callers of queueDump/queueDelta to wait that their request is processed
+   */
+  deferred: Deferred<void>;
 
-  constructor(response: PullDumpResponse) {
-    super('pullDumpResponse');
+  /**
+   * The list of reasons why we want to dump/delta
+   */
+  reasons: (Reason & { at: Date })[];
+};
 
-    this.response = response;
-  }
-}
-
-export default class Target extends EventTarget {
-  cache: RelaxedDataSource = null;
+export default class CustomerSource extends EventTarget implements SynchronizationSource {
+  requestCache: RelaxedDataSource = null;
 
   private options: CachedDataSourceOptions;
   private connection: Sequelize;
@@ -37,33 +37,52 @@ export default class Target extends EventTarget {
   private queuedPushDeltaRequest: PushDeltaResponse = null;
 
   private timers: NodeJS.Timer[] = [];
+  private target: SynchronizationTarget;
 
   constructor(connection: Sequelize, options: CachedDataSourceOptions) {
     super();
     this.connection = connection;
     this.options = options;
+
+    if (
+      options.pullDeltaHandler &&
+      !(
+        options.pullDeltaOnRestart ||
+        options.pullDeltaOnTimer ||
+        options.pullDeltaOnAfterWrite ||
+        options.pullDeltaOnBeforeAccess
+      )
+    ) {
+      throw new Error('Cannot use pullDeltaHandler without any pullDelta[*] flags');
+    }
+
+    if (options.pullDumpHandler && !(options.pullDumpOnRestart || options.pullDumpOnTimer)) {
+      throw new Error('Cannot use pullDumpHandler without any pullDump[*] flags');
+    }
   }
 
-  async start(): Promise<void> {
-    const collections = this.collections.map(c => c.name);
+  async start(target: SynchronizationTarget): Promise<void> {
+    this.target = target;
 
     if (this.options.pushDeltaHandler) {
       const previousDeltaState = await this.getDeltaState();
-      this.options.pushDeltaHandler({ cache: this.cache, previousDeltaState }, changes =>
-        this.runPushDelta(changes),
+      this.options.pushDeltaHandler(
+        { cache: this.requestCache, previousDeltaState },
+        // bug? queuePushDelta is not returning a promise
+        async changes => this.queuePushDelta(changes),
       );
     }
 
     if (this.options.pullDumpHandler && this.options.pullDumpOnRestart)
-      await this.queuePullDump({ reason: 'startup', collections });
+      await this.queuePullDump({ reason: 'startup', collections: [] });
 
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
-      await this.queuePullDelta({ reason: 'startup', collections });
+      await this.queuePullDelta({ reason: 'startup', collections: [] });
 
     if (this.options.pullDumpHandler && this.options.pullDumpOnTimer)
       this.timers.push(
         setInterval(
-          () => this.queuePullDump({ reason: 'timer', collections }),
+          () => this.queuePullDump({ reason: 'timer', collections: [] }),
           this.options.pullDumpOnTimer,
         ),
       );
@@ -71,7 +90,7 @@ export default class Target extends EventTarget {
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnTimer)
       this.timers.push(
         setInterval(
-          () => this.queuePullDelta({ reason: 'timer', collections }),
+          () => this.queuePullDelta({ reason: 'timer', collections: [] }),
           this.options.pullDeltaOnTimer,
         ),
       );
@@ -82,7 +101,7 @@ export default class Target extends EventTarget {
     this.timers.length = 0;
   }
 
-  queuePushDelta(delta: PushDeltaResponse): void {
+  private queuePushDelta(delta: PushDeltaResponse): void {
     if (!this.queuedPushDeltaRequest)
       this.queuedPushDeltaRequest = { newOrUpdatedEntries: [], deletedEntries: [] };
 
@@ -136,7 +155,7 @@ export default class Target extends EventTarget {
   private async runPushDelta(changes: PushDeltaResponse): Promise<void> {
     this.isRunning = true;
 
-    this.applyDelta(changes);
+    this.target.applyDelta(changes);
 
     this.isRunning = false;
     this.tick();
@@ -147,31 +166,19 @@ export default class Target extends EventTarget {
 
     let state = null;
     let more = true;
-
-    // Truncate tables (we should write to a temporary table and swap the tables to avoid downtime)
-    for (const collection of this.collections) {
-      await this.connection.model(collection.name).destroy({ truncate: true });
-    }
+    let firstPage = true;
 
     // Fill table with dump
     while (more) {
       const changes = await this.options.pullDumpHandler({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
-        cache: new RelaxedDataSource(this.childDataSource, null),
+        cache: this.requestCache,
         previousDumpState: state,
       });
 
-      const recordsByCollection = {} as Record<string, RecordData[]>;
-      const entries = changes.entries.flatMap(entry => this.flattenRecord(entry));
-
-      for (const entry of entries) {
-        if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
-        recordsByCollection[entry.collection].push(entry.record);
-      }
-
-      for (const [collection, records] of Object.entries(recordsByCollection))
-        await this.connection.model(collection).bulkCreate(records);
+      this.target.applyDump(changes, firstPage);
+      firstPage = false;
 
       more = changes.more;
       if (changes.more === true) state = changes.nextDumpState;
@@ -195,34 +202,17 @@ export default class Target extends EventTarget {
       const changes = await this.options.pullDeltaHandler({
         reasons: queue.reasons,
         collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
-        cache: this.cache,
+        cache: this.requestCache,
         previousDeltaState: previousState,
       });
 
-      await this.applyDelta(changes);
+      await this.target.applyDelta(changes);
       more = changes.more;
     }
 
     this.isRunning = false;
     queue.deferred.resolve();
     this.tick();
-  }
-
-  private async applyDelta(changes: PushDeltaResponse): Promise<void> {
-    for (const entry of changes.deletedEntries) {
-      await this.destroySubModels(entry);
-      await this.connection.model(entry.collection).destroy({ where: entry.record });
-    }
-
-    // Usert records in both root and virtual collections
-    for (const entry of changes.newOrUpdatedEntries) {
-      await this.destroySubModels(entry);
-      for (const subEntry of this.flattenRecord(entry))
-        await this.connection.model(subEntry.collection).upsert(subEntry.record);
-    }
-
-    // Update state in database
-    if (changes.nextDeltaState !== undefined) await this.setDeltaState(changes.nextDeltaState);
   }
 
   private async getDeltaState(): Promise<unknown> {

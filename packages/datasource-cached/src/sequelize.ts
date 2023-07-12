@@ -2,7 +2,6 @@ import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
 
-import { flattenSchema } from './flattener';
 import {
   CachedCollectionSchema,
   CachedDataSourceOptions,
@@ -105,8 +104,7 @@ export async function createSequelize(
 }
 
 export async function createModels(sequelize: Sequelize, options: ResolvedOptions) {
-  const flattenedSchema = flattenSchema(options.schema, options.flattenOptions);
-  defineModels(options.cacheNamespace, flattenedSchema, sequelize);
+  defineModels(options.cacheNamespace, options.flattenSchema, sequelize);
 
   // Sync models before defining associations
   // This ensure that the foreign key contraints are not set which is convenient
@@ -116,5 +114,5 @@ export async function createModels(sequelize: Sequelize, options: ResolvedOption
   // Ideally we should destroy the tables and recreate them, but only if the schema changed
   await sequelize.sync();
 
-  defineRelationships(flattenedSchema, sequelize);
+  defineRelationships(options.flattenSchema, sequelize);
 }

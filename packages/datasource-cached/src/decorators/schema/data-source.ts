@@ -2,7 +2,6 @@
 import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import SchemaCollectionDecorator from './collection';
-import { flattenSchema } from '../../flattener';
 import { CachedCollectionSchema, ResolvedOptions } from '../../types';
 
 export default class SchemaDataSourceDecorator extends DataSourceDecorator<SchemaCollectionDecorator> {
@@ -11,7 +10,7 @@ export default class SchemaDataSourceDecorator extends DataSourceDecorator<Schem
   constructor(childDataSource: DataSource, options: ResolvedOptions) {
     super(childDataSource, SchemaCollectionDecorator);
 
-    this.flatSchema = flattenSchema(options.schema, options.flattenOptions);
+    this.flatSchema = options.flattenSchema;
   }
 
   getFields(name: string): CachedCollectionSchema['fields'] {
