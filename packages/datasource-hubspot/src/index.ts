@@ -31,7 +31,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
       cacheNamespace: 'hubspot',
       schema: getSchema(fieldsProperties, options.collections, logger),
       // Use delta synchronization
-      pullDeltaHandler: request => getChanges(client, options, request),
+      pullDeltaHandler: request => getChanges(client, options, request, logger),
       pullDeltaOnStartup: true,
       pullDeltaOnBeforeAccess: true,
       pullDeltaOnBeforeAccessDelay: 50,
