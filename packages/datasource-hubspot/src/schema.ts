@@ -1,6 +1,7 @@
-import { CachedCollectionSchema, ColumnType, LeafField } from '@forestadmin/datasource-cached';
+import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
+import { COLLECTIONS_RELATIONS } from './constants';
 import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 
 function getCollectionSchema(
@@ -33,15 +34,47 @@ function getCollectionSchema(
     else if (property.type === 'phone_number') type = 'String';
     else throw new Error(`Property "${fieldName}" has unsupported type ${property.type}`);
 
-    collection.fields[fieldName] = { type, isPrimaryKey: false, isReadOnly: true };
-
     if (enumValues?.length === 0) {
-      delete collection.fields[fieldName];
-      logger?.('Warn', `Property "${fieldName}" has no enum values, it will be ignored`);
-    } else if (enumValues) (collection.fields[fieldName] as LeafField).enumValues = enumValues;
+      logger?.('Warn', `Property "${fieldName}" has no enum values, it will be ignored.`);
+    } else {
+      collection.fields[fieldName] = { type, isPrimaryKey: false, isReadOnly: true, enumValues };
+    }
   }
 
   return collection;
+}
+
+function getCollectionRelationSchema(
+  fromCollectionName: string,
+  toCollectionName: string,
+): CachedCollectionSchema {
+  return {
+    name: `${fromCollectionName}_${toCollectionName}`,
+    fields: {
+      [`${fromCollectionName}_id`]: {
+        type: 'String',
+        isPrimaryKey: true,
+        isReadOnly: true,
+        reference: {
+          relationName: fromCollectionName,
+          targetCollection: fromCollectionName,
+          targetField: 'id',
+          relationInverse: toCollectionName,
+        },
+      },
+      [`${toCollectionName}_id`]: {
+        type: 'String',
+        isPrimaryKey: true,
+        isReadOnly: true,
+        reference: {
+          relationName: toCollectionName,
+          targetCollection: toCollectionName,
+          targetField: 'id',
+          relationInverse: fromCollectionName,
+        },
+      },
+    },
+  } as CachedCollectionSchema;
 }
 
 export default function getSchema<TypingsHubspot>(
@@ -49,7 +82,7 @@ export default function getSchema<TypingsHubspot>(
   collections: HubSpotOptions<TypingsHubspot>['collections'],
   logger?: Logger,
 ): CachedCollectionSchema[] {
-  return Object.entries(collections).map(([collectionName, fields]) =>
+  const schema = Object.entries(collections).map(([collectionName, fields]) =>
     getCollectionSchema(
       collectionName,
       fields,
@@ -57,4 +90,15 @@ export default function getSchema<TypingsHubspot>(
       logger,
     ),
   );
+
+  const relationsToBuild = Object.keys(collections).filter(collectionName =>
+    COLLECTIONS_RELATIONS.includes(collectionName),
+  );
+  relationsToBuild.forEach((fromCollectionName, index) => {
+    for (let i = index + 1; i < relationsToBuild.length; i += 1) {
+      schema.push(getCollectionRelationSchema(fromCollectionName, relationsToBuild[i]));
+    }
+  });
+
+  return schema;
 }

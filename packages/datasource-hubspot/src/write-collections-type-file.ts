@@ -1,7 +1,6 @@
 /* This script is useful for generate autocompletion for the HubSpot API. */
 
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { randomInt } from 'crypto';
 import * as fs from 'fs';
 
 import { FieldPropertiesByCollection } from './types';
