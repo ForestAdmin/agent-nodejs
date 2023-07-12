@@ -9,7 +9,6 @@ function flattenRecordRec(
   asModels: string[],
 ): RecordDataWithCollection[] {
   const { collection, record } = recordWithCollection;
-  const recordId = getRecordId(fields, record);
   const flattenedRecords = [];
 
   for (let asModelIndex = 0; asModelIndex < asModels.length; asModelIndex += 1) {
@@ -47,6 +46,7 @@ function flattenRecordRec(
 
     for (const [index, subRecord] of subRecords.entries()) {
       if (subRecord !== null && subRecord !== undefined) {
+        const recordId = getRecordId(fields, record);
         subRecord._fid = isArray ? `${recordId}.${asModel}.${index}` : `${recordId}.${asModel}`;
         subRecord._fpid = recordId;
 

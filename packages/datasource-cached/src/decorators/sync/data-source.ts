@@ -258,12 +258,13 @@ export default class SyncDataSourceDecorator extends DataSourceDecorator<SyncCol
   private async destroySubModels(entry: RecordDataWithCollection): Promise<void> {
     const { asModels } = this.options.flattenOptions[entry.collection];
     const { fields } = this.options.schema.find(c => c.name === entry.collection);
-    const recordId = getRecordId(fields, entry.record);
-    const promises = asModels.map(asModel =>
-      this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
+    const promises = asModels.map(asModel => {
+      const recordId = getRecordId(fields, entry.record);
+
+      return this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
         where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
-      }),
-    );
+      });
+    });
 
     await Promise.all(promises);
   }
