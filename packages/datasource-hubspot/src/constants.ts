@@ -20,7 +20,7 @@ export const HUBSPOT_COLLECTIONS = [
   HUBSPOT_CUSTOM_COLLECTION,
 ];
 
-export const COLLECTIONS_RELATIONS = [COMPANIES, CONTACTS, DEALS, TICKETS];
+export const COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS = [COMPANIES, CONTACTS, DEALS, TICKETS];
 
 /**
  * This seems to be the actual maximum page size (did not find it in the documentation).

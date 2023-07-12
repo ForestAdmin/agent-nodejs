@@ -1,7 +1,8 @@
 import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
-import { COLLECTIONS_RELATIONS } from './constants';
+import { COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS } from './constants';
+import { getManyToManyRelationNames } from './relations';
 import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 
 function getCollectionSchema(
@@ -44,7 +45,7 @@ function getCollectionSchema(
   return collection;
 }
 
-function getCollectionRelationSchema(
+function getCollectionManyToManySchema(
   fromCollectionName: string,
   toCollectionName: string,
 ): CachedCollectionSchema {
@@ -91,13 +92,9 @@ export default function getSchema<TypingsHubspot>(
     ),
   );
 
-  const relationsToBuild = Object.keys(collections).filter(collectionName =>
-    COLLECTIONS_RELATIONS.includes(collectionName),
-  );
-  relationsToBuild.forEach((fromCollectionName, index) => {
-    for (let i = index + 1; i < relationsToBuild.length; i += 1) {
-      schema.push(getCollectionRelationSchema(fromCollectionName, relationsToBuild[i]));
-    }
+  getManyToManyRelationNames(Object.keys(collections)).forEach(manyToMany => {
+    const [fromCollectionName, toCollectionName] = manyToMany.split('_');
+    schema.push(getCollectionManyToManySchema(fromCollectionName, toCollectionName));
   });
 
   return schema;
