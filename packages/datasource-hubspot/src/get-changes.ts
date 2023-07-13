@@ -174,16 +174,6 @@ async function updateRecordsByIds(
   }
 }
 
-// companies_contacts
-// company_id 1 --- contact_id 2
-// company_id 1 --- contact_id 3
-// company_id 2 --- contact_id 3
-
-// companies_deals
-// company_id 1 --- deal_id 1
-// company_id 1 --- deal_id 2
-// company_id 2 --- deal_id 2
-
 async function updateRelationRecordsByIds(
   client: Client,
   recordIdsByRelation: [string, Records[]][],
@@ -238,29 +228,39 @@ export default async function getDelta<TypingsHubspot>(
     ...upsertAllRecords<TypingsHubspot>(client, collections, request, options, deltaResponse),
   ];
 
-  if (request.reasons.map(r => r.reason).includes('before-list')) {
-    const idsToCheckIfAlreadyExists = request.reasons
-      .filter(reason => reason.reason === 'before-list')
-      .map(async reason => {
-        const { filter, collections: col } = reason;
+  if (request.reasons.map(r => r.name).includes('before-list')) {
+    const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');
+    const reasonOnRelationsToCheck = beforeListReasons.filter(reason =>
+      relations.includes(reason.collection),
+    );
+    const reasonOnCollectionsToCheck = beforeListReasons.filter(
+      reason => !relations.includes(reason.collection),
+    );
+    const relationsIdsToCheck = reasonOnRelationsToCheck.map(async reason => {
+      const recordIds = await request.cache
+        .getCollection(reason.collection)
+        .list(reason.filter, [
+          `${reason.collection.split('_')[0]}_id`,
+          `${reason.collection.split('_')[1]}_id`,
+        ]);
 
-        const collectionToFetch = col[1] ?? col[0];
-        const recordIds = await request.cache.getCollection(collectionToFetch).list(filter, ['id']);
+      return [reason.collection, recordIds] as [string, Records[]];
+    });
+    const recordsIdsToCheck = reasonOnCollectionsToCheck.map(async reason => {
+      const recordIds = await request.cache
+        .getCollection(reason.collection)
+        .list(reason.filter, ['id']);
 
-        return [collectionToFetch, recordIds.map(r => r.id)] as [string, string[]];
-      });
+      return [reason.collection, recordIds.map(r => r.id)] as [string, string[]];
+    });
 
     deltaResponsePromises.push(
-      updateRecordsByIds(client, await Promise.all(idsToCheckIfAlreadyExists), deltaResponse),
-      updateRelationRecordsByIds(
-        client,
-        collectionAndRelations.filter(([name]) => relations.includes(name)),
-        deltaResponse,
-      ),
+      updateRecordsByIds(client, await Promise.all(recordsIdsToCheck), deltaResponse),
+      updateRelationRecordsByIds(client, await Promise.all(relationsIdsToCheck), deltaResponse),
     );
   }
 
-  if (request.reasons.map(r => r.reason).includes('startup')) {
+  if (request.reasons.map(r => r.name).includes('startup')) {
     deltaResponsePromises.push(
       ...insertNewRelationRecords(client, relations, request, deltaResponse),
     );
