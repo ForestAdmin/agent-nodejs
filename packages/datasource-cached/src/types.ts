@@ -54,18 +54,18 @@ export type CachedCollectionSchema = {
 
 export type PullDumpReason = {
   name: 'startup' | 'timer';
-  collections: string[];
 };
 
-export type PullDeltaReason = { collections: string[] } & (
+export type PullDeltaReason =
   | { name: 'startup' }
   | { name: 'timer' }
-  | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
-  | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
-  | { name: 'after-create'; caller: Caller; records: RecordData[] }
-  | { name: 'after-update'; caller: Caller; filter: Filter; patch: RecordData }
-  | { name: 'after-delete'; caller: Caller; filter: Filter }
-);
+  | ({ collection: string; affectedCollections: string[] } & (
+      | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
+      | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
+      | { name: 'after-create'; caller: Caller; records: RecordData[] }
+      | { name: 'after-update'; caller: Caller; filter: Filter; patch: RecordData }
+      | { name: 'after-delete'; caller: Caller; filter: Filter }
+    ));
 
 export type PullDeltaRequest = {
   previousDeltaState: unknown;
@@ -77,7 +77,6 @@ export type PullDeltaRequest = {
 export type PullDumpRequest = {
   previousDumpState: unknown;
   cache: RelaxedDataSource;
-  collections: string[];
   reasons: Array<PullDumpReason & { at: Date }>;
 };
 

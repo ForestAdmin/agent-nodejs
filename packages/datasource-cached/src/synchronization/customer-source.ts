@@ -65,10 +65,10 @@ export default class CustomerSource extends EventTarget implements Synchronizati
       this.options.pullDumpHandler &&
       (this.options.pullDumpOnRestart || (await this.getStartupState()) !== 'done')
     )
-      await this.queuePullDump({ name: 'startup', collections: [] });
+      await this.queuePullDump({ name: 'startup' });
 
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
-      await this.queuePullDelta({ name: 'startup', collections: [] });
+      await this.queuePullDelta({ name: 'startup' });
 
     if (this.options.pushDeltaHandler) {
       const previousDeltaState = await this.getDeltaState();
@@ -81,18 +81,12 @@ export default class CustomerSource extends EventTarget implements Synchronizati
 
     if (this.options.pullDumpHandler && this.options.pullDumpOnTimer)
       this.timers.push(
-        setInterval(
-          () => this.queuePullDump({ name: 'timer', collections: [] }),
-          this.options.pullDumpOnTimer,
-        ),
+        setInterval(() => this.queuePullDump({ name: 'timer' }), this.options.pullDumpOnTimer),
       );
 
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnTimer)
       this.timers.push(
-        setInterval(
-          () => this.queuePullDelta({ name: 'timer', collections: [] }),
-          this.options.pullDeltaOnTimer,
-        ),
+        setInterval(() => this.queuePullDelta({ name: 'timer' }), this.options.pullDeltaOnTimer),
       );
   }
 
@@ -174,7 +168,6 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     while (more) {
       const changes = await this.options.pullDumpHandler({
         reasons: queue.reasons,
-        collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
         cache: this.requestCache,
         previousDumpState: state,
       });
@@ -202,9 +195,12 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     while (more) {
       // Update records in database
       const previousState = await this.getDeltaState();
+      const collections = queue.reasons.flatMap(r =>
+        'affectedCollections' in r ? r.affectedCollections : [],
+      );
       const changes = await this.options.pullDeltaHandler({
         reasons: queue.reasons,
-        collections: [...new Set(queue.reasons.flatMap(r => r.collections))],
+        collections: [...new Set(collections)],
         cache: this.requestCache,
         previousDeltaState: previousState,
       });

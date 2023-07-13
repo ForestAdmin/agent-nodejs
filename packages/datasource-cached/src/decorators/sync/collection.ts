@@ -20,9 +20,13 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     const records = await this.childCollection.create(caller, data);
 
     if (options.pullDeltaOnAfterWrite) {
-      const reason = 'after-create';
-      const collections = [this.name];
-      await options.source.queuePullDelta({ name: reason, caller, collections, records });
+      await options.source.queuePullDelta({
+        name: 'after-create',
+        collection: this.name,
+        caller,
+        affectedCollections: [this.name],
+        records,
+      });
     }
 
     return records;
@@ -34,9 +38,14 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     await super.update(caller, filter, patch);
 
     if (options.pullDeltaOnAfterWrite) {
-      const reason = 'after-update';
-      const collections = [this.name];
-      await options.source.queuePullDelta({ name: reason, caller, filter, patch, collections });
+      await options.source.queuePullDelta({
+        name: 'after-update',
+        collection: this.name,
+        affectedCollections: [this.name],
+        caller,
+        filter,
+        patch,
+      });
     }
   }
 
@@ -49,9 +58,13 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
       // Deletes may cascade to other collections!
       // Let's find out which one are affected assuming that all deletes cascade
       // (which is the worst case scenario)
-      const reason = 'after-delete';
-      const collections = this.getLinkedCollections(new Set());
-      await options.source.queuePullDelta({ name: reason, caller, filter, collections });
+      await options.source.queuePullDelta({
+        name: 'after-delete',
+        collection: this.name,
+        affectedCollections: this.getLinkedCollections(new Set()),
+        caller,
+        filter,
+      });
     }
   }
 
@@ -63,14 +76,13 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     const { options } = this.dataSource;
 
     if (options.pullDeltaOnBeforeAccess) {
-      const reason = 'before-list';
-      const collections = this.getCollectionsFromProjection(projection);
       await options.source.queuePullDelta({
-        name: reason,
+        name: 'before-list',
+        collection: this.name,
+        affectedCollections: this.getCollectionsFromProjection(projection),
         caller,
         filter,
         projection,
-        collections,
       });
     }
 
@@ -86,14 +98,13 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     const { options } = this.dataSource;
 
     if (options.pullDeltaOnBeforeAccess) {
-      const reason = 'before-aggregate';
-      const collections = this.getCollectionsFromProjection(aggregation.projection);
       await options.source.queuePullDelta({
-        name: reason,
+        name: 'before-aggregate',
+        collection: this.name,
+        affectedCollections: this.getCollectionsFromProjection(aggregation.projection),
         caller,
         filter,
         aggregation,
-        collections,
       });
     }
 
