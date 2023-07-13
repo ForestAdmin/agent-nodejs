@@ -100,7 +100,7 @@ async function findRecords(
   return response.results.map(r => Object.fromEntries([['id', r.id]]));
 }
 
-function computeNewOrUpdatedRecords<TypingsHubspot>(
+function upsertAllRecords<TypingsHubspot>(
   client: Client,
   collectionNames: string[],
   request: PullDeltaRequest,
@@ -130,7 +130,7 @@ function computeNewOrUpdatedRecords<TypingsHubspot>(
   });
 }
 
-function computeAllRelationRecords(
+function insertNewRelationRecords(
   client: Client,
   relationNames: string[],
   request: PullDeltaRequest,
@@ -147,7 +147,7 @@ function computeAllRelationRecords(
   });
 }
 
-async function computeDeletedEntries(
+async function updateRecordsByIds(
   client: Client,
   idsByCollection: [string, string[]][],
   deltaResponse: PullDeltaResponse,
@@ -174,6 +174,50 @@ async function computeDeletedEntries(
   }
 }
 
+// companies_contacts
+// company_id 1 --- contact_id 2
+// company_id 1 --- contact_id 3
+// company_id 2 --- contact_id 3
+
+// companies_deals
+// company_id 1 --- deal_id 1
+// company_id 1 --- deal_id 2
+// company_id 2 --- deal_id 2
+
+async function updateRelationRecordsByIds(
+  client: Client,
+  recordIdsByRelation: [string, Records[]][],
+  deltaResponse: PullDeltaResponse,
+): Promise<void> {
+  for (const [relationName, recordsIds] of recordIdsByRelation) {
+    const [from, to] = relationName.split('_');
+
+    for (const ids of recordsIds) {
+      const fromId = ids[`${from}_id`];
+
+      // eslint-disable-next-line no-await-in-loop
+      const fromRelation = await getDiscovery(client, from).basicApi.getById(
+        fromId,
+        undefined,
+        undefined,
+        [to],
+      );
+      const recordsToAdd = fromRelation.associations?.[to].results.map(record => ({
+        [`${from}_id`]: fromRelation.id,
+        [`${to}_id`]: record.id,
+      }));
+      deltaResponse.newOrUpdatedEntries.push(
+        ...recordsToAdd.map(record => ({ collection: relationName, record })),
+      );
+      // remove all the records
+      deltaResponse.deletedEntries.push({
+        collection: relationName,
+        record: { [`${from}_id`]: fromId },
+      });
+    }
+  }
+}
+
 export default async function getDelta<TypingsHubspot>(
   client: Client,
   options: HubSpotOptions<TypingsHubspot>,
@@ -191,27 +235,12 @@ export default async function getDelta<TypingsHubspot>(
   };
 
   const deltaResponsePromises: Array<Promise<void>> = [
-    ...computeNewOrUpdatedRecords<TypingsHubspot>(
-      client,
-      collections,
-      request,
-      options,
-      deltaResponse,
-    ),
+    ...upsertAllRecords<TypingsHubspot>(client, collections, request, options, deltaResponse),
   ];
 
   if (request.reasons.map(r => r.reason).includes('before-list')) {
     const idsToCheckIfAlreadyExists = request.reasons
       .filter(reason => reason.reason === 'before-list')
-      .filter(reason => {
-        const { collections: col } = reason;
-
-        // TODO: the targeted collections is not always the first one.
-        //  For the many to many is the second one
-        if (relations.includes(col[0]) || (col.length > 1 && relations.includes(col[1]))) {
-          // we don't want to refresh the relations
-        }
-      })
       .map(async reason => {
         const { filter, collections: col } = reason;
 
@@ -222,13 +251,18 @@ export default async function getDelta<TypingsHubspot>(
       });
 
     deltaResponsePromises.push(
-      computeDeletedEntries(client, await Promise.all(idsToCheckIfAlreadyExists), deltaResponse),
+      updateRecordsByIds(client, await Promise.all(idsToCheckIfAlreadyExists), deltaResponse),
+      updateRelationRecordsByIds(
+        client,
+        collectionAndRelations.filter(([name]) => relations.includes(name)),
+        deltaResponse,
+      ),
     );
   }
 
   if (request.reasons.map(r => r.reason).includes('startup')) {
     deltaResponsePromises.push(
-      ...computeAllRelationRecords(client, relations, request, deltaResponse),
+      ...insertNewRelationRecords(client, relations, request, deltaResponse),
     );
   }
 
