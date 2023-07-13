@@ -1,9 +1,15 @@
+/* eslint-disable no-await-in-loop */
 import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
 
-import { flattenSchema } from './flattener';
-import { CachedCollectionSchema, Field, ResolvedOptions, isLeafField } from './types';
+import {
+  CachedCollectionSchema,
+  CachedDataSourceOptions,
+  Field,
+  ResolvedOptions,
+  isLeafField,
+} from './types';
 
 function convertField(field: Field): ModelAttributes[string] {
   if (isLeafField(field)) {
@@ -28,19 +34,25 @@ function convertField(field: Field): ModelAttributes[string] {
   return { type: DataTypes.JSON, allowNull: true, primaryKey: false };
 }
 
-function defineModels(namespace: string, schema: CachedCollectionSchema[], sequelize: Sequelize) {
+async function defineModels(
+  sync: boolean,
+  namespace: string,
+  schema: CachedCollectionSchema[],
+  sequelize: Sequelize,
+) {
   for (const model of schema) {
-    // const modelName = `${namespace}_${model.name}`;
     const attributes: ModelAttributes = {};
 
     for (const [name, field] of Object.entries(model.fields)) {
       attributes[name] = convertField(field);
     }
 
-    sequelize.define(model.name, attributes, {
+    const sequelizeModel = sequelize.define(model.name, attributes, {
       timestamps: false,
       tableName: `${namespace}_${model.name}`,
     });
+
+    if (sync) await sequelizeModel.sync({ force: true });
   }
 }
 
@@ -71,30 +83,53 @@ function defineRelationships(schema: CachedCollectionSchema[], sequelize: Sequel
   }
 }
 
-export default async function createSequelize(logger: Logger, options: ResolvedOptions) {
-  const sequelize = await buildSequelizeInstance(
-    options.cacheInto ?? 'sqlite::memory:',
-    logger,
-    [],
-  );
+export async function createSequelize(logger: Logger, options: CachedDataSourceOptions) {
+  const sequelize = await buildSequelizeInstance(options.cacheInto, logger, []);
 
-  sequelize.define(`forest_sync_state`, {
-    id: { type: DataTypes.STRING, primaryKey: true },
-    state: DataTypes.TEXT,
-  });
+  // This table should never need to change => use normal sync
+  await sequelize
+    .define(`${options.cacheNamespace}_metadata`, {
+      id: { type: DataTypes.STRING, primaryKey: true },
+      content: DataTypes.JSON,
+    })
+    .sync();
 
-  const flattenedSchema = flattenSchema(options.schema, options.flattenOptions);
-  defineModels(options.cacheNamespace, flattenedSchema, sequelize);
-
-  // Sync models before defining associations
-  // This ensure that the foreign key contraints are not set which is convenient
-  // for a caching use-case: we want to be able to load records in any order.
-
-  // FIXME note that this will break if the schema changes
-  // Ideally we should destroy the tables and recreate them, but only if the schema changed
-  await sequelize.sync();
-
-  defineRelationships(flattenedSchema, sequelize);
+  // This table should never be reused between runs => force: true
+  await sequelize
+    .define(`${options.cacheNamespace}_pending_operations`, {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      type: DataTypes.ENUM('dump', 'delta'),
+      content: DataTypes.JSON,
+    })
+    .sync({ force: true });
 
   return sequelize;
+}
+
+export async function createModels(sequelize: Sequelize, options: ResolvedOptions) {
+  const metadata = sequelize.model(`${options.cacheNamespace}_metadata`);
+  const cachedSchema = (await metadata.findByPk('flat_schema'))?.dataValues?.content;
+  const sync = JSON.stringify(cachedSchema) !== JSON.stringify(options.flattenSchema);
+
+  // Tell the use what we are doing
+  const level = options.cacheInto !== 'sqlite::memory:' ? 'Info' : 'Debug';
+
+  if (!cachedSchema) {
+    options.logger(level, `${options.cacheNamespace}: Initializing cache.`);
+  } else if (sync) {
+    options.logger(level, `${options.cacheNamespace}: Schema changed, reinitializing cache.`);
+  } else {
+    options.logger(level, `${options.cacheNamespace}: Cache already initialized.`);
+  }
+
+  // Sync
+  await defineModels(sync, options.cacheNamespace, options.flattenSchema, sequelize);
+  defineRelationships(options.flattenSchema, sequelize);
+
+  // Set up metadata depending on the type of sync we did
+  if (sync) {
+    await metadata.truncate();
+    await metadata.create({ id: 'schema', content: options.schema });
+    await metadata.create({ id: 'flat_schema', content: options.flattenSchema });
+  }
 }

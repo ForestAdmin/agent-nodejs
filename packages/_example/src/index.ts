@@ -27,27 +27,26 @@ export default async () => {
       cacheInto: 'sqlite::memory:',
       cacheNamespace: 'whatever',
       flattenMode: 'auto',
-      schema: [
-        {
-          name: 'users',
-          fields: {
-            id: { type: 'Integer', isPrimaryKey: true },
-            name: { type: 'String' },
-            address: {
-              street: { type: 'String' },
-              city: { type: 'String' },
-              zipCodes: [{ type: 'Integer' }],
-            },
-          },
-        },
-      ],
-      pullDeltaOnBeforeAccess: true,
-      pullDeltaHandler: async () => {
+      // schema: [
+      //   {
+      //     name: 'users',
+      //     fields: {
+      //       id: { type: 'Integer', isPrimaryKey: true },
+      //       name: { type: 'String' },
+      //       address: {
+      //         street: { type: 'String' },
+      //         city: { type: 'String' },
+      //         zipCodes: [{ type: 'Integer' }],
+      //       },
+      //     },
+      //   },
+      // ],
+      // pullDeltaOnBeforeAccess: true,
+      pullDumpHandler: async () => {
         return {
           more: false,
           nextDeltaState: null,
-          deletedEntries: [],
-          newOrUpdatedEntries: [
+          entries: [
             {
               collection: 'users',
               record: {
@@ -62,14 +61,6 @@ export default async () => {
                 id: 2,
                 name: 'John Doe',
                 address: { street: '456 Main St', city: 'San Francisco', zipCodes: [94105, 94107] },
-              },
-            },
-            {
-              collection: 'users',
-              record: {
-                id: 3,
-                name: 'John Doe',
-                address: { street: '789 Main St', city: 'San Francisco', zipCodes: [94105, 94107] },
               },
             },
           ],
@@ -112,36 +103,27 @@ export default async () => {
     createCachedDataSource({
       cacheInto: 'sqlite::memory:',
       cacheNamespace: 'typicode',
+      // schema: [
+      //   {
+      //     name: 'users',
+      //     fields: {
+      //       id: { type: 'Integer', isPrimaryKey: true },
+      //     },
+      //   },
+      //   {
+      //     name: 'posts',
+      //     fields: {
+      //       id: { type: 'Integer', isPrimaryKey: true },
+      //       posts: [{ type: 'Integer', reference: { targetCollection: 'users' } }],
+      //       title: { type: 'String' },
+      //       body: { type: 'String' },
+      //     },
+      //   },
+      // ],
 
-      schema: [
-        {
-          name: 'users',
-          fields: {
-            id: { type: 'Integer', isPrimaryKey: true },
-          },
-        },
-        {
-          name: 'posts',
-          fields: {
-            id: { type: 'Integer', isPrimaryKey: true },
-            userId: {
-              type: 'Integer',
-              reference: {
-                relationInverse: 'posts',
-                relationName: 'user',
-                targetCollection: 'users',
-                targetField: 'id',
-              },
-            },
-            title: { type: 'String' },
-            body: { type: 'String' },
-          },
-        },
-      ],
-
-      pullDumpOnStartup: true,
-      pullDumpHandler: async request => {
-        const promises = request.collections.map(async collection => {
+      pullDumpOnRestart: true,
+      pullDumpHandler: async () => {
+        const promises = ['users', 'posts'].map(async collection => {
           const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
 
           return response.data.map(record => ({ collection, record }));

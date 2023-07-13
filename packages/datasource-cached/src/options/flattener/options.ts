@@ -1,11 +1,15 @@
-import { resolveValueOrPromiseOrFactory } from './utils';
+///
+// Compute flatten options
+///
+
 import {
   CachedCollectionSchema,
   CachedDataSourceOptions,
   Field,
   ResolvedOptions,
   isLeafField,
-} from '../types';
+} from '../../types';
+import { resolveValueOrPromiseOrFactory } from '../utils';
 
 type ResolvedFlattenOptions = ResolvedOptions['flattenOptions'];
 type ModelFlattenOptions = ResolvedFlattenOptions[string];

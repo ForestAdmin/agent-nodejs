@@ -94,21 +94,24 @@ export type Schema = {
   };
   'typicode_posts': {
     plain: {
-      'id': number;
       'userId': number;
+      'id': number;
       'title': string;
       'body': string;
     };
-    nested: {
-      'user': Schema['typicode_users']['plain'] & Schema['typicode_users']['nested'];
-    };
-    flat: {
-      'user:id': number;
-    };
+    nested: {};
+    flat: {};
   };
   'typicode_users': {
     plain: {
       'id': number;
+      'name': string;
+      'username': string;
+      'email': string;
+      'address': {street: string; suite: string; city: string; zipcode: string; geo: {lat: string; lng: string}};
+      'phone': string;
+      'website': string;
+      'company': {name: string; catchPhrase: string; bs: string};
     };
     nested: {};
     flat: {};

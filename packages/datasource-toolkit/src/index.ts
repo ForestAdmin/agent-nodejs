@@ -27,7 +27,6 @@ export { default as FilterFactory } from './interfaces/query/filter/factory';
 export { default as ProjectionFactory } from './interfaces/query/projection/factory';
 export { default as SortFactory } from './interfaces/query/sort/factory';
 
-export * from './analyzer';
 export * from './interfaces/action';
 export * from './interfaces/caller';
 export * from './interfaces/chart';

@@ -5,6 +5,7 @@ import {
   Caller,
   ColumnSchema,
   Filter,
+  Logger,
   PaginatedFilter,
   PrimitiveTypes,
   Projection,
@@ -52,20 +53,19 @@ export type CachedCollectionSchema = {
 /// //////
 
 export type PullDumpReason = {
-  reason: 'schema-discovery' | 'startup' | 'timer';
-  collections: string[];
+  name: 'startup' | 'timer';
 };
 
-export type PullDeltaReason = { collections: string[] } & (
-  | { reason: 'schema-discovery' }
-  | { reason: 'startup' }
-  | { reason: 'timer' }
-  | { caller: Caller; reason: 'before-list'; filter: PaginatedFilter; projection: Projection }
-  | { caller: Caller; reason: 'before-aggregate'; filter: Filter; aggregation: Aggregation }
-  | { caller: Caller; reason: 'after-create'; records: RecordData[] }
-  | { caller: Caller; reason: 'after-update'; filter: Filter; patch: RecordData }
-  | { caller: Caller; reason: 'after-delete'; filter: Filter }
-);
+export type PullDeltaReason =
+  | { name: 'startup' }
+  | { name: 'timer' }
+  | ({ collection: string; affectedCollections: string[] } & (
+      | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
+      | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
+      | { name: 'after-create'; caller: Caller; records: RecordData[] }
+      | { name: 'after-update'; caller: Caller; filter: Filter; patch: RecordData }
+      | { name: 'after-delete'; caller: Caller; filter: Filter }
+    ));
 
 export type PullDeltaRequest = {
   previousDeltaState: unknown;
@@ -77,7 +77,6 @@ export type PullDeltaRequest = {
 export type PullDumpRequest = {
   previousDumpState: unknown;
   cache: RelaxedDataSource;
-  collections: string[];
   reasons: Array<PullDumpReason & { at: Date }>;
 };
 
@@ -143,12 +142,12 @@ export type CachedDataSourceOptions = {
 
   /** Pull dump options */
   pullDumpHandler?: (request: PullDumpRequest) => Promise<PullDumpResponse>;
-  pullDumpOnStartup?: boolean;
+  pullDumpOnRestart?: boolean;
   pullDumpOnTimer?: number;
 
   /** Pull delta options */
   pullDeltaHandler?: (request: PullDeltaRequest) => Promise<PullDeltaResponse>;
-  pullDeltaOnStartup?: boolean;
+  pullDeltaOnRestart?: boolean;
   pullDeltaOnTimer?: number;
   pullDeltaOnBeforeAccess?: boolean;
   pullDeltaOnAfterWrite?: boolean;
@@ -162,10 +161,32 @@ export type CachedDataSourceOptions = {
   pullDeltaOnBeforeAccessDelay?: number;
 };
 
-export type ResolvedOptions = Omit<
+export type ResolvedOptions = Pick<
   CachedDataSourceOptions,
-  'schema' | 'flattenMode' | 'flattenOptions'
+  | 'cacheInto'
+  | 'cacheNamespace'
+  | 'createRecord'
+  | 'updateRecord'
+  | 'deleteRecord'
+  | 'pullDeltaOnBeforeAccess'
+  | 'pullDeltaOnAfterWrite'
 > & {
   schema?: CachedCollectionSchema[];
+  flattenSchema?: CachedCollectionSchema[];
   flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
+  logger: Logger;
+  source: SynchronizationSource;
 };
+
+export interface SynchronizationTarget {
+  applyDump(changes: PullDumpResponse, firstPage: boolean): Promise<void>;
+  applyDelta(changes: PushDeltaResponse): Promise<void>;
+}
+
+export interface SynchronizationSource {
+  requestCache: RelaxedDataSource;
+
+  start(target: SynchronizationTarget): Promise<void>;
+  queuePullDump(reason: PullDumpReason): Promise<void>;
+  queuePullDelta(reason: PullDeltaReason): Promise<void>;
+}

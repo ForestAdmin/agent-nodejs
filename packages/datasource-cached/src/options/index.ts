@@ -1,43 +1,48 @@
-import computeFlattenOptions from './flattener';
-import getSchema from './schema';
-import { CachedDataSourceOptions, ResolvedOptions } from '../types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
+
+import computeFlattenOptions from './flattener/options';
+import { flattenSchema } from './flattener/schema';
+import { buildSchema, getSchema } from './schema';
+import AnalysisPassThough from '../synchronization/analysis-passthrough';
+import CustomerSource from '../synchronization/customer-source';
+import {
+  CachedCollectionSchema,
+  CachedDataSourceOptions,
+  ResolvedOptions,
+  SynchronizationSource,
+} from '../types';
 
 export default async function resolveOptions(
-  rawOptions: CachedDataSourceOptions,
+  options: CachedDataSourceOptions,
+  logger: Logger,
+  connection: Sequelize,
 ): Promise<ResolvedOptions> {
-  const { flattenMode, flattenOptions, schema, ...rest } = rawOptions;
+  let source: SynchronizationSource = new CustomerSource(connection, options);
+  let resolvedSchema: CachedCollectionSchema[] = await getSchema(options, connection);
 
-  if (
-    flattenOptions &&
-    (rawOptions.createRecord || rawOptions.updateRecord || rawOptions.deleteRecord)
-  ) {
-    throw new Error('Cannot use flattenOptions with createRecord, updateRecord or deleteRecord');
+  if (!resolvedSchema) {
+    const passThrough = new AnalysisPassThough(connection, source, options.cacheNamespace);
+    await source.start(passThrough); // This should block until the analysis is done.
+
+    source = passThrough;
+    resolvedSchema = await buildSchema(passThrough.nodes);
   }
 
-  if (
-    rest.pullDeltaHandler &&
-    !(
-      rest.pullDeltaOnStartup ||
-      rest.pullDeltaOnTimer ||
-      rest.pullDeltaOnAfterWrite ||
-      rest.pullDeltaOnBeforeAccess
-    )
-  ) {
-    throw new Error('Cannot use pullDeltaHandler without any pullDelta[*] flags');
-  }
-
-  if (rest.pullDumpHandler && !(rest.pullDumpOnStartup || rest.pullDumpOnTimer)) {
-    throw new Error('Cannot use pullDumpHandler without any pullDump[*] flags');
-  }
-
-  const resolvedSchema = await getSchema(rawOptions);
-  const resolvedFlattenOptions = await computeFlattenOptions(resolvedSchema, rawOptions);
-  const resolvedCacheNamespace = rawOptions.cacheNamespace ?? 'forest_cache_';
+  const flattenOptions = await computeFlattenOptions(resolvedSchema, options);
 
   return {
-    ...rest,
-    cacheNamespace: resolvedCacheNamespace,
-    flattenOptions: resolvedFlattenOptions,
+    cacheInto: options.cacheInto,
+    cacheNamespace: options.cacheNamespace,
+    createRecord: options.createRecord,
+    deleteRecord: options.deleteRecord,
+    flattenOptions,
+    flattenSchema: flattenSchema(resolvedSchema, flattenOptions),
+    logger,
+    pullDeltaOnAfterWrite: options.pullDeltaHandler && options.pullDeltaOnAfterWrite,
+    pullDeltaOnBeforeAccess: options.pullDeltaHandler && options.pullDeltaOnBeforeAccess,
     schema: resolvedSchema,
+    source,
+    updateRecord: options.updateRecord,
   };
 }

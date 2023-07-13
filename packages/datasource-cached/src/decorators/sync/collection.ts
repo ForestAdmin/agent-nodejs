@@ -10,43 +10,61 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import SyncDataSourceDecorator from './data-source';
+import TriggerSyncDataSourceDecorator from './data-source';
 
 export default class SyncCollectionDecorator extends CollectionDecorator {
-  override dataSource: SyncDataSourceDecorator;
+  override dataSource: TriggerSyncDataSourceDecorator;
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
+    const { options } = this.dataSource;
     const records = await this.childCollection.create(caller, data);
 
-    if (this.dataSource.options.pullDeltaHandler && this.dataSource.options.pullDeltaOnAfterWrite) {
-      const reason = 'after-create';
-      const collections = [this.name];
-      await this.dataSource.queuePullDelta({ reason, caller, collections, records });
+    if (options.pullDeltaOnAfterWrite) {
+      await options.source.queuePullDelta({
+        name: 'after-create',
+        collection: this.name,
+        caller,
+        affectedCollections: [this.name],
+        records,
+      });
     }
 
     return records;
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
+    const { options } = this.dataSource;
+
     await super.update(caller, filter, patch);
 
-    if (this.dataSource.options.pullDeltaHandler && this.dataSource.options.pullDeltaOnAfterWrite) {
-      const reason = 'after-update';
-      const collections = [this.name];
-      await this.dataSource.queuePullDelta({ reason, caller, filter, patch, collections });
+    if (options.pullDeltaOnAfterWrite) {
+      await options.source.queuePullDelta({
+        name: 'after-update',
+        collection: this.name,
+        affectedCollections: [this.name],
+        caller,
+        filter,
+        patch,
+      });
     }
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
+    const { options } = this.dataSource;
+
     await super.delete(caller, filter);
 
-    if (this.dataSource.options.pullDeltaHandler && this.dataSource.options.pullDeltaOnAfterWrite) {
+    if (options.pullDeltaOnAfterWrite) {
       // Deletes may cascade to other collections!
       // Let's find out which one are affected assuming that all deletes cascade
       // (which is the worst case scenario)
-      const reason = 'after-delete';
-      const collections = this.getLinkedCollections(new Set());
-      await this.dataSource.queuePullDelta({ reason, caller, filter, collections });
+      await options.source.queuePullDelta({
+        name: 'after-delete',
+        collection: this.name,
+        affectedCollections: this.getLinkedCollections(new Set()),
+        caller,
+        filter,
+      });
     }
   }
 
@@ -55,13 +73,17 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    if (
-      this.dataSource.options.pullDeltaHandler &&
-      this.dataSource.options.pullDeltaOnBeforeAccess
-    ) {
-      const reason = 'before-list';
-      const collections = this.getCollectionsFromProjection(projection);
-      await this.dataSource.queuePullDelta({ reason, caller, filter, projection, collections });
+    const { options } = this.dataSource;
+
+    if (options.pullDeltaOnBeforeAccess) {
+      await options.source.queuePullDelta({
+        name: 'before-list',
+        collection: this.name,
+        affectedCollections: this.getCollectionsFromProjection(projection),
+        caller,
+        filter,
+        projection,
+      });
     }
 
     return super.list(caller, filter, projection);
@@ -73,13 +95,17 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
-    if (
-      this.dataSource.options.pullDeltaHandler &&
-      this.dataSource.options.pullDeltaOnBeforeAccess
-    ) {
-      const reason = 'before-aggregate';
-      const collections = this.getCollectionsFromProjection(aggregation.projection);
-      await this.dataSource.queuePullDelta({ reason, caller, filter, aggregation, collections });
+    const { options } = this.dataSource;
+
+    if (options.pullDeltaOnBeforeAccess) {
+      await options.source.queuePullDelta({
+        name: 'before-aggregate',
+        collection: this.name,
+        affectedCollections: this.getCollectionsFromProjection(aggregation.projection),
+        caller,
+        filter,
+        aggregation,
+      });
     }
 
     return super.aggregate(caller, filter, aggregation, limit);
@@ -113,6 +139,8 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
     const [prefix, suffix] = path.split(/:(.*)/);
     const schema = this.childCollection.schema.fields[prefix];
 
+    // FIXME need to handle many to many relationships here
+    // the through table is not included, and it should be
     return schema.type === 'Column'
       ? this.name
       : this.dataSource.getCollection(schema.foreignCollection).getCollectionFromPath(suffix);

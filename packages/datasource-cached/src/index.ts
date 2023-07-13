@@ -1,31 +1,48 @@
+import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
 import PublicationCollectionDataSourceDecorator from '@forestadmin/datasource-customizer/dist/decorators/publication-collection/datasource';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import SchemaDataSourceDecorator from './decorators/schema/data-source';
-import SyncDataSourceDecorator from './decorators/sync/data-source';
+import TriggerSyncDataSourceDecorator from './decorators/sync/data-source';
 import WriteDataSourceDecorator from './decorators/write/data-source';
 import resolveOptions from './options';
-import createSequelize from './sequelize';
+import { createModels, createSequelize } from './sequelize';
+import CacheTarget from './synchronization/cache-target';
 import { CachedDataSourceOptions } from './types';
 
 function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSourceFactory {
+  // Default options
+  rawOptions.cacheInto ??= 'sqlite::memory:';
+  rawOptions.cacheNamespace ??= 'forest';
+
   return async (logger: Logger) => {
-    const options = await resolveOptions(rawOptions);
-    const connection = await createSequelize(logger, options);
-    const factory = createSequelizeDataSource(connection);
+    // Init sequelize connection
+    // This is done in two steps to allow schema discovery (we might not know the schema in advance)
+    const connection = await createSequelize(logger, rawOptions);
+    const options = await resolveOptions(rawOptions, logger, connection);
+    await createModels(connection, options);
 
-    const sequelizeDs = await factory(logger);
+    // Create the sequelize data source and provide it to the source
+    // (to allow customers to use it when handling requests if they want to)
+    const sequelizeDs = await createSequelizeDataSource(connection)(logger);
     const publicationDs = new PublicationCollectionDataSourceDecorator(sequelizeDs);
-    publicationDs.keepCollectionsMatching(null, ['forest_sync_state']);
+    publicationDs.keepCollectionsMatching(null, [
+      `${options.cacheNamespace}_pending_operations`,
+      `${options.cacheNamespace}_metadata`,
+    ]);
 
-    const syncDataSource = new SyncDataSourceDecorator(publicationDs, connection, options);
-    await syncDataSource.start();
+    options.source.requestCache = new RelaxedDataSource(publicationDs, null);
 
-    const writeDataSource = new WriteDataSourceDecorator(syncDataSource, options);
-    const schemaDataSource = new SchemaDataSourceDecorator(writeDataSource, options);
+    // Start synchronization between our database and the source.
+    // (or replay the dump/delta if they were already synchronized when guessing the schema)
+    await options.source.start(new CacheTarget(connection, options));
 
-    return schemaDataSource;
+    // Additional decorators
+    const triggerSyncDataSource = new TriggerSyncDataSourceDecorator(publicationDs, options);
+    const writeDataSource = new WriteDataSourceDecorator(triggerSyncDataSource, options);
+
+    return new SchemaDataSourceDecorator(writeDataSource, options);
   };
 }
 
