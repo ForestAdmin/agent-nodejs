@@ -1,3 +1,4 @@
+import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
 
 import computeFlattenOptions from './flattener/options';
@@ -14,32 +15,34 @@ import {
 
 export default async function resolveOptions(
   options: CachedDataSourceOptions,
+  logger: Logger,
   connection: Sequelize,
 ): Promise<ResolvedOptions> {
   let source: SynchronizationSource = new CustomerSource(connection, options);
   let resolvedSchema: CachedCollectionSchema[] = await getSchema(options, connection);
 
   if (!resolvedSchema) {
-    const passThrough = new AnalysisPassThough(connection, source);
+    const passThrough = new AnalysisPassThough(connection, source, options.cacheNamespace);
     await source.start(passThrough); // This should block until the analysis is done.
 
     source = passThrough;
-    resolvedSchema = await buildSchema(options, connection, passThrough.nodes);
+    resolvedSchema = await buildSchema(passThrough.nodes);
   }
 
   const flattenOptions = await computeFlattenOptions(resolvedSchema, options);
 
   return {
-    cacheNamespace: options.cacheNamespace ?? 'forest_cache_',
-    flattenOptions,
-    schema: resolvedSchema,
-    flattenSchema: flattenSchema(resolvedSchema, flattenOptions),
-    source,
     cacheInto: options.cacheInto,
+    cacheNamespace: options.cacheNamespace,
     createRecord: options.createRecord,
-    updateRecord: options.updateRecord,
     deleteRecord: options.deleteRecord,
+    flattenOptions,
+    flattenSchema: flattenSchema(resolvedSchema, flattenOptions),
+    logger,
     pullDeltaOnAfterWrite: options.pullDeltaHandler && options.pullDeltaOnAfterWrite,
     pullDeltaOnBeforeAccess: options.pullDeltaHandler && options.pullDeltaOnBeforeAccess,
+    schema: resolvedSchema,
+    source,
+    updateRecord: options.updateRecord,
   };
 }

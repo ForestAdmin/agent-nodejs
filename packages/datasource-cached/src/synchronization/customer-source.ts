@@ -61,13 +61,11 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     if (this.target) throw new Error('Already started');
     this.target = target;
 
-    if (this.options.pullDumpHandler && this.options.pullDumpOnRestart)
+    if (
+      this.options.pullDumpHandler &&
+      (this.options.pullDumpOnRestart || (await this.getStartupState()) !== 'done')
+    )
       await this.queuePullDump({ reason: 'startup', collections: [] });
-    else if (this.options.pullDumpHandler) {
-      // fixme we should check that this is the first startup, and not a restart
-      // and launch a dump if it is the first startup
-      if (true) await this.queuePullDump({ reason: 'startup', collections: [] });
-    }
 
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
       await this.queuePullDelta({ reason: 'startup', collections: [] });
@@ -170,6 +168,8 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     let more = true;
     let firstPage = true;
 
+    await this.setStartupState('in_progress');
+
     // Fill table with dump
     while (more) {
       const changes = await this.options.pullDumpHandler({
@@ -188,6 +188,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
         await this.setDeltaState(changes.nextDeltaState);
     }
 
+    await this.setStartupState('done');
     this.isRunning = false;
     queue.deferred.resolve();
     this.tick();
@@ -217,15 +218,27 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     this.tick();
   }
 
-  private async getDeltaState(): Promise<unknown> {
-    const stateModel = this.connection.model(`forest_sync_state`);
-    const stateRecord = await stateModel.findByPk(this.options.cacheNamespace);
+  private async getStartupState(): Promise<'pending' | 'in_progress' | 'done'> {
+    const metadataModel = this.connection.model(`${this.options.cacheNamespace}_metadata`);
+    const stateRecord = await metadataModel.findByPk('statup_state');
 
-    return stateRecord ? JSON.parse(stateRecord.dataValues.state) : null;
+    return stateRecord ? JSON.parse(stateRecord.dataValues.content) : 'pending';
+  }
+
+  private async setStartupState(state: 'pending' | 'in_progress' | 'done'): Promise<void> {
+    const metadataModel = this.connection.model(`${this.options.cacheNamespace}_metadata`);
+    await metadataModel.upsert({ id: 'statup_state', content: JSON.stringify(state) });
+  }
+
+  private async getDeltaState(): Promise<unknown> {
+    const metadataModel = this.connection.model(`${this.options.cacheNamespace}_metadata`);
+    const stateRecord = await metadataModel.findByPk('delta_state');
+
+    return stateRecord ? JSON.parse(stateRecord.dataValues.content) : null;
   }
 
   private async setDeltaState(state: unknown): Promise<void> {
-    const stateModel = this.connection.model(`forest_sync_state`);
-    await stateModel.upsert({ id: this.options.cacheNamespace, state: JSON.stringify(state) });
+    const metadataModel = this.connection.model(`${this.options.cacheNamespace}_metadata`);
+    await metadataModel.upsert({ id: 'delta_state', content: JSON.stringify(state) });
   }
 }

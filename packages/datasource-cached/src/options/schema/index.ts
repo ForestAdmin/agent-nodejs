@@ -35,19 +35,17 @@ export async function getSchema(
   }
 
   // Schema was already computed and cached
-  const schemaCache = connection.model('forest_schema');
-  const schemaFromDb = await schemaCache.findOne({ where: { id: rawOptions.cacheNamespace } });
-  if (schemaFromDb) return schemaFromDb.dataValues.schema;
+  const metadata = connection.model(`${rawOptions.cacheNamespace}_metadata`);
+  const schemaFromDb = await metadata.findByPk('schema');
+  if (schemaFromDb) return schemaFromDb.dataValues.content;
 
   return null;
 }
 
 export async function buildSchema(
-  rawOptions: CachedDataSourceOptions,
-  connection: Sequelize,
   analysis: Record<string, NodeStudy>,
 ): Promise<CachedCollectionSchema[]> {
-  const schema: CachedCollectionSchema[] = Object.entries(analysis).map(([name, node]) => {
+  return Object.entries(analysis).map(([name, node]) => {
     const fields = convertAnalysisToSchema(node) as Record<string, Field>;
 
     if (isLeafField(fields.id)) fields.id.isPrimaryKey = true;
@@ -55,9 +53,4 @@ export async function buildSchema(
 
     return { name, fields };
   });
-
-  const schemaCache = connection.model('forest_schema');
-  schemaCache.upsert({ id: rawOptions.cacheNamespace, schema });
-
-  return schema;
 }

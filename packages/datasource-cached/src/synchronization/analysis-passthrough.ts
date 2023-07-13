@@ -17,6 +17,7 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
   nodes: Record<string, NodeStudy>;
   target: SynchronizationTarget = null;
   source: SynchronizationSource;
+  namespace: string;
 
   get requestCache(): RelaxedDataSource {
     return this.source?.requestCache;
@@ -26,9 +27,10 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
     this.source.requestCache = value;
   }
 
-  constructor(connection: Sequelize, source: SynchronizationSource) {
+  constructor(connection: Sequelize, source: SynchronizationSource, namespace: string) {
     this.source = source;
-    this.recordCache = connection.model('forest_pending_records');
+    this.recordCache = connection.model(`${namespace}_pending_operations`);
+    this.namespace = namespace;
     this.nodes = {};
   }
 

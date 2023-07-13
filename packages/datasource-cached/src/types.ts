@@ -5,6 +5,7 @@ import {
   Caller,
   ColumnSchema,
   Filter,
+  Logger,
   PaginatedFilter,
   PrimitiveTypes,
   Projection,
@@ -174,6 +175,7 @@ export type ResolvedOptions = Pick<
   schema?: CachedCollectionSchema[];
   flattenSchema?: CachedCollectionSchema[];
   flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
+  logger: Logger;
   source: SynchronizationSource;
 };
 

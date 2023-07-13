@@ -11,21 +11,26 @@ import { createModels, createSequelize } from './sequelize';
 import CacheTarget from './synchronization/cache-target';
 import { CachedDataSourceOptions } from './types';
 
-const systemTables = ['forest_pending_records', 'forest_schema', 'forest_sync_state'];
-
 function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSourceFactory {
+  // Default options
+  rawOptions.cacheInto ??= 'sqlite::memory:';
+  rawOptions.cacheNamespace ??= 'forest';
+
   return async (logger: Logger) => {
     // Init sequelize connection
     // This is done in two steps to allow schema discovery (we might not know the schema in advance)
-    const connection = await createSequelize(logger, rawOptions.cacheInto);
-    const options = await resolveOptions(rawOptions, connection);
+    const connection = await createSequelize(logger, rawOptions);
+    const options = await resolveOptions(rawOptions, logger, connection);
     await createModels(connection, options);
 
     // Create the sequelize data source and provide it to the source
     // (to allow customers to use it when handling requests if they want to)
     const sequelizeDs = await createSequelizeDataSource(connection)(logger);
     const publicationDs = new PublicationCollectionDataSourceDecorator(sequelizeDs);
-    publicationDs.keepCollectionsMatching(null, systemTables);
+    publicationDs.keepCollectionsMatching(null, [
+      `${options.cacheNamespace}_pending_operations`,
+      `${options.cacheNamespace}_metadata`,
+    ]);
 
     options.source.requestCache = new RelaxedDataSource(publicationDs, null);
 
