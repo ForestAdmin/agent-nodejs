@@ -149,10 +149,10 @@ function computeAllRelationRecords(
 
 async function computeDeletedEntries(
   client: Client,
-  recordsIdsByCollection: [string, string[]][],
+  idsByCollection: [string, string[]][],
   deltaResponse: PullDeltaResponse,
 ): Promise<void> {
-  for (const [collectionName, ids] of recordsIdsByCollection) {
+  for (const [collectionName, ids] of idsByCollection) {
     const promises = [];
 
     for (let i = 0; i < ids.length; i += 100) {
@@ -190,29 +190,7 @@ export default async function getDelta<TypingsHubspot>(
     deletedEntries: [],
   };
 
-  const idsToCheckIfAlreadyExists = [];
-  const promises = request.reasons.map(async reason => {
-    if (reason.reason === 'before-list') {
-      const { filter, collections: col } = reason;
-
-      // TODO: the targeted collections is not always the first one.
-      //  For the many to many is the second one
-      if (relations.includes(col[0]) || (col.length > 1 && relations.includes(col[1]))) {
-        // we don't want to refresh the relations
-        return;
-      }
-
-      const recordIds = await request.cache.getCollection(col[0]).list(filter, ['id']);
-      idsToCheckIfAlreadyExists.push([col[0], recordIds.map(r => r.id)]);
-    }
-  });
-  await Promise.all(promises);
-
-  if (idsToCheckIfAlreadyExists.length > 0) {
-    await computeDeletedEntries(client, idsToCheckIfAlreadyExists, deltaResponse);
-  }
-
-  await Promise.all([
+  const deltaResponsePromises: Array<Promise<void>> = [
     ...computeNewOrUpdatedRecords<TypingsHubspot>(
       client,
       collections,
@@ -220,8 +198,41 @@ export default async function getDelta<TypingsHubspot>(
       options,
       deltaResponse,
     ),
-    ...computeAllRelationRecords(client, relations, request, deltaResponse),
-  ]);
+  ];
+
+  if (request.reasons.map(r => r.reason).includes('before-list')) {
+    const idsToCheckIfAlreadyExists = request.reasons
+      .filter(reason => reason.reason === 'before-list')
+      .filter(reason => {
+        const { collections: col } = reason;
+
+        // TODO: the targeted collections is not always the first one.
+        //  For the many to many is the second one
+        if (relations.includes(col[0]) || (col.length > 1 && relations.includes(col[1]))) {
+          // we don't want to refresh the relations
+        }
+      })
+      .map(async reason => {
+        const { filter, collections: col } = reason;
+
+        const collectionToFetch = col[1] ?? col[0];
+        const recordIds = await request.cache.getCollection(collectionToFetch).list(filter, ['id']);
+
+        return [collectionToFetch, recordIds.map(r => r.id)] as [string, string[]];
+      });
+
+    deltaResponsePromises.push(
+      computeDeletedEntries(client, await Promise.all(idsToCheckIfAlreadyExists), deltaResponse),
+    );
+  }
+
+  if (request.reasons.map(r => r.reason).includes('startup')) {
+    deltaResponsePromises.push(
+      ...computeAllRelationRecords(client, relations, request, deltaResponse),
+    );
+  }
+
+  await Promise.all(deltaResponsePromises);
 
   if (deltaResponse.more === false) logger?.('Info', 'All the records are updated');
   if (deltaResponse.deletedEntries.length > 0) logger?.('Info', 'Some records have been deleted');
