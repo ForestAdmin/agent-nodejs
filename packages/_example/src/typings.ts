@@ -29,7 +29,7 @@ export type Schema = {
       'companies:owneremail': string;
       'companies:state': string;
       'contacts:id': string;
-      'contacts:city': string;
+      'contacts:country': string;
     };
   };
   'hubspot_companies_deals': {
@@ -49,34 +49,13 @@ export type Schema = {
       'companies:owneremail': string;
       'companies:state': string;
       'deals:id': string;
-      'deals:closed_lost_reason': string;
-      'deals:closed_won_reason': string;
-    };
-  };
-  'hubspot_companies_tickets': {
-    plain: {
-      'companies_id': string;
-      'tickets_id': string;
-    };
-    nested: {
-      'companies': Schema['hubspot_companies']['plain'] & Schema['hubspot_companies']['nested'];
-      'tickets': Schema['hubspot_tickets']['plain'] & Schema['hubspot_tickets']['nested'];
-    };
-    flat: {
-      'companies:id': string;
-      'companies:description': string;
-      'companies:days_to_close': number;
-      'companies:city': string;
-      'companies:owneremail': string;
-      'companies:state': string;
-      'tickets:id': string;
-      'tickets:createdate': string;
+      'deals:description': string;
     };
   };
   'hubspot_contacts': {
     plain: {
       'id': string;
-      'city': string;
+      'country': string;
     };
     nested: {};
     flat: {};
@@ -92,58 +71,15 @@ export type Schema = {
     };
     flat: {
       'contacts:id': string;
-      'contacts:city': string;
+      'contacts:country': string;
       'deals:id': string;
-      'deals:closed_lost_reason': string;
-      'deals:closed_won_reason': string;
-    };
-  };
-  'hubspot_contacts_tickets': {
-    plain: {
-      'contacts_id': string;
-      'tickets_id': string;
-    };
-    nested: {
-      'contacts': Schema['hubspot_contacts']['plain'] & Schema['hubspot_contacts']['nested'];
-      'tickets': Schema['hubspot_tickets']['plain'] & Schema['hubspot_tickets']['nested'];
-    };
-    flat: {
-      'contacts:id': string;
-      'contacts:city': string;
-      'tickets:id': string;
-      'tickets:createdate': string;
+      'deals:description': string;
     };
   };
   'hubspot_deals': {
     plain: {
       'id': string;
-      'closed_lost_reason': string;
-      'closed_won_reason': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_deals_tickets': {
-    plain: {
-      'deals_id': string;
-      'tickets_id': string;
-    };
-    nested: {
-      'deals': Schema['hubspot_deals']['plain'] & Schema['hubspot_deals']['nested'];
-      'tickets': Schema['hubspot_tickets']['plain'] & Schema['hubspot_tickets']['nested'];
-    };
-    flat: {
-      'deals:id': string;
-      'deals:closed_lost_reason': string;
-      'deals:closed_won_reason': string;
-      'tickets:id': string;
-      'tickets:createdate': string;
-    };
-  };
-  'hubspot_feedback_submissions': {
-    plain: {
-      'id': string;
-      'hs_agent_name': string;
+      'description': string;
     };
     nested: {};
     flat: {};
@@ -151,26 +87,7 @@ export type Schema = {
   'hubspot_line_items': {
     plain: {
       'id': string;
-      'hs_product_id': number;
-      'description': string;
-      'discount': number;
-      'createdate': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_quotes': {
-    plain: {
-      'id': string;
-      'hs_proposal_domain': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_tickets': {
-    plain: {
-      'id': string;
-      'createdate': string;
+      'amount': number;
     };
     nested: {};
     flat: {};

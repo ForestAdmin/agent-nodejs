@@ -27,7 +27,6 @@ export async function createHubspotDataSource<TypingsHubspot>(
     }
 
     const factory = createCachedDataSource({
-      cacheInto: 'sqlite::memory:',
       cacheNamespace: 'hubspot',
       schema: getSchema(fieldsProperties, options.collections, logger),
       // Use delta synchronization
@@ -35,6 +34,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
       pullDeltaOnStartup: true,
       pullDeltaOnBeforeAccess: true,
       pullDeltaOnBeforeAccessDelay: 100,
+      cacheInto: options.cacheInto,
     });
 
     return factory(logger);

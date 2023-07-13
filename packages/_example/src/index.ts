@@ -94,24 +94,15 @@ export default async () => {
 
   agent.addDataSource(
     await createHubspotDataSource<TypingsHubspot>({
+      cacheInto: 'sqlite:/tmp/mydatabase-3.db',
       skipTypings: false,
       typingsPath: 'src/typings-hubspot.ts',
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
         companies: ['description', 'days_to_close', 'city', 'owneremail', 'state'],
-        quotes: ['hs_all_assigned_business_unit_ids', 'hs_proposal_domain'],
-        deals: ['closed_lost_reason', 'closed_won_reason'],
-        line_items: [
-          'hs_product_id',
-          'hs_all_owner_ids',
-          'description',
-          'hs_user_ids_of_all_notification_followers',
-          'discount',
-          'createdate',
-        ],
-        feedback_submissions: ['hs_agent_name'],
-        tickets: ['createdate'],
-        contacts: ['city'],
+        deals: ['description'],
+        contacts: ['country'],
+        line_items: ['amount'],
       },
     }),
     { rename: collectionName => `hubspot_${collectionName}` },
