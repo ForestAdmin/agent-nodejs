@@ -41,7 +41,6 @@ async function defineModels(
   sequelize: Sequelize,
 ) {
   for (const model of schema) {
-    // const modelName = `${namespace}_${model.name}`;
     const attributes: ModelAttributes = {};
 
     for (const [name, field] of Object.entries(model.fields)) {
