@@ -65,10 +65,10 @@ export default class CustomerSource extends EventTarget implements Synchronizati
       this.options.pullDumpHandler &&
       (this.options.pullDumpOnRestart || (await this.getStartupState()) !== 'done')
     )
-      await this.queuePullDump({ reason: 'startup', collections: [] });
+      await this.queuePullDump({ name: 'startup', collections: [] });
 
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
-      await this.queuePullDelta({ reason: 'startup', collections: [] });
+      await this.queuePullDelta({ name: 'startup', collections: [] });
 
     if (this.options.pushDeltaHandler) {
       const previousDeltaState = await this.getDeltaState();
@@ -82,7 +82,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     if (this.options.pullDumpHandler && this.options.pullDumpOnTimer)
       this.timers.push(
         setInterval(
-          () => this.queuePullDump({ reason: 'timer', collections: [] }),
+          () => this.queuePullDump({ name: 'timer', collections: [] }),
           this.options.pullDumpOnTimer,
         ),
       );
@@ -90,7 +90,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
     if (this.options.pullDeltaHandler && this.options.pullDeltaOnTimer)
       this.timers.push(
         setInterval(
-          () => this.queuePullDelta({ reason: 'timer', collections: [] }),
+          () => this.queuePullDelta({ name: 'timer', collections: [] }),
           this.options.pullDeltaOnTimer,
         ),
       );
