@@ -2,7 +2,11 @@ import { PullDeltaRequest, PullDeltaResponse } from '@forestadmin/datasource-cac
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { HUBSPOT_MAX_PAGE_SIZE, HUBSPOT_RATE_LIMIT_SEARCH_REQUEST } from './constants';
+import {
+  HUBSPOT_MAX_PAGE_SIZE,
+  HUBSPOT_RATE_LIMIT_FILTER_VALUES,
+  HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
+} from './constants';
 import { getManyToManyRelationNames } from './relations';
 import { HubSpotOptions } from './types';
 import { executeAfterDelay } from './utils';
@@ -100,7 +104,7 @@ async function findRecords(
   return response.results.map(r => Object.fromEntries([['id', r.id]]));
 }
 
-function upsertAllRecords<TypingsHubspot>(
+function pullUpdatedOrNewRecords<TypingsHubspot>(
   client: Client,
   collectionNames: string[],
   request: PullDeltaRequest,
@@ -130,7 +134,7 @@ function upsertAllRecords<TypingsHubspot>(
   });
 }
 
-function insertNewRelationRecords(
+function pullNewRelationRecords(
   client: Client,
   relationNames: string[],
   request: PullDeltaRequest,
@@ -155,12 +159,23 @@ async function updateRecordsByIds(
   for (const [collectionName, ids] of idsByCollection) {
     const promises = [];
 
-    for (let i = 0; i < ids.length; i += 100) {
+    // make a bach of X requests to avoid hitting the hubspot rate limit
+    for (let i = 0; i < ids.length; i += HUBSPOT_RATE_LIMIT_FILTER_VALUES) {
       promises.push(async () => {
         const existingIds: Records = await executeAfterDelay<Records>(
-          () => findRecords(client, collectionName, ids.slice(i, i + 100), i),
-          Math.floor((i + 1) / 100 / HUBSPOT_RATE_LIMIT_SEARCH_REQUEST) * 1000,
+          () =>
+            findRecords(
+              client,
+              collectionName,
+              ids.slice(i, i + HUBSPOT_RATE_LIMIT_FILTER_VALUES),
+              i,
+            ),
+          Math.floor(
+            (i + 1) / HUBSPOT_RATE_LIMIT_FILTER_VALUES / HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
+          ) * 1000,
         );
+
+        // find the records that have been deleted on hubspot
         const recordsToDelete = existingIds.filter(r => !ids.includes(r.id));
         deltaResponse.deletedEntries.push(
           ...recordsToDelete.map(record => ({ collection: collectionName, record })),
@@ -168,7 +183,7 @@ async function updateRecordsByIds(
       });
     }
 
-    // awaited ib the loop to avoid hitting the hubspot rate limit
+    // awaited in the loop to avoid hitting the hubspot rate limit
     // eslint-disable-next-line no-await-in-loop
     await Promise.all(promises.map(p => p()));
   }
@@ -181,10 +196,15 @@ async function updateRelationRecordsByIds(
 ): Promise<void> {
   for (const [relationName, recordsIds] of recordIdsByRelation) {
     const [from, to] = relationName.split('_');
+    // remove the duplicated from_id to avoid multiple requests
+    const uniqueFromIds = recordsIds.reduce(
+      (fromIds, record) => fromIds.add(record[`${from}_id`]),
+      new Set(),
+    );
 
-    for (const ids of recordsIds) {
+    for (const ids of uniqueFromIds) {
       const fromId = ids[`${from}_id`];
-
+      // get all the new relations for this from_id
       // eslint-disable-next-line no-await-in-loop
       const fromRelation = await getDiscovery(client, from).basicApi.getById(
         fromId,
@@ -192,14 +212,19 @@ async function updateRelationRecordsByIds(
         undefined,
         [to],
       );
-      const recordsToAdd = fromRelation.associations?.[to].results.map(record => ({
+
+      // build the relations tom make it compatible with the forest format
+      const relations = fromRelation.associations?.[to].results.map(record => ({
         [`${from}_id`]: fromRelation.id,
         [`${to}_id`]: record.id,
       }));
+
+      // these two steps will remove all the relations and then add the new ones
+      // insert all the relations
       deltaResponse.newOrUpdatedEntries.push(
-        ...recordsToAdd.map(record => ({ collection: relationName, record })),
+        ...relations.map(record => ({ collection: relationName, record })),
       );
-      // remove all the records
+      // remove all the relations
       deltaResponse.deletedEntries.push({
         collection: relationName,
         record: { [`${from}_id`]: fromId },
@@ -225,18 +250,24 @@ export default async function getDelta<TypingsHubspot>(
   };
 
   const deltaResponsePromises: Array<Promise<void>> = [
-    ...upsertAllRecords<TypingsHubspot>(client, collections, request, options, deltaResponse),
+    ...pullUpdatedOrNewRecords<TypingsHubspot>(
+      client,
+      collections,
+      request,
+      options,
+      deltaResponse,
+    ),
   ];
 
   if (request.reasons.map(r => r.name).includes('before-list')) {
     const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');
-    const reasonOnRelationsToCheck = beforeListReasons.filter(reason =>
+    const reasonsOnRelationsToUpdate = beforeListReasons.filter(reason =>
       relations.includes(reason.collection),
     );
-    const reasonOnCollectionsToCheck = beforeListReasons.filter(
+    const reasonsOnCollectionsToUpdate = beforeListReasons.filter(
       reason => !relations.includes(reason.collection),
     );
-    const relationsIdsToCheck = reasonOnRelationsToCheck.map(async reason => {
+    const relationsIdsToUpdate = reasonsOnRelationsToUpdate.map(async reason => {
       const recordIds = await request.cache
         .getCollection(reason.collection)
         .list(reason.filter, [
@@ -246,7 +277,7 @@ export default async function getDelta<TypingsHubspot>(
 
       return [reason.collection, recordIds] as [string, Records[]];
     });
-    const recordsIdsToCheck = reasonOnCollectionsToCheck.map(async reason => {
+    const recordsIdsToUpdate = reasonsOnCollectionsToUpdate.map(async reason => {
       const recordIds = await request.cache
         .getCollection(reason.collection)
         .list(reason.filter, ['id']);
@@ -255,19 +286,18 @@ export default async function getDelta<TypingsHubspot>(
     });
 
     deltaResponsePromises.push(
-      updateRecordsByIds(client, await Promise.all(recordsIdsToCheck), deltaResponse),
-      updateRelationRecordsByIds(client, await Promise.all(relationsIdsToCheck), deltaResponse),
+      updateRecordsByIds(client, await Promise.all(recordsIdsToUpdate), deltaResponse),
+      updateRelationRecordsByIds(client, await Promise.all(relationsIdsToUpdate), deltaResponse),
     );
   }
 
   if (request.reasons.map(r => r.name).includes('startup')) {
     deltaResponsePromises.push(
-      ...insertNewRelationRecords(client, relations, request, deltaResponse),
+      ...pullNewRelationRecords(client, relations, request, deltaResponse),
     );
   }
 
   await Promise.all(deltaResponsePromises);
-
   if (deltaResponse.more === false) logger?.('Info', 'All the records are updated');
   if (deltaResponse.deletedEntries.length > 0) logger?.('Info', 'Some records have been deleted');
 
