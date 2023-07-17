@@ -1,7 +1,6 @@
 import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
-import { COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS } from './constants';
 import { getManyToManyRelationNames } from './relations';
 import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 

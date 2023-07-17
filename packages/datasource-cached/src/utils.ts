@@ -30,5 +30,4 @@ export function getRecordId(fields: CachedCollectionSchema['fields'], record: Re
 
   if (pks.length === 0) throw new Error('No primary key found');
   else if (pks.length === 1) return pks[0];
-  else throw new Error('Composite primary keys are not supported');
 }

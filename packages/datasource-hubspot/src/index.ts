@@ -4,8 +4,9 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { HUBSPOT_COLLECTIONS } from './constants';
-import getChanges from './get-changes';
 import getFieldsPropertiesByCollections from './get-fields-properties';
+import pullDelta from './pull-delta';
+import pullDump from './pull-dump';
 import getSchema from './schema';
 import { HubSpotOptions } from './types';
 import writeCollectionsTypeFileIfChange from './write-collections-type-file';
@@ -29,12 +30,13 @@ export async function createHubspotDataSource<TypingsHubspot>(
     const factory = createCachedDataSource({
       cacheNamespace: 'hubspot',
       schema: getSchema(fieldsProperties, options.collections, logger),
-      // Use delta synchronization
-      pullDeltaHandler: request => getChanges(client, options, request, logger),
+      pullDeltaHandler: request => pullDelta(client, options, request, logger),
+      pullDumpHandler: request => pullDump<TypingsHubspot>(client, options, request, logger),
       pullDeltaOnRestart: true,
       pullDeltaOnBeforeAccess: true,
       pullDeltaOnBeforeAccessDelay: 100,
       cacheInto: options.cacheInto,
+      pullDumpOnTimer: options.pullDumpOnTimer,
     });
 
     return factory(logger);
