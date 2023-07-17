@@ -1,9 +1,9 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { createCachedDataSource } from '@forestadmin/datasource-cached';
 import { createHubspotDataSource } from '@forestadmin/datasource-hubspot';
-import axios from 'axios';
 import dotenv from 'dotenv';
 
+import createCurrencyApiDataSource from './exchange-rates';
 import { Schema } from './typings';
 
 dotenv.config();
@@ -15,7 +15,8 @@ export default async () => {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Debug',
+    // loggerLevel: 'Debug',
+    loggerLevel: 'Info',
     typingsPath: 'src/typings.ts',
   };
 
@@ -23,23 +24,23 @@ export default async () => {
 
   agent.addDataSource(
     createCachedDataSource({
-      cacheInto: 'sqlite::memory:',
+      cacheInto: 'sqlite:./database.sqlite',
       cacheNamespace: 'whatever',
       flattenMode: 'auto',
-      // schema: [
-      //   {
-      //     name: 'users',
-      //     fields: {
-      //       id: { type: 'Integer', isPrimaryKey: true },
-      //       name: { type: 'String' },
-      //       address: {
-      //         street: { type: 'String' },
-      //         city: { type: 'String' },
-      //         zipCodes: [{ type: 'Integer' }],
-      //       },
-      //     },
-      //   },
-      // ],
+      schema: [
+        {
+          name: 'users',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+            name: { type: 'String' },
+            address: {
+              street: { type: 'String' },
+              // city: { type: 'String' },
+              zipCodes: [{ type: 'Integer' }],
+            },
+          },
+        },
+      ],
       // pullDeltaOnBeforeAccess: true,
       pullDumpHandler: async () => {
         return {
@@ -92,42 +93,7 @@ export default async () => {
     { rename: collectionName => `hubspot_${collectionName}` },
   );
 
-  agent.addDataSource(
-    createCachedDataSource({
-      cacheInto: 'sqlite::memory:',
-      cacheNamespace: 'typicode',
-      // schema: [
-      //   {
-      //     name: 'users',
-      //     fields: {
-      //       id: { type: 'Integer', isPrimaryKey: true },
-      //     },
-      //   },
-      //   {
-      //     name: 'posts',
-      //     fields: {
-      //       id: { type: 'Integer', isPrimaryKey: true },
-      //       posts: [{ type: 'Integer', reference: { targetCollection: 'users' } }],
-      //       title: { type: 'String' },
-      //       body: { type: 'String' },
-      //     },
-      //   },
-      // ],
-
-      pullDumpOnRestart: true,
-      pullDumpHandler: async () => {
-        const promises = ['users', 'posts'].map(async collection => {
-          const response = await axios.get(`https://jsonplaceholder.typicode.com/${collection}`);
-
-          return response.data.map(record => ({ collection, record }));
-        });
-        const records = await Promise.all(promises);
-
-        return { more: false, entries: records.flat() };
-      },
-    }),
-    { rename: collectionName => `typicode_${collectionName}` },
-  );
+  agent.addDataSource(createCurrencyApiDataSource(7));
 
   agent.mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
   await agent.start();

@@ -53,12 +53,12 @@ export type CachedCollectionSchema = {
 /// //////
 
 export type PullDumpReason = {
-  name: 'startup' | 'timer';
+  name: 'startup' | 'schedule';
 };
 
 export type PullDeltaReason =
   | { name: 'startup' }
-  | { name: 'timer' }
+  | { name: 'schedule' }
   | ({ collection: string; affectedCollections: string[] } & (
       | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
       | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
@@ -143,12 +143,12 @@ export type CachedDataSourceOptions = {
   /** Pull dump options */
   pullDumpHandler?: (request: PullDumpRequest) => Promise<PullDumpResponse>;
   pullDumpOnRestart?: boolean;
-  pullDumpOnTimer?: number;
+  pullDumpOnSchedule?: string | string[];
 
   /** Pull delta options */
   pullDeltaHandler?: (request: PullDeltaRequest) => Promise<PullDeltaResponse>;
   pullDeltaOnRestart?: boolean;
-  pullDeltaOnTimer?: number;
+  pullDeltaOnSchedule?: string | string[];
   pullDeltaOnBeforeAccess?: boolean;
   pullDeltaOnAfterWrite?: boolean;
 

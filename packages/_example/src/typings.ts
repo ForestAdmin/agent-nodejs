@@ -1,5 +1,41 @@
 /* eslint-disable */
 export type Schema = {
+  'country': {
+    plain: {
+      'country_iso3': string;
+      'country_name': string;
+      'currency_code': string;
+    };
+    nested: {
+      'currency': Schema['currency']['plain'] & Schema['currency']['nested'];
+    };
+    flat: {
+      'currency:code': string;
+      'currency:name': string;
+    };
+  };
+  'currency': {
+    plain: {
+      'code': string;
+      'name': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'exchange_rate': {
+    plain: {
+      'date': string;
+      'currency_code': string;
+      'rate': number;
+    };
+    nested: {
+      'currency': Schema['currency']['plain'] & Schema['currency']['nested'];
+    };
+    flat: {
+      'currency:code': string;
+      'currency:name': string;
+    };
+  };
   'hubspot_contacts': {
     plain: {
       'id': string;
@@ -10,35 +46,10 @@ export type Schema = {
     nested: {};
     flat: {};
   };
-  'typicode_posts': {
-    plain: {
-      'userId': number;
-      'id': number;
-      'title': string;
-      'body': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'typicode_users': {
-    plain: {
-      'id': number;
-      'name': string;
-      'username': string;
-      'email': string;
-      'address': {street: string; suite: string; city: string; zipcode: string; geo: {lat: string; lng: string}};
-      'phone': string;
-      'website': string;
-      'company': {name: string; catchPhrase: string; bs: string};
-    };
-    nested: {};
-    flat: {};
-  };
   'whatever_users': {
     plain: {
       'id': number;
       'name': string;
-      'address@@@city': string;
       'address@@@street': string;
     };
     nested: {};
@@ -56,7 +67,6 @@ export type Schema = {
     flat: {
       'parent:id': number;
       'parent:name': string;
-      'parent:address@@@city': string;
       'parent:address@@@street': string;
     };
   };
