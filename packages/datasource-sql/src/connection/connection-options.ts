@@ -1,5 +1,5 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize, Options as SequelizeOptions } from 'sequelize';
+import { Dialect, Sequelize, Options as SequelizeOptions } from '@sequelize/core';
 
 import { DatabaseConnectError } from './errors';
 import connect from './index';
@@ -61,7 +61,7 @@ export default class ConnectionOptions {
   }
 
   get port(): number {
-    let port = Number(this.uri?.port) || this.sequelizeOptions.port;
+    let port = Number(this.uri?.port) || Number(this.sequelizeOptions.port);
 
     if (!port) {
       // Use default port for known dialects otherwise
@@ -223,7 +223,6 @@ export default class ConnectionOptions {
         break;
 
       case 'db2':
-      case 'oracle':
       case 'snowflake':
       case 'sqlite':
       default:

@@ -1,9 +1,9 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize } from 'sequelize';
+import { ColumnDescription, Dialect, Sequelize } from '@sequelize/core';
 
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
-import { QueryInterfaceExt, SequelizeColumn, SequelizeReference } from './type-overrides';
+import { SequelizeReference } from './type-overrides';
 import { Table } from './types';
 
 export default class Introspector {
@@ -37,11 +37,11 @@ export default class Introspector {
     tableName: string,
   ): Promise<Table> {
     // Load columns descriptions, indexes and references of the current table.
-    const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
+    const queryInterface = sequelize.getQueryInterface();
     const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
       queryInterface.describeTable(tableName),
       queryInterface.showIndex(tableName),
-      queryInterface.getForeignKeyReferencesForTable(tableName),
+      queryInterface.getForeignKeyReferencesForTable(tableName) as Promise<SequelizeReference[]>,
     ]);
 
     // Create columns
@@ -67,7 +67,7 @@ export default class Introspector {
     tableName: string,
     options: {
       name: string;
-      description: SequelizeColumn;
+      description: ColumnDescription;
       references: SequelizeReference[];
     },
   ): Promise<Table['columns'][number]> {

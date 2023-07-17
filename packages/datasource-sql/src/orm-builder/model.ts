@@ -1,6 +1,5 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { ModelAttributes, Sequelize } from 'sequelize';
-import { ModelAttributeColumnOptions } from 'sequelize/types/model';
+import { AttributeOptions, ModelAttributes, Sequelize } from '@sequelize/core';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
 import { Table } from '../introspection/types';
@@ -97,8 +96,7 @@ export default class ModelBuilder {
       primaryKeys = table.columns.map(c => c.name);
     }
 
-    for (const column of primaryKeys)
-      (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
+    for (const column of primaryKeys) (attributes[column] as AttributeOptions).primaryKey = true;
 
     if (primaryKeys.length) {
       logger?.(

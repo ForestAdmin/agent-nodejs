@@ -3,7 +3,7 @@ import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } fro
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';

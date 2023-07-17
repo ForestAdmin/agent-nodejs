@@ -1,4 +1,4 @@
-import { Dialect, literal } from 'sequelize';
+import { Dialect, literal } from '@sequelize/core';
 
 import { ColumnType } from '../types';
 

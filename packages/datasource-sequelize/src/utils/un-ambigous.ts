@@ -1,4 +1,4 @@
-import { ModelDefined } from 'sequelize/types';
+import { ModelDefined } from '@sequelize/core';
 
 export default function unAmbigousField(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

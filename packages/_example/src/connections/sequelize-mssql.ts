@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from '@sequelize/core';
 
 const uri = 'mssql://sa:yourStrong(!)Password@localhost:1433';
 const sequelizeMsSql = new Sequelize(`${uri}/example`, { logging: false });
@@ -70,7 +70,5 @@ const dvdRental = sequelizeMsSql.define(
 
 dvd.belongsToMany(rental, { through: dvdRental });
 rental.belongsToMany(dvd, { through: dvdRental });
-dvdRental.belongsTo(dvd);
-dvdRental.belongsTo(rental);
 
 export default sequelizeMsSql;

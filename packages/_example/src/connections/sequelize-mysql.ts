@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from '@sequelize/core';
 
 const connectionString = 'mysql://example:password@localhost:3306/example';
 const sequelizeMySql = new Sequelize(connectionString, { logging: false });

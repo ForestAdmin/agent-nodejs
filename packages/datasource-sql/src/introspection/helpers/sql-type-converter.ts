@@ -1,6 +1,6 @@
-import { QueryTypes, Sequelize } from 'sequelize';
+import { ColumnDescription, QueryTypes, Sequelize } from '@sequelize/core';
 
-import { SequelizeColumn } from '../type-overrides';
+import { PGQueryInterface } from '../type-overrides';
 import { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
@@ -14,7 +14,7 @@ export default class SqlTypeConverter {
   async convert(
     tableName: string,
     columnName: string,
-    columnInfo: SequelizeColumn,
+    columnInfo: ColumnDescription,
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
@@ -30,11 +30,16 @@ export default class SqlTypeConverter {
   }
 
   /** Get the type of an enum from sequelize column description */
-  private getEnumType(columnInfo: SequelizeColumn): ColumnType {
+  private getEnumType(columnInfo: ColumnDescription): ColumnType {
     if (columnInfo.type === 'USER-DEFINED') {
+      console.log(columnInfo);
+
       // Postgres enum
+      // TODO
+      // @ts-ignore
       return columnInfo?.special?.length > 0
-        ? { type: 'enum', values: columnInfo.special }
+        ? // @ts-ignore
+          { type: 'enum', values: columnInfo.special }
         : // User-defined enum with no values will default to string
           { type: 'scalar', subType: 'STRING' };
     }
@@ -88,9 +93,9 @@ export default class SqlTypeConverter {
     let subType: ColumnType;
 
     if (rawEnumValues !== null) {
-      const queryInterface = this.sequelize.getQueryInterface();
-      const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
-      const enumValues = queryGen.fromArray(rawEnumValues);
+      const queryInterface = this.sequelize.getQueryInterface() as PGQueryInterface;
+
+      const enumValues = queryInterface.fromArray(rawEnumValues);
 
       subType = { type: 'enum', schema, name: udtName, values: enumValues };
     } else {
@@ -141,7 +146,7 @@ export default class SqlTypeConverter {
       case this.typeStartsWith(type, 'SMALLINT'):
       case this.typeStartsWith(type, 'TINYINT'):
       case this.typeStartsWith(type, 'MEDIUMINT'):
-        return 'NUMBER';
+        return 'INTEGER';
       case this.typeStartsWith(type, 'BIGINT'):
         return 'BIGINT';
       case this.typeContains(type, 'FLOAT'):

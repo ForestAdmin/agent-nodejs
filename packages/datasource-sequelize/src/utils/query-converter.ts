@@ -13,25 +13,22 @@ import {
   ModelDefined,
   Op,
   OrderItem,
-  Sequelize,
+  WhereOperators,
   WhereOptions,
-} from 'sequelize';
+  col,
+  fn,
+  where,
+} from '@sequelize/core';
 
 import unAmbigousField from './un-ambigous';
 
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
   private dialect: Dialect;
-  private col: Sequelize['col'];
-  private fn: Sequelize['fn'];
-  private where: Sequelize['where'];
 
   constructor(model: ModelDefined<unknown, unknown>) {
     this.model = model;
     this.dialect = this.model.sequelize.getDialect() as Dialect;
-    this.col = this.model.sequelize.col;
-    this.fn = this.model.sequelize.fn;
-    this.where = this.model.sequelize.where;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,18 +115,21 @@ export default class QueryConverter {
     caseSensitive: boolean,
     not: boolean,
   ): unknown {
-    const op = not ? 'NOT LIKE' : 'LIKE';
     const seqOp = not ? Op.notLike : Op.like;
 
     if (caseSensitive) {
       if (this.dialect === 'sqlite') {
         const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
 
-        return this.where(this.col(field), sqLiteOp, value.replace(/%/g, '*').replace(/_/g, '?'));
+        return where(
+          col(field),
+          sqLiteOp as unknown as keyof WhereOperators,
+          value.replace(/%/g, '*').replace(/_/g, '?'),
+        );
       }
 
       if (this.dialect === 'mysql' || this.dialect === 'mariadb')
-        return this.where(this.fn('BINARY', this.col(field)), op, value);
+        return where(fn('BINARY', [col(field)]), seqOp, value);
 
       return { [seqOp]: value };
     }
@@ -138,7 +138,7 @@ export default class QueryConverter {
     if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
       return { [seqOp]: value };
 
-    return this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
+    return where(fn('LOWER', [col(field)]), seqOp, value.toLocaleLowerCase());
   }
 
   /*

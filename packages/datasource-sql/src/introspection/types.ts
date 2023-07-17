@@ -9,7 +9,7 @@ export type ScalarSubType =
   | 'INET'
   | 'JSON'
   | 'JSONB'
-  | 'NUMBER'
+  | 'INTEGER'
   | 'STRING'
   | 'TIME'
   | 'UUID';

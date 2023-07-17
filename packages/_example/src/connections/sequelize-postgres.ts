@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from '@sequelize/core';
 
 const connectionString = 'postgres://example:password@localhost:5442/example';
 const sequelizePostgres = new Sequelize(connectionString, { logging: false });

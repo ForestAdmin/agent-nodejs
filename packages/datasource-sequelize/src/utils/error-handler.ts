@@ -1,5 +1,5 @@
 import { ValidationError } from '@forestadmin/datasource-toolkit';
-import { ForeignKeyConstraintError, UniqueConstraintError } from 'sequelize';
+import { ForeignKeyConstraintError, UniqueConstraintError } from '@sequelize/core';
 
 type Callback<T> = () => T;
 

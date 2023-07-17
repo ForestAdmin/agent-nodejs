@@ -1,4 +1,4 @@
-import { BaseError as SequelizeError } from 'sequelize';
+import { BaseError as SequelizeError } from '@sequelize/core';
 
 import ConnectionOptions from './connection-options';
 import {

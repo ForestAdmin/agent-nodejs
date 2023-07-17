@@ -26,9 +26,9 @@
     "test": "jest"
   },
   "devDependencies": {
-    "sequelize": "^6.28.0"
+    "@sequelize/core": "7.0.0-alpha.27"
   },
   "peerDependencies": {
-    "sequelize": ">= 6.12.0 < 7"
+    "@sequelize/core": "7.0.0-alpha.27"
   }
 }

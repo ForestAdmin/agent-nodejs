@@ -6,20 +6,20 @@ import {
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 import {
-  AbstractDataType,
   Association,
+  AttributeOptions,
   BelongsTo,
   BelongsToMany,
-  DataTypes,
+  DataTypeInstance,
   HasMany,
   HasOne,
   Model,
   ModelAttributes,
   ModelDefined,
-} from 'sequelize';
+} from '@sequelize/core';
+import { ARRAY, ENUM } from '@sequelize/core/types/dialects/abstract/data-types';
 
 import TypeConverter from './type-converter';
-import { BelongsToManyExt, ModelAttributeColumnOptionsExt } from '../type-overrides';
 
 export default class ModelToCollectionSchemaConverter {
   private static convertAssociation(
@@ -37,7 +37,7 @@ export default class ModelToCollectionSchemaConverter {
       case BelongsToMany.name:
         return {
           foreignCollection: association.target.name,
-          throughCollection: (association as BelongsToManyExt).through.model.name,
+          throughCollection: (association as BelongsToMany).through.model.name,
           originKey: (association as BelongsToMany).foreignKey,
           originKeyTarget: (association as BelongsToMany).sourceKey,
           foreignKey: (association as BelongsToMany).otherKey,
@@ -86,8 +86,8 @@ export default class ModelToCollectionSchemaConverter {
     return schemaAssociations;
   }
 
-  private static convertAttribute(attribute: ModelAttributeColumnOptionsExt): FieldSchema {
-    const sequelizeColumnType = attribute.type as AbstractDataType;
+  private static convertAttribute(attribute: AttributeOptions): FieldSchema {
+    const sequelizeColumnType = attribute.type as DataTypeInstance;
     const columnType = TypeConverter.fromDataType(sequelizeColumnType);
     const filterOperators = TypeConverter.operatorsForColumnType(columnType);
     const column: ColumnSchema = {
@@ -120,10 +120,12 @@ export default class ModelToCollectionSchemaConverter {
     }
 
     if (columnType === 'Enum') {
-      column.enumValues = [...attribute.values];
+      const enumType = attribute.type as ENUM<any>;
+      column.enumValues = [...enumType.options.values];
     } else if (Array.isArray(columnType) && columnType.length === 1 && columnType[0] === 'Enum') {
-      const arrayType = attribute.type as DataTypes.ArrayDataType<DataTypes.EnumDataType<string>>;
-      column.enumValues = [...arrayType.options.type.values];
+      const arrayType = attribute.type as ARRAY<any>;
+      const enumType = arrayType.options.type as ENUM<any>;
+      column.enumValues = [...enumType.options.values];
     }
 
     return column;
@@ -138,7 +140,7 @@ export default class ModelToCollectionSchemaConverter {
 
     Object.entries(attributes).forEach(([name, attribute]) => {
       try {
-        fields[name] = this.convertAttribute(attribute as ModelAttributeColumnOptionsExt);
+        fields[name] = this.convertAttribute(attribute as AttributeOptions);
       } catch (error) {
         logger?.('Warn', `Skipping column '${modelName}.${name}' (${error.message})`);
       }

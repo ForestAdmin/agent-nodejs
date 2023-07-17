@@ -1,5 +1,4 @@
-import { Sequelize } from 'sequelize';
-import { Options as SequelizeOptions } from 'sequelize/types/sequelize';
+import { Sequelize, Options as SequelizeOptions } from '@sequelize/core';
 
 import Service from './services/service';
 

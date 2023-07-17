@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 import ConnectionOptions from './connection-options';
 import testConnectionWithTimeOut from './connection-tester';

@@ -2973,6 +2973,31 @@
     lodash "^4.17.4"
     read-pkg-up "^7.0.0"
 
+"@sequelize/core@7.0.0-alpha.27":
+  version "7.0.0-alpha.27"
+  resolved "https://registry.yarnpkg.com/@sequelize/core/-/core-7.0.0-alpha.27.tgz#054813dfaa97f21d17c0c8add146a7f06b09b2e9"
+  integrity sha512-wtQWkmm2WjUgjxnMHb1oapfPQ2MCcCbC8DkOlSmq+vjNtuB0miKoRseXBwprA7wYwP9N4inNPJ+lwK10uO+bnQ==
+  dependencies:
+    "@types/debug" "^4.1.7"
+    "@types/validator" "^13.7.5"
+    bnf-parser "3.1.4"
+    dayjs "^1.11.5"
+    debug "^4.3.4"
+    dottie "^2.0.2"
+    fast-glob "^3.2.12"
+    inflection "^2.0.0"
+    lodash "^4.17.21"
+    pg-connection-string "^2.5.0"
+    pg-hstore "^2.3.4"
+    retry-as-promised "^7.0.3"
+    semver "^7.3.7"
+    sequelize-pool "^8.0.0"
+    toposort-class "^1.0.1"
+    type-fest "^3.0.0"
+    uuid "^9.0.0"
+    validator "^13.7.0"
+    wkx "^0.5.0"
+
 "@shopify/jest-koa-mocks@^3.1.0":
   version "3.1.5"
   resolved "https://registry.yarnpkg.com/@shopify/jest-koa-mocks/-/jest-koa-mocks-3.1.5.tgz#11f77ccfbcaf35cf5ee2c6108a286e61e6bea084"
@@ -3453,7 +3478,7 @@
   resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-9.0.2.tgz#ede1d1b1e451548d44919dc226253e32a6952c4b"
   integrity sha512-kNnC1GFBLuhImSnV7w4njQkUiJi0ZXUycu1rUaouPqiKlXkh77JKgdRnTAp1x5eBwcIwbtI+3otwzuIDEuDoxQ==
 
-"@types/validator@^13.7.1":
+"@types/validator@^13.7.5":
   version "13.7.17"
   resolved "https://registry.yarnpkg.com/@types/validator/-/validator-13.7.17.tgz#0a6d1510395065171e3378a4afc587a3aefa7cc1"
   integrity sha512-aqayTNmeWrZcvnG2MG9eGYI6b7S5fl+yKgPs6bAjOTwPS316R5SxBGKvtSExfyoJU7pIeHJfsHI0Ji41RVMkvQ==
@@ -4129,6 +4154,11 @@ blork@^9.3.0:
   version "9.3.0"
   resolved "https://registry.yarnpkg.com/blork/-/blork-9.3.0.tgz#6c0b4fbb6b754998ae5460c26463d95c635e4a35"
   integrity sha512-9naBrHS2bwCQeGqGR9ptcoll6utsox9jtk1E0SwOAFa4RCV/IQHoBJARdi8AhHQTPPoWkjixMrzHvQKAV5Fx2A==
+
+bnf-parser@3.1.4:
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/bnf-parser/-/bnf-parser-3.1.4.tgz#98710c8bb90e275b431e2e1625dee5b51ab895c0"
+  integrity sha512-4UCFYI4QIcGcVMCmUvC9W4KC1cTAd3zVxrP2b35LD43Lf5WI+0vE2TFIrUD6otfqO7swTAxTb7ju+YladRI91A==
 
 body-parser@1.20.1:
   version "1.20.1"
@@ -5052,6 +5082,11 @@ dateformat@^3.0.0:
   resolved "https://registry.yarnpkg.com/dateformat/-/dateformat-3.0.3.tgz#a6e37499a4d9a9cf85ef5872044d62901c9889ae"
   integrity sha512-jyCETtSl3VMZMWeRo7iY1FL19ges1t55hMo5yaam4Jrsm5EPL89UQkoQRyiI+Yf4k8r2ZpdngkV8hr1lIdjb3Q==
 
+dayjs@^1.11.5:
+  version "1.11.9"
+  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.9.tgz#9ca491933fadd0a60a2c19f6c237c03517d71d1a"
+  integrity sha512-QvzAURSbQ0pKdIye2txOzNaHmxtUBXerpY0FJsFXUMKbIZeFm5ht1LS/jFsrncjnmtv8HsG0W2g6c0zUjZWmpA==
+
 debug@2.6.9:
   version "2.6.9"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
@@ -5905,6 +5940,17 @@ fast-glob@^3.1.1, fast-glob@^3.2.9:
   version "3.2.12"
   resolved "https://registry.yarnpkg.com/fast-glob/-/fast-glob-3.2.12.tgz#7f39ec99c2e6ab030337142da9e0c18f37afae80"
   integrity sha512-DVj4CQIYYow0BlaelwK1pHl5n5cRSJfM60UA0zK891sVInoPri2Ekj7+e1CT3/3qxXenpI+nBBmQAcJPJgaj4w==
+  dependencies:
+    "@nodelib/fs.stat" "^2.0.2"
+    "@nodelib/fs.walk" "^1.2.3"
+    glob-parent "^5.1.2"
+    merge2 "^1.3.0"
+    micromatch "^4.0.4"
+
+fast-glob@^3.2.12:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/fast-glob/-/fast-glob-3.3.0.tgz#7c40cb491e1e2ed5664749e87bfb516dbe8727c0"
+  integrity sha512-ChDuvbOypPuNjO8yIDf36x7BlZX1smcUMTTcyoIjycexOxd6DFsKsg21qVBzEmr3G7fUKIRy2/psii+CIUt7FA==
   dependencies:
     "@nodelib/fs.stat" "^2.0.2"
     "@nodelib/fs.walk" "^1.2.3"
@@ -7035,10 +7081,10 @@ inflation@^2.0.0:
   resolved "https://registry.yarnpkg.com/inflation/-/inflation-2.0.0.tgz#8b417e47c28f925a45133d914ca1fd389107f30f"
   integrity sha512-m3xv4hJYR2oXw4o4Y5l6P5P16WYmazYof+el6Al3f+YlggGj6qT9kImBAnzDelRALnP5d3h4jGBPKzYCizjZZw==
 
-inflection@^1.13.2:
-  version "1.13.4"
-  resolved "https://registry.yarnpkg.com/inflection/-/inflection-1.13.4.tgz#65aa696c4e2da6225b148d7a154c449366633a32"
-  integrity sha512-6I/HUDeYFfuNCVS3td055BaXBwKYuzw7K3ExVMStBowKo9oOAMJIXIHvdyR3iboTCp1b+1i5DSkIZTcwIktuDw==
+inflection@^2.0.0:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/inflection/-/inflection-2.0.1.tgz#bdf3a4c05d4275f41234910cbbe9a102ac72c99b"
+  integrity sha512-wzkZHqpb4eGrOKBl34xy3umnYHx8Si5R1U4fwmdxLo5gdH6mEK8gclckTj/qWqy4Je0bsDYe/qazZYuO7xe3XQ==
 
 inflight@^1.0.4:
   version "1.0.6"
@@ -9345,18 +9391,6 @@ modify-values@^1.0.0:
   resolved "https://registry.yarnpkg.com/modify-values/-/modify-values-1.0.1.tgz#b3939fa605546474e3e3e3c63d64bd43b4ee6022"
   integrity sha512-xV2bxeN6F7oYjZWTe/YPAy6MN2M+sL4u/Rlm2AHCIVGfo2p1yGmBHQ6vHehl4bRTZBdHu3TSkWdYgkwpYzAGSw==
 
-moment-timezone@^0.5.35:
-  version "0.5.43"
-  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.5.43.tgz#3dd7f3d0c67f78c23cd1906b9b2137a09b3c4790"
-  integrity sha512-72j3aNyuIsDxdF1i7CEgV2FfxM1r6aaqJyLB2vwb33mXYyoyLly+F1zbWqhA3/bVIoJ4szlUoMbUnVdid32NUQ==
-  dependencies:
-    moment "^2.29.4"
-
-moment@^2.29.1, moment@^2.29.4:
-  version "2.29.4"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.4.tgz#3dbe052889fe7c1b2ed966fcb3a77328964ef108"
-  integrity sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==
-
 mongodb-connection-string-url@^2.6.0:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/mongodb-connection-string-url/-/mongodb-connection-string-url-2.6.0.tgz#57901bf352372abdde812c81be47b75c6b2ec5cf"
@@ -10652,6 +10686,13 @@ pg-connection-string@^2.5.0, pg-connection-string@^2.6.0:
   resolved "https://registry.yarnpkg.com/pg-connection-string/-/pg-connection-string-2.6.0.tgz#12a36cc4627df19c25cc1b9b736cc39ee1f73ae8"
   integrity sha512-x14ibktcwlHKoHxx9X3uTVW9zIGR41ZB6QNhHb21OPNdCCO3NaRnpJuwKIQSR4u+Yqjx4HCvy7Hh7VSy1U4dGg==
 
+pg-hstore@^2.3.4:
+  version "2.3.4"
+  resolved "https://registry.yarnpkg.com/pg-hstore/-/pg-hstore-2.3.4.tgz#4425e3e2a3e15d2a334c35581186c27cf2e9b8dd"
+  integrity sha512-N3SGs/Rf+xA1M2/n0JBiXFDVMzdekwLZLAO0g7mpDY9ouX+fDI7jS6kTq3JujmYbtNSJ53TJ0q4G98KVZSM4EA==
+  dependencies:
+    underscore "^1.13.1"
+
 pg-int8@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/pg-int8/-/pg-int8-1.0.1.tgz#943bd463bf5b71b4170115f80f8efc9a0c0eb78c"
@@ -11689,32 +11730,10 @@ seq-queue@^0.0.5:
   resolved "https://registry.yarnpkg.com/seq-queue/-/seq-queue-0.0.5.tgz#d56812e1c017a6e4e7c3e3a37a1da6d78dd3c93e"
   integrity sha512-hr3Wtp/GZIc/6DAGPDcV4/9WoZhjrkXsi5B/07QgX8tsdc6ilr7BFM6PM6rbdAX1kFSDYeZGLipIZZKyQP0O5Q==
 
-sequelize-pool@^7.1.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/sequelize-pool/-/sequelize-pool-7.1.0.tgz#210b391af4002762f823188fd6ecfc7413020768"
-  integrity sha512-G9c0qlIWQSK29pR/5U2JF5dDQeqqHRragoyahj/Nx4KOOQ3CPPfzxnfqFPCSB7x5UgjOgnZ61nSxz+fjDpRlJg==
-
-sequelize@^6.28.0:
-  version "6.32.0"
-  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.32.0.tgz#566488aa0fcf32c1baa2ff2344f462a4c9eb4a01"
-  integrity sha512-gMd1M6kPANyrCeU/vtgEP5gnse7sVsiKbJyz7p4huuW8zZcRopj47UlglvdrMuIoqksZmsUPfApmMo6ZlJpcvg==
-  dependencies:
-    "@types/debug" "^4.1.7"
-    "@types/validator" "^13.7.1"
-    debug "^4.3.3"
-    dottie "^2.0.2"
-    inflection "^1.13.2"
-    lodash "^4.17.21"
-    moment "^2.29.1"
-    moment-timezone "^0.5.35"
-    pg-connection-string "^2.5.0"
-    retry-as-promised "^7.0.3"
-    semver "^7.3.5"
-    sequelize-pool "^7.1.0"
-    toposort-class "^1.0.1"
-    uuid "^8.3.2"
-    validator "^13.7.0"
-    wkx "^0.5.0"
+sequelize-pool@^8.0.0:
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/sequelize-pool/-/sequelize-pool-8.0.0.tgz#4bd3a62b9ab8ec336190e2cbce81aa769d7365ee"
+  integrity sha512-xY04c5ctp6lKE4ZoSVo7YJHN5FHVhoYMoH2Z8jWIJG26c9kJSkIjql5HgD9XG5cwJbYMF0Ko2Fhgws20HC90Ug==
 
 serve-static@1.15.0:
   version "1.15.0"
@@ -12753,6 +12772,11 @@ undefsafe@^2.0.5:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/undefsafe/-/undefsafe-2.0.5.tgz#38733b9327bdcd226db889fb723a6efd162e6e2c"
   integrity sha512-WxONCrssBM8TSPRqN5EmsjVrsv4A8X12J4ArBiiayv3DyyG3ZlIg6yysuuSYdZsVz3TKcTg2fd//Ujd4CHV1iA==
+
+underscore@^1.13.1:
+  version "1.13.6"
+  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.13.6.tgz#04786a1f589dc6c09f761fc5f45b89e935136441"
+  integrity sha512-+A5Sja4HP1M08MaXya7p5LvjuM7K6q/2EaC0+iovj/wOcMsTzMvDFbasi/oSapiwOlt252IqsKqPjCl7huKS0A==
 
 unified@^9.0.0:
   version "9.2.2"

@@ -1,4 +1,4 @@
-import { Options } from 'sequelize/types';
+import { Options } from '@sequelize/core';
 import { ConnectConfig } from 'ssh2';
 
 type SupportedSequelizeOptions = Pick<

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 import RelationExtractor from './helpers/relation-extractor';
 import RelationNameGenerator from './helpers/relation-name-generator';

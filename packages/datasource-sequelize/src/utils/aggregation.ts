@@ -1,14 +1,14 @@
 import { AggregateResult, Aggregation, ValidationError } from '@forestadmin/datasource-toolkit';
 import {
   Dialect,
+  Fn,
   GroupOption,
   Model,
   ModelDefined,
   OrderItem,
   ProjectionAlias,
-  Sequelize,
-} from 'sequelize';
-import { Fn } from 'sequelize/types/utils';
+  col,
+} from '@sequelize/core';
 
 import DateAggregationConverter from './date-aggregation-converter';
 import Serializer from './serializer';
@@ -18,7 +18,6 @@ export default class AggregationUtils {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private model: ModelDefined<any, any>;
   private dialect: Dialect;
-  private col: Sequelize['col'];
 
   private dateAggregationConverter: DateAggregationConverter;
 
@@ -28,7 +27,6 @@ export default class AggregationUtils {
   constructor(model: ModelDefined<any, any>) {
     this.model = model;
     this.dialect = this.model.sequelize.getDialect() as Dialect;
-    this.col = this.model.sequelize.col;
 
     this.dateAggregationConverter = new DateAggregationConverter(this.model.sequelize);
   }
@@ -70,7 +68,7 @@ export default class AggregationUtils {
         return this.dialect === 'mssql' ? groupFunction : groupFieldName;
       }
 
-      attributes.push([this.col(groupField), groupFieldName]);
+      attributes.push([col(groupField), groupFieldName]);
 
       return this.dialect === 'mssql' ? groupField : groupFieldName;
     });
@@ -84,13 +82,13 @@ export default class AggregationUtils {
     // FIXME handle properly order
     switch (this.dialect) {
       case 'postgres':
-        order = [this.col(this.aggregateFieldName), 'DESC NULLS LAST'];
+        order = [col(this.aggregateFieldName), 'DESC NULLS LAST'];
         break;
       case 'mssql':
         order = [aggregationFunction, 'DESC'];
         break;
       default:
-        order = [this.col(this.aggregateFieldName), 'DESC'];
+        order = [col(this.aggregateFieldName), 'DESC'];
     }
 
     return order;
