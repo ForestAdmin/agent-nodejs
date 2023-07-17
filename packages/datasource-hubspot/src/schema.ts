@@ -1,4 +1,4 @@
-import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
+import { CollectionReplicaSchema, ColumnType } from '@forestadmin/datasource-replica';
 import { Client } from '@hubspot/api-client';
 
 import { HubSpotOptions } from './types';
@@ -7,8 +7,8 @@ async function getCollectionSchema(
   client: Client,
   collectionName: string,
   fields: string[],
-): Promise<CachedCollectionSchema> {
-  const collection: CachedCollectionSchema = {
+): Promise<CollectionReplicaSchema> {
+  const collection: CollectionReplicaSchema = {
     name: collectionName,
     fields: {
       id: { type: 'String', isPrimaryKey: true },

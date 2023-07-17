@@ -43,7 +43,7 @@ export type LeafField = {
 
 export type Field = ArrayField | ObjectField | LeafField;
 
-export type CachedCollectionSchema = {
+export type CollectionReplicaSchema = {
   name: string;
   fields: Record<string, Field>;
 };
@@ -111,7 +111,7 @@ export type FlattenOptions = {
   };
 };
 
-export type CachedDataSourceOptions = {
+export type ReplicaDataSourceOptions = {
   /** URL of the cache database (default to in-memory sqlite) */
   cacheInto?: ConnectionOptions;
 
@@ -125,7 +125,7 @@ export type CachedDataSourceOptions = {
   cacheNamespace?: string;
 
   /** Schema options */
-  schema?: ValueOrPromiseOrFactory<CachedCollectionSchema[]>;
+  schema?: ValueOrPromiseOrFactory<CollectionReplicaSchema[]>;
   flattenMode?: 'auto' | 'manual' | 'none';
   flattenOptions?: ValueOrPromiseOrFactory<FlattenOptions>;
 
@@ -162,7 +162,7 @@ export type CachedDataSourceOptions = {
 };
 
 export type ResolvedOptions = Pick<
-  CachedDataSourceOptions,
+  ReplicaDataSourceOptions,
   | 'cacheInto'
   | 'cacheNamespace'
   | 'createRecord'
@@ -171,8 +171,8 @@ export type ResolvedOptions = Pick<
   | 'pullDeltaOnBeforeAccess'
   | 'pullDeltaOnAfterWrite'
 > & {
-  schema?: CachedCollectionSchema[];
-  flattenSchema?: CachedCollectionSchema[];
+  schema?: CollectionReplicaSchema[];
+  flattenSchema?: CollectionReplicaSchema[];
   flattenOptions?: { [modelName: string]: { asModels?: string[]; asFields?: string[] } };
   logger: Logger;
   source: SynchronizationSource;

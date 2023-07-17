@@ -1,4 +1,4 @@
-import { PullDeltaRequest, PullDeltaResponse } from '@forestadmin/datasource-cached';
+import { PullDeltaRequest, PullDeltaResponse } from '@forestadmin/datasource-replica';
 import { Client } from '@hubspot/api-client';
 
 import { HubSpotOptions } from './types';

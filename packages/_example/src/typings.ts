@@ -1,5 +1,25 @@
 /* eslint-disable */
 export type Schema = {
+  'albums': {
+    plain: {
+      'userId': number;
+      'id': number;
+      'title': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'comments': {
+    plain: {
+      'postId': number;
+      'id': number;
+      'name': string;
+      'email': string;
+      'body': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'country': {
     plain: {
       'country_iso3': string;
@@ -46,28 +66,39 @@ export type Schema = {
     nested: {};
     flat: {};
   };
-  'whatever_users': {
+  'photos': {
     plain: {
+      'albumId': number;
       'id': number;
-      'name': string;
-      'address@@@street': string;
+      'title': string;
+      'url': string;
+      'thumbnailUrl': string;
     };
     nested: {};
     flat: {};
   };
-  'whatever_users_address_zipCodes': {
+  'posts': {
     plain: {
-      'value': number;
-      '_fid': string;
-      '_fpid': number;
+      'userId': number;
+      'id': number;
+      'title': string;
+      'body': string;
     };
-    nested: {
-      'parent': Schema['whatever_users']['plain'] & Schema['whatever_users']['nested'];
+    nested: {};
+    flat: {};
+  };
+  'users': {
+    plain: {
+      'id': number;
+      'name': string;
+      'username': string;
+      'email': string;
+      'address': {street: string; suite: string; city: string; zipcode: string; geo: {lat: string; lng: string}};
+      'phone': string;
+      'website': string;
+      'company': {name: string; catchPhrase: string; bs: string};
     };
-    flat: {
-      'parent:id': number;
-      'parent:name': string;
-      'parent:address@@@street': string;
-    };
+    nested: {};
+    flat: {};
   };
 };

@@ -2,10 +2,10 @@
 import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import SchemaCollectionDecorator from './collection';
-import { CachedCollectionSchema, ResolvedOptions } from '../../types';
+import { CollectionReplicaSchema, ResolvedOptions } from '../../types';
 
 export default class SchemaDataSourceDecorator extends DataSourceDecorator<SchemaCollectionDecorator> {
-  private readonly flatSchema: CachedCollectionSchema[];
+  private readonly flatSchema: CollectionReplicaSchema[];
 
   constructor(childDataSource: DataSource, options: ResolvedOptions) {
     super(childDataSource, SchemaCollectionDecorator);
@@ -13,7 +13,7 @@ export default class SchemaDataSourceDecorator extends DataSourceDecorator<Schem
     this.flatSchema = options.flattenSchema;
   }
 
-  getFields(name: string): CachedCollectionSchema['fields'] {
+  getFields(name: string): CollectionReplicaSchema['fields'] {
     return this.flatSchema.find(c => c.name === name).fields;
   }
 }

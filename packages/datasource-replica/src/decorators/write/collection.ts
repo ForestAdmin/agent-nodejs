@@ -8,7 +8,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import WriteDataSourceDecorator from './data-source';
-import { CachedDataSourceOptions } from '../../types';
+import { ReplicaDataSourceOptions } from '../../types';
 
 export default class WriteCollectionDecorator extends CollectionDecorator {
   override dataSource: WriteDataSourceDecorator;
@@ -75,7 +75,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
     return super.delete(caller, filter);
   }
 
-  private get options(): CachedDataSourceOptions {
-    return this.dataSource.options as CachedDataSourceOptions;
+  private get options(): ReplicaDataSourceOptions {
+    return this.dataSource.options as ReplicaDataSourceOptions;
   }
 }

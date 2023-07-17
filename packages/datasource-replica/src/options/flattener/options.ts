@@ -3,9 +3,9 @@
 ///
 
 import {
-  CachedCollectionSchema,
-  CachedDataSourceOptions,
+  CollectionReplicaSchema,
   Field,
+  ReplicaDataSourceOptions,
   ResolvedOptions,
   isLeafField,
 } from '../../types';
@@ -59,7 +59,7 @@ function getAutoFlattenHelper(field: Field, distance: number): ModelFlattenOptio
   return options;
 }
 
-function getAutoFlattenOptions(schema: CachedCollectionSchema[]): ResolvedFlattenOptions {
+function getAutoFlattenOptions(schema: CollectionReplicaSchema[]): ResolvedFlattenOptions {
   return Object.fromEntries(
     schema.map(({ name, fields }) => {
       const { asFields, asModels } = getAutoFlattenHelper(fields, 0);
@@ -72,8 +72,8 @@ function getAutoFlattenOptions(schema: CachedCollectionSchema[]): ResolvedFlatte
 }
 
 async function getManualFlattenOptions(
-  schema: CachedCollectionSchema[],
-  rawOptions: CachedDataSourceOptions,
+  schema: CollectionReplicaSchema[],
+  rawOptions: ReplicaDataSourceOptions,
 ): Promise<ResolvedFlattenOptions> {
   const rawFlattenOptions = await resolveValueOrPromiseOrFactory(rawOptions.flattenOptions);
   const result: ResolvedFlattenOptions = {};
@@ -115,8 +115,8 @@ async function getManualFlattenOptions(
 }
 
 export default async function computeFlattenOptions(
-  schema: CachedCollectionSchema[],
-  rawOptions: CachedDataSourceOptions,
+  schema: CollectionReplicaSchema[],
+  rawOptions: ReplicaDataSourceOptions,
 ): Promise<ResolvedFlattenOptions> {
   if (rawOptions.flattenMode === 'none') return {};
   if (rawOptions.flattenMode === 'auto') return getAutoFlattenOptions(schema);

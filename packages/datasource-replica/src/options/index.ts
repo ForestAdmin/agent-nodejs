@@ -7,19 +7,19 @@ import { buildSchema, getSchema } from './schema';
 import AnalysisPassThough from '../synchronization/analysis-passthrough';
 import CustomerSource from '../synchronization/customer-source';
 import {
-  CachedCollectionSchema,
-  CachedDataSourceOptions,
+  CollectionReplicaSchema,
+  ReplicaDataSourceOptions,
   ResolvedOptions,
   SynchronizationSource,
 } from '../types';
 
 export default async function resolveOptions(
-  options: CachedDataSourceOptions,
+  options: ReplicaDataSourceOptions,
   logger: Logger,
   connection: Sequelize,
 ): Promise<ResolvedOptions> {
   let source: SynchronizationSource = new CustomerSource(connection, options);
-  let resolvedSchema: CachedCollectionSchema[] = await getSchema(options, connection);
+  let resolvedSchema: CollectionReplicaSchema[] = await getSchema(options, connection);
 
   if (!resolvedSchema) {
     const passThrough = new AnalysisPassThough(connection, source, options.cacheNamespace);

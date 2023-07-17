@@ -1,5 +1,5 @@
 /* eslint-disable no-underscore-dangle */
-import type { CachedCollectionSchema } from './types';
+import type { CollectionReplicaSchema } from './types';
 import type { RecordData } from '@forestadmin/datasource-toolkit';
 
 export function escape(strings: TemplateStringsArray, ...exps: unknown[]): string {
@@ -21,7 +21,10 @@ export function extractValue(record: RecordData, path: string, remove: boolean) 
   return value;
 }
 
-export function getRecordId(fields: CachedCollectionSchema['fields'], record: RecordData): unknown {
+export function getRecordId(
+  fields: CollectionReplicaSchema['fields'],
+  record: RecordData,
+): unknown {
   if (record._fid) return record._fid;
 
   const pks = Object.entries(fields)

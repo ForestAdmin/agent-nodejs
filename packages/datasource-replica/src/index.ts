@@ -9,9 +9,9 @@ import WriteDataSourceDecorator from './decorators/write/data-source';
 import resolveOptions from './options';
 import { createModels, createSequelize } from './sequelize';
 import CacheTarget from './synchronization/cache-target';
-import { CachedDataSourceOptions } from './types';
+import { ReplicaDataSourceOptions } from './types';
 
-function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSourceFactory {
+function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSourceFactory {
   // Default options
   rawOptions.cacheInto ??= 'sqlite::memory:';
   rawOptions.cacheNamespace ??= 'forest';
@@ -48,4 +48,4 @@ function createCachedDataSource(rawOptions: CachedDataSourceOptions): DataSource
 
 export { ColumnType } from '@forestadmin/datasource-toolkit';
 export * from './types';
-export { createCachedDataSource };
+export { createReplicaDataSource };
