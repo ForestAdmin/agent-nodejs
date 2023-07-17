@@ -29,9 +29,10 @@ export default async function getFieldsPropertiesByCollections(
   const promises = collections.map(async collectionName => {
     try {
       if (collectionName === HUBSPOT_CUSTOM_COLLECTION) {
-        // todo: get all the custom collections
-        //  await client.crm.schemas.coreApi.getAll(false);
-        // [flo: [{}], alban: [{}]]
+        const customCollections = await client.crm.schemas.coreApi.getAll(false);
+        customCollections.results.forEach(collection => {
+          fieldsByCollection[collection.labels.singular] = collection.properties;
+        });
       } else {
         const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
         fieldsByCollection[collectionName] = fields;
