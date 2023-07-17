@@ -1,4 +1,4 @@
-import { Dialect } from 'sequelize';
+import { Dialect } from '@sequelize/core';
 
 import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';

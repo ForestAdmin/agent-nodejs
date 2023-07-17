@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CollectionSchema } from '@forestadmin/datasource-toolkit';
-import { Association, DataTypes, ModelDefined, Sequelize } from 'sequelize';
+import { Association, DataTypes, ModelDefined, Sequelize } from '@sequelize/core';
 
 import ModelToCollectionSchemaConverter from '../../src/utils/model-to-collection-schema-converter';
 import TypeConverter from '../../src/utils/type-converter';

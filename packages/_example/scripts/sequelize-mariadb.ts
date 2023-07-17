@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from '@sequelize/core';
 
 const uri = 'mariadb://example:password@localhost:3808/example';
 const sequelize = new Sequelize(uri, { logging: false });

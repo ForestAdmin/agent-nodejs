@@ -9,7 +9,7 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
+import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from '@sequelize/core';
 
 import { SequelizeCollection } from '../src';
 
@@ -279,7 +279,7 @@ describe('SequelizeDataSource > Collection', () => {
 
       const model = sequelize.define('model', {
         __field__: {
-          type: DataTypes.NUMBER,
+          type: DataTypes.INTEGER,
           field: '__field__',
         },
         __group_field__: {

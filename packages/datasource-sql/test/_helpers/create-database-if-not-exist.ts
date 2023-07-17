@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 export default async function createDatabaseIfNotExist(baseUri: string, database: string) {
   const sequelize = new Sequelize(baseUri, { logging: false });

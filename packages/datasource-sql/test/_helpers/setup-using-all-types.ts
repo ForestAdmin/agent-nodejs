@@ -1,5 +1,4 @@
-import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
-import { Literal } from 'sequelize/types/utils';
+import { DataTypes, Dialect, Literal, Sequelize, literal } from '@sequelize/core';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
   switch (dialect) {
@@ -20,7 +19,7 @@ export function getAttributeMapping(dialect: Dialect) {
   return {
     primitiveT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
@@ -36,7 +35,7 @@ export function getAttributeMapping(dialect: Dialect) {
         defaultValue: true,
       },
       int: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: true,
         defaultValue: 2,
       },
@@ -53,7 +52,7 @@ export function getAttributeMapping(dialect: Dialect) {
     },
     timeStmpT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
@@ -71,7 +70,7 @@ export function getAttributeMapping(dialect: Dialect) {
     },
     paranoidT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
@@ -93,7 +92,7 @@ export function getAttributeMapping(dialect: Dialect) {
     },
     enumT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
@@ -106,7 +105,7 @@ export function getAttributeMapping(dialect: Dialect) {
     },
     jsonT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
@@ -119,7 +118,7 @@ export function getAttributeMapping(dialect: Dialect) {
     },
     jsonBT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
@@ -132,13 +131,13 @@ export function getAttributeMapping(dialect: Dialect) {
     },
     arrayT: {
       id: {
-        type: DataTypes.NUMBER(),
+        type: DataTypes.INTEGER(),
         allowNull: false,
         primaryKey: true,
         autoIncrement: true,
       },
       arrayInt: {
-        type: DataTypes.ARRAY(DataTypes.NUMBER),
+        type: DataTypes.ARRAY(DataTypes.INTEGER),
         allowNull: true,
       },
       arrayString: {

@@ -1,9 +1,8 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { ColumnDescription, DataTypes, Sequelize } from '@sequelize/core';
 
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import { SequelizeColumn } from '../../../src/introspection/type-overrides';
 
-const makeColumnDescription = (description: Partial<SequelizeColumn>) => {
+const makeColumnDescription = (description: Partial<ColumnDescription>) => {
   return {
     type: 'THIS-SHOULD-NEVER-MATCH',
     allowNull: false,
@@ -15,11 +14,11 @@ const makeColumnDescription = (description: Partial<SequelizeColumn>) => {
   };
 };
 
-const makeColumnDescriptionForType = (type: string): SequelizeColumn => {
+const makeColumnDescriptionForType = (type: string): ColumnDescription => {
   return makeColumnDescription({ type });
 };
 
-const makeColumnDescriptionForEnum = (enumValues: Array<string>): SequelizeColumn => {
+const makeColumnDescriptionForEnum = (enumValues: Array<string>): ColumnDescription => {
   return makeColumnDescription({ type: 'USER-DEFINED', special: enumValues });
 };
 
@@ -48,12 +47,12 @@ describe('SqlTypeConverter', () => {
       ['UNIQUEIDENTIFIER', DataTypes.UUID, 'UUID'],
       ['UUID', DataTypes.UUID, 'UUID'],
       ['JSONB', DataTypes.JSONB, 'JSONB'],
-      ['INTEGER', DataTypes.NUMBER, 'NUMBER'],
-      ['SERIAL', DataTypes.NUMBER, 'NUMBER'],
-      ['INT8', DataTypes.NUMBER, 'NUMBER'],
-      ['SMALLINT4', DataTypes.NUMBER, 'NUMBER'],
-      ['TINYINT2', DataTypes.NUMBER, 'NUMBER'],
-      ['MEDIUMINT4', DataTypes.NUMBER, 'NUMBER'],
+      ['INTEGER', DataTypes.INTEGER, 'NUMBER'],
+      ['SERIAL', DataTypes.INTEGER, 'NUMBER'],
+      ['INT8', DataTypes.INTEGER, 'NUMBER'],
+      ['SMALLINT4', DataTypes.INTEGER, 'NUMBER'],
+      ['TINYINT2', DataTypes.INTEGER, 'NUMBER'],
+      ['MEDIUMINT4', DataTypes.INTEGER, 'NUMBER'],
       ['BIGINT4', DataTypes.BIGINT, 'BIGINT'],
       ['FLOAT8', DataTypes.FLOAT, 'FLOAT'],
       ['NUMERIC', DataTypes.DOUBLE, 'DOUBLE'],

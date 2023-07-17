@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 import { buildSequelizeInstance, createSqlDataSource, preprocessOptions } from '../src';
 

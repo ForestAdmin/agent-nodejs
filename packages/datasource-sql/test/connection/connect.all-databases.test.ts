@@ -1,6 +1,6 @@
+import { Dialect } from '@sequelize/core';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { Dialect } from 'sequelize';
 
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';

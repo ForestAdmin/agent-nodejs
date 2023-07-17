@@ -1,6 +1,6 @@
+import { Sequelize } from '@sequelize/core';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { Sequelize } from 'sequelize';
 
 import { DatabaseConnectError, SshConnectError } from '../../src';
 import connect from '../../src/connection';

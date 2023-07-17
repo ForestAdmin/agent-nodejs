@@ -1,4 +1,4 @@
-import { ConnectionError } from 'sequelize';
+import { ConnectionError } from '@sequelize/core';
 
 import { ProxyConnectError, SshConnectError } from '../../dist';
 import { ProxyForwardError, SshForwardError } from '../../src';

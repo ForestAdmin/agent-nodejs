@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from '@sequelize/core';
 
 import AggregationUtils from '../../src/utils/aggregation';
 

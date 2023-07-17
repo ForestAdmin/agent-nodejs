@@ -1,5 +1,5 @@
 import { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
-import { DataTypes } from 'sequelize';
+import { DataTypes } from '@sequelize/core';
 
 import TypeConverter from '../../src/utils/type-converter';
 

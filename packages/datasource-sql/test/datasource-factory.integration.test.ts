@@ -1,4 +1,4 @@
-import { Dialect, Sequelize } from 'sequelize';
+import { Dialect, Sequelize } from '@sequelize/core';
 
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
 import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';

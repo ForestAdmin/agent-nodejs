@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 import { ColumnType, Table } from '../../src/introspection/types';
 import ModelBuilder from '../../src/orm-builder/model';

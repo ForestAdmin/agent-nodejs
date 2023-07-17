@@ -7,7 +7,7 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes, Dialect, Op, Sequelize } from 'sequelize';
+import { DataTypes, Dialect, Op, Sequelize } from '@sequelize/core';
 
 import QueryConverter from '../../src/utils/query-converter';
 

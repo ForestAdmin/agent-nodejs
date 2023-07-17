@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 import testConnectionWithTimeOut from '../../src/connection/connection-tester';
 import { DatabaseConnectError } from '../../src/connection/errors';

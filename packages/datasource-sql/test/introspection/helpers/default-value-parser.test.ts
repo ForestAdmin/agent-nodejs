@@ -1,4 +1,4 @@
-import { literal } from 'sequelize';
+import { literal } from '@sequelize/core';
 
 import DefaultValueParser from '../../../src/introspection/helpers/default-value-parser';
 
@@ -59,7 +59,7 @@ describe('DefaultValueParser', () => {
         const defaultValueParser = new DefaultValueParser('postgres');
         const defaultValue = defaultValueParser.parse([1, 2], {
           type: 'array',
-          subType: { type: 'scalar', subType: 'NUMBER' },
+          subType: { type: 'scalar', subType: 'INTEGER' },
         });
 
         expect(defaultValue).toBeUndefined();
@@ -134,7 +134,7 @@ describe('DefaultValueParser', () => {
             const defaultValueParser = new DefaultValueParser('postgres');
             const defaultValue = defaultValueParser.parse(expression, {
               type: 'scalar',
-              subType: subType as 'NUMBER',
+              subType: subType as 'INTEGER',
             });
 
             expect(defaultValue).toBe(expectedDefaultValue);
@@ -152,7 +152,7 @@ describe('DefaultValueParser', () => {
           const defaultValueParser = new DefaultValueParser('postgres');
           const defaultValue = defaultValueParser.parse(expression, {
             type: 'scalar',
-            subType: dataType as 'NUMBER',
+            subType: dataType as 'INTEGER',
           });
 
           expect(defaultValue).toBe(expression);
@@ -165,7 +165,7 @@ describe('DefaultValueParser', () => {
           const expression = 'a NaN expression';
           const defaultValue = defaultValueParser.parse(expression, {
             type: 'scalar',
-            subType: 'NUMBER',
+            subType: 'INTEGER',
           });
 
           expect(defaultValue).toStrictEqual(literal(expression));

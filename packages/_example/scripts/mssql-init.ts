@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize } from '@sequelize/core';
 
 export default async function initMsSql(): Promise<void> {
   const uri = 'mssql://sa:yourStrong(!)Password@localhost:1433';

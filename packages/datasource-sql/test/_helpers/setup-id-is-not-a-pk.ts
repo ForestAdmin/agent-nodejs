@@ -1,4 +1,4 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize } from '@sequelize/core';
 
 export default async (baseUri: string, database: string): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;

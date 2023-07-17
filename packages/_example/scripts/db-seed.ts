@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 import { faker } from '@faker-js/faker';
+import { Sequelize } from '@sequelize/core';
 import { Connection } from 'mongoose';
-import { Sequelize } from 'sequelize';
 
 import initMsSql from './mssql-init';
 import sequelizeMariaDb from './sequelize-mariadb';
