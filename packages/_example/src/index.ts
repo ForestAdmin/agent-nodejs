@@ -32,7 +32,7 @@ export default async () => {
         contacts: ['country'],
         line_items: ['amount'],
         flos: ['age'],
-        testalbans: ['l_age_de_mon_objet'],
+        testalbans: ['mon_object_perso'],
       },
       pullDumpOnTimer: 1000 * 60 * 60 * 2, // 2 hours
     }),

@@ -103,7 +103,7 @@ export type Schema = {
   'hubspot_testalbans': {
     plain: {
       'id': string;
-      'l_age_de_mon_objet': number;
+      'mon_object_perso': string;
     };
     nested: {};
     flat: {};

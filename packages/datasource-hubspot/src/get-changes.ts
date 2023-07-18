@@ -6,9 +6,9 @@ import {
   HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
 } from './constants';
 import {
+  getExistingRecordIds,
   getLastModifiedRecords,
   getRecordsAndRelations,
-  getRecordsByIds,
   getRelations,
 } from './hubspot-api';
 import { HubSpotOptions, Records, Response } from './types';
@@ -86,9 +86,9 @@ export async function deleteRecordsIfNotExist(
     // make a bach of X requests to avoid hitting the hubspot rate limit
     for (let i = 0; i < ids.length; i += HUBSPOT_RATE_LIMIT_FILTER_VALUES) {
       promises.push(async () => {
-        const existingIds: Records = await executeAfterDelay<Records>(
+        const existingIds: string[] = await executeAfterDelay<string[]>(
           () =>
-            getRecordsByIds(
+            getExistingRecordIds(
               client,
               collectionName,
               ids.slice(i, i + HUBSPOT_RATE_LIMIT_FILTER_VALUES),
@@ -99,9 +99,9 @@ export async function deleteRecordsIfNotExist(
         );
 
         // find the records that have been deleted on hubspot
-        const recordsToDelete = existingIds.filter(r => !ids.includes(r.id));
+        const idsToDelete = ids.filter(id => !existingIds.includes(id));
         response.deletedEntries.push(
-          ...recordsToDelete.map(record => ({ collection: collectionName, record })),
+          ...idsToDelete.map(id => ({ collection: collectionName, record: { id } })),
         );
       });
     }

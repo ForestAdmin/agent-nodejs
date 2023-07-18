@@ -4,6 +4,21 @@ import { Client } from '@hubspot/api-client';
 import { HUBSPOT_COLLECTIONS, HUBSPOT_MAX_PAGE_SIZE } from './constants';
 import { FieldPropertiesByCollection, Records } from './types';
 
+function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
+  if (error.code === 429) {
+    // to much requests
+    logger?.(
+      'Warn',
+      `Unable to get properties for collection ${collectionName}` +
+        ' because we have reached the limit of requests in one second. Please try again.',
+    );
+  } else if (error.code === 403) {
+    logger?.('Warn', `Unable to get properties for collection "${collectionName}".`);
+  } else {
+    throw error;
+  }
+}
+
 function getDiscovery(client: Client, collectionName: string) {
   if (collectionName === 'feedback_submissions') {
     return client.crm.objects.feedbackSubmissions;
@@ -46,7 +61,6 @@ export async function getRecordsAndRelations(
       properties,
       undefined,
       relations,
-      false,
     );
   }
 
@@ -81,11 +95,11 @@ export async function getRecordsAndRelations(
   }, []);
 }
 
-export async function getRecordsByIds(
+export async function getExistingRecordIds(
   client: Client,
   collectionName: string,
   recordsIds: string[],
-): Promise<Records> {
+): Promise<string[]> {
   const filter = {
     filterGroups: [
       { filters: [{ propertyName: 'hs_object_id', operator: 'IN', values: recordsIds }] },
@@ -102,7 +116,7 @@ export async function getRecordsByIds(
     response = await client.crm.objects.searchApi.doSearch(collectionName, filter as any);
   }
 
-  return response.results.map(r => Object.fromEntries([['id', r.id]]));
+  return response.results.map(r => r.id);
 }
 
 export async function getLastModifiedRecords(
@@ -176,21 +190,6 @@ export async function getRelations(
 
   // using set to remove duplicated ids
   return [...new Set(response.associations?.[relationName].results.map(r => r.id) as string[])];
-}
-
-function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
-  if (error.code === 429) {
-    // to much requests
-    logger?.(
-      'Warn',
-      `Unable to get properties for collection ${collectionName}` +
-        ' because we have reached the limit of requests in one second. Please try again.',
-    );
-  } else if (error.code === 403) {
-    logger?.('Warn', `Unable to get properties for collection "${collectionName}".`);
-  } else {
-    throw error;
-  }
 }
 
 export async function getFieldsProperties(
