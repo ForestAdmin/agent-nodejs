@@ -5,7 +5,7 @@ export type HubSpotOptions<TypingCollections = undefined> = {
   collections: TypingCollections | FieldPropertiesByCollection;
   cacheInto?: CachedDataSourceOptions['cacheInto'];
   typingsPath?: string;
-  pullDumpOnTimer?: number;
+  pullDumpOnSchedule?: CachedDataSourceOptions['pullDeltaOnSchedule'];
   /**
    * Generate the collection types if it changes.
    * Useful for development. In production, it should be true.

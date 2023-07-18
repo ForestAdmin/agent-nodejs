@@ -25,7 +25,6 @@ export default async () => {
     await createHubspotDataSource<TypingsHubspot>({
       cacheInto: 'sqlite:/tmp/mydatabase-32.db',
       skipTypings: false,
-
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
         companies: ['description', 'days_to_close', 'city', 'owneremail', 'state'],
@@ -35,7 +34,6 @@ export default async () => {
         flos: ['age'],
         testalbans: ['mon_object_perso'],
       },
-      pullDumpOnTimer: 1000 * 60 * 60 * 2, // 2 hours
     }),
     { rename: collectionName => `hubspot_${collectionName}` },
   );

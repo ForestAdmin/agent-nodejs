@@ -1,6 +1,5 @@
 /* eslint-disable */
 export type Schema = {
-<<<<<<< HEAD
   'hubspot_companies': {
     plain: {
       'id': string;
@@ -9,31 +8,10 @@ export type Schema = {
       'city': string;
       'owneremail': string;
       'state': string;
-=======
-  'country': {
-    plain: {
-      'country_iso3': string;
-      'country_name': string;
-      'currency_code': string;
-    };
-    nested: {
-      'currency': Schema['currency']['plain'] & Schema['currency']['nested'];
-    };
-    flat: {
-      'currency:code': string;
-      'currency:name': string;
-    };
-  };
-  'currency': {
-    plain: {
-      'code': string;
-      'name': string;
->>>>>>> @{-1}
     };
     nested: {};
     flat: {};
   };
-<<<<<<< HEAD
   'hubspot_companies_contacts': {
     plain: {
       'companies_id': string;
@@ -72,20 +50,6 @@ export type Schema = {
       'companies:state': string;
       'deals:id': string;
       'deals:description': string;
-=======
-  'exchange_rate': {
-    plain: {
-      'date': string;
-      'currency_code': string;
-      'rate': number;
-    };
-    nested: {
-      'currency': Schema['currency']['plain'] & Schema['currency']['nested'];
-    };
-    flat: {
-      'currency:code': string;
-      'currency:name': string;
->>>>>>> @{-1}
     };
   };
   'hubspot_contacts': {
@@ -96,43 +60,20 @@ export type Schema = {
     nested: {};
     flat: {};
   };
-<<<<<<< HEAD
   'hubspot_contacts_deals': {
     plain: {
       'contacts_id': string;
       'deals_id': string;
-=======
-  'whatever_users': {
-    plain: {
-      'id': number;
-      'name': string;
-      'address@@@street': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'whatever_users_address_zipCodes': {
-    plain: {
-      'value': number;
-      '_fid': string;
-      '_fpid': number;
->>>>>>> @{-1}
     };
     nested: {
       'contacts': Schema['hubspot_contacts']['plain'] & Schema['hubspot_contacts']['nested'];
       'deals': Schema['hubspot_deals']['plain'] & Schema['hubspot_deals']['nested'];
     };
     flat: {
-<<<<<<< HEAD
       'contacts:id': string;
       'contacts:country': string;
       'deals:id': string;
       'deals:description': string;
-=======
-      'parent:id': number;
-      'parent:name': string;
-      'parent:address@@@street': string;
->>>>>>> @{-1}
     };
   };
   'hubspot_deals': {
