@@ -1,7 +1,7 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { HUBSPOT_COLLECTIONS, HUBSPOT_MAX_PAGE_SIZE } from './constants';
+import { HUBSPOT_COLLECTIONS, HUBSPOT_CUSTOM_COLLECTION, HUBSPOT_MAX_PAGE_SIZE } from './constants';
 import { FieldPropertiesByCollection, Records } from './types';
 
 function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
@@ -206,14 +206,14 @@ export async function getFieldsProperties(
 
   const promises = collections.map(async collectionName => {
     try {
-      if (isDefaultCollection(collectionName)) {
-        const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
-        fieldsByCollection[collectionName] = fields;
-      } else {
+      if (collectionName === HUBSPOT_CUSTOM_COLLECTION) {
         const customCollections = await client.crm.schemas.coreApi.getAll(false);
         customCollections.results.forEach(collection => {
           fieldsByCollection[collection.name] = collection.properties;
         });
+      } else {
+        const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
+        fieldsByCollection[collectionName] = fields;
       }
     } catch (e) {
       handleErrors(e, collectionName, logger);

@@ -1,8 +1,9 @@
 /* eslint-disable import/prefer-default-export */
-import { createCachedDataSource } from '@forestadmin/datasource-cached';
+import { createReplicaDataSource } from '@forestadmin/datasource-replica';
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
+import { HUBSPOT_COLLECTIONS } from './constants';
 import { getFieldsProperties } from './hubspot-api';
 import pullDelta from './pull-delta';
 import pullDump from './pull-dump';
@@ -16,8 +17,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
 ) {
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
-    const collectionNames = Object.keys(options.collections);
-    const fieldsProperties = await getFieldsProperties(client, collectionNames, logger);
+    const fieldsProperties = await getFieldsProperties(client, HUBSPOT_COLLECTIONS, logger);
     validateCollectionsProperties(options.collections, fieldsProperties);
 
     if (!options.skipTypings) {
@@ -25,14 +25,14 @@ export async function createHubspotDataSource<TypingsHubspot>(
       writeCollectionsTypeFileIfChange(fieldsProperties, path, logger);
     }
 
-    const factory = createCachedDataSource({
+    const factory = createReplicaDataSource({
       cacheNamespace: 'hubspot',
       schema: getSchema(fieldsProperties, options.collections, logger),
       pullDeltaHandler: request => pullDelta(client, options, request, logger),
       pullDumpHandler: request => pullDump<TypingsHubspot>(client, options, request, logger),
       pullDeltaOnRestart: true,
       pullDeltaOnBeforeAccess: true,
-      pullDeltaOnBeforeAccessDelay: 100,
+      pullDeltaOnBeforeAccessDelay: 200,
       cacheInto: options.cacheInto,
       pullDumpOnSchedule: options.pullDumpOnSchedule,
     });

@@ -3,11 +3,7 @@ export type Schema = {
   'hubspot_companies': {
     plain: {
       'id': string;
-      'description': string;
-      'days_to_close': number;
       'city': string;
-      'owneremail': string;
-      'state': string;
     };
     nested: {};
     flat: {};
@@ -23,13 +19,9 @@ export type Schema = {
     };
     flat: {
       'companies:id': string;
-      'companies:description': string;
-      'companies:days_to_close': number;
       'companies:city': string;
-      'companies:owneremail': string;
-      'companies:state': string;
       'contacts:id': string;
-      'contacts:country': string;
+      'contacts:email': string;
     };
   };
   'hubspot_companies_deals': {
@@ -43,11 +35,7 @@ export type Schema = {
     };
     flat: {
       'companies:id': string;
-      'companies:description': string;
-      'companies:days_to_close': number;
       'companies:city': string;
-      'companies:owneremail': string;
-      'companies:state': string;
       'deals:id': string;
       'deals:description': string;
     };
@@ -55,7 +43,7 @@ export type Schema = {
   'hubspot_contacts': {
     plain: {
       'id': string;
-      'country': string;
+      'email': string;
     };
     nested: {};
     flat: {};
@@ -71,7 +59,7 @@ export type Schema = {
     };
     flat: {
       'contacts:id': string;
-      'contacts:country': string;
+      'contacts:email': string;
       'deals:id': string;
       'deals:description': string;
     };
@@ -88,22 +76,6 @@ export type Schema = {
     plain: {
       'id': string;
       'age': number;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_line_items': {
-    plain: {
-      'id': string;
-      'amount': number;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_testalbans': {
-    plain: {
-      'id': string;
-      'mon_object_perso': string;
     };
     nested: {};
     flat: {};

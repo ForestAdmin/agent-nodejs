@@ -1,4 +1,4 @@
-import { PullDumpRequest, PullDumpResponse } from '@forestadmin/datasource-cached';
+import { PullDumpRequest, PullDumpResponse } from '@forestadmin/datasource-replica';
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 

@@ -1,4 +1,4 @@
-import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
+import { CollectionReplicaSchema, ColumnType } from '@forestadmin/datasource-replica';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
 import { getRelationNames } from './relations';
@@ -9,8 +9,8 @@ function getCollectionSchema(
   fields: string[],
   fieldProperties: FieldProperties,
   logger?: Logger,
-): CachedCollectionSchema {
-  const collection: CachedCollectionSchema = {
+): CollectionReplicaSchema {
+  const collection: CollectionReplicaSchema = {
     name: collectionName,
     fields: {
       id: { type: 'String', isPrimaryKey: true, isReadOnly: true },
@@ -47,7 +47,7 @@ function getCollectionSchema(
 function getCollectionManyToManySchema(
   fromCollectionName: string,
   toCollectionName: string,
-): CachedCollectionSchema {
+): CollectionReplicaSchema {
   return {
     name: `${fromCollectionName}_${toCollectionName}`,
     fields: {
@@ -74,14 +74,14 @@ function getCollectionManyToManySchema(
         },
       },
     },
-  } as CachedCollectionSchema;
+  } as CollectionReplicaSchema;
 }
 
 export default function getSchema<TypingsHubspot>(
   fieldPropertiesByCollection: FieldPropertiesByCollection,
   collections: HubSpotOptions<TypingsHubspot>['collections'],
   logger?: Logger,
-): CachedCollectionSchema[] {
+): CollectionReplicaSchema[] {
   const schema = Object.entries(collections).map(([collectionName, fields]) =>
     getCollectionSchema(
       collectionName,

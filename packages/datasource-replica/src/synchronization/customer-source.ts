@@ -214,6 +214,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
       });
 
       await this.target.applyDelta(changes);
+      await this.setDeltaState(changes.nextDeltaState);
       more = changes.more;
     }
 
