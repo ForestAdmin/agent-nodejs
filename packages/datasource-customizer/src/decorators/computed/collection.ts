@@ -35,6 +35,8 @@ export default class ComputedCollection extends CollectionDecorator {
   }
 
   registerComputed(name: string, computed: ComputedDefinition): void {
+    FieldValidator.validateName(this.name, name);
+
     // Check that all dependencies exist and are columns
     for (const field of computed.dependencies) {
       FieldValidator.validate(this, field);

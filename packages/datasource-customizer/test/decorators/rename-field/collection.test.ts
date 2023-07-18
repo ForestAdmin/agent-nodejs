@@ -142,7 +142,7 @@ describe('RenameFieldCollectionDecorator', () => {
 
   test('should throw when renaming with a name including space', () => {
     expect(() => newPersons.renameField('id', 'the key')).toThrow(
-      `The renaming of field 'id' must not contain space.` +
+      `The name of field 'the key' you configured on 'persons' must not contain space.` +
         ` Something like 'theKey' should work has expected.`,
     );
   });

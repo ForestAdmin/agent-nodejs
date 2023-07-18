@@ -6,6 +6,7 @@ import {
   CollectionSchema,
   DataSourceDecorator,
   FieldSchema,
+  FieldValidator,
   Filter,
   PaginatedFilter,
   Projection,
@@ -34,13 +35,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
 
     let initialName = currentName;
 
-    if (/ /.test(newName)) {
-      const sanitizedName = newName.replace(/ (.)/g, (_, s) => s.toUpperCase());
-      throw new Error(
-        `The renaming of field '${currentName}' must not contain space.` +
-          ` Something like '${sanitizedName}' should work has expected.`,
-      );
-    }
+    FieldValidator.validateName(this.name, newName);
 
     // Revert previous renaming (avoids conflicts and need to recurse on this.toSubCollection).
     if (this.toChildCollection[currentName]) {
