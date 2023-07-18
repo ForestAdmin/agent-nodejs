@@ -26,6 +26,7 @@ export default async function pullDump<TypingsHubspot>(
     request.previousDumpState,
     response,
   );
+  logger?.('Info', `Current dump state: ${JSON.stringify(request.previousDumpState)}`);
   if (response.more === false) logger?.('Info', 'All records have been pulled.');
 
   // save the date of the last dump to the next delta state
