@@ -5,10 +5,10 @@ import { Cron } from 'croner';
 import { Sequelize } from 'sequelize';
 
 import {
-  CachedDataSourceOptions,
   PullDeltaReason,
   PullDumpReason,
   PushDeltaResponse,
+  ReplicaDataSourceOptions,
   SynchronizationSource,
   SynchronizationTarget,
 } from '../types';
@@ -28,7 +28,7 @@ type Queue<Reason> = {
 export default class CustomerSource extends EventTarget implements SynchronizationSource {
   requestCache: RelaxedDataSource = null;
 
-  private options: CachedDataSourceOptions;
+  private options: ReplicaDataSourceOptions;
   private connection: Sequelize;
   private isRunning = false;
 
@@ -39,7 +39,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
   private schedules: Cron[] = [];
   private target: SynchronizationTarget;
 
-  constructor(connection: Sequelize, options: CachedDataSourceOptions) {
+  constructor(connection: Sequelize, options: ReplicaDataSourceOptions) {
     super();
     this.connection = connection;
     this.options = options;

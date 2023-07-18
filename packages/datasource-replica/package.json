@@ -1,5 +1,5 @@
 {
-  "name": "@forestadmin/datasource-cached",
+  "name": "@forestadmin/datasource-replica",
   "version": "1.0.0",
   "main": "dist/index.js",
   "license": "GPL-3.0",
@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
-    "directory": "packages/datasource-cached"
+    "directory": "packages/datasource-replica"
   },
   "files": [
     "dist/src/**/*.js",

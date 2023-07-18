@@ -1,8 +1,8 @@
 /* eslint-disable */
 import { flattenRecord, flattenCollectionSchema } from '../src/flattener';
-import { CachedCollectionSchema, RecordDataWithCollection } from '../src/types';
+import { CollectionReplicaSchema, RecordDataWithCollection } from '../src/types';
 
-const schema: CachedCollectionSchema = {
+const schema: CollectionReplicaSchema = {
   name: 'user',
   fields: {
     id: { type: 'Integer', isPrimaryKey: true },

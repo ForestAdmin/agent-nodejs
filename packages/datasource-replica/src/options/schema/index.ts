@@ -4,7 +4,7 @@ import type { Sequelize } from 'sequelize';
 import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import { NodeStudy } from './analyzer';
-import { CachedCollectionSchema, CachedDataSourceOptions, Field, isLeafField } from '../../types';
+import { CollectionReplicaSchema, Field, ReplicaDataSourceOptions, isLeafField } from '../../types';
 import { resolveValueOrPromiseOrFactory } from '../utils';
 
 function convertAnalysisToSchema(node: NodeStudy): Field {
@@ -26,9 +26,9 @@ function convertAnalysisToSchema(node: NodeStudy): Field {
 }
 
 export async function getSchema(
-  rawOptions: CachedDataSourceOptions,
+  rawOptions: ReplicaDataSourceOptions,
   connection: Sequelize,
-): Promise<CachedCollectionSchema[]> {
+): Promise<CollectionReplicaSchema[]> {
   // Schema is provided by the user
   if (rawOptions.schema) {
     return resolveValueOrPromiseOrFactory(rawOptions.schema);
@@ -44,7 +44,7 @@ export async function getSchema(
 
 export async function buildSchema(
   analysis: Record<string, NodeStudy>,
-): Promise<CachedCollectionSchema[]> {
+): Promise<CollectionReplicaSchema[]> {
   return Object.entries(analysis).map(([name, node]) => {
     const fields = convertAnalysisToSchema(node) as Record<string, Field>;
 

@@ -23,8 +23,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@forestadmin/datasource-replica": "^1.0.0",
     "@forestadmin/datasource-toolkit": "^1.5.0",
-    "@forestadmin/datasource-cached": "^1.0.0",
     "@hubspot/api-client": "^9.0.0",
     "axios": "^1.4.0"
   }

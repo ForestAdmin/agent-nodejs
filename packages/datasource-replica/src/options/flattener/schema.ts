@@ -4,17 +4,17 @@
 
 /* eslint-disable no-underscore-dangle */
 import flattenRecord from '../../flattener';
-import { CachedCollectionSchema, Field, ResolvedOptions, isLeafField } from '../../types';
+import { CollectionReplicaSchema, Field, ResolvedOptions, isLeafField } from '../../types';
 
 /**
  * Abuse the flattenRecordRec logic with ❤️
  * And then fix the _fpid and _fid fields which are not correct
  */
 export function flattenCollectionSchema(
-  schema: CachedCollectionSchema,
+  schema: CollectionReplicaSchema,
   asFields: string[],
   asModels: string[],
-): CachedCollectionSchema[] {
+): CollectionReplicaSchema[] {
   const recordWithCollection = { collection: schema.name, record: schema.fields };
   const output = flattenRecord(recordWithCollection, schema.fields, asFields, asModels);
 
@@ -42,9 +42,9 @@ export function flattenCollectionSchema(
 }
 
 export function flattenSchema(
-  schema: CachedCollectionSchema[],
+  schema: CollectionReplicaSchema[],
   flattenOptions: ResolvedOptions['flattenOptions'],
-): CachedCollectionSchema[] {
+): CollectionReplicaSchema[] {
   return schema.flatMap(collectionSchema =>
     flattenCollectionSchema(
       collectionSchema,

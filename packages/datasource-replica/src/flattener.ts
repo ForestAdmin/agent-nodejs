@@ -1,10 +1,10 @@
 /* eslint-disable no-underscore-dangle */
-import { CachedCollectionSchema, RecordDataWithCollection } from './types';
+import { CollectionReplicaSchema, RecordDataWithCollection } from './types';
 import { deepclone, escape, extractValue, getRecordId } from './utils';
 
 function flattenRecordRec(
   recordWithCollection: RecordDataWithCollection,
-  fields: CachedCollectionSchema['fields'],
+  fields: CollectionReplicaSchema['fields'],
   asFields: string[],
   asModels: string[],
 ): RecordDataWithCollection[] {
@@ -73,7 +73,7 @@ function flattenRecordRec(
 
 export default function flattenRecord(
   recordWithCollection: RecordDataWithCollection,
-  fields: CachedCollectionSchema['fields'],
+  fields: CollectionReplicaSchema['fields'],
   asFields: string[],
   asModels: string[],
 ) {

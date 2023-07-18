@@ -1,10 +1,10 @@
 /* eslint-disable no-await-in-loop */
-import { CachedCollectionSchema, createCachedDataSource } from '@forestadmin/datasource-cached';
+import { CollectionReplicaSchema, createReplicaDataSource } from '@forestadmin/datasource-replica';
 import axios from 'axios';
 
 const url = `https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api`;
 
-const currencyApiSchema: CachedCollectionSchema[] = [
+const currencyApiSchema: CollectionReplicaSchema[] = [
   {
     name: 'country',
     fields: {
@@ -76,13 +76,9 @@ async function getRatesFromXDaysAgo(numDays: number) {
   try {
     const rates = await axios.get(`${url}@1/${getDateFromXDaysAgo(numDays)}/currencies/eur.json`);
 
-    return Object.entries(rates.data.eur).map(([code, rate]) => ({
+    return Object.entries(rates.data.eur).map(([currency_code, rate]) => ({
       collection: 'exchange_rate',
-      record: {
-        date: rates.data.date,
-        currency_code: code,
-        rate,
-      },
+      record: { date: rates.data.date, currency_code, rate },
     }));
   } catch {
     // The API does not have data for this day
@@ -91,10 +87,9 @@ async function getRatesFromXDaysAgo(numDays: number) {
 }
 
 export default function createCurrencyApiDataSource(days: number) {
-  return createCachedDataSource({
+  return createReplicaDataSource({
     cacheInto: 'sqlite::memory:',
     schema: currencyApiSchema,
-
     pullDumpOnSchedule: '@monthly', // Reset cache each month
     pullDumpHandler: async () => {
       const rates = [];
