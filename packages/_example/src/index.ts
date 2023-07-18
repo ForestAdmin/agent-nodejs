@@ -1,7 +1,5 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { createCachedDataSource } from '@forestadmin/datasource-cached';
 import { createHubspotDataSource } from '@forestadmin/datasource-hubspot';
-import axios from 'axios';
 import dotenv from 'dotenv';
 
 import { Schema } from './typings';
@@ -24,7 +22,7 @@ export default async () => {
 
   agent.addDataSource(
     await createHubspotDataSource<TypingsHubspot>({
-      cacheInto: 'sqlite:/tmp/mydatabase-27.db',
+      cacheInto: 'sqlite:/tmp/mydatabase-32.db',
       skipTypings: false,
       typingsPath: 'src/typings-hubspot.ts',
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
@@ -33,6 +31,8 @@ export default async () => {
         deals: ['description'],
         contacts: ['country'],
         line_items: ['amount'],
+        flos: ['age'],
+        testalbans: ['l_age_de_mon_objet'],
       },
       pullDumpOnTimer: 1000 * 60 * 60 * 2, // 2 hours
     }),

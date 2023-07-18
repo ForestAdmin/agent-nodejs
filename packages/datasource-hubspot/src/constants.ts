@@ -1,4 +1,3 @@
-export const HUBSPOT_CUSTOM_COLLECTION = 'schemas';
 const COMPANIES = 'companies';
 const CONTACTS = 'contacts';
 const DEALS = 'deals';
@@ -17,9 +16,12 @@ export const HUBSPOT_COLLECTIONS = [
   PRODUCTS,
   QUOTES,
   TICKETS,
-  HUBSPOT_CUSTOM_COLLECTION,
 ];
 
+/**
+ * Reference: https://developers.hubspot.com/docs/api/crm/associations#contact-to-object
+ * We only support the following relations.
+ * */
 export const COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS = [COMPANIES, CONTACTS, DEALS, TICKETS];
 
 /**

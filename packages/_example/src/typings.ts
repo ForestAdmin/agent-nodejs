@@ -84,10 +84,26 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'hubspot_flos': {
+    plain: {
+      'id': string;
+      'age': number;
+    };
+    nested: {};
+    flat: {};
+  };
   'hubspot_line_items': {
     plain: {
       'id': string;
       'amount': number;
+    };
+    nested: {};
+    flat: {};
+  };
+  'hubspot_testalbans': {
+    plain: {
+      'id': string;
+      'l_age_de_mon_objet': number;
     };
     nested: {};
     flat: {};

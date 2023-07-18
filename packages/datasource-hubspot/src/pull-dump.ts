@@ -3,7 +3,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { pullRecordsAndRelations } from './get-changes';
-import { getManyToManyRelationNames } from './relations';
+import { getRelationsByCollection } from './relations';
 import { HubSpotOptions, Response } from './types';
 
 export default async function pullDump<TypingsHubspot>(
@@ -12,7 +12,6 @@ export default async function pullDump<TypingsHubspot>(
   request: PullDumpRequest,
   logger?: Logger,
 ): Promise<PullDumpResponse> {
-  const relations = getManyToManyRelationNames(Object.keys(options.collections));
   const response: Response = {
     more: false,
     nextState: { ...((request.previousDumpState as object) ?? {}) },
@@ -20,31 +19,20 @@ export default async function pullDump<TypingsHubspot>(
     deletedEntries: [],
   };
 
-  const collectionWithRelations = relations.reduce((acc, collectionName) => {
-    const [from, to] = collectionName.split('_');
-    acc[from] = acc[from] ?? [];
-    acc[from]?.push(to);
-
-    return acc;
-  }, {});
-
-  await Promise.all(
-    pullRecordsAndRelations(
-      client,
-      collectionWithRelations,
-      options.collections as Record<string, string[]>,
-      request.previousDumpState,
-      response,
-    ),
+  await pullRecordsAndRelations(
+    client,
+    getRelationsByCollection(Object.keys(options.collections)),
+    options.collections as Record<string, string[]>,
+    request.previousDumpState,
+    response,
   );
-  if (response.more === false) logger?.('Info', 'All the records are updated');
+  if (response.more === false) logger?.('Info', 'All records have been pulled.');
 
   // save the date of the last dump to the next delta state
-  const nextDeltaState = Object.keys(options.collections).reduce((acc, collectionName) => {
-    acc[collectionName] = new Date().toISOString();
-
-    return acc;
-  }, {});
+  const nextDeltaState = {};
+  Object.keys(options.collections).forEach(collectionName => {
+    nextDeltaState[collectionName] = new Date().toISOString();
+  });
 
   return {
     ...response,

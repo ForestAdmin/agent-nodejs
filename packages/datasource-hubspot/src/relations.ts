@@ -14,3 +14,18 @@ export function getManyToManyRelationNames(collections: string[]): string[] {
     return relations;
   }, []);
 }
+
+export function getRelationsByCollection(collections: string[]): {
+  [collectionName: string]: string[];
+} {
+  const manyToManyRelations = getManyToManyRelationNames(collections);
+
+  return collections.reduce((relations, collectionName) => {
+    const filtered = manyToManyRelations.filter(relationName =>
+      relationName.startsWith(collectionName),
+    );
+    relations[collectionName] = filtered.map(relationName => relationName.split('_')[1]);
+
+    return relations;
+  }, {});
+}

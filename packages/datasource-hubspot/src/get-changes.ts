@@ -6,23 +6,22 @@ import {
   HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
 } from './constants';
 import {
-  getAllManyToManyRecords,
   getLastModifiedRecords,
   getRecordsAndRelations,
   getRecordsByIds,
   getRelations,
-} from './records';
+} from './hubspot-api';
 import { HubSpotOptions, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
-export function pullUpdatedOrNewRecords<TypingsHubspot>(
+export async function pullUpdatedOrNewRecords<TypingsHubspot>(
   client: Client,
   collectionNames: string[],
   previousState: unknown,
   options: HubSpotOptions<TypingsHubspot>,
   response: Response,
-): Array<Promise<void>> {
-  return collectionNames.map(async (name, index) => {
+): Promise<void> {
+  const promises = collectionNames.map(async (name, index) => {
     const after = previousState?.[name];
     const fields = options.collections[name];
 
@@ -43,36 +42,23 @@ export function pullUpdatedOrNewRecords<TypingsHubspot>(
     response.newOrUpdatedEntries.push(...processedRecords);
     response.more ||= records.length === HUBSPOT_MAX_PAGE_SIZE;
   });
+
+  await Promise.all(promises);
 }
 
-export function pullNewRelationRecords(
+export async function pullRecordsAndRelations(
   client: Client,
-  relationNames: string[],
-  previousState: unknown,
-  response: Response,
-): Array<Promise<void>> {
-  return relationNames.map(async name => {
-    const after = previousState?.[name];
-    const records = await getAllManyToManyRecords(client, name, after);
-    response.newOrUpdatedEntries.push(...records.map(record => ({ collection: name, record })));
-    response.nextState[name] = (after ?? 0) + records.length;
-    response.more ||= records.length === HUBSPOT_MAX_PAGE_SIZE;
-  });
-}
-
-export function pullRecordsAndRelations(
-  client: Client,
-  collectionNameWithRelations: { [collectionName: string]: string[] },
+  relations: { [collectionName: string]: string[] },
   properties: { [collectionName: string]: string[] },
   previousState: unknown,
   response: Response,
-): Array<Promise<void>> {
-  return Object.entries(collectionNameWithRelations).map(async ([collectionName, relations]) => {
+): Promise<void> {
+  const promises = Object.keys(relations).map(async collectionName => {
     const afterId = previousState?.[collectionName];
     const records = await getRecordsAndRelations(
       client,
       collectionName,
-      relations,
+      relations[collectionName],
       properties[collectionName],
       afterId,
     );
@@ -85,6 +71,8 @@ export function pullRecordsAndRelations(
     response.nextState[collectionName] = lastId ? Number(lastId) + 1 : afterId;
     response.more ||= records[collectionName]?.length === HUBSPOT_MAX_PAGE_SIZE;
   });
+
+  await Promise.all(promises);
 }
 
 export async function deleteRecordsIfNotExist(

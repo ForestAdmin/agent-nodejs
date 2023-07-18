@@ -3,12 +3,12 @@ import { createCachedDataSource } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { HUBSPOT_COLLECTIONS } from './constants';
-import getFieldsPropertiesByCollections from './get-fields-properties';
+import { getFieldsProperties } from './hubspot-api';
 import pullDelta from './pull-delta';
 import pullDump from './pull-dump';
 import getSchema from './schema';
 import { HubSpotOptions } from './types';
+import validateCollectionsProperties from './validator';
 import writeCollectionsTypeFileIfChange from './write-collections-type-file';
 
 export async function createHubspotDataSource<TypingsHubspot>(
@@ -16,11 +16,9 @@ export async function createHubspotDataSource<TypingsHubspot>(
 ) {
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
-    const fieldsProperties = await getFieldsPropertiesByCollections(
-      client,
-      HUBSPOT_COLLECTIONS,
-      logger,
-    );
+    const collectionNames = Object.keys(options.collections);
+    const fieldsProperties = await getFieldsProperties(client, collectionNames, logger);
+    validateCollectionsProperties(options.collections, fieldsProperties);
 
     if (!options.skipTypings) {
       const path = options.typingsPath ?? 'src/typings-hubspot.ts';

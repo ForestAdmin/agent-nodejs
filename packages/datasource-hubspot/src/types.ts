@@ -2,7 +2,7 @@ import { CachedDataSourceOptions, RecordDataWithCollection } from '@forestadmin/
 
 export type HubSpotOptions<TypingCollections = undefined> = {
   accessToken: string;
-  collections: TypingCollections | Record<string, string[]>;
+  collections: TypingCollections | FieldPropertiesByCollection;
   cacheInto?: CachedDataSourceOptions['cacheInto'];
   typingsPath?: string;
   pullDumpOnTimer?: number;
