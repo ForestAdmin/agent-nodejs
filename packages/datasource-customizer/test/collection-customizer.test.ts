@@ -128,6 +128,17 @@ describe('Builder > Collection', () => {
   });
 
   describe('renameField', () => {
+    it('should throw when renaming with a name including space', async () => {
+      const { customizer, dsc } = await setup();
+
+      customizer.renameField('firstName', 'renamed field');
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        `The name of field 'renamed field' you configured on 'authors' must not contain space.` +
+          ` Something like 'renamedField' should work has expected.`,
+      );
+    });
+
     it('should rename a field', async () => {
       const { dsc, customizer, stack } = await setup();
       const spy = jest.spyOn(stack.renameField.getCollection('authors'), 'renameField');
@@ -212,6 +223,17 @@ describe('Builder > Collection', () => {
   });
 
   describe('importField', () => {
+    it('should throw when importing with a name including space', async () => {
+      const { customizer, dsc } = await setup();
+
+      customizer.importField('first name copy', { path: 'firstName' });
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        `The name of field 'first name copy' you configured on 'authors' must not contain space.` +
+          ` Something like 'firstNameCopy' should work has expected.`,
+      );
+    });
+
     it('should call addField', async () => {
       const { dsc, customizer } = await setup();
 
@@ -307,6 +329,23 @@ describe('Builder > Collection', () => {
   });
 
   describe('addField', () => {
+    it('should throw when adding field with a name including space', async () => {
+      const { customizer, dsc } = await setup();
+
+      const fieldDefinition: ComputedDefinition = {
+        columnType: 'String',
+        dependencies: ['firstName'],
+        getValues: records => records.map(() => 'aaa'),
+      };
+
+      customizer.addField('new field', fieldDefinition);
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        `The name of field 'new field' you configured on 'authors' must not contain space.` +
+          ` Something like 'newField' should work has expected.`,
+      );
+    });
+
     it('should add a field to early collection', async () => {
       const { dsc, customizer, stack } = await setup();
       const spy = jest.spyOn(stack.earlyComputed.getCollection('authors'), 'registerComputed');
@@ -317,12 +356,12 @@ describe('Builder > Collection', () => {
         getValues: records => records.map(() => 'aaa'),
       };
 
-      const self = customizer.addField('new field', fieldDefinition);
+      const self = customizer.addField('newField', fieldDefinition);
       await dsc.getDataSource(logger);
 
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
-      expect(self.schema.fields['new field']).toBeDefined();
+      expect(spy).toHaveBeenCalledWith('newField', fieldDefinition);
+      expect(self.schema.fields.newField).toBeDefined();
       expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
@@ -347,12 +386,12 @@ describe('Builder > Collection', () => {
         getValues: records => records.map(() => 'aaa'),
       };
 
-      const self = customizer.addField('new field', fieldDefinition);
+      const self = customizer.addField('newField', fieldDefinition);
       await dsc.getDataSource(logger);
 
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('new field', fieldDefinition);
-      expect(self.schema.fields['new field']).toBeDefined();
+      expect(spy).toHaveBeenCalledWith('newField', fieldDefinition);
+      expect(self.schema.fields.newField).toBeDefined();
       expect(self).toEqual(customizer);
 
       const { getValues } = spy.mock.calls[0][1];
