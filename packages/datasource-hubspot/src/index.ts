@@ -32,7 +32,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
       pullDumpHandler: request => pullDump<TypingsHubspot>(client, options, request, logger),
       pullDeltaOnRestart: true,
       pullDeltaOnBeforeAccess: true,
-      pullDeltaOnBeforeAccessDelay: 200,
+      pullDeltaOnBeforeAccessDelay: 50,
       cacheInto: options.cacheInto,
       pullDumpOnSchedule: options.pullDumpOnSchedule,
     });

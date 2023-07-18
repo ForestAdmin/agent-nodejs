@@ -120,6 +120,18 @@ export async function pullUpdatedOrNewRelations(
 ): Promise<void> {
   await Promise.all(
     recordIdsWithRelation.map(async record => {
+      const relations = getRelationNames([record.collectionName, ...record.relations]);
+      // remove all the relations related to the record
+      relations
+        // get only the concerned many to many relations
+        .filter(r => r.includes(record.collectionName))
+        .forEach(manyToManyName => {
+          response.deletedEntries.push({
+            collection: manyToManyName,
+            record: { [`${record.collectionName}_id`]: record.id },
+          });
+        });
+
       const relationIds = await getAssociatedRelationIds(
         client,
         record.id,
@@ -127,7 +139,7 @@ export async function pullUpdatedOrNewRelations(
         record.relations,
       );
 
-      // build the relations tom make it compatible with the forest format
+      // build all the relations
       Object.entries(relationIds).forEach(([relationName, ids]) => {
         const [manyToManyName] = getRelationNames([record.collectionName, relationName]);
         ids.forEach(id =>
@@ -139,12 +151,6 @@ export async function pullUpdatedOrNewRelations(
             },
           }),
         );
-
-        // remove all the relations
-        response.deletedEntries.push({
-          collection: manyToManyName,
-          record: { [`${record.collectionName}_id`]: record.id },
-        });
       });
     }),
   );

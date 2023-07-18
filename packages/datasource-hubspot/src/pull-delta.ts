@@ -10,13 +10,20 @@ import {
 import { getRelationNames, getRelationsOf } from './relations';
 import { HubSpotOptions, Response } from './types';
 
-function getRelationsToUpdate(idsByCollection: {
-  [collectionName: string]: string[];
-}): { id: string; relations: []; collectionName: string }[] {
+function getRelationsToUpdate(
+  idsByCollection: {
+    [collectionName: string]: string[];
+  },
+  availableCollections: string[],
+): { id: string; relations: []; collectionName: string }[] {
   const relations = [];
   Object.entries(idsByCollection).forEach(([collectionName, ids]) => {
     ids.forEach(id => {
-      relations.push({ id, collectionName, relations: getRelationsOf(collectionName) });
+      relations.push({
+        id,
+        collectionName,
+        relations: getRelationsOf(collectionName, availableCollections),
+      });
     });
   });
 
@@ -73,7 +80,12 @@ export default async function pullDelta<TypingsHubspot>(
     if (!idsByCollection[r.collection]) idsByCollection[r.collection] = [];
     idsByCollection[r.collection].push(r.record.id);
   });
-  await pullUpdatedOrNewRelations(client, getRelationsToUpdate(idsByCollection), response);
+  // depending of the pullUpdatedOrNewRecord response
+  await pullUpdatedOrNewRelations(
+    client,
+    getRelationsToUpdate(idsByCollection, Object.keys(options.collections)),
+    response,
+  );
 
   // delete the records the outdated records that the user is tying to read
   if (request.reasons.map(r => r.name).includes('before-list')) {

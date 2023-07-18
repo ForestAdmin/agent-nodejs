@@ -30,8 +30,8 @@ export function getRelationsByCollection(collections: string[]): {
   }, {});
 }
 
-export function getRelationsOf(collectionName: string): string[] {
-  return COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS.filter(
-    relationName => !relationName.includes(collectionName),
-  );
+export function getRelationsOf(collectionName: string, availableCollections: string[]): string[] {
+  return COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS.filter(r =>
+    availableCollections.includes(r),
+  ).filter(r => !r.includes(collectionName));
 }
