@@ -11,11 +11,15 @@ import { getRelationNames, getRelationsOf } from './relations';
 import { HubSpotOptions, Response } from './types';
 
 function getRelationsToUpdate(
-  idsByCollection: {
-    [collectionName: string]: string[];
-  },
+  response: Response,
   availableCollections: string[],
 ): { id: string; relations: []; collectionName: string }[] {
+  const idsByCollection: { [collectionName: string]: string[] } = {};
+  response.newOrUpdatedEntries.forEach(r => {
+    if (!idsByCollection[r.collection]) idsByCollection[r.collection] = [];
+    idsByCollection[r.collection].push(r.record.id);
+  });
+
   const relations = [];
   Object.entries(idsByCollection).forEach(([collectionName, ids]) => {
     ids.forEach(id => {
@@ -75,15 +79,11 @@ export default async function pullDelta<TypingsHubspot>(
     response,
   );
 
-  const idsByCollection = {};
-  response.newOrUpdatedEntries.forEach(r => {
-    if (!idsByCollection[r.collection]) idsByCollection[r.collection] = [];
-    idsByCollection[r.collection].push(r.record.id);
-  });
-  // depending of the pullUpdatedOrNewRecord response
+  // depending on the response of the previous call.
+  // We should pull the changes to re-compute the relations
   await pullUpdatedOrNewRelations(
     client,
-    getRelationsToUpdate(idsByCollection, Object.keys(options.collections)),
+    getRelationsToUpdate(response, Object.keys(options.collections)),
     response,
   );
 
