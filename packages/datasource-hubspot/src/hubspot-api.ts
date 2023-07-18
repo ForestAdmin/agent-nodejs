@@ -31,11 +31,11 @@ function getDiscovery(client: Client, collectionName: string) {
   return client.crm[collectionName];
 }
 
-function isDefaultCollection(collectionName: string) {
+function isDefaultCollection(collectionName: string): boolean {
   return HUBSPOT_COLLECTIONS.includes(collectionName);
 }
 
-export async function getRecordsAndRelations(
+export async function fetchRecordsAndRelations(
   client: Client,
   collectionName: string,
   relationNames: string[],
@@ -95,7 +95,7 @@ export async function getRecordsAndRelations(
   }, []);
 }
 
-export async function getExistingRecordIds(
+export async function fetchExistingRecordIds(
   client: Client,
   collectionName: string,
   recordsIds: string[],
@@ -161,7 +161,7 @@ export async function getLastModifiedRecords(
   );
 }
 
-export async function getAssociatedRelationIds(
+export async function fetchRelationOfRecord(
   client: Client,
   recordId: string,
   collectionName: string,
@@ -190,14 +190,15 @@ export async function getAssociatedRelationIds(
   if (!response.associations) return {};
 
   return Object.entries(response.associations).reduce((acc, [relationName, relation]) => {
+    const ids = (relation as any).results.map(r => r.id);
     // using set to remove duplicated ids when the relation has a label
-    acc[relationName] = Array.from(new Set((relation as any).results.map(r => r.id)));
+    acc[relationName] = Array.from(new Set(ids));
 
     return acc;
   }, {});
 }
 
-export async function getFieldsProperties(
+export async function fetchFieldsProperties(
   client: Client,
   collections: string[],
   logger?: Logger,

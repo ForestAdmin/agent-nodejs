@@ -28,9 +28,8 @@ export default async () => {
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
         companies: ['city'],
-        flos: ['age'],
-        contacts: ['email'],
-        deals: ['description'],
+        contacts: ['email', 'firstname', 'lastname'],
+        deals: ['description', 'dealstage'],
       },
     }),
     { rename: collectionName => `hubspot_${collectionName}` },

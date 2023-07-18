@@ -4,7 +4,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { HUBSPOT_COLLECTIONS } from './constants';
-import { getFieldsProperties } from './hubspot-api';
+import { fetchFieldsProperties } from './hubspot-api';
 import pullDelta from './pull-delta';
 import pullDump from './pull-dump';
 import getSchema from './schema';
@@ -17,7 +17,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
 ) {
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
-    const fieldsProperties = await getFieldsProperties(client, HUBSPOT_COLLECTIONS, logger);
+    const fieldsProperties = await fetchFieldsProperties(client, HUBSPOT_COLLECTIONS, logger);
     validateCollectionsProperties(options.collections, fieldsProperties);
 
     if (!options.skipTypings) {

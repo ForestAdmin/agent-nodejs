@@ -1,7 +1,7 @@
 import { CollectionReplicaSchema, ColumnType } from '@forestadmin/datasource-replica';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
-import { getRelationNames } from './relations';
+import { buildManyToManyNames } from './relations';
 import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 
 function getCollectionSchema(
@@ -91,7 +91,7 @@ export default function getSchema<TypingsHubspot>(
     ),
   );
 
-  getRelationNames(Object.keys(collections)).forEach(manyToMany => {
+  buildManyToManyNames(Object.keys(collections)).forEach(manyToMany => {
     const [fromCollectionName, toCollectionName] = manyToMany.split('_');
     schema.push(getCollectionManyToManySchema(fromCollectionName, toCollectionName));
   });

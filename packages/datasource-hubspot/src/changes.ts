@@ -6,12 +6,12 @@ import {
   HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
 } from './constants';
 import {
-  getAssociatedRelationIds,
-  getExistingRecordIds,
+  fetchExistingRecordIds,
+  fetchRecordsAndRelations,
+  fetchRelationOfRecord,
   getLastModifiedRecords,
-  getRecordsAndRelations,
 } from './hubspot-api';
-import { getRelationNames } from './relations';
+import { buildManyToManyNames } from './relations';
 import { HubSpotOptions, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
@@ -56,7 +56,7 @@ export async function pullRecordsAndRelations(
 ): Promise<void> {
   const promises = Object.keys(relations).map(async collectionName => {
     const afterId = previousState?.[collectionName];
-    const records = await getRecordsAndRelations(
+    const records = await fetchRecordsAndRelations(
       client,
       collectionName,
       relations[collectionName],
@@ -84,12 +84,13 @@ export async function deleteRecordsIfNotExist(
   for (const [collectionName, ids] of Object.entries(idsByCollection)) {
     const promises = [];
 
-    // make a bach of X requests to avoid hitting the hubspot rate limit
+    // make a bach of HUBSPOT_RATE_LIMIT_FILTER_VALUES requests
+    // to avoid hitting the hubspot rate limit
     for (let i = 0; i < ids.length; i += HUBSPOT_RATE_LIMIT_FILTER_VALUES) {
       promises.push(async () => {
         const existingIds: string[] = await executeAfterDelay<string[]>(
           () =>
-            getExistingRecordIds(
+            fetchExistingRecordIds(
               client,
               collectionName,
               ids.slice(i, i + HUBSPOT_RATE_LIMIT_FILTER_VALUES),
@@ -120,7 +121,7 @@ export async function pullUpdatedOrNewRelations(
 ): Promise<void> {
   await Promise.all(
     recordIdsWithRelation.map(async record => {
-      const relations = getRelationNames([record.collectionName, ...record.relations]);
+      const relations = buildManyToManyNames([record.collectionName, ...record.relations]);
       // remove all the relations related to the record
       relations
         // get only the concerned many to many relations
@@ -132,7 +133,7 @@ export async function pullUpdatedOrNewRelations(
           });
         });
 
-      const relationIds = await getAssociatedRelationIds(
+      const relationIds = await fetchRelationOfRecord(
         client,
         record.id,
         record.collectionName,
@@ -141,7 +142,7 @@ export async function pullUpdatedOrNewRelations(
 
       // build all the relations
       Object.entries(relationIds).forEach(([relationName, ids]) => {
-        const [manyToManyName] = getRelationNames([record.collectionName, relationName]);
+        const [manyToManyName] = buildManyToManyNames([record.collectionName, relationName]);
         ids.forEach(id =>
           response.newOrUpdatedEntries.push({
             collection: manyToManyName,

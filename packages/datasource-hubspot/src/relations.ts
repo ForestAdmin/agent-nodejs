@@ -1,9 +1,8 @@
 import { COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS } from './constants';
 
-// eslint-disable-next-line import/prefer-default-export
-export function getRelationNames(collections: string[]): string[] {
+export function buildManyToManyNames(availableCollections: string[]): string[] {
   const relationsToBuild = COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS.filter(collectionName =>
-    collections.includes(collectionName),
+    availableCollections.includes(collectionName),
   );
 
   return relationsToBuild.reduce((relations, fromCollectionName, index) => {
@@ -15,23 +14,18 @@ export function getRelationNames(collections: string[]): string[] {
   }, []);
 }
 
-export function getRelationsByCollection(collections: string[]): {
-  [collectionName: string]: string[];
-} {
-  const manyToManyRelations = getRelationNames(collections);
-
-  return collections.reduce((relations, collectionName) => {
-    const filtered = manyToManyRelations.filter(relationName =>
-      relationName.startsWith(collectionName),
-    );
-    relations[collectionName] = filtered.map(relationName => relationName.split('_')[1]);
-
-    return relations;
-  }, {});
-}
-
 export function getRelationsOf(collectionName: string, availableCollections: string[]): string[] {
   return COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS.filter(r =>
     availableCollections.includes(r),
   ).filter(r => !r.includes(collectionName));
+}
+
+export function getRelationsByCollection(availableCollections: string[]): {
+  [collectionName: string]: string[];
+} {
+  return availableCollections.reduce((relations, collectionName) => {
+    relations[collectionName] = getRelationsOf(collectionName, availableCollections);
+
+    return relations;
+  }, {});
 }

@@ -22,6 +22,8 @@ export type Schema = {
       'companies:city': string;
       'contacts:id': string;
       'contacts:email': string;
+      'contacts:firstname': string;
+      'contacts:lastname': string;
     };
   };
   'hubspot_companies_deals': {
@@ -44,6 +46,8 @@ export type Schema = {
     plain: {
       'id': string;
       'email': string;
+      'firstname': string;
+      'lastname': string;
     };
     nested: {};
     flat: {};
@@ -60,6 +64,8 @@ export type Schema = {
     flat: {
       'contacts:id': string;
       'contacts:email': string;
+      'contacts:firstname': string;
+      'contacts:lastname': string;
       'deals:id': string;
       'deals:description': string;
     };
@@ -68,14 +74,6 @@ export type Schema = {
     plain: {
       'id': string;
       'description': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'hubspot_flos': {
-    plain: {
-      'id': string;
-      'age': number;
     };
     nested: {};
     flat: {};

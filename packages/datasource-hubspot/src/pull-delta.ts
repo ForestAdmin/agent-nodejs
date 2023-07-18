@@ -6,8 +6,8 @@ import {
   deleteRecordsIfNotExist,
   pullUpdatedOrNewRecords,
   pullUpdatedOrNewRelations,
-} from './get-changes';
-import { getRelationNames, getRelationsOf } from './relations';
+} from './changes';
+import { buildManyToManyNames, getRelationsOf } from './relations';
 import { HubSpotOptions, Response } from './types';
 
 function getRelationsToUpdate(
@@ -61,7 +61,7 @@ export default async function pullDelta<TypingsHubspot>(
   request: PullDeltaRequest,
   logger?: Logger,
 ): Promise<PullDeltaResponse> {
-  const relations = getRelationNames(request.collections);
+  const relations = buildManyToManyNames(request.collections);
   const collections = request.collections.filter(c => !relations.includes(c));
   const response: Response = {
     more: false,
@@ -79,17 +79,19 @@ export default async function pullDelta<TypingsHubspot>(
     response,
   );
 
-  // depending on the response of the previous call.
-  // We should pull the changes to re-compute the relations
+  // depending on the response of the pullUpdatedOrNewRecords call.
+  // We should pull the changes to re-compute the relations.
   await pullUpdatedOrNewRelations(
     client,
     getRelationsToUpdate(response, Object.keys(options.collections)),
     response,
   );
 
-  // delete the records the outdated records that the user is tying to read
   if (request.reasons.map(r => r.name).includes('before-list')) {
     const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');
+    // Avoid to read deleted record.
+    // it does nothing for the many to many relations.
+    // It is useful when a record is deleted from hubspot because we can't detect it.
     await deleteRecordsIfNotExist(
       client,
       await getRecordsToDelete(request.cache, collections, beforeListReasons),
@@ -97,8 +99,7 @@ export default async function pullDelta<TypingsHubspot>(
     );
   }
 
-  if (response.more === false) logger?.('Info', 'All the records are updated');
-  if (response.deletedEntries.length > 0) logger?.('Info', 'Some records have been deleted');
+  if (response.more === false) logger?.('Info', 'Cache is up to date');
 
   return { ...response, nextDeltaState: response.nextState };
 }

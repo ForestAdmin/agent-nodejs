@@ -2,7 +2,7 @@ import { PullDumpRequest, PullDumpResponse } from '@forestadmin/datasource-repli
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { pullRecordsAndRelations } from './get-changes';
+import { pullRecordsAndRelations } from './changes';
 import { getRelationsByCollection } from './relations';
 import { HubSpotOptions, Response } from './types';
 
