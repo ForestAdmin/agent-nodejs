@@ -70,7 +70,7 @@ export type PullDeltaReason =
 export type PullDeltaRequest = {
   previousDeltaState: unknown;
   cache: RelaxedDataSource;
-  collections: string[];
+  affectedCollections: string[];
   reasons: Array<PullDeltaReason & { at: Date }>;
 };
 

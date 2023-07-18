@@ -208,12 +208,13 @@ export default class CustomerSource extends EventTarget implements Synchronizati
       );
       const changes = await this.options.pullDeltaHandler({
         reasons: queue.reasons,
-        collections: [...new Set(collections)],
+        affectedCollections: [...new Set(collections)],
         cache: this.requestCache,
         previousDeltaState: previousState,
       });
 
       await this.target.applyDelta(changes);
+      await this.setDeltaState(changes.nextDeltaState);
       more = changes.more;
     }
 

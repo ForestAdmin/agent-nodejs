@@ -37,7 +37,7 @@ export default async function getDelta(
 
   // Fetch changes for each collection mentioned in the request.
   await Promise.all(
-    request.collections.map(async name => {
+    request.affectedCollections.map(async name => {
       const after = request.previousDeltaState?.[name];
       const fields = options.collections[name];
       const records = await getRecords(client, name, fields, after);

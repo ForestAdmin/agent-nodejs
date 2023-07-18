@@ -118,8 +118,13 @@ export default async function computeFlattenOptions(
   schema: CollectionReplicaSchema[],
   rawOptions: ReplicaDataSourceOptions,
 ): Promise<ResolvedFlattenOptions> {
-  if (rawOptions.flattenMode === 'none') return {};
-  if (rawOptions.flattenMode === 'auto') return getAutoFlattenOptions(schema);
+  if (rawOptions.flattenMode === 'none') {
+    return getManualFlattenOptions(schema, { flattenOptions: {} });
+  }
+
+  if (rawOptions.flattenMode === 'auto') {
+    return getAutoFlattenOptions(schema);
+  }
 
   try {
     return await getManualFlattenOptions(schema, rawOptions);
