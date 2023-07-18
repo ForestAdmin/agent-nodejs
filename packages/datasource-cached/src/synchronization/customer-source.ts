@@ -1,7 +1,7 @@
-/* eslint-disable max-classes-per-file */
 /* eslint-disable no-await-in-loop */
 import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
 import { Deferred } from '@forestadmin/datasource-toolkit';
+import { Cron } from 'croner';
 import { Sequelize } from 'sequelize';
 
 import {
@@ -36,7 +36,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
   private queuedPullDeltaReasons: Queue<PullDeltaReason> = null;
   private queuedPushDeltaRequest: PushDeltaResponse = null;
 
-  private timers: NodeJS.Timer[] = [];
+  private schedules: Cron[] = [];
   private target: SynchronizationTarget;
 
   constructor(connection: Sequelize, options: CachedDataSourceOptions) {
@@ -46,7 +46,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
 
     const hasPullDeltaFlag =
       options.pullDeltaOnRestart ||
-      options.pullDeltaOnTimer ||
+      options.pullDeltaOnSchedule ||
       options.pullDeltaOnAfterWrite ||
       options.pullDeltaOnBeforeAccess;
 
@@ -58,41 +58,49 @@ export default class CustomerSource extends EventTarget implements Synchronizati
   }
 
   async start(target: SynchronizationTarget): Promise<void> {
+    const { options } = this;
+
     if (this.target) throw new Error('Already started');
     this.target = target;
 
     if (
-      this.options.pullDumpHandler &&
-      (this.options.pullDumpOnRestart || (await this.getStartupState()) !== 'done')
+      options.pullDumpHandler &&
+      (options.pullDumpOnRestart || (await this.getStartupState()) !== 'done')
     )
       await this.queuePullDump({ name: 'startup' });
 
-    if (this.options.pullDeltaHandler && this.options.pullDeltaOnRestart)
+    if (options.pullDeltaHandler && options.pullDeltaOnRestart)
       await this.queuePullDelta({ name: 'startup' });
 
-    if (this.options.pushDeltaHandler) {
+    if (options.pushDeltaHandler) {
       const previousDeltaState = await this.getDeltaState();
-      this.options.pushDeltaHandler(
+      options.pushDeltaHandler(
         { cache: this.requestCache, previousDeltaState },
         // fixme queuePushDelta is not returning a promise
         async changes => this.queuePushDelta(changes),
       );
     }
 
-    if (this.options.pullDumpHandler && this.options.pullDumpOnTimer)
-      this.timers.push(
-        setInterval(() => this.queuePullDump({ name: 'timer' }), this.options.pullDumpOnTimer),
-      );
+    if (options.pullDumpHandler && options.pullDumpOnSchedule) {
+      const schedule = options.pullDumpOnSchedule;
 
-    if (this.options.pullDeltaHandler && this.options.pullDeltaOnTimer)
-      this.timers.push(
-        setInterval(() => this.queuePullDelta({ name: 'timer' }), this.options.pullDeltaOnTimer),
-      );
+      for (const pattern of Array.isArray(schedule) ? schedule : [schedule]) {
+        this.schedules.push(Cron(pattern, () => this.queuePullDump({ name: 'schedule' })));
+      }
+    }
+
+    if (options.pullDeltaHandler && options.pullDeltaOnSchedule) {
+      const schedule = options.pullDeltaOnSchedule;
+
+      for (const pattern of Array.isArray(schedule) ? schedule : [schedule]) {
+        this.schedules.push(Cron(pattern, () => this.queuePullDelta({ name: 'schedule' })));
+      }
+    }
   }
 
   async stop(): Promise<void> {
-    this.timers.forEach(timer => clearInterval(timer));
-    this.timers.length = 0;
+    this.schedules.forEach(cron => cron.stop());
+    this.schedules.length = 0;
   }
 
   private queuePushDelta(delta: PushDeltaResponse): void {

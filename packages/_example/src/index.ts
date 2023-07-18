@@ -14,7 +14,8 @@ export default async () => {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Debug',
+    // loggerLevel: 'Debug',
+    loggerLevel: 'Info',
     typingsPath: 'src/typings.ts',
   };
 
@@ -24,7 +25,7 @@ export default async () => {
     await createHubspotDataSource<TypingsHubspot>({
       cacheInto: 'sqlite:/tmp/mydatabase-32.db',
       skipTypings: false,
-      typingsPath: 'src/typings-hubspot.ts',
+
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
         companies: ['description', 'days_to_close', 'city', 'owneremail', 'state'],
