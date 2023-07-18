@@ -1,7 +1,7 @@
 import { CachedCollectionSchema, ColumnType } from '@forestadmin/datasource-cached';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
-import { getManyToManyRelationNames } from './relations';
+import { getRelationNames } from './relations';
 import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 
 function getCollectionSchema(
@@ -91,7 +91,7 @@ export default function getSchema<TypingsHubspot>(
     ),
   );
 
-  getManyToManyRelationNames(Object.keys(collections)).forEach(manyToMany => {
+  getRelationNames(Object.keys(collections)).forEach(manyToMany => {
     const [fromCollectionName, toCollectionName] = manyToMany.split('_');
     schema.push(getCollectionManyToManySchema(fromCollectionName, toCollectionName));
   });

@@ -5,31 +5,22 @@ import { Client } from '@hubspot/api-client';
 import {
   deleteRecordsIfNotExist,
   pullUpdatedOrNewRecords,
-  updateRelationRecords,
+  pullUpdatedOrNewRelations,
 } from './get-changes';
-import { getManyToManyRelationNames } from './relations';
+import { getRelationNames, getRelationsOf } from './relations';
 import { HubSpotOptions, Response } from './types';
 
-async function getRelationsToUpdate(
-  cache,
-  relations,
-  reasons,
-): Promise<{ [relationName: string]: string[] }> {
-  const reasonsOnRelationsToUpdate = reasons.filter(reason =>
-    relations.includes(reason.collection),
-  );
+function getRelationsToUpdate(idsByCollection: {
+  [collectionName: string]: string[];
+}): { id: string; relations: []; collectionName: string }[] {
+  const relations = [];
+  Object.entries(idsByCollection).forEach(([collectionName, ids]) => {
+    ids.forEach(id => {
+      relations.push({ id, collectionName, relations: getRelationsOf(collectionName) });
+    });
+  });
 
-  const relationsToUpdate = {};
-  await Promise.all(
-    reasonsOnRelationsToUpdate.map(async reason => {
-      const id = `${reason.collection.split('_')[0]}_id`;
-      const recordIds = await cache.getCollection(reason.collection).list(reason.filter, [id]);
-
-      relationsToUpdate[reason.collection] = recordIds.map(r => r[id]);
-    }),
-  );
-
-  return relationsToUpdate;
+  return relations;
 }
 
 async function getRecordsToDelete(
@@ -59,7 +50,7 @@ export default async function pullDelta<TypingsHubspot>(
   request: PullDeltaRequest,
   logger?: Logger,
 ): Promise<PullDeltaResponse> {
-  const relations = getManyToManyRelationNames(request.collections);
+  const relations = getRelationNames(request.collections);
   const collections = request.collections.filter(c => !relations.includes(c));
   const response: Response = {
     more: false,
@@ -69,7 +60,6 @@ export default async function pullDelta<TypingsHubspot>(
     deletedEntries: [],
   };
 
-  // first pull the update or new records
   await pullUpdatedOrNewRecords<TypingsHubspot>(
     client,
     collections,
@@ -78,21 +68,21 @@ export default async function pullDelta<TypingsHubspot>(
     response,
   );
 
-  // update the records that the user is tying to read
+  const idsByCollection = {};
+  response.newOrUpdatedEntries.forEach(r => {
+    if (!idsByCollection[r.collection]) idsByCollection[r.collection] = [];
+    idsByCollection[r.collection].push(r.record.id);
+  });
+  await pullUpdatedOrNewRelations(client, getRelationsToUpdate(idsByCollection), response);
+
+  // delete the records the outdated records that the user is tying to read
   if (request.reasons.map(r => r.name).includes('before-list')) {
     const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');
-    const [relationsToUpdate, recordsToDelete] = await Promise.all([
-      // it will return relation if the user is trying to read a many to many
-      getRelationsToUpdate(request.cache, relations, beforeListReasons),
-      // it will delete the record if the user is trying to read a collection
-      // with some outdated records
-      getRecordsToDelete(request.cache, collections, beforeListReasons),
-    ]);
-
-    await Promise.all([
-      updateRelationRecords(client, relationsToUpdate, response),
-      deleteRecordsIfNotExist(client, recordsToDelete, response),
-    ]);
+    await deleteRecordsIfNotExist(
+      client,
+      await getRecordsToDelete(request.cache, collections, beforeListReasons),
+      response,
+    );
   }
 
   if (response.more === false) logger?.('Info', 'All the records are updated');

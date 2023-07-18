@@ -6,11 +6,12 @@ import {
   HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
 } from './constants';
 import {
+  getAssociatedRelationIds,
   getExistingRecordIds,
   getLastModifiedRecords,
   getRecordsAndRelations,
-  getRelations,
 } from './hubspot-api';
+import { getRelationNames } from './relations';
 import { HubSpotOptions, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
@@ -112,32 +113,39 @@ export async function deleteRecordsIfNotExist(
   }
 }
 
-export async function updateRelationRecords(
+export async function pullUpdatedOrNewRelations(
   client: Client,
-  recordIdsByRelation: { [relationName: string]: string[] },
+  recordIdsWithRelation: { id: string; relations: []; collectionName: string }[],
   response: Response,
 ): Promise<void> {
-  const promises: Array<() => void> = [];
-  Object.entries(recordIdsByRelation).forEach(([relationName, ids]) => {
-    const [from, to] = relationName.split('_');
+  await Promise.all(
+    recordIdsWithRelation.map(async record => {
+      const relationIds = await getAssociatedRelationIds(
+        client,
+        record.id,
+        record.collectionName,
+        record.relations,
+      );
 
-    // Using set, to remove the duplicated id to avoid multiple requests
-    for (const id of new Set(ids)) {
-      promises.push(async () => {
-        const relationIds = await getRelations(client, id, from, to);
-        // build the relations tom make it compatible with the forest format
-        const relations = relationIds.map(rId => ({ [`${from}_id`]: id, [`${to}_id`]: rId }));
-
-        // these two steps will remove all the relations and then add the new ones
-        // insert all the relations
-        response.newOrUpdatedEntries.push(
-          ...relations.map(record => ({ collection: relationName, record })),
+      // build the relations tom make it compatible with the forest format
+      Object.entries(relationIds).forEach(([relationName, ids]) => {
+        const [manyToManyName] = getRelationNames([record.collectionName, relationName]);
+        ids.forEach(id =>
+          response.newOrUpdatedEntries.push({
+            collection: manyToManyName,
+            record: {
+              [`${relationName}_id`]: id,
+              [`${record.collectionName}_id`]: record.id,
+            },
+          }),
         );
-        // remove all the relations
-        response.deletedEntries.push({ collection: relationName, record: { [`${from}_id`]: id } });
-      });
-    }
 
-    return Promise.all(promises.map(p => p()));
-  });
+        // remove all the relations
+        response.deletedEntries.push({
+          collection: manyToManyName,
+          record: { [`${record.collectionName}_id`]: record.id },
+        });
+      });
+    }),
+  );
 }

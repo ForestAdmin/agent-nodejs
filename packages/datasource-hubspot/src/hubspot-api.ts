@@ -161,20 +161,21 @@ export async function getLastModifiedRecords(
   );
 }
 
-export async function getRelations(
+export async function getAssociatedRelationIds(
   client: Client,
   recordId: string,
   collectionName: string,
-  relationName: string,
-): Promise<string[]> {
+  relationNames: string[],
+): Promise<{ [relationName: string]: string[] }> {
   let response;
+  const relations = relationNames.length > 0 ? relationNames : undefined;
 
   if (isDefaultCollection(collectionName)) {
     response = await getDiscovery(client, collectionName).basicApi.getById(
       recordId,
       undefined,
       undefined,
-      [relationName],
+      relations,
     );
   } else {
     response = await client.crm.objects.basicApi.getById(
@@ -182,14 +183,18 @@ export async function getRelations(
       recordId,
       undefined,
       undefined,
-      [relationName],
+      relations,
     );
   }
 
-  if (!response.associations?.[relationName]) return [];
+  if (!response.associations) return {};
 
-  // using set to remove duplicated ids
-  return [...new Set(response.associations?.[relationName].results.map(r => r.id) as string[])];
+  return Object.entries(response.associations).reduce((acc, [relationName, relation]) => {
+    // using set to remove duplicated ids when the relation has a label
+    acc[relationName] = Array.from(new Set((relation as any).results.map(r => r.id)));
+
+    return acc;
+  }, {});
 }
 
 export async function getFieldsProperties(
