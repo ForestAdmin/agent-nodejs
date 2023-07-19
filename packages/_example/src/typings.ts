@@ -4,6 +4,8 @@ export type Schema = {
     plain: {
       'id': string;
       'city': string;
+      'name': string;
+      'country': string;
     };
     nested: {};
     flat: {};
@@ -20,6 +22,8 @@ export type Schema = {
     flat: {
       'companies:id': string;
       'companies:city': string;
+      'companies:name': string;
+      'companies:country': string;
       'contacts:id': string;
       'contacts:email': string;
       'contacts:firstname': string;
@@ -38,6 +42,8 @@ export type Schema = {
     flat: {
       'companies:id': string;
       'companies:city': string;
+      'companies:name': string;
+      'companies:country': string;
       'deals:id': string;
       'deals:description': string;
     };

@@ -23,11 +23,11 @@ export default async () => {
 
   agent.addDataSource(
     await createHubspotDataSource<TypingsHubspot>({
-      cacheInto: 'sqlite:/tmp/mydatabase-37.db',
+      cacheInto: 'sqlite:/tmp/mydatabase-13.db',
       skipTypings: false,
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       collections: {
-        companies: ['city'],
+        companies: ['city', 'name', 'country'],
         contacts: ['email', 'firstname', 'lastname'],
         deals: ['description', 'dealstage'],
       },

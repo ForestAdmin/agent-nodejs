@@ -2,6 +2,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { HUBSPOT_COLLECTIONS, HUBSPOT_CUSTOM_COLLECTION, HUBSPOT_MAX_PAGE_SIZE } from './constants';
+import { buildManyToManyNames, getRelationsOf } from './relations';
 import { FieldPropertiesByCollection, Records } from './types';
 
 function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
@@ -75,16 +76,16 @@ export async function fetchRecordsAndRelations(
       const pairsToSave = new Set();
 
       collectionResult.associations?.[relationName].results.forEach(relationResult => {
-        const relationManyToMany = `${collectionName}_${relationName}`;
         // the relation are duplicated when there are a label
         // we need to save only one
         const pairToSave = `${collectionResult.id}-${relationResult.id}`;
         if (pairsToSave.has(pairToSave)) return;
-        pairsToSave.add(pairToSave);
 
-        records[relationManyToMany] = records[relationManyToMany] ?? [];
+        pairsToSave.add(pairToSave);
+        const [manyToMany] = buildManyToManyNames([collectionName, relationName]);
+        if (!records[manyToMany]) records[manyToMany] = [];
         // build the relation as many to many
-        records[relationManyToMany].push({
+        records[manyToMany].push({
           [`${collectionName}_id`]: collectionResult.id,
           [`${relationName}_id`]: relationResult.id,
         });
