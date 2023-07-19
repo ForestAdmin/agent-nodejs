@@ -73,10 +73,9 @@ export default class CustomerSource extends EventTarget implements Synchronizati
       await this.queuePullDelta({ name: 'startup' });
 
     if (options.pushDeltaHandler) {
-      const previousDeltaState = await this.getDeltaState();
+      // fixme queuePushDelta is not returning a promise
       options.pushDeltaHandler(
-        { cache: this.requestCache, previousDeltaState },
-        // fixme queuePushDelta is not returning a promise
+        { cache: this.requestCache, getPreviousDeltaState: () => this.getDeltaState() },
         async changes => this.queuePushDelta(changes),
       );
     }

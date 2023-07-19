@@ -24,6 +24,14 @@ export default async () => {
 
   const agent = createAgent<Schema>(envOptions);
 
+  // const { createAgent } = require('@forestadmin/agent');
+
+  // const agent = createAgent({
+  //   authSecret: process.env.FOREST_AUTH_SECRET,
+  //   envSecret: process.env.FOREST_ENV_SECRET,
+  //   isProduction: process.env.NODE_ENV === 'production',
+  // });
+
   agent.addDataSource(
     createReplicaDataSource({
       // Use an in-memory SQLite database for caching.
@@ -46,6 +54,10 @@ export default async () => {
           entries, // The list of records to keep in cache.
         };
       },
+
+      createRecord: async (collectionName, record) => {},
+      updateRecord: async (collectionName, record) => {},
+      deleteRecord: async (collectionName, record) => {},
     }),
   );
 

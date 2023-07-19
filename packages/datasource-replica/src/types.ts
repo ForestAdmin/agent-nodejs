@@ -81,7 +81,7 @@ export type PullDumpRequest = {
 };
 
 export type PushDeltaRequest = {
-  previousDeltaState: unknown;
+  getPreviousDeltaState(): unknown;
   cache: RelaxedDataSource;
 };
 
