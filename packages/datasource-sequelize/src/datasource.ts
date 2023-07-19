@@ -16,6 +16,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     super();
 
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
+    if (!sequelize.models) throw new Error('Invalid (null) Sequelize models.');
 
     this.sequelize = sequelize;
 
