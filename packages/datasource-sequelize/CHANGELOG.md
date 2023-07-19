@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.3.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.2...@forestadmin/datasource-sequelize@1.3.3) (2023-07-19)
+
+
+### Bug Fixes
+
+* throw error on null sequelize models ([#768](https://github.com/ForestAdmin/agent-nodejs/issues/768)) ([aeb3b01](https://github.com/ForestAdmin/agent-nodejs/commit/aeb3b01c90e4d3e85b007482c4859f53cd79db87))
+
 ## @forestadmin/datasource-sequelize [1.3.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.1...@forestadmin/datasource-sequelize@1.3.2) (2023-06-29)
 
 
