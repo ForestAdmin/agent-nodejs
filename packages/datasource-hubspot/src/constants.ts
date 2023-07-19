@@ -28,3 +28,5 @@ export const HUBSPOT_COLLECTIONS = [
 export const HUBSPOT_MAX_PAGE_SIZE = 100;
 export const HUBSPOT_RATE_LIMIT_SEARCH_REQUEST = 4;
 export const HUBSPOT_RATE_LIMIT_FILTER_VALUES = 100;
+
+export const MANY_TO_MANY_SEPARATOR = '___';

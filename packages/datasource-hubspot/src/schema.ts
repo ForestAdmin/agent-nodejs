@@ -1,7 +1,7 @@
 import { CollectionReplicaSchema, ColumnType } from '@forestadmin/datasource-replica';
 import { Logger } from '@forestadmin/datasource-toolkit';
 
-import { buildManyToManyNames } from './relations';
+import { buildManyToManyNames, getCollectionNames } from './relations';
 import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
 
 function getCollectionSchema(
@@ -44,12 +44,11 @@ function getCollectionSchema(
   return collection;
 }
 
-function getCollectionManyToManySchema(
-  fromCollectionName: string,
-  toCollectionName: string,
-): CollectionReplicaSchema {
+function getCollectionManyToManySchema(manyToManyName: string): CollectionReplicaSchema {
+  const [fromCollectionName, toCollectionName] = getCollectionNames(manyToManyName);
+
   return {
-    name: `${fromCollectionName}_${toCollectionName}`,
+    name: manyToManyName,
     fields: {
       [`${fromCollectionName}_id`]: {
         type: 'String',
@@ -92,8 +91,7 @@ export default function getSchema<TypingsHubspot>(
   );
 
   buildManyToManyNames(Object.keys(collections)).forEach(manyToMany => {
-    const [fromCollectionName, toCollectionName] = manyToMany.split('_');
-    schema.push(getCollectionManyToManySchema(fromCollectionName, toCollectionName));
+    schema.push(getCollectionManyToManySchema(manyToMany));
   });
 
   return schema;
