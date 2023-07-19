@@ -131,7 +131,7 @@ export type ReplicaDataSourceOptions = {
 
   /** Writing options */
   createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
-  updateRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
+  updateRecord?: (collectionName: string, record: RecordData) => Promise<void>;
   deleteRecord?: (collectionName: string, record: RecordData) => Promise<void>;
 
   /** Push options */
