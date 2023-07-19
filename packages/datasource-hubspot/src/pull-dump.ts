@@ -8,9 +8,9 @@ import { HubSpotOptions, Response } from './types';
 
 /**
  * example:
- * input: { contacts: ['companies', 'deals'], companies: ['contacts', 'deals'] }
- * 'deals' must removed from 'companies' to avoid to fetch 'companies-deals' relations twice.
- * output: { contacts: ['companies', 'deals'], companies: ['contacts'] }
+ * input: { contacts: ['companies', 'deals'], companies: ['contacts', 'project'] }
+ * 'contacts' must removed from 'companies' to avoid to fetch 'companies-contacts' relation twice.
+ * output: { contacts: ['companies', 'deals'], companies: ['project'] }
  */
 function buildUniqueRelations(relationsByCollection: { [collectionName: string]: string[] }): {
   [collectionName: string]: string[];

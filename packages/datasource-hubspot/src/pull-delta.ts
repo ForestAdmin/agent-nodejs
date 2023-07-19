@@ -61,8 +61,8 @@ export default async function pullDelta<TypingsHubspot>(
   request: PullDeltaRequest,
   logger?: Logger,
 ): Promise<PullDeltaResponse> {
-  const relations = buildManyToManyNames(request.collections);
-  const collections = request.collections.filter(c => !relations.includes(c));
+  const manyToManyRelations = buildManyToManyNames(Object.keys(options.collections));
+  const collections = request.collections.filter(c => !manyToManyRelations.includes(c));
   const response: Response = {
     more: false,
     // save the previous delta state
@@ -81,11 +81,8 @@ export default async function pullDelta<TypingsHubspot>(
 
   // depending on the response of the pullUpdatedOrNewRecords call.
   // We should pull the changes to re-compute the relations.
-  await pullUpdatedOrNewRelations(
-    client,
-    getRelationsToUpdate(response, Object.keys(options.collections)),
-    response,
-  );
+  const relationsToUpdate = getRelationsToUpdate(response, Object.keys(options.collections));
+  await pullUpdatedOrNewRelations(client, relationsToUpdate, response);
 
   if (request.reasons.map(r => r.name).includes('before-list')) {
     const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');

@@ -1,5 +1,5 @@
 const COMPANIES = 'companies';
-const CONTACTS = 'contacts';
+export const CONTACTS = 'contacts';
 const DEALS = 'deals';
 const FEEDBACK_SUBMISSIONS = 'feedback_submissions';
 const LINE_ITEMS = 'line_items';
@@ -20,12 +20,6 @@ export const HUBSPOT_COLLECTIONS = [
   TICKETS,
   HUBSPOT_CUSTOM_COLLECTION,
 ];
-
-/**
- * Reference: https://developers.hubspot.com/docs/api/crm/associations#contact-to-object
- * We only support the following relations.
- * */
-export const COLLECTIONS_WITH_MANY_TO_MANY_RELATIONS = [COMPANIES, CONTACTS, DEALS, TICKETS];
 
 /**
  * This seems to be the actual maximum page size (did not find it in the documentation).

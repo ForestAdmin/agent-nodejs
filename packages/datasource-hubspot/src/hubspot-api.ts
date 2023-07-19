@@ -1,8 +1,13 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { HUBSPOT_COLLECTIONS, HUBSPOT_CUSTOM_COLLECTION, HUBSPOT_MAX_PAGE_SIZE } from './constants';
-import { buildManyToManyNames, getRelationsOf } from './relations';
+import {
+  CONTACTS,
+  HUBSPOT_COLLECTIONS,
+  HUBSPOT_CUSTOM_COLLECTION,
+  HUBSPOT_MAX_PAGE_SIZE,
+} from './constants';
+import { buildManyToManyNames } from './relations';
 import { FieldPropertiesByCollection, Records } from './types';
 
 function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
@@ -72,10 +77,13 @@ export async function fetchRecordsAndRelations(
 
     // get its relations
     relationNames.forEach(relationName => {
-      if (!collectionResult.associations?.[relationName]) return;
+      const relationNameWithPrefixId = Object.keys(collectionResult.associations ?? {}).find(
+        relation => relation.includes(relationName),
+      );
+      if (!relationNameWithPrefixId) return;
       const pairsToSave = new Set();
 
-      collectionResult.associations?.[relationName].results.forEach(relationResult => {
+      collectionResult.associations?.[relationNameWithPrefixId].results.forEach(relationResult => {
         // the relation are duplicated when there are a label
         // we need to save only one
         const pairToSave = `${collectionResult.id}-${relationResult.id}`;
@@ -126,17 +134,16 @@ export async function getLastModifiedRecords(
   fields: string[],
   lastModifiedDate?: string,
 ): Promise<Records> {
+  const propertyName = collectionName === CONTACTS ? 'lastmodifieddate' : 'hs_lastmodifieddate';
   const filter = {
     filterGroups: lastModifiedDate
       ? [
           {
-            filters: [
-              { propertyName: 'hs_lastmodifieddate', operator: 'GT', value: lastModifiedDate },
-            ],
+            filters: [{ propertyName, operator: 'GT', value: lastModifiedDate }],
           },
         ]
       : [],
-    sorts: ['hs_lastmodifieddate'],
+    sorts: [propertyName],
     properties: fields,
     limit: HUBSPOT_MAX_PAGE_SIZE,
     after: 0,

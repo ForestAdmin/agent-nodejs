@@ -25,6 +25,8 @@ export async function createHubspotDataSource<TypingsHubspot>(
       writeCollectionsTypeFileIfChange(fieldsProperties, path, logger);
     }
 
+    // fetch all the relations
+
     const factory = createReplicaDataSource({
       cacheNamespace: 'hubspot',
       schema: getSchema(fieldsProperties, options.collections, logger),
