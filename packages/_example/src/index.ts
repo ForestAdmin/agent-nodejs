@@ -30,7 +30,7 @@ export default async () => {
         companies: ['city', 'name', 'country'],
         contacts: ['email', 'firstname', 'lastname'],
         deals: ['description', 'dealstage'],
-        line_items: [],
+        line_items: ['hubspot_owner_id'],
         quotes: ['hs_sender_company_name'],
         feedback_submissions: ['hubspot_owner_id'],
         tickets: ['content'],

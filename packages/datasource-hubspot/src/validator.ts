@@ -17,6 +17,12 @@ export default function validateCollectionsProperties<TypingsHubspot>(
       );
     }
 
+    if (propertiesFromUser[collectionName].length === 0) {
+      throw new Error(
+        `Collection ${collectionName} has no properties. Please check your configuration.`,
+      );
+    }
+
     propertiesFromUser[collectionName].forEach(propertyFromUser => {
       if (!collectionProperties.find(property => property.name === propertyFromUser)) {
         throw new Error(
