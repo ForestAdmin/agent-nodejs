@@ -65,22 +65,22 @@ export type Schema = {
       'feedback_submissions:id': string;
     };
   };
-  'hubspot_companies___flos': {
+  'hubspot_companies___forests': {
     plain: {
       'companies_id': string;
-      'flos_id': string;
+      'forests_id': string;
     };
     nested: {
       'companies': Schema['hubspot_companies']['plain'] & Schema['hubspot_companies']['nested'];
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
     };
     flat: {
       'companies:id': string;
       'companies:city': string;
       'companies:name': string;
       'companies:country': string;
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
     };
   };
   'hubspot_companies___line_items': {
@@ -115,6 +115,7 @@ export type Schema = {
       'companies:name': string;
       'companies:country': string;
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
     };
   };
   'hubspot_companies___testalbans': {
@@ -150,6 +151,7 @@ export type Schema = {
       'companies:name': string;
       'companies:country': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_contacts': {
@@ -197,22 +199,22 @@ export type Schema = {
       'feedback_submissions:id': string;
     };
   };
-  'hubspot_contacts___flos': {
+  'hubspot_contacts___forests': {
     plain: {
       'contacts_id': string;
-      'flos_id': string;
+      'forests_id': string;
     };
     nested: {
       'contacts': Schema['hubspot_contacts']['plain'] & Schema['hubspot_contacts']['nested'];
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
     };
     flat: {
       'contacts:id': string;
       'contacts:email': string;
       'contacts:firstname': string;
       'contacts:lastname': string;
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
     };
   };
   'hubspot_contacts___line_items': {
@@ -247,6 +249,7 @@ export type Schema = {
       'contacts:firstname': string;
       'contacts:lastname': string;
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
     };
   };
   'hubspot_contacts___testalbans': {
@@ -282,6 +285,7 @@ export type Schema = {
       'contacts:firstname': string;
       'contacts:lastname': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_deals': {
@@ -307,20 +311,20 @@ export type Schema = {
       'feedback_submissions:id': string;
     };
   };
-  'hubspot_deals___flos': {
+  'hubspot_deals___forests': {
     plain: {
       'deals_id': string;
-      'flos_id': string;
+      'forests_id': string;
     };
     nested: {
       'deals': Schema['hubspot_deals']['plain'] & Schema['hubspot_deals']['nested'];
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
     };
     flat: {
       'deals:id': string;
       'deals:description': string;
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
     };
   };
   'hubspot_deals___line_items': {
@@ -351,6 +355,7 @@ export type Schema = {
       'deals:id': string;
       'deals:description': string;
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
     };
   };
   'hubspot_deals___testalbans': {
@@ -382,6 +387,7 @@ export type Schema = {
       'deals:id': string;
       'deals:description': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_feedback_submissions': {
@@ -391,19 +397,19 @@ export type Schema = {
     nested: {};
     flat: {};
   };
-  'hubspot_feedback_submissions___flos': {
+  'hubspot_feedback_submissions___forests': {
     plain: {
       'feedback_submissions_id': string;
-      'flos_id': string;
+      'forests_id': string;
     };
     nested: {
       'feedback_submissions': Schema['hubspot_feedback_submissions']['plain'] & Schema['hubspot_feedback_submissions']['nested'];
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
     };
     flat: {
       'feedback_submissions:id': string;
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
     };
   };
   'hubspot_feedback_submissions___line_items': {
@@ -432,6 +438,7 @@ export type Schema = {
     flat: {
       'feedback_submissions:id': string;
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
     };
   };
   'hubspot_feedback_submissions___testalbans': {
@@ -461,75 +468,78 @@ export type Schema = {
     flat: {
       'feedback_submissions:id': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
-  'hubspot_flos': {
+  'hubspot_forests': {
     plain: {
       'id': string;
-      'age': number;
+      'fieldpro': string;
     };
     nested: {};
     flat: {};
   };
-  'hubspot_flos___line_items': {
+  'hubspot_forests___line_items': {
     plain: {
-      'flos_id': string;
+      'forests_id': string;
       'line_items_id': string;
     };
     nested: {
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
       'line_items': Schema['hubspot_line_items']['plain'] & Schema['hubspot_line_items']['nested'];
     };
     flat: {
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
       'line_items:id': string;
     };
   };
-  'hubspot_flos___quotes': {
+  'hubspot_forests___quotes': {
     plain: {
-      'flos_id': string;
+      'forests_id': string;
       'quotes_id': string;
     };
     nested: {
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
       'quotes': Schema['hubspot_quotes']['plain'] & Schema['hubspot_quotes']['nested'];
     };
     flat: {
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
     };
   };
-  'hubspot_flos___testalbans': {
+  'hubspot_forests___testalbans': {
     plain: {
-      'flos_id': string;
+      'forests_id': string;
       'testalbans_id': string;
     };
     nested: {
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
       'testalbans': Schema['hubspot_testalbans']['plain'] & Schema['hubspot_testalbans']['nested'];
     };
     flat: {
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
       'testalbans:id': string;
       'testalbans:mon_object_perso': string;
     };
   };
-  'hubspot_flos___tickets': {
+  'hubspot_forests___tickets': {
     plain: {
-      'flos_id': string;
+      'forests_id': string;
       'tickets_id': string;
     };
     nested: {
-      'flos': Schema['hubspot_flos']['plain'] & Schema['hubspot_flos']['nested'];
+      'forests': Schema['hubspot_forests']['plain'] & Schema['hubspot_forests']['nested'];
       'tickets': Schema['hubspot_tickets']['plain'] & Schema['hubspot_tickets']['nested'];
     };
     flat: {
-      'flos:id': string;
-      'flos:age': number;
+      'forests:id': string;
+      'forests:fieldpro': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_line_items': {
@@ -551,6 +561,7 @@ export type Schema = {
     flat: {
       'line_items:id': string;
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
     };
   };
   'hubspot_line_items___testalbans': {
@@ -580,11 +591,13 @@ export type Schema = {
     flat: {
       'line_items:id': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_quotes': {
     plain: {
       'id': string;
+      'hs_sender_company_name': string;
     };
     nested: {};
     flat: {};
@@ -600,6 +613,7 @@ export type Schema = {
     };
     flat: {
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
       'testalbans:id': string;
       'testalbans:mon_object_perso': string;
     };
@@ -615,7 +629,9 @@ export type Schema = {
     };
     flat: {
       'quotes:id': string;
+      'quotes:hs_sender_company_name': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_testalbans': {
@@ -639,11 +655,13 @@ export type Schema = {
       'testalbans:id': string;
       'testalbans:mon_object_perso': string;
       'tickets:id': string;
+      'tickets:content': string;
     };
   };
   'hubspot_tickets': {
     plain: {
       'id': string;
+      'content': string;
     };
     nested: {};
     flat: {};

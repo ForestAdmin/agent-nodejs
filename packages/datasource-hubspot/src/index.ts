@@ -18,14 +18,13 @@ export async function createHubspotDataSource<TypingsHubspot>(
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
     const fieldsProperties = await fetchFieldsProperties(client, HUBSPOT_COLLECTIONS, logger);
-    validateCollectionsProperties(options.collections, fieldsProperties);
 
     if (!options.skipTypings) {
       const path = options.typingsPath ?? 'src/typings-hubspot.ts';
       writeCollectionsTypeFileIfChange(fieldsProperties, path, logger);
     }
 
-    // fetch all the relations
+    validateCollectionsProperties(options.collections, fieldsProperties);
 
     const factory = createReplicaDataSource({
       cacheNamespace: 'hubspot',

@@ -77,12 +77,15 @@ export async function fetchRecordsAndRelations(
 
     // get its relations
     relationNames.forEach(relationName => {
+      // the relation name is returned with an prefix id when it is a custom collection
+      // that's why we search the relation using 'includes' instead of '==='
+      // Ex: 'myCustomRelation' => 'p15165454_myCustomRelation'
       const relationNameWithPrefixId = Object.keys(collectionResult.associations ?? {}).find(
         relation => relation.includes(relationName),
       );
       if (!relationNameWithPrefixId) return;
-      const pairsToSave = new Set();
 
+      const pairsToSave = new Set();
       collectionResult.associations?.[relationNameWithPrefixId].results.forEach(relationResult => {
         // the relation are duplicated when there are a label
         // we need to save only one
@@ -198,9 +201,18 @@ export async function fetchRelationOfRecord(
   if (!response.associations) return {};
 
   return Object.entries(response.associations).reduce((acc, [relationName, relation]) => {
+    let computedRelationName = relationName;
+
+    // if match p{portal_id}_{relation_name}
+    // example: p15165454_relation_name
+    if (computedRelationName.match(/^p\d+_/)) {
+      // remove the p{portal_id}_ prefix
+      computedRelationName = computedRelationName.replace(/^p\d+_/, '');
+    }
+
     const ids = (relation as any).results.map(r => r.id);
     // using set to remove duplicated ids when the relation has a label
-    acc[relationName] = Array.from(new Set(ids));
+    acc[computedRelationName] = Array.from(new Set(ids));
 
     return acc;
   }, {});

@@ -675,6 +675,7 @@ export type TypingsHubspot = {
     | 'hubspot_owner_assigneddate'
     | 'hubspot_owner_id'
     | 'hubspot_team_id'
+    | 'test_question'
   >;
   flos?: Array<
     | 'age'
@@ -703,6 +704,32 @@ export type TypingsHubspot = {
     | 'hubspot_team_id'
     | 'nom_de_famille'
     | 'toto'
+  >;
+  forests?: Array<
+    | 'fieldpro'
+    | 'hs_all_accessible_team_ids'
+    | 'hs_all_assigned_business_unit_ids'
+    | 'hs_all_owner_ids'
+    | 'hs_all_team_ids'
+    | 'hs_created_by_user_id'
+    | 'hs_createdate'
+    | 'hs_lastmodifieddate'
+    | 'hs_merged_object_ids'
+    | 'hs_object_id'
+    | 'hs_object_source'
+    | 'hs_object_source_id'
+    | 'hs_object_source_user_id'
+    | 'hs_pinned_engagement_id'
+    | 'hs_read_only'
+    | 'hs_unique_creation_key'
+    | 'hs_updated_by_user_id'
+    | 'hs_user_ids_of_all_notification_followers'
+    | 'hs_user_ids_of_all_notification_unfollowers'
+    | 'hs_user_ids_of_all_owners'
+    | 'hs_was_imported'
+    | 'hubspot_owner_assigneddate'
+    | 'hubspot_owner_id'
+    | 'hubspot_team_id'
   >;
   line_items?: Array<
     | 'amount'
