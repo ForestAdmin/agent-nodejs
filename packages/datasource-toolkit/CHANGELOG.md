@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.5.1...@forestadmin/datasource-toolkit@1.5.2) (2023-07-20)
+
+
+### Bug Fixes
+
+* **add field decorator:** throw when put space inside fieldName ([#767](https://github.com/ForestAdmin/agent-nodejs/issues/767)) ([b6840ef](https://github.com/ForestAdmin/agent-nodejs/commit/b6840efaeada99d8056802566e557f57f0c8b4e4))
+
 ## @forestadmin/datasource-toolkit [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.5.0...@forestadmin/datasource-toolkit@1.5.1) (2023-06-29)
 
 
