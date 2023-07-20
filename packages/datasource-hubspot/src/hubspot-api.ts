@@ -1,12 +1,7 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import {
-  CONTACTS,
-  HUBSPOT_COLLECTIONS,
-  HUBSPOT_CUSTOM_COLLECTION,
-  HUBSPOT_MAX_PAGE_SIZE,
-} from './constants';
+import { CONTACTS, HUBSPOT_COLLECTIONS, HUBSPOT_MAX_PAGE_SIZE } from './constants';
 import { getManyToManyNamesOf } from './relations';
 import { FieldPropertiesByCollection, Records } from './types';
 
@@ -227,21 +222,25 @@ export async function fetchFieldsProperties(
 
   const promises = collections.map(async collectionName => {
     try {
-      if (collectionName === HUBSPOT_CUSTOM_COLLECTION) {
-        const customCollections = await client.crm.schemas.coreApi.getAll(false);
-        customCollections.results.forEach(collection => {
-          fieldsByCollection[collection.name] = collection.properties;
-        });
-      } else {
-        const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
-        fieldsByCollection[collectionName] = fields;
-      }
+      const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
+      fieldsByCollection[collectionName] = fields;
     } catch (e) {
       handleErrors(e, collectionName, logger);
     }
   });
 
-  await Promise.all(promises);
+  const fetchCustomCollections = async (): Promise<void> => {
+    try {
+      const customCollections = await client.crm.schemas.coreApi.getAll(false);
+      customCollections.results.forEach(collection => {
+        fieldsByCollection[collection.name] = collection.properties;
+      });
+    } catch (e) {
+      handleErrors(e, 'custom collection', logger);
+    }
+  };
+
+  await Promise.all([...promises, fetchCustomCollections]);
 
   return fieldsByCollection;
 }

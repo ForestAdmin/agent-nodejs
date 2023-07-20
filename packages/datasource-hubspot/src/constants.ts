@@ -7,8 +7,6 @@ const PRODUCTS = 'products';
 const QUOTES = 'quotes';
 const TICKETS = 'tickets';
 
-export const HUBSPOT_CUSTOM_COLLECTION = 'schema';
-
 export const HUBSPOT_COLLECTIONS = [
   COMPANIES,
   CONTACTS,
@@ -18,7 +16,6 @@ export const HUBSPOT_COLLECTIONS = [
   PRODUCTS,
   QUOTES,
   TICKETS,
-  HUBSPOT_CUSTOM_COLLECTION,
 ];
 
 /**
