@@ -12,7 +12,7 @@ import {
   getLastModifiedRecords,
 } from './hubspot-api';
 import { getManyToManyNamesOf } from './relations';
-import { HubSpotOptions, Records, Response } from './types';
+import { HubSpotOptions, RecordWithRelationNames, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
 export async function pullUpdatedOrNewRecords<TypingsHubspot>(
@@ -126,11 +126,11 @@ export async function deleteRecordsAndItsRelationIfDeleted(
 
 export async function pullUpdatedOrNewRelations(
   client: Client,
-  recordIdsWithRelation: { id: string; relations: []; collectionName: string }[],
+  records: RecordWithRelationNames[],
   response: Response,
 ): Promise<void> {
   await Promise.all(
-    recordIdsWithRelation.map(async record => {
+    records.map(async record => {
       const manyToManyRelations = getManyToManyNamesOf(record.collectionName, [
         record.collectionName,
         ...record.relations,

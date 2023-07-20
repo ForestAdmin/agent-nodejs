@@ -5,7 +5,7 @@ import {
 
 export type HubSpotOptions<TypingCollections = undefined> = {
   accessToken: string;
-  collections: TypingCollections | FieldPropertiesByCollection;
+  collections: TypingCollections | { [collectionName: string]: string[] };
   cacheInto?: ReplicaDataSourceOptions['cacheInto'];
   typingsPath?: string;
   pullDumpOnSchedule?: ReplicaDataSourceOptions['pullDeltaOnSchedule'];
@@ -16,9 +16,8 @@ export type HubSpotOptions<TypingCollections = undefined> = {
   skipTypings?: boolean;
 };
 
-export type FieldProperties = Record<string, any>[];
-
-export type FieldPropertiesByCollection = { [collectionName: string]: FieldProperties };
+export type FieldProperty = { [fieldName: string]: any };
+export type FieldPropertiesByCollection = { [collectionName: string]: FieldProperty[] };
 
 export type Records = Record<string, any>[];
 
@@ -28,3 +27,5 @@ export type Response = {
   deletedEntries: RecordDataWithCollection[];
   nextState: unknown;
 };
+
+export type RecordWithRelationNames = { id: string; relations: []; collectionName: string };

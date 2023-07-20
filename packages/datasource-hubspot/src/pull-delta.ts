@@ -8,12 +8,12 @@ import {
   pullUpdatedOrNewRelations,
 } from './changes';
 import { buildManyToManyNames, getRelationsOf } from './relations';
-import { HubSpotOptions, Response } from './types';
+import { HubSpotOptions, RecordWithRelationNames, Response } from './types';
 
-function getRelationsToUpdate(
+function prepareRecordsToUpdate(
   response: Response,
   availableCollections: string[],
-): { id: string; relations: []; collectionName: string }[] {
+): RecordWithRelationNames[] {
   const idsByCollection: { [collectionName: string]: string[] } = {};
   response.newOrUpdatedEntries.forEach(r => {
     if (!idsByCollection[r.collection]) idsByCollection[r.collection] = [];
@@ -81,7 +81,7 @@ export default async function pullDelta<TypingsHubspot>(
 
   // depending on the response of the pullUpdatedOrNewRecords call.
   // We should pull the changes to re-compute the relations.
-  const relationsToUpdate = getRelationsToUpdate(response, Object.keys(options.collections));
+  const relationsToUpdate = prepareRecordsToUpdate(response, Object.keys(options.collections));
   await pullUpdatedOrNewRelations(client, relationsToUpdate, response);
 
   if (request.reasons.map(r => r.name).includes('before-list')) {

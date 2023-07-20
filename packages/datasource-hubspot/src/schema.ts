@@ -2,12 +2,12 @@ import { CollectionReplicaSchema, ColumnType } from '@forestadmin/datasource-rep
 import { Logger } from '@forestadmin/datasource-toolkit';
 
 import { buildManyToManyNames, getCollectionNames } from './relations';
-import { FieldProperties, FieldPropertiesByCollection, HubSpotOptions } from './types';
+import { FieldPropertiesByCollection, FieldProperty, HubSpotOptions } from './types';
 
 function getCollectionSchema(
   collectionName: string,
   fields: string[],
-  fieldProperties: FieldProperties,
+  fieldProperties: FieldProperty[],
   logger?: Logger,
 ): CollectionReplicaSchema {
   const collection: CollectionReplicaSchema = {
