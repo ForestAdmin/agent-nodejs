@@ -44,12 +44,12 @@ function isDefaultCollection(collectionName: string): boolean {
 export async function fetchRecordsAndRelations(
   client: Client,
   collectionName: string,
-  relationNames: string[],
   properties: string[],
+  relationNames?: string[],
   afterId?: string,
 ): Promise<{ [collectionName: string]: Records }> {
   let response;
-  const relations = relationNames.length > 0 ? relationNames : undefined;
+  const relations = relationNames?.length > 0 ? relationNames : undefined;
 
   if (isDefaultCollection(collectionName)) {
     response = await getDiscovery(client, collectionName).basicApi.getPage(
@@ -76,7 +76,7 @@ export async function fetchRecordsAndRelations(
     records[collectionName].push({ id: collectionResult.id, ...collectionResult.properties });
 
     // get its relations
-    relationNames.forEach(relationName => {
+    relationNames?.forEach(relationName => {
       // the relation name is returned with an prefix id when it is a custom collection
       // that's why we search the relation using 'includes' instead of '==='
       // Ex: 'myCustomRelation' => 'p15165454_myCustomRelation'

@@ -49,7 +49,7 @@ export default async function pullDump<TypingsHubspot>(
   await pullRecordsAndRelations(
     client,
     buildUniqueRelations(getRelationsByCollection(Object.keys(options.collections))),
-    options.collections as Record<string, string[]>,
+    options.collections as { [collectionName: string]: string[] },
     request.previousDumpState,
     response,
   );

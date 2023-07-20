@@ -54,13 +54,13 @@ export async function pullRecordsAndRelations(
   previousState: unknown,
   response: Response,
 ): Promise<void> {
-  const promises = Object.keys(relations).map(async collectionName => {
+  const promises = Object.keys(properties).map(async collectionName => {
     const afterId = previousState?.[collectionName];
     const records = await fetchRecordsAndRelations(
       client,
       collectionName,
-      relations[collectionName],
       properties[collectionName],
+      relations[collectionName],
       afterId,
     );
 
