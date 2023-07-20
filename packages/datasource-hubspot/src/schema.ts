@@ -18,13 +18,20 @@ function getCollectionSchema(
   };
 
   for (const fieldName of fields) {
-    const property = fieldProperties.find(p => p.name === fieldName);
-    if (!property) throw new Error(`property ${fieldName} does not exists`);
-
     let type: ColumnType;
     let enumValues: string[];
 
-    if (property.type === 'string') type = 'String';
+    const property = fieldProperties.find(p => p.name === fieldName);
+
+    // Hubspot doesn't return all the created properties.
+    // We can't know the type. So we assume it's a string.
+    if (!property) {
+      logger(
+        'Warn',
+        `Property "${fieldName}" doesn't be found in Hubspot. We assume it's a string`,
+      );
+      type = 'String';
+    } else if (property.type === 'string') type = 'String';
     else if (property.type === 'datetime' || property.type === 'date') type = 'Date';
     else if (property.type === 'number') type = 'Number';
     else if (property.type === 'enumeration') {

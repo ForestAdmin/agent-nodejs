@@ -4,6 +4,7 @@ import { Client } from '@hubspot/api-client';
 import { CONTACTS, HUBSPOT_COLLECTIONS, HUBSPOT_MAX_PAGE_SIZE } from './constants';
 import { getManyToManyNamesOf } from './relations';
 import { FieldPropertiesByCollection, Records } from './types';
+import { retryIfLimitReached } from './utils';
 
 function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
   if (error.code === 429) {
@@ -43,27 +44,32 @@ export async function fetchRecordsAndRelations(
   relationNames?: string[],
   afterId?: string,
 ): Promise<{ [collectionName: string]: Records }> {
-  let response;
   const relations = relationNames?.length > 0 ? relationNames : undefined;
 
-  if (isDefaultCollection(collectionName)) {
-    response = await getDiscovery(client, collectionName).basicApi.getPage(
-      HUBSPOT_MAX_PAGE_SIZE,
-      afterId,
-      properties,
-      undefined,
-      relations,
-    );
-  } else {
-    response = await client.crm.objects.basicApi.getPage(
-      collectionName,
-      HUBSPOT_MAX_PAGE_SIZE,
-      afterId,
-      properties,
-      undefined,
-      relations,
-    );
-  }
+  const response = await retryIfLimitReached(
+    async () => {
+      if (isDefaultCollection(collectionName)) {
+        return getDiscovery(client, collectionName).basicApi.getPage(
+          HUBSPOT_MAX_PAGE_SIZE,
+          afterId,
+          properties,
+          undefined,
+          relations,
+        );
+      }
+
+      return client.crm.objects.basicApi.getPage(
+        collectionName,
+        HUBSPOT_MAX_PAGE_SIZE,
+        afterId,
+        properties,
+        undefined,
+        relations,
+      );
+    },
+    3,
+    200,
+  );
 
   return response.results.reduce((records, collectionResult) => {
     // get the record
@@ -222,8 +228,8 @@ export async function fetchFieldsProperties(
 
   const promises = collections.map(async collectionName => {
     try {
-      const { results: fields } = await client.crm.properties.coreApi.getAll(collectionName);
-      fieldsByCollection[collectionName] = fields;
+      const { results } = await client.crm.properties.coreApi.getAll(collectionName, false);
+      fieldsByCollection[collectionName] = results;
     } catch (e) {
       handleErrors(e, collectionName, logger);
     }
@@ -240,7 +246,7 @@ export async function fetchFieldsProperties(
     }
   };
 
-  await Promise.all([...promises, fetchCustomCollections]);
+  await Promise.all([...promises, fetchCustomCollections()]);
 
   return fieldsByCollection;
 }

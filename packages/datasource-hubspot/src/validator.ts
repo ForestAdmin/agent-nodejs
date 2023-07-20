@@ -22,14 +22,5 @@ export default function validateCollectionsProperties<TypingsHubspot>(
         `Collection ${collectionName} has no properties. Please check your configuration.`,
       );
     }
-
-    propertiesFromUser[collectionName].forEach(propertyFromUser => {
-      if (!collectionProperties.find(property => property.name === propertyFromUser)) {
-        throw new Error(
-          // eslint-disable-next-line max-len
-          `Property ${propertyFromUser} does not exist for collection ${collectionName}. Please check your configuration.`,
-        );
-      }
-    });
   });
 }
