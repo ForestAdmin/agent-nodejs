@@ -17,6 +17,13 @@ export function buildManyToManyNames(availableCollections: string[]): string[] {
   }, []);
 }
 
+export function getManyToManyNamesOf(
+  collectionName: string,
+  availableCollections: string[],
+): string[] {
+  return buildManyToManyNames(availableCollections).filter(r => r.includes(collectionName));
+}
+
 export function getRelationsOf(collectionName: string, availableCollections: string[]): string[] {
   return availableCollections.filter(r => !r.includes(collectionName));
 }

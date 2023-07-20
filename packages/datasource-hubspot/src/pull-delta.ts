@@ -3,7 +3,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import {
-  deleteRecordsIfNotExist,
+  deleteRecordsAndItsRelationIfDeleted,
   pullUpdatedOrNewRecords,
   pullUpdatedOrNewRelations,
 } from './changes';
@@ -89,9 +89,10 @@ export default async function pullDelta<TypingsHubspot>(
     // Avoid to read deleted record.
     // it does nothing for the many to many relations.
     // It is useful when a record is deleted from hubspot because we can't detect it.
-    await deleteRecordsIfNotExist(
+    await deleteRecordsAndItsRelationIfDeleted(
       client,
       await getRecordsToDelete(request.cache, collections, beforeListReasons),
+      Object.keys(options.collections),
       response,
     );
   }

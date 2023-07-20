@@ -7,7 +7,7 @@ import {
   HUBSPOT_CUSTOM_COLLECTION,
   HUBSPOT_MAX_PAGE_SIZE,
 } from './constants';
-import { buildManyToManyNames } from './relations';
+import { getManyToManyNamesOf } from './relations';
 import { FieldPropertiesByCollection, Records } from './types';
 
 function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
@@ -93,7 +93,7 @@ export async function fetchRecordsAndRelations(
         if (pairsToSave.has(pairToSave)) return;
 
         pairsToSave.add(pairToSave);
-        const [manyToMany] = buildManyToManyNames([collectionName, relationName]);
+        const [manyToMany] = getManyToManyNamesOf(collectionName, [collectionName, relationName]);
         if (!records[manyToMany]) records[manyToMany] = [];
         // build the relation as many to many
         records[manyToMany].push({

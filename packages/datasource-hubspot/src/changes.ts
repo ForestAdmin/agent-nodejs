@@ -11,7 +11,7 @@ import {
   fetchRelationOfRecord,
   getLastModifiedRecords,
 } from './hubspot-api';
-import { buildManyToManyNames } from './relations';
+import { getManyToManyNamesOf } from './relations';
 import { HubSpotOptions, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
@@ -76,9 +76,10 @@ export async function pullRecordsAndRelations(
   await Promise.all(promises);
 }
 
-export async function deleteRecordsIfNotExist(
+export async function deleteRecordsAndItsRelationIfDeleted(
   client: Client,
   idsByCollection: { [collectionName: string]: string[] },
+  availableCollections: string[],
   response: Response,
 ): Promise<void> {
   for (const [collectionName, ids] of Object.entries(idsByCollection)) {
@@ -100,11 +101,20 @@ export async function deleteRecordsIfNotExist(
           ) * 1000,
         );
 
+        const relations = getManyToManyNamesOf(collectionName, availableCollections);
         // find the records that have been deleted on hubspot
         const idsToDelete = ids.filter(id => !existingIds.includes(id));
-        response.deletedEntries.push(
-          ...idsToDelete.map(id => ({ collection: collectionName, record: { id } })),
-        );
+        idsToDelete.forEach(id => {
+          // delete records
+          response.deletedEntries.push({ collection: collectionName, record: { id } });
+          // delete relations
+          relations.forEach(relation => {
+            response.deletedEntries.push({
+              collection: relation,
+              record: { [`${collectionName}_id`]: id },
+            });
+          });
+        });
       });
     }
 
@@ -121,17 +131,17 @@ export async function pullUpdatedOrNewRelations(
 ): Promise<void> {
   await Promise.all(
     recordIdsWithRelation.map(async record => {
-      const relations = buildManyToManyNames([record.collectionName, ...record.relations]);
+      const manyToManyRelations = getManyToManyNamesOf(record.collectionName, [
+        record.collectionName,
+        ...record.relations,
+      ]);
       // remove all the relations related to the record
-      relations
-        // get only the concerned many to many relations
-        .filter(r => r.includes(record.collectionName))
-        .forEach(manyToManyName => {
-          response.deletedEntries.push({
-            collection: manyToManyName,
-            record: { [`${record.collectionName}_id`]: record.id },
-          });
+      manyToManyRelations.forEach(manyToManyName => {
+        response.deletedEntries.push({
+          collection: manyToManyName,
+          record: { [`${record.collectionName}_id`]: record.id },
         });
+      });
 
       const relationIds = await fetchRelationOfRecord(
         client,
@@ -142,7 +152,10 @@ export async function pullUpdatedOrNewRelations(
 
       // build all the relations
       Object.entries(relationIds).forEach(([relationName, ids]) => {
-        const [manyToManyName] = buildManyToManyNames([record.collectionName, relationName]);
+        const [manyToManyName] = getManyToManyNamesOf(record.collectionName, [
+          record.collectionName,
+          relationName,
+        ]);
         ids.forEach(id =>
           response.newOrUpdatedEntries.push({
             collection: manyToManyName,
