@@ -1,3 +1,13 @@
+## @forestadmin/datasource-mongoose [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.2...@forestadmin/datasource-mongoose@1.4.3) (2023-07-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.2
+
 ## @forestadmin/datasource-mongoose [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.1...@forestadmin/datasource-mongoose@1.4.2) (2023-07-10)
 
 
