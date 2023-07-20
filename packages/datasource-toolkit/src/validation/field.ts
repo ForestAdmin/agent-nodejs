@@ -87,4 +87,15 @@ export default class FieldValidator {
       );
     }
   }
+
+  static validateName(collectionName: string, name: string) {
+    if (/ /.test(name)) {
+      const sanitizedName = name.replace(/ (.)/g, (_, s) => s.toUpperCase());
+      throw new Error(
+        `The name of field '${name}' you configured on` +
+          ` '${collectionName}' must not contain space.` +
+          ` Something like '${sanitizedName}' should work has expected.`,
+      );
+    }
+  }
 }
