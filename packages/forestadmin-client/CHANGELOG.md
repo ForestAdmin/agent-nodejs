@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.4...@forestadmin/forestadmin-client@1.5.5) (2023-07-21)
+
+
+### Bug Fixes
+
+* **agent:** use meta instead of metadata in the schema ([#770](https://github.com/ForestAdmin/agent-nodejs/issues/770)) ([7f561f3](https://github.com/ForestAdmin/agent-nodejs/commit/7f561f34766604852b6a58c85c750a68baae29ea))
+
 ## @forestadmin/forestadmin-client [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.3...@forestadmin/forestadmin-client@1.5.4) (2023-07-20)
 
 
