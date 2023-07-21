@@ -15,7 +15,7 @@ export async function retryIfLimitReached<CallbackType>(
   try {
     return await fn();
   } catch (error) {
-    if (retries > 0 && error.code === 429) {
+    if (retries > 0 && (error.code === 429 || error.code === 502 || error.code === 504)) {
       return executeAfterDelay(() => retryIfLimitReached(fn, retries - 1, delayInMs), delayInMs);
     }
 

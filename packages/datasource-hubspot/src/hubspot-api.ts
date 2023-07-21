@@ -1,4 +1,4 @@
-import { Logger } from '@forestadmin/datasource-toolkit';
+import { Logger, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { CONTACTS, HUBSPOT_COLLECTIONS, HUBSPOT_MAX_PAGE_SIZE } from './constants';
@@ -6,18 +6,26 @@ import { getManyToManyNamesOf } from './relations';
 import { FieldPropertiesByCollection, Records } from './types';
 import { retryIfLimitReached } from './utils';
 
-function handleErrors(error: Error & { code: number }, collectionName: string, logger?: Logger) {
+function handleErrors(error: Error & { code: number }) {
   if (error.code === 429) {
     // to much requests
-    logger?.(
-      'Warn',
-      `Unable to get properties for collection ${collectionName}` +
-        ' because we have reached the limit of requests in one second. Please try again.',
-    );
-  } else if (error.code === 403) {
-    logger?.('Warn', `Unable to get properties for collection "${collectionName}".`);
+    throw new UnprocessableError('Request limit reach');
+  } else if (error.code === 502 || error.code === 504) {
+    throw new UnprocessableError('The request to hubspot have timeout');
   } else {
     throw error;
+  }
+}
+
+function handleFieldPropertiesErrors(
+  error: Error & { code: number },
+  collectionName: string,
+  logger?: Logger,
+) {
+  if (error.code === 403) {
+    logger?.('Warn', `Unable to get properties for collection "${collectionName}".`);
+  } else {
+    handleErrors(error);
   }
 }
 
@@ -45,31 +53,36 @@ export async function fetchRecordsAndRelations(
   afterId?: string,
 ): Promise<{ [collectionName: string]: Records }> {
   const relations = relationNames?.length > 0 ? relationNames : undefined;
+  let response;
 
-  const response = await retryIfLimitReached(
-    async () => {
-      if (isDefaultCollection(collectionName)) {
-        return getDiscovery(client, collectionName).basicApi.getPage(
+  try {
+    response = await retryIfLimitReached(
+      async () => {
+        if (isDefaultCollection(collectionName)) {
+          return getDiscovery(client, collectionName).basicApi.getPage(
+            HUBSPOT_MAX_PAGE_SIZE,
+            afterId,
+            properties,
+            undefined,
+            relations,
+          );
+        }
+
+        return client.crm.objects.basicApi.getPage(
+          collectionName,
           HUBSPOT_MAX_PAGE_SIZE,
           afterId,
           properties,
           undefined,
           relations,
         );
-      }
-
-      return client.crm.objects.basicApi.getPage(
-        collectionName,
-        HUBSPOT_MAX_PAGE_SIZE,
-        afterId,
-        properties,
-        undefined,
-        relations,
-      );
-    },
-    10,
-    200,
-  );
+      },
+      10,
+      200,
+    );
+  } catch (e) {
+    handleErrors(e);
+  }
 
   return response.results.reduce((records, collectionResult) => {
     // get the record
@@ -123,10 +136,14 @@ export async function fetchExistingRecordIds(
   };
   let response;
 
-  if (isDefaultCollection(collectionName)) {
-    response = await getDiscovery(client, collectionName).searchApi.doSearch(filter);
-  } else {
-    response = await client.crm.objects.searchApi.doSearch(collectionName, filter as any);
+  try {
+    if (isDefaultCollection(collectionName)) {
+      response = await getDiscovery(client, collectionName).searchApi.doSearch(filter);
+    } else {
+      response = await client.crm.objects.searchApi.doSearch(collectionName, filter as any);
+    }
+  } catch (e) {
+    handleErrors(e);
   }
 
   return response.results.map(r => r.id);
@@ -154,10 +171,14 @@ export async function getLastModifiedRecords(
   };
   let response;
 
-  if (isDefaultCollection(collectionName)) {
-    response = await getDiscovery(client, collectionName).searchApi.doSearch(filter);
-  } else {
-    response = await client.crm.objects.searchApi.doSearch(collectionName, filter as any);
+  try {
+    if (isDefaultCollection(collectionName)) {
+      response = await getDiscovery(client, collectionName).searchApi.doSearch(filter);
+    } else {
+      response = await client.crm.objects.searchApi.doSearch(collectionName, filter as any);
+    }
+  } catch (e) {
+    handleErrors(e);
   }
 
   return response.results.map(r =>
@@ -182,21 +203,25 @@ export async function fetchRelationOfRecord(
   let response;
   const relations = relationNames.length > 0 ? relationNames : undefined;
 
-  if (isDefaultCollection(collectionName)) {
-    response = await getDiscovery(client, collectionName).basicApi.getById(
-      recordId,
-      undefined,
-      undefined,
-      relations,
-    );
-  } else {
-    response = await client.crm.objects.basicApi.getById(
-      collectionName,
-      recordId,
-      undefined,
-      undefined,
-      relations,
-    );
+  try {
+    if (isDefaultCollection(collectionName)) {
+      response = await getDiscovery(client, collectionName).basicApi.getById(
+        recordId,
+        undefined,
+        undefined,
+        relations,
+      );
+    } else {
+      response = await client.crm.objects.basicApi.getById(
+        collectionName,
+        recordId,
+        undefined,
+        undefined,
+        relations,
+      );
+    }
+  } catch (e) {
+    handleErrors(e);
   }
 
   if (!response.associations) return {};
@@ -231,7 +256,7 @@ export async function fetchFieldsProperties(
       const { results } = await client.crm.properties.coreApi.getAll(collectionName, false);
       fieldsByCollection[collectionName] = results;
     } catch (e) {
-      handleErrors(e, collectionName, logger);
+      handleFieldPropertiesErrors(e, collectionName, logger);
     }
   });
 
@@ -242,7 +267,7 @@ export async function fetchFieldsProperties(
         fieldsByCollection[collection.name] = collection.properties;
       });
     } catch (e) {
-      handleErrors(e, 'custom collection', logger);
+      handleFieldPropertiesErrors(e, 'custom collection', logger);
     }
   };
 
