@@ -142,7 +142,7 @@ describe('Agent', () => {
 
       expect(mockPostSchema).toHaveBeenCalledWith({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: null,
@@ -168,7 +168,7 @@ describe('Agent', () => {
 
       expect(mockPostSchema).toHaveBeenCalledWith({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: {

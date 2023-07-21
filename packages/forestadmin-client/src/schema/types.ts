@@ -2,7 +2,7 @@ import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type ForestSchema = {
   collections: ForestServerCollection[];
-  metadata: {
+  meta: {
     liana: string;
     liana_version: string;
     liana_features: Record<string, string> | null;

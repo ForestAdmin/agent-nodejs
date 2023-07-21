@@ -11,7 +11,7 @@ describe('SchemaGenerator', () => {
 
     expect(schema).toStrictEqual({
       collections: [expect.objectContaining({ name: 'books' })],
-      metadata: {
+      meta: {
         liana: 'forest-nodejs-agent',
         liana_version: expect.any(String),
         liana_features: null,
@@ -47,7 +47,7 @@ describe('SchemaGenerator', () => {
 
     expect(schema).toStrictEqual({
       collections: [expect.objectContaining({ name: 'books' })],
-      metadata: {
+      meta: {
         liana: 'forest-nodejs-agent',
         liana_version: expect.any(String),
         liana_features: {
