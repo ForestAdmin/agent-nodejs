@@ -58,7 +58,7 @@ describe('ForestAdminClientWithCache', () => {
 
       const result = await forestAdminClient.postSchema({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
           liana_features: null,

@@ -26,7 +26,7 @@ export default class SchemaService {
     const schemaFileHash = crypto.createHash('sha1').update(JSON.stringify(schema)).digest('hex');
 
     return SchemaService.serializer.serialize('collections', data, {
-      ...schema.metadata,
+      ...schema.meta,
       schemaFileHash,
     }) as SerializedSchema;
   }

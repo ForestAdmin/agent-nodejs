@@ -26,7 +26,7 @@ describe('SchemaService', () => {
       const schemaService = new SchemaService(options);
       const sent = await schemaService.postSchema({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
           liana_features: null,
@@ -80,7 +80,7 @@ describe('SchemaService', () => {
       const schemaService = new SchemaService(options);
       const sent = await schemaService.postSchema({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
           liana_features: null,
