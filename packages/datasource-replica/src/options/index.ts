@@ -18,7 +18,7 @@ export default async function resolveOptions(
   logger: Logger,
   connection: Sequelize,
 ): Promise<ResolvedOptions> {
-  let source: SynchronizationSource = new CustomerSource(connection, options);
+  let source: SynchronizationSource = new CustomerSource(connection, options, logger);
   let resolvedSchema: CollectionReplicaSchema[] = await getSchema(options, connection);
 
   if (!resolvedSchema) {

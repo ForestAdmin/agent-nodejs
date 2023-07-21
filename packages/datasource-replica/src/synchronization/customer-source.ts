@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
-import { Deferred } from '@forestadmin/datasource-toolkit';
+import { Deferred, Logger } from '@forestadmin/datasource-toolkit';
 import { Cron } from 'croner';
 import { Sequelize } from 'sequelize';
 
@@ -28,6 +28,8 @@ type Queue<Reason> = {
 export default class CustomerSource extends EventTarget implements SynchronizationSource {
   requestCache: RelaxedDataSource = null;
 
+  private readonly logger: Logger;
+
   private options: ReplicaDataSourceOptions;
   private connection: Sequelize;
   private isRunning = false;
@@ -39,10 +41,11 @@ export default class CustomerSource extends EventTarget implements Synchronizati
   private schedules: Cron[] = [];
   private target: SynchronizationTarget;
 
-  constructor(connection: Sequelize, options: ReplicaDataSourceOptions) {
+  constructor(connection: Sequelize, options: ReplicaDataSourceOptions, logger: Logger) {
     super();
     this.connection = connection;
     this.options = options;
+    this.logger = logger;
 
     const hasPullDeltaFlag =
       options.pullDeltaOnRestart ||
@@ -174,19 +177,24 @@ export default class CustomerSource extends EventTarget implements Synchronizati
 
     // Fill table with dump
     while (more) {
-      const changes = await this.options.pullDumpHandler({
-        reasons: queue.reasons,
-        cache: this.requestCache,
-        previousDumpState: state,
-      });
+      try {
+        const changes = await this.options.pullDumpHandler({
+          reasons: queue.reasons,
+          cache: this.requestCache,
+          previousDumpState: state,
+        });
 
-      this.target.applyDump(changes, firstPage);
-      firstPage = false;
+        this.target.applyDump(changes, firstPage);
+        firstPage = false;
 
-      more = changes.more;
-      if (changes.more === true) state = changes.nextDumpState;
-      if (changes.more === false && changes.nextDeltaState)
-        await this.setDeltaState(changes.nextDeltaState);
+        more = changes.more;
+        if (changes.more === true) state = changes.nextDumpState;
+        if (changes.more === false && changes.nextDeltaState)
+          await this.setDeltaState(changes.nextDeltaState);
+      } catch (error) {
+        more = false;
+        this.logger('Warn', `Dump failed for ${this.options.cacheNamespace}: ${error.message}`);
+      }
     }
 
     await this.setStartupState('done');
@@ -206,16 +214,21 @@ export default class CustomerSource extends EventTarget implements Synchronizati
       const collections = queue.reasons.flatMap(r =>
         'affectedCollections' in r ? r.affectedCollections : [],
       );
-      const changes = await this.options.pullDeltaHandler({
-        reasons: queue.reasons,
-        collections: [...new Set(collections)],
-        cache: this.requestCache,
-        previousDeltaState: previousState,
-      });
 
-      await this.target.applyDelta(changes);
-      await this.setDeltaState(changes.nextDeltaState);
-      more = changes.more;
+      try {
+        const changes = await this.options.pullDeltaHandler({
+          reasons: queue.reasons,
+          collections: [...new Set(collections)],
+          cache: this.requestCache,
+          previousDeltaState: previousState,
+        });
+        await this.target.applyDelta(changes);
+        await this.setDeltaState(changes.nextDeltaState);
+        more = changes.more;
+      } catch (error) {
+        more = false;
+        this.logger('Warn', `Delta failed for ${this.options.cacheNamespace}: ${error.message}`);
+      }
     }
 
     this.isRunning = false;
