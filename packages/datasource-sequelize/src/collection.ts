@@ -92,6 +92,8 @@ export default class SequelizeCollection extends BaseCollection {
     const records = await this.model.findAll(query);
     const rawRecords = records.map(record => Serializer.serialize(record.get({ plain: true })));
 
+    // Use projection to filter out the unwanted primary keys that were added to the projection
+    // so that sequelize can do its job.
     return projection.apply(rawRecords);
   }
 
