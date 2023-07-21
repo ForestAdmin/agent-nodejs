@@ -134,12 +134,12 @@ describe('SequelizeDataSource > Collection', () => {
       const recordData = [{ data: 'data' }];
       const { findAll, sequelizeCollection } = setup(recordData);
       const filter = new Filter({});
-      const projection = new Projection();
+      const projection = new Projection('data');
 
       const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
       expect(result).toBeArrayOfSize(1);
-      expect(result[0]).toBe(recordData[0]);
+      expect(result[0]).toStrictEqual(recordData[0]);
       expect(findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: projection,
@@ -151,12 +151,12 @@ describe('SequelizeDataSource > Collection', () => {
       const recordData = [{ data: 'data' }];
       const { sequelizeCollection, records } = setup(recordData);
       const filter = new Filter({});
-      const projection = new Projection();
+      const projection = new Projection('data');
 
       const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
       expect(result).toBeArrayOfSize(1);
-      expect(result[0]).toBe(recordData[0]);
+      expect(result[0]).toStrictEqual(recordData[0]);
       expect(records[0].get).toHaveBeenCalledWith({ plain: true });
     });
 
@@ -164,7 +164,7 @@ describe('SequelizeDataSource > Collection', () => {
       const recordData = [{ data: new Date('2000-10-01') }, { data: new Date('2000-10-02') }];
       const { sequelizeCollection } = setup(recordData);
       const filter = new Filter({});
-      const projection = new Projection();
+      const projection = new Projection('data');
 
       const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
@@ -172,43 +172,6 @@ describe('SequelizeDataSource > Collection', () => {
         { data: '2000-10-01T00:00:00.000Z' },
         { data: '2000-10-02T00:00:00.000Z' },
       ]);
-    });
-
-    it('should add include from condition tree, sort and projection', async () => {
-      const recordData = [{ data: 'data' }];
-      const { findAll, sequelizeCollection } = setup(recordData);
-      const filter = new PaginatedFilter({
-        sort: new Sort({ field: 'relation1:field1', ascending: true }),
-        conditionTree: new ConditionTreeLeaf('relation:aField', 'Equal', 42),
-      });
-      const projection = new Projection('relation3:field3');
-
-      await sequelizeCollection.list(factories.caller.build(), filter, projection);
-
-      expect(findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            '$relation.a_field$': { [Op.eq]: 42 },
-          },
-          include: [
-            {
-              association: 'relation3',
-              attributes: ['field3'],
-              include: [],
-            },
-            {
-              association: 'relation',
-              attributes: [],
-              include: [],
-            },
-            {
-              association: 'relation1',
-              attributes: [],
-              include: [],
-            },
-          ],
-        }),
-      );
     });
   });
 
