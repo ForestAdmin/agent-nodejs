@@ -67,7 +67,7 @@ export async function fetchRecordsAndRelations(
         relations,
       );
     },
-    3,
+    10,
     200,
   );
 

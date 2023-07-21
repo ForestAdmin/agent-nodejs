@@ -124,7 +124,7 @@ export async function deleteRecordsAndItsRelationIfDeleted(
   }
 }
 
-export async function pullUpdatedOrNewRelations(
+export async function updateRelations(
   client: Client,
   records: RecordWithRelationNames[],
   response: Response,

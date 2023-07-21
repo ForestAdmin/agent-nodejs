@@ -5,7 +5,7 @@ import { Client } from '@hubspot/api-client';
 import {
   deleteRecordsAndItsRelationIfDeleted,
   pullUpdatedOrNewRecords,
-  pullUpdatedOrNewRelations,
+  updateRelations,
 } from './changes';
 import { buildManyToManyNames, getRelationsOf } from './relations';
 import { HubSpotOptions, RecordWithRelationNames, Response } from './types';
@@ -82,7 +82,7 @@ export default async function pullDelta<TypingsHubspot>(
   // depending on the response of the pullUpdatedOrNewRecords call.
   // We should pull the changes to re-compute the relations.
   const relationsToUpdate = prepareRecordsToUpdate(response, Object.keys(options.collections));
-  await pullUpdatedOrNewRelations(client, relationsToUpdate, response);
+  await updateRelations(client, relationsToUpdate, response);
 
   if (request.reasons.map(r => r.name).includes('before-list')) {
     const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');
