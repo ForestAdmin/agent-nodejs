@@ -16,7 +16,7 @@ export default class SchemaGenerator {
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => SchemaGeneratorCollection.buildSchema(c)),
       ),
-      metadata: {
+      meta: {
         liana: 'forest-nodejs-agent',
         liana_version: version,
         liana_features: features,
