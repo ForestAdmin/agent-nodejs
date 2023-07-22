@@ -54,7 +54,8 @@ export default async function pullDump<TypingsHubspot>(
     response,
   );
   logger?.('Info', `Current dump state: ${JSON.stringify(request.previousDumpState)}`);
-  if (response.more === false) logger?.('Info', 'All records have been pulled.');
+  if (response.more === false)
+    logger?.('Info', 'Pull dump is finished. Your replica is up to date.');
 
   // save the date of the last dump to the next delta state
   const nextDeltaState = {};

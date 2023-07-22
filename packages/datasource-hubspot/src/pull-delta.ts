@@ -84,20 +84,24 @@ export default async function pullDelta<TypingsHubspot>(
   const relationsToUpdate = prepareRecordsToUpdate(response, Object.keys(options.collections));
   await updateRelations(client, relationsToUpdate, response);
 
-  if (request.reasons.map(r => r.name).includes('before-list')) {
-    const beforeListReasons = request.reasons.filter(reason => reason.name === 'before-list');
+  const recordIds = await getRecordsToDelete(request.cache, collections, request.reasons);
+
+  // guard condition on the ids length to keep good performances
+  if (Object.values(recordIds).flat().length < options.pullDeltaMaxRecordUpToDate ?? 50) {
     // Avoid to read deleted record.
-    // it does nothing for the many to many relations.
     // It is useful when a record is deleted from hubspot because we can't detect it.
     await deleteRecordsAndItsRelationIfDeleted(
       client,
-      await getRecordsToDelete(request.cache, collections, beforeListReasons),
+      recordIds,
       Object.keys(options.collections),
       response,
     );
+  } else {
+    logger('Warn', 'Too many records to update ');
   }
 
-  if (response.more === false) logger?.('Info', 'Cache is up to date');
+  if (response.more === false)
+    logger?.('Info', 'Pull delta is finished. Your replica has the last changes.');
 
   return { ...response, nextDeltaState: response.nextState };
 }

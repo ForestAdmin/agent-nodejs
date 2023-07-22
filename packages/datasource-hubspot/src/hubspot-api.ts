@@ -78,7 +78,7 @@ export async function fetchRecordsAndRelations(
         );
       },
       10,
-      200,
+      500,
     );
   } catch (e) {
     handleErrors(e);

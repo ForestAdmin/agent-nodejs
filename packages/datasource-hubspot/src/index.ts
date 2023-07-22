@@ -36,6 +36,7 @@ export async function createHubspotDataSource<TypingsHubspot>(
       pullDeltaOnBeforeAccessDelay: 50,
       cacheInto: options.cacheInto,
       pullDumpOnSchedule: options.pullDumpOnSchedule,
+      pullDeltaOnSchedule: options.pullDeltaOnSchedule,
     });
 
     return factory(logger);
