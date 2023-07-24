@@ -31,27 +31,19 @@ function prepareRecordsToUpdate(
 }
 
 async function retrieveRequestedIds(
-  request,
-  collections: string[],
+  cache: PullDeltaRequest['cache'],
+  reasons: PullDeltaRequest['reasons'],
 ): Promise<{ [collectionName: string]: string[] }> {
-  const reasonsOnCollectionsToUpdate = request.reasons.filter(reason => {
-    if (reason.name === 'startup' || reason.name === 'schedule') return false;
-
-    return collections.includes(reason?.collection);
-  });
-
-  const recordsToUpdate = {};
+  const ids = {};
   await Promise.all(
-    reasonsOnCollectionsToUpdate.map(async reason => {
-      const recordIds = await request.cache
-        .getCollection(reason.collection)
-        .list(reason.filter, ['id']);
+    reasons.map(async reason => {
+      const recordIds = await cache.getCollection(reason.collection).list(reason.filter, ['id']);
 
-      recordsToUpdate[reason.collection] = recordIds.map(r => r.id);
+      ids[reason.collection] = recordIds.map(r => r.id);
     }),
   );
 
-  return recordsToUpdate;
+  return ids;
 }
 
 export default async function pullDelta<TypingsHubspot>(
@@ -80,10 +72,19 @@ export default async function pullDelta<TypingsHubspot>(
   );
 
   await Promise.all([
+    // depending on the response of the pullUpdatedOrNewRecords call.
+    updateRelations(client, prepareRecordsToUpdate(response, availableCollections), response),
+    // check if the requested records on hubspot are deleted or not.
+    // if the record is deleted, we need to delete the record and all the relations related to it.
     async () => {
-      // check if the requested records on hubspot are deleted or not.
-      // if the record is deleted, we need to delete the record and all the relations related to it.
-      const recordIds = await retrieveRequestedIds(request, availableCollections);
+      const reasons = request.reasons.filter(reason => {
+        return (
+          reason.name !== 'startup' &&
+          reason.name !== 'schedule' &&
+          !manyToManyRelations.includes(reason?.collection)
+        );
+      });
+      const recordIds = await retrieveRequestedIds(request.cache, reasons);
 
       // if there is not too many records to update, we can check if the records are deleted or not.
       // it is a performance optimization.
@@ -93,8 +94,6 @@ export default async function pullDelta<TypingsHubspot>(
         logger('Warn', 'Too many records to update ');
       }
     },
-    // depending on the response of the pullUpdatedOrNewRecords call.
-    updateRelations(client, prepareRecordsToUpdate(response, availableCollections), response),
   ]);
 
   if (response.more === false)
