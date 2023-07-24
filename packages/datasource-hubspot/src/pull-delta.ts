@@ -56,10 +56,6 @@ export default async function pullDelta<TypingsHubspot>(
 ): Promise<PullDeltaResponse> {
   const availableCollections = Object.keys(options.collections);
   const manyToManyRelations = buildManyToManyNames(availableCollections);
-  // when the affectedCollections is empty, we pull all the collections.
-  // it is useful when we want to pull all the collections at the startup for example.
-  const affectedCollections =
-    request.affectedCollections.length === 0 ? availableCollections : request.affectedCollections;
   const response: Response = {
     more: false,
     // save the previous delta state
@@ -68,6 +64,10 @@ export default async function pullDelta<TypingsHubspot>(
     deletedEntries: [],
   };
 
+  // when the affectedCollections is empty, we pull all the collections.
+  // it is useful when we want to pull all the collections at the startup for example.
+  const affectedCollections =
+    request.affectedCollections.length === 0 ? availableCollections : request.affectedCollections;
   await pullUpdatedOrNewRecords<TypingsHubspot>(
     client,
     affectedCollections.filter(c => !manyToManyRelations.includes(c)),
