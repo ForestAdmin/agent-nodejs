@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.5.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.5...@forestadmin/forestadmin-client@1.5.6) (2023-07-24)
+
+
+### Bug Fixes
+
+* **forestadmin-client:** crash with lru cache concurrent clear and fetch ([#772](https://github.com/ForestAdmin/agent-nodejs/issues/772)) ([6725fb0](https://github.com/ForestAdmin/agent-nodejs/commit/6725fb06d05d4cf1922cd7bb0c1d660c9231fddf))
+
 ## @forestadmin/forestadmin-client [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.4...@forestadmin/forestadmin-client@1.5.5) (2023-07-21)
 
 
