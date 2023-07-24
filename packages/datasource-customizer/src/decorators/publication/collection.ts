@@ -9,8 +9,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 /** This decorator allows hiding fields */
-export default class PublicationFieldCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<PublicationFieldCollectionDecorator>;
+export default class PublicationCollectionDecorator extends CollectionDecorator {
+  override readonly dataSource: DataSourceDecorator<PublicationCollectionDecorator>;
   private readonly unpublished: Set<string> = new Set();
 
   /** Show/hide fields from the schema */

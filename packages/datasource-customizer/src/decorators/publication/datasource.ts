@@ -1,16 +1,22 @@
 import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
-import PublicationFieldCollectionDecorator from './collection';
+import PublicationCollectionDecorator from './collection';
 
-export default class PublicationDataSourceDecorator extends DataSourceDecorator<PublicationFieldCollectionDecorator> {
+export default class PublicationDataSourceDecorator extends DataSourceDecorator<PublicationCollectionDecorator> {
   blacklist: Set<string> = new Set();
 
   constructor(childDataSource: DataSource) {
-    super(childDataSource, PublicationFieldCollectionDecorator);
+    super(childDataSource, PublicationCollectionDecorator);
   }
 
-  override get collections(): PublicationFieldCollectionDecorator[] {
+  override get collections(): PublicationCollectionDecorator[] {
     return super.collections.filter(collection => !this.blacklist.has(collection.name));
+  }
+
+  override getCollection(name: string): PublicationCollectionDecorator {
+    if (this.blacklist.has(name)) throw new Error(`Collection "${name}" was removed.`);
+
+    return super.getCollection(name);
   }
 
   keepCollectionsMatching(include?: string[], exclude?: string[]): void {

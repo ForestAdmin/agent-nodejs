@@ -19,12 +19,7 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
   }
 
   get collections(): CollectionDecorator[] {
-    return this.childDataSource.collections.map(collection => {
-      if (!this.decorators.has(collection))
-        this.decorators.set(collection, new this.CollectionDecoratorCtor(collection, this));
-
-      return this.decorators.get(collection);
-    });
+    return this.childDataSource.collections.map(collection => this.getCollection(collection.name));
   }
 
   constructor(
@@ -36,7 +31,11 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
   }
 
   getCollection(name: string): CollectionDecorator {
-    return this.collections.find(c => c.name === name);
+    const collection = this.childDataSource.getCollection(name);
+    if (!this.decorators.has(collection))
+      this.decorators.set(collection, new this.CollectionDecoratorCtor(collection, this));
+
+    return this.decorators.get(collection);
   }
 
   renderChart(caller: Caller, name: string): Promise<Chart> {
