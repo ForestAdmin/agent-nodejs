@@ -1,6 +1,6 @@
 import TTLCache from '../../src/utils/ttl-cache';
 
-describe('defaultLogger', () => {
+describe('TTL Cache', () => {
   it(
     // eslint-disable-next-line no-useless-concat
     'should not throw an error when fetching while clearing ' + '(regression test #860rch4bz)',
