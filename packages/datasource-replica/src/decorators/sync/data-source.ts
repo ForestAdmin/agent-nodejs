@@ -1,9 +1,9 @@
-/* eslint-disable no-await-in-loop */
-// eslint-disable-next-line max-classes-per-file
-import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import type { ResolvedOptions } from '../../types';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import SyncCollectionDecorator from './collection';
-import { ResolvedOptions } from '../../types';
 
 export default class TriggerSyncDataSourceDecorator extends DataSourceDecorator<SyncCollectionDecorator> {
   options: ResolvedOptions;

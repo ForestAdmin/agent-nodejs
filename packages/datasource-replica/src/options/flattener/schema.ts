@@ -1,10 +1,8 @@
-///
-// Compute flattened schema
-///
-
 /* eslint-disable no-underscore-dangle */
+import type { CollectionReplicaSchema, Field, ResolvedOptions } from '../../types';
+
 import flattenRecord from '../../flattener';
-import { CollectionReplicaSchema, Field, ResolvedOptions, isLeafField } from '../../types';
+import { isLeafField } from '../../types';
 
 /**
  * Abuse the flattenRecordRec logic with ❤️

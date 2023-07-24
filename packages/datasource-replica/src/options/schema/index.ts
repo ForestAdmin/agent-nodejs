@@ -1,10 +1,11 @@
 /* eslint-disable no-await-in-loop */
+
+import type { NodeStudy } from './analyzer';
+import type { CollectionReplicaSchema, Field, ReplicaDataSourceOptions } from '../../types';
+import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
 
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-
-import { NodeStudy } from './analyzer';
-import { CollectionReplicaSchema, Field, ReplicaDataSourceOptions, isLeafField } from '../../types';
+import { isLeafField } from '../../types';
 import { resolveValueOrPromiseOrFactory } from '../utils';
 
 function convertAnalysisToSchema(node: NodeStudy): Field {

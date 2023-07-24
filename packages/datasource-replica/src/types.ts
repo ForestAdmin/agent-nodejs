@@ -1,3 +1,4 @@
+import type CacheDataSourceInterface from './cache-interface/datasource';
 import type { TFilter, TPaginatedFilter } from '@forestadmin/datasource-customizer';
 import type { ConnectionOptions } from '@forestadmin/datasource-sql';
 import type {
@@ -9,8 +10,6 @@ import type {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-
-import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
 
 export type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 export type RecordDataWithCollection = { collection: string; record: RecordData };
@@ -68,20 +67,20 @@ export type PullDeltaReason = { collection?: string; affectedCollections?: strin
 
 export type PullDeltaRequest = {
   previousDeltaState: unknown;
-  cache: RelaxedDataSource;
+  cache: CacheDataSourceInterface;
   affectedCollections: string[];
   reasons: Array<PullDeltaReason & { at: Date }>;
 };
 
 export type PullDumpRequest = {
   previousDumpState: unknown;
-  cache: RelaxedDataSource;
+  cache: CacheDataSourceInterface;
   reasons: Array<PullDumpReason & { at: Date }>;
 };
 
 export type PushDeltaRequest = {
   getPreviousDeltaState(): unknown;
-  cache: RelaxedDataSource;
+  cache: CacheDataSourceInterface;
 };
 
 export type PullDumpResponse =
@@ -183,7 +182,7 @@ export interface SynchronizationTarget {
 }
 
 export interface SynchronizationSource {
-  requestCache: RelaxedDataSource;
+  requestCache: CacheDataSourceInterface;
 
   start(target: SynchronizationTarget): Promise<void>;
   queuePullDump(reason: PullDumpReason): Promise<void>;

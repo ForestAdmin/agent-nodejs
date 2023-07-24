@@ -1,15 +1,16 @@
-/* eslint-disable no-await-in-loop */
-import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
-import { Logger } from '@forestadmin/datasource-toolkit';
-import { DataType, DataTypes, ModelAttributes, Sequelize } from 'sequelize';
-
-import {
+import type {
   CollectionReplicaSchema,
   Field,
   ReplicaDataSourceOptions,
   ResolvedOptions,
-  isLeafField,
 } from './types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { DataType, ModelAttributes, Sequelize } from 'sequelize';
+
+import { buildSequelizeInstance } from '@forestadmin/datasource-sql';
+import { DataTypes } from 'sequelize';
+
+import { isLeafField } from './types';
 
 function convertField(field: Field): ModelAttributes[string] {
   if (isLeafField(field)) {
@@ -52,6 +53,7 @@ async function defineModels(
       tableName: `${namespace}_${model.name}`,
     });
 
+    // eslint-disable-next-line no-await-in-loop
     if (sync) await sequelizeModel.sync({ force: true });
   }
 }

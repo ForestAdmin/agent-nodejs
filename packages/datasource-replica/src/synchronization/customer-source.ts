@@ -1,10 +1,6 @@
 /* eslint-disable no-await-in-loop */
-import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
-import { Deferred, Logger } from '@forestadmin/datasource-toolkit';
-import { Cron } from 'croner';
-import { Sequelize } from 'sequelize';
-
-import {
+import type CacheDataSourceInterface from '../cache-interface/datasource';
+import type {
   PullDeltaReason,
   PullDumpReason,
   PushDeltaResponse,
@@ -12,6 +8,11 @@ import {
   SynchronizationSource,
   SynchronizationTarget,
 } from '../types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
+
+import { Deferred } from '@forestadmin/datasource-toolkit';
+import { Cron } from 'croner';
 
 type Queue<Reason> = {
   /**
@@ -26,7 +27,7 @@ type Queue<Reason> = {
 };
 
 export default class CustomerSource extends EventTarget implements SynchronizationSource {
-  requestCache: RelaxedDataSource = null;
+  requestCache: CacheDataSourceInterface = null;
 
   private readonly logger: Logger;
 

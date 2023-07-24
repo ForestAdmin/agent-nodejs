@@ -1,3 +1,9 @@
+import type {
+  CollectionReplicaSchema,
+  ReplicaDataSourceOptions,
+  ResolvedOptions,
+  SynchronizationSource,
+} from '../types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
 
@@ -6,12 +12,6 @@ import { flattenSchema } from './flattener/schema';
 import { buildSchema, getSchema } from './schema';
 import AnalysisPassThough from '../synchronization/analysis-passthrough';
 import CustomerSource from '../synchronization/customer-source';
-import {
-  CollectionReplicaSchema,
-  ReplicaDataSourceOptions,
-  ResolvedOptions,
-  SynchronizationSource,
-} from '../types';
 
 export default async function resolveOptions(
   options: ReplicaDataSourceOptions,

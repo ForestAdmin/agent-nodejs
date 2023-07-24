@@ -1,3 +1,4 @@
+import type TriggerSyncDataSourceDecorator from './data-source';
 import type { TFilter, TPaginatedFilter } from '@forestadmin/datasource-customizer';
 import type {
   AggregateResult,
@@ -10,8 +11,6 @@ import type {
 } from '@forestadmin/datasource-toolkit';
 
 import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
-
-import TriggerSyncDataSourceDecorator from './data-source';
 
 export default class SyncCollectionDecorator extends CollectionDecorator {
   override dataSource: TriggerSyncDataSourceDecorator;

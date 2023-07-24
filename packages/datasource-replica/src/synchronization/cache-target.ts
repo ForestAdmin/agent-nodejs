@@ -1,15 +1,17 @@
 /* eslint-disable no-await-in-loop */
-import { RecordData } from '@forestadmin/datasource-toolkit';
-import { Op, Sequelize } from 'sequelize';
-
-import flattenRecord from '../flattener';
-import {
+import type {
   PullDumpResponse,
   PushDeltaResponse,
   RecordDataWithCollection,
   ResolvedOptions,
   SynchronizationTarget,
 } from '../types';
+import type { RecordData } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
+
+import { Op } from 'sequelize';
+
+import flattenRecord from '../flattener';
 import { escape, getRecordId } from '../utils';
 
 export default class CacheTarget implements SynchronizationTarget {

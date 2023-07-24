@@ -1,14 +1,11 @@
-///
-// Compute flatten options
-///
-
-import {
+import type {
   CollectionReplicaSchema,
   Field,
   ReplicaDataSourceOptions,
   ResolvedOptions,
-  isLeafField,
 } from '../../types';
+
+import { isLeafField } from '../../types';
 import { resolveValueOrPromiseOrFactory } from '../utils';
 
 type ResolvedFlattenOptions = ResolvedOptions['flattenOptions'];

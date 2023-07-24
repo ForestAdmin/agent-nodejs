@@ -1,14 +1,12 @@
+import type WriteDataSourceDecorator from './data-source';
+import type { ReplicaDataSourceOptions } from '../../types';
+import type { Caller, Filter, RecordData } from '@forestadmin/datasource-toolkit';
+
 import {
-  Caller,
   CollectionDecorator,
-  Filter,
   Projection,
-  RecordData,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
-
-import WriteDataSourceDecorator from './data-source';
-import { ReplicaDataSourceOptions } from '../../types';
 
 export default class WriteCollectionDecorator extends CollectionDecorator {
   override dataSource: WriteDataSourceDecorator;

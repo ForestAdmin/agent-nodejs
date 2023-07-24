@@ -1,5 +1,5 @@
 /* eslint-disable import/prefer-default-export */
-import { ValueOrPromiseOrFactory } from '../types';
+import type { ValueOrPromiseOrFactory } from '../types';
 
 export async function resolveValueOrPromiseOrFactory<T extends object>(
   v: ValueOrPromiseOrFactory<T>,

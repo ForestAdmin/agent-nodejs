@@ -1,9 +1,7 @@
 /* eslint-disable no-await-in-loop */
-import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
-import { Model, ModelStatic, Op, Sequelize } from 'sequelize';
-
-import { NodeStudy, createNode, walkNode } from '../options/schema/analyzer';
-import {
+import type CacheDataSourceInterface from '../cache-interface/datasource';
+import type { NodeStudy } from '../options/schema/analyzer';
+import type {
   PullDeltaReason,
   PullDumpReason,
   PullDumpResponse,
@@ -11,6 +9,11 @@ import {
   SynchronizationSource,
   SynchronizationTarget,
 } from '../types';
+import type { Model, ModelStatic, Sequelize } from 'sequelize';
+
+import { Op } from 'sequelize';
+
+import { createNode, walkNode } from '../options/schema/analyzer';
 
 export default class AnalysisPassThough implements SynchronizationTarget, SynchronizationSource {
   recordCache: ModelStatic<Model>;
@@ -19,11 +22,11 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
   source: SynchronizationSource;
   namespace: string;
 
-  get requestCache(): RelaxedDataSource {
+  get requestCache(): CacheDataSourceInterface {
     return this.source?.requestCache;
   }
 
-  set requestCache(value: RelaxedDataSource) {
+  set requestCache(value: CacheDataSourceInterface) {
     this.source.requestCache = value;
   }
 

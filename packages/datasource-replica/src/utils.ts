@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 import type { CollectionReplicaSchema } from './types';
 import type { RecordData } from '@forestadmin/datasource-toolkit';
 
@@ -25,6 +24,7 @@ export function getRecordId(
   fields: CollectionReplicaSchema['fields'],
   record: RecordData,
 ): unknown {
+  // eslint-disable-next-line no-underscore-dangle
   if (record._fid) return record._fid;
 
   const pks = Object.entries(fields)

@@ -1,15 +1,16 @@
-import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
+import type { ReplicaDataSourceOptions } from './types';
+import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
+
 import PublicationCollectionDataSourceDecorator from '@forestadmin/datasource-customizer/dist/decorators/publication-collection/datasource';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
-import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
+import CacheDataSourceInterface from './cache-interface/datasource';
 import SchemaDataSourceDecorator from './decorators/schema/data-source';
 import TriggerSyncDataSourceDecorator from './decorators/sync/data-source';
 import WriteDataSourceDecorator from './decorators/write/data-source';
 import resolveOptions from './options';
 import { createModels, createSequelize } from './sequelize';
 import CacheTarget from './synchronization/cache-target';
-import { ReplicaDataSourceOptions } from './types';
 
 function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSourceFactory {
   // Default options
@@ -32,7 +33,7 @@ function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSour
       `${options.cacheNamespace}_metadata`,
     ]);
 
-    options.source.requestCache = new RelaxedDataSource(publicationDs, null);
+    options.source.requestCache = new CacheDataSourceInterface(publicationDs);
 
     // Start synchronization between our database and the source.
     // (or replay the dump/delta if they were already synchronized when guessing the schema)

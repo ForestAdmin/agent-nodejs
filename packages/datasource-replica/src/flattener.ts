@@ -1,5 +1,5 @@
-/* eslint-disable no-underscore-dangle */
-import { CollectionReplicaSchema, RecordDataWithCollection } from './types';
+import type { CollectionReplicaSchema, RecordDataWithCollection } from './types';
+
 import { deepclone, escape, extractValue, getRecordId } from './utils';
 
 function flattenRecordRec(
@@ -47,7 +47,9 @@ function flattenRecordRec(
     for (const [index, subRecord] of subRecords.entries()) {
       if (subRecord !== null && subRecord !== undefined) {
         const recordId = getRecordId(fields, record);
+        // eslint-disable-next-line no-underscore-dangle
         subRecord._fid = isArray ? `${recordId}.${asModel}.${index}` : `${recordId}.${asModel}`;
+        // eslint-disable-next-line no-underscore-dangle
         subRecord._fpid = recordId;
 
         flattenedRecords.push(
