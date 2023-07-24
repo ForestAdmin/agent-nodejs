@@ -1,5 +1,3 @@
-import { LRUCache } from 'lru-cache';
-
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
 import {
@@ -15,6 +13,7 @@ import { Chart, QueryChart } from '../charts/types';
 import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
+import TTLCache from '../utils/ttl-cache';
 
 export type RenderingPermission = {
   team: Team;
@@ -23,18 +22,17 @@ export type RenderingPermission = {
 };
 
 export default class RenderingPermissionService {
-  private readonly permissionsByRendering: LRUCache<string, RenderingPermission>;
+  private readonly permissionsByRendering: TTLCache<RenderingPermission>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly userPermissions: UserPermissionService,
     private readonly forestAdminServerInterface: ForestAdminServerInterface,
   ) {
-    this.permissionsByRendering = new LRUCache({
-      max: 256,
-      ttl: this.options.permissionsCacheDurationInSeconds * 1000,
-      fetchMethod: async renderingId => this.loadPermissions(Number(renderingId)),
-    });
+    this.permissionsByRendering = new TTLCache(
+      async renderingId => this.loadPermissions(Number(renderingId)),
+      this.options.permissionsCacheDurationInSeconds * 1000,
+    );
   }
 
   public async getScope({

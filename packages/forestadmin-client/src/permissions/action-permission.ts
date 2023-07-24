@@ -5,15 +5,20 @@ import generateActionsFromPermissions, {
   ActionPermissions,
 } from './generate-actions-from-permissions';
 import { ForestAdminServerInterface } from '../types';
+import TTLCache from '../utils/ttl-cache';
 
 export default class ActionPermissionService {
-  private permissionsPromise: Promise<ActionPermissions> | undefined;
-  private permissionExpirationTimestamp: number | undefined;
+  private permissionsCache: TTLCache<ActionPermissions>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly forestAdminServerInterface: ForestAdminServerInterface,
-  ) {}
+  ) {
+    this.permissionsCache = new TTLCache(
+      this.fetchEnvironmentPermissions.bind(this),
+      this.options.permissionsCacheDurationInSeconds * 1000,
+    );
+  }
 
   public async isDevelopmentPermission(): Promise<boolean> {
     const permissions = await this.getPermissions();
@@ -79,19 +84,7 @@ export default class ActionPermissionService {
   }
 
   private async getPermissions(): Promise<ActionPermissions> {
-    if (
-      this.permissionsPromise &&
-      this.permissionExpirationTimestamp &&
-      this.permissionExpirationTimestamp > Date.now()
-    ) {
-      return this.permissionsPromise;
-    }
-
-    this.permissionsPromise = this.fetchEnvironmentPermissions();
-    this.permissionExpirationTimestamp =
-      Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
-
-    return this.permissionsPromise;
+    return this.permissionsCache.fetch('currentEnvironment');
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
@@ -143,7 +136,6 @@ export default class ActionPermissionService {
   public invalidateCache() {
     this.options.logger('Debug', 'Invalidating roles permissions cache..');
 
-    this.permissionsPromise = undefined;
-    this.permissionExpirationTimestamp = undefined;
+    this.permissionsCache.clear();
   }
 }
