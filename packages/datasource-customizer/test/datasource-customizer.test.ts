@@ -122,7 +122,7 @@ describe('DataSourceCustomizer', () => {
       customizer.addDataSource(async () => dataSource2, { rename: { missing: 'updatedName' } });
 
       await expect(customizer.getDataSource(logger)).rejects.toThrow(
-        `dsmock: \"missing\" does not exist`,
+        'dsmock: "missing" does not exist',
       );
     });
 
@@ -137,7 +137,7 @@ describe('DataSourceCustomizer', () => {
       });
 
       await expect(customizer.getDataSource(logger)).rejects.toThrow(
-        `Collection 'collection' already defined in datasource`,
+        'The given new collection name "collection" is already defined',
       );
     });
 

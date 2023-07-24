@@ -158,7 +158,7 @@ describe('RenameCollectionDecorator', () => {
       const dataSource = setupWithManyToManyRelation();
 
       expect(() => dataSource.renameCollection('librariesBooks', 'books')).toThrow(
-        'The given new collection name "books" is already defined in the dataSource',
+        'The given new collection name "books" is already defined',
       );
     });
 
@@ -179,7 +179,7 @@ describe('RenameCollectionDecorator', () => {
 
       expect(decoratedDataSource.getCollection('name 2')).toMatchObject({ name: 'name 2' });
       expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
-        `dsmock: "name 2" does not exist`,
+        `Collection 'name 1' has been renamed to 'name 2'`,
       );
     });
 

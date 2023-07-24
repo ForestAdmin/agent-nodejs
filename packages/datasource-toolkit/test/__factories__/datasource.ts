@@ -43,5 +43,5 @@ export default DataSourceFactory.define(() => ({
   collections: [],
   getCollection: jest.fn(),
   addCollection: jest.fn(),
-  renderChart: jest.fn(),
+  renderChart: jest.fn().mockResolvedValue({}),
 }));
