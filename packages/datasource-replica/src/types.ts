@@ -56,16 +56,15 @@ export type PullDumpReason = {
   name: 'startup' | 'schedule';
 };
 
-export type PullDeltaReason =
+export type PullDeltaReason = { collection?: string; affectedCollections?: string[] } & (
   | { name: 'startup' }
   | { name: 'schedule' }
-  | ({ collection: string; affectedCollections: string[] } & (
-      | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
-      | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
-      | { name: 'after-create'; caller: Caller; records: RecordData[] }
-      | { name: 'after-update'; caller: Caller; filter: Filter; patch: RecordData }
-      | { name: 'after-delete'; caller: Caller; filter: Filter }
-    ));
+  | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
+  | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
+  | { name: 'after-create'; caller: Caller; records: RecordData[] }
+  | { name: 'after-update'; caller: Caller; filter: Filter; patch: RecordData }
+  | { name: 'after-delete'; caller: Caller; filter: Filter }
+);
 
 export type PullDeltaRequest = {
   previousDeltaState: unknown;
