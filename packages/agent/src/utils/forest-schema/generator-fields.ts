@@ -61,7 +61,7 @@ export default class SchemaGeneratorFields {
 
     return {
       defaultValue: column.defaultValue ?? null,
-      enums: column.enumValues ?? null,
+      enums: [...(column.enumValues ?? [])].sort() ?? null,
       field: name,
       integration: null,
       inverseOf: null,

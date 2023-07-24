@@ -92,7 +92,7 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      subType = { type: 'enum', schema, name: udtName, values: enumValues };
+      subType = { type: 'enum', schema, name: udtName, values: [...enumValues].sort() };
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
