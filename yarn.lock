@@ -1729,6 +1729,23 @@
     path-to-regexp "^6.1.0"
     reusify "^1.0.4"
 
+"@forestadmin/datasource-toolkit@1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.5.2.tgz#25d9b87e191ca2319d02bf49f63f0c5b1088c2c4"
+  integrity sha512-QbA+bOXrUfptrKPnxIa5dP46tuRrkNJ/UUNYzRJSkN9F8GKdLuVlwjNWZMH3UKaIXJGgfpbXTOgPXACcRpl5qA==
+  dependencies:
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "^9.0.0"
+
+"@forestadmin/plugin-flattener@^1.0.28":
+  version "1.0.28"
+  resolved "https://registry.yarnpkg.com/@forestadmin/plugin-flattener/-/plugin-flattener-1.0.28.tgz#b330db27a8cabaadf9c5fbb7f80d2430db8ff7ea"
+  integrity sha512-ieHHzbj5IWo1AlIxYMBtAlszQm0VB0rJ7sbIRCOe8L5UB8n/OOT3IFLTwnyGv9T0wmjku60rI2rX2enD2IFNgQ==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.5.2"
+    object-hash "^3.0.0"
+
 "@gar/promisify@^1.0.1", "@gar/promisify@^1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
