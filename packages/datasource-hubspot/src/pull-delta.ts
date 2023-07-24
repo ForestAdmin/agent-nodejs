@@ -2,17 +2,13 @@ import { PullDeltaRequest, PullDeltaResponse } from '@forestadmin/datasource-rep
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import {
-  deleteRecordsAndItsRelationIfDeleted,
-  pullUpdatedOrNewRecords,
-  updateRelations,
-} from './changes';
+import { checkRecordsAndRelations, pullUpdatedOrNewRecords, updateRelations } from './changes';
 import { buildManyToManyNames, getRelationsOf } from './relations';
 import { HubSpotOptions, RecordWithRelationNames, Response } from './types';
 
 function prepareRecordsToUpdate(
   response: Response,
-  availableCollections: string[],
+  collections: string[],
 ): RecordWithRelationNames[] {
   const idsByCollection: { [collectionName: string]: string[] } = {};
   response.newOrUpdatedEntries.forEach(r => {
@@ -26,7 +22,7 @@ function prepareRecordsToUpdate(
       relations.push({
         id,
         collectionName,
-        relations: getRelationsOf(collectionName, availableCollections),
+        relations: getRelationsOf(collectionName, collections),
       });
     });
   });
@@ -34,14 +30,16 @@ function prepareRecordsToUpdate(
   return relations;
 }
 
-async function getRecordsToDelete(
+async function retrieveRequestedIds(
   cache,
-  collections,
-  reasons,
+  collections: string[],
+  reasons: PullDeltaRequest['reasons'],
 ): Promise<{ [collectionName: string]: string[] }> {
-  const reasonsOnCollectionsToUpdate = reasons.filter(reason =>
-    collections.includes(reason.collection),
-  );
+  const reasonsOnCollectionsToUpdate = reasons.filter(reason => {
+    if (reason.name === 'startup' || reason.name === 'schedule') return false;
+
+    return collections.includes(reason?.collection);
+  });
 
   const recordsToUpdate = {};
   await Promise.all(
@@ -79,23 +77,20 @@ export default async function pullDelta<TypingsHubspot>(
     response,
   );
 
-  // depending on the response of the pullUpdatedOrNewRecords call.
-  // We should pull the changes to re-compute the relations.
-  const relationsToUpdate = prepareRecordsToUpdate(response, Object.keys(options.collections));
-  await updateRelations(client, relationsToUpdate, response);
-
-  const recordIds = await getRecordsToDelete(request.cache, collections, request.reasons);
-
-  // guard condition on the ids length to keep good performances
-  if (Object.values(recordIds).flat().length < options.pullDeltaMaxRecordUpToDate ?? 50) {
-    // Avoid to read deleted record.
-    // It is useful when a record is deleted from hubspot because we can't detect it.
-    await deleteRecordsAndItsRelationIfDeleted(
+  const [recordIds] = await Promise.all([
+    retrieveRequestedIds(request.cache, collections, request.reasons),
+    // depending on the response of the pullUpdatedOrNewRecords call.
+    updateRelations(
       client,
-      recordIds,
-      Object.keys(options.collections),
+      prepareRecordsToUpdate(response, Object.keys(options.collections)),
       response,
-    );
+    ),
+  ]);
+
+  // if there is not too many records to update, we can check if the records are deleted or not.
+  if (Object.values(recordIds).flat().length < options.pullDeltaMaxRecordUpToDate ?? 500) {
+    // Avoid to read deleted record.
+    await checkRecordsAndRelations(client, recordIds, Object.keys(options.collections), response);
   } else {
     logger('Warn', 'Too many records to update ');
   }

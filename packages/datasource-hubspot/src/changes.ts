@@ -3,7 +3,7 @@ import { Client } from '@hubspot/api-client';
 import {
   HUBSPOT_MAX_PAGE_SIZE,
   HUBSPOT_RATE_LIMIT_FILTER_VALUES,
-  HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
+  HUBSPOT_RATE_LIMIT_SEARCH_REQUEST_BY_SECOND,
 } from './constants';
 import {
   fetchExistingRecordIds,
@@ -27,10 +27,9 @@ export async function pullUpdatedOrNewRecords<TypingsHubspot>(
     const fields = options.collections[name];
 
     // this is a workaround to avoid hitting the hubspot rate limit
-    // waiting 1 second every RATE_LIMIT_SEARCH_REQUEST requests
     const records: Records = await executeAfterDelay<Records>(
       () => getLastModifiedRecords(client, name, fields, after),
-      Math.floor((index + 1) / HUBSPOT_RATE_LIMIT_SEARCH_REQUEST) * 1000,
+      Math.floor((index + 1) / HUBSPOT_RATE_LIMIT_SEARCH_REQUEST_BY_SECOND) * 1000,
     );
 
     response.nextState[name] = records.at(-1)?.temporaryLastModifiedDate ?? after;
@@ -76,51 +75,61 @@ export async function pullRecordsAndRelations(
   await Promise.all(promises);
 }
 
-export async function deleteRecordsAndItsRelationIfDeleted(
+export async function checkRecordsAndRelations(
   client: Client,
   idsByCollection: { [collectionName: string]: string[] },
   availableCollections: string[],
   response: Response,
 ): Promise<void> {
   for (const [collectionName, ids] of Object.entries(idsByCollection)) {
-    const promises = [];
+    const relations = getManyToManyNamesOf(collectionName, availableCollections);
 
-    // make a bach of HUBSPOT_RATE_LIMIT_FILTER_VALUES requests
-    // to avoid hitting the hubspot rate limit
-    for (let i = 0; i < ids.length; i += HUBSPOT_RATE_LIMIT_FILTER_VALUES) {
-      promises.push(async () => {
-        const existingIds: string[] = await executeAfterDelay<string[]>(
-          () =>
-            fetchExistingRecordIds(
-              client,
-              collectionName,
-              ids.slice(i, i + HUBSPOT_RATE_LIMIT_FILTER_VALUES),
-            ),
-          Math.floor(
-            (i + 1) / HUBSPOT_RATE_LIMIT_FILTER_VALUES / HUBSPOT_RATE_LIMIT_SEARCH_REQUEST,
-          ) * 1000,
-        );
+    // make a bach requests to avoid hitting the hubspot rate limit
+    const promises = Array.from({
+      // build an array of the number of bach requests to make
+      // For example, if ids.length = 5 and HUBSPOT_RATE_LIMIT_FILTER_VALUES = 2
+      // the array will have a length of 3. Math.ceil(5 / 2) = 3
+      length: Math.ceil(ids.length / HUBSPOT_RATE_LIMIT_FILTER_VALUES),
+    }).map((_, i) => {
+      return executeAfterDelay<string[]>(
+        () =>
+          fetchExistingRecordIds(
+            client,
+            collectionName,
+            ids.slice(i, i + HUBSPOT_RATE_LIMIT_FILTER_VALUES),
+          ),
+        // For example, if HUBSPOT_RATE_LIMIT_SEARCH_REQUEST_BY_SECOND = 3
+        // if i = 0, the bach request is delayed by 0 second. Math.floor(0 / 3) * 1000 = 0
+        // if i = 1, the bach request is delayed by 0 second. Math.floor(1 / 3) * 1000 = 0
+        // if i = 2, the bach request is delayed by 0 second. Math.floor(2 / 3) * 1000 = 0
 
-        const relations = getManyToManyNamesOf(collectionName, availableCollections);
-        // find the records that have been deleted on hubspot
-        const idsToDelete = ids.filter(id => !existingIds.includes(id));
-        idsToDelete.forEach(id => {
-          // delete records
-          response.deletedEntries.push({ collection: collectionName, record: { id } });
-          // delete relations
-          relations.forEach(relation => {
-            response.deletedEntries.push({
-              collection: relation,
-              record: { [`${collectionName}_id`]: id },
-            });
-          });
-        });
-      });
-    }
+        // if i = 3, the bach request is delayed by 1 second. Math.floor(3 / 3) * 1000 = 1000
+        // if i = 4, the bach request is delayed by 1 second. Math.floor(4 / 3) * 1000 = 1000
+        // if i = 5, the bach request is delayed by 1 second. Math.floor(5 / 3) * 1000 = 1000
+
+        // if i = 6, the bach request is delayed by 2 second. Math.floor(6 / 3) * 1000 = 2000
+        // etc
+        Math.floor(i / HUBSPOT_RATE_LIMIT_SEARCH_REQUEST_BY_SECOND) * 1000,
+      );
+    });
 
     // awaited in the loop to avoid hitting the hubspot rate limit
     // eslint-disable-next-line no-await-in-loop
-    await Promise.all(promises.map(p => p()));
+    const existingIds = (await Promise.all(promises)).flat();
+
+    // find the records that have been deleted on hubspot
+    ids.forEach(id => {
+      if (existingIds.includes(id)) return;
+      // delete records
+      response.deletedEntries.push({ collection: collectionName, record: { id } });
+      // delete relations
+      relations.forEach(relation => {
+        response.deletedEntries.push({
+          collection: relation,
+          record: { [`${collectionName}_id`]: id },
+        });
+      });
+    });
   }
 }
 

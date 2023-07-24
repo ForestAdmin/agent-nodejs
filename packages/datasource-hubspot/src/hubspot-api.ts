@@ -188,7 +188,9 @@ export async function getLastModifiedRecords(
       // this field is used to save the last modified date for the state
       [
         'temporaryLastModifiedDate',
-        r.properties.hs_lastmodifieddate ?? r.properties.lastmodifieddate,
+        collectionName === CONTACTS
+          ? r.properties.lastmodifieddate
+          : r.properties.hs_lastmodifieddate ?? r.properties.lastmodifieddate,
       ],
     ]),
   );
