@@ -37,9 +37,11 @@ async function retrieveRequestedIds(
   const ids = {};
   await Promise.all(
     reasons.map(async reason => {
-      const recordIds = await cache.getCollection(reason.collection).list(reason.filter, ['id']);
+      if ('filter' in reason && 'collection' in reason) {
+        const recordIds = await cache.getCollection(reason.collection).list(reason.filter, ['id']);
 
-      ids[reason.collection] = recordIds.map(r => r.id);
+        ids[reason.collection] = recordIds.map(r => r.id);
+      }
     }),
   );
 
@@ -54,7 +56,10 @@ export default async function pullDelta<TypingsHubspot>(
 ): Promise<PullDeltaResponse> {
   const availableCollections = Object.keys(options.collections);
   const manyToManyRelations = buildManyToManyNames(availableCollections);
-  const collections = request.collections.filter(c => !manyToManyRelations.includes(c));
+  // when the affectedCollections is empty, we pull all the collections.
+  // it is useful when we want to pull all the collections at the startup for example.
+  const affectedCollections =
+    request.affectedCollections.length === 0 ? availableCollections : request.affectedCollections;
   const response: Response = {
     more: false,
     // save the previous delta state
@@ -65,7 +70,7 @@ export default async function pullDelta<TypingsHubspot>(
 
   await pullUpdatedOrNewRecords<TypingsHubspot>(
     client,
-    collections,
+    affectedCollections.filter(c => !manyToManyRelations.includes(c)),
     request.previousDeltaState,
     options,
     response,
@@ -77,13 +82,9 @@ export default async function pullDelta<TypingsHubspot>(
     // check if the requested records on hubspot are deleted or not.
     // if the record is deleted, we need to delete the record and all the relations related to it.
     async () => {
-      const reasons = request.reasons.filter(reason => {
-        return (
-          reason.name !== 'startup' &&
-          reason.name !== 'schedule' &&
-          !manyToManyRelations.includes(reason?.collection)
-        );
-      });
+      const reasons = request.reasons.filter(
+        reason => !manyToManyRelations.includes(reason?.collection),
+      );
       const recordIds = await retrieveRequestedIds(request.cache, reasons);
 
       // if there is not too many records to update, we can check if the records are deleted or not.
