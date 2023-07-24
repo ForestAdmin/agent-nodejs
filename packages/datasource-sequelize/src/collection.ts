@@ -65,24 +65,24 @@ export default class SequelizeCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    let include = this.queryConverter.getIncludeWithAttributesFromProjection(projection);
-
-    if (filter.conditionTree) {
-      include = include.concat(
-        this.queryConverter.getIncludeFromProjection(filter.conditionTree.projection),
-      );
-    }
-
-    if (filter.sort) {
-      include = include.concat(
-        this.queryConverter.getIncludeFromProjection(filter.sort.projection),
-      );
-    }
-
     const query: FindOptions = {
       attributes: projection.columns,
       where: this.queryConverter.getWhereFromConditionTree(filter.conditionTree),
-      include,
+      include: this.queryConverter.getIncludeFromProjection(
+        // Bugfix [CU-860rc94dq](https://app.clickup.com/t/860rc94dq)
+        // When we provide sequelize with an include which has empty `.attributes` in it, it stops
+        // there and doesn't go further in the include tree.
+        // To ensure that no `.attributes` are not empty, we add the pk of each collection in the
+        // projection.
+        //
+        // include: [{
+        //   association: 'users',
+        //   attributes: [],
+        //   include: { association: 'posts', attributes: ['i_want_this_field'] }
+        // }]
+        projection.withPks(this),
+        new Projection().union(filter.conditionTree?.projection, filter.sort?.projection),
+      ),
       limit: filter.page?.limit,
       offset: filter.page?.skip,
       order: this.queryConverter.getOrderFromSort(filter.sort),
@@ -90,8 +90,11 @@ export default class SequelizeCollection extends BaseCollection {
     };
 
     const records = await this.model.findAll(query);
+    const rawRecords = records.map(record => Serializer.serialize(record.get({ plain: true })));
 
-    return records.map(record => Serializer.serialize(record.get({ plain: true })));
+    // Use projection to filter out the unwanted primary keys that were added to the projection
+    // so that sequelize can do its job.
+    return projection.apply(rawRecords);
   }
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
@@ -144,26 +147,20 @@ export default class SequelizeCollection extends BaseCollection {
       this.aggregationUtils.aggregateFieldName,
     ];
 
-    const { groups, attributes: groupAttributes } =
-      this.aggregationUtils.getGroupAndAttributesFromAggregation(aggregation.groups);
-
-    let include = this.queryConverter.getIncludeFromProjection(aggregation.projection);
-
-    if (filter.conditionTree) {
-      include = include.concat(
-        this.queryConverter.getIncludeFromProjection(filter.conditionTree.projection),
-      );
-    }
-
-    const order = this.aggregationUtils.getOrder(aggregationFunction);
+    const { groups, attributes } = this.aggregationUtils.getGroupAndAttributesFromAggregation(
+      aggregation.groups,
+    );
 
     const query: FindOptions = {
-      attributes: [...groupAttributes, aggregationAttribute],
+      attributes: [...attributes, aggregationAttribute],
       group: groups,
       where: this.queryConverter.getWhereFromConditionTree(filter.conditionTree),
-      include,
+      include: this.queryConverter.getIncludeFromProjection(
+        new Projection(),
+        aggregation.projection.union(filter.conditionTree?.projection),
+      ),
       limit,
-      order: [order],
+      order: [this.aggregationUtils.getOrder(aggregationFunction)],
       subQuery: false,
       raw: true,
     };

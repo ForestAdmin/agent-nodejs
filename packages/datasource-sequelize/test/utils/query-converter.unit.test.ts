@@ -1,6 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-non-null-assertion,@typescript-eslint/no-explicit-any */
+
 import {
   Aggregator,
+  ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
   Operator,
@@ -88,7 +90,7 @@ describe('Utils > QueryConverter', () => {
       it('should generate a valid where clause with ids', async () => {
         const model = setupModel();
         const queryConverter = new QueryConverter(model);
-        const where = await queryConverter.getWhereFromConditionTreeToByPassInclude(null);
+        const where = await queryConverter.getWhereFromConditionTreeToByPassInclude(undefined);
 
         expect(where).toEqual({});
       });
@@ -115,13 +117,13 @@ describe('Utils > QueryConverter', () => {
           const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
-          expect(queryConverter.getWhereFromConditionTree(null)).toEqual({});
+          expect(queryConverter.getWhereFromConditionTree(undefined)).toEqual({});
         });
       });
 
       describe('with a ConditionTreeBranch node', () => {
         it('should fail when aggregator is empty', () => {
-          const conditionTree = new ConditionTreeBranch(null, [
+          const conditionTree = new ConditionTreeBranch(null as unknown as Aggregator, [
             new ConditionTreeLeaf('__field__', 'Equal', '__value__'),
             new ConditionTreeLeaf('__field__', 'Equal', '__value__'),
           ]);
@@ -135,7 +137,7 @@ describe('Utils > QueryConverter', () => {
         });
 
         it('should throw an error when conditions is not an array', () => {
-          const conditionTree = new ConditionTreeBranch('And', null);
+          const conditionTree = new ConditionTreeBranch('And', null as unknown as ConditionTree[]);
           const model = setupModel();
           const queryConverter = new QueryConverter(model);
 
@@ -350,13 +352,13 @@ describe('Utils > QueryConverter', () => {
       describe('with a condition tree acting on relation', () => {
         const setupModelWithRelation = () => {
           const model = setupModel();
-          const relation = model.sequelize.define('relation', {
+          const relation = model.sequelize!.define('relation', {
             __field_a__: {
               type: DataTypes.STRING,
               field: 'fieldNameA',
             },
           });
-          const relationB = model.sequelize.define('relationB', {
+          const relationB = model.sequelize!.define('relationB', {
             __field_b__: {
               type: DataTypes.STRING,
               field: 'fieldNameB',
@@ -440,14 +442,14 @@ describe('Utils > QueryConverter', () => {
     });
   });
 
-  describe('getIncludeWithAttributesFromProjection', () => {
+  describe('getIncludeFromProjection', () => {
     describe('when projection have relation field', () => {
       it('should add include with attributes', () => {
         const projection = new Projection('model:another_field');
         const model = setupModel();
         const queryConverter = new QueryConverter(model);
 
-        expect(queryConverter.getIncludeWithAttributesFromProjection(projection)).toEqual([
+        expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
           { association: 'model', include: [], attributes: ['another_field'] },
         ]);
       });
@@ -457,7 +459,7 @@ describe('Utils > QueryConverter', () => {
         const model = setupModel();
         const queryConverter = new QueryConverter(model);
 
-        expect(queryConverter.getIncludeWithAttributesFromProjection(projection)).toEqual([
+        expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
           {
             association: 'model',
             include: [{ association: 'another_model', include: [], attributes: ['a_field'] }],
@@ -465,17 +467,13 @@ describe('Utils > QueryConverter', () => {
           },
         ]);
       });
-    });
-  });
 
-  describe('getIncludeFromProjection', () => {
-    describe('when projection have relation field', () => {
       it('should add include', () => {
         const projection = new Projection('model:another_field');
         const model = setupModel();
         const queryConverter = new QueryConverter(model);
 
-        expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
+        expect(queryConverter.getIncludeFromProjection(new Projection(), projection)).toEqual([
           { association: 'model', include: [], attributes: [] },
         ]);
       });
@@ -485,7 +483,7 @@ describe('Utils > QueryConverter', () => {
         const model = setupModel();
         const queryConverter = new QueryConverter(model);
 
-        expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
+        expect(queryConverter.getIncludeFromProjection(new Projection(), projection)).toEqual([
           {
             association: 'model',
             include: [{ association: 'another_model', include: [], attributes: [] }],
