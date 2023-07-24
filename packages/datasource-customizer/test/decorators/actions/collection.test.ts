@@ -53,7 +53,14 @@ describe('ActionDecorator', () => {
     test('should delegate getForm calls', async () => {
       const caller = factories.caller.build();
       const filter = new Filter({});
-      const fields = await newBooks.getForm(caller, 'someAction', { firstname: 'John' }, filter);
+      const metas = { changedField: 'a field' };
+      const fields = await newBooks.getForm(
+        caller,
+        'someAction',
+        { firstname: 'John' },
+        filter,
+        metas,
+      );
 
       expect(fields).toEqual([]);
       expect(books.getForm).toHaveBeenCalledWith(
@@ -61,6 +68,7 @@ describe('ActionDecorator', () => {
         'someAction',
         { firstname: 'John' },
         filter,
+        metas,
       );
     });
   });
