@@ -23,7 +23,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       // I am a root collection, I can forward the creation to the target
       const promises = data.map(async record => {
         const newRecord = await this.options.createRecord(this.name, record);
-        Object.assign(record, newRecord);
+        Object.assign(record, newRecord ?? {});
       });
 
       await Promise.all(promises);

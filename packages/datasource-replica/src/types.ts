@@ -70,7 +70,7 @@ export type PullDeltaReason =
 export type PullDeltaRequest = {
   previousDeltaState: unknown;
   cache: RelaxedDataSource;
-  collections: string[];
+  affectedCollections: string[];
   reasons: Array<PullDeltaReason & { at: Date }>;
 };
 
@@ -81,7 +81,7 @@ export type PullDumpRequest = {
 };
 
 export type PushDeltaRequest = {
-  previousDeltaState: unknown;
+  getPreviousDeltaState(): unknown;
   cache: RelaxedDataSource;
 };
 
@@ -131,7 +131,7 @@ export type ReplicaDataSourceOptions = {
 
   /** Writing options */
   createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
-  updateRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
+  updateRecord?: (collectionName: string, record: RecordData) => Promise<void>;
   deleteRecord?: (collectionName: string, record: RecordData) => Promise<void>;
 
   /** Push options */

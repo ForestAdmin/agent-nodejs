@@ -37,18 +37,22 @@ export default class CacheTarget implements SynchronizationTarget {
       recordsByCollection[entry.collection].push(entry.record);
     }
 
-    for (const [collection, records] of Object.entries(recordsByCollection))
+    for (const [collection, records] of Object.entries(recordsByCollection)) {
+      this.checkCollection(collection);
       await this.connection.model(collection).bulkCreate(records);
+    }
   }
 
   async applyDelta(changes: PushDeltaResponse): Promise<void> {
     for (const entry of changes.deletedEntries) {
+      this.checkCollection(entry.collection);
       await this.destroySubModels(entry);
       await this.connection.model(entry.collection).destroy({ where: entry.record });
     }
 
-    // Usert records in both root and virtual collections
+    // Upsert records in both root and virtual collections
     for (const entry of changes.newOrUpdatedEntries) {
+      this.checkCollection(entry.collection);
       await this.destroySubModels(entry);
       for (const subEntry of this.flattenRecord(entry))
         await this.connection.model(subEntry.collection).upsert(subEntry.record);
@@ -69,13 +73,19 @@ export default class CacheTarget implements SynchronizationTarget {
   private async destroySubModels(entry: RecordDataWithCollection): Promise<void> {
     const { asModels } = this.options.flattenOptions[entry.collection];
     const { fields } = this.options.schema.find(c => c.name === entry.collection);
-    const recordId = getRecordId(fields, entry.record);
-    const promises = asModels.map(asModel =>
-      this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
+    const promises = asModels.map(asModel => {
+      const recordId = getRecordId(fields, entry.record);
+
+      return this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
         where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
-      }),
-    );
+      });
+    });
 
     await Promise.all(promises);
+  }
+
+  private checkCollection(collection: string): void {
+    if (!this.options.schema.find(s => s.name === collection))
+      throw new Error(`Collection ${collection} not found in schema`);
   }
 }
