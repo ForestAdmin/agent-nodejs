@@ -47,6 +47,5 @@ function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSour
   };
 }
 
-export { ColumnType } from '@forestadmin/datasource-toolkit';
 export * from './types';
 export { createReplicaDataSource };
