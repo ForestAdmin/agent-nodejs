@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.3...@forestadmin/datasource-sql@1.7.4) (2023-07-24)
+
+
+### Bug Fixes
+
+* **agent:** sort enum values to avoid versioning conflicts ([#773](https://github.com/ForestAdmin/agent-nodejs/issues/773)) ([14ab93d](https://github.com/ForestAdmin/agent-nodejs/commit/14ab93d12ecf149fec35493c8c5b1e73856f46aa))
+
 ## @forestadmin/datasource-sql [1.7.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.2...@forestadmin/datasource-sql@1.7.3) (2023-07-20)
 
 
