@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.13.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.7...@forestadmin/agent@1.13.8) (2023-07-24)
+
+
+### Bug Fixes
+
+* **agent:** sort enum values to avoid versioning conflicts ([#773](https://github.com/ForestAdmin/agent-nodejs/issues/773)) ([14ab93d](https://github.com/ForestAdmin/agent-nodejs/commit/14ab93d12ecf149fec35493c8c5b1e73856f46aa))
+
 ## @forestadmin/agent [1.13.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.6...@forestadmin/agent@1.13.7) (2023-07-24)
 
 
