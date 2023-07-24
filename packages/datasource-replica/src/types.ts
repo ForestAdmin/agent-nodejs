@@ -1,16 +1,16 @@
-import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
-import { ConnectionOptions } from '@forestadmin/datasource-sql';
-import {
+import type { TFilter, TPaginatedFilter } from '@forestadmin/datasource-customizer';
+import type { ConnectionOptions } from '@forestadmin/datasource-sql';
+import type {
   Aggregation,
   Caller,
   ColumnSchema,
-  Filter,
   Logger,
-  PaginatedFilter,
   PrimitiveTypes,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
+import RelaxedDataSource from '@forestadmin/datasource-customizer/dist/context/relaxed-wrappers/datasource';
 
 export type ValueOrPromiseOrFactory<T> = T | Promise<T> | (() => T) | (() => Promise<T>);
 export type RecordDataWithCollection = { collection: string; record: RecordData };
@@ -59,11 +59,11 @@ export type PullDumpReason = {
 export type PullDeltaReason = { collection?: string; affectedCollections?: string[] } & (
   | { name: 'startup' }
   | { name: 'schedule' }
-  | { name: 'before-list'; caller: Caller; filter: PaginatedFilter; projection: Projection }
-  | { name: 'before-aggregate'; caller: Caller; filter: Filter; aggregation: Aggregation }
+  | { name: 'before-list'; caller: Caller; filter: TPaginatedFilter; projection: Projection }
+  | { name: 'before-aggregate'; caller: Caller; filter: TFilter; aggregation: Aggregation }
   | { name: 'after-create'; caller: Caller; records: RecordData[] }
-  | { name: 'after-update'; caller: Caller; filter: Filter; patch: RecordData }
-  | { name: 'after-delete'; caller: Caller; filter: Filter }
+  | { name: 'after-update'; caller: Caller; filter: TFilter; patch: RecordData }
+  | { name: 'after-delete'; caller: Caller; filter: TFilter }
 );
 
 export type PullDeltaRequest = {

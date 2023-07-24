@@ -1,14 +1,15 @@
-/* eslint-disable no-await-in-loop */
-import {
+import type { TFilter, TPaginatedFilter } from '@forestadmin/datasource-customizer';
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
 
 import TriggerSyncDataSourceDecorator from './data-source';
 
@@ -43,7 +44,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
         collection: this.name,
         affectedCollections: [this.name],
         caller,
-        filter,
+        filter: filter as unknown as TFilter,
         patch,
       });
     }
@@ -63,7 +64,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
         collection: this.name,
         affectedCollections: this.getLinkedCollections(new Set()),
         caller,
-        filter,
+        filter: filter as unknown as TFilter,
       });
     }
   }
@@ -81,7 +82,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
         collection: this.name,
         affectedCollections: this.getCollectionsFromProjection(projection),
         caller,
-        filter,
+        filter: filter as unknown as TPaginatedFilter,
         projection,
       });
     }
@@ -103,7 +104,7 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
         collection: this.name,
         affectedCollections: this.getCollectionsFromProjection(aggregation.projection),
         caller,
-        filter,
+        filter: filter as unknown as TFilter,
         aggregation,
       });
     }
