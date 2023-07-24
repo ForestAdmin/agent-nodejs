@@ -19,7 +19,7 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
   }
 
   get collections(): CollectionDecorator[] {
-    return this.childDataSource.collections.map(collection => this.getCollection(collection.name));
+    return this.childDataSource.collections.map(({ name }) => this.getCollection(name));
   }
 
   constructor(

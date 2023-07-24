@@ -166,7 +166,7 @@ describe('RenameCollectionDecorator', () => {
       const dataSource = setupWithManyToManyRelation();
 
       expect(() => dataSource.renameCollection('doesNotExist', 'books')).toThrow(
-        'The given collection name "doesNotExist" does not exist',
+        'dsmock: "doesNotExist" does not exist',
       );
     });
 
@@ -179,7 +179,7 @@ describe('RenameCollectionDecorator', () => {
 
       expect(decoratedDataSource.getCollection('name 2')).toMatchObject({ name: 'name 2' });
       expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
-        `Collection 'name 1' not found.`,
+        `dsmock: "name 2" does not exist`,
       );
     });
 

@@ -3,6 +3,8 @@ import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit
 import RenameCollectionCollectionDecorator from './collection';
 
 export default class RenameCollectionDataSourceDecorator extends DataSourceDecorator<RenameCollectionCollectionDecorator> {
+  renames: Record<string, string> = {};
+
   constructor(childDataSource: DataSource) {
     super(childDataSource, RenameCollectionCollectionDecorator);
   }
@@ -22,7 +24,9 @@ export default class RenameCollectionDataSourceDecorator extends DataSourceDecor
     if (oldName !== newName) collection.rename(newName);
   }
 
-  renameCollections(rename?: ((oldName: string) => string) | { [oldName: string]: string }): void {
+  renameCollections(
+    rename?: ((oldName: string) => string | null) | { [oldName: string]: string },
+  ): void {
     const tuples =
       typeof rename === 'function'
         ? this.collections.map(({ name }) => [name, rename(name) ?? name])

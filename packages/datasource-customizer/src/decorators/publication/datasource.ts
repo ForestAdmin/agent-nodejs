@@ -10,7 +10,9 @@ export default class PublicationDataSourceDecorator extends DataSourceDecorator<
   }
 
   override get collections(): PublicationCollectionDecorator[] {
-    return super.collections.filter(collection => !this.blacklist.has(collection.name));
+    return this.childDataSource.collections
+      .filter(({ name }) => !this.blacklist.has(name))
+      .map(({ name }) => this.getCollection(name));
   }
 
   override getCollection(name: string): PublicationCollectionDecorator {

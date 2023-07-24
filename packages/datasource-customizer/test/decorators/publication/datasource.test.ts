@@ -80,11 +80,11 @@ describe('PublicationDataSourceDecorator', () => {
   describe('keepCollectionsMatching', () => {
     it('should throw an error if a name is unknown', () => {
       expect(() => decoratedDataSource.keepCollectionsMatching(['unknown'])).toThrow(
-        'Unknown collection name: "unknown"',
+        `dsmock: "unknown" does not exist`,
       );
 
       expect(() => decoratedDataSource.keepCollectionsMatching(undefined, ['unknown'])).toThrow(
-        'Unknown collection name: "unknown"',
+        `dsmock: "unknown" does not exist`,
       );
     });
 
