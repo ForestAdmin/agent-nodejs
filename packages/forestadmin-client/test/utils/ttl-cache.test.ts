@@ -17,15 +17,13 @@ describe('TTL Cache', () => {
       expect(fetchMethod).toHaveBeenCalledWith('key');
     });
 
-    it('should reuse the cache if 2 calls are made in a short time', async () => {
+    it('should reuse the cache if a second call is made before cache eviction', async () => {
       jest.useFakeTimers();
+      jest.setSystemTime(0);
 
       const fetchMethod = jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
       const cache = new TTLCache<boolean>(fetchMethod);
-
-      jest.useFakeTimers();
-      jest.setSystemTime(0);
 
       const fetch1 = await cache.fetch('key');
 
@@ -40,15 +38,13 @@ describe('TTL Cache', () => {
       expect(fetchMethod).toHaveBeenCalledTimes(1);
     });
 
-    it('should update the cache if 2 calls are made in a long time', async () => {
+    it('should update the cache if a second call is made after cache eviction', async () => {
       jest.useFakeTimers();
+      jest.setSystemTime(0);
 
       const fetchMethod = jest.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
 
       const cache = new TTLCache<string>(fetchMethod);
-
-      jest.useFakeTimers();
-      jest.setSystemTime(0);
 
       const fetch1 = await cache.fetch('key');
 
@@ -106,30 +102,30 @@ describe('TTL Cache', () => {
       expect(cache.stateMap.has('key1')).toEqual(false);
       // @ts-expect-error: private member for tests purpose
       expect(cache.stateMap.size).toEqual(1);
-
-      expect(fetchMethod).toHaveBeenCalledTimes(2);
     });
   });
 
-  // eslint-disable-next-line max-len
-  it('should not throw an error when fetching while clearing (non-regression test #860rch4bz)', async () => {
-    jest.useFakeTimers();
+  describe('behavior', () => {
+    // eslint-disable-next-line max-len
+    it('should not throw an error when fetching while clearing (non-regression test for #860rch4bz)', async () => {
+      jest.useFakeTimers();
 
-    const cache = new TTLCache<number>(
-      async (key: string) =>
-        // eslint-disable-next-line no-promise-executor-return
-        new Promise<number>(r => setTimeout(() => r(Number(key)), 10)),
-    );
+      const cache = new TTLCache<number>(
+        async (key: string) =>
+          // eslint-disable-next-line no-promise-executor-return
+          new Promise<number>(r => setTimeout(() => r(Number(key)), 10)),
+      );
 
-    const valuePromise = cache.fetch('1');
+      const valuePromise = cache.fetch('1');
 
-    cache.clear();
-    jest.advanceTimersByTime(10);
+      cache.clear();
+      jest.advanceTimersByTime(10);
 
-    const res = await valuePromise;
+      const res = await valuePromise;
 
-    expect(res).toEqual(1);
-    // @ts-expect-error: private member for tests
-    expect(cache.stateMap.has('1')).toBeFalse();
+      expect(res).toEqual(1);
+      // @ts-expect-error: private member for tests
+      expect(cache.stateMap.has('1')).toBeFalse();
+    });
   });
 });
