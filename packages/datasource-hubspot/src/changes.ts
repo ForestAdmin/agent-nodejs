@@ -96,7 +96,10 @@ export async function checkRecordsAndRelations(
           fetchExistingRecordIds(
             client,
             collectionName,
-            ids.slice(i, i + HUBSPOT_RATE_LIMIT_FILTER_VALUES),
+            ids.slice(
+              i * HUBSPOT_RATE_LIMIT_FILTER_VALUES,
+              i * HUBSPOT_RATE_LIMIT_FILTER_VALUES + HUBSPOT_RATE_LIMIT_FILTER_VALUES,
+            ),
           ),
         // For example, if HUBSPOT_RATE_LIMIT_SEARCH_REQUEST_BY_SECOND = 3
         // if i = 0, the bach request is delayed by 0 second. Math.floor(0 / 3) * 1000 = 0
