@@ -146,6 +146,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
+   * Remove collections from the exported schema (they will still be usable within the agent).
+   * @param names the fields to remove
+   * @example
+   * .removeField('aFieldToRemove', 'anotherFieldToRemove');
+   */
+  removeCollection(...names: TCollectionName<S>[]): this {
+    this.customizer.removeCollection(...names);
+
+    return this;
+  }
+
+  /**
    * Load a plugin across all collections
    * @param plugin instance of the plugin
    * @param options options which need to be passed to the plugin

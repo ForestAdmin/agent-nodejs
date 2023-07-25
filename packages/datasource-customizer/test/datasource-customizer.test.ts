@@ -109,6 +109,21 @@ describe('DataSourceCustomizer', () => {
     });
   });
 
+  describe('removeCollection', () => {
+    it('should work', async () => {
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+
+      const customized = await new DataSourceCustomizer()
+        .addDataSource(async () => dataSource)
+        .removeCollection('collection')
+        .getDataSource(logger);
+
+      expect(customized.collections).toHaveLength(0);
+    });
+  });
+
   describe('addDataSource', () => {
     it('should throw when renaming an unknown collection', async () => {
       const customizer = new DataSourceCustomizer();

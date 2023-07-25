@@ -38,6 +38,22 @@ describe('CompositeDataSource', () => {
       expect(compositeDataSource.schema.charts).toEqual(['chart1', 'chart2', 'chart3', 'chart4']);
     });
 
+    it('should throw with collectio name conflict', () => {
+      const aDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+      const anotherDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(aDataSource);
+
+      expect(() => compositeDataSource.addDataSource(anotherDataSource)).toThrow(
+        "Collection 'collection1' already exists",
+      );
+    });
+
     it('should throw an error if a chart name is already registered', () => {
       const compositeDataSource = new CompositeDataSource<Collection>();
       const aDataSource = factories.dataSource.buildWithCharts(['chart1']);
@@ -46,6 +62,16 @@ describe('CompositeDataSource', () => {
 
       expect(() => compositeDataSource.addDataSource(otherDataSource)).toThrow(
         "Chart 'chart1' is already defined in datasource.",
+      );
+    });
+  });
+
+  describe('getCollection', () => {
+    it('should throw an error when the collection does not exist', () => {
+      const compositeDataSource = new CompositeDataSource<Collection>();
+
+      expect(() => compositeDataSource.getCollection('missing')).toThrow(
+        "Collection 'missing' not found. List of available collections: ",
       );
     });
   });

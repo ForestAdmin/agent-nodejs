@@ -162,6 +162,16 @@ describe('RenameCollectionDecorator', () => {
       );
     });
 
+    it('should throw an error if renaming twice', () => {
+      const dataSource = setupWithManyToManyRelation();
+
+      dataSource.renameCollection('books', 'books2');
+
+      expect(() => dataSource.renameCollection('books2', 'books3')).toThrow(
+        'Cannot rename a collection twice: books->books2->books3',
+      );
+    });
+
     it('should throw an error if the given old name does not exist', () => {
       const dataSource = setupWithManyToManyRelation();
 
