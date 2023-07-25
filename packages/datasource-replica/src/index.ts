@@ -35,15 +35,16 @@ function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSour
 
     options.source.requestCache = new CacheDataSourceInterface(publicationDs);
 
+    // Additional decorators
+    const triggerSyncDecorator = new TriggerSyncDataSourceDecorator(publicationDs, options);
+    const writeDecorator = new WriteDataSourceDecorator(triggerSyncDecorator, options);
+    const schemaDecorator = new SchemaDataSourceDecorator(writeDecorator, options);
+
     // Start synchronization between our database and the source.
     // (or replay the dump/delta if they were already synchronized when guessing the schema)
     await options.source.start(new CacheTarget(connection, options));
 
-    // Additional decorators
-    const triggerSyncDataSource = new TriggerSyncDataSourceDecorator(publicationDs, options);
-    const writeDataSource = new WriteDataSourceDecorator(triggerSyncDataSource, options);
-
-    return new SchemaDataSourceDecorator(writeDataSource, options);
+    return schemaDecorator;
   };
 }
 

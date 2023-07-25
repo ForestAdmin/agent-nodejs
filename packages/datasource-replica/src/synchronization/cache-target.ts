@@ -24,28 +24,40 @@ export default class CacheTarget implements SynchronizationTarget {
   }
 
   async applyDump(changes: PullDumpResponse, firstPage: boolean): Promise<void> {
-    // Truncate tables (we should write to a temporary table and swap the tables to avoid downtime)
-    if (firstPage) {
-      for (const collection of this.options.flattenSchema) {
-        await this.connection.model(collection.name).destroy({ truncate: true });
+    // fixme use something so that final users see the whole dump as a single transaction
+    // [transaction / temporary table]
+
+    await this.connection.transaction(async transaction => {
+      if (firstPage) {
+        // Truncate tables
+        for (const collection of this.options.flattenSchema) {
+          await this.connection.model(collection.name).truncate({ transaction });
+        }
       }
-    }
 
-    const recordsByCollection = {} as Record<string, RecordData[]>;
-    const entries = changes.entries.flatMap(entry => this.flattenRecord(entry));
+      const recordsByCollection = {} as Record<string, RecordData[]>;
+      const entries = changes.entries.flatMap(entry => this.flattenRecord(entry));
 
-    for (const entry of entries) {
-      if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
-      recordsByCollection[entry.collection].push(entry.record);
-    }
+      for (const entry of entries) {
+        if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
+        recordsByCollection[entry.collection].push(entry.record);
+      }
 
-    for (const [collection, records] of Object.entries(recordsByCollection)) {
-      this.checkCollection(collection);
-      await this.connection.model(collection).bulkCreate(records);
-    }
+      for (const [collection, records] of Object.entries(recordsByCollection)) {
+        this.checkCollection(collection);
+
+        // fixme check that no pre-processing of the records are needed to handle
+        // dates, buffers, ...
+        await this.connection.model(collection).bulkCreate(records, { transaction });
+      }
+    });
+    // [/transaction / temporary table]
   }
 
   async applyDelta(changes: PushDeltaResponse): Promise<void> {
+    // fixme use a transaction to wrap the whole thing
+    // [transaction]
+
     for (const entry of changes.deletedEntries) {
       this.checkCollection(entry.collection);
       await this.destroySubModels(entry);
@@ -56,9 +68,14 @@ export default class CacheTarget implements SynchronizationTarget {
     for (const entry of changes.newOrUpdatedEntries) {
       this.checkCollection(entry.collection);
       await this.destroySubModels(entry);
+
+      // fixme check that no pre-processing of the records are needed to handle
+      // dates, buffers, ...
       for (const subEntry of this.flattenRecord(entry))
         await this.connection.model(subEntry.collection).upsert(subEntry.record);
     }
+
+    // [/transaction]
   }
 
   private flattenRecord(

@@ -17,7 +17,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports creations');
     }
 
-    if (this.dataSource.options.schema[this.name]) {
+    if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
       // I am a root collection, I can forward the creation to the target
       const promises = data.map(async record => {
         const newRecord = await this.options.createRecord(this.name, record);
@@ -37,7 +37,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
-    if (this.dataSource.options.schema[this.name]) {
+    if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
       // I am a root collection, I can forward the update to the target
       const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
       const promises = recordsPks.map(async record => {
@@ -58,7 +58,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
-    if (this.dataSource.options.schema[this.name]) {
+    if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
       // I am a root collection, I can forward the delete to the target
       const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
       const promises = recordsPks.map(async record => {

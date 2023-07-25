@@ -39,6 +39,7 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
 
   async start(target: SynchronizationTarget): Promise<void> {
     if (!this.target) {
+      // Replay dump/delta that we received while analyzing the schema
       let record: Model = { dataValues: { id: 0 } } as Model;
 
       while (record) {
@@ -54,6 +55,8 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
       }
 
       await this.recordCache.truncate();
+
+      // Set target so that from now on we just forward the requests
       this.target = target;
     } else {
       throw new Error('Already started');

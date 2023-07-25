@@ -26,7 +26,7 @@ type Queue<Reason> = {
   reasons: (Reason & { at: Date })[];
 };
 
-export default class CustomerSource extends EventTarget implements SynchronizationSource {
+export default class CustomerSource implements SynchronizationSource {
   requestCache: CacheDataSourceInterface = null;
 
   private readonly logger: Logger;
@@ -43,7 +43,6 @@ export default class CustomerSource extends EventTarget implements Synchronizati
   private target: SynchronizationTarget;
 
   constructor(connection: Sequelize, options: ReplicaDataSourceOptions, logger: Logger) {
-    super();
     this.connection = connection;
     this.options = options;
     this.logger = logger;
@@ -78,6 +77,7 @@ export default class CustomerSource extends EventTarget implements Synchronizati
 
     if (options.pushDeltaHandler) {
       // fixme queuePushDelta is not returning a promise
+      // That may not be an issue
       options.pushDeltaHandler(
         { cache: this.requestCache, getPreviousDeltaState: () => this.getDeltaState() },
         async changes => this.queuePushDelta(changes),
