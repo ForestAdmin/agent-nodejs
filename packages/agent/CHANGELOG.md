@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.8...@forestadmin/agent@1.14.0) (2023-07-25)
+
+
+### Features
+
+* add changed field to action context ([#769](https://github.com/ForestAdmin/agent-nodejs/issues/769)) ([dbfa25e](https://github.com/ForestAdmin/agent-nodejs/commit/dbfa25ec3e0dd09acb39be1ee702505a5cdd60f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.11.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.6.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.7
+
 ## @forestadmin/agent [1.13.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.7...@forestadmin/agent@1.13.8) (2023-07-24)
 
 
