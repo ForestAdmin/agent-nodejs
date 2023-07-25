@@ -8,10 +8,13 @@ import { retryIfLimitReached } from './utils';
 
 function handleErrors(error: Error & { code: number }) {
   if (error.code === 429) {
-    // to much requests
-    throw new UnprocessableError('Request limit reach.');
+    throw new UnprocessableError(
+      'You have reached the limit of allowed requests. ' +
+        'If this message continues to appear, please consider adding ' +
+        'or increasing your pull delta/dump scheduling.',
+    );
   } else if (error.code === 502 || error.code === 504) {
-    throw new UnprocessableError('The request to hubspot have timeout.');
+    throw new UnprocessableError('The request to hubspot has timeout.');
   } else {
     throw error;
   }
