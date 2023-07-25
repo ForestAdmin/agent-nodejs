@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.5.2...@forestadmin/datasource-toolkit@1.6.0) (2023-07-25)
+
+
+### Features
+
+* add changed field to action context ([#769](https://github.com/ForestAdmin/agent-nodejs/issues/769)) ([dbfa25e](https://github.com/ForestAdmin/agent-nodejs/commit/dbfa25ec3e0dd09acb39be1ee702505a5cdd60f5))
+
 ## @forestadmin/datasource-toolkit [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.5.1...@forestadmin/datasource-toolkit@1.5.2) (2023-07-20)
 
 
