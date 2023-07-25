@@ -25,7 +25,7 @@ export default async () => {
 
   agent.addDataSource(createSqlDataSource({ uri: process.env.STAGING_DB, sslMode: 'preferred' }));
   agent.addDataSource(
-    await createHubspotDataSource<TypingsHubspot>({
+    createHubspotDataSource<TypingsHubspot>({
       cacheInto: 'sqlite:/tmp/mydatabase-forest-5.db',
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       skipTypings: false,

@@ -1,6 +1,6 @@
 /* eslint-disable import/prefer-default-export */
 import { createReplicaDataSource } from '@forestadmin/datasource-replica';
-import { Logger } from '@forestadmin/datasource-toolkit';
+import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { HUBSPOT_COLLECTIONS } from './constants';
@@ -12,9 +12,9 @@ import { HubSpotOptions } from './types';
 import validateCollectionsProperties from './validator';
 import writeCollectionsTypeFileIfChange from './write-collections-type-file';
 
-export async function createHubspotDataSource<TypingsHubspot>(
+export function createHubspotDataSource<TypingsHubspot>(
   options: HubSpotOptions<TypingsHubspot>,
-) {
+): DataSourceFactory {
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
     const fieldsProperties = await fetchFieldsProperties(client, HUBSPOT_COLLECTIONS, logger);
