@@ -7,6 +7,7 @@ import { getRelationsByCollection } from './relations';
 import { HubSpotOptions, Response } from './types';
 
 /**
+ * This is useful to avoid to fetch twice the same relation.
  * example:
  * input: { contacts: ['companies', 'deals'], companies: ['contacts', 'project'] }
  * 'contacts' must removed from 'companies' to avoid to fetch 'companies-contacts' relation twice.
@@ -39,6 +40,7 @@ export default async function pullDump<TypingsHubspot>(
   request: PullDumpRequest,
   logger?: Logger,
 ): Promise<PullDumpResponse> {
+  const availableCollections = Object.keys(options.collections);
   const response: Response = {
     more: false,
     nextState: { ...((request.previousDumpState as object) ?? {}) },
@@ -48,18 +50,20 @@ export default async function pullDump<TypingsHubspot>(
 
   await pullRecordsAndRelations(
     client,
-    buildUniqueRelations(getRelationsByCollection(Object.keys(options.collections))),
+    buildUniqueRelations(getRelationsByCollection(availableCollections)),
     options.collections as { [collectionName: string]: string[] },
     request.previousDumpState,
     response,
   );
   logger?.('Info', `Current dump state: ${JSON.stringify(request.previousDumpState)}`);
-  if (response.more === false)
+
+  if (response.more === false) {
     logger?.('Info', 'Pull dump is finished. Your replica is up to date.');
+  }
 
   // save the date of the last dump to the next delta state
   const nextDeltaState = {};
-  Object.keys(options.collections).forEach(collectionName => {
+  availableCollections.forEach(collectionName => {
     nextDeltaState[collectionName] = new Date().toISOString();
   });
 

@@ -64,8 +64,7 @@ export default async function pullDelta<TypingsHubspot>(
     deletedEntries: [],
   };
 
-  // TODO: change inf to debug
-  logger('Info', 'Pull updated or new records');
+  logger('Debug', 'Pull the updated or new records');
   // when the affectedCollections is empty, we pull all the collections.
   // it is useful when we want to pull all the collections at the startup for example.
   const affectedCollections =
@@ -78,15 +77,14 @@ export default async function pullDelta<TypingsHubspot>(
     response,
   );
 
-  // TODO: change inf to debug
-  logger('Info', 'update relations');
+  logger('Debug', 'update the relations of the updated or new records');
   await Promise.all([
     // depending on the response of the pullUpdatedOrNewRecords call.
     updateRelations(client, prepareRecordsToUpdate(response, availableCollections), response),
     // check if the requested records on hubspot are deleted or not.
     // if the record is deleted, we need to delete the record and all the relations related to it.
     (async () => {
-      logger('Info', 'Check if the requested records are deleted or not');
+      logger('Debug', 'Check if the requested records are deleted or not.');
       const reasons = request.reasons.filter(
         reason => !manyToManyRelations.includes(reason?.collection),
       );
@@ -102,8 +100,9 @@ export default async function pullDelta<TypingsHubspot>(
     })(),
   ]);
 
-  if (response.more === false)
-    logger?.('Info', 'Pull delta is finished. Your replica has the last changes.');
+  if (response.more === false) {
+    logger?.('Info', 'Pull delta is finished. Your replica is up to date.');
+  }
 
   return { ...response, nextDeltaState: response.nextState };
 }
