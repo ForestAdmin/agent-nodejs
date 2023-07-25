@@ -26,7 +26,7 @@ export default async () => {
   agent.addDataSource(createSqlDataSource({ uri: process.env.STAGING_DB, sslMode: 'preferred' }));
   agent.addDataSource(
     await createHubspotDataSource<TypingsHubspot>({
-      cacheInto: 'sqlite:/tmp/mydatabase-forest-3.db',
+      cacheInto: 'sqlite:/tmp/mydatabase-forest-5.db',
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
       skipTypings: false,
       collections: {
@@ -99,10 +99,10 @@ export default async () => {
           'notes_last_contacted',
         ],
       },
-      // 8h42
       pullDumpOnSchedule: '47 8 * * *',
       pullDeltaOnSchedule: '*/1 * * * *',
       pullDeltaMaxRecordUpToDate: 1000,
+      pullDumpOnRestart: false,
     }),
     { rename: collectionName => `hubspot_${collectionName}` },
   );

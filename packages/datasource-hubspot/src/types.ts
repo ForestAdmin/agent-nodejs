@@ -16,6 +16,7 @@ export type HubSpotOptions<TypingCollections = undefined> = {
    * */
   skipTypings?: boolean;
   pullDeltaMaxRecordUpToDate?: number;
+  pullDumpOnRestart?: boolean;
 };
 
 export type FieldProperty = { [fieldName: string]: any };
