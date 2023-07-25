@@ -13,6 +13,7 @@ import ActionAuthorizationService from './action-authorization';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
+  SmartActionHookRequestBody,
   SmartActionRequestBody,
 } from '../../../services/authorization/types';
 import { AgentOptionsWithDefaults, HttpCode } from '../../../types';
@@ -127,8 +128,7 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   private async handleHook(context: Context): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body = context.request.body as any;
+    const body = context.request.body as SmartActionHookRequestBody;
     const { id: userId } = context.state.user as UserInfo;
 
     await this.actionAuthorizationService.assertCanRequestCustomActionParameters({
@@ -138,14 +138,16 @@ export default class ActionRoute extends CollectionRoute {
     });
 
     const { dataSource } = this.collection;
-    const forestFields = body?.data?.attributes?.fields;
+    const forestFields = body.data.attributes.fields;
     const data = forestFields
       ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
-    const fields = await this.collection.getForm(caller, this.actionName, data, filter);
+    const fields = await this.collection.getForm(caller, this.actionName, data, filter, {
+      changedField: body.data.attributes.changed_field,
+    });
 
     context.response.body = {
       fields: fields.map(field =>

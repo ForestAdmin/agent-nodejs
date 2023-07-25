@@ -35,6 +35,7 @@ export interface Collection {
     name: string,
     formValues?: RecordData,
     filter?: Filter,
+    metas?: { changedField: string },
   ): Promise<ActionField[]>;
 
   create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;
