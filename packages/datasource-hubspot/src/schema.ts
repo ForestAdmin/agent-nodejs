@@ -1,5 +1,5 @@
-import { CollectionReplicaSchema, ColumnType } from '@forestadmin/datasource-replica';
-import { Logger } from '@forestadmin/datasource-toolkit';
+import { CollectionReplicaSchema } from '@forestadmin/datasource-replica';
+import { ColumnType, Logger } from '@forestadmin/datasource-toolkit';
 
 import { buildManyToManyNames, getCollectionNames } from './relations';
 import { FieldPropertiesByCollection, FieldProperty, HubSpotOptions } from './types';
