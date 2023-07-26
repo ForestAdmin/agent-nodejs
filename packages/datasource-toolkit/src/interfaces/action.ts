@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
+export type DropdownOption = { value: string; label: string };
 
 export type File = {
   mimeType: string;
@@ -19,6 +20,9 @@ export interface ActionField {
   watchChanges: boolean;
   enumValues?: string[]; // When type === 'Enum'
   collectionName?: string; // When type === 'Collection'
+  options?: DropdownOption[]; // When widget === 'Dropdown';
+  search?: 'disabled';
+  widget?: 'Dropdown';
 }
 
 export type ActionFieldType =
