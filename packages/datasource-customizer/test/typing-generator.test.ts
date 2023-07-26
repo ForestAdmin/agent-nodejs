@@ -1,6 +1,21 @@
+/* eslint-disable max-len,jest/expect-expect */
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import TypingGenerator from '../src/typing-generator';
+
+const expectEqual = (a: string, b: string) => {
+  const aWithoutSpaces = a.replace(/[ \n]+/g, '');
+  const bWithoutSpaces = b.replace(/[ \n]+/g, '');
+
+  expect(aWithoutSpaces).toEqual(bWithoutSpaces);
+};
+
+const expectContains = (a: string, b: string) => {
+  const aWithoutSpaces = a.replace(/[ \n]+/g, '');
+  const bWithoutSpaces = b.replace(/[ \n]+/g, '');
+
+  expect(aWithoutSpaces.includes(bWithoutSpaces)).toBeTruthy();
+};
 
 describe('TypingGenerator', () => {
   test('should work with a single collection', () => {
@@ -34,6 +49,15 @@ describe('TypingGenerator', () => {
     const generated = TypingGenerator.generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
+      import { CollectionCustomizer, TAggregation, TConditionTree, TPaginatedFilter, TPartialRow, TSortClause } from '@forestadmin/agent';
+
+      export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'aCollectionName'>;
+      export type ACollectionNameRecord = TPartialRow<Schema, 'aCollectionName'>;
+      export type ACollectionNameConditionTree = TConditionTree<Schema, 'aCollectionName'>;
+      export type ACollectionNameFilter = TPaginatedFilter<Schema,'aCollectionName'>;
+      export type ACollectionNameSortClause = TSortClause<Schema,'aCollectionName'>;
+      export type ACollectionNameAggregation = TAggregation<Schema, 'aCollectionName'>;
+      
       export type Schema = {
         'aCollectionName': {
           plain: {
@@ -51,7 +75,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectEqual(generated, expected);
   });
 
   const cases = [
@@ -74,7 +98,6 @@ describe('TypingGenerator', () => {
 
       const generated = TypingGenerator.generateTypes(datasource, 5);
       const expected = `
-      /* eslint-disable */
       export type Schema = {
         'aCollectionName': {
           plain: { ${expectedFieldName}:string; };
@@ -83,7 +106,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-      expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+      expectContains(generated, expected);
     },
   );
 
@@ -100,7 +123,6 @@ describe('TypingGenerator', () => {
 
       const generated = TypingGenerator.generateTypes(datasource, 5);
       const expected = `
-      /* eslint-disable */
       export type Schema = {
         ${expectedCollectionName}: {
           plain: {};
@@ -109,7 +131,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-      expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+      expectContains(generated, expected);
     },
   );
 
@@ -128,7 +150,6 @@ describe('TypingGenerator', () => {
 
     const generated = TypingGenerator.generateTypes(datasource, 5);
     const expected = `
-      /* eslint-disable */
       export type Schema = {
         'col1': {
           plain: { 
@@ -147,7 +168,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectContains(generated, expected);
   });
 
   test('should work with a cycle (inverse)', () => {
@@ -174,7 +195,6 @@ describe('TypingGenerator', () => {
 
     const generated = TypingGenerator.generateTypes(datasource, 5);
     const expected = `
-      /* eslint-disable */
       export type Schema = {
         'col1': {
           plain: {
@@ -200,7 +220,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectContains(generated, expected);
   });
 
   test('should work with a cycle (A -> B -> C -> A)', () => {
@@ -236,7 +256,6 @@ describe('TypingGenerator', () => {
 
     const generated = TypingGenerator.generateTypes(datasource, 3);
     const expected = `
-      /* eslint-disable */
       export type Schema = {
         'col1': {
           plain: { 
@@ -279,6 +298,6 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectContains(generated, expected);
   });
 });
