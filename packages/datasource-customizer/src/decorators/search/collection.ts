@@ -7,6 +7,7 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
+  DataSourceDecorator,
   Operator,
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
@@ -16,6 +17,7 @@ import { SearchDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
+  override dataSource: DataSourceDecorator<SearchCollectionDecorator>;
   replacer: SearchDefinition = null;
 
   replaceSearch(replacer: SearchDefinition): void {
@@ -59,56 +61,103 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private defaultReplacer(search: string, extended: boolean): ConditionTree {
-    const searchableFields = SearchCollectionDecorator.getFields(this.childCollection, extended);
-    const conditions = searchableFields
-      .map(([field, schema]) => SearchCollectionDecorator.buildCondition(field, schema, search))
-      .filter(Boolean);
+    const keywords = search.split(' ').filter(Boolean);
 
-    return ConditionTreeFactory.union(...conditions);
+    // Handle tags (!!! caution: tags are removed from the keywords array !!!)
+    const conditions = [];
+    conditions.push(...this.buildConditionFromTags(keywords));
+
+    // Handle rest of the search string
+    if (keywords.length) {
+      const searchableFields = this.getFields(this.childCollection, extended);
+      conditions.push(
+        ConditionTreeFactory.union(
+          ...searchableFields
+            .map(([field, schema]) => this.buildOtherCondition(field, schema, keywords.join(' ')))
+            .filter(Boolean),
+        ),
+      );
+    }
+
+    return ConditionTreeFactory.intersect(...conditions);
   }
 
-  private static buildCondition(
+  private buildConditionFromTags(keywords: string[]) {
+    const conditions = [];
+
+    for (let index = 0; index < keywords.length; index += 1) {
+      let keyworkCpy = keywords[index];
+      let negated = false;
+
+      if (keyworkCpy.startsWith('-')) {
+        negated = true;
+        keyworkCpy = keyworkCpy.slice(1);
+      }
+
+      const parts = keyworkCpy.split(':');
+
+      if (parts.length < 2) continue; // eslint-disable-line no-continue
+      const searchString = parts.pop();
+      const field = parts.join(':');
+      const fuzzy = this.lenientGetSchema(field);
+
+      if (!fuzzy) continue; // eslint-disable-line no-continue
+      const condition = this.buildOtherCondition(fuzzy.field, fuzzy.schema, searchString, negated);
+
+      if (!condition) continue; // eslint-disable-line no-continue
+      conditions.push(condition);
+      keywords.splice(index, 1);
+      index -= 1;
+    }
+
+    return conditions;
+  }
+
+  private buildOtherCondition(
     field: string,
     schema: ColumnSchema,
     searchString: string,
+    negated = false,
   ): ConditionTree {
     const { columnType, enumValues, filterOperators } = schema;
     const isNumber = Number(searchString).toString() === searchString;
     const isUuid = uuidValidate(searchString);
+    const equalityOperator = negated ? 'NotEqual' : 'Equal';
+    const containsOperator = negated ? 'NotContains' : 'Contains';
 
-    if (columnType === 'Number' && isNumber && filterOperators?.has('Equal')) {
-      return new ConditionTreeLeaf(field, 'Equal', Number(searchString));
+    if (columnType === 'Number' && isNumber && filterOperators?.has(equalityOperator)) {
+      return new ConditionTreeLeaf(field, equalityOperator, Number(searchString));
     }
 
-    if (columnType === 'Enum' && filterOperators?.has('Equal')) {
-      const searchValue = SearchCollectionDecorator.lenientFind(enumValues, searchString);
+    if (columnType === 'Enum' && filterOperators?.has(equalityOperator)) {
+      const searchValue = this.lenientFind(enumValues, searchString);
 
-      if (searchValue) return new ConditionTreeLeaf(field, 'Equal', searchValue);
+      if (searchValue) return new ConditionTreeLeaf(field, equalityOperator, searchValue);
     }
 
     if (columnType === 'String') {
       const isCaseSensitive = searchString.toLocaleLowerCase() !== searchString.toLocaleUpperCase();
-      const supportsIContains = filterOperators?.has('IContains');
-      const supportsContains = filterOperators?.has('Contains');
-      const supportsEqual = filterOperators?.has('Equal');
+      const supportsIContains = !negated && filterOperators?.has('IContains');
+      const supportsContains = filterOperators?.has(containsOperator);
+      const supportsEqual = filterOperators?.has(equalityOperator);
 
       // Perf: don't use case-insensitive operator when the search string is indifferent to case
       let operator: Operator;
       if (supportsIContains && (isCaseSensitive || !supportsContains)) operator = 'IContains';
-      else if (supportsContains) operator = 'Contains';
-      else if (supportsEqual) operator = 'Equal';
+      else if (supportsContains) operator = containsOperator;
+      else if (supportsEqual) operator = equalityOperator;
 
       if (operator) return new ConditionTreeLeaf(field, operator, searchString);
     }
 
-    if (columnType === 'Uuid' && isUuid && filterOperators?.has('Equal')) {
-      return new ConditionTreeLeaf(field, 'Equal', searchString);
+    if (columnType === 'Uuid' && isUuid && filterOperators?.has(equalityOperator)) {
+      return new ConditionTreeLeaf(field, equalityOperator, searchString);
     }
 
     return null;
   }
 
-  private static getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {
+  private getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {
     const fields: [string, ColumnSchema][] = [];
 
     for (const [name, field] of Object.entries(collection.schema.fields)) {
@@ -125,7 +174,31 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return fields;
   }
 
-  private static lenientFind(haystack: string[], needle: string): string {
+  private lenientGetSchema(path: string): { field: string; schema: ColumnSchema } | null {
+    const [prefix, suffix] = path.split(/:(.*)/);
+    const fuzzyPrefix = prefix.toLocaleLowerCase().replace(/_/g, '');
+
+    for (const [field, schema] of Object.entries(this.schema.fields)) {
+      const fuzzyFieldName = field.toLocaleLowerCase().replace(/_/g, '');
+
+      if (fuzzyPrefix === fuzzyFieldName) {
+        if (!suffix && schema.type === 'Column') {
+          return { field, schema };
+        }
+
+        if (suffix && (schema.type === 'ManyToOne' || schema.type === 'OneToOne')) {
+          const related = this.dataSource.getCollection(schema.foreignCollection);
+          const fuzzy = related.lenientGetSchema(suffix);
+
+          if (fuzzy) return { field: `${prefix}:${fuzzy.field}`, schema: fuzzy.schema };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private lenientFind(haystack: string[], needle: string): string {
     return (
       haystack?.find(v => v === needle.trim()) ??
       haystack?.find(v => v.toLocaleLowerCase() === needle.toLocaleLowerCase().trim())

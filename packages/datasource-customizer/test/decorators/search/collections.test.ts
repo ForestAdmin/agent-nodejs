@@ -10,7 +10,7 @@ describe('SearchCollectionDecorator', () => {
       const unsearchableSchema = factories.collectionSchema.build({ searchable: false });
       const searchCollectionDecorator = new SearchCollectionDecorator(collection, null);
 
-      const schema = await searchCollectionDecorator.refineSchema(unsearchableSchema);
+      const schema = searchCollectionDecorator.refineSchema(unsearchableSchema);
 
       expect(schema.searchable).toBe(true);
     });
