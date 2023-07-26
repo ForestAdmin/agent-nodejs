@@ -1,8 +1,13 @@
 import { ConditionTreeLeaf, Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { PullDeltaRequest } from '../../dist';
-import { ReplicaDataSourceOptions, createReplicaDataSource } from '../../src';
+import { PullDumpResponse } from '../../dist';
+import {
+  PullDeltaRequest,
+  PullDeltaResponse,
+  ReplicaDataSourceOptions,
+  createReplicaDataSource,
+} from '../../src';
 
 describe('pull dump and delta', () => {
   const makeLogger = () => jest.fn();
@@ -35,17 +40,19 @@ describe('pull dump and delta', () => {
             { collection: 'contacts', record: { id: 2 } },
           ],
           nextDeltaState: 'dump-state',
-        });
+        } as PullDumpResponse);
 
       const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
         .fn()
-        .mockResolvedValueOnce((request: PullDeltaRequest) => {
+        .mockImplementationOnce(async (request: PullDeltaRequest) => {
           deltaDeltaStatesAfterCalls.push(request.previousDeltaState);
 
           return {
             more: false,
             newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 3 } }],
-          };
+            nextDeltaState: 'delta-state',
+            deletedEntries: [],
+          } as PullDeltaResponse;
         });
 
       const schema: ReplicaDataSourceOptions['schema'] = [
