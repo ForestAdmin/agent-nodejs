@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.6...@forestadmin/datasource-sql@1.7.7) (2023-07-26)
+
+
+### Bug Fixes
+
+* **datasource-sql:** fix array subtype detection ([#775](https://github.com/ForestAdmin/agent-nodejs/issues/775)) ([fbd7d55](https://github.com/ForestAdmin/agent-nodejs/commit/fbd7d553da276e6ecc3207d133815ded21f6a2bb))
+
 ## @forestadmin/datasource-sql [1.7.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.5...@forestadmin/datasource-sql@1.7.6) (2023-07-25)
 
 
