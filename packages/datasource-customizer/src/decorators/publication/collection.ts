@@ -62,10 +62,6 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     // Implicitly hidden
     const field = this.childCollection.schema.fields[name];
 
-    if (!field) {
-      throw new Error(`No such field '${name}' on collection '${this.name}'`);
-    }
-
     if (field.type === 'ManyToOne')
       return (
         this.dataSource.isPublished(field.foreignCollection) &&

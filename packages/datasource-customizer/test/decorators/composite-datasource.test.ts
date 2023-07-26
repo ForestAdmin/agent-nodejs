@@ -68,10 +68,15 @@ describe('CompositeDataSource', () => {
 
   describe('getCollection', () => {
     it('should throw an error when the collection does not exist', () => {
+      const aDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+
       const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(aDataSource);
 
       expect(() => compositeDataSource.getCollection('missing')).toThrow(
-        "Collection 'missing' not found. List of available collections: ",
+        "Collection 'missing' not found. List of available collections: collection1",
       );
     });
   });
