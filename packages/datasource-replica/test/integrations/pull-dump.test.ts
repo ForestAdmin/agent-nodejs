@@ -156,7 +156,7 @@ describe('pull dump', () => {
     });
 
     describe('when the collection name does not exist in the schema', () => {
-      it('should insert the records and display a warning log', async () => {
+      it('should error log or an error', async () => {
         const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
           .fn()
           .mockImplementationOnce(() => {
@@ -172,7 +172,7 @@ describe('pull dump', () => {
 
         const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
 
-        // TODO: fix the code to display a warning log or an error ?
+        // TODO: fix the code to display a error log or an error ?
         expect('false').toEqual(true);
       });
     });
