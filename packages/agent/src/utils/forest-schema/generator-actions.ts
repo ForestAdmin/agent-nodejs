@@ -39,6 +39,7 @@ export default class SchemaGeneratorActions {
 
   static async buildSchema(collection: Collection, name: string): Promise<ForestServerAction> {
     const schema = collection.schema.actions[name];
+
     const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
@@ -90,6 +91,10 @@ export default class SchemaGeneratorActions {
     if (type === 'Enum' || type === 'EnumList') {
       output.enums = field.enumValues;
     }
+
+    output.options = field.options;
+    output.search = field.search;
+    output.widget = field.widget;
 
     return output as ForestServerActionField;
   }
