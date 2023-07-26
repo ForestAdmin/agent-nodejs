@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.15.1...@forestadmin/agent@1.16.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** allow removing collections during customization ([#715](https://github.com/ForestAdmin/agent-nodejs/issues/715)) ([831c3c5](https://github.com/ForestAdmin/agent-nodejs/commit/831c3c5c6714f78570a946677749abcbcd768e72))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.13.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.7.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.8
+
 ## @forestadmin/agent [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.15.0...@forestadmin/agent@1.15.1) (2023-07-26)
 
 
