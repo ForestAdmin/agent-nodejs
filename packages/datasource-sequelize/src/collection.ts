@@ -43,6 +43,8 @@ export default class SequelizeCollection extends BaseCollection {
     model: ModelDefined<any, any>,
     logger?: Logger,
   ) {
+    if (!model) throw new Error('Invalid (null) model instance.');
+
     super(name, datasource, {
       sequelize: model.sequelize,
       model,
@@ -57,8 +59,6 @@ export default class SequelizeCollection extends BaseCollection {
         return result?.[0];
       },
     });
-
-    if (!model) throw new Error('Invalid (null) model instance.');
 
     this.model = model;
     this.col = this.model.sequelize.col;
