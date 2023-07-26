@@ -115,11 +115,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @param definition definition of the chart
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/charts Documentation Link}
    * @example
-   * .addChart('numCustomers', {
-   *   type: 'Value',
-   *   render: (context, resultBuilder) => {
-   *     return resultBuilder.value(123);
-   *   }
+   * .addChart('numCustomers', (context, resultBuilder) => {
+   *   return resultBuilder.distribution({
+   *     tomatoes: 10,
+   *     potatoes: 20,
+   *     carrots: 30,
+   *   });
    * })
    */
   addChart(name: string, definition: DataSourceChartDefinition<S>): this {
