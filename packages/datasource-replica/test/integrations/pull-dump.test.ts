@@ -154,5 +154,27 @@ describe('pull dump', () => {
         expect(pullDumpHandler).toHaveBeenCalledTimes(1);
       });
     });
+
+    describe('when the collection name does not exist in the schema', () => {
+      it('should insert the records and display a warning log', async () => {
+        const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return {
+              more: false,
+              entries: [{ collection: 'NotExist', record: { id: 1 } }],
+            };
+          });
+
+        const schema: ReplicaDataSourceOptions['schema'] = [
+          { name: 'users', fields: { id: { type: 'Number', isPrimaryKey: true } } },
+        ];
+
+        const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
+
+        // TODO: fix the code to display a warning log or an error ?
+        expect('false').toEqual(true);
+      });
+    });
   });
 });
