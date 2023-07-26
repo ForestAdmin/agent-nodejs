@@ -1,3 +1,19 @@
+# example [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.40...example@1.4.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** generate typings aliases for easier use ([#777](https://github.com/ForestAdmin/agent-nodejs/issues/777)) ([7f8f03c](https://github.com/ForestAdmin/agent-nodejs/commit/7f8f03c71b3eedebdfd2deb094a55f05ecba746d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.15.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.40
+
 ## example [1.3.40](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.3.39...example@1.3.40) (2023-07-26)
 
 
