@@ -34,8 +34,8 @@ export default async function resolveOptions(
   return {
     cacheInto: options.cacheInto,
     cacheNamespace: options.cacheNamespace,
-    createRecord: options.createRecord,
-    deleteRecord: options.deleteRecord,
+    createRecordHandler: options.createRecordHandler,
+    deleteRecordHandler: options.deleteRecordHandler,
     flattenOptions,
     flattenSchema: flattenSchema(resolvedSchema, flattenOptions),
     logger,
@@ -43,6 +43,6 @@ export default async function resolveOptions(
     pullDeltaOnBeforeAccess: options.pullDeltaHandler && options.pullDeltaOnBeforeAccess,
     schema: resolvedSchema,
     source,
-    updateRecord: options.updateRecord,
+    updateRecordHandler: options.updateRecordHandler,
   };
 }

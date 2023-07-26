@@ -13,14 +13,14 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     // we actually can't tell the db not to perform the creation...
-    if (!this.options.createRecord) {
+    if (!this.options.createRecordHandler) {
       throw new UnprocessableError('This collection does not supports creations');
     }
 
     if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
       // I am a root collection, I can forward the creation to the target
       const promises = data.map(async record => {
-        const newRecord = await this.options.createRecord(this.name, record);
+        const newRecord = await this.options.createRecordHandler(this.name, record);
         Object.assign(record, newRecord ?? {});
       });
 
@@ -33,7 +33,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    if (!this.options.updateRecord) {
+    if (!this.options.updateRecordHandler) {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
@@ -42,7 +42,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
       const promises = recordsPks.map(async record => {
         Object.assign(record, patch);
-        await this.options.updateRecord(this.name, record);
+        await this.options.updateRecordHandler(this.name, record);
       });
 
       await Promise.all(promises);
@@ -54,7 +54,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
-    if (!this.options.deleteRecord) {
+    if (!this.options.deleteRecordHandler) {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
@@ -62,7 +62,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       // I am a root collection, I can forward the delete to the target
       const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
       const promises = recordsPks.map(async record => {
-        await this.options.deleteRecord(this.name, record);
+        await this.options.deleteRecordHandler(this.name, record);
       });
 
       await Promise.all(promises);

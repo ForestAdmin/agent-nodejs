@@ -128,9 +128,9 @@ export type ReplicaDataSourceOptions = {
   flattenOptions?: ValueOrPromiseOrFactory<FlattenOptions>;
 
   /** Writing options */
-  createRecord?: (collectionName: string, record: RecordData) => Promise<RecordData>;
-  updateRecord?: (collectionName: string, record: RecordData) => Promise<void>;
-  deleteRecord?: (collectionName: string, record: RecordData) => Promise<void>;
+  createRecordHandler?: (collectionName: string, record: RecordData) => Promise<RecordData>;
+  updateRecordHandler?: (collectionName: string, record: RecordData) => Promise<void>;
+  deleteRecordHandler?: (collectionName: string, record: RecordData) => Promise<void>;
 
   /** Push options */
   pushDeltaHandler?: (
@@ -163,9 +163,9 @@ export type ResolvedOptions = Pick<
   ReplicaDataSourceOptions,
   | 'cacheInto'
   | 'cacheNamespace'
-  | 'createRecord'
-  | 'updateRecord'
-  | 'deleteRecord'
+  | 'createRecordHandler'
+  | 'updateRecordHandler'
+  | 'deleteRecordHandler'
   | 'pullDeltaOnBeforeAccess'
   | 'pullDeltaOnAfterWrite'
 > & {

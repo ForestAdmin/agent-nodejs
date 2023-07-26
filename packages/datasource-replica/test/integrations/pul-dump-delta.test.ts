@@ -1,10 +1,10 @@
 import { ConditionTreeLeaf, Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { PullDumpResponse } from '../../dist';
 import {
   PullDeltaRequest,
   PullDeltaResponse,
+  PullDumpResponse,
   ReplicaDataSourceOptions,
   createReplicaDataSource,
 } from '../../src';
