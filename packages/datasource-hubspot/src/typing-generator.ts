@@ -30,7 +30,7 @@ function buildType(fieldPropertiesByCollection: FieldPropertiesByCollection): st
   return file;
 }
 
-export default function writeCollectionsTypeFileIfChange(
+export default function generateTypesIfChange(
   fieldPropertiesByCollection: FieldPropertiesByCollection,
   path: string,
   logger?: Logger,

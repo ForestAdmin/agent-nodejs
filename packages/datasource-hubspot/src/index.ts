@@ -9,8 +9,8 @@ import pullDelta from './pull-delta';
 import pullDump from './pull-dump';
 import getSchema from './schema';
 import { HubSpotOptions } from './types';
+import generateTypesIfChange from './typing-generator';
 import validateCollectionsProperties from './validator';
-import writeCollectionsTypeFileIfChange from './write-collections-type-file';
 
 export function createHubspotDataSource<TypingsHubspot>(
   options: HubSpotOptions<TypingsHubspot>,
@@ -25,7 +25,7 @@ export function createHubspotDataSource<TypingsHubspot>(
 
     if (!options.skipTypings) {
       const path = options.typingsPath ?? 'src/typings-hubspot.ts';
-      writeCollectionsTypeFileIfChange(fieldsProperties, path, logger);
+      generateTypesIfChange(fieldsProperties, path, logger);
     }
 
     validateCollectionsProperties(options.collections, fieldsProperties);
