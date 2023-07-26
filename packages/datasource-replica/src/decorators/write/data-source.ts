@@ -21,7 +21,7 @@ export default class WriteDataSourceDecorator extends DataSourceDecorator {
       ) {
         throw new Error(
           'Cannot use flattenOptions with' +
-            ' createRecordHandler, updateRecordHandler or deleteRecordHandler',
+            ' createRecordHandler, updateRecordHandler or deleteRecordHandler.',
         );
       }
     });

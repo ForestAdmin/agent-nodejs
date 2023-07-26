@@ -11,15 +11,16 @@ export const makeSchemaWithId = (collectionName: string) => {
   ] as ReplicaDataSourceOptions['schema'];
 };
 
-// eslint-disable-next-line import/prefer-default-export
-export const getAllRecords = async (datasource: DataSource, collectionName: string) => {
-  const allRecordsFilter = new Filter({
+export const makeAllRecordsFilter = () => {
+  return new Filter({
     conditionTree: new ConditionTreeLeaf('id', 'Present'),
   });
+};
 
+export const getAllRecords = async (datasource: DataSource, collectionName: string) => {
   return datasource
     .getCollection(collectionName)
-    .list(factories.caller.build(), allRecordsFilter, new Projection('id'));
+    .list(factories.caller.build(), makeAllRecordsFilter(), new Projection('id'));
 };
 
 export const makeReplicateDataSource = async (options: ReplicaDataSourceOptions) => {

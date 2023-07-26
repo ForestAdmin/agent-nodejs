@@ -55,7 +55,7 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
     if (!this.options.deleteRecordHandler) {
-      throw new UnprocessableError('This collection does not supports updates');
+      throw new UnprocessableError('This collection does not supports deletes');
     }
 
     if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
