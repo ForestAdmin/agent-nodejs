@@ -2,16 +2,17 @@ import {
   Caller,
   CollectionDecorator,
   CollectionSchema,
-  DataSourceDecorator,
   FieldSchema,
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
+import PublicationDataSourceDecorator from './datasource';
+
 /** This decorator allows hiding fields */
 export default class PublicationCollectionDecorator extends CollectionDecorator {
-  override readonly dataSource: DataSourceDecorator<PublicationCollectionDecorator>;
-  private readonly unpublished: Set<string> = new Set();
+  override readonly dataSource: PublicationDataSourceDecorator;
+  private readonly blacklist: Set<string> = new Set();
 
   /** Show/hide fields from the schema */
   changeFieldVisibility(name: string, visible: boolean): void {
@@ -25,8 +26,8 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
       throw new Error(`Cannot hide primary key`);
     }
 
-    if (!visible) this.unpublished.add(name);
-    else this.unpublished.delete(name);
+    if (!visible) this.blacklist.add(name);
+    else this.blacklist.delete(name);
     this.markSchemaAsDirty();
   }
 
@@ -36,7 +37,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     return records.map(childRecord => {
       const record = {};
       for (const key of Object.keys(childRecord))
-        if (!this.unpublished.has(key)) record[key] = childRecord[key];
+        if (!this.blacklist.has(key)) record[key] = childRecord[key];
 
       return record;
     });
@@ -55,20 +56,44 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
   }
 
   private isPublished(name: string): boolean {
+    // Explicitly hidden
+    if (this.blacklist.has(name)) return false;
+
+    // Implicitly hidden
     const field = this.childCollection.schema.fields[name];
 
-    return (
-      !this.unpublished.has(name) &&
-      // Columns have no special requirements
-      (field.type === 'Column' ||
-        // Many to one, one to one and one to many need the foreign key to be published
-        (field.type === 'ManyToOne' && this.isPublished(field.foreignKey)) ||
-        ((field.type === 'OneToOne' || field.type === 'OneToMany') &&
-          this.dataSource.getCollection(field.foreignCollection).isPublished(field.originKey)) ||
-        // Many to many relations depend on both foreignKey and originKey to be published
-        (field.type === 'ManyToMany' &&
-          this.dataSource.getCollection(field.throughCollection).isPublished(field.foreignKey) &&
-          this.dataSource.getCollection(field.throughCollection).isPublished(field.originKey)))
-    );
+    if (!field) {
+      throw new Error(`No such field '${name}' on collection '${this.name}'`);
+    }
+
+    if (field.type === 'ManyToOne')
+      return (
+        this.dataSource.isPublished(field.foreignCollection) &&
+        this.isPublished(field.foreignKey) &&
+        this.dataSource.getCollection(field.foreignCollection).isPublished(field.foreignKeyTarget)
+      );
+
+    if (field.type === 'OneToOne' || field.type === 'OneToMany')
+      return (
+        this.dataSource.isPublished(field.foreignCollection) &&
+        this.dataSource.getCollection(field.foreignCollection).isPublished(field.originKey) &&
+        this.isPublished(field.originKeyTarget)
+      );
+
+    if (field.type === 'ManyToMany')
+      return (
+        this.dataSource.isPublished(field.throughCollection) &&
+        this.dataSource.isPublished(field.foreignCollection) &&
+        this.dataSource.getCollection(field.throughCollection).isPublished(field.foreignKey) &&
+        this.dataSource.getCollection(field.throughCollection).isPublished(field.originKey) &&
+        this.isPublished(field.originKeyTarget) &&
+        this.dataSource.getCollection(field.foreignCollection).isPublished(field.foreignKeyTarget)
+      );
+
+    return true;
+  }
+
+  public override markSchemaAsDirty(): void {
+    return super.markSchemaAsDirty();
   }
 }

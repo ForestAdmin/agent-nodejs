@@ -35,22 +35,21 @@ export default class PublicationDataSourceDecorator extends DataSourceDecorator<
   removeCollection(collectionName: string): void {
     this.validateCollectionNames([collectionName]);
 
-    // Delete all relations that use the collection we're removing.
-    for (const collection of this.collections) {
-      for (const [fieldName, field] of Object.entries(collection.schema.fields)) {
-        if (
-          (field.type !== 'Column' && collectionName === field.foreignCollection) ||
-          (field.type === 'ManyToMany' && collectionName === field.throughCollection)
-        )
-          collection.changeFieldVisibility(fieldName, false);
-      }
-    }
-
-    // Delete the collection itself.
+    // Delete the collection
     this.blacklist.add(collectionName);
+
+    // Tell all collections that their schema is dirty: if we removed a collection, all
+    // relations to this collection are now invalid and should be unpublished.
+    for (const collection of this.collections) {
+      collection.markSchemaAsDirty();
+    }
   }
 
   private validateCollectionNames(names: string[]): void {
     for (const name of names) this.getCollection(name);
+  }
+
+  isPublished(collectionName: string): boolean {
+    return !this.blacklist.has(collectionName);
   }
 }

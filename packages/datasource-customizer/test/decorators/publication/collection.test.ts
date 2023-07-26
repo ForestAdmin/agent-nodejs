@@ -1,12 +1,13 @@
-import { Collection, DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
+import PublicationDataSourceDecorator from '../../../src/decorators/publication/datasource';
 
 describe('PublicationCollectionDecorator', () => {
   // State
   let dataSource: DataSource;
-  let decoratedDataSource: DataSourceDecorator<PublicationCollectionDecorator>;
+  let decoratedDataSource: PublicationDataSourceDecorator;
 
   // Convenience: Direct access to collections before and after decoration
   let persons: Collection;
@@ -76,7 +77,7 @@ describe('PublicationCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, PublicationCollectionDecorator);
+    decoratedDataSource = new PublicationDataSourceDecorator(dataSource);
 
     newBooks = decoratedDataSource.getCollection('books');
     newBookPersons = decoratedDataSource.getCollection('bookPersons');
