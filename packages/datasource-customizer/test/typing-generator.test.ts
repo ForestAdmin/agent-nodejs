@@ -78,6 +78,24 @@ describe('TypingGenerator', () => {
     expectEqual(generated, expected);
   });
 
+  test('aliaes should work with a collection with underscores', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({ name: 'a_collection_name' }),
+    ]);
+
+    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const expected = `
+      export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'a_collection_name'>;
+      export type ACollectionNameRecord = TPartialRow<Schema, 'a_collection_name'>;
+      export type ACollectionNameConditionTree = TConditionTree<Schema, 'a_collection_name'>;
+      export type ACollectionNameFilter = TPaginatedFilter<Schema,'a_collection_name'>;
+      export type ACollectionNameSortClause = TSortClause<Schema,'a_collection_name'>;
+      export type ACollectionNameAggregation = TAggregation<Schema, 'a_collection_name'>;
+    `;
+
+    expectContains(generated, expected);
+  });
+
   const cases = [
     [' white spaces ', "' white spaces '"],
     ['-dashes', "'-dashes'"],
