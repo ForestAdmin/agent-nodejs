@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.11.0...@forestadmin/datasource-customizer@1.12.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** generate typings aliases for easier use ([#777](https://github.com/ForestAdmin/agent-nodejs/issues/777)) ([7f8f03c](https://github.com/ForestAdmin/agent-nodejs/commit/7f8f03c71b3eedebdfd2deb094a55f05ecba746d))
+
 # @forestadmin/datasource-customizer [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.10.2...@forestadmin/datasource-customizer@1.11.0) (2023-07-25)
 
 
