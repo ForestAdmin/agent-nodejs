@@ -1,8 +1,6 @@
-import { CollectionCustomizer } from '@forestadmin/agent';
+import { OwnerCustomizer } from '../typings';
 
-import { Schema } from '../typings';
-
-export default (collection: CollectionCustomizer<Schema, 'owner'>) =>
+export default (collection: OwnerCustomizer) =>
   collection
     .addOneToManyRelation('stores', 'store', { originKey: 'ownerId' })
     .addOneToManyRelation('posts', 'post', { originKey: 'userId' })

@@ -41,6 +41,17 @@ export default class TypingGenerator {
 
     return [
       `/* eslint-disable */`,
+      `import {`,
+      `  CollectionCustomizer,`,
+      `  TAggregation,`,
+      `  TConditionTree,`,
+      `  TPaginatedFilter,`,
+      `  TPartialRow,`,
+      `  TSortClause`,
+      `} from '@forestadmin/agent';`,
+      '',
+      this.generateAliases(dataSource),
+      '',
       'export type Schema = {',
       ...collections.map(collection =>
         [
@@ -53,6 +64,27 @@ export default class TypingGenerator {
       ),
       '};\n',
     ].join('\n');
+  }
+
+  private static generateAliases(dataSource: DataSource): string {
+    return dataSource.collections
+      .flatMap(collection => {
+        const name =
+          collection.name.slice(0, 1).toUpperCase() +
+          collection.name.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
+
+        return [
+          // eslint-disable-next-line max-len
+          `export type ${name}Customizer = CollectionCustomizer<Schema, '${collection.name}'>;`,
+          `export type ${name}Record = TPartialRow<Schema, '${collection.name}'>;`,
+          `export type ${name}ConditionTree = TConditionTree<Schema, '${collection.name}'>;`,
+          `export type ${name}Filter = TPaginatedFilter<Schema, '${collection.name}'>;`,
+          `export type ${name}SortClause = TSortClause<Schema, '${collection.name}'>;`,
+          `export type ${name}Aggregation = TAggregation<Schema, '${collection.name}'>;`,
+          '',
+        ];
+      })
+      .join('\n');
   }
 
   private static getRow(collection: Collection): string {
