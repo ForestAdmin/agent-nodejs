@@ -1,21 +1,22 @@
-import { Collection, DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import PublicationFieldCollectionDecorator from '../../../src/decorators/publication-field/collection';
+import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
+import PublicationDataSourceDecorator from '../../../src/decorators/publication/datasource';
 
-describe('PublicationFieldCollectionDecorator', () => {
+describe('PublicationCollectionDecorator', () => {
   // State
   let dataSource: DataSource;
-  let decoratedDataSource: DataSourceDecorator<PublicationFieldCollectionDecorator>;
+  let decoratedDataSource: PublicationDataSourceDecorator;
 
   // Convenience: Direct access to collections before and after decoration
   let persons: Collection;
   let bookPersons: Collection;
   let books: Collection;
 
-  let newPersons: PublicationFieldCollectionDecorator;
-  let newBookPersons: PublicationFieldCollectionDecorator;
-  let newBooks: PublicationFieldCollectionDecorator;
+  let newPersons: PublicationCollectionDecorator;
+  let newBookPersons: PublicationCollectionDecorator;
+  let newBooks: PublicationCollectionDecorator;
 
   // Build datasource
   beforeEach(() => {
@@ -76,7 +77,7 @@ describe('PublicationFieldCollectionDecorator', () => {
 
   // Build decorator
   beforeEach(() => {
-    decoratedDataSource = new DataSourceDecorator(dataSource, PublicationFieldCollectionDecorator);
+    decoratedDataSource = new PublicationDataSourceDecorator(dataSource);
 
     newBooks = decoratedDataSource.getCollection('books');
     newBookPersons = decoratedDataSource.getCollection('bookPersons');

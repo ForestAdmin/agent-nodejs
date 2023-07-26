@@ -26,9 +26,12 @@ export class DataSourceFactory extends Factory<DataSource> {
 
       // Implement the getCollection method
       const getCollection = dataSource.getCollection as jest.Mock<Collection, [string]>;
-      getCollection.mockImplementation(name =>
-        dataSource.collections.find(dataSourceCollection => dataSourceCollection.name === name),
-      );
+      getCollection.mockImplementation(name => {
+        const collection = dataSource.collections.find(c => c.name === name);
+        if (!collection) throw new Error(`dsmock: "${name}" does not exist`);
+
+        return collection;
+      });
     });
 
     return factory.build();
@@ -40,5 +43,5 @@ export default DataSourceFactory.define(() => ({
   collections: [],
   getCollection: jest.fn(),
   addCollection: jest.fn(),
-  renderChart: jest.fn(),
+  renderChart: jest.fn().mockResolvedValue({}),
 }));

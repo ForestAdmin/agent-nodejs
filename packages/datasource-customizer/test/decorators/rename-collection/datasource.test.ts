@@ -158,7 +158,17 @@ describe('RenameCollectionDecorator', () => {
       const dataSource = setupWithManyToManyRelation();
 
       expect(() => dataSource.renameCollection('librariesBooks', 'books')).toThrow(
-        'The given new collection name "books" is already defined in the dataSource',
+        'The given new collection name "books" is already defined',
+      );
+    });
+
+    it('should throw an error if renaming twice', () => {
+      const dataSource = setupWithManyToManyRelation();
+
+      dataSource.renameCollection('books', 'books2');
+
+      expect(() => dataSource.renameCollection('books2', 'books3')).toThrow(
+        'Cannot rename a collection twice: books->books2->books3',
       );
     });
 
@@ -166,7 +176,7 @@ describe('RenameCollectionDecorator', () => {
       const dataSource = setupWithManyToManyRelation();
 
       expect(() => dataSource.renameCollection('doesNotExist', 'books')).toThrow(
-        'The given collection name "doesNotExist" does not exist',
+        'dsmock: "doesNotExist" does not exist',
       );
     });
 
@@ -179,7 +189,7 @@ describe('RenameCollectionDecorator', () => {
 
       expect(decoratedDataSource.getCollection('name 2')).toMatchObject({ name: 'name 2' });
       expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
-        `Collection 'name 1' not found.`,
+        `Collection 'name 1' has been renamed to 'name 2'`,
       );
     });
 

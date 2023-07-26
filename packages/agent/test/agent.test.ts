@@ -27,6 +27,7 @@ const mockCustomizer = {
   updateTypesOnFileSystem: jest.fn(),
   use: jest.fn(),
   getFactory: jest.fn(),
+  removeCollection: jest.fn(),
 };
 
 const mockNocodeCustomizer = {
@@ -86,6 +87,13 @@ describe('Agent', () => {
       agent.customizeCollection('name', () => {});
 
       expect(mockCustomizer.customizeCollection).toHaveBeenCalledTimes(1);
+    });
+
+    test('removeCollection should proxy the call', async () => {
+      const agent = new Agent(options);
+      agent.removeCollection('name', 'name1');
+
+      expect(mockCustomizer.removeCollection).toHaveBeenCalledTimes(1);
     });
 
     test('use should proxy the call', async () => {

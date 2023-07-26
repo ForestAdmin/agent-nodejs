@@ -24,7 +24,8 @@ describe('DataSourceDecorator', () => {
 
     expect(decorator.collections).toHaveLength(0);
 
-    dataSource.addCollection(factories.collection.build());
+    dataSource.collections.push(factories.collection.build());
+    (dataSource.getCollection as jest.Mock).mockReturnValue(dataSource.collections[0]);
 
     expect(decorator.collections).toHaveLength(1);
   });
