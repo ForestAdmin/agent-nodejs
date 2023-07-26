@@ -2,7 +2,7 @@ import { PullDumpRequest, PullDumpResponse } from '@forestadmin/datasource-repli
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { pullRecordsAndRelations } from './changes';
+import { pullRecordsAndRelationships } from './changes';
 import { getRelationsByCollection } from './relations';
 import { HubSpotOptions, Response } from './types';
 
@@ -48,7 +48,7 @@ export default async function pullDump<TypingsHubspot>(
     deletedEntries: [],
   };
 
-  await pullRecordsAndRelations(
+  await pullRecordsAndRelationships(
     client,
     buildUniqueRelations(getRelationsByCollection(availableCollections)),
     options.collections as { [collectionName: string]: string[] },

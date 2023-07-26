@@ -48,7 +48,7 @@ function isDefaultCollection(collectionName: string): boolean {
   return HUBSPOT_COLLECTIONS.includes(collectionName);
 }
 
-export async function fetchRecordsAndRelations(
+export async function fetchRecordsAndRelationships(
   client: Client,
   collectionName: string,
   properties: string[],

@@ -7,12 +7,12 @@ import {
 } from './constants';
 import {
   fetchExistingRecordIds,
-  fetchRecordsAndRelations,
+  fetchRecordsAndRelationships,
   fetchRelationshipsOfRecord,
   getLastModifiedRecords,
 } from './hubspot-api';
 import { getManyToManyNamesOf } from './relations';
-import { HubSpotOptions, RecordWithRelationNames, Records, Response } from './types';
+import { HubSpotOptions, RecordWithRelationships, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
 export async function pullUpdatedOrNewRecords<TypingsHubspot>(
@@ -46,7 +46,7 @@ export async function pullUpdatedOrNewRecords<TypingsHubspot>(
   await Promise.all(promises);
 }
 
-export async function pullRecordsAndRelations(
+export async function pullRecordsAndRelationships(
   client: Client,
   relations: { [collectionName: string]: string[] },
   properties: { [collectionName: string]: string[] },
@@ -55,7 +55,7 @@ export async function pullRecordsAndRelations(
 ): Promise<void> {
   const promises = Object.keys(properties).map(async collectionName => {
     const afterId = previousState?.[collectionName];
-    const records = await fetchRecordsAndRelations(
+    const records = await fetchRecordsAndRelationships(
       client,
       collectionName,
       properties[collectionName],
@@ -138,14 +138,14 @@ export async function checkRecordsAndRelationships(
 
 export async function updateRelationships(
   client: Client,
-  records: RecordWithRelationNames[],
+  records: RecordWithRelationships[],
   response: Response,
 ): Promise<void> {
   await Promise.all(
     records.map(async record => {
       const manyToManyRelations = getManyToManyNamesOf(record.collectionName, [
         record.collectionName,
-        ...record.relations,
+        ...record.relationships,
       ]);
       // remove all the relations related to the record
       manyToManyRelations.forEach(manyToManyName => {
@@ -159,7 +159,7 @@ export async function updateRelationships(
         client,
         record.id,
         record.collectionName,
-        record.relations,
+        record.relationships,
       );
 
       // build all the relations

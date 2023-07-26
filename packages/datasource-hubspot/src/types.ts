@@ -69,4 +69,4 @@ export type Response = {
   nextState: unknown;
 };
 
-export type RecordWithRelationNames = { id: string; relations: []; collectionName: string };
+export type RecordWithRelationships = { id: string; relationships: []; collectionName: string };

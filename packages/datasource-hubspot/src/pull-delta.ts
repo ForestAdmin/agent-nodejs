@@ -9,12 +9,12 @@ import {
   updateRelationships,
 } from './changes';
 import { buildManyToManyNames, getRelationsOf } from './relations';
-import { HubSpotOptions, RecordWithRelationNames, Response } from './types';
+import { HubSpotOptions, RecordWithRelationships, Response } from './types';
 
 function prepareRecordsToUpdate(
   response: Response,
   collections: string[],
-): RecordWithRelationNames[] {
+): RecordWithRelationships[] {
   const idsByCollection: { [collectionName: string]: string[] } = {};
   response.newOrUpdatedEntries.forEach(r => {
     if (!idsByCollection[r.collection]) idsByCollection[r.collection] = [];
@@ -27,7 +27,7 @@ function prepareRecordsToUpdate(
       relations.push({
         id,
         collectionName,
-        relations: getRelationsOf(collectionName, collections),
+        relationships: getRelationsOf(collectionName, collections),
       });
     });
   });
