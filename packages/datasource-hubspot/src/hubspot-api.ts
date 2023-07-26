@@ -2,7 +2,7 @@ import { Logger, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { CONTACTS, HUBSPOT_COLLECTIONS, HUBSPOT_MAX_PAGE_SIZE } from './constants';
-import { getManyToManyNamesOf } from './relations';
+import { getRelatedManyToManyNames } from './relationships';
 import { FieldPropertiesByCollection, Records } from './types';
 import { retryIfLimitReached } from './utils';
 
@@ -110,7 +110,10 @@ export async function fetchRecordsAndRelationships(
         if (pairsToSave.has(pairToSave)) return;
 
         pairsToSave.add(pairToSave);
-        const [manyToMany] = getManyToManyNamesOf(collectionName, [collectionName, relationName]);
+        const [manyToMany] = getRelatedManyToManyNames(collectionName, [
+          collectionName,
+          relationName,
+        ]);
         if (!records[manyToMany]) records[manyToMany] = [];
         // build the relation as many to many
         records[manyToMany].push({

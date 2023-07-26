@@ -17,7 +17,7 @@ export function buildManyToManyNames(availableCollections: string[]): string[] {
   }, []);
 }
 
-export function getManyToManyNamesOf(
+export function getRelatedManyToManyNames(
   collectionName: string,
   availableCollections: string[],
 ): string[] {

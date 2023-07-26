@@ -3,7 +3,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { pullRecordsAndRelationships } from './changes';
-import { getRelationsByCollection } from './relations';
+import { getRelationsByCollection } from './relationships';
 import { HubSpotOptions, Response } from './types';
 
 /**

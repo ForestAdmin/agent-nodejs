@@ -8,7 +8,7 @@ import {
   pullUpdatedOrNewRecords,
   updateRelationships,
 } from './changes';
-import { buildManyToManyNames, getRelationsOf } from './relations';
+import { buildManyToManyNames, getRelationsOf } from './relationships';
 import { HubSpotOptions, RecordWithRelationships, Response } from './types';
 
 function prepareRecordsToUpdate(

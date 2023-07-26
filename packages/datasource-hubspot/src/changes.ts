@@ -11,7 +11,7 @@ import {
   fetchRelationshipsOfRecord,
   getLastModifiedRecords,
 } from './hubspot-api';
-import { getManyToManyNamesOf } from './relations';
+import { getRelatedManyToManyNames } from './relationships';
 import { HubSpotOptions, RecordWithRelationships, Records, Response } from './types';
 import { executeAfterDelay } from './utils';
 
@@ -82,7 +82,7 @@ export async function checkRecordsAndRelationships(
   response: Response,
 ): Promise<void> {
   for (const [collectionName, ids] of Object.entries(idsByCollection)) {
-    const relations = getManyToManyNamesOf(collectionName, availableCollections);
+    const relations = getRelatedManyToManyNames(collectionName, availableCollections);
 
     // make a bach requests to avoid hitting the hubspot rate limit
     const promises = Array.from({
@@ -143,7 +143,7 @@ export async function updateRelationships(
 ): Promise<void> {
   await Promise.all(
     records.map(async record => {
-      const manyToManyRelations = getManyToManyNamesOf(record.collectionName, [
+      const manyToManyRelations = getRelatedManyToManyNames(record.collectionName, [
         record.collectionName,
         ...record.relationships,
       ]);
@@ -164,7 +164,7 @@ export async function updateRelationships(
 
       // build all the relations
       Object.entries(relationIds).forEach(([relationName, ids]) => {
-        const [manyToManyName] = getManyToManyNamesOf(record.collectionName, [
+        const [manyToManyName] = getRelatedManyToManyNames(record.collectionName, [
           record.collectionName,
           relationName,
         ]);
