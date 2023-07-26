@@ -199,7 +199,7 @@ export async function getLastModifiedRecords(
   );
 }
 
-export async function fetchRelationOfRecord(
+export async function fetchRelationshipsOfRecord(
   client: Client,
   recordId: string,
   collectionName: string,
@@ -235,9 +235,7 @@ export async function fetchRelationOfRecord(
     handleErrors(e);
   }
 
-  if (!response.associations) return {};
-
-  return Object.entries(response.associations).reduce((acc, [relationName, relation]) => {
+  return Object.entries(response.associations ?? {}).reduce((acc, [relationName, relation]) => {
     let computedRelationName = relationName;
 
     // if match p{portal_id}_{relation_name}

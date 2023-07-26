@@ -8,7 +8,7 @@ import {
 import {
   fetchExistingRecordIds,
   fetchRecordsAndRelations,
-  fetchRelationOfRecord,
+  fetchRelationshipsOfRecord,
   getLastModifiedRecords,
 } from './hubspot-api';
 import { getManyToManyNamesOf } from './relations';
@@ -75,7 +75,7 @@ export async function pullRecordsAndRelations(
   await Promise.all(promises);
 }
 
-export async function checkRecordsAndRelations(
+export async function checkRecordsAndRelationships(
   client: Client,
   idsByCollection: { [collectionName: string]: string[] },
   availableCollections: string[],
@@ -136,7 +136,7 @@ export async function checkRecordsAndRelations(
   }
 }
 
-export async function updateRelations(
+export async function updateRelationships(
   client: Client,
   records: RecordWithRelationNames[],
   response: Response,
@@ -155,7 +155,7 @@ export async function updateRelations(
         });
       });
 
-      const relationIds = await fetchRelationOfRecord(
+      const relationIds = await fetchRelationshipsOfRecord(
         client,
         record.id,
         record.collectionName,

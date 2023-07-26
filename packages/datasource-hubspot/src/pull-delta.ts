@@ -2,7 +2,12 @@ import { PullDeltaRequest, PullDeltaResponse } from '@forestadmin/datasource-rep
 import { Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
-import { checkRecordsAndRelations, pullUpdatedOrNewRecords, updateRelations } from './changes';
+import { retrieveRequestedIds } from './cache';
+import {
+  checkRecordsAndRelationships,
+  pullUpdatedOrNewRecords,
+  updateRelationships,
+} from './changes';
 import { buildManyToManyNames, getRelationsOf } from './relations';
 import { HubSpotOptions, RecordWithRelationNames, Response } from './types';
 
@@ -28,24 +33,6 @@ function prepareRecordsToUpdate(
   });
 
   return relations;
-}
-
-async function retrieveRequestedIds(
-  cache: PullDeltaRequest['cache'],
-  reasons: PullDeltaRequest['reasons'],
-): Promise<{ [collectionName: string]: string[] }> {
-  const ids = {};
-  await Promise.all(
-    reasons.map(async reason => {
-      if ('filter' in reason && 'collection' in reason) {
-        const recordIds = await cache.getCollection(reason.collection).list(reason.filter, ['id']);
-
-        ids[reason.collection] = recordIds.map(r => r.id);
-      }
-    }),
-  );
-
-  return ids;
 }
 
 export default async function pullDelta<TypingsHubspot>(
@@ -80,7 +67,7 @@ export default async function pullDelta<TypingsHubspot>(
   logger('Debug', 'update the relations of the updated or new records');
   await Promise.all([
     // depending on the response of the pullUpdatedOrNewRecords call.
-    updateRelations(client, prepareRecordsToUpdate(response, availableCollections), response),
+    updateRelationships(client, prepareRecordsToUpdate(response, availableCollections), response),
     // check if the requested records on hubspot are deleted or not.
     // if the record is deleted, we need to delete the record and all the relations related to it.
     (async () => {
@@ -93,7 +80,7 @@ export default async function pullDelta<TypingsHubspot>(
       // if there is not too many records to update, we can check if the records are deleted or not.
       // it is a performance optimization.
       if (Object.values(recordIds).flat().length < options.pullDeltaMaxRecordUpToDate ?? 500) {
-        await checkRecordsAndRelations(client, recordIds, availableCollections, response);
+        await checkRecordsAndRelationships(client, recordIds, availableCollections, response);
       } else {
         logger('Warn', 'Too many records to update ');
       }
