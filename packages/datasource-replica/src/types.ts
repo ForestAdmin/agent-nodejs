@@ -124,7 +124,7 @@ export type ReplicaDataSourceOptions = {
 
   /** Schema options */
   schema?: ValueOrPromiseOrFactory<CollectionReplicaSchema[]>;
-  flattenMode?: 'auto' | 'manual' | 'none';
+  flattenMode?: 'auto' | 'manual';
   flattenOptions?: ValueOrPromiseOrFactory<FlattenOptions>;
 
   /** Writing options */
