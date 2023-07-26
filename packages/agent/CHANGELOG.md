@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.14.0...@forestadmin/agent@1.15.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** generate typings aliases for easier use ([#777](https://github.com/ForestAdmin/agent-nodejs/issues/777)) ([7f8f03c](https://github.com/ForestAdmin/agent-nodejs/commit/7f8f03c71b3eedebdfd2deb094a55f05ecba746d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.12.0
+
 # @forestadmin/agent [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.8...@forestadmin/agent@1.14.0) (2023-07-25)
 
 
