@@ -19,6 +19,7 @@ export interface DataSource {
 }
 
 export interface Collection {
+  get nativeDriver(): unknown | null;
   get dataSource(): DataSource;
   get name(): string;
   get schema(): CollectionSchema;

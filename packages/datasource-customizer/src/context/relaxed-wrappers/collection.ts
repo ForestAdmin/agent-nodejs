@@ -35,6 +35,11 @@ export default class RelaxedCollection<
   private collection: Collection;
   private caller: Caller;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get nativeDriver(): any {
+    return this.collection.nativeDriver;
+  }
+
   get schema(): CollectionSchema {
     return this.collection.schema;
   }

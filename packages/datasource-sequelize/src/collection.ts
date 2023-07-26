@@ -12,7 +12,14 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import { FindOptions, ModelDefined, ProjectionAlias, Sequelize } from 'sequelize';
+import {
+  BindOrReplacements,
+  FindOptions,
+  ModelDefined,
+  ProjectionAlias,
+  QueryTypes,
+  Sequelize,
+} from 'sequelize';
 
 import AggregationUtils from './utils/aggregation';
 import handleErrors from './utils/error-handler';
@@ -36,7 +43,20 @@ export default class SequelizeCollection extends BaseCollection {
     model: ModelDefined<any, any>,
     logger?: Logger,
   ) {
-    super(name, datasource);
+    super(name, datasource, {
+      sequelize: model.sequelize,
+      model,
+      rawQuery: async (sql: string, replacements: BindOrReplacements) => {
+        const result = await model.sequelize.query(sql, {
+          type: QueryTypes.RAW,
+          plain: false,
+          raw: true,
+          replacements,
+        });
+
+        return result?.[0];
+      },
+    });
 
     if (!model) throw new Error('Invalid (null) model instance.');
 
