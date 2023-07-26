@@ -5,13 +5,11 @@ import { ReplicaDataSourceOptions, createReplicaDataSource } from '../../src';
 
 const makeLogger = () => jest.fn();
 
-export const makeSchemaWithId = (collectionName: string) => {
-  return [
-    { name: collectionName, fields: { id: { type: 'Number', isPrimaryKey: true } } },
-  ] as ReplicaDataSourceOptions['schema'];
+export const makeSchemaWithId = (collectionName: string): ReplicaDataSourceOptions['schema'] => {
+  return [{ name: collectionName, fields: { id: { type: 'Number', isPrimaryKey: true } } }];
 };
 
-export const makeAllRecordsFilter = () => {
+export const makeAllRecordsFilter = (): Filter => {
   return new Filter({
     conditionTree: new ConditionTreeLeaf('id', 'Present'),
   });
@@ -23,7 +21,9 @@ export const getAllRecords = async (datasource: DataSource, collectionName: stri
     .list(factories.caller.build(), makeAllRecordsFilter(), new Projection('id'));
 };
 
-export const makeReplicateDataSource = async (options: ReplicaDataSourceOptions) => {
+export const makeReplicateDataSource = async (
+  options: ReplicaDataSourceOptions,
+): Promise<DataSource> => {
   const replicaFactory = createReplicaDataSource(options);
 
   return replicaFactory(makeLogger());
