@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.15.0...@forestadmin/agent@1.15.1) (2023-07-26)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** fix addChart tsdoc ([#778](https://github.com/ForestAdmin/agent-nodejs/issues/778)) ([f1101fb](https://github.com/ForestAdmin/agent-nodejs/commit/f1101fb432f1b43d7ea1aa27bbe7da9890f1f075))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.12.1
+
 # @forestadmin/agent [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.14.0...@forestadmin/agent@1.15.0) (2023-07-26)
 
 
