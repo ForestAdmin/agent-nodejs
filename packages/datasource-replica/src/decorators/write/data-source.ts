@@ -13,13 +13,17 @@ export default class WriteDataSourceDecorator extends DataSourceDecorator {
 
     this.options = options;
 
-    if (
-      options.flattenOptions &&
-      (options.createRecordHandler || options.updateRecordHandler || options.deleteRecordHandler)
-    ) {
-      throw new Error(
-        'Cannot use flattenOptions with createRecordHandler, updateRecordHandler or deleteRecordHandler',
-      );
-    }
+    childDataSource.collections.forEach(collection => {
+      if (
+        (options.flattenOptions[collection.name].asModels.length ||
+          options.flattenOptions[collection.name].asFields.length) &&
+        (options.createRecordHandler || options.updateRecordHandler || options.deleteRecordHandler)
+      ) {
+        throw new Error(
+          'Cannot use flattenOptions with' +
+            ' createRecordHandler, updateRecordHandler or deleteRecordHandler',
+        );
+      }
+    });
   }
 }

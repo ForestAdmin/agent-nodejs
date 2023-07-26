@@ -1,27 +1,7 @@
-import { ConditionTreeLeaf, Filter, Projection } from '@forestadmin/datasource-toolkit';
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-
-import { PullDumpRequest, ReplicaDataSourceOptions, createReplicaDataSource } from '../../src';
+import { getAllRecords, makeReplicateDataSource, makeSchemaWithId } from './factories';
+import { PullDumpRequest, ReplicaDataSourceOptions } from '../../src';
 
 describe('pull dump', () => {
-  const makeLogger = () => jest.fn();
-
-  const getAllRecords = async (datasource: any) => {
-    const allRecordsFilter = new Filter({
-      conditionTree: new ConditionTreeLeaf('id', 'Present'),
-    });
-
-    return datasource
-      .getCollection('contacts')
-      .list(factories.caller.build(), allRecordsFilter, new Projection('id'));
-  };
-
-  const makeReplicateDataSource = async (options: ReplicaDataSourceOptions) => {
-    const replicaFactory = createReplicaDataSource(options);
-
-    return replicaFactory(makeLogger());
-  };
-
   describe('when the dump is finished', () => {
     it('should insert the records by calling the dump only one time', async () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
@@ -34,13 +14,12 @@ describe('pull dump', () => {
           ],
         });
 
-      const schema: ReplicaDataSourceOptions['schema'] = [
-        { name: 'contacts', fields: { id: { type: 'Number', isPrimaryKey: true } } },
-      ];
+      const datasource = await makeReplicateDataSource({
+        pullDumpHandler,
+        schema: makeSchemaWithId('contacts'),
+      });
 
-      const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
-
-      expect(await getAllRecords(datasource)).toEqual([{ id: 1 }, { id: 2 }]);
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }, { id: 2 }]);
       expect(pullDumpHandler).toHaveBeenCalledTimes(1);
     });
   });
@@ -74,13 +53,17 @@ describe('pull dump', () => {
           };
         });
 
-      const schema: ReplicaDataSourceOptions['schema'] = [
-        { name: 'contacts', fields: { id: { type: 'Number', isPrimaryKey: true } } },
-      ];
+      const datasource = await makeReplicateDataSource({
+        pullDumpHandler,
+        schema: makeSchemaWithId('contacts'),
+      });
 
-      const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
-
-      expect(await getAllRecords(datasource)).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]);
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([
+        { id: 1 },
+        { id: 2 },
+        { id: 3 },
+        { id: 4 },
+      ]);
       expect(pullDumpHandler).toHaveBeenCalledTimes(2);
 
       // saving previous state at each call
@@ -99,13 +82,12 @@ describe('pull dump', () => {
           };
         });
 
-      const schema: ReplicaDataSourceOptions['schema'] = [
-        { name: 'contacts', fields: { id: { type: 'Number', isPrimaryKey: true } } },
-      ];
+      const datasource = await makeReplicateDataSource({
+        pullDumpHandler,
+        schema: makeSchemaWithId('contacts'),
+      });
 
-      const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
-
-      expect(await getAllRecords(datasource)).toEqual([]);
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
     });
   });
 
@@ -121,14 +103,13 @@ describe('pull dump', () => {
             };
           });
 
-        const schema: ReplicaDataSourceOptions['schema'] = [
-          { name: 'contacts', fields: { id: { type: 'Number', isPrimaryKey: true } } },
-        ];
-
-        const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
+        const datasource = await makeReplicateDataSource({
+          pullDumpHandler,
+          schema: makeSchemaWithId('contacts'),
+        });
 
         // TODO: fix the code to throw error
-        expect(await getAllRecords(datasource)).toEqual([{ id: 1 }]);
+        expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
       });
     });
 
@@ -143,14 +124,13 @@ describe('pull dump', () => {
             };
           });
 
-        const schema: ReplicaDataSourceOptions['schema'] = [
-          { name: 'contacts', fields: { id: { type: 'Number', isPrimaryKey: true } } },
-        ];
-
-        const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
+        const datasource = await makeReplicateDataSource({
+          pullDumpHandler,
+          schema: makeSchemaWithId('contacts'),
+        });
 
         // TODO: fix the code to display a warning log
-        expect(await getAllRecords(datasource)).toEqual([{ id: 1 }]);
+        expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
         expect(pullDumpHandler).toHaveBeenCalledTimes(1);
       });
     });
@@ -166,11 +146,10 @@ describe('pull dump', () => {
             };
           });
 
-        const schema: ReplicaDataSourceOptions['schema'] = [
-          { name: 'users', fields: { id: { type: 'Number', isPrimaryKey: true } } },
-        ];
-
-        const datasource = await makeReplicateDataSource({ pullDumpHandler, schema });
+        const datasource = await makeReplicateDataSource({
+          pullDumpHandler,
+          schema: makeSchemaWithId('contacts'),
+        });
 
         // TODO: fix the code to display a error log or an error ?
         expect('false').toEqual(true);
