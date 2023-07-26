@@ -4,7 +4,7 @@ import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 import { Client } from '@hubspot/api-client';
 
 import { HUBSPOT_COLLECTIONS } from './constants';
-import { fetchFieldsProperties } from './hubspot-api';
+import { fetchFieldsPropertiesByCollection } from './hubspot-api';
 import pullDelta from './pull-delta';
 import pullDump from './pull-dump';
 import getSchema from './schema';
@@ -17,7 +17,11 @@ export function createHubspotDataSource<TypingsHubspot>(
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const client = new Client({ accessToken: options.accessToken });
-    const fieldsProperties = await fetchFieldsProperties(client, HUBSPOT_COLLECTIONS, logger);
+    const fieldsProperties = await fetchFieldsPropertiesByCollection(
+      client,
+      HUBSPOT_COLLECTIONS,
+      logger,
+    );
 
     if (!options.skipTypings) {
       const path = options.typingsPath ?? 'src/typings-hubspot.ts';

@@ -255,7 +255,7 @@ export async function fetchRelationOfRecord(
   }, {});
 }
 
-export async function fetchFieldsProperties(
+export async function fetchFieldsPropertiesByCollection(
   client: Client,
   collections: string[],
   logger?: Logger,
