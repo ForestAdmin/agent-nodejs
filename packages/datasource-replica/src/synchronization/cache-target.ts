@@ -27,30 +27,28 @@ export default class CacheTarget implements SynchronizationTarget {
     // fixme use something so that final users see the whole dump as a single transaction
     // [transaction / temporary table]
 
-    await this.connection.transaction(async transaction => {
-      if (firstPage) {
-        // Truncate tables
-        for (const collection of this.options.flattenSchema) {
-          await this.connection.model(collection.name).truncate({ transaction });
-        }
+    if (firstPage) {
+      // Truncate tables
+      for (const collection of this.options.flattenSchema) {
+        await this.connection.model(collection.name).truncate();
       }
+    }
 
-      const recordsByCollection = {} as Record<string, RecordData[]>;
-      const entries = changes.entries.flatMap(entry => this.flattenRecord(entry));
+    const recordsByCollection = {} as Record<string, RecordData[]>;
+    const entries = changes.entries.flatMap(entry => this.flattenRecord(entry));
 
-      for (const entry of entries) {
-        if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
-        recordsByCollection[entry.collection].push(entry.record);
-      }
+    for (const entry of entries) {
+      if (!recordsByCollection[entry.collection]) recordsByCollection[entry.collection] = [];
+      recordsByCollection[entry.collection].push(entry.record);
+    }
 
-      for (const [collection, records] of Object.entries(recordsByCollection)) {
-        this.checkCollection(collection);
+    for (const [collection, records] of Object.entries(recordsByCollection)) {
+      this.checkCollection(collection);
 
-        // fixme check that no pre-processing of the records are needed to handle
-        // dates, buffers, ...
-        await this.connection.model(collection).bulkCreate(records, { transaction });
-      }
-    });
+      // fixme check that no pre-processing of the records are needed to handle
+      // dates, buffers, ...
+      await this.connection.model(collection).bulkCreate(records);
+    }
     // [/transaction / temporary table]
   }
 
