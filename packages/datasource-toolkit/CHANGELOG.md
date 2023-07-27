@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.7.0...@forestadmin/datasource-toolkit@1.8.0) (2023-07-27)
+
+
+### Features
+
+* **datasource-customizer:** expose native driver to customers ([#779](https://github.com/ForestAdmin/agent-nodejs/issues/779)) ([350b1c3](https://github.com/ForestAdmin/agent-nodejs/commit/350b1c3dc076ab2fdfb2fbba1532548624131b94))
+
 # @forestadmin/datasource-toolkit [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.6.0...@forestadmin/datasource-toolkit@1.7.0) (2023-07-26)
 
 
