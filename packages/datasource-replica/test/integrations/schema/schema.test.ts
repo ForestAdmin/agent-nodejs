@@ -11,19 +11,33 @@ describe('schema', () => {
           entries: [
             { collection: 'contacts', record: { id: 1, name: 'f' } },
             { collection: 'contacts', record: { id: 2, name: 'orest' } },
+            {
+              collection: 'contacts',
+              record: {
+                id: 3,
+                objectField: {
+                  name: 'orest',
+                  subField: [1, 2, 3],
+                },
+              },
+            },
           ],
         });
-      const datasource = await makeReplicaDataSource({
-        schema: null,
-        pullDumpHandler,
-        flattenMode: 'auto',
-      });
+      const datasource = await makeReplicaDataSource({ schema: null, pullDumpHandler });
 
-      const records = await getAllRecords(datasource, 'contacts', ['id', 'name']);
+      const records = await getAllRecords(datasource, 'contacts', ['id', 'name', 'objectField']);
 
       expect(records).toEqual([
-        { id: 1, name: 'f' },
-        { id: 2, name: 'orest' },
+        { id: 1, name: 'f', objectField: null },
+        { id: 2, name: 'orest', objectField: null },
+        {
+          id: 3,
+          name: null,
+          objectField: {
+            name: 'orest',
+            subField: [1, 2, 3],
+          },
+        },
       ]);
     });
   });
