@@ -183,4 +183,87 @@ describe('SchemaGeneratorActions', () => {
       });
     });
   });
+
+  describe('with widget', () => {
+    it('should set the value null to widgetEdit if no widget is specified', async () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.buildWithAction(
+          'Update title',
+          {
+            scope: 'Single',
+            generateFile: false,
+            staticForm: true,
+          },
+          [
+            {
+              label: 'title',
+              description: 'updated title',
+              type: 'String',
+              isRequired: true,
+              isReadOnly: false,
+              value: null,
+              watchChanges: false,
+            },
+          ],
+        ),
+      ]);
+
+      const collection = dataSource.getCollection('books');
+
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Update title');
+
+      expect(schema.fields[0]).toMatchObject({
+        field: 'title',
+        widgetEdit: null,
+      });
+    });
+
+    it('should generate the right configuration for dropdowns', async () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.buildWithAction(
+          'Update format',
+          {
+            scope: 'Single',
+            generateFile: false,
+            staticForm: true,
+          },
+          [
+            {
+              label: 'format',
+              description: 'new format',
+              type: 'String',
+              isRequired: true,
+              isReadOnly: false,
+              value: null,
+              watchChanges: false,
+              widget: 'Dropdown',
+              options: [
+                { label: 'Paperback', value: '1' },
+                { label: 'Hardcover', value: '2' },
+              ],
+              search: 'static',
+            },
+          ],
+        ),
+      ]);
+
+      const collection = dataSource.getCollection('books');
+
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Update format');
+
+      expect(schema.fields[0]).toMatchObject({
+        field: 'format',
+        widgetEdit: {
+          name: 'dropdown',
+          parameters: {
+            options: [
+              { label: 'Paperback', value: '1' },
+              { label: 'Hardcover', value: '2' },
+            ],
+            search: 'static',
+          },
+        },
+      });
+    });
+  });
 });

@@ -11,6 +11,7 @@ import { ForestServerAction, ForestServerActionField } from '@forestadmin/forest
 import path from 'path';
 
 import ForestValueConverter from './action-values';
+import GeneratorActionFieldWidget from './generator-action-field-widget';
 
 export default class SchemaGeneratorActions {
   /**
@@ -29,7 +30,7 @@ export default class SchemaGeneratorActions {
       hook: null,
       isRequired: false,
       reference: null,
-      widget: null,
+      widgetEdit: null,
     },
   ];
 
@@ -92,9 +93,7 @@ export default class SchemaGeneratorActions {
       output.enums = field.enumValues;
     }
 
-    output.options = field.options;
-    output.search = field.search;
-    output.widget = field.widget;
+    output.widgetEdit = GeneratorActionFieldWidget.buildWidgetEdit(field);
 
     return output as ForestServerActionField;
   }

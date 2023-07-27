@@ -21,8 +21,8 @@ export interface ActionField {
   enumValues?: string[]; // When type === 'Enum'
   collectionName?: string; // When type === 'Collection'
   options?: DropdownOption[]; // When widget === 'Dropdown';
-  search?: 'disabled';
-  widget?: 'Dropdown';
+  search?: 'static' | 'disabled'; // When widget === 'Dropdown';
+  widget?: ActionFieldWidget;
 }
 
 export type ActionFieldType =
@@ -39,6 +39,8 @@ export type ActionFieldType =
   | 'FileList'
   | 'NumberList'
   | 'StringList';
+
+export type ActionFieldWidget = 'Dropdown'; // Other widgets to be added in the future
 
 export type SuccessResult = {
   type: 'Success';

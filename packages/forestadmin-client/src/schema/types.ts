@@ -48,6 +48,22 @@ export type ForestServerAction = {
   };
 };
 
+export type ForestServerActionFieldWidgetEditBase<TType = string, TConfig = unknown> = {
+  name: TType;
+  parameters: TConfig;
+};
+
+export type ForestServerActionFieldWidgetEditDropdown = ForestServerActionFieldWidgetEditBase<
+  'dropdown',
+  {
+    search?: 'static' | 'disabled';
+    options: Array<{ label: string; value: string }>;
+  }
+>;
+
+export type ForestServerActionFieldWidgetEdit =
+  ForestServerActionFieldWidgetEditDropdown /* Other definitions to follow */;
+
 export type ForestServerActionField = {
   value: unknown;
   defaultValue: unknown;
@@ -59,7 +75,7 @@ export type ForestServerActionField = {
   isRequired: boolean;
   reference: string | null;
   type: ForestServerColumnType;
-  widget: null | 'belongsto select' | 'file picker';
+  widgetEdit: ForestServerActionFieldWidgetEdit;
 };
 
 export type ForestServerField = Partial<{
