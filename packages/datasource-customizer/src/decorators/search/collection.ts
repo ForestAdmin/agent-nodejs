@@ -24,14 +24,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     this.replacer = replacer;
   }
 
-  public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
+  override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return { ...subSchema, searchable: true };
   }
 
-  public override async refineFilter(
-    caller: Caller,
-    filter?: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+  override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
     // Search string is not significant
     if (!filter?.search?.trim().length) {
       return filter?.override({ search: null });
@@ -190,7 +187,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
           const related = this.dataSource.getCollection(schema.foreignCollection);
           const fuzzy = related.lenientGetSchema(suffix);
 
-          if (fuzzy) return { field: `${prefix}:${fuzzy.field}`, schema: fuzzy.schema };
+          if (fuzzy) return { field: `${field}:${fuzzy.field}`, schema: fuzzy.schema };
         }
       }
     }
