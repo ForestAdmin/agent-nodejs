@@ -9,19 +9,24 @@ import {
   PlainFilter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import Ajv from 'ajv';
+import ajvKeywords from 'ajv-keywords';
+import chalk from 'chalk';
 
 import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
-import { DynamicField, ValueOrHandler } from './types/fields';
+import { DynamicField, ValueOrHandler, fieldActionSchema } from './types/fields';
+
+const ajv = new Ajv();
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
 
   private actions: Record<string, ActionDefinition> = {};
-
   addAction(name: string, action: ActionDefinition): void {
+    this.validateActionConfiguration(name, action);
     this.actions[name] = action;
     this.markSchemaAsDirty();
   }
@@ -97,6 +102,34 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }
 
     return newSchema;
+  }
+
+  private validateActionConfiguration(name: string, action: ActionDefinition) {
+    ajvKeywords(ajv);
+    action.form.forEach(field => {
+      const validate = ajv.compile(fieldActionSchema(field.type));
+      const result = validate(field);
+
+      if (!result) {
+        // console.error(validate.errors);
+        const a = validate.errors;
+        console.log(chalk.bgRedBright('THATS A FAIL !!!'));
+        throw new Error(
+          `Incorrect customization in collection '${
+            this.name
+          }', action: '${name}'.\nIn form field with label '${field.label}': ${[
+            validate.errors[0],
+          ].map(
+            error =>
+              `\n${error.instancePath ? `${error.instancePath} ` : ''}${
+                error.message
+              }. parameters: ${JSON.stringify(error.params)}`,
+          )}'`,
+        );
+      } else {
+        console.log(chalk.bgGreenBright('ALL GOOD !!!'));
+      }
+    });
   }
 
   private getContext(
