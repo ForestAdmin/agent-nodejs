@@ -9,7 +9,7 @@ describe('GeneratorActionFieldWidget', () => {
         watchChanges: false,
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
 
     it('should return null when the field type is Collection', () => {
@@ -20,7 +20,7 @@ describe('GeneratorActionFieldWidget', () => {
         widget: 'Dropdown',
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
 
     it('should return null when the field type is Enum', () => {
@@ -32,7 +32,7 @@ describe('GeneratorActionFieldWidget', () => {
         enumValues: ['value1', 'value2'],
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
 
     it('should return null when the field type is EnumList', () => {
@@ -44,7 +44,7 @@ describe('GeneratorActionFieldWidget', () => {
         enumValues: ['value1', 'value2'],
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
 
     describe('Dropdown', () => {
