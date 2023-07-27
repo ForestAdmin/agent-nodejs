@@ -4,6 +4,23 @@ import { ReplicaDataSourceOptions } from '../../src';
 describe('flattener', () => {
   describe('when the flattener is in auto mode', () => {
     describe('when the field is an array', () => {
+      describe('when there is no primary key', () => {
+        it('should throw an error', async () => {
+          const schema: ReplicaDataSourceOptions['schema'] = [
+            {
+              name: 'contacts',
+              fields: {
+                fieldArray: [{ type: 'String' }],
+              },
+            },
+          ];
+
+          await expect(() =>
+            makeReplicaDataSource({ schema, flattenMode: 'auto' }),
+          ).rejects.toThrow('No primary key found');
+        });
+      });
+
       it('should create a new collection and a one to many between them', async () => {
         const schema: ReplicaDataSourceOptions['schema'] = [
           {
