@@ -14,8 +14,8 @@ export default class Hubspot {
     this.client = new Client({ accessToken: process.env.HUBSPOT_API_KEY });
   }
 
-  async createRecord(collectionName: string, record: any) {
-    return this.client.crm[collectionName].basicApi.create(record);
+  async createRecord(collectionName: string, properties: Record<string, any>) {
+    return this.client.crm[collectionName].basicApi.create({ properties, associations: [] });
   }
 
   async deleteRecord(collectionName: string, recordId: string) {
@@ -28,11 +28,11 @@ export default class Hubspot {
     return Promise.all(records.map((record: any) => this.deleteRecord(collectionName, record.id)));
   }
 
-  updateRecord(collectionName: string, id: string, record: any) {
-    return this.client.crm[collectionName].basicApi.update(id, record);
+  updateRecord(collectionName: string, id: string, properties: Record<string, any>) {
+    return this.client.crm.contacts.basicApi.update(id, { properties });
   }
 
-  async fetchRecord(collectionName: string, id: string) {
+  async getById(collectionName: string, id: string) {
     return this.client.crm[collectionName].basicApi.getById(id);
   }
 
@@ -47,6 +47,7 @@ export default class Hubspot {
   ): Promise<DataSource> {
     const factory = createHubspotDataSource({
       accessToken: process.env.HUBSPOT_API_KEY,
+      skipTypings: true,
       ...options,
     } as HubSpotOptions);
 
