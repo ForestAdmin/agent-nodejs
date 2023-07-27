@@ -43,6 +43,28 @@ describe('SequelizeDataSource > Collection', () => {
     );
   });
 
+  it('should foward rawQuery calls to sequelize', async () => {
+    type NativeDriver = { rawQuery: (...args: unknown[]) => Promise<RecordData[]> };
+
+    const { dataSource, name, sequelize } = makeConstructorParams();
+    const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
+
+    const spy = jest.spyOn(sequelize, 'query').mockResolvedValueOnce([[{ id: 1 }], 1]);
+
+    const result = await (sequelizeCollection.nativeDriver as NativeDriver).rawQuery(
+      'SELECT * FROM __collection__ where id = :id',
+      { id: 1 },
+    );
+
+    expect(result).toEqual([{ id: 1 }]);
+    expect(spy).toHaveBeenCalledWith('SELECT * FROM __collection__ where id = :id', {
+      plain: false,
+      raw: true,
+      replacements: { id: 1 },
+      type: 'RAW',
+    });
+  });
+
   describe('create', () => {
     const setup = (recordData: RecordData[]) => {
       const { dataSource, name, sequelize } = makeConstructorParams();

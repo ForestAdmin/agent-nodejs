@@ -20,6 +20,7 @@ export class CollectionFactory extends Factory<Collection> {
 }
 
 export default CollectionFactory.define(() => ({
+  nativeDriver: null,
   dataSource: null,
   name: 'a collection',
   schema: collectionSchemaFactory.build(),

@@ -10,13 +10,15 @@ import { RecordData } from './interfaces/record';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
-  readonly dataSource: DataSource = null;
-  readonly name: string = null;
-  readonly schema: CollectionSchema = null;
+  readonly dataSource: DataSource;
+  readonly name: string;
+  readonly schema: CollectionSchema;
+  readonly nativeDriver: unknown;
 
-  constructor(name: string, datasource: DataSource) {
+  constructor(name: string, datasource: DataSource, nativeDriver: unknown = null) {
     this.dataSource = datasource;
     this.name = name;
+    this.nativeDriver = nativeDriver;
     this.schema = {
       actions: {},
       charts: [],
