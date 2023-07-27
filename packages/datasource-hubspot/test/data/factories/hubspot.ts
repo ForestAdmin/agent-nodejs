@@ -15,7 +15,7 @@ export default class Hubspot {
   }
 
   async createRecord(collectionName: string, properties: Record<string, any>) {
-    return this.client.crm[collectionName].basicApi.create({ properties, associations: [] });
+    return this.getDiscovery(collectionName).basicApi.create({ properties, associations: [] });
   }
 
   async createRelationship(
@@ -34,7 +34,7 @@ export default class Hubspot {
   }
 
   async deleteRecord(collectionName: string, recordId: string) {
-    return this.client.crm[collectionName].basicApi.archive(recordId);
+    return this.getDiscovery(collectionName).basicApi.archive(recordId);
   }
 
   async deleteAllRecords(collectionName: string) {
@@ -44,16 +44,16 @@ export default class Hubspot {
   }
 
   updateRecord(collectionName: string, id: string, properties: Record<string, any>) {
-    return this.client.crm[collectionName].basicApi.update(id, { properties });
+    return this.getDiscovery(collectionName).basicApi.update(id, { properties });
   }
 
   async getById(collectionName: string, id: string) {
-    return this.client.crm[collectionName].basicApi.getById(id);
+    return this.getDiscovery(collectionName).basicApi.getById(id);
   }
 
   async getAllRecords(collectionName: string) {
     // fix: it get only the first 100 records
-    return this.client.crm[collectionName].getAll();
+    return (await this.getDiscovery(collectionName).basicApi.getPage()).results;
   }
 
   static async makeDatasource(
@@ -69,5 +69,15 @@ export default class Hubspot {
     return factory(logger);
   }
 
-  private static makeClient() {}
+  private getDiscovery(collectionName: string) {
+    if (collectionName === 'feedback_submissions') {
+      return this.client.crm.objects.feedbackSubmissions;
+    }
+
+    if (collectionName === 'line_items') {
+      return this.client.crm.lineItems;
+    }
+
+    return this.client.crm[collectionName];
+  }
 }
