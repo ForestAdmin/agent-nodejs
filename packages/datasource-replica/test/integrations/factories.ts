@@ -15,7 +15,7 @@ export const getAllRecords = async (datasource: DataSource, collectionName: stri
     .list(factories.caller.build(), factories.filter.idPresent(), new Projection('id'));
 };
 
-export const makeReplicateDataSource = async (
+export const makeReplicaDataSource = async (
   options: ReplicaDataSourceOptions,
 ): Promise<DataSource> => {
   const replicaFactory = createReplicaDataSource(options);

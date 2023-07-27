@@ -1,7 +1,7 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { ReplicaDataSourceOptions } from '../../../src';
-import { makeReplicateDataSource, makeSchemaWithId } from '../factories';
+import { makeReplicaDataSource, makeSchemaWithId } from '../factories';
 
 describe('update', () => {
   describe('when an update is called', () => {
@@ -17,7 +17,7 @@ describe('update', () => {
         });
 
       const updateRecordHandler = jest.fn();
-      const datasource = await makeReplicateDataSource({
+      const datasource = await makeReplicaDataSource({
         updateRecordHandler,
         pullDumpHandler,
         schema: makeSchemaWithId('contacts'),
@@ -36,7 +36,7 @@ describe('update', () => {
 
     describe('when the handler is not defined', () => {
       it('should throw an error', async () => {
-        const datasource = await makeReplicateDataSource({
+        const datasource = await makeReplicaDataSource({
           deleteRecordHandler: null,
           schema: makeSchemaWithId('contacts'),
         });
@@ -55,7 +55,7 @@ describe('update', () => {
   describe('when flatten options is given', () => {
     it('should throw an error', async () => {
       await expect(() =>
-        makeReplicateDataSource({
+        makeReplicaDataSource({
           updateRecordHandler: jest.fn(),
           schema: [
             {

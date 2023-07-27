@@ -1,4 +1,4 @@
-import { getAllRecords, makeReplicateDataSource, makeSchemaWithId } from './factories';
+import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
 import { PullDumpRequest, ReplicaDataSourceOptions } from '../../src';
 
 describe('pull dump', () => {
@@ -14,7 +14,7 @@ describe('pull dump', () => {
           ],
         });
 
-      const datasource = await makeReplicateDataSource({
+      const datasource = await makeReplicaDataSource({
         pullDumpHandler,
         schema: makeSchemaWithId('contacts'),
       });
@@ -53,7 +53,7 @@ describe('pull dump', () => {
           };
         });
 
-      const datasource = await makeReplicateDataSource({
+      const datasource = await makeReplicaDataSource({
         pullDumpHandler,
         schema: makeSchemaWithId('contacts'),
       });
@@ -82,7 +82,7 @@ describe('pull dump', () => {
           };
         });
 
-      const datasource = await makeReplicateDataSource({
+      const datasource = await makeReplicaDataSource({
         pullDumpHandler,
         schema: makeSchemaWithId('contacts'),
       });
@@ -103,7 +103,7 @@ describe('pull dump', () => {
             };
           });
 
-        const datasource = await makeReplicateDataSource({
+        const datasource = await makeReplicaDataSource({
           pullDumpHandler,
           schema: makeSchemaWithId('contacts'),
         });
@@ -124,7 +124,7 @@ describe('pull dump', () => {
             };
           });
 
-        const datasource = await makeReplicateDataSource({
+        const datasource = await makeReplicaDataSource({
           pullDumpHandler,
           schema: makeSchemaWithId('contacts'),
         });
@@ -146,7 +146,7 @@ describe('pull dump', () => {
             };
           });
 
-        const datasource = await makeReplicateDataSource({
+        const datasource = await makeReplicaDataSource({
           pullDumpHandler,
           schema: makeSchemaWithId('contacts'),
         });

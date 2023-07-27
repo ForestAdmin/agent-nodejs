@@ -1,4 +1,4 @@
-import { getAllRecords, makeReplicateDataSource, makeSchemaWithId } from './factories';
+import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
 import {
   PullDeltaRequest,
   PullDeltaResponse,
@@ -34,7 +34,7 @@ describe('pull dump and delta', () => {
           } as PullDeltaResponse;
         });
 
-      const datasource = await makeReplicateDataSource({
+      const datasource = await makeReplicaDataSource({
         pullDumpHandler,
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),

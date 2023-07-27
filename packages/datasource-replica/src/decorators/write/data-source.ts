@@ -15,8 +15,8 @@ export default class WriteDataSourceDecorator extends DataSourceDecorator {
 
     childDataSource.collections.forEach(collection => {
       if (
-        (options.flattenOptions[collection.name].asModels.length ||
-          options.flattenOptions[collection.name].asFields.length) &&
+        (options.flattenOptions[collection.name]?.asModels.length ||
+          options.flattenOptions[collection.name]?.asFields.length) &&
         (options.createRecordHandler || options.updateRecordHandler || options.deleteRecordHandler)
       ) {
         throw new Error(

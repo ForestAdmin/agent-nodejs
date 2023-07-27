@@ -41,25 +41,28 @@ function flattenRecordRec(
 
     // Recurse
     let subRecords = extractValue(record, asModel, true);
-    if (!isArray) subRecords = [subRecords];
-    if (isPrimitive) subRecords = subRecords.map(v => ({ value: v }));
 
-    for (const [index, subRecord] of subRecords.entries()) {
-      if (subRecord !== null && subRecord !== undefined) {
-        const recordId = getRecordId(fields, record);
-        // eslint-disable-next-line no-underscore-dangle
-        subRecord._fid = isArray ? `${recordId}.${asModel}.${index}` : `${recordId}.${asModel}`;
-        // eslint-disable-next-line no-underscore-dangle
-        subRecord._fpid = recordId;
+    if (subRecords) {
+      if (!isArray) subRecords = [subRecords];
+      if (isPrimitive) subRecords = subRecords.map(v => ({ value: v }));
 
-        flattenedRecords.push(
-          ...flattenRecordRec(
-            { collection: escape`${collection}.${asModel}`, record: subRecord },
-            subFields,
-            subAsFields,
-            subAsModels,
-          ),
-        );
+      for (const [index, subRecord] of subRecords.entries()) {
+        if (subRecord !== null && subRecord !== undefined) {
+          const recordId = getRecordId(fields, record);
+          // eslint-disable-next-line no-underscore-dangle
+          subRecord._fid = isArray ? `${recordId}.${asModel}.${index}` : `${recordId}.${asModel}`;
+          // eslint-disable-next-line no-underscore-dangle
+          subRecord._fpid = recordId;
+
+          flattenedRecords.push(
+            ...flattenRecordRec(
+              { collection: escape`${collection}.${asModel}`, record: subRecord },
+              subFields,
+              subAsFields,
+              subAsModels,
+            ),
+          );
+        }
       }
     }
   }
