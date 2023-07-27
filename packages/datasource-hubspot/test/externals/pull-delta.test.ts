@@ -13,8 +13,8 @@ describe('pull delta', () => {
     });
 
     it('should get all the contacts', async () => {
-      await hubspot.createRecord('contacts', { email: 'forest@gmail.com' });
-      await hubspot.createRecord('contacts', { email: 'forestadmin@gmail.com' });
+      await hubspot.createContact({ email: 'forest@gmail.com' });
+      await hubspot.createContact({ email: 'forestadmin@gmail.com' });
 
       const dataSource = await Hubspot.makeDatasource({ collections: { contacts: ['email'] } });
 
@@ -27,9 +27,14 @@ describe('pull delta', () => {
 
     describe('when contacts has relations with companies', () => {
       it('should get all the contacts ans its relations', async () => {
-        const contact = await hubspot.createRecord('contacts', { email: 'forest@gmail.com' });
-        const company = await hubspot.createRecord('companies', { name: 'Forest' });
-        await hubspot.createRelationship('companies', company.id, 'contacts', contact.id);
+        const contact = await hubspot.createContact({ email: 'forest@gmail.com' });
+        const company = await hubspot.createCompany({ name: 'Forest' });
+        await hubspot.createRelationship(
+          'companies',
+          Number(company.id),
+          'contacts',
+          Number(contact.id),
+        );
 
         const dataSource = await Hubspot.makeDatasource({
           collections: { contacts: ['email'], companies: ['name'] },
@@ -53,7 +58,7 @@ describe('pull delta', () => {
 
     describe('when contacts is updated on hubspot', () => {
       it('should update the record', async () => {
-        const contact = await hubspot.createRecord('contacts', { email: 'forest@gmail.com' });
+        const contact = await hubspot.createContact({ email: 'forest@gmail.com' });
         const dataSource = await Hubspot.makeDatasource({ collections: { contacts: ['email'] } });
 
         const contactRecords = await Cache.getAllRecords(dataSource, 'contacts', ['id', 'email']);

@@ -14,8 +14,65 @@ export default class Hubspot {
     this.client = new Client({ accessToken: process.env.HUBSPOT_API_KEY });
   }
 
+  async createContact(properties: Record<string, any>) {
+    return this.client.crm.contacts.basicApi.create({ properties, associations: [] });
+  }
+
+  async createCompany(properties: Record<string, any>) {
+    return this.client.crm.companies.basicApi.create({ properties, associations: [] });
+  }
+
+  async createDeal(properties: Record<string, any>) {
+    return this.client.crm.deals.basicApi.create({ properties, associations: [] });
+  }
+
   async createRecord(collectionName: string, properties: Record<string, any>) {
     return this.getDiscovery(collectionName).basicApi.create({ properties, associations: [] });
+  }
+
+  async createFeedbackSubmission(properties: Record<string, any>) {
+    return this.client.crm.objects.feedbackSubmissions.basicApi.create({
+      properties: {
+        hs_submission_timestamp: '1',
+        hs_survey_id: '1',
+        hs_survey_channel: '1',
+        hs_survey_type: '2',
+        ...properties,
+      },
+      associations: [],
+    });
+  }
+
+  async createLineItem(properties: Record<string, any>) {
+    return this.client.crm.lineItems.basicApi.create({
+      properties: { ...properties },
+      associations: [],
+    });
+  }
+
+  async createProduct(properties: Record<string, any>) {
+    return this.client.crm.products.basicApi.create({
+      properties: { ...properties },
+      associations: [],
+    });
+  }
+
+  async createTicket(properties: Record<string, any>) {
+    return this.client.crm.tickets.basicApi.create({
+      properties: { hs_pipeline_stage: '1', ...properties },
+      associations: [],
+    });
+  }
+
+  async createQuote(properties: Record<string, any>) {
+    return this.client.crm.quotes.basicApi.create({
+      properties: {
+        hs_title: 'forest',
+        hs_expiration_date: new Date().toISOString(),
+        ...properties,
+      },
+      associations: [],
+    });
   }
 
   async createRelationship(
