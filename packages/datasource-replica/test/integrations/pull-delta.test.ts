@@ -66,7 +66,6 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
-        pullDeltaOnBeforeAccess: true,
       });
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([
@@ -77,7 +76,12 @@ describe('pull delta', () => {
       expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
 
       // saving previous state at each call
-      expect(allDeltaStatesAfterCalls).toEqual([null, 'delta-state3']);
+      expect(allDeltaStatesAfterCalls).toEqual([
+        null,
+        'delta-state1',
+        'delta-state2',
+        'delta-state3',
+      ]);
     });
   });
 
