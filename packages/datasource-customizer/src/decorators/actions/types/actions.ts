@@ -8,20 +8,16 @@ import ResultBuilder from '../result-builder';
 
 export { ActionContext, ActionContextSingle };
 
-export const actionSchema = () => {
-  const schema = {
-    type: 'object',
-    properties: {
-      generateFile: { type: 'boolean' },
-      scope: { type: 'string', enum: Object.values(ActionScopeEnum) },
-      form: { type: 'array' }, // validated in fieldActionSchema
-      execute: { typeof: 'function' },
-    },
-    required: ['scope', 'execute'],
-    additionalProperties: false,
-  };
-
-  return schema;
+export const actionSchema = {
+  type: 'object',
+  properties: {
+    generateFile: { type: 'boolean' },
+    scope: { type: 'string', enum: Object.values(ActionScopeEnum) },
+    form: { type: 'array' }, // validated in fieldActionSchema
+    execute: { typeof: 'function' },
+  },
+  required: ['scope', 'execute'],
+  additionalProperties: false,
 };
 
 export interface BaseAction<

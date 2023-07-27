@@ -1,6 +1,5 @@
 import {
   ActionField,
-  ActionFieldType,
   ActionResult,
   Caller,
   CollectionDecorator,
@@ -10,31 +9,20 @@ import {
   PlainFilter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import Ajv from 'ajv';
-import ajvErrors from 'ajv-errors';
-import ajvKeywords from 'ajv-keywords';
-import chalk from 'chalk';
 
 import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
-import {
-  ActionBulk,
-  ActionDefinition,
-  ActionGlobal,
-  ActionSingle,
-  actionSchema,
-} from './types/actions';
-import { DynamicField, ValueOrHandler, fieldActionSchema } from './types/fields';
-
-const ajv = new Ajv({ allErrors: true });
+import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
+import { DynamicField, ValueOrHandler } from './types/fields';
+import ActionValidator from '../validation/action';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
 
   private actions: Record<string, ActionDefinition> = {};
   addAction(name: string, action: ActionDefinition): void {
-    this.validateActionConfiguration(name, action);
+    ActionValidator.validateActionConfiguration(name, action);
     this.actions[name] = action;
     this.markSchemaAsDirty();
   }
@@ -110,58 +98,6 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }
 
     return newSchema;
-  }
-
-  private validateActionConfiguration(name: string, action: ActionDefinition) {
-    ajvErrors(ajv);
-    ajvKeywords(ajv);
-
-    const validate = ajv.compile(actionSchema());
-    const result = validate(action);
-
-    if (!result) {
-      console.log(chalk.bgRedBright(`THATS A FAIL !!! for action ${name}`));
-      throw new Error(
-        `Incorrect customization in collection '${name}', action: '${
-          this.name
-        }': ${this.getValidationErrorMessage(validate.errors)}`,
-      );
-    } else {
-      console.log(chalk.bgGreenBright(`ALL GOOD !!! for action ${name}`));
-    }
-
-    action.form.forEach(field => {
-      this.validateActionFieldConfiguration(name, field);
-    });
-  }
-
-  private validateActionFieldConfiguration(name: string, field: DynamicField) {
-    const validate = ajv.compile(fieldActionSchema(field.type));
-    const result = validate(field);
-    const { label } = field;
-
-    if (!result) {
-      console.log(chalk.bgRedBright(`THATS A FAIL !!! for field ${label}`));
-      throw new Error(
-        `Incorrect customization in collection '${name}', action: '${
-          this.name
-        }'.\nIn form field with label '${label}': ${this.getValidationErrorMessage(
-          validate.errors,
-        )}`,
-      );
-    } else {
-      console.log(chalk.bgGreenBright(`ALL GOOD !!! for field ${label}`));
-    }
-  }
-
-  private getValidationErrorMessage(errors) {
-    if (!errors || !errors.length) return '';
-
-    const error = errors[0];
-
-    return `\n${error.instancePath ? `${error.instancePath} ` : ''}${error.message}. ${
-      error.params.additionalProperties ? error.params.additionalProperties : ''
-    } `;
   }
 
   private getContext(
