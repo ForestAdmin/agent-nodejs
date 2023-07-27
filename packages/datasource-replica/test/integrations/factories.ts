@@ -9,10 +9,14 @@ export const makeSchemaWithId = (collectionName: string): ReplicaDataSourceOptio
   return [{ name: collectionName, fields: { id: { type: 'Number', isPrimaryKey: true } } }];
 };
 
-export const getAllRecords = async (datasource: DataSource, collectionName: string) => {
+export const getAllRecords = async (
+  datasource: DataSource,
+  collectionName: string,
+  fields: string[] = ['id'],
+) => {
   return datasource
     .getCollection(collectionName)
-    .list(factories.caller.build(), factories.filter.idPresent(), new Projection('id'));
+    .list(factories.caller.build(), factories.filter.idPresent(), new Projection(...fields));
 };
 
 export const makeReplicaDataSource = async (

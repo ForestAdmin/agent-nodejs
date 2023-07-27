@@ -1,5 +1,5 @@
-import { makeReplicaDataSource } from './factories';
-import { ReplicaDataSourceOptions } from '../../src';
+import { ReplicaDataSourceOptions } from '../../../src';
+import { makeReplicaDataSource } from '../factories';
 
 describe('flattener', () => {
   describe('when the flattener is in auto mode', () => {
