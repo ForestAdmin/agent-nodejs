@@ -47,6 +47,7 @@ export default async function pullDump<TypingsHubspot>(
     newOrUpdatedEntries: [],
     deletedEntries: [],
   };
+  const nextDeltaState = {};
 
   await pullRecordsAndRelationships(
     client,
@@ -59,13 +60,11 @@ export default async function pullDump<TypingsHubspot>(
 
   if (response.more === false) {
     logger?.('Info', 'Pull dump is finished. Your replica is up to date.');
+    // save the date of the last dump to the next delta state
+    availableCollections.forEach(collectionName => {
+      nextDeltaState[collectionName] = new Date().toISOString();
+    });
   }
-
-  // save the date of the last dump to the next delta state
-  const nextDeltaState = {};
-  availableCollections.forEach(collectionName => {
-    nextDeltaState[collectionName] = new Date().toISOString();
-  });
 
   return {
     ...response,

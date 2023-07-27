@@ -18,6 +18,21 @@ export default class Hubspot {
     return this.client.crm[collectionName].basicApi.create({ properties, associations: [] });
   }
 
+  async createRelationship(
+    fromCollectionName: string,
+    fromRecordId: number,
+    toCollectionName: string,
+    toRecordId: number,
+  ) {
+    return this.client.crm.associations.v4.basicApi.create(
+      fromCollectionName,
+      fromRecordId,
+      toCollectionName,
+      toRecordId,
+      [],
+    );
+  }
+
   async deleteRecord(collectionName: string, recordId: string) {
     return this.client.crm[collectionName].basicApi.archive(recordId);
   }
@@ -29,7 +44,7 @@ export default class Hubspot {
   }
 
   updateRecord(collectionName: string, id: string, properties: Record<string, any>) {
-    return this.client.crm.contacts.basicApi.update(id, { properties });
+    return this.client.crm[collectionName].basicApi.update(id, { properties });
   }
 
   async getById(collectionName: string, id: string) {
