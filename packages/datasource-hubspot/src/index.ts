@@ -12,6 +12,8 @@ import { HubSpotOptions } from './types';
 import generateTypesIfChange from './typing-generator';
 import validateCollectionsProperties from './validator';
 
+export { HubSpotOptions };
+
 export function createHubspotDataSource<TypingsHubspot>(
   options: HubSpotOptions<TypingsHubspot>,
 ): DataSourceFactory {

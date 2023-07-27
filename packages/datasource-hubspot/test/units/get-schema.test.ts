@@ -1,4 +1,4 @@
-import getSchema from '../src/schema';
+import getSchema from '../../src/schema';
 
 describe('getSchema', () => {
   it('should always return an id field', () => {

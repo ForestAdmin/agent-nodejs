@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-import contactsData from './data/contacts.json';
-import generateTypesIfChange from '../src/typing-generator';
+import generateTypesIfChange from '../../src/typing-generator';
+import contactsData from '../data/contacts.json';
 
 describe('generateTypesIfChange', () => {
   const makeLogger = () => jest.fn();

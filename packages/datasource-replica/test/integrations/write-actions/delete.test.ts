@@ -1,7 +1,7 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { ReplicaDataSourceOptions } from '../../../src';
-import { makeAllRecordsFilter, makeReplicateDataSource, makeSchemaWithId } from '../factories';
+import { makeReplicateDataSource, makeSchemaWithId } from '../factories';
 
 describe('delete', () => {
   describe('when a delete is called', () => {
@@ -25,7 +25,7 @@ describe('delete', () => {
 
       await datasource
         .getCollection('contacts')
-        .delete(factories.caller.build(), makeAllRecordsFilter());
+        .delete(factories.caller.build(), factories.filter.idPresent());
 
       expect(deleteRecordHandler).toHaveBeenCalledTimes(2);
       expect(deleteRecordHandler).toHaveBeenCalledWith('contacts', { id: 1 });
@@ -42,7 +42,7 @@ describe('delete', () => {
         await expect(() =>
           datasource
             .getCollection('contacts')
-            .delete(factories.caller.build(), makeAllRecordsFilter()),
+            .delete(factories.caller.build(), factories.filter.idPresent()),
         ).rejects.toThrow('This collection does not supports deletes');
       });
     });

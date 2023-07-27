@@ -1,7 +1,7 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { ReplicaDataSourceOptions } from '../../../src';
-import { makeAllRecordsFilter, makeReplicateDataSource, makeSchemaWithId } from '../factories';
+import { makeReplicateDataSource, makeSchemaWithId } from '../factories';
 
 describe('update', () => {
   describe('when an update is called', () => {
@@ -25,7 +25,9 @@ describe('update', () => {
 
       await datasource
         .getCollection('contacts')
-        .update(factories.caller.build(), makeAllRecordsFilter(), { name: 'updated' });
+        .update(factories.caller.build(), factories.filter.idPresent(), {
+          name: 'updated',
+        });
 
       expect(updateRecordHandler).toHaveBeenCalledTimes(2);
       expect(updateRecordHandler).toHaveBeenCalledWith('contacts', { id: 1, name: 'updated' });
@@ -42,7 +44,9 @@ describe('update', () => {
         await expect(() =>
           datasource
             .getCollection('contacts')
-            .update(factories.caller.build(), makeAllRecordsFilter(), { name: 'updated' }),
+            .update(factories.caller.build(), factories.filter.idPresent(), {
+              name: 'updated',
+            }),
         ).rejects.toThrow('This collection does not supports updates');
       });
     });
