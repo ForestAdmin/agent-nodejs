@@ -1,4 +1,4 @@
-import { ActionResult, ActionScope } from '@forestadmin/datasource-toolkit';
+import { ActionResult, ActionScope, ActionScopeEnum } from '@forestadmin/datasource-toolkit';
 
 import { DynamicField } from './fields';
 import { TCollectionName, TSchema } from '../../../templates';
@@ -7,6 +7,22 @@ import ActionContextSingle from '../context/single';
 import ResultBuilder from '../result-builder';
 
 export { ActionContext, ActionContextSingle };
+
+export const actionSchema = () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      generateFile: { type: 'boolean' },
+      scope: { type: 'string', enum: Object.values(ActionScopeEnum) },
+      form: { type: 'array' }, // validated in fieldActionSchema
+      execute: { typeof: 'function' },
+    },
+    required: ['scope', 'execute'],
+    additionalProperties: false,
+  };
+
+  return schema;
+};
 
 export interface BaseAction<
   S extends TSchema,

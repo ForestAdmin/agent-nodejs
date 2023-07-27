@@ -1,7 +1,17 @@
 /* eslint-disable @typescript-eslint/dot-notation */
-import { ActionFieldTypeEnum, CompositeId, Json } from '@forestadmin/datasource-toolkit';
+import {
+  ActionFieldType,
+  ActionFieldTypeEnum,
+  CompositeId,
+  Json,
+} from '@forestadmin/datasource-toolkit';
 
-const booleanValueOrHandlerSchema = { anyOf: [{ type: 'boolean' }, { typeof: 'function' }] };
+const valueOrHandlerSchema = (type: 'boolean' | 'string') => {
+  return {
+    anyOf: [{ type }, { typeof: 'function' }],
+    errorMessage: `should either by a ${type} or a function`,
+  };
+};
 
 export type ValueOrHandler<Context = unknown, Result = unknown> =
   | ((context: Context) => Promise<Result>)
@@ -9,16 +19,16 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
   | Promise<Result>
   | Result;
 
-export const fieldActionSchema = (type: ActionFieldTypeEnum) => {
+export const fieldActionSchema = (type: ActionFieldType) => {
   const schema = {
     type: 'object',
     properties: {
       type: { type: 'string', enum: Object.values(ActionFieldTypeEnum) },
       label: { type: 'string' },
       description: { type: 'string' },
-      isRequired: booleanValueOrHandlerSchema,
-      isReadOnly: booleanValueOrHandlerSchema,
-      if: booleanValueOrHandlerSchema,
+      isRequired: valueOrHandlerSchema('boolean'),
+      isReadOnly: valueOrHandlerSchema('boolean'),
+      if: valueOrHandlerSchema('boolean'),
       value: {},
       defaultValue: {},
     },
@@ -28,14 +38,20 @@ export const fieldActionSchema = (type: ActionFieldTypeEnum) => {
 
   switch (type) {
     case ActionFieldTypeEnum.Collection:
-      schema.properties['collectionName'] = { anyOf: [{ type: 'string' }, { typeof: 'function' }] };
+      schema.properties['collectionName'] = valueOrHandlerSchema('string');
       schema.required.push('collectionName');
 
       break;
     case ActionFieldTypeEnum.Enum:
     case ActionFieldTypeEnum.EnumList:
       schema.properties['enumValues'] = {
-        anyOf: [{ type: 'array', items: { type: ['string'] } }, { typeof: 'function' }],
+        anyOf: [
+          { type: 'array', items: { type: ['string'] } },
+          {
+            typeof: 'function',
+          },
+        ],
+        errorMessage: 'should either by an array of string or a function',
       };
       schema.required.push('enumValues');
 
