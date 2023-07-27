@@ -20,9 +20,9 @@ export const getAllRecords = async (
 };
 
 export const makeReplicaDataSource = async (
-  options: ReplicaDataSourceOptions,
+  options?: ReplicaDataSourceOptions,
 ): Promise<DataSource> => {
-  const replicaFactory = createReplicaDataSource(options);
+  const replicaFactory = createReplicaDataSource(options ?? {});
 
   return replicaFactory(makeLogger());
 };

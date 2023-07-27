@@ -40,5 +40,19 @@ describe('schema', () => {
         },
       ]);
     });
+
+    describe('when the collection has empty record', () => {
+      it('should compute the schema from the records', async () => {
+        const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+          .fn()
+          .mockResolvedValueOnce({
+            more: false,
+            entries: [{ collection: 'contacts', record: null }],
+          });
+        await expect(() =>
+          makeReplicaDataSource({ schema: null, pullDumpHandler }),
+        ).rejects.toThrow('No primary key found in the schema of the collection contacts');
+      });
+    });
   });
 });
