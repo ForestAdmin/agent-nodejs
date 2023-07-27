@@ -214,7 +214,7 @@ describe('SchemaGeneratorActions', () => {
 
       expect(schema.fields[0]).toMatchObject({
         field: 'title',
-        widgetEdit: null,
+        widgetEdit: undefined,
       });
     });
 

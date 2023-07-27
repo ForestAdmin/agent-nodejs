@@ -5,8 +5,8 @@ import {
 } from '@forestadmin/forestadmin-client';
 
 export default class GeneratorActionFieldWidget {
-  static buildWidgetEdit(field: ActionField): ForestServerActionFieldWidgetEdit | null {
-    if (!field.widget || ['Collection', 'Enum', 'EnumList'].includes(field.type)) return null;
+  static buildWidgetEdit(field: ActionField): ForestServerActionFieldWidgetEdit | undefined {
+    if (!field.widget || ['Collection', 'Enum', 'EnumList'].includes(field.type)) return undefined;
 
     switch (field.widget) {
       case 'Dropdown':
