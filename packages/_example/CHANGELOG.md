@@ -1,3 +1,23 @@
+# example [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.4.2...example@1.5.0) (2023-07-27)
+
+
+### Features
+
+* **datasource-customizer:** expose native driver to customers ([#779](https://github.com/ForestAdmin/agent-nodejs/issues/779)) ([350b1c3](https://github.com/ForestAdmin/agent-nodejs/commit/350b1c3dc076ab2fdfb2fbba1532548624131b94))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.16.1
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.43
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.0
+* **@forestadmin/datasource-sequelize:** upgraded to 1.4.0
+* **@forestadmin/datasource-sql:** upgraded to 1.7.9
+* **@forestadmin/datasource-toolkit:** upgraded to 1.8.0
+
 ## example [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.4.1...example@1.4.2) (2023-07-26)
 
 
