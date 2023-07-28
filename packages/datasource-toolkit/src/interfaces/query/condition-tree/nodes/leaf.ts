@@ -112,6 +112,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
+      case 'NotIContains':
         return !this.inverse().match(record, collection, timezone);
 
       default:
