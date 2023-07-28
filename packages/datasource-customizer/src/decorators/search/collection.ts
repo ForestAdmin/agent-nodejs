@@ -201,10 +201,10 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
   private lenientGetSchema(path: string): { field: string; schema: ColumnSchema } | null {
     const [prefix, suffix] = path.split(/:(.*)/);
-    const fuzzyPrefix = prefix.toLocaleLowerCase().replace(/_/g, '');
+    const fuzzyPrefix = prefix.toLocaleLowerCase().replace(/[-_]/g, '');
 
     for (const [field, schema] of Object.entries(this.schema.fields)) {
-      const fuzzyFieldName = field.toLocaleLowerCase().replace(/_/g, '');
+      const fuzzyFieldName = field.toLocaleLowerCase().replace(/[-_]/g, '');
 
       if (fuzzyPrefix === fuzzyFieldName) {
         if (!suffix && schema.type === 'Column') {
