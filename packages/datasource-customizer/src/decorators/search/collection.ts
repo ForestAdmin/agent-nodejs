@@ -62,10 +62,16 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     const searchableFields = this.getFields(this.childCollection, extended);
 
     // Handle tags (!!! caution: tags are removed from the keywords array !!!)
+
     const conditions = [];
     conditions.push(...this.buildConditionFromTags(keywords, searchableFields));
 
-    // Handle rest of the search string
+    // Handle rest of the search string as one block (we search for remaining keywords in all
+    // fields as a single block, not as individual keywords).
+    //
+    // This will be counter intuitive for users, but it's the only way to maintain
+    // retro-compatibility with the old search system.
+
     if (keywords.length) {
       conditions.push(
         ConditionTreeFactory.union(
@@ -105,16 +111,18 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         const field = parts.slice(1).join(':');
         const fuzzy = this.lenientGetSchema(field);
 
-        if (fuzzy && fuzzy.schema.columnType === 'Boolean')
+        if (
+          fuzzy &&
+          fuzzy.schema.columnType === 'Boolean' &&
+          fuzzy.schema.filterOperators.has('Equal')
+        )
           condition = new ConditionTreeLeaf(fuzzy.field, 'Equal', !negated);
       } else if (negated && parts.length === 1) {
-        const subConditions = searchableFields
-          .map(([field, schema]) => this.buildOtherCondition(field, schema, parts[0], negated))
-          .filter(Boolean);
-
-        condition = negated
-          ? ConditionTreeFactory.intersect(...subConditions)
-          : ConditionTreeFactory.union(...subConditions);
+        condition = ConditionTreeFactory.intersect(
+          ...searchableFields
+            .map(([field, schema]) => this.buildOtherCondition(field, schema, parts[0], negated))
+            .filter(Boolean),
+        );
       }
 
       if (condition) {

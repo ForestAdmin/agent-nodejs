@@ -29,7 +29,7 @@ describe('Utils > TypeConverter', () => {
     const presence = ['Present', 'Missing'] as const;
     const equality = ['Equal', 'NotEqual', 'In', 'NotIn'] as const;
     const orderables = ['LessThan', 'GreaterThan'] as const;
-    const strings = ['Like', 'ILike', 'NotContains'] as const;
+    const strings = ['Like', 'ILike', 'NotContains', 'NotIContains'] as const;
 
     it.each([
       // Primitive type

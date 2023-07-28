@@ -241,7 +241,16 @@ describe('Utils > QueryConverter', () => {
             { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: integerValue }] },
           ],
           ['Present', undefined, { [Op.ne]: null }],
-          ['NotContains', stringValue, { [Op.notLike]: `%${stringValue}%` }],
+          [
+            'NotContains',
+            stringValue,
+            { [Op.or]: [{ [Op.notLike]: `%${stringValue}%` }, { [Op.is]: null }] },
+          ],
+          [
+            'NotIContains',
+            stringValue,
+            { [Op.or]: [{ [Op.notILike]: `%${stringValue}%` }, { [Op.is]: null }] },
+          ],
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {

@@ -220,6 +220,56 @@ describe('SearchCollectionDecorator', () => {
         });
       });
 
+      describe('when using boolean search', () => {
+        test('should return filter with "notcontains"', async () => {
+          const decorator = buildCollection({
+            fields: {
+              fieldName: factories.columnSchema.build({
+                columnType: 'Boolean',
+                filterOperators: new Set(['Equal']),
+              }),
+            },
+          });
+
+          const filter = factories.filter.build({ search: 'has:fieldname' });
+
+          expect(await decorator.refineFilter(caller, filter)).toEqual({
+            search: null,
+            conditionTree: { field: 'fieldName', operator: 'Equal', value: true },
+          });
+        });
+      });
+
+      describe('when using negated keyword', () => {
+        test('should return filter with "notcontains"', async () => {
+          const decorator = buildCollection({
+            fields: {
+              fieldName: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['NotContains']),
+              }),
+              fieldName2: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['NotContains']),
+              }),
+            },
+          });
+
+          const filter = factories.filter.build({ search: '-atext' });
+
+          expect(await decorator.refineFilter(caller, filter)).toEqual({
+            search: null,
+            conditionTree: {
+              aggregator: 'And',
+              conditions: [
+                { field: 'fieldName', operator: 'NotContains', value: 'atext' },
+                { field: 'fieldName2', operator: 'NotContains', value: 'atext' },
+              ],
+            },
+          });
+        });
+      });
+
       describe('when using negated column indication', () => {
         test('should return filter with "notcontains"', async () => {
           const decorator = buildCollection({
