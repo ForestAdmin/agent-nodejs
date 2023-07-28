@@ -14,7 +14,6 @@ export default (collection: OwnerCustomizer) =>
 
       return { firstName, lastName };
     })
-    .emulateFieldFiltering('fullName')
     .replaceFieldSorting('fullName', [
       { field: 'firstName', ascending: true },
       { field: 'lastName', ascending: true },
