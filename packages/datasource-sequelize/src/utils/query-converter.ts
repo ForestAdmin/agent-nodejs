@@ -121,8 +121,6 @@ export default class QueryConverter {
     not: boolean,
   ): unknown {
     const op = not ? 'NOT LIKE' : 'LIKE';
-    const csLikeOperation = not ? Op.notLike : Op.like;
-    const ciLikeOperation = not ? Op.notILike : Op.iLike;
 
     if (caseSensitive) {
       if (this.dialect === 'sqlite') {
@@ -134,12 +132,17 @@ export default class QueryConverter {
       if (this.dialect === 'mysql' || this.dialect === 'mariadb')
         return this.where(this.fn('BINARY', this.col(field)), op, value);
 
-      return { [csLikeOperation]: value };
+      return not ? { [Op.or]: [{ [Op.notLike]: value }, { [Op.is]: null }] } : { [Op.like]: value };
     }
 
-    if (this.dialect === 'postgres') return { [ciLikeOperation]: value };
+    // Case insensitive
+    if (this.dialect === 'postgres')
+      return not
+        ? { [Op.or]: [{ [Op.notILike]: value }, { [Op.is]: null }] }
+        : { [Op.iLike]: value };
+
     if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
-      return { [csLikeOperation]: value };
+      return not ? { [Op.or]: [{ [Op.notLike]: value }, { [Op.is]: null }] } : { [Op.like]: value };
 
     return this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
   }

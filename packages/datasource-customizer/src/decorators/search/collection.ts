@@ -108,11 +108,13 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         if (fuzzy && fuzzy.schema.columnType === 'Boolean')
           condition = new ConditionTreeLeaf(fuzzy.field, 'Equal', !negated);
       } else if (negated && parts.length === 1) {
-        condition = ConditionTreeFactory.union(
-          ...searchableFields
-            .map(([field, schema]) => this.buildOtherCondition(field, schema, parts[0], negated))
-            .filter(Boolean),
-        );
+        const subConditions = searchableFields
+          .map(([field, schema]) => this.buildOtherCondition(field, schema, parts[0], negated))
+          .filter(Boolean);
+
+        condition = negated
+          ? ConditionTreeFactory.intersect(...subConditions)
+          : ConditionTreeFactory.union(...subConditions);
       }
 
       if (condition) {
