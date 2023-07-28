@@ -240,6 +240,46 @@ describe('SearchCollectionDecorator', () => {
         });
       });
 
+      describe('when using has', () => {
+        test('should return filter with "notcontains"', async () => {
+          const decorator = buildCollection({
+            fields: {
+              fieldName: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['Present']),
+              }),
+            },
+          });
+
+          const filter = factories.filter.build({ search: 'has:fielDnAme' });
+
+          expect(await decorator.refineFilter(caller, filter)).toEqual({
+            search: null,
+            conditionTree: { field: 'fieldName', operator: 'Present' },
+          });
+        });
+      });
+
+      describe('when using negated has', () => {
+        test('should return filter with "notcontains"', async () => {
+          const decorator = buildCollection({
+            fields: {
+              fieldName: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['Missing']),
+              }),
+            },
+          });
+
+          const filter = factories.filter.build({ search: '-has:fielDnAme' });
+
+          expect(await decorator.refineFilter(caller, filter)).toEqual({
+            search: null,
+            conditionTree: { field: 'fieldName', operator: 'Missing' },
+          });
+        });
+      });
+
       describe('when using negated keyword', () => {
         test('should return filter with "notcontains"', async () => {
           const decorator = buildCollection({

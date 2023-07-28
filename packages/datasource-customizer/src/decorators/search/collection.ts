@@ -111,12 +111,14 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         const field = parts.slice(1).join(':');
         const fuzzy = this.lenientGetSchema(field);
 
-        if (
-          fuzzy &&
-          fuzzy.schema.columnType === 'Boolean' &&
-          fuzzy.schema.filterOperators.has('Equal')
-        )
-          condition = new ConditionTreeLeaf(fuzzy.field, 'Equal', !negated);
+        if (fuzzy) {
+          if (fuzzy.schema.columnType === 'Boolean' && fuzzy.schema.filterOperators.has('Equal'))
+            condition = new ConditionTreeLeaf(fuzzy.field, 'Equal', !negated);
+          else if (!negated && fuzzy.schema.filterOperators.has('Present'))
+            condition = new ConditionTreeLeaf(fuzzy.field, 'Present');
+          else if (negated && fuzzy.schema.filterOperators.has('Missing'))
+            condition = new ConditionTreeLeaf(fuzzy.field, 'Missing');
+        }
       } else if (negated && parts.length === 1) {
         condition = ConditionTreeFactory.intersect(
           ...searchableFields
