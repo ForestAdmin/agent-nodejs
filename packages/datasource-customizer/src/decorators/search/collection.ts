@@ -58,15 +58,15 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private defaultReplacer(search: string, extended: boolean): ConditionTree {
-    const keywords = search.split(' ').filter(Boolean);
+    const keywords = search.split(' ').filter(kw => kw.length);
+    const searchableFields = this.getFields(this.childCollection, extended);
 
     // Handle tags (!!! caution: tags are removed from the keywords array !!!)
     const conditions = [];
-    conditions.push(...this.buildConditionFromTags(keywords));
+    conditions.push(...this.buildConditionFromTags(keywords, searchableFields));
 
     // Handle rest of the search string
     if (keywords.length) {
-      const searchableFields = this.getFields(this.childCollection, extended);
       conditions.push(
         ConditionTreeFactory.union(
           ...searchableFields
@@ -79,7 +79,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return ConditionTreeFactory.intersect(...conditions);
   }
 
-  private buildConditionFromTags(keywords: string[]) {
+  private buildConditionFromTags(keywords: string[], searchableFields: [string, ColumnSchema][]) {
     const conditions = [];
 
     for (let index = 0; index < keywords.length; index += 1) {
@@ -92,19 +92,34 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       }
 
       const parts = keyworkCpy.split(':');
+      let condition: ConditionTree = null;
 
-      if (parts.length < 2) continue; // eslint-disable-line no-continue
-      const searchString = parts.pop();
-      const field = parts.join(':');
-      const fuzzy = this.lenientGetSchema(field);
+      if (parts.length >= 2 && parts[0] !== 'has') {
+        const searchString = parts.pop();
+        const field = parts.join(':');
+        const fuzzy = this.lenientGetSchema(field);
 
-      if (!fuzzy) continue; // eslint-disable-line no-continue
-      const condition = this.buildOtherCondition(fuzzy.field, fuzzy.schema, searchString, negated);
+        if (fuzzy)
+          condition = this.buildOtherCondition(fuzzy.field, fuzzy.schema, searchString, negated);
+      } else if (parts.length >= 2 && parts[0] === 'has') {
+        const field = parts.slice(1).join(':');
+        const fuzzy = this.lenientGetSchema(field);
 
-      if (!condition) continue; // eslint-disable-line no-continue
-      conditions.push(condition);
-      keywords.splice(index, 1);
-      index -= 1;
+        if (fuzzy && fuzzy.schema.columnType === 'Boolean')
+          condition = new ConditionTreeLeaf(fuzzy.field, 'Equal', !negated);
+      } else if (negated && parts.length === 1) {
+        condition = ConditionTreeFactory.union(
+          ...searchableFields
+            .map(([field, schema]) => this.buildOtherCondition(field, schema, parts[0], negated))
+            .filter(Boolean),
+        );
+      }
+
+      if (condition) {
+        conditions.push(condition);
+        keywords.splice(index, 1);
+        index -= 1;
+      }
     }
 
     return conditions;
@@ -121,6 +136,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     const isUuid = uuidValidate(searchString);
     const equalityOperator = negated ? 'NotEqual' : 'Equal';
     const containsOperator = negated ? 'NotContains' : 'Contains';
+    const iContainsOperator = negated ? 'NotIContains' : 'IContains';
 
     if (columnType === 'Number' && isNumber && filterOperators?.has(equalityOperator)) {
       return new ConditionTreeLeaf(field, equalityOperator, Number(searchString));
@@ -134,13 +150,13 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     if (columnType === 'String') {
       const isCaseSensitive = searchString.toLocaleLowerCase() !== searchString.toLocaleUpperCase();
-      const supportsIContains = !negated && filterOperators?.has('IContains');
+      const supportsIContains = filterOperators?.has(iContainsOperator);
       const supportsContains = filterOperators?.has(containsOperator);
       const supportsEqual = filterOperators?.has(equalityOperator);
 
       // Perf: don't use case-insensitive operator when the search string is indifferent to case
       let operator: Operator;
-      if (supportsIContains && (isCaseSensitive || !supportsContains)) operator = 'IContains';
+      if (supportsIContains && (isCaseSensitive || !supportsContains)) operator = iContainsOperator;
       else if (supportsContains) operator = containsOperator;
       else if (supportsEqual) operator = equalityOperator;
 

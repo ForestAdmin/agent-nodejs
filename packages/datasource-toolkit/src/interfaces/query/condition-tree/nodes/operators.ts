@@ -9,6 +9,7 @@ export const uniqueOperators = [
   // Strings
   'Match',
   'NotContains',
+  'NotIContains',
   'LongerThan',
   'ShorterThan',
 

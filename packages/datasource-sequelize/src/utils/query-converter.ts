@@ -66,6 +66,8 @@ export default class QueryConverter {
         return this.makeLikeWhereClause(field, value as string, false, false);
       case 'NotContains':
         return this.makeLikeWhereClause(field, `%${value}%`, true, true);
+      case 'NotIContains':
+        return this.makeLikeWhereClause(field, `%${value}%`, false, true);
 
       // Arrays
       case 'IncludesAll':
@@ -119,7 +121,8 @@ export default class QueryConverter {
     not: boolean,
   ): unknown {
     const op = not ? 'NOT LIKE' : 'LIKE';
-    const seqOp = not ? Op.notLike : Op.like;
+    const csLikeOperation = not ? Op.notLike : Op.like;
+    const ciLikeOperation = not ? Op.notILike : Op.iLike;
 
     if (caseSensitive) {
       if (this.dialect === 'sqlite') {
@@ -131,12 +134,12 @@ export default class QueryConverter {
       if (this.dialect === 'mysql' || this.dialect === 'mariadb')
         return this.where(this.fn('BINARY', this.col(field)), op, value);
 
-      return { [seqOp]: value };
+      return { [csLikeOperation]: value };
     }
 
-    if (this.dialect === 'postgres') return { [Op.iLike]: value };
+    if (this.dialect === 'postgres') return { [ciLikeOperation]: value };
     if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
-      return { [seqOp]: value };
+      return { [csLikeOperation]: value };
 
     return this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
   }

@@ -66,7 +66,7 @@ export default class TypeConverter {
 
     if (typeof columnType === 'string') {
       const orderables: Operator[] = ['LessThan', 'GreaterThan'];
-      const strings: Operator[] = ['Like', 'ILike', 'NotContains'];
+      const strings: Operator[] = ['Like', 'ILike', 'NotContains', 'NotIContains'];
 
       if (['Boolean', 'Binary', 'Enum', 'Uuid'].includes(columnType)) {
         result.push(...equality);
