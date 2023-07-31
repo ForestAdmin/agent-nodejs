@@ -11,7 +11,7 @@ import {
 
 const ajv = new Ajv({ allErrors: true });
 ajvErrors(ajv); // NOTICE: this library adds support for custom invalidity error messages.
-// ex: errorMessage: 'should either by an array of string or a function' ;
+// ex: errorMessage: 'should either be an array of string or a function' ;
 ajvKeywords(ajv); // NOTICE: this library adds support for 'typeof' validation keyword, which allows
 // to test if objects are functions (ex: {typeof: 'function'})
 

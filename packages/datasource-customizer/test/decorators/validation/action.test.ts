@@ -355,7 +355,7 @@ describe('ActionValidator', () => {
         },
         {
           field: { label: 'field1', type: 'Boolean', isRequired: {} } as unknown as DynamicField,
-          error: `isRequired should either by a boolean or a function`,
+          error: `isRequired should either be a boolean or a function`,
         },
         {
           field: {
@@ -363,7 +363,7 @@ describe('ActionValidator', () => {
             type: 'Collection',
             collectionName: {},
           } as unknown as DynamicField,
-          error: `collectionName should either by a string or a function`,
+          error: `collectionName should either be a string or a function`,
         },
         {
           field: { label: 123, type: 'String' } as unknown as DynamicField,

@@ -17,7 +17,7 @@ import {
 const valueOrHandlerSchema = (type: 'boolean' | 'string') => {
   return {
     anyOf: [{ type }, { typeof: 'function' }],
-    errorMessage: `should either by a ${type} or a function`,
+    errorMessage: `should either be a ${type} or a function`,
   };
 };
 
@@ -59,7 +59,7 @@ export const fieldActionSchema = (type: ActionFieldType) => {
             typeof: 'function',
           },
         ],
-        errorMessage: 'should either by an array of string or a function',
+        errorMessage: 'should either be an array of string or a function',
       };
       schema.required.push('enumValues');
 
