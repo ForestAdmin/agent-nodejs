@@ -6,6 +6,14 @@ import {
   Json,
 } from '@forestadmin/datasource-toolkit';
 
+/**
+ * This function generates an AJV-compatible validator schema for an object that is either
+ * a string or a boolean (depending on the type passed)
+ * any function
+ * this is used to validate field properties like `isRequired` or `collectionName`
+ * NOTICE: it would be nice to validate the return type of the function as well to match the passed
+ * but it is not possible in AJV
+ */
 const valueOrHandlerSchema = (type: 'boolean' | 'string') => {
   return {
     anyOf: [{ type }, { typeof: 'function' }],
