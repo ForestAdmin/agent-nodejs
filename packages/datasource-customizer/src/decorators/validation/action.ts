@@ -10,16 +10,13 @@ import { ActionDefinition, actionSchema } from '../actions/types/actions';
 import { DynamicField, fieldActionSchema } from '../actions/types/fields';
 
 const ajv = new Ajv({ allErrors: true });
+ajvErrors(ajv);
+ajvKeywords(ajv);
 
 export default class ActionValidator {
   static validateActionConfiguration(name: string, action: ActionDefinition) {
-    ajvErrors(ajv);
-    ajvKeywords(ajv);
-
     const validate = ajv.compile(actionSchema);
-    const result = validate(action);
-
-    if (!result)
+    if (!validate(action))
       throw new ActionConfigurationValidationError(
         name,
         this.getValidationErrorMessage(validate.errors),
@@ -40,9 +37,8 @@ export default class ActionValidator {
 
   private static validateActionFieldConfiguration(field: DynamicField) {
     const validate = ajv.compile(fieldActionSchema(field.type));
-    const result = validate(field);
     const { label } = field;
-    if (!result)
+    if (!validate(field))
       throw new ActionFieldConfigurationValidationError(
         label,
         this.getValidationErrorMessage(validate.errors),
@@ -53,9 +49,10 @@ export default class ActionValidator {
     if (!errors || !errors.length) return '';
 
     const error = errors[0];
+    const params = ['additionalProperty', 'allowedValues'].map(key =>
+      error.params[key] ? `(${error.params[key]})` : '',
+    );
 
-    return `\n${error.instancePath ? `${error.instancePath} ` : ''}${error.message} ${
-      error.params.additionalProperty ? `(${error.params.additionalProperty})` : ''
-    } `;
+    return `\n${error.instancePath ? `${error.instancePath} ` : ''}${error.message} ${params} `;
   }
 }
