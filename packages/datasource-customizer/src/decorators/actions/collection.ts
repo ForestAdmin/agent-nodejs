@@ -20,6 +20,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
 
   private actions: Record<string, ActionDefinition> = {};
+
   addAction(name: string, action: ActionDefinition): void {
     this.actions[name] = action;
     this.markSchemaAsDirty();
