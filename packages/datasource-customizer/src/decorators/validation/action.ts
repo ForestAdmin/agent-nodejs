@@ -1,4 +1,4 @@
-import Ajv from 'ajv';
+import Ajv from 'ajv'; // A library for validating JSON objects
 import ajvErrors from 'ajv-errors';
 import ajvKeywords from 'ajv-keywords';
 
@@ -13,7 +13,7 @@ const ajv = new Ajv({ allErrors: true });
 ajvErrors(ajv); // NOTICE: this library adds support for custom invalidity error messages.
 // ex: errorMessage: 'should either by an array of string or a function' ;
 ajvKeywords(ajv); // NOTICE: this library adds support for 'typeof' validation keyword, which allows
-// to test if the objects passed are functions (ex: {typeof: 'function'})
+// to test if objects are functions (ex: {typeof: 'function'})
 
 export default class ActionValidator {
   static validateActionConfiguration(name: string, action: ActionDefinition) {
@@ -30,7 +30,7 @@ export default class ActionValidator {
       });
     } catch (error) {
       if (error instanceof ActionFieldConfigurationValidationError) {
-        throw new ActionConfigurationValidationError(name, `${error.message}`);
+        throw new ActionConfigurationValidationError(name, error.message);
       }
 
       throw error;

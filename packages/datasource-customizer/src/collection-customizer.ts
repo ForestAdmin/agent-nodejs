@@ -17,7 +17,12 @@ import { OperatorDefinition } from './decorators/operators-emulate/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
+import ActionValidator from './decorators/validation/action';
 import { WriteDefinition } from './decorators/write/write-replace/types';
+import {
+  ActionConfigurationValidationError,
+  CollectionCustomizationValidationError,
+} from './errors';
 import addExternalRelation from './plugins/add-external-relation';
 import importField from './plugins/import-field';
 import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
@@ -124,6 +129,14 @@ export default class CollectionCustomizer<
    *  })
    */
   addAction(name: string, definition: ActionDefinition<S, N>): this {
+    try {
+      ActionValidator.validateActionConfiguration(name, definition as ActionDefinition<any, any>);
+    } catch (error) {
+      if (error instanceof ActionConfigurationValidationError) {
+        throw new CollectionCustomizationValidationError(this.name, error.message);
+      }
+    }
+
     return this.pushCustomization(async () => {
       this.stack.action
         .getCollection(this.name)

@@ -15,14 +15,12 @@ import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
 import { DynamicField, ValueOrHandler } from './types/fields';
-import ActionValidator from '../validation/action';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
 
   private actions: Record<string, ActionDefinition> = {};
   addAction(name: string, action: ActionDefinition): void {
-    ActionValidator.validateActionConfiguration(name, action);
     this.actions[name] = action;
     this.markSchemaAsDirty();
   }
