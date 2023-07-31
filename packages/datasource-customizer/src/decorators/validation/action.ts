@@ -10,8 +10,10 @@ import { ActionDefinition, actionSchema } from '../actions/types/actions';
 import { DynamicField, fieldActionSchema } from '../actions/types/fields';
 
 const ajv = new Ajv({ allErrors: true });
-ajvErrors(ajv);
-ajvKeywords(ajv);
+ajvErrors(ajv); // NOTICE: this library adds support for custom invalidity error messages.
+// ex: errorMessage: 'should either by an array of string or a function' ;
+ajvKeywords(ajv); // NOTICE: this library adds support for 'typeof' validation keyword, which allows
+// to test if the objects passed are functions (ex: {typeof: 'function'})
 
 export default class ActionValidator {
   static validateActionConfiguration(name: string, action: ActionDefinition) {
