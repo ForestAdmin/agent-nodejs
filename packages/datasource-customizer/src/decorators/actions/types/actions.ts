@@ -12,7 +12,13 @@ export const actionSchema = {
   type: 'object',
   properties: {
     generateFile: { type: 'boolean' },
-    scope: { type: 'string', enum: Object.values(ActionScopeEnum) },
+    scope: {
+      type: 'string',
+      enum: [
+        ...Object.values(ActionScopeEnum),
+        ...Object.values(ActionScopeEnum).map(scope => scope.toLowerCase()),
+      ],
+    },
     form: { type: 'array' }, // validated in fieldActionSchema
     execute: { typeof: 'function' },
   },

@@ -6,8 +6,34 @@ describe('ActionValidator', () => {
   describe('validateActionConfiguration', () => {
     test('it should validate an action without form', () => {
       const action: ActionDefinition = {
-        scope: 'Global',
-        execute: () => {},
+        scope: 'Single',
+        form: [
+          {
+            label: 'PDF',
+            description: 'DJHBD',
+            type: 'File',
+          },
+          {
+            label: 'Amount',
+            description: 'The amount (USD) to charge the credit card. Example: 42.50',
+            type: 'Number',
+          },
+          {
+            label: 'description',
+            description: 'Explain the reason why you want to charge manually the customer here',
+            isRequired: true,
+            type: 'String',
+            if: context => Number(context.formValues.Amount) > 4,
+          },
+          {
+            label: 'stripe_id',
+            type: 'String',
+            if: () => false,
+          },
+        ],
+        execute: async (context, resultBuilder) => {
+          return resultBuilder.success(`Well well done ${context.caller.email}!`);
+        },
       };
       expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
     });
@@ -35,6 +61,21 @@ describe('ActionValidator', () => {
         execute: () => {},
       };
       expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
+    });
+
+    test('it should validate an action with lower case scope', () => {
+      const action = {
+        scope: 'single',
+        execute: async (context, resultBuilder) => {
+          return resultBuilder.success(`Well well done !`);
+        },
+      };
+      expect(() =>
+        ActionValidator.validateActionConfiguration(
+          'TheName',
+          action as unknown as ActionDefinition,
+        ),
+      ).not.toThrow();
     });
 
     describe('documentation samples', () => {
@@ -271,7 +312,7 @@ describe('ActionValidator', () => {
             'TheName',
             action as unknown as ActionDefinition,
           ),
-        ).toThrow('scope must be equal to one of the allowed values ,(Single,Bulk,Global)');
+        ).toThrow('scope must be equal to one of the allowed values ,(Single,Bulk,Global');
       });
       test('it should reject an action with added unknown field', () => {
         const action = {
