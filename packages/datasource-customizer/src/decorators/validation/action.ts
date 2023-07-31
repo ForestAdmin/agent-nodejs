@@ -30,7 +30,7 @@ export default class ActionValidator {
       });
     } catch (error) {
       if (error instanceof ActionFieldConfigurationValidationError) {
-        throw new ActionConfigurationValidationError(name, `\n${error.message}`);
+        throw new ActionConfigurationValidationError(name, `${error.message}`);
       }
 
       throw error;
