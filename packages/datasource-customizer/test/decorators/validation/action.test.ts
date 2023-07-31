@@ -312,7 +312,7 @@ describe('ActionValidator', () => {
             'TheName',
             action as unknown as ActionDefinition,
           ),
-        ).toThrow('scope must be equal to one of the allowed values ,(Single,Bulk,Global');
+        ).toThrow('scope must be equal to one of the allowed values: (Single,Bulk,Global');
       });
       test('it should reject an action with added unknown field', () => {
         const action = {
@@ -325,7 +325,7 @@ describe('ActionValidator', () => {
             'TheName',
             action as unknown as ActionDefinition,
           ),
-        ).toThrow('must NOT have additional properties (meal)');
+        ).toThrow('must NOT have additional properties: (meal)');
       });
       test('it should reject an action with missing required field scope', () => {
         const action = {
@@ -371,7 +371,7 @@ describe('ActionValidator', () => {
         },
         {
           field: { label: 'field1', type: 'string' } as unknown as DynamicField,
-          error: `type must be equal to one of the allowed values ,(Boolean,Collection`,
+          error: `type must be equal to one of the allowed values: (Boolean,Collection`,
         },
       ].forEach(wrongField => {
         test(

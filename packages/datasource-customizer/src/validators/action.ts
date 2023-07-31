@@ -51,10 +51,10 @@ export default class ActionValidator {
     if (!errors || !errors.length) return '';
 
     const error = errors[0];
-    const params = ['additionalProperty', 'allowedValues'].map(key =>
-      error.params[key] ? `(${error.params[key]})` : '',
-    );
+    const params = ['additionalProperty', 'allowedValues']
+      .map(key => (error.params[key] ? ` (${error.params[key]})` : ''))
+      .filter(Boolean);
 
-    return `\n${error.instancePath ? `${error.instancePath} ` : ''}${error.message} ${params} `;
+    return `\n${error.instancePath ? `${error.instancePath} ` : ''}${error.message}:${params}`;
   }
 }
