@@ -46,7 +46,7 @@ describe('pull delta', () => {
           allDeltaStatesAfterCalls.push(request.previousDeltaState);
 
           return {
-            more: false,
+            more: true,
             newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 2 } }],
             nextDeltaState: 'delta-state2',
             deletedEntries: [],
@@ -66,22 +66,20 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
+        pullDeltaOnBeforeAccess: true,
       });
+
+      console.log('yo: ', allDeltaStatesAfterCalls);
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([
         { id: 1 },
         { id: 2 },
         { id: 3 },
       ]);
-      expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
 
       // saving previous state at each call
-      expect(allDeltaStatesAfterCalls).toEqual([
-        null,
-        'delta-state1',
-        'delta-state2',
-        'delta-state3',
-      ]);
+      expect(allDeltaStatesAfterCalls).toEqual([null, 'delta-state1', 'delta-state2']);
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -130,6 +128,9 @@ describe('pull delta', () => {
       expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
     });
   });
+
+  // TODO: add the tests on the push
+  // TODO: check if it works without the deleted entries attribute if it throw an error
 
   // TODO: check number of delta handler calls
   describe('when a record is update', () => {

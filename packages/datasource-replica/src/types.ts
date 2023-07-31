@@ -145,10 +145,10 @@ export type ReplicaDataSourceOptions = {
 
   /** Pull delta options */
   pullDeltaHandler?: (request: PullDeltaRequest) => Promise<PullDeltaResponse>;
-  pullDeltaOnRestart?: boolean;
-  pullDeltaOnSchedule?: string | string[];
+  pullDeltaOnRestart?: boolean; // TODO: check in datasourse replica STOP and trigger stop and start
+  pullDeltaOnSchedule?: string | string[]; // TODO check with excpet in pull delta or fake Timer
   pullDeltaOnBeforeAccess?: boolean;
-  pullDeltaOnAfterWrite?: boolean;
+  pullDeltaOnAfterWrite?: boolean; // TODO:
 
   /**
    * Delay that should be waited before each cache access to give the opportunity for
