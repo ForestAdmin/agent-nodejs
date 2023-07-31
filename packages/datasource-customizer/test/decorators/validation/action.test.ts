@@ -1,6 +1,6 @@
 import { ActionDefinition } from '../../../src/decorators/actions/types/actions';
 import { DynamicField } from '../../../src/decorators/actions/types/fields';
-import ActionValidator from '../../../src/decorators/validation/action';
+import ActionValidator from '../../../src/validators/action';
 
 describe('ActionValidator', () => {
   describe('validateActionConfiguration', () => {

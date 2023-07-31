@@ -2,12 +2,12 @@ import Ajv from 'ajv'; // A library for validating JSON objects
 import ajvErrors from 'ajv-errors';
 import ajvKeywords from 'ajv-keywords';
 
+import { ActionDefinition, actionSchema } from '../decorators/actions/types/actions';
+import { DynamicField, fieldActionSchema } from '../decorators/actions/types/fields';
 import {
   ActionConfigurationValidationError,
   ActionFieldConfigurationValidationError,
-} from '../../errors';
-import { ActionDefinition, actionSchema } from '../actions/types/actions';
-import { DynamicField, fieldActionSchema } from '../actions/types/fields';
+} from '../errors';
 
 const ajv = new Ajv({ allErrors: true });
 ajvErrors(ajv); // NOTICE: this library adds support for custom invalidity error messages.
