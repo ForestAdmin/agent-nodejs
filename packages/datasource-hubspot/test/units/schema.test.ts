@@ -14,7 +14,7 @@ describe('getSchema', () => {
     });
   });
 
-  describe('different field types', () => {
+  describe('with different field types', () => {
     describe('specific cases', () => {
       describe('when the field type is not supported', () => {
         it('should throw an error', () => {
