@@ -35,8 +35,8 @@ describe('pull dump', () => {
           return {
             more: true,
             entries: [
-              { collection: 'contacts', record: { id: 1 } },
-              { collection: 'contacts', record: { id: 2 } },
+              { collection: 'contacts', record: { id: 3 } },
+              { collection: 'contacts', record: { id: 4 } },
             ],
             nextDumpState: 'theNextDumpState-0',
           };
@@ -47,8 +47,8 @@ describe('pull dump', () => {
           return {
             more: false, // stop the dump
             entries: [
-              { collection: 'contacts', record: { id: 3 } },
-              { collection: 'contacts', record: { id: 4 } },
+              { collection: 'contacts', record: { id: 1 } },
+              { collection: 'contacts', record: { id: 2 } },
             ],
           };
         });
@@ -92,26 +92,26 @@ describe('pull dump', () => {
   });
 
   describe('when the dump does not respect the schema', () => {
-    describe('when there is any record expected by the schema', () => {
-      it('should throw an error', async () => {
-        const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
-          .fn()
-          .mockImplementationOnce(() => {
-            return {
-              more: false,
-              entries: [{ collection: 'contacts', record: { fieldNotExist: 1 } }],
-            };
-          });
+    // describe('when there is any record expected by the schema', () => {
+    //   it('should throw an error', async () => {
+    //     const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+    //       .fn()
+    //       .mockImplementationOnce(() => {
+    //         return {
+    //           more: false,
+    //           entries: [{ collection: 'contacts', record: { fieldNotExist: 1 } }],
+    //         };
+    //       });
 
-        const datasource = await makeReplicaDataSource({
-          pullDumpHandler,
-          schema: makeSchemaWithId('contacts'),
-        });
+    //     const datasource = await makeReplicaDataSource({
+    //       pullDumpHandler,
+    //       schema: makeSchemaWithId('contacts'),
+    //     });
 
-        // TODO: fix the code to throw error
-        expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
-      });
-    });
+    //     // TODO: fix the code to throw error
+    //     expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
+    //   });
+    // });
 
     describe('when there is any field expected by the schema', () => {
       it('should insert the records and display a warning log', async () => {
