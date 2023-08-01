@@ -40,6 +40,10 @@ export default class RelaxedCollection<
     return this.collection.nativeDriver;
   }
 
+  get name(): N {
+    return this.collection.name as N;
+  }
+
   get schema(): CollectionSchema {
     return this.collection.schema;
   }
