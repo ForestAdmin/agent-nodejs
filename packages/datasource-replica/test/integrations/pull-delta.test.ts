@@ -194,6 +194,7 @@ describe('pull delta', () => {
     //       .mockImplementationOnce(() => {
     //         return {
     //           more: false,
+    // eslint-disable-next-line max-len
     //           newOrUpdatedEntries: [{ collection: 'contacts', record: { CollectionNotExist: 1 } }],
     //           nextDeltaState: 'delta-state',
     //           deletedEntries: [],
