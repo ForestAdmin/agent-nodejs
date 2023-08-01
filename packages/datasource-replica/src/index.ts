@@ -1,7 +1,7 @@
 import type { ReplicaDataSourceOptions } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
-import PublicationCollectionDataSourceDecorator from '@forestadmin/datasource-customizer/dist/decorators/publication-collection/datasource';
+import PublicationCollectionDataSourceDecorator from '@forestadmin/datasource-customizer/dist/decorators/publication/datasource';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 
 import CacheDataSourceInterface from './cache-interface/datasource';
