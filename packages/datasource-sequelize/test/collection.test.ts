@@ -113,15 +113,16 @@ describe('SequelizeDataSource > Collection', () => {
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
 
-    it.skip('should serialize array of date as iso string', async () => {
-      const data = [{ dates: [new Date('2000-01-02')] }];
-      const { bulkCreate, sequelizeCollection } = setup(data);
+    // TODO: uncomment
+    // it('should serialize array of date as iso string', async () => {
+    //   const data = [{ dates: [new Date('2000-01-02')] }];
+    //   const { bulkCreate, sequelizeCollection } = setup(data);
 
-      await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
-        { dates: ['2000-01-02T00:00:00.000Z'] },
-      ]);
-      expect(bulkCreate).toHaveBeenCalledWith(data);
-    });
+    //   await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
+    //     { dates: ['2000-01-02T00:00:00.000Z'] },
+    //   ]);
+    //   expect(bulkCreate).toHaveBeenCalledWith(data);
+    // });
   });
 
   describe('list', () => {
