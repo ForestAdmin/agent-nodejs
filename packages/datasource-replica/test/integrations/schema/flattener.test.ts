@@ -85,7 +85,7 @@ describe('flattener', () => {
   });
 
   describe('when the field is an object', () => {
-    it('should flatten all the object fields', async () => {
+    it('should flatten all the object fields in auto mode', async () => {
       const schema: ReplicaDataSourceOptions['schema'] = [
         {
           name: 'contacts',
@@ -124,6 +124,58 @@ describe('flattener', () => {
           filterOperators: expect.any(Set),
           type: 'Column',
           isSortable: true,
+        },
+      });
+    });
+
+    it('should flatten all the object fields in manual mode', async () => {
+      const schema: ReplicaDataSourceOptions['schema'] = [
+        {
+          name: 'contacts',
+          fields: {
+            id: { type: 'Number', isPrimaryKey: true },
+            fieldObject: {
+              fields: {
+                subObject: {
+                  fieldNumber: { type: 'Number' },
+                  fieldString: { type: 'String' },
+                  fieldStringArray: [{ type: 'String' }],
+                },
+              },
+            },
+          },
+        },
+      ];
+
+      const datasource = await makeReplicaDataSource({ schema, flattenMode: 'manual' });
+
+      expect(datasource.getCollection('contacts').schema.fields).toEqual({
+        id: {
+          columnType: 'Number',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          isSortable: true,
+          isPrimaryKey: true,
+          defaultValue: undefined,
+          isReadOnly: undefined,
+          validation: undefined,
+        },
+        fieldObject: {
+          columnType: {
+            fields: {
+              subObject: {
+                fieldNumber: 'Number',
+                fieldString: 'String',
+                fieldStringArray: expect.any(Array),
+              },
+            },
+          },
+          defaultValue: undefined,
+          isReadOnly: undefined,
+          validation: undefined,
+          isSortable: true,
+          type: 'Column',
+          filterOperators: expect.any(Set),
         },
       });
     });

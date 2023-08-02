@@ -37,9 +37,11 @@ describe('cache', () => {
         pullDeltaOnBeforeAccess: true,
       });
 
+      const collectionName = datasource.getCollection('contacts').name;
+
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }, { id: 4 }]);
       expect(recordsInCacheInPullDelta).toEqual([{ id: 3 }]);
-      expect(datasource.getCollection('contacts').name).toEqual('contacts');
+      expect(collectionName).toEqual('contacts');
     });
   });
 
