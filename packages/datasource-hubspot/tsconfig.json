@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    // allow using import with json files
-    "resolveJsonModule": true
-  },
-  "include": ["src/**/*", "test/__factories__/**/*"],
-}
