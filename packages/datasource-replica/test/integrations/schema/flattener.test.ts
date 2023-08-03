@@ -219,7 +219,7 @@ describe('flattener', () => {
         ],
         flattenMode: 'manual',
         flattenOptions: {
-          books: { asModels: ['authors'] },
+          books: { asModels: ['authors'], asFields: ['id'] },
         },
       });
 

@@ -12,6 +12,7 @@ type ResolvedFlattenOptions = ResolvedOptions['flattenOptions'];
 type ModelFlattenOptions = ResolvedFlattenOptions[string];
 
 function listFields(field: Field, depth: number): string[] {
+  console.log('enter list fields');
   if (depth === 0) return [];
   if (Array.isArray(field)) return listFields(field[0], depth);
   if (isLeafField(field)) return [''];
@@ -80,6 +81,7 @@ async function getManualFlattenOptions(
 
     if (!field) throw new Error(`Collection ${collectionName} not found in schema`);
 
+    // console.log('manual flatten');
     const asModels = [...(collectionOptions.asModels ?? [])].sort();
 
     const asFields = (collectionOptions.asFields ?? [])
