@@ -22,7 +22,6 @@ export const getAllRecords = async (
 export const makeReplicaDataSource = async (
   options?: ReplicaDataSourceOptions,
 ): Promise<DataSource> => {
-  console.log('coucou les options : ', options);
   const replicaFactory = createReplicaDataSource(options ?? {});
 
   return replicaFactory(makeLogger());
