@@ -1,10 +1,10 @@
-import { ActionDefinition } from '../../../src/decorators/actions/types/actions';
-import { DynamicField } from '../../../src/decorators/actions/types/fields';
-import ActionValidator from '../../../src/validators/action';
+import { ActionDefinition } from '../../src/decorators/actions/types/actions';
+import { DynamicField } from '../../src/decorators/actions/types/fields';
+import ActionValidator from '../../src/validators/action';
 
 describe('ActionValidator', () => {
   describe('validateActionConfiguration', () => {
-    test('it should validate an action without form', () => {
+    test('it should validate an action with a form', () => {
       const action: ActionDefinition = {
         scope: 'Single',
         form: [
@@ -14,7 +14,7 @@ describe('ActionValidator', () => {
             type: 'File',
           },
           {
-            label: 'Amount',
+            label: 'amount',
             description: 'The amount (USD) to charge the credit card. Example: 42.50',
             type: 'Number',
           },
@@ -37,6 +37,15 @@ describe('ActionValidator', () => {
       };
       expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
     });
+    test('it should validate an action without a form', () => {
+      const action: ActionDefinition = {
+        scope: 'Single',
+        execute: async (context, resultBuilder) => {
+          return resultBuilder.success(`Well well done ${context.caller.email}!`);
+        },
+      };
+      expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
+    });
     test('it should validate an action with an empty form', () => {
       const action: ActionDefinition = {
         scope: 'Bulk',
@@ -53,6 +62,10 @@ describe('ActionValidator', () => {
           { label: 'field2', type: 'NumberList', defaultValue: [12] },
           { label: 'field8', type: 'Number', defaultValue: () => 1 + 1 },
           { label: 'field3', type: 'NumberList' },
+          { label: 'fielde33', type: 'Dateonly' },
+          { label: 'fielde34', type: 'File' },
+          { label: 'fielde35', type: 'FileList' },
+          { label: 'fielde36', type: 'Json' },
           { label: 'field7', type: 'String' },
           { label: 'field4', type: 'StringList' },
           { label: 'field5', type: 'Boolean', isReadOnly: true, isRequired: () => false },
@@ -79,7 +92,8 @@ describe('ActionValidator', () => {
     });
 
     describe('documentation samples', () => {
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions#in-your-code', () => {
+      test('it should validate a simple action example', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions#in-your-code
         const action: ActionDefinition = {
           scope: 'Single',
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -91,7 +105,8 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/scope-context#example-1-getting-data-from-the-selected-records', () => {
+      test('it should validate an action getting data from the context', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/scope-context#example-1-getting-data-from-the-selected-records
         const action: ActionDefinition = {
           scope: 'Single',
           execute: async context => {
@@ -110,7 +125,8 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-static#field-configuration', () => {
+      test('it should validate an action with a static form field', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-static#field-configuration'
         const action: ActionDefinition = {
           scope: 'Single',
           form: [
@@ -136,7 +152,9 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-static#references-to-records', () => {
+      // eslint-disable-next-line max-len
+      test('it should validate an action with a static form field that gets data from the context to execute', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-static#references-to-records
         const action: ActionDefinition = {
           scope: 'Single',
           form: [
@@ -160,7 +178,8 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic', () => {
+      test('it should validate an action with a dynamic field', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic
         const action: ActionDefinition = {
           scope: 'Single',
           form: [
@@ -190,7 +209,8 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic#example-2-conditional-field-display-based-on-record-data', () => {
+      test('it should validate an with a dynamic field dependant on record data', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic#example-2-conditional-field-display-based-on-record-data
         const action: ActionDefinition = {
           scope: 'Single',
           form: [
@@ -212,7 +232,8 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic#example-3-conditional-enum-values-based-on-both-record-data-and-form-values', () => {
+      test('it should validate a complex dynamic action with dynamic enum', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic#example-3-conditional-enum-values-based-on-both-record-data-and-form-values
         const action: ActionDefinition = {
           scope: 'Single',
           form: [
@@ -268,7 +289,8 @@ describe('ActionValidator', () => {
           ActionValidator.validateActionConfiguration('Mark as live', action),
         ).not.toThrow();
       });
-      test('it should validate the action at https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic#example-4-using-changedfield-to-reset-value', () => {
+      test('it should validate an action using changeField to reset a value', () => {
+        // https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/actions/forms-dynamic#example-4-using-changedfield-to-reset-value
         const action: ActionDefinition = {
           scope: 'Single',
           form: [
