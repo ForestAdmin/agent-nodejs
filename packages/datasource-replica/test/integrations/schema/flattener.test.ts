@@ -147,7 +147,10 @@ describe('flattener', () => {
         },
       ];
 
-      const datasource = await makeReplicaDataSource({ schema, flattenMode: 'manual' });
+      const datasource = await makeReplicaDataSource({
+        schema,
+        flattenMode: 'manual',
+      });
 
       expect(datasource.getCollection('contacts').schema.fields).toEqual({
         id: {
@@ -180,4 +183,33 @@ describe('flattener', () => {
       });
     });
   });
+
+  // describe('flatten options', () => {
+  //   it('should test', async () => {
+  //     const schema: ReplicaDataSourceOptions['schema'] = [
+  //       {
+  //         name: 'contacts',
+  //         fields: {
+  //           id: { type: 'Number', isPrimaryKey: true },
+  //           name: { type: 'String' },
+  //           contactDetails: {
+  //             fields: {
+  //               subOject: { email: { type: 'String' }, age: { type: 'Number' } },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     ];
+
+  //     const datasource = await makeReplicaDataSource({
+  //       schema,
+  //       flattenMode: 'manual',
+  //       flattenOptions: {
+  //         contacts: { asModels: ['contactDetails.email', 'contactDetails.age'] },
+  //       },
+  //     });
+
+  //     expect(true);
+  //   });
+  // });
 });

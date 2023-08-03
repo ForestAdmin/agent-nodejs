@@ -21,6 +21,8 @@ export default async function resolveOptions(
   let source: SynchronizationSource = new CustomerSource(connection, options, logger);
   let resolvedSchema: CollectionReplicaSchema[] = await getSchema(options, connection);
 
+  console.log('coucou les options : ', options);
+
   if (!resolvedSchema) {
     const passThrough = new AnalysisPassThough(connection, source, options.cacheNamespace);
     await source.start(passThrough); // This should block until the analysis is done.

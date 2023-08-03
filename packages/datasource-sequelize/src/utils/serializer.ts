@@ -28,7 +28,6 @@ export default class Serializer {
     try {
       return date.toISOString();
     } catch (error) {
-      // when the date is invalid, we return null
       return null;
     }
   }

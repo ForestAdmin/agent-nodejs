@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop */
 import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import SchemaCollectionDecorator from './collection';
