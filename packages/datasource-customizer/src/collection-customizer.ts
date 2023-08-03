@@ -130,7 +130,10 @@ export default class CollectionCustomizer<
    */
   addAction(name: string, definition: ActionDefinition<S, N>): this {
     try {
-      ActionValidator.validateActionConfiguration(name, definition as ActionDefinition<any, any>);
+      ActionValidator.validateActionConfiguration(
+        name,
+        definition as unknown as ActionDefinition<TSchema, string>,
+      );
     } catch (error) {
       if (error instanceof ActionConfigurationValidationError) {
         throw new CollectionCustomizationValidationError(this.name, error.message);
