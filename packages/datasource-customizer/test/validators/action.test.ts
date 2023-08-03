@@ -362,14 +362,14 @@ describe('ActionValidator', () => {
       });
       [
         {
+          test: 'it should display the field label in the error message',
           field: { label: 'field1' } as unknown as DynamicField,
           error: `Error in action form configuration, field 'field1'`,
-          test: 'it should display the field label in the error message',
         },
         {
+          test: 'it should display the action name in the error message',
           field: { label: 'field1' } as unknown as DynamicField,
           error: `Error in action 'TheName' configuration:`,
-          test: 'it should display the action name in the error message',
         },
         {
           field: { label: 'field1' } as unknown as DynamicField,
@@ -400,7 +400,7 @@ describe('ActionValidator', () => {
           // eslint-disable-next-line jest/valid-title
           wrongField.test
             ? (wrongField.test as string)
-            : `it should reject with a helpful message if a type is a field is incorrect:
+            : `it should reject with a helpful message if a field is incorrect:
         ${JSON.stringify(wrongField.field)}`,
           () => {
             const action: ActionDefinition = {
