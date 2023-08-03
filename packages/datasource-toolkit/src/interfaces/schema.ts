@@ -1,6 +1,12 @@
 import { Operator } from './query/condition-tree/nodes/operators';
 
-export type ActionScope = 'Single' | 'Bulk' | 'Global';
+export type ActionScope = `${ActionScopeEnum}`;
+
+export enum ActionScopeEnum {
+  Single = 'Single',
+  Bulk = 'Bulk',
+  Global = 'Global',
+}
 
 export type ActionSchema = {
   scope: ActionScope;

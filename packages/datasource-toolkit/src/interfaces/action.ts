@@ -21,20 +21,22 @@ export interface ActionField {
   collectionName?: string; // When type === 'Collection'
 }
 
-export type ActionFieldType =
-  | 'Boolean'
-  | 'Collection'
-  | 'Date'
-  | 'Dateonly'
-  | 'Enum'
-  | 'File'
-  | 'Json'
-  | 'Number'
-  | 'String'
-  | 'EnumList'
-  | 'FileList'
-  | 'NumberList'
-  | 'StringList';
+export type ActionFieldType = `${ActionFieldTypeEnum}`;
+export enum ActionFieldTypeEnum {
+  Boolean = 'Boolean',
+  Collection = 'Collection',
+  Enum = 'Enum',
+  EnumList = 'EnumList',
+  File = 'File',
+  FileList = 'FileList',
+  Json = 'Json',
+  Number = 'Number',
+  NumberList = 'NumberList',
+  Date = 'Date',
+  Dateonly = 'Dateonly',
+  String = 'String',
+  StringList = 'StringList',
+}
 
 export type SuccessResult = {
   type: 'Success';
