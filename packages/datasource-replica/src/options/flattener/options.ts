@@ -12,7 +12,7 @@ type ResolvedFlattenOptions = ResolvedOptions['flattenOptions'];
 type ModelFlattenOptions = ResolvedFlattenOptions[string];
 
 function listFields(field: Field, depth: number): string[] {
-  console.log('coucou c est le field !!!!!');
+  // console.log('coucou c est le field !!!!!');
   if (depth === 0) return [];
   if (Array.isArray(field)) return listFields(field[0], depth);
   if (isLeafField(field)) return [''];
@@ -76,16 +76,16 @@ async function getManualFlattenOptions(
   const rawFlattenOptions = await resolveValueOrPromiseOrFactory(rawOptions.flattenOptions);
   const result: ResolvedFlattenOptions = {};
 
-  console.log('bef for enter manual, ', rawFlattenOptions, rawOptions.flattenOptions);
+  // console.log('bef for enter manual, ', rawFlattenOptions, rawOptions.flattenOptions);
 
   for (const [collectionName, collectionOptions] of Object.entries(rawFlattenOptions ?? {})) {
     const field = schema.find(s => s.name === collectionName)?.fields;
-    console.log('bef if enter manual');
+    // console.log('bef if enter manual');
 
     if (!field) throw new Error(`Collection ${collectionName} not found in schema`);
 
     const asModels = [...(collectionOptions.asModels ?? [])].sort();
-    console.log('enter manual');
+    // console.log('enter manual');
 
     const asFields = (collectionOptions.asFields ?? [])
       // expand fields and objects to a list of absolute paths
@@ -127,7 +127,7 @@ export default async function computeFlattenOptions(
   }
 
   try {
-    console.log('coucou les options avant le try : ', rawOptions);
+    // console.log('coucou les options avant le try : ', rawOptions);
 
     return await getManualFlattenOptions(schema, rawOptions);
   } catch (e) {
