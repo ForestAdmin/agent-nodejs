@@ -184,32 +184,84 @@ describe('flattener', () => {
     });
   });
 
-  // describe('flatten options', () => {
-  //   it('should test', async () => {
-  //     const schema: ReplicaDataSourceOptions['schema'] = [
-  //       {
-  //         name: 'contacts',
-  //         fields: {
-  //           id: { type: 'Number', isPrimaryKey: true },
-  //           name: { type: 'String' },
-  //           contactDetails: {
-  //             fields: {
-  //               subOject: { email: { type: 'String' }, age: { type: 'Number' } },
-  //             },
-  //           },
-  //         },
-  //       },
-  //     ];
+  describe('with flatten options', () => {
+    it('should flatten all fields', async () => {
+      const datasource = await makeReplicaDataSource({
+        schema: [
+          {
+            name: 'authors',
+            fields: {
+              id: { type: 'Integer', isPrimaryKey: true },
+              name: { type: 'String' },
+            },
+          },
+          {
+            name: 'books',
+            fields: {
+              id: { type: 'Integer', isPrimaryKey: true },
+              title: { type: 'String' },
+              editor: {
+                name: { type: 'String' },
+                address: { type: 'String' },
+              },
+              authors: [
+                {
+                  type: 'Integer',
+                  reference: {
+                    targetCollection: 'authors',
+                    relationName: 'authors',
+                    targetField: 'id',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        flattenMode: 'manual',
+        flattenOptions: {
+          books: { asModels: ['authors'] },
+        },
+      });
 
-  //     const datasource = await makeReplicaDataSource({
-  //       schema,
-  //       flattenMode: 'manual',
-  //       flattenOptions: {
-  //         contacts: { asModels: ['contactDetails.email', 'contactDetails.age'] },
-  //       },
-  //     });
-
-  //     expect(true);
-  //   });
-  // });
+      expect(datasource.getCollection('books').schema.fields).toEqual({
+        authors: {
+          foreignCollection: 'books_authors',
+          originKey: '_fpid',
+          originKeyTarget: 'id',
+          type: 'OneToMany',
+        },
+        editor: {
+          columnType: {
+            address: 'String',
+            name: 'String',
+          },
+          defaultValue: undefined,
+          filterOperators: expect.any(Set),
+          isReadOnly: undefined,
+          isSortable: true,
+          type: 'Column',
+          validation: undefined,
+        },
+        id: {
+          columnType: 'Number',
+          defaultValue: undefined,
+          filterOperators: expect.any(Set),
+          isPrimaryKey: true,
+          isReadOnly: undefined,
+          isSortable: true,
+          type: 'Column',
+          validation: undefined,
+        },
+        title: {
+          columnType: 'String',
+          defaultValue: undefined,
+          filterOperators: expect.any(Set),
+          isReadOnly: undefined,
+          isSortable: true,
+          type: 'Column',
+          validation: undefined,
+        },
+      });
+    });
+  });
 });
