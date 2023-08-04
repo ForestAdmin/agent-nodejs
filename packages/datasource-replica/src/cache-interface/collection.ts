@@ -21,10 +21,6 @@ export default class CacheCollectionInterface {
   private collection: Collection;
   private caller: Caller;
 
-  get name(): string {
-    return this.collection.name;
-  }
-
   constructor(collection: Collection, caller: Caller) {
     this.caller = caller;
     this.collection = collection;
