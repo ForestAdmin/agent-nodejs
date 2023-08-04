@@ -236,8 +236,6 @@ describe('flattener', () => {
         },
       });
 
-      console.log(datasource.getCollection('books').schema.fields);
-
       expect(datasource.getCollection('books').schema.fields).toEqual({
         authors: {
           foreignCollection: 'books_authors',
