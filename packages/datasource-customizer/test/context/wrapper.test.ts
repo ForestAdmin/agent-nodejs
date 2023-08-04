@@ -40,6 +40,7 @@ describe('RelaxedWrappers', () => {
       caller = factories.caller.build();
       collection = factories.collection.build({
         nativeDriver: 'my-native-driver',
+        name: 'my-collection',
         schema: {
           fields: {
             name: factories.columnSchema.build({ columnType: 'String' }),
@@ -51,6 +52,10 @@ describe('RelaxedWrappers', () => {
 
     test('should forward nativeDriver calls', async () => {
       expect(relaxed.nativeDriver).toBe('my-native-driver');
+    });
+
+    test('should handle collection name', async () => {
+      expect(relaxed.name).toBe('my-collection');
     });
 
     test('should call list when provided with a plain object', async () => {
