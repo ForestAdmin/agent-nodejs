@@ -1,5 +1,6 @@
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
+import { ReplicaDataSourceOptions } from '../../../src';
 import { makeReplicaDataSource, makeSchemaWithId } from '../factories';
 
 describe('create', () => {
@@ -16,6 +17,28 @@ describe('create', () => {
         .create(factories.caller.build(), [{ id: 1 }, { id: 2 }]);
 
       expect(createRecordHandler).toHaveBeenCalledTimes(2);
+      expect(createRecordHandler).toHaveBeenCalledWith('contacts', { id: 1 });
+      expect(createRecordHandler).toHaveBeenCalledWith('contacts', { id: 2 });
+    });
+
+    it('should trigger the create handler with pullDeltaOnAfterWrite params', async () => {
+      const createRecordHandler = jest.fn();
+
+      const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest.fn();
+
+      const datasource = await makeReplicaDataSource({
+        createRecordHandler,
+        pullDeltaHandler,
+        pullDeltaOnAfterWrite: true,
+        schema: makeSchemaWithId('contacts'),
+      });
+
+      await datasource
+        .getCollection('contacts')
+        .create(factories.caller.build(), [{ id: 1 }, { id: 2 }]);
+
+      expect(createRecordHandler).toHaveBeenCalledTimes(2);
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
       expect(createRecordHandler).toHaveBeenCalledWith('contacts', { id: 1 });
       expect(createRecordHandler).toHaveBeenCalledWith('contacts', { id: 2 });
     });

@@ -34,6 +34,40 @@ describe('update', () => {
       expect(updateRecordHandler).toHaveBeenCalledWith('contacts', { id: 2, name: 'updated' });
     });
 
+    it('should trigger the update handler with pullDeltaOnAfterWrite params', async () => {
+      const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+        .fn()
+        .mockResolvedValueOnce({
+          more: false,
+          entries: [
+            { collection: 'contacts', record: { id: 1 } },
+            { collection: 'contacts', record: { id: 2 } },
+          ],
+        });
+
+      const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest.fn();
+
+      const updateRecordHandler = jest.fn();
+      const datasource = await makeReplicaDataSource({
+        updateRecordHandler,
+        pullDumpHandler,
+        pullDeltaHandler,
+        pullDeltaOnAfterWrite: true,
+        schema: makeSchemaWithId('contacts'),
+      });
+
+      await datasource
+        .getCollection('contacts')
+        .update(factories.caller.build(), factories.filter.idPresent(), {
+          name: 'updated',
+        });
+
+      expect(updateRecordHandler).toHaveBeenCalledTimes(2);
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+      expect(updateRecordHandler).toHaveBeenCalledWith('contacts', { id: 1, name: 'updated' });
+      expect(updateRecordHandler).toHaveBeenCalledWith('contacts', { id: 2, name: 'updated' });
+    });
+
     describe('when the handler is not defined', () => {
       it('should throw an error', async () => {
         const datasource = await makeReplicaDataSource({

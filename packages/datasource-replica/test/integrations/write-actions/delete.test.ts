@@ -32,6 +32,38 @@ describe('delete', () => {
       expect(deleteRecordHandler).toHaveBeenCalledWith('contacts', { id: 2 });
     });
 
+    it('should trigger the delete handler with pullDeltaOnAfterWrite params', async () => {
+      const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+        .fn()
+        .mockResolvedValueOnce({
+          more: false,
+          entries: [
+            { collection: 'contacts', record: { id: 1 } },
+            { collection: 'contacts', record: { id: 2 } },
+          ],
+        });
+
+      const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest.fn();
+
+      const deleteRecordHandler = jest.fn();
+      const datasource = await makeReplicaDataSource({
+        deleteRecordHandler,
+        pullDumpHandler,
+        pullDeltaHandler,
+        pullDeltaOnAfterWrite: true,
+        schema: makeSchemaWithId('contacts'),
+      });
+
+      await datasource
+        .getCollection('contacts')
+        .delete(factories.caller.build(), factories.filter.idPresent());
+
+      expect(deleteRecordHandler).toHaveBeenCalledTimes(2);
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+      expect(deleteRecordHandler).toHaveBeenCalledWith('contacts', { id: 1 });
+      expect(deleteRecordHandler).toHaveBeenCalledWith('contacts', { id: 2 });
+    });
+
     describe('when the handler is not defined', () => {
       it('should throw an error', async () => {
         const datasource = await makeReplicaDataSource({
