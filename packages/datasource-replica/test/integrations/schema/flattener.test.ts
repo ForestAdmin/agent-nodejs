@@ -189,6 +189,13 @@ describe('flattener', () => {
       const datasource = await makeReplicaDataSource({
         schema: [
           {
+            name: 'agencies',
+            fields: {
+              id: { type: 'Integer', isPrimaryKey: true },
+              name: { type: 'String' },
+            },
+          },
+          {
             name: 'authors',
             fields: {
               id: { type: 'Integer', isPrimaryKey: true },
@@ -214,14 +221,22 @@ describe('flattener', () => {
                   },
                 },
               ],
+              prices: {
+                fields: {
+                  id: { type: 'Integer', isPrimaryKey: true },
+                  name: { type: 'String' },
+                },
+              },
             },
           },
         ],
         flattenMode: 'manual',
         flattenOptions: {
-          books: { asModels: ['authors'], asFields: ['id'] },
+          books: { asModels: ['authors'], asFields: ['id', 'prices'] },
         },
       });
+
+      console.log(datasource.getCollection('books').schema.fields);
 
       expect(datasource.getCollection('books').schema.fields).toEqual({
         authors: {
@@ -241,6 +256,25 @@ describe('flattener', () => {
           isSortable: true,
           type: 'Column',
           validation: undefined,
+        },
+        'prices@@@fields.id': {
+          columnType: 'Number',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          isPrimaryKey: true,
+          defaultValue: undefined,
+        },
+        'prices@@@fields.name': {
+          columnType: 'String',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
         },
         id: {
           columnType: 'Number',
