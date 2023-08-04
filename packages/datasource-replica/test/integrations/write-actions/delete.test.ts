@@ -67,7 +67,6 @@ describe('delete', () => {
     describe('when the handler is not defined', () => {
       it('should throw an error', async () => {
         const datasource = await makeReplicaDataSource({
-          deleteRecordHandler: null,
           schema: makeSchemaWithId('contacts'),
         });
 

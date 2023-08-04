@@ -31,7 +31,7 @@ describe('pull delta', () => {
       const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
         .fn()
         .mockImplementationOnce(async (request: PullDeltaRequest) => {
-          allDeltaStatesAfterCalls.push(request.previousDeltaState);
+          allDeltaStatesAfterCalls.push(request.previousDeltaState as never);
 
           return {
             more: true,
@@ -41,7 +41,7 @@ describe('pull delta', () => {
           };
         })
         .mockImplementationOnce(async (request: PullDeltaRequest) => {
-          allDeltaStatesAfterCalls.push(request.previousDeltaState);
+          allDeltaStatesAfterCalls.push(request.previousDeltaState as never);
 
           return {
             more: true,
@@ -51,7 +51,7 @@ describe('pull delta', () => {
           };
         })
         .mockImplementationOnce(async (request: PullDeltaRequest) => {
-          allDeltaStatesAfterCalls.push(request.previousDeltaState);
+          allDeltaStatesAfterCalls.push(request.previousDeltaState as never);
 
           return {
             more: false,
@@ -238,8 +238,7 @@ describe('pull delta', () => {
       });
     });
 
-    // eslint-disable-next-line jest/no-commented-out-tests
-    // describe('when the collection name does not exist in the schema', () => {
+    describe('when the collection name does not exist in the schema', () => {
     // eslint-disable-next-line jest/no-commented-out-tests
     //   it('should error log or an error', async () => {
     //     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest

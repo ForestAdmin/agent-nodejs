@@ -47,7 +47,6 @@ describe('create', () => {
   describe('when the handler is not defined', () => {
     it('should throw an error', async () => {
       const datasource = await makeReplicaDataSource({
-        createRecordHandler: null,
         schema: makeSchemaWithId('contacts'),
       });
 
