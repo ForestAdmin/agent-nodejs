@@ -239,29 +239,28 @@ describe('pull delta', () => {
     });
 
     describe('when the collection name does not exist in the schema', () => {
-    // eslint-disable-next-line jest/no-commented-out-tests
-    //   it('should error log or an error', async () => {
-    //     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
-    //       .fn()
-    //       .mockImplementationOnce(() => {
-    //         return {
-    //           more: false,
-    //           newOrUpdatedEntries: [{ collection: 'notExist', record: { id: 1 } }],
-    //           nextDeltaState: 'delta-state',
-    //           deletedEntries: [],
-    //         } as PullDeltaResponse;
-    //       });
-
-    //     // const datasource = await makeReplicaDataSource({
-    //     //   pullDeltaHandler,
-    //     //   schema: makeSchemaWithId('contacts'),
-    //     //   pullDeltaOnBeforeAccess: true,
-    //     // });
-
-    //     // TODO: fix the code to display a error log or an error ?
-    //     expect('false').toEqual(true);
-    //   });
-    // });
+      // eslint-disable-next-line jest/no-commented-out-tests
+      //   it('should error log or an error', async () => {
+      //     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+      //       .fn()
+      //       .mockImplementationOnce(() => {
+      //         return {
+      //           more: false,
+      //           newOrUpdatedEntries: [{ collection: 'notExist', record: { id: 1 } }],
+      //           nextDeltaState: 'delta-state',
+      //           deletedEntries: [],
+      //         } as PullDeltaResponse;
+      //       });
+      //     // const datasource = await makeReplicaDataSource({
+      //     //   pullDeltaHandler,
+      //     //   schema: makeSchemaWithId('contacts'),
+      //     //   pullDeltaOnBeforeAccess: true,
+      //     // });
+      //     // TODO: fix the code to display a error log or an error ?
+      //     expect('false').toEqual(true);
+      //   });
+      // });
+    });
   });
 });
 
