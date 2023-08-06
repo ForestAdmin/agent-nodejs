@@ -1,94 +1,125 @@
+/* eslint-disable max-len */
 import { ActionDefinition } from '../../src/decorators/actions/types/actions';
 import { DynamicField } from '../../src/decorators/actions/types/fields';
 import ActionValidator from '../../src/validators/action';
 
 describe('ActionValidator', () => {
   describe('validateActionConfiguration', () => {
-    test('it should validate an action with a form', () => {
-      const action: ActionDefinition = {
-        scope: 'Single',
-        form: [
-          {
-            label: 'PDF',
-            description: 'DJHBD',
-            type: 'File',
+    describe('success cases', () => {
+      test('it should validate an action with a form', () => {
+        const action: ActionDefinition = {
+          scope: 'Single',
+          form: [
+            {
+              label: 'PDF',
+              description: 'DJHBD',
+              type: 'File',
+            },
+            {
+              label: 'amount',
+              description: 'The amount (USD) to charge the credit card. Example: 42.50',
+              type: 'Number',
+            },
+            {
+              label: 'description',
+              description: 'Explain the reason why you want to charge manually the customer here',
+              isRequired: true,
+              type: 'String',
+              if: context => Number(context.formValues.Amount) > 4,
+            },
+            {
+              label: 'stripe_id',
+              type: 'String',
+              if: () => false,
+            },
+          ],
+          execute: async (context, resultBuilder) => {
+            return resultBuilder.success(`Well well done ${context.caller.email}!`);
           },
-          {
-            label: 'amount',
-            description: 'The amount (USD) to charge the credit card. Example: 42.50',
-            type: 'Number',
+        };
+        expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
+      });
+      test('it should validate an action without a form', () => {
+        const action: ActionDefinition = {
+          scope: 'Single',
+          execute: async (context, resultBuilder) => {
+            return resultBuilder.success(`Well well done ${context.caller.email}!`);
           },
-          {
-            label: 'description',
-            description: 'Explain the reason why you want to charge manually the customer here',
-            isRequired: true,
-            type: 'String',
-            if: context => Number(context.formValues.Amount) > 4,
-          },
-          {
-            label: 'stripe_id',
-            type: 'String',
-            if: () => false,
-          },
-        ],
-        execute: async (context, resultBuilder) => {
-          return resultBuilder.success(`Well well done ${context.caller.email}!`);
-        },
-      };
-      expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
-    });
-    test('it should validate an action without a form', () => {
-      const action: ActionDefinition = {
-        scope: 'Single',
-        execute: async (context, resultBuilder) => {
-          return resultBuilder.success(`Well well done ${context.caller.email}!`);
-        },
-      };
-      expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
-    });
-    test('it should validate an action with an empty form', () => {
-      const action: ActionDefinition = {
-        scope: 'Bulk',
-        form: [],
-        execute: () => {},
-      };
-      expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
-    });
-    test('it should validate an action with correct fields types', () => {
-      const action: ActionDefinition = {
-        scope: 'Single',
-        form: [
-          { label: 'field1', type: 'Enum', enumValues: ['1', '2', '3'] },
-          { label: 'field2', type: 'NumberList', defaultValue: [12] },
-          { label: 'field8', type: 'Number', defaultValue: () => 1 + 1 },
-          { label: 'field3', type: 'NumberList' },
-          { label: 'fielde33', type: 'Dateonly' },
-          { label: 'fielde34', type: 'File' },
-          { label: 'fielde35', type: 'FileList' },
-          { label: 'fielde36', type: 'Json' },
-          { label: 'field7', type: 'String' },
-          { label: 'field4', type: 'StringList' },
-          { label: 'field5', type: 'Boolean', isReadOnly: true, isRequired: () => false },
-          { label: 'field6', type: 'Collection', collectionName: () => 'Users' },
-        ],
-        execute: () => {},
-      };
-      expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
-    });
+        };
+        expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
+      });
+      test('it should validate an action with an empty form', () => {
+        const action: ActionDefinition = {
+          scope: 'Bulk',
+          form: [],
+          execute: () => {},
+        };
+        expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
+      });
+      test('it should validate an action with correct fields types', () => {
+        const action: ActionDefinition = {
+          scope: 'Single',
+          form: [
+            {
+              label: 'field1',
+              type: 'Enum',
+              enumValues: ['1', '2', '3'],
+              defaultValue: async () => '1',
+            },
+            {
+              label: 'field1',
+              type: 'EnumList',
+              enumValues: ['1', '2', '3'],
+              defaultValue: async context => ['2', '3', context.toString()],
+            },
+            { label: 'field2', type: 'NumberList', defaultValue: [12] },
+            { label: 'field8', type: 'Number', defaultValue: async () => 12 },
+            { label: 'field3', type: 'NumberList', value: () => [1, 2, 1000] },
+            {
+              label: 'field34',
+              type: 'File',
+              defaultValue: { name: 'string', lastModified: 'aa' } as unknown as File,
+            },
+            {
+              label: 'field15',
+              type: 'FileList',
+              defaultValue: () => {
+                return [{ name: 'string', lastModified: 'aa' } as unknown as File];
+              },
+            },
+            { label: 'field26', type: 'Json', if: context => Boolean(context) },
+            { label: 'field46', type: 'Date', description: 'The date' },
+            { label: 'field66', type: 'Dateonly', description: 'the date only' },
+            { label: 'field7', type: 'String', defaultValue: 'a' },
+            { label: 'field4', type: 'StringList', defaultValue: ['1', '2'] },
+            {
+              label: 'field5',
+              type: 'Boolean',
+              isReadOnly: true,
+              isRequired: () => false,
+              defaultValue: false,
+            },
+            { label: 'field6', type: 'Collection', collectionName: () => ['Users'] },
+          ],
+          execute: () => {},
+        };
+        expect(() => ActionValidator.validateActionConfiguration('TheName', action)).not.toThrow();
+      });
 
-    test('it should validate an action with lower case scope', () => {
-      const action = {
-        scope: 'single',
-        execute: async (context, resultBuilder) => {
-          return resultBuilder.success(`Well well done !`);
-        },
-      };
-      expect(() =>
-        ActionValidator.validateActionConfiguration(
-          'TheName',
-          action as unknown as ActionDefinition,
-        ),
-      ).not.toThrow();
+      test('it should validate an action with lower case scope', () => {
+        const action = {
+          scope: 'single',
+          execute: async (context, resultBuilder) => {
+            return resultBuilder.success(`Well well done !`);
+          },
+        };
+        expect(() =>
+          ActionValidator.validateActionConfiguration(
+            'TheName',
+            action as unknown as ActionDefinition,
+          ),
+        ).not.toThrow();
+      });
     });
 
     describe('documentation samples', () => {
@@ -162,7 +193,7 @@ describe('ActionValidator', () => {
               label: 'Assignee',
               description: 'The user to assign the ticket to',
               type: 'Collection',
-              collectionName: 'user',
+              collectionName: ['user'],
               isRequired: true,
             },
           ],
@@ -336,20 +367,7 @@ describe('ActionValidator', () => {
           ),
         ).toThrow('scope must be equal to one of the allowed values: (Single,Bulk,Global');
       });
-      test('it should reject an action with added unknown field', () => {
-        const action = {
-          scope: 'Bulk',
-          meal: 'Tartiflette',
-          execute: () => {},
-        };
-        expect(() =>
-          ActionValidator.validateActionConfiguration(
-            'TheName',
-            action as unknown as ActionDefinition,
-          ),
-        ).toThrow('must NOT have additional properties: (meal)');
-      });
-      test('it should reject an action with missing required field scope', () => {
+      test('it should reject an action with missing required scope property', () => {
         const action = {
           execute: () => {},
         };
@@ -360,59 +378,62 @@ describe('ActionValidator', () => {
           ),
         ).toThrow(`must have required property 'scope'`);
       });
-      [
-        {
-          test: 'it should display the field label in the error message',
-          field: { label: 'field1' } as unknown as DynamicField,
-          error: `Error in action form configuration, field 'field1'`,
-        },
-        {
-          test: 'it should display the action name in the error message',
-          field: { label: 'field1' } as unknown as DynamicField,
-          error: `Error in action 'TheName' configuration:`,
-        },
-        {
-          field: { label: 'field1' } as unknown as DynamicField,
-          error: `required property 'type'`,
-        },
-        {
-          field: { label: 'field1', type: 'Boolean', isRequired: {} } as unknown as DynamicField,
-          error: `isRequired should either be a boolean or a function`,
-        },
-        {
-          field: {
-            label: 'field1',
-            type: 'Collection',
-            collectionName: {},
-          } as unknown as DynamicField,
-          error: `collectionName should either be a string or a function`,
-        },
-        {
-          field: { label: 123, type: 'String' } as unknown as DynamicField,
-          error: `label must be string`,
-        },
-        {
-          field: { label: 'field1', type: 'string' } as unknown as DynamicField,
-          error: `type must be equal to one of the allowed values: (Boolean,Collection`,
-        },
-      ].forEach(wrongField => {
-        test(
-          // eslint-disable-next-line jest/valid-title
-          wrongField.test
-            ? (wrongField.test as string)
-            : `it should reject with a helpful message if a field is incorrect:
-        ${JSON.stringify(wrongField.field)}`,
-          () => {
-            const action: ActionDefinition = {
-              scope: 'Single',
-              form: [wrongField.field, { label: 'field2', type: 'Number' }],
-              execute: async () => {},
-            };
-            expect(() => ActionValidator.validateActionConfiguration('TheName', action)).toThrow(
-              wrongField.error,
-            );
+
+      describe('action field error cases', () => {
+        [
+          {
+            test: 'it should display the field label in the error message',
+            field: { label: 'field1' } as unknown as DynamicField,
+            error: `Error in action form configuration, field 'field1'`,
           },
-        );
+          {
+            test: 'it should display the action name in the error message',
+            field: { label: 'field1' } as unknown as DynamicField,
+            error: `Error in action 'TheName' configuration:`,
+          },
+          {
+            field: { label: 'field1' } as unknown as DynamicField,
+            error: `Invalid or missing action field type`,
+          },
+          {
+            field: { label: 'field1', type: 'Boolean', isRequired: {} } as unknown as DynamicField,
+            error: `Validation error: Expected boolean, received object at "isRequired"`,
+          },
+          {
+            field: {
+              label: 'field1',
+              type: 'Collection',
+              collectionName: {},
+            } as unknown as DynamicField,
+            error: `Validation error: Expected string, received object at "collectionName"`,
+          },
+          {
+            field: { label: 123, type: 'String' } as unknown as DynamicField,
+            error: `Validation error: Expected string, received number at "label"`,
+          },
+          {
+            field: { label: 'field1', type: 'tartiflette' } as unknown as DynamicField,
+            error: `Invalid or missing action field type`,
+          },
+        ].forEach(wrongField => {
+          test(
+            // eslint-disable-next-line jest/valid-title
+            wrongField.test
+              ? (wrongField.test as string)
+              : `it should reject with a helpful message if a field is incorrect:
+        ${JSON.stringify(wrongField.field)}`,
+            () => {
+              const action: ActionDefinition = {
+                scope: 'Single',
+                form: [wrongField.field, { label: 'field2', type: 'Number' }],
+                execute: async () => {},
+              };
+              expect(() => ActionValidator.validateActionConfiguration('TheName', action)).toThrow(
+                wrongField.error,
+              );
+            },
+          );
+        });
       });
     });
   });

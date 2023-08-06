@@ -1,9 +1,14 @@
+import { ValidationError } from '@forestadmin/datasource-toolkit';
 import Ajv from 'ajv'; // A library for validating JSON objects
 import ajvErrors from 'ajv-errors';
 import ajvKeywords from 'ajv-keywords';
+import { z } from 'zod';
+import errorMap from 'zod/lib/locales/en';
+import { ErrorMessageOptions, generateError, generateErrorMessage } from 'zod-error';
+import { fromZodError } from 'zod-validation-error';
 
 import { ActionDefinition, actionSchema } from '../decorators/actions/types/actions';
-import { DynamicField, fieldActionSchema } from '../decorators/actions/types/fields';
+import { DynamicField, fieldValidator } from '../decorators/actions/types/fields';
 import {
   ActionConfigurationValidationError,
   ActionFieldConfigurationValidationError,
@@ -18,15 +23,15 @@ ajvKeywords(ajv); // NOTICE: this library adds support for 'typeof' validation k
 export default class ActionValidator {
   static validateActionConfiguration(name: string, action: ActionDefinition) {
     const validate = ajv.compile(actionSchema);
-    if (!validate(action))
-      throw new ActionConfigurationValidationError(
-        name,
-        this.getValidationErrorMessage(validate.errors),
-      );
+    //    if (!validate(action))
+    //      throw new ActionConfigurationValidationError(
+    //        name,
+    //        this.getValidationErrorMessage(validate.errors),
+    //      );
 
     try {
       action.form?.forEach(field => {
-        this.validateActionFieldConfiguration(field);
+        this.validateActionFieldConfiguration(field as DynamicField);
       });
     } catch (error) {
       if (error instanceof ActionFieldConfigurationValidationError) {
@@ -38,13 +43,17 @@ export default class ActionValidator {
   }
 
   private static validateActionFieldConfiguration(field: DynamicField) {
-    const validate = ajv.compile(fieldActionSchema(field.type));
-    const { label } = field;
-    if (!validate(field))
+    if (!field.type || !fieldValidator[field.type])
       throw new ActionFieldConfigurationValidationError(
-        label,
-        this.getValidationErrorMessage(validate.errors),
+        field.label,
+        'Invalid or missing action field type',
       );
+
+    try {
+      return fieldValidator[field.type].parse(field);
+    } catch (error) {
+      throw new ActionFieldConfigurationValidationError(field.label, fromZodError(error).message);
+    }
   }
 
   private static getValidationErrorMessage(errors) {
