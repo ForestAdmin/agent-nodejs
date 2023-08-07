@@ -1,4 +1,4 @@
-import { ReplicaDataSourceOptions } from '../../../src';
+import { CollectionReplicaSchema, ReplicaDataSourceOptions } from '../../../src';
 import { makeReplicaDataSource } from '../factories';
 
 describe('flattener', () => {
@@ -185,6 +185,60 @@ describe('flattener', () => {
   });
 
   describe('with flatten options', () => {
+    describe('when the flatten asFields field does not exist', () => {
+      it('should throw an error', async () => {
+        const addressSchema: CollectionReplicaSchema = {
+          name: 'address',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+            name: { type: 'String' },
+            user: {
+              name: { type: 'String' },
+            },
+          },
+        };
+        await expect(
+          makeReplicaDataSource({
+            flattenMode: 'manual',
+            flattenOptions: {
+              address: { asFields: ['doesnotexist'] },
+            },
+            schema: [addressSchema],
+          }),
+        ).rejects.toThrow(
+          `Error while computing flattenOptions: Field doesnotexist not found in ${JSON.stringify(
+            addressSchema.fields,
+          )}`,
+        );
+      });
+    });
+
+    describe('when the flatten options collection key does not exist', () => {
+      it('should throw an error', async () => {
+        const addressSchema: CollectionReplicaSchema = {
+          name: 'address',
+          fields: {
+            id: { type: 'Integer', isPrimaryKey: true },
+            name: { type: 'String' },
+            user: {
+              name: { type: 'String' },
+            },
+          },
+        };
+        await expect(
+          makeReplicaDataSource({
+            flattenMode: 'manual',
+            flattenOptions: {
+              doesnotexist: { asModels: ['editor'] },
+            },
+            schema: [addressSchema],
+          }),
+        ).rejects.toThrow(
+          'Error while computing flattenOptions: Collection doesnotexist not found in schema',
+        );
+      });
+    });
+
     it('should flatten all fields', async () => {
       const datasource = await makeReplicaDataSource({
         schema: [
