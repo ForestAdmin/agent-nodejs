@@ -127,8 +127,7 @@ describe('pull dump', () => {
       expect(pullDumpHandler).toHaveBeenCalledTimes(2);
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
 
-      // @ts-ignore
-      await datasource.childDataSource.options.source.stop();
+      await (datasource as unknown as any).childDataSource.options.source.stop();
       expect(schedulerStop).toHaveBeenCalledTimes(1);
     });
   });
