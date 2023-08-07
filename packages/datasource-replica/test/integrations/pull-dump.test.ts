@@ -1,3 +1,5 @@
+import Croner from 'croner';
+
 import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
 import { PullDumpRequest, ReplicaDataSourceOptions } from '../../src';
 
@@ -88,6 +90,46 @@ describe('pull dump', () => {
       });
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+    });
+  });
+
+  describe('on schedule', () => {
+    it('should add scheduler on handler', async () => {
+      const schedulerStop = jest.fn();
+      Croner.Cron = jest.fn().mockImplementation((pattern, func) => {
+        func();
+
+        return { stop: schedulerStop };
+      }) as unknown as typeof Croner.Cron;
+
+      const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+        .fn()
+        .mockImplementationOnce(() => {
+          return {
+            more: false,
+            entries: [],
+          };
+        })
+        .mockImplementationOnce(() => {
+          return {
+            more: false,
+            entries: [{ collection: 'contacts', record: { id: 1 } }],
+          };
+        });
+
+      const datasource = await makeReplicaDataSource({
+        pullDumpHandler,
+        schema: makeSchemaWithId('contacts'),
+        pullDumpOnSchedule: '* * * * * *',
+      });
+
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+      expect(pullDumpHandler).toHaveBeenCalledTimes(2);
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
+
+      // @ts-ignore
+      await datasource.childDataSource.options.source.stop();
+      expect(schedulerStop).toHaveBeenCalledTimes(1);
     });
   });
 
