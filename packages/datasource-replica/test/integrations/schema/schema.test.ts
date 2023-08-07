@@ -23,7 +23,7 @@ describe('schema', () => {
             },
           ],
         });
-      const datasource = await makeReplicaDataSource({ schema: null, pullDumpHandler });
+      const datasource = await makeReplicaDataSource({ pullDumpHandler });
 
       const records = await getAllRecords(datasource, 'contacts', ['id', 'name', 'objectField']);
 
@@ -49,9 +49,9 @@ describe('schema', () => {
             more: false,
             entries: [{ collection: 'contacts', record: null }],
           });
-        await expect(() =>
-          makeReplicaDataSource({ schema: null, pullDumpHandler }),
-        ).rejects.toThrow('No primary key found in the schema of the collection contacts');
+        await expect(() => makeReplicaDataSource({ pullDumpHandler })).rejects.toThrow(
+          'No primary key found in the schema of the collection contacts',
+        );
       });
     });
   });

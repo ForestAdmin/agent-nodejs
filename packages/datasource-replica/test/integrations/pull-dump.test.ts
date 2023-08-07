@@ -30,7 +30,7 @@ describe('pull dump', () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
         .fn()
         .mockImplementationOnce((request: PullDumpRequest) => {
-          allDumpStatesAfterCalls.push(request.previousDumpState);
+          allDumpStatesAfterCalls.push(request.previousDumpState as never);
 
           return {
             more: true,
@@ -42,7 +42,7 @@ describe('pull dump', () => {
           };
         })
         .mockImplementationOnce((request: PullDumpRequest) => {
-          allDumpStatesAfterCalls.push(request.previousDumpState);
+          allDumpStatesAfterCalls.push(request.previousDumpState as never);
 
           return {
             more: false, // stop the dump

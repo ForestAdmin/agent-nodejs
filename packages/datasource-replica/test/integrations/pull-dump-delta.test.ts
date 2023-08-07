@@ -24,7 +24,7 @@ describe('pull dump and delta', () => {
       const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
         .fn()
         .mockImplementationOnce(async (request: PullDeltaRequest) => {
-          deltaDeltaStatesAfterCalls.push(request.previousDeltaState);
+          deltaDeltaStatesAfterCalls.push(request.previousDeltaState as never);
 
           return {
             more: false,
