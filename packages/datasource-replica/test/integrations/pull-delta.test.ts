@@ -264,6 +264,30 @@ describe('pull delta', () => {
   });
 });
 
+describe('on initialization', () => {
+  describe('when handler is defined and no delta flag', () => {
+    it('should throw an error', async () => {
+      await expect(() =>
+        makeReplicaDataSource({
+          pullDeltaHandler: (() => {}) as unknown as ReplicaDataSourceOptions['pullDeltaHandler'],
+          schema: makeSchemaWithId('contacts'),
+        }),
+      ).rejects.toThrow('Using pullDeltaHandler without pullDelta[*] flags');
+    });
+  });
+
+  describe('when flag is defined and no handler', () => {
+    it('should throw an error', async () => {
+      await expect(() =>
+        makeReplicaDataSource({
+          pullDeltaOnBeforeAccess: true,
+          schema: makeSchemaWithId('contacts'),
+        }),
+      ).rejects.toThrow('Using pullDelta[*] flags without pullDeltaHandler');
+    });
+  });
+});
+
 // eslint-disable-next-line jest/no-commented-out-tests
 //     describe('when before list', () => {
 // eslint-disable-next-line jest/no-commented-out-tests

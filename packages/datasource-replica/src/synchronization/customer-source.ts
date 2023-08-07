@@ -113,6 +113,7 @@ export default class CustomerSource implements SynchronizationSource {
     this.queuedPushDeltaRequest.deletedEntries.push(...delta.deletedEntries);
     this.queuedPushDeltaRequest.newOrUpdatedEntries.push(...delta.newOrUpdatedEntries);
     if (delta.nextDeltaState) this.queuedPushDeltaRequest.nextDeltaState = delta.nextDeltaState;
+    this.tick();
   }
 
   queuePullDump(reason: PullDumpReason): Promise<void> {
@@ -160,7 +161,7 @@ export default class CustomerSource implements SynchronizationSource {
   private async runPushDelta(changes: PushDeltaResponse): Promise<void> {
     this.isRunning = true;
 
-    this.target.applyDelta(changes);
+    await this.target.applyDelta(changes);
 
     this.isRunning = false;
     this.tick();
