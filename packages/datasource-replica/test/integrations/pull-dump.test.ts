@@ -133,66 +133,6 @@ describe('pull dump', () => {
   });
 
   describe('when the dump does not respect the schema', () => {
-    describe('when there is any record expected by the schema', () => {
-      it('should throw an error', async () => {
-        const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
-          .fn()
-          .mockImplementationOnce(() => {
-            return {
-              more: false,
-              entries: [{ collection: 'contacts', record: { fieldNotExist: 1 } }],
-            };
-          });
-
-        const logger = jest.fn();
-
-        await makeReplicaDataSource(
-          {
-            pullDumpHandler,
-            schema: makeSchemaWithId('contacts'),
-          },
-          logger,
-        );
-
-        const errorEntries = logger.mock.calls.filter(entry => entry[0] === 'Error');
-
-        expect(errorEntries.toString()).toContain(
-          'Cannot find any field in the given records matching the schema of collection "contacts"',
-        );
-      });
-    });
-
-    describe('when there is any field expected by the schema', () => {
-      it('should insert the records and display a warning log', async () => {
-        const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
-          .fn()
-          .mockImplementationOnce(() => {
-            return {
-              more: false,
-              entries: [{ collection: 'contacts', record: { id: 1, fieldNotExist: 1 } }],
-            };
-          });
-
-        const logger = jest.fn();
-
-        const datasource = await makeReplicaDataSource(
-          {
-            pullDumpHandler,
-            schema: makeSchemaWithId('contacts'),
-          },
-          logger,
-        );
-
-        expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
-        expect(pullDumpHandler).toHaveBeenCalledTimes(1);
-        const warnEntries = logger.mock.calls.filter(entry => entry[0] === 'Warn');
-
-        expect(warnEntries.toString()).toContain(
-          "Fields 'fieldNotExist' do not exist in the schema for collection contacts",
-        );
-      });
-    });
-
     describe('when the collection name does not exist in the schema', () => {
       it('should error log or an error', async () => {
         const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest

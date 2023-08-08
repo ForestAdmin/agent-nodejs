@@ -114,30 +114,9 @@ export default class CacheTarget implements SynchronizationTarget {
     const schemaEntry = this.options.schema.find(s => s.name === collection);
 
     if (!schemaEntry) {
-      const errorMessage = `Collection '${collection}' not found in schema`;
-      this.logger('Error', errorMessage);
+      this.logger('Error', `Collection '${collection}' not found in schema. Skipping.`);
 
       return false;
-    }
-
-    const schemaFields = Object.keys(schemaEntry.fields);
-    const missingFields = fields.filter(field => !schemaFields.includes(field));
-
-    if (fields.length - missingFields.length <= 0) {
-      const errorMessage = `
-        Cannot find any field in the given records matching the schema of collection "${collection}"
-      `;
-      this.logger('Error', errorMessage);
-
-      return false;
-    }
-
-    if (missingFields.length > 0) {
-      const missingFieldsList = missingFields.join(', ');
-      const errorMessage = `
-        Fields '${missingFieldsList}' do not exist in the schema for collection ${collection}
-      `;
-      this.logger('Warn', errorMessage);
     }
 
     return true;

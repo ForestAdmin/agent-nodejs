@@ -51,20 +51,9 @@ async function defineModels(
     const sequelizeModel = sequelize.define(model.name, attributes, {
       timestamps: false,
       tableName: `${namespace}_${model.name}`,
-
-      // fixme
-      // because we don't want foreign keys to be created, we played around with when we
-      // call sequelize.sync()
-      // this is not ideal because we don't have indexes on the foreign keys!
-
-      // Performances would be better if we could do this:
-      // - retrieve all keys which are fks in the schema (look at the `reference` field)
-      // - manually add the indexes on the fields here:
-
-      // Something like this:
-      // indexes: Object.entries(model.fields)
-      //   .filter(([, field]) => isLeafField(field) && field.reference)
-      //   .map(([name]) => ({ fields: [name] })),
+      indexes: Object.entries(model.fields)
+        .filter(([, field]) => isLeafField(field) && field.reference)
+        .map(([name]) => ({ fields: [name] })),
     });
 
     // eslint-disable-next-line no-await-in-loop
