@@ -140,7 +140,7 @@ export default class CacheTarget implements SynchronizationTarget {
         this.logger('Error', `Collection '${collection}' not found in schema`);
       }
 
-      return false; // stop the flatten for this entry
+      return false;
     }
 
     const schemaFields = Object.keys(schemaEntry.fields);
@@ -169,6 +169,6 @@ export default class CacheTarget implements SynchronizationTarget {
       }
     }
 
-    return true; // continue flatten for this entry
+    return true;
   }
 }
