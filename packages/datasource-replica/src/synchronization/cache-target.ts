@@ -59,9 +59,7 @@ export default class CacheTarget implements SynchronizationTarget {
     // [transaction]
 
     for (const entry of changes.deletedEntries) {
-      if (
-        this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record), false)
-      ) {
+      if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
         await this.destroySubModels(entry);
         await this.connection.model(entry.collection).destroy({ where: entry.record });
       }
@@ -70,9 +68,7 @@ export default class CacheTarget implements SynchronizationTarget {
     // Upsert records in both root and virtual collections
 
     for (const entry of changes.newOrUpdatedEntries) {
-      if (
-        this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record), false)
-      ) {
+      if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
         await this.destroySubModels(entry);
 
         // fixme check that no pre-processing of the records are needed to handle
@@ -92,7 +88,6 @@ export default class CacheTarget implements SynchronizationTarget {
       this.checkCollectionAndFieldsInSchema(
         recordWithCollection.collection,
         Object.keys(recordWithCollection.record),
-        false,
       )
     )
       return flattenRecord(
@@ -117,47 +112,34 @@ export default class CacheTarget implements SynchronizationTarget {
     await Promise.all(promises);
   }
 
-  private checkCollectionAndFieldsInSchema(
-    collection: string,
-    fields: string[],
-    shouldThrow: boolean,
-  ): boolean {
+  private checkCollectionAndFieldsInSchema(collection: string, fields: string[]): boolean {
     const schemaEntry = this.options.schema.find(s => s.name === collection);
 
     if (!schemaEntry) {
-      if (shouldThrow) {
-        throw new Error(`Collection ${collection} not found in schema`);
-      } else {
-        this.logger('Error', `Collection '${collection}' not found in schema`);
-      }
+      const errorMessage = `Collection '${collection}' not found in schema`;
+      this.logger('Error', errorMessage);
 
       return false;
     }
 
     const schemaFields = Object.keys(schemaEntry.fields);
-
     const missingFields = fields.filter(field => !schemaFields.includes(field));
 
     if (fields.length - missingFields.length <= 0) {
-      this.logger(
-        'Error',
-        // eslint-disable-next-line max-len
-        `Cannot find any field in the given records matching the schema of collection "${collection}"`,
-      );
+      const errorMessage = `
+        Cannot find any field in the given records matching the schema of collection "${collection}"
+      `;
+      this.logger('Error', errorMessage);
 
       return false;
     }
 
     if (missingFields.length > 0) {
-      const errorMessage = `Fields '${missingFields.join(
-        ', ',
-      )}' do not exist in the schema for collection ${collection}`;
-
-      if (shouldThrow) {
-        throw new Error(errorMessage);
-      } else {
-        this.logger('Warn', errorMessage);
-      }
+      const missingFieldsList = missingFields.join(', ');
+      const errorMessage = `
+        Fields '${missingFieldsList}' do not exist in the schema for collection ${collection}
+      `;
+      this.logger('Warn', errorMessage);
     }
 
     return true;
