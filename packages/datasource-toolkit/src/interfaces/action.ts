@@ -10,7 +10,7 @@ export type File = {
   charset?: string;
 };
 
-export interface ActionField {
+export type ActionFieldBase = {
   type: ActionFieldType;
   label: string;
   description?: string;
@@ -18,27 +18,54 @@ export interface ActionField {
   isReadOnly?: boolean;
   value?: unknown;
   watchChanges: boolean;
-  enumValues?: string[]; // When type === 'Enum'
-  collectionName?: string; // When type === 'Collection'
-  options?: DropdownOption[]; // When widget === 'Dropdown';
-  search?: 'static' | 'disabled'; // When widget === 'Dropdown';
-  widget?: ActionFieldWidget;
-}
+};
 
-export type ActionFieldType =
-  | 'Boolean'
-  | 'Collection'
-  | 'Date'
-  | 'Dateonly'
-  | 'Enum'
-  | 'File'
-  | 'Json'
-  | 'Number'
-  | 'String'
-  | 'EnumList'
-  | 'FileList'
-  | 'NumberList'
-  | 'StringList';
+export const ActionFieldTypeList = [
+  'Boolean',
+  'Collection',
+  'Date',
+  'Dateonly',
+  'Enum',
+  'File',
+  'Json',
+  'Number',
+  'String',
+  'EnumList',
+  'FileList',
+  'NumberList',
+  'StringList',
+] as const;
+
+export type ActionFieldType = (typeof ActionFieldTypeList)[number];
+
+export type ActionFieldDropdown = ActionFieldBase & {
+  widget: 'Dropdown';
+  type: 'Date' | 'Dateonly' | 'Number' | 'String';
+  options?: DropdownOption[];
+  search?: 'static' | 'disabled';
+};
+
+export type ActionFieldEnum = ActionFieldBase & {
+  type: 'Enum';
+  enumValues: string[];
+};
+
+export type ActionFieldEnumList = ActionFieldBase & {
+  type: 'EnumList';
+  enumValues: string[];
+};
+
+export type ActionFieldCollection = ActionFieldBase & {
+  type: 'Collection';
+  collectionName: string;
+};
+
+export type ActionField =
+  | ActionFieldBase
+  | ActionFieldEnum
+  | ActionFieldEnumList
+  | ActionFieldCollection
+  | ActionFieldDropdown;
 
 export type ActionFieldWidget = 'Dropdown'; // Other widgets to be added in the future
 

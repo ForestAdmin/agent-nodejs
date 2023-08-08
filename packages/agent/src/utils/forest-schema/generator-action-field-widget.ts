@@ -1,15 +1,17 @@
-import { ActionField } from '@forestadmin/datasource-toolkit';
-import {
-  ForestServerActionFieldWidgetEdit,
-  ForestServerActionFieldWidgetEditDropdown,
-} from '@forestadmin/forestadmin-client';
+import { ActionField, ActionFieldDropdown } from '@forestadmin/datasource-toolkit';
+import { ForestServerActionFieldDropdownOptions } from '@forestadmin/forestadmin-client';
+
+import ActionFields from './action-fields';
 
 export default class GeneratorActionFieldWidget {
-  static buildWidgetEdit(field: ActionField): ForestServerActionFieldWidgetEdit | undefined {
-    if (!field.widget || ['Collection', 'Enum', 'EnumList'].includes(field.type)) return undefined;
+  static buildWidgetOptions(
+    field: ActionField,
+  ): ForestServerActionFieldDropdownOptions | undefined {
+    if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type))
+      return undefined;
 
-    switch (field.widget) {
-      case 'Dropdown':
+    switch (true) {
+      case ActionFields.isDropdownField(field):
         return GeneratorActionFieldWidget.buildDropdownWidgetEdit(field);
       default:
         throw new Error(`Unsupported widget type: ${field.widget}`);
@@ -17,14 +19,12 @@ export default class GeneratorActionFieldWidget {
   }
 
   private static buildDropdownWidgetEdit(
-    field: ActionField,
-  ): ForestServerActionFieldWidgetEditDropdown {
+    field: ActionFieldDropdown,
+  ): ForestServerActionFieldDropdownOptions {
     return {
-      name: 'dropdown',
-      parameters: {
-        search: field.search || 'disabled',
-        options: field.options || [],
-      },
+      widget: 'dropdown',
+      search: field.search || 'disabled',
+      options: field.options || [],
     };
   }
 }

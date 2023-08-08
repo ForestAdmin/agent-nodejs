@@ -130,7 +130,6 @@ describe('SchemaGeneratorActions', () => {
             label: 'avatar',
             description: 'choose an avatar',
             type: 'File',
-            enumValues: [],
             isRequired: true,
             isReadOnly: false,
             value: null,
@@ -212,9 +211,13 @@ describe('SchemaGeneratorActions', () => {
 
       const schema = await SchemaGeneratorActions.buildSchema(collection, 'Update title');
 
-      expect(schema.fields[0]).toMatchObject({
+      expect(schema.fields[0]).toEqual({
         field: 'title',
-        widgetEdit: undefined,
+        defaultValue: null,
+        description: 'updated title',
+        isReadOnly: false,
+        isRequired: true,
+        type: 'String',
       });
     });
 
@@ -253,16 +256,12 @@ describe('SchemaGeneratorActions', () => {
 
       expect(schema.fields[0]).toMatchObject({
         field: 'format',
-        widgetEdit: {
-          name: 'dropdown',
-          parameters: {
-            options: [
-              { label: 'Paperback', value: '1' },
-              { label: 'Hardcover', value: '2' },
-            ],
-            search: 'static',
-          },
-        },
+        widget: 'dropdown',
+        options: [
+          { label: 'Paperback', value: '1' },
+          { label: 'Hardcover', value: '2' },
+        ],
+        search: 'static',
       });
     });
   });

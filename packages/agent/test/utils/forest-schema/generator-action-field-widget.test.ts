@@ -3,7 +3,7 @@ import GeneratorActionFieldWidget from '../../../src/utils/forest-schema/generat
 describe('GeneratorActionFieldWidget', () => {
   describe('buildWidgetEdit', () => {
     it('should return null when field has no widget', () => {
-      const result = GeneratorActionFieldWidget.buildWidgetEdit({
+      const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'String',
         label: 'Label',
         watchChanges: false,
@@ -13,7 +13,7 @@ describe('GeneratorActionFieldWidget', () => {
     });
 
     it('should return null when the field type is Collection', () => {
-      const result = GeneratorActionFieldWidget.buildWidgetEdit({
+      const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'Collection',
         label: 'Label',
         watchChanges: false,
@@ -24,7 +24,7 @@ describe('GeneratorActionFieldWidget', () => {
     });
 
     it('should return null when the field type is Enum', () => {
-      const result = GeneratorActionFieldWidget.buildWidgetEdit({
+      const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'Enum',
         label: 'Label',
         watchChanges: false,
@@ -36,7 +36,7 @@ describe('GeneratorActionFieldWidget', () => {
     });
 
     it('should return null when the field type is EnumList', () => {
-      const result = GeneratorActionFieldWidget.buildWidgetEdit({
+      const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'EnumList',
         label: 'Label',
         watchChanges: false,
@@ -49,7 +49,7 @@ describe('GeneratorActionFieldWidget', () => {
 
     describe('Dropdown', () => {
       it('should return a valid widget edit', () => {
-        const result = GeneratorActionFieldWidget.buildWidgetEdit({
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
           label: 'Label',
           watchChanges: false,
@@ -62,19 +62,17 @@ describe('GeneratorActionFieldWidget', () => {
         });
 
         expect(result).toEqual({
-          name: 'dropdown',
-          parameters: {
-            search: 'static',
-            options: [
-              { value: 'value1', label: 'Value 1' },
-              { value: 'value2', label: 'Value 2' },
-            ],
-          },
+          widget: 'dropdown',
+          search: 'static',
+          options: [
+            { value: 'value1', label: 'Value 1' },
+            { value: 'value2', label: 'Value 2' },
+          ],
         });
       });
 
       it('should return a valid configuration with default values', () => {
-        const result = GeneratorActionFieldWidget.buildWidgetEdit({
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
           label: 'Label',
           watchChanges: false,
@@ -82,18 +80,16 @@ describe('GeneratorActionFieldWidget', () => {
         });
 
         expect(result).toEqual({
-          name: 'dropdown',
-          parameters: {
-            search: 'disabled',
-            options: [],
-          },
+          widget: 'dropdown',
+          search: 'disabled',
+          options: [],
         });
       });
     });
 
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
-        GeneratorActionFieldWidget.buildWidgetEdit({
+        GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
           label: 'Label',
           watchChanges: false,

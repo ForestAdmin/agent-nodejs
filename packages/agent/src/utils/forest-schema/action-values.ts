@@ -1,5 +1,6 @@
 import { ActionField, CompositeId, DataSource, File } from '@forestadmin/datasource-toolkit';
 
+import ActionFields from './action-fields';
 import SchemaGeneratorActions from './generator-actions';
 import IdUtils from '../id';
 
@@ -22,13 +23,13 @@ export default class ForestValueConverter {
 
       // Skip fields from the default form
       if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
-        if (field?.type === 'Collection' && value) {
+        if (ActionFields.isCollectionField(field) && value) {
           const collection = dataSource.getCollection(field.collectionName);
 
           data[key] = IdUtils.unpackId(collection.schema, value as string);
-        } else if (field?.type === 'File') {
+        } else if (ActionFields.isFileField(field) && value) {
           data[key] = this.parseDataUri(value as string);
-        } else if (field?.type === 'FileList') {
+        } else if (ActionFields.isFileListField(field) && value) {
           data[key] = (value as string[])?.map(v => this.parseDataUri(v));
         } else {
           data[key] = value;
@@ -96,11 +97,11 @@ export default class ForestValueConverter {
   }
 
   static valueToForest(field: ActionField, value: unknown): unknown {
-    if (field.type === 'Enum') {
+    if (ActionFields.isEnumField(field)) {
       return field.enumValues.includes(value as string) ? value : null;
     }
 
-    if (field.type === 'EnumList') {
+    if (ActionFields.isEnumListField(field)) {
       return (value as string[])?.filter(v => field.enumValues.includes(v));
     }
 

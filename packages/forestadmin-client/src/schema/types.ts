@@ -53,18 +53,18 @@ export type ForestServerActionFieldWidgetEditBase<TType = string, TConfig = unkn
   parameters: TConfig;
 };
 
-export type ForestServerActionFieldWidgetEditDropdown = ForestServerActionFieldWidgetEditBase<
-  'dropdown',
-  {
-    search?: 'static' | 'disabled';
-    options: Array<{ label: string; value: string }>;
-  }
->;
+export type ForestServerActionFieldCommon = {
+  value: unknown;
+  defaultValue: unknown;
+  description: string | null;
+  field: string;
+  hook: string;
+  isReadOnly: boolean;
+  isRequired: boolean;
+  type: ForestServerColumnType;
+};
 
-export type ForestServerActionFieldWidgetEdit =
-  ForestServerActionFieldWidgetEditDropdown /* Other definitions to follow */;
-
-export type ForestServerActionField = {
+export type ForestServerActionFieldBase = {
   value: unknown;
   defaultValue: unknown;
   description: string | null;
@@ -75,8 +75,18 @@ export type ForestServerActionField = {
   isRequired: boolean;
   reference: string | null;
   type: ForestServerColumnType;
-  widgetEdit: ForestServerActionFieldWidgetEdit;
 };
+
+export type ForestServerActionFieldDropdownOptions = {
+  widget: 'dropdown';
+  search?: 'static' | 'disabled';
+  options: Array<{ label: string; value: string }>;
+};
+
+export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon &
+  ForestServerActionFieldDropdownOptions;
+
+export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 
 export type ForestServerField = Partial<{
   field: string;
