@@ -2,7 +2,36 @@ import { ReplicaDataSourceOptions } from '../../../src';
 import { getAllRecords, makeReplicaDataSource } from '../factories';
 
 describe('schema', () => {
-  describe('when the schema is not given', () => {
+  describe('when the schema on a delta strategy is not given', () => {
+    it('should detect the schema correctly', async () => {
+      const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+        .fn()
+        .mockResolvedValueOnce({
+          more: false,
+          newOrUpdatedEntries: [
+            { collection: 'contacts', record: { id: 1, name: 'John' } },
+            { collection: 'contacts', record: { id: 2, name: 'Jack' } },
+          ],
+          deletedEntries: [],
+        });
+
+      const datasource = await makeReplicaDataSource({
+        pullDeltaHandler,
+        pullDeltaOnRestart: true,
+      });
+
+      const detectedFields = datasource.getCollection('contacts').schema.fields;
+
+      expect(detectedFields).toEqual(
+        expect.objectContaining({
+          id: expect.objectContaining({ columnType: 'Number', isPrimaryKey: true }),
+          name: expect.objectContaining({ columnType: 'String' }),
+        }),
+      );
+    });
+  });
+
+  describe('when the schema on a dump strategy is not given', () => {
     it('should compute the schema from the records', async () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
         .fn()
