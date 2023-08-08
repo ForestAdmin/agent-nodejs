@@ -17,7 +17,7 @@ export default class Serializer {
     if (Array.isArray(value)) {
       value.forEach((v, i) => {
         // serialize by reference to improve performances by avoiding the copies
-        if (value instanceof Date) value[i] = Serializer.serializeDate(v);
+        if (v instanceof Date) value[i] = Serializer.serializeDate(v);
       });
     }
 
