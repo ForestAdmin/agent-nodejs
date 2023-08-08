@@ -22,8 +22,6 @@ export default class CacheDataSourceInterface {
     this.dataSource = dataSource;
   }
 
-  // fixme add a function here to execute raw SQL queries
-
   /**
    * Get a collection from a datasource
    * @param name the name of the collection

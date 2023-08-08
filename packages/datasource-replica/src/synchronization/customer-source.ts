@@ -183,7 +183,7 @@ export default class CustomerSource implements SynchronizationSource {
           previousDumpState: state,
         });
 
-        this.target.applyDump(changes, firstPage);
+        await this.target.applyDump(changes, firstPage);
         firstPage = false;
 
         more = changes.more;

@@ -26,9 +26,6 @@ export default class CacheTarget implements SynchronizationTarget {
   }
 
   async applyDump(changes: PullDumpResponse, firstPage: boolean): Promise<void> {
-    // fixme use something so that final users see the whole dump as a single transaction
-    // [transaction / temporary table]
-
     if (firstPage) {
       // Truncate tables
       for (const collection of this.options.flattenSchema) {
@@ -46,12 +43,13 @@ export default class CacheTarget implements SynchronizationTarget {
       }
     }
 
-    for (const [collection, records] of Object.entries(recordsByCollection)) {
-      // fixme check that no pre-processing of the records are needed to handle
-      // dates, buffers, ...
-      await this.connection.model(collection).bulkCreate(records);
-    }
-    // [/transaction / temporary table]
+    await this.connection.transaction(async transaction => {
+      for (const [collection, records] of Object.entries(recordsByCollection)) {
+        // fixme check that no pre-processing of the records are needed to handle
+        // dates, buffers, ...
+        await this.connection.model(collection).bulkCreate(records, { transaction });
+      }
+    });
   }
 
   async applyDelta(changes: PushDeltaResponse): Promise<void> {

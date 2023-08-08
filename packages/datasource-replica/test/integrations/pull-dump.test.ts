@@ -37,8 +37,8 @@ describe('pull dump', () => {
           return {
             more: true,
             entries: [
-              { collection: 'contacts', record: { id: 3 } },
-              { collection: 'contacts', record: { id: 4 } },
+              { collection: 'contacts', record: { id: 1 } },
+              { collection: 'contacts', record: { id: 2 } },
             ],
             nextDumpState: 'theNextDumpState-0',
           };
@@ -49,8 +49,8 @@ describe('pull dump', () => {
           return {
             more: false, // stop the dump
             entries: [
-              { collection: 'contacts', record: { id: 1 } },
-              { collection: 'contacts', record: { id: 2 } },
+              { collection: 'contacts', record: { id: 3 } },
+              { collection: 'contacts', record: { id: 4 } },
             ],
           };
         });
