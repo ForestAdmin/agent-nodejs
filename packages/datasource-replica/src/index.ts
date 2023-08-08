@@ -42,7 +42,7 @@ function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSour
 
     // Start synchronization between our database and the source.
     // (or replay the dump/delta if they were already synchronized when guessing the schema)
-    await options.source.start(new CacheTarget(connection, options));
+    await options.source.start(new CacheTarget(connection, options, logger));
 
     return schemaDecorator;
   };

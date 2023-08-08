@@ -1,4 +1,4 @@
-import { DataSource, Filter, Projection } from '@forestadmin/datasource-toolkit';
+import { DataSource, Filter, Logger, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { ReplicaDataSourceOptions, createReplicaDataSource } from '../../src';
@@ -21,8 +21,9 @@ export const getAllRecords = async (
 
 export const makeReplicaDataSource = async (
   options?: ReplicaDataSourceOptions,
+  logger?: Logger,
 ): Promise<DataSource> => {
   const replicaFactory = createReplicaDataSource(options ?? {});
 
-  return replicaFactory(makeLogger());
+  return replicaFactory(logger ?? makeLogger());
 };

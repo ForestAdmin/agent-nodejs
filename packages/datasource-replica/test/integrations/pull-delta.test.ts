@@ -24,7 +24,6 @@ describe('pull delta', () => {
     });
   });
 
-  // TODO: debug this test
   describe('when the delta has many iterations', () => {
     it('should call the delta until the more value is false', async () => {
       const allDeltaStatesAfterCalls = [];
@@ -125,10 +124,6 @@ describe('pull delta', () => {
     });
   });
 
-  // TODO: add the tests on the push
-  // TODO: check if it works without the deleted entries attribute if it throw an error
-
-  // TODO: check number of delta handler calls
   describe('when a record is update', () => {
     it('should execute the delta', async () => {
       const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
@@ -185,34 +180,41 @@ describe('pull delta', () => {
     });
   });
 
-  // TODO: CHECK IF THIS CODE THROW AN ERROR LIKE THE DUMP
   describe('when the delta does not respect the schema', () => {
-    // describe('when there is any record expected by the schema', () => {
-    //   it('should throw an error', async () => {
-    //     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
-    //       .fn()
-    //       .mockImplementationOnce(() => {
-    //         return {
-    //           more: false,
-    // eslint-disable-next-line max-len
-    //           newOrUpdatedEntries: [{ collection: 'contacts', record: { CollectionNotExist: 1 } }],
-    //           nextDeltaState: 'delta-state',
-    //           deletedEntries: [],
-    //         } as PullDeltaResponse;
-    //       });
+    describe('when there is any record expected by the schema', () => {
+      it('should throw an error', async () => {
+        const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return {
+              more: false,
+              newOrUpdatedEntries: [{ collection: 'contacts', record: { fieldNotExist: 1 } }],
+              nextDeltaState: 'delta-state',
+              deletedEntries: [],
+            } as PullDeltaResponse;
+          });
 
-    //     const datasource = await makeReplicaDataSource({
-    //       pullDeltaHandler,
-    //       schema: makeSchemaWithId('contacts'),
-    //       pullDeltaOnBeforeAccess: true,
-    //     });
+        const logger = jest.fn();
 
-    //     // TODO: fix the code to throw error
-    //     expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
-    //   });
-    // });
+        const datasource = await makeReplicaDataSource(
+          {
+            pullDeltaHandler,
+            schema: makeSchemaWithId('contacts'),
+            pullDeltaOnBeforeAccess: true,
+          },
+          logger,
+        );
 
-    // TODO: CHECK IF THIS CODE THROW AN ERROR
+        expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+
+        const errorEntries = logger.mock.calls.filter(entry => entry[0] === 'Error');
+
+        expect(errorEntries.toString()).toContain(
+          'Cannot find any field in the given records matching the schema of collection "contacts"',
+        );
+      });
+    });
+
     describe('when there is any field expected by the schema', () => {
       it('should insert the records and display a warning log', async () => {
         const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
@@ -228,38 +230,57 @@ describe('pull delta', () => {
             } as PullDeltaResponse;
           });
 
-        const datasource = await makeReplicaDataSource({
-          pullDeltaHandler,
-          schema: makeSchemaWithId('contacts'),
-          pullDeltaOnBeforeAccess: true,
-        });
+        const logger = jest.fn();
+
+        const datasource = await makeReplicaDataSource(
+          {
+            pullDeltaHandler,
+            schema: makeSchemaWithId('contacts'),
+            pullDeltaOnBeforeAccess: true,
+          },
+          logger,
+        );
 
         expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
+
+        const warnEntries = logger.mock.calls.filter(entry => entry[0] === 'Warn');
+
+        expect(warnEntries.toString()).toContain(
+          "Fields 'fieldNotExist' do not exist in the schema for collection contacts",
+        );
       });
     });
 
     describe('when the collection name does not exist in the schema', () => {
-      // eslint-disable-next-line jest/no-commented-out-tests
-      //   it('should error log or an error', async () => {
-      //     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
-      //       .fn()
-      //       .mockImplementationOnce(() => {
-      //         return {
-      //           more: false,
-      //           newOrUpdatedEntries: [{ collection: 'notExist', record: { id: 1 } }],
-      //           nextDeltaState: 'delta-state',
-      //           deletedEntries: [],
-      //         } as PullDeltaResponse;
-      //       });
-      //     // const datasource = await makeReplicaDataSource({
-      //     //   pullDeltaHandler,
-      //     //   schema: makeSchemaWithId('contacts'),
-      //     //   pullDeltaOnBeforeAccess: true,
-      //     // });
-      //     // TODO: fix the code to display a error log or an error ?
-      //     expect('false').toEqual(true);
-      //   });
-      // });
+      it('should error log or an error', async () => {
+        const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return {
+              more: false,
+              newOrUpdatedEntries: [{ collection: 'notExist', record: { id: 1 } }],
+              nextDeltaState: 'delta-state',
+              deletedEntries: [],
+            } as PullDeltaResponse;
+          });
+
+        const logger = jest.fn();
+
+        const datasource = await makeReplicaDataSource(
+          {
+            pullDeltaHandler,
+            schema: makeSchemaWithId('contacts'),
+            pullDeltaOnBeforeAccess: true,
+          },
+          logger,
+        );
+
+        expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+
+        const errorEntries = logger.mock.calls.filter(entry => entry[0] === 'Error');
+
+        expect(errorEntries.toString()).toContain("Collection 'notExist' not found in schema");
+      });
     });
   });
 });

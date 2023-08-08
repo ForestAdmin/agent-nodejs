@@ -76,8 +76,6 @@ export default class CustomerSource implements SynchronizationSource {
       await this.queuePullDelta({ name: 'startup' });
 
     if (options.pushDeltaHandler) {
-      // fixme queuePushDelta is not returning a promise
-      // That may not be an issue
       options.pushDeltaHandler(
         { cache: this.requestCache, getPreviousDeltaState: () => this.getDeltaState() },
         async changes => this.queuePushDelta(changes),
