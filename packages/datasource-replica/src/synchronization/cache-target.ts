@@ -9,7 +9,7 @@ import type {
 import type { Logger, RecordData } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
 
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 
 import flattenRecord from '../flattener';
 import { escape, getRecordId } from '../utils';
@@ -53,30 +53,31 @@ export default class CacheTarget implements SynchronizationTarget {
   }
 
   async applyDelta(changes: PushDeltaResponse): Promise<void> {
-    // fixme use a transaction to wrap the whole thing
-    // [transaction]
-
-    for (const entry of changes.deletedEntries) {
-      if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
-        await this.destroySubModels(entry);
-        await this.connection.model(entry.collection).destroy({ where: entry.record });
+    await this.connection.transaction(async transaction => {
+      for (const entry of changes.deletedEntries) {
+        if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
+          await this.destroySubModels(entry, transaction);
+          await this.connection
+            .model(entry.collection)
+            .destroy({ where: entry.record, transaction });
+        }
       }
-    }
 
-    // Upsert records in both root and virtual collections
+      // Upsert records in both root and virtual collections
 
-    for (const entry of changes.newOrUpdatedEntries) {
-      if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
-        await this.destroySubModels(entry);
+      for (const entry of changes.newOrUpdatedEntries) {
+        if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
+          await this.destroySubModels(entry, transaction);
 
-        // fixme check that no pre-processing of the records are needed to handle
-        // dates, buffers, ...
-        for (const subEntry of this.flattenRecord(entry))
-          await this.connection.model(subEntry.collection).upsert(subEntry.record);
+          // fixme check that no pre-processing of the records are needed to handle
+          // dates, buffers, ...
+          for (const subEntry of this.flattenRecord(entry))
+            await this.connection
+              .model(subEntry.collection)
+              .upsert(subEntry.record, { transaction });
+        }
       }
-    }
-
-    // [/transaction]
+    });
   }
 
   private flattenRecord(
@@ -96,7 +97,10 @@ export default class CacheTarget implements SynchronizationTarget {
       );
   }
 
-  private async destroySubModels(entry: RecordDataWithCollection): Promise<void> {
+  private async destroySubModels(
+    entry: RecordDataWithCollection,
+    transaction?: Transaction,
+  ): Promise<void> {
     const { asModels } = this.options.flattenOptions[entry.collection];
     const { fields } = this.options.schema.find(c => c.name === entry.collection);
     const promises = asModels.map(asModel => {
@@ -104,6 +108,7 @@ export default class CacheTarget implements SynchronizationTarget {
 
       return this.connection.model(escape`${entry.collection}.${asModel}`).destroy({
         where: { _fid: { [Op.startsWith]: `${recordId}.${asModel}` } },
+        transaction,
       });
     });
 
