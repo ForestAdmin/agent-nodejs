@@ -238,15 +238,3 @@ describe('on initialization', () => {
     });
   });
 });
-
-// eslint-disable-next-line jest/no-commented-out-tests
-//     describe('when before list', () => {
-// eslint-disable-next-line jest/no-commented-out-tests
-//       it('should execute the delta', async () => {});
-//     });
-
-// eslint-disable-next-line jest/no-commented-out-tests
-//     describe('when before aggregate', () => {
-// eslint-disable-next-line jest/no-commented-out-tests
-//       it('should execute the delta', async () => {});
-//     });
