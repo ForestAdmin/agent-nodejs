@@ -117,15 +117,6 @@ export default class CacheTarget implements SynchronizationTarget {
     await Promise.all(promises);
   }
 
-  private checkCollection(collection: string, shouldTrow: boolean): void {
-    if (!this.options.schema.find(s => s.name === collection))
-      if (shouldTrow) {
-        throw new Error(`Collection ${collection} not found in schema`);
-      } else {
-        this.logger('Error', `Collection ${collection} not found in schema`);
-      }
-  }
-
   private checkCollectionAndFieldsInSchema(
     collection: string,
     fields: string[],
