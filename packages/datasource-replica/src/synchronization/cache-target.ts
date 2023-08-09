@@ -47,6 +47,7 @@ export default class CacheTarget implements SynchronizationTarget {
       for (const [collection, records] of Object.entries(recordsByCollection)) {
         // fixme check that no pre-processing of the records are needed to handle
         // dates, buffers, ...
+        //
         await this.connection.model(collection).bulkCreate(records, { transaction });
       }
     });
@@ -55,7 +56,7 @@ export default class CacheTarget implements SynchronizationTarget {
   async applyDelta(changes: PushDeltaResponse): Promise<void> {
     await this.connection.transaction(async transaction => {
       for (const entry of changes.deletedEntries) {
-        if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
+        if (this.checkCollection(entry.collection)) {
           await this.destroySubModels(entry, transaction);
           await this.connection
             .model(entry.collection)
@@ -66,7 +67,7 @@ export default class CacheTarget implements SynchronizationTarget {
       // Upsert records in both root and virtual collections
 
       for (const entry of changes.newOrUpdatedEntries) {
-        if (this.checkCollectionAndFieldsInSchema(entry.collection, Object.keys(entry.record))) {
+        if (this.checkCollection(entry.collection)) {
           await this.destroySubModels(entry, transaction);
 
           // fixme check that no pre-processing of the records are needed to handle
@@ -83,12 +84,7 @@ export default class CacheTarget implements SynchronizationTarget {
   private flattenRecord(
     recordWithCollection: RecordDataWithCollection,
   ): RecordDataWithCollection[] {
-    if (
-      this.checkCollectionAndFieldsInSchema(
-        recordWithCollection.collection,
-        Object.keys(recordWithCollection.record),
-      )
-    )
+    if (this.checkCollection(recordWithCollection.collection))
       return flattenRecord(
         recordWithCollection,
         this.options.schema.find(s => s.name === recordWithCollection.collection).fields,
@@ -115,10 +111,10 @@ export default class CacheTarget implements SynchronizationTarget {
     await Promise.all(promises);
   }
 
-  private checkCollectionAndFieldsInSchema(collection: string, fields: string[]): boolean {
-    const schemaEntry = this.options.schema.find(s => s.name === collection);
+  private checkCollection(collection: string): boolean {
+    const collectionName = this.options.schema.find(s => s.name === collection);
 
-    if (!schemaEntry) {
+    if (!collectionName) {
       this.logger('Error', `Collection '${collection}' not found in schema. Skipping.`);
 
       return false;
