@@ -32,7 +32,7 @@ describe('schema', () => {
   });
 
   describe('when the schema on a dump strategy is not given', () => {
-    it.only('should compute the schema from the records', async () => {
+    it('should compute the schema from the records', async () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
         .fn()
         .mockResolvedValueOnce({
