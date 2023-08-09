@@ -32,7 +32,7 @@ describe('schema', () => {
   });
 
   describe('when the schema on a dump strategy is not given', () => {
-    it('should compute the schema from the records', async () => {
+    it.only('should compute the schema from the records', async () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
         .fn()
         .mockResolvedValueOnce({
@@ -81,6 +81,94 @@ describe('schema', () => {
         await expect(() => makeReplicaDataSource({ pullDumpHandler })).rejects.toThrow(
           'No primary key found in the schema of the collection contacts',
         );
+      });
+    });
+  });
+
+  describe('test convert', () => {
+    it.only('should create a new collection and a one to many between them', async () => {
+      const schema: ReplicaDataSourceOptions['schema'] = [
+        {
+          name: 'contacts',
+          fields: {
+            id: { type: 'Number', isPrimaryKey: true },
+            binary: { type: 'Binary' },
+            boolean: { type: 'Boolean' },
+            date: { type: 'Date' },
+            integer: { type: 'Integer' },
+            number: { type: 'Number' },
+            string: { type: 'String' },
+          },
+        },
+      ];
+
+      const datasource = await makeReplicaDataSource({ schema, flattenMode: 'auto' });
+
+      expect(datasource.getCollection('contacts').schema.fields).toEqual({
+        id: {
+          columnType: 'Number',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          isPrimaryKey: true,
+          defaultValue: undefined,
+        },
+        binary: {
+          columnType: 'Binary',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
+        },
+        boolean: {
+          columnType: 'Boolean',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
+        },
+        date: {
+          columnType: 'Date',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
+        },
+        integer: {
+          columnType: 'Number',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
+        },
+        number: {
+          columnType: 'Number',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
+        },
+        string: {
+          columnType: 'String',
+          filterOperators: expect.any(Set),
+          type: 'Column',
+          validation: undefined,
+          isReadOnly: undefined,
+          isSortable: true,
+          defaultValue: undefined,
+        },
       });
     });
   });

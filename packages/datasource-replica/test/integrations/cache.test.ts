@@ -38,6 +38,7 @@ describe('cache', () => {
       });
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }, { id: 4 }]);
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(2);
       expect(recordsInCacheInPullDelta).toEqual([{ id: 3 }]);
     });
   });
@@ -87,6 +88,7 @@ describe('cache', () => {
           ),
       ).toEqual([{ group: {}, value: 2 }]);
 
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(2);
       expect(recordsInCacheInPullDelta).toEqual([{ group: {}, value: 1 }]);
     });
   });
