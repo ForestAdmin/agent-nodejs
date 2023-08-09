@@ -102,8 +102,11 @@ describe('schema', () => {
         },
       ];
 
-      const datasource = await makeReplicaDataSource({ schema, flattenMode: 'auto' });
+      const logger = jest.fn();
 
+      const datasource = await makeReplicaDataSource({ schema, flattenMode: 'auto' }, logger);
+
+      console.log(logger.mock.calls);
       expect(datasource.getCollection('contacts').schema.fields).toEqual({
         id: {
           columnType: 'Number',
@@ -170,6 +173,8 @@ describe('schema', () => {
           defaultValue: undefined,
         },
       });
+
+      expect(logger).toHaveBeenCalledWith('Debug', 'forest: Initializing cache.');
     });
   });
 });
