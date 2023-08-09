@@ -86,7 +86,7 @@ describe('schema', () => {
   });
 
   describe('test convert', () => {
-    it.only('should create a new collection and a one to many between them', async () => {
+    it('should create a new collection and a one to many between them', async () => {
       const schema: ReplicaDataSourceOptions['schema'] = [
         {
           name: 'contacts',
