@@ -98,6 +98,7 @@ describe('schema', () => {
             integer: { type: 'Integer' },
             number: { type: 'Number' },
             string: { type: 'String' },
+            enum: { type: 'Enum', enumValues: ['a', 'b', 'c'] },
           },
         },
       ];
@@ -106,7 +107,6 @@ describe('schema', () => {
 
       const datasource = await makeReplicaDataSource({ schema, flattenMode: 'auto' }, logger);
 
-      console.log(logger.mock.calls);
       expect(datasource.getCollection('contacts').schema.fields).toEqual({
         id: {
           columnType: 'Number',
@@ -171,6 +171,16 @@ describe('schema', () => {
           isReadOnly: undefined,
           isSortable: true,
           defaultValue: undefined,
+        },
+        enum: {
+          columnType: 'Enum',
+          defaultValue: undefined,
+          enumValues: expect.any(Array),
+          filterOperators: expect.any(Set),
+          isReadOnly: undefined,
+          isSortable: true,
+          type: 'Column',
+          validation: undefined,
         },
       });
 
