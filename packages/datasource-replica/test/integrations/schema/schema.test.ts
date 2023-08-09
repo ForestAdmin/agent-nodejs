@@ -95,6 +95,7 @@ describe('schema', () => {
             binary: { type: 'Binary' },
             boolean: { type: 'Boolean' },
             date: { type: 'Date' },
+            dateOnly: { type: 'Dateonly' },
             integer: { type: 'Integer' },
             number: { type: 'Number' },
             string: { type: 'String' },
@@ -144,6 +145,15 @@ describe('schema', () => {
           isReadOnly: undefined,
           isSortable: true,
           defaultValue: undefined,
+        },
+        dateOnly: {
+          columnType: 'Dateonly',
+          defaultValue: undefined,
+          filterOperators: expect.any(Set),
+          isReadOnly: undefined,
+          isSortable: true,
+          type: 'Column',
+          validation: undefined,
         },
         integer: {
           columnType: 'Number',
