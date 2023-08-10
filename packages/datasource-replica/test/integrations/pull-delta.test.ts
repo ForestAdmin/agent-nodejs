@@ -1,3 +1,5 @@
+import Croner from 'croner';
+
 import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
 import { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '../../src';
 
@@ -212,6 +214,41 @@ describe('pull delta', () => {
         expect(errorEntries.toString()).toContain("Collection 'notExist' not found in schema");
       });
     });
+  });
+});
+
+describe('on schedule', () => {
+  it('should add scheduler on handler', async () => {
+    const schedulerStop = jest.fn();
+    Croner.Cron = jest.fn().mockImplementation((pattern, func) => {
+      func();
+
+      return { stop: schedulerStop };
+    }) as unknown as typeof Croner.Cron;
+
+    const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+      .fn()
+      .mockResolvedValueOnce({
+        more: false,
+        newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 1 } }],
+        nextDeltaState: 'delta-state',
+        deletedEntries: [],
+      });
+
+    const datasource = await makeReplicaDataSource({
+      pullDeltaHandler,
+      schema: makeSchemaWithId('contacts'),
+      pullDeltaOnSchedule: '* * * * * *',
+      pullDeltaOnBeforeAccessDelay: 1,
+      pullDeltaOnBeforeAccess: true,
+    });
+
+    expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
+
+    expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+
+    await (datasource as unknown as any).childDataSource.options.source.stop();
+    expect(schedulerStop).toHaveBeenCalledTimes(1);
   });
 });
 
