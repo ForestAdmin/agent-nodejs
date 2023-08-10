@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-import AnalysisPassThough from '../../src/synchronization/analysis-passthrough'; // Import the class you want to test
+import AnalysisPassThough from '../../src/synchronization/analysis-passthrough';
 import {
   PullDeltaResponse,
   PullDumpResponse,
@@ -34,78 +34,91 @@ describe('AnalysisPassThough', () => {
     );
   });
 
-  it('Should throw if the agent is already started', async () => {
-    const target: SynchronizationTarget = {
-      applyDump: jest.fn(),
-      applyDelta: jest.fn(),
-    };
+  describe('When the agent is already strated', () => {
+    it('should throw an error', async () => {
+      const target: SynchronizationTarget = {
+        applyDump: jest.fn(),
+        applyDelta: jest.fn(),
+      };
 
-    analysisPassThrough.target = target;
-    await expect(analysisPassThrough.start(target)).rejects.toThrow();
+      analysisPassThrough.target = target;
+      await expect(analysisPassThrough.start(target)).rejects.toThrow('Already started');
+    });
   });
 
-  it('Should call the source queuePullDump', async () => {
-    const reason: any = jest.fn();
+  describe('When the queuePullDump is called', () => {
+    it('should call the synchronizeSource queuePullDump', async () => {
+      const reason: any = jest.fn();
 
-    analysisPassThrough.queuePullDump(reason);
+      analysisPassThrough.queuePullDump(reason);
 
-    const spy = jest.spyOn(mockSource, 'queuePullDump');
+      const spy = jest.spyOn(mockSource, 'queuePullDump');
 
-    await expect(spy).toHaveBeenCalledWith(reason);
+      await expect(spy).toHaveBeenCalledWith(reason);
+    });
   });
 
-  it('Should call the source queuePullDelta', async () => {
-    const reason: any = jest.fn();
+  describe('When the queuePullDelta is called', () => {
+    it('should call the synchronizeSource queuePullDelta', async () => {
+      const reason: any = jest.fn();
 
-    analysisPassThrough.queuePullDelta(reason);
+      analysisPassThrough.queuePullDelta(reason);
 
-    const spy = jest.spyOn(mockSource, 'queuePullDelta');
+      const spy = jest.spyOn(mockSource, 'queuePullDelta');
 
-    await expect(spy).toHaveBeenCalledWith(reason);
+      await expect(spy).toHaveBeenCalledWith(reason);
+    });
   });
 
-  it('Should call the source requestCache', async () => {
-    await expect(analysisPassThrough.requestCache).toEqual(mockSource.requestCache);
+  describe('When the requestCache id getted', () => {
+    it('should get the synchronizeSource requestCache', async () => {
+      await expect(analysisPassThrough.requestCache).toEqual(mockSource.requestCache);
+    });
   });
 
-  it('Should apply the target dump on dump', async () => {
-    const target: SynchronizationTarget = {
-      applyDump: jest.fn(),
-      applyDelta: jest.fn(),
-    };
+  describe('When a dump is applied', () => {
+    it('should call the target applyDump method', async () => {
+      const target: SynchronizationTarget = {
+        applyDump: jest.fn(),
+        applyDelta: jest.fn(),
+      };
 
-    const changes: PullDumpResponse = {
-      more: false,
-      entries: [],
-      nextDeltaState: null,
-    };
+      const changes: PullDumpResponse = {
+        more: false,
+        entries: [],
+        nextDeltaState: null,
+      };
 
-    analysisPassThrough.target = target;
-    analysisPassThrough.applyDump(changes, true);
+      analysisPassThrough.target = target;
 
-    const spy = jest.spyOn(target, 'applyDump');
+      const spy = jest.spyOn(target, 'applyDump');
 
-    await expect(spy).toHaveBeenCalledWith(changes, true);
+      analysisPassThrough.applyDump(changes, true);
+
+      expect(spy).toHaveBeenCalledWith(changes, true);
+    });
   });
 
-  it('Should apply the target delta on delta', async () => {
-    const target: SynchronizationTarget = {
-      applyDump: jest.fn(),
-      applyDelta: jest.fn(),
-    };
+  describe('When a delta is applied', () => {
+    it('should apply the target applyDelta', async () => {
+      const target: SynchronizationTarget = {
+        applyDump: jest.fn(),
+        applyDelta: jest.fn(),
+      };
 
-    const changes: PullDeltaResponse = {
-      more: false,
-      nextDeltaState: null,
-      newOrUpdatedEntries: [],
-      deletedEntries: [],
-    };
+      const changes: PullDeltaResponse = {
+        more: false,
+        nextDeltaState: null,
+        newOrUpdatedEntries: [],
+        deletedEntries: [],
+      };
 
-    analysisPassThrough.target = target;
-    analysisPassThrough.applyDelta(changes);
+      analysisPassThrough.target = target;
+      const spy = jest.spyOn(target, 'applyDelta');
 
-    const spy = jest.spyOn(target, 'applyDelta');
+      analysisPassThrough.applyDelta(changes);
 
-    await expect(spy).toHaveBeenCalledWith(changes);
+      expect(spy).toHaveBeenCalledWith(changes);
+    });
   });
 });
