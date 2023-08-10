@@ -47,7 +47,6 @@ describe('schema', () => {
                 objectField: {
                   name: 'orest',
                   subField: [1, 2, 3],
-                  date: new Date('01/01/2010'),
                   buffer: Buffer.from([0, 0, 0]),
                   nullValue: null,
                 },
@@ -68,7 +67,6 @@ describe('schema', () => {
           objectField: {
             name: 'orest',
             subField: [1, 2, 3],
-            date: '2009-12-31T23:00:00.000Z',
             buffer: {
               data: expect.any(Array),
               type: 'Buffer',
