@@ -304,6 +304,43 @@ describe('on schedule', () => {
     await (datasource as unknown as any).childDataSource.options.source.stop();
     expect(schedulerStop).toHaveBeenCalledTimes(1);
   });
+
+  it('should add scheduler with a delay on handler', async () => {
+    const schedulerStop = jest.fn();
+    Croner.Cron = jest.fn().mockImplementation((pattern, func) => {
+      func();
+
+      return { stop: schedulerStop };
+    }) as unknown as typeof Croner.Cron;
+
+    const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+      .fn()
+      .mockResolvedValueOnce({
+        more: false,
+        newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 1 } }],
+        nextDeltaState: 'delta-state',
+        deletedEntries: [],
+      });
+
+    const datasource = await makeReplicaDataSource({
+      pullDeltaHandler,
+      schema: makeSchemaWithId('contacts'),
+      pullDeltaOnSchedule: '* * * * * *',
+      pullDeltaOnBeforeAccessDelay: 2,
+    });
+
+    expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+    expect(pullDeltaHandler).toHaveBeenCalledTimes(0);
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 3);
+    });
+
+    expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
+
+    await (datasource as unknown as any).childDataSource.options.source.stop();
+    expect(schedulerStop).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('on initialization', () => {
