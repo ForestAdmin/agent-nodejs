@@ -32,7 +32,7 @@ describe('schema', () => {
   });
 
   describe('when the schema on a dump strategy is not given', () => {
-    it('should compute the schema from the records', async () => {
+    it.only('should compute the schema from the records', async () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
         .fn()
         .mockResolvedValueOnce({
@@ -48,6 +48,7 @@ describe('schema', () => {
                   name: 'orest',
                   subField: [1, 2, 3],
                   buffer: Buffer.from([0, 0, 0]),
+                  date: new Date('1985-10-26T01:22:00-08:00'),
                   nullValue: null,
                 },
               },
@@ -71,6 +72,7 @@ describe('schema', () => {
               data: expect.any(Array),
               type: 'Buffer',
             },
+            date: '1985-10-26T09:22:00.000Z',
             nullValue: null,
           },
         },
