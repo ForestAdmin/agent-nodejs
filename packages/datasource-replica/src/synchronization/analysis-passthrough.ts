@@ -77,7 +77,10 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
       await this.target.applyDump(changes, firstPage);
     } else {
       for (const record of changes.entries) {
-        if (!this.nodes[record.collection]) this.nodes[record.collection] = createNode();
+        if (!this.nodes[record.collection]) {
+          this.nodes[record.collection] = createNode();
+        }
+
         walkNode(this.nodes[record.collection], record.record);
       }
 
@@ -90,7 +93,10 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
       await this.target.applyDelta(changes);
     } else {
       for (const record of changes.newOrUpdatedEntries) {
-        if (!this.nodes[record.collection]) this.nodes[record.collection] = createNode();
+        if (!this.nodes[record.collection]) {
+          this.nodes[record.collection] = createNode();
+        }
+
         walkNode(this.nodes[record.collection], record.record);
       }
 

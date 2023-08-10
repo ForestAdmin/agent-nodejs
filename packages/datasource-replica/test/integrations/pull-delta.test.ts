@@ -4,6 +4,37 @@ import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factor
 import { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '../../src';
 
 describe('pull delta', () => {
+  describe('when the schema is not provided', () => {
+    it('should list records correctly', async () => {
+      const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+        .fn()
+        .mockResolvedValueOnce({
+          more: true,
+          newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 1, name: 'Simon' } }],
+          nextDeltaState: 'delta-state',
+          deletedEntries: [],
+        })
+        .mockResolvedValueOnce({
+          more: false,
+          newOrUpdatedEntries: [
+            { collection: 'contacts', record: { id: 2, name: 'Smith', age: 18 } },
+          ],
+          deletedEntries: [],
+        });
+
+      const datasource = await makeReplicaDataSource({
+        pullDeltaHandler,
+        pullDeltaOnRestart: true,
+        pullDeltaOnBeforeAccess: true,
+      });
+
+      expect(await getAllRecords(datasource, 'contacts', ['id', 'name', 'age'])).toEqual([
+        { id: 1, name: 'Simon', age: null },
+        { id: 2, name: 'Smith', age: 18 },
+      ]);
+    });
+  });
+
   describe('when the delta is finished', () => {
     it('should insert the records by calling the delta only one time', async () => {
       const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
