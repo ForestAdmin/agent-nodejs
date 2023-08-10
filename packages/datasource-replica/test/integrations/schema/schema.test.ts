@@ -38,12 +38,12 @@ describe('schema', () => {
         .mockResolvedValueOnce({
           more: false,
           entries: [
-            { collection: 'contacts', record: { id: 1, name: 'f' } },
+            { collection: 'contacts', record: { id: 1, name: 'John' } },
             {
               collection: 'contacts',
               record: {
                 id: 2,
-                name: 'orest', // Record 2
+                name: 'Jack',
                 json: {
                   name: 1,
                 },
@@ -54,10 +54,10 @@ describe('schema', () => {
               record: {
                 id: 3,
                 json: {
-                  name: 'toto',
+                  name: 'Rose',
                 },
                 objectField: {
-                  name: 'orest',
+                  name: 'Smith',
                   subField: [1, 2, 3],
                   buffer: Buffer.from([0, 0, 0]),
                   date: new Date('1985-10-26T01:22:00-08:00'),
@@ -77,14 +77,14 @@ describe('schema', () => {
       ]);
 
       expect(records).toEqual([
-        { id: 1, json: null, name: 'f', objectField: null },
-        { id: 2, json: { name: 1 }, name: 'orest', objectField: null },
+        { id: 1, json: null, name: 'John', objectField: null },
+        { id: 2, json: { name: 1 }, name: 'Jack', objectField: null },
         {
           id: 3,
-          json: { name: 'toto' },
+          json: { name: 'Rose' },
           name: null,
           objectField: {
-            name: 'orest',
+            name: 'Smith',
             subField: [1, 2, 3],
             buffer: {
               data: expect.any(Array),
