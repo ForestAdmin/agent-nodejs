@@ -31,6 +31,7 @@ export default class ActionContext<
 > extends CollectionCustomizationContext<S, N> {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   readonly filter: TFilter<S, N>;
+  readonly changedField: string;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
@@ -41,10 +42,12 @@ export default class ActionContext<
     formValue: RecordData,
     filter: TFilter<S, N>,
     used?: Set<string>,
+    changedField?: string,
   ) {
     super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
+    this.changedField = changedField;
     this.reset();
 
     // Spy on which formValues are accessed to set-up change hooks

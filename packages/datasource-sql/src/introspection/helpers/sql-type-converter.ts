@@ -92,7 +92,7 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      subType = { type: 'enum', schema, name: udtName, values: enumValues };
+      subType = { type: 'enum', schema, name: udtName, values: [...enumValues].sort() };
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
@@ -103,7 +103,9 @@ export default class SqlTypeConverter {
   }
 
   private getScalarType(type: string): ScalarSubType {
-    switch (type.toUpperCase()) {
+    const upType = type.toUpperCase();
+
+    switch (upType) {
       case 'JSON':
         return 'JSON';
       case 'BIT(1)': // In MySQL / MariaDB / Postgres, BIT(N) is used for bitmasks
@@ -114,14 +116,14 @@ export default class SqlTypeConverter {
       case 'CHARACTER VARYING':
       case 'TEXT':
       case 'NTEXT': // MSSQL type
-      case this.typeContains(type, 'TEXT'):
-      case this.typeContains(type, 'VARCHAR'):
-      case this.typeContains(type, 'CHAR'):
+      case this.typeContains(upType, 'TEXT'):
+      case this.typeContains(upType, 'VARCHAR'):
+      case this.typeContains(upType, 'CHAR'):
       case 'NVARCHAR': // NOTICE: MSSQL type
         return 'STRING';
 
-      case this.typeStartsWith(type, 'VARBINARY'):
-      case this.typeStartsWith(type, 'BINARY'):
+      case this.typeStartsWith(upType, 'VARBINARY'):
+      case this.typeStartsWith(upType, 'BINARY'):
       case 'TINYBLOB':
       case 'BLOB':
       case 'MEDIUMBLOB':
@@ -137,25 +139,25 @@ export default class SqlTypeConverter {
       case 'INTEGER':
       case 'SERIAL':
       case 'BIGSERIAL':
-      case this.typeStartsWith(type, 'INT'):
-      case this.typeStartsWith(type, 'SMALLINT'):
-      case this.typeStartsWith(type, 'TINYINT'):
-      case this.typeStartsWith(type, 'MEDIUMINT'):
+      case this.typeStartsWith(upType, 'INT'):
+      case this.typeStartsWith(upType, 'SMALLINT'):
+      case this.typeStartsWith(upType, 'TINYINT'):
+      case this.typeStartsWith(upType, 'MEDIUMINT'):
         return 'NUMBER';
-      case this.typeStartsWith(type, 'BIGINT'):
+      case this.typeStartsWith(upType, 'BIGINT'):
         return 'BIGINT';
-      case this.typeContains(type, 'FLOAT'):
+      case this.typeContains(upType, 'FLOAT'):
         return 'FLOAT';
       case 'NUMERIC':
       case 'REAL':
       case 'DOUBLE':
       case 'DOUBLE PRECISION':
-      case this.typeContains(type, 'DECIMAL'):
+      case this.typeContains(upType, 'DECIMAL'):
         return 'DOUBLE';
       case 'DATE':
         return 'DATEONLY';
-      case this.typeStartsWith(type, 'DATETIME'):
-      case this.typeStartsWith(type, 'TIMESTAMP'):
+      case this.typeStartsWith(upType, 'DATETIME'):
+      case this.typeStartsWith(upType, 'TIMESTAMP'):
         return 'DATE';
       case 'TIME':
       case 'TIME WITHOUT TIME ZONE':

@@ -109,6 +109,21 @@ describe('DataSourceCustomizer', () => {
     });
   });
 
+  describe('removeCollection', () => {
+    it('should work', async () => {
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection' }),
+      );
+
+      const customized = await new DataSourceCustomizer()
+        .addDataSource(async () => dataSource)
+        .removeCollection('collection')
+        .getDataSource(logger);
+
+      expect(customized.collections).toHaveLength(0);
+    });
+  });
+
   describe('addDataSource', () => {
     it('should throw when renaming an unknown collection', async () => {
       const customizer = new DataSourceCustomizer();
@@ -122,7 +137,7 @@ describe('DataSourceCustomizer', () => {
       customizer.addDataSource(async () => dataSource2, { rename: { missing: 'updatedName' } });
 
       await expect(customizer.getDataSource(logger)).rejects.toThrow(
-        'The given collection name "missing" does not exist',
+        'dsmock: "missing" does not exist',
       );
     });
 
@@ -137,7 +152,7 @@ describe('DataSourceCustomizer', () => {
       });
 
       await expect(customizer.getDataSource(logger)).rejects.toThrow(
-        'The given new collection name "collection" is already defined in the dataSource',
+        'The given new collection name "collection" is already defined',
       );
     });
 

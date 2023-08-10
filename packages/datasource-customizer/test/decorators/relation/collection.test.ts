@@ -266,7 +266,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: '__nonExisting__',
             foreignKey: 'ownerId',
           }),
-        ).toThrow("Collection '__nonExisting__' not found.");
+        ).toThrow('dsmock: "__nonExisting__" does not exist');
       });
 
       test('should throw with a non existent fk', () => {
@@ -332,7 +332,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: '__nonExisting__',
           } as ManyToManySchema),
-        ).toThrow("Collection '__nonExisting__' not found.");
+        ).toThrow('dsmock: "__nonExisting__" does not exist');
       });
 
       test('should throw with a non existent originKey', () => {

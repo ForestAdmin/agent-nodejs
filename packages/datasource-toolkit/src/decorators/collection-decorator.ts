@@ -65,10 +65,11 @@ export default class CollectionDecorator implements Collection {
     name: string,
     data?: RecordData,
     filter?: Filter,
+    metas?: { changedField: string },
   ): Promise<ActionField[]> {
     const refinedFilter = await this.refineFilter(caller, filter);
 
-    return this.childCollection.getForm(caller, name, data, refinedFilter);
+    return this.childCollection.getForm(caller, name, data, refinedFilter, metas);
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {

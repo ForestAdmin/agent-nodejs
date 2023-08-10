@@ -115,11 +115,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @param definition definition of the chart
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/charts Documentation Link}
    * @example
-   * .addChart('numCustomers', {
-   *   type: 'Value',
-   *   render: (context, resultBuilder) => {
-   *     return resultBuilder.value(123);
-   *   }
+   * .addChart('numCustomers', (context, resultBuilder) => {
+   *   return resultBuilder.distribution({
+   *     tomatoes: 10,
+   *     potatoes: 20,
+   *     carrots: 30,
+   *   });
    * })
    */
   addChart(name: string, definition: DataSourceChartDefinition<S>): this {
@@ -141,6 +142,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     handle: (collection: CollectionCustomizer<S, N>) => unknown,
   ): this {
     this.customizer.customizeCollection(name, handle);
+
+    return this;
+  }
+
+  /**
+   * Remove collections from the exported schema (they will still be usable within the agent).
+   * @param names the collections to remove
+   * @example
+   * .removeField('aCollectionToRemove', 'anotherCollectionToRemove');
+   */
+  removeCollection(...names: TCollectionName<S>[]): this {
+    this.customizer.removeCollection(...names);
 
     return this;
   }

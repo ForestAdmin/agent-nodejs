@@ -43,6 +43,7 @@ describe('Builder > Collection', () => {
             translator: factories.oneToOneSchema.build({
               foreignCollection: 'translators',
               originKey: 'authorId',
+              originKeyTarget: 'authorId',
             }),
             authorId: factories.columnSchema.uuidPrimaryKey().build({
               filterOperators: new Set(['Equal', 'In']),
@@ -155,7 +156,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('removeField', () => {
-    it('should remove the field given fields', async () => {
+    it('should remove the given fields', async () => {
       const { dsc, customizer, stack } = await setup();
       const spy = jest.spyOn(stack.publication.getCollection('authors'), 'changeFieldVisibility');
 

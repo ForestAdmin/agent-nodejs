@@ -1,3 +1,30 @@
+## @forestadmin/datasource-sequelize [1.3.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.6...@forestadmin/datasource-sequelize@1.3.7) (2023-07-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.7.0
+
+## @forestadmin/datasource-sequelize [1.3.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.5...@forestadmin/datasource-sequelize@1.3.6) (2023-07-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.6.0
+
+## @forestadmin/datasource-sequelize [1.3.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.4...@forestadmin/datasource-sequelize@1.3.5) (2023-07-24)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** do not ignore deeply nested fields in projections ([#771](https://github.com/ForestAdmin/agent-nodejs/issues/771)) ([8065ef2](https://github.com/ForestAdmin/agent-nodejs/commit/8065ef263a93c206293f314080fe87df85a380ae))
+
 ## @forestadmin/datasource-sequelize [1.3.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.3...@forestadmin/datasource-sequelize@1.3.4) (2023-07-20)
 
 

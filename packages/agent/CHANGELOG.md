@@ -1,3 +1,84 @@
+# @forestadmin/agent [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.15.1...@forestadmin/agent@1.16.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** allow removing collections during customization ([#715](https://github.com/ForestAdmin/agent-nodejs/issues/715)) ([831c3c5](https://github.com/ForestAdmin/agent-nodejs/commit/831c3c5c6714f78570a946677749abcbcd768e72))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.13.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.7.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.8
+
+## @forestadmin/agent [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.15.0...@forestadmin/agent@1.15.1) (2023-07-26)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** fix addChart tsdoc ([#778](https://github.com/ForestAdmin/agent-nodejs/issues/778)) ([f1101fb](https://github.com/ForestAdmin/agent-nodejs/commit/f1101fb432f1b43d7ea1aa27bbe7da9890f1f075))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.12.1
+
+# @forestadmin/agent [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.14.0...@forestadmin/agent@1.15.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** generate typings aliases for easier use ([#777](https://github.com/ForestAdmin/agent-nodejs/issues/777)) ([7f8f03c](https://github.com/ForestAdmin/agent-nodejs/commit/7f8f03c71b3eedebdfd2deb094a55f05ecba746d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.12.0
+
+# @forestadmin/agent [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.8...@forestadmin/agent@1.14.0) (2023-07-25)
+
+
+### Features
+
+* add changed field to action context ([#769](https://github.com/ForestAdmin/agent-nodejs/issues/769)) ([dbfa25e](https://github.com/ForestAdmin/agent-nodejs/commit/dbfa25ec3e0dd09acb39be1ee702505a5cdd60f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.11.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.6.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.7
+
+## @forestadmin/agent [1.13.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.7...@forestadmin/agent@1.13.8) (2023-07-24)
+
+
+### Bug Fixes
+
+* **agent:** sort enum values to avoid versioning conflicts ([#773](https://github.com/ForestAdmin/agent-nodejs/issues/773)) ([14ab93d](https://github.com/ForestAdmin/agent-nodejs/commit/14ab93d12ecf149fec35493c8c5b1e73856f46aa))
+
+## @forestadmin/agent [1.13.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.6...@forestadmin/agent@1.13.7) (2023-07-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.6
+
 ## @forestadmin/agent [1.13.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.13.5...@forestadmin/agent@1.13.6) (2023-07-21)
 
 

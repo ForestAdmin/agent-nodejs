@@ -1,9 +1,7 @@
-import { CollectionCustomizer } from '@forestadmin/agent';
-
 import sequelizeMsSql from '../../connections/sequelize-mssql';
-import { Schema } from '../typings';
+import { DvdCustomizer, DvdRentalAggregation, DvdRentalFilter } from '../typings';
 
-export default (collection: CollectionCustomizer<Schema, 'dvd'>) =>
+export default (collection: DvdCustomizer) =>
   collection
     .addManyToOneRelation('store', 'store', { foreignKey: 'storeId' })
     .renameField('rentalPrice', 'rentalPriceInDollar')
@@ -12,11 +10,18 @@ export default (collection: CollectionCustomizer<Schema, 'dvd'>) =>
       dependencies: ['id'],
       getValues: async (records, context) => {
         // Query other collection to get the number of rentals per dvd.
-        const throughCollection = context.dataSource.getCollection('dvd_rental');
-        const rows = await throughCollection.aggregate(
-          { conditionTree: { field: 'dvdId', operator: 'In', value: records.map(r => r.id) } },
-          { operation: 'Count', groups: [{ field: 'dvdId' }] },
-        );
+        const filter: DvdRentalFilter = {
+          conditionTree: { field: 'dvdId', operator: 'In', value: records.map(r => r.id) },
+        };
+
+        const aggregation: DvdRentalAggregation = {
+          operation: 'Count',
+          groups: [{ field: 'dvdId' }],
+        };
+
+        const rows = await context.dataSource
+          .getCollection('dvd_rental')
+          .aggregate(filter, aggregation);
 
         // getValues should return values in the same order than the initial `records` array.
         return records.map(record => rows.find(r => r.group.dvdId === record.id)?.value ?? 0);

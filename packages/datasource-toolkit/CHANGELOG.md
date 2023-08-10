@@ -1,3 +1,17 @@
+# @forestadmin/datasource-toolkit [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.6.0...@forestadmin/datasource-toolkit@1.7.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** allow removing collections during customization ([#715](https://github.com/ForestAdmin/agent-nodejs/issues/715)) ([831c3c5](https://github.com/ForestAdmin/agent-nodejs/commit/831c3c5c6714f78570a946677749abcbcd768e72))
+
+# @forestadmin/datasource-toolkit [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.5.2...@forestadmin/datasource-toolkit@1.6.0) (2023-07-25)
+
+
+### Features
+
+* add changed field to action context ([#769](https://github.com/ForestAdmin/agent-nodejs/issues/769)) ([dbfa25e](https://github.com/ForestAdmin/agent-nodejs/commit/dbfa25ec3e0dd09acb39be1ee702505a5cdd60f5))
+
 ## @forestadmin/datasource-toolkit [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.5.1...@forestadmin/datasource-toolkit@1.5.2) (2023-07-20)
 
 

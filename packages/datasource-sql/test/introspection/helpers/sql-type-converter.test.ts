@@ -130,7 +130,7 @@ describe('SqlTypeConverter', () => {
     });
 
     describe('from a table with arrays of integers, strings and enums', () => {
-      it('should detect the proper types on %s', async () => {
+      it('should detect the proper types', async () => {
         const connectionUri = 'postgres://test:password@localhost:5443';
         let sequelize: Sequelize | null = null;
 
@@ -148,6 +148,7 @@ describe('SqlTypeConverter', () => {
               arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
               arrayString: DataTypes.ARRAY(DataTypes.STRING),
               arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
+              arrayTimestamp: DataTypes.ARRAY(DataTypes.TIME),
             },
             { tableName: 'arrayTable' },
           );
@@ -175,6 +176,13 @@ describe('SqlTypeConverter', () => {
               name: 'enum_arrayTable_arrayEnum',
               values: ['enum1', 'enum2'],
             },
+          });
+
+          expect(
+            await converter.convert('arrayTable', 'arrayTimestamp', description),
+          ).toStrictEqual({
+            type: 'array',
+            subType: { type: 'scalar', subType: 'TIME' },
           });
         } finally {
           await sequelize?.close();

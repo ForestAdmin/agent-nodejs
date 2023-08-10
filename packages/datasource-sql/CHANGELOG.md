@@ -1,3 +1,49 @@
+## @forestadmin/datasource-sql [1.7.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.7...@forestadmin/datasource-sql@1.7.8) (2023-07-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.3.7
+* **@forestadmin/datasource-toolkit:** upgraded to 1.7.0
+
+## @forestadmin/datasource-sql [1.7.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.6...@forestadmin/datasource-sql@1.7.7) (2023-07-26)
+
+
+### Bug Fixes
+
+* **datasource-sql:** fix array subtype detection ([#775](https://github.com/ForestAdmin/agent-nodejs/issues/775)) ([fbd7d55](https://github.com/ForestAdmin/agent-nodejs/commit/fbd7d553da276e6ecc3207d133815ded21f6a2bb))
+
+## @forestadmin/datasource-sql [1.7.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.5...@forestadmin/datasource-sql@1.7.6) (2023-07-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.3.6
+* **@forestadmin/datasource-toolkit:** upgraded to 1.6.0
+
+## @forestadmin/datasource-sql [1.7.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.4...@forestadmin/datasource-sql@1.7.5) (2023-07-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.3.5
+
+## @forestadmin/datasource-sql [1.7.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.3...@forestadmin/datasource-sql@1.7.4) (2023-07-24)
+
+
+### Bug Fixes
+
+* **agent:** sort enum values to avoid versioning conflicts ([#773](https://github.com/ForestAdmin/agent-nodejs/issues/773)) ([14ab93d](https://github.com/ForestAdmin/agent-nodejs/commit/14ab93d12ecf149fec35493c8c5b1e73856f46aa))
+
 ## @forestadmin/datasource-sql [1.7.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.2...@forestadmin/datasource-sql@1.7.3) (2023-07-20)
 
 

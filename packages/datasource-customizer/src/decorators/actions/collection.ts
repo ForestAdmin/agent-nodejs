@@ -54,14 +54,15 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
+    metas?: { changedField: string },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
-    if (!action) return this.childCollection.getForm(caller, name, data, filter);
+    if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
     if (!action.form) return [];
 
     const formValues = data ? { ...data } : {};
     const used = new Set<string>();
-    const context = this.getContext(caller, action, formValues, filter, used);
+    const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
 
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[];
@@ -104,12 +105,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     formValues: RecordData,
     filter: Filter,
     used?: Set<string>,
+    changedField?: string,
   ): ActionContext {
     return new {
       Global: ActionContext,
       Bulk: ActionContext,
       Single: ActionContextSingle,
-    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used);
+    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
   }
 
   private async dropDefaults(
