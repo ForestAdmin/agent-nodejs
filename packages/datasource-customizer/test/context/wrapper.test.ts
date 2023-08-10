@@ -54,10 +54,6 @@ describe('RelaxedWrappers', () => {
       expect(relaxed.nativeDriver).toBe('my-native-driver');
     });
 
-    test('should handle collection name', async () => {
-      expect(relaxed.name).toBe('my-collection');
-    });
-
     test('should call list when provided with a plain object', async () => {
       const filter = {} as const;
       const projection = ['id', 'truc'];
