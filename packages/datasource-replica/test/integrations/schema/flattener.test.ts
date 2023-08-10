@@ -2,25 +2,25 @@ import { CollectionReplicaSchema, ReplicaDataSourceOptions } from '../../../src'
 import { makeReplicaDataSource } from '../factories';
 
 describe('flattener', () => {
+  describe('when there is no primary key', () => {
+    it('should throw an error', async () => {
+      const schema: ReplicaDataSourceOptions['schema'] = [
+        {
+          name: 'contacts',
+          fields: {
+            fieldArray: [{ type: 'String' }],
+          },
+        },
+      ];
+
+      await expect(() => makeReplicaDataSource({ schema, flattenMode: 'auto' })).rejects.toThrow(
+        'No primary key found',
+      );
+    });
+  });
+
   describe('when the flattener is in auto mode', () => {
     describe('when the field is an array', () => {
-      describe('when there is no primary key', () => {
-        it('should throw an error', async () => {
-          const schema: ReplicaDataSourceOptions['schema'] = [
-            {
-              name: 'contacts',
-              fields: {
-                fieldArray: [{ type: 'String' }],
-              },
-            },
-          ];
-
-          await expect(() =>
-            makeReplicaDataSource({ schema, flattenMode: 'auto' }),
-          ).rejects.toThrow('No primary key found');
-        });
-      });
-
       it('should create a new collection and a one to many between them', async () => {
         const schema: ReplicaDataSourceOptions['schema'] = [
           {
@@ -82,104 +82,108 @@ describe('flattener', () => {
         });
       });
     });
-  });
 
-  describe('when the field is an object', () => {
-    it('should flatten all the object fields in auto mode', async () => {
-      const schema: ReplicaDataSourceOptions['schema'] = [
-        {
-          name: 'contacts',
-          fields: {
-            id: { type: 'Number', isPrimaryKey: true },
-            fieldObject: {
-              fields: {
-                subObject: {
-                  fieldNumber: { type: 'Number' },
-                  fieldString: { type: 'String' },
+    describe('when the field is an object', () => {
+      it('should flatten the object', async () => {
+        const schema: ReplicaDataSourceOptions['schema'] = [
+          {
+            name: 'contacts',
+            fields: {
+              id: { type: 'Number', isPrimaryKey: true },
+              fieldObject: {
+                fields: {
+                  subObject: {
+                    fieldNumber: { type: 'Number' },
+                    fieldString: { type: 'String' },
+                  },
                 },
               },
             },
           },
-        },
-      ];
+        ];
 
-      const datasource = await makeReplicaDataSource({ schema, flattenMode: 'auto' });
+        const datasource = await makeReplicaDataSource({ schema, flattenMode: 'auto' });
 
-      expect(datasource.getCollection('contacts').schema.fields).toEqual({
-        id: {
-          columnType: 'Number',
-          filterOperators: expect.any(Set),
-          type: 'Column',
-          isSortable: true,
-          isPrimaryKey: true,
-        },
-        'fieldObject@@@fields.subObject.fieldString': {
-          columnType: 'String',
-          filterOperators: expect.any(Set),
-          type: 'Column',
-          isSortable: true,
-        },
-        'fieldObject@@@fields.subObject.fieldNumber': {
-          columnType: 'Number',
-          filterOperators: expect.any(Set),
-          type: 'Column',
-          isSortable: true,
-        },
+        expect(datasource.getCollection('contacts').schema.fields).toEqual({
+          id: {
+            columnType: 'Number',
+            filterOperators: expect.any(Set),
+            type: 'Column',
+            isSortable: true,
+            isPrimaryKey: true,
+          },
+          'fieldObject@@@fields.subObject.fieldString': {
+            columnType: 'String',
+            filterOperators: expect.any(Set),
+            type: 'Column',
+            isSortable: true,
+          },
+          'fieldObject@@@fields.subObject.fieldNumber': {
+            columnType: 'Number',
+            filterOperators: expect.any(Set),
+            type: 'Column',
+            isSortable: true,
+          },
+        });
       });
     });
+  });
 
-    it('should flatten all the object fields in manual mode', async () => {
-      const schema: ReplicaDataSourceOptions['schema'] = [
-        {
-          name: 'contacts',
-          fields: {
-            id: { type: 'Number', isPrimaryKey: true },
-            fieldObject: {
-              fields: {
-                subObject: {
-                  fieldNumber: { type: 'Number' },
-                  fieldString: { type: 'String' },
-                  fieldStringArray: [{ type: 'String' }],
+  describe('when the flattener is in manual mode', () => {
+    describe('when the field is an object', () => {
+      it('should flatten all the object fields in manual mode', async () => {
+        const schema: ReplicaDataSourceOptions['schema'] = [
+          {
+            name: 'contacts',
+            fields: {
+              id: { type: 'Number', isPrimaryKey: true },
+              fieldObject: {
+                fields: {
+                  subObject: {
+                    fieldNumber: { type: 'Number' },
+                    fieldString: { type: 'String' },
+                    fieldStringArray: [{ type: 'String' }],
+                  },
                 },
               },
             },
           },
-        },
-      ];
+        ];
 
-      const datasource = await makeReplicaDataSource({
-        schema,
-        flattenMode: 'manual',
-      });
+        const datasource = await makeReplicaDataSource({
+          schema,
+          flattenMode: 'manual',
+        });
 
-      expect(datasource.getCollection('contacts').schema.fields).toEqual({
-        id: {
-          columnType: 'Number',
-          filterOperators: expect.any(Set),
-          type: 'Column',
-          isSortable: true,
-          isPrimaryKey: true,
-          defaultValue: undefined,
-          isReadOnly: undefined,
-          validation: undefined,
-        },
-        fieldObject: {
-          columnType: {
-            fields: {
-              subObject: {
-                fieldNumber: 'Number',
-                fieldString: 'String',
-                fieldStringArray: expect.any(Array),
+        expect(datasource.getCollection('contacts').schema.fields).toEqual({
+          id: {
+            columnType: 'Number',
+            filterOperators: expect.any(Set),
+            type: 'Column',
+            isSortable: true,
+            isPrimaryKey: true,
+            defaultValue: undefined,
+            isReadOnly: undefined,
+            validation: undefined,
+          },
+          fieldObject: {
+            columnType: {
+              fields: {
+                subObject: {
+                  fieldNumber: 'Number',
+                  fieldString: 'String',
+                  fieldStringArray: expect.any(Array),
+                },
               },
             },
+            defaultValue: undefined,
+            isReadOnly: undefined,
+            validation: undefined,
+            isSortable: true,
+            type: 'Column',
+            filterOperators: expect.any(Set),
           },
-          defaultValue: undefined,
-          isReadOnly: undefined,
-          validation: undefined,
-          isSortable: true,
-          type: 'Column',
-          filterOperators: expect.any(Set),
-        },
+        });
       });
     });
   });
