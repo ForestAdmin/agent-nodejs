@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop */
 import type CacheDataSourceInterface from '../cache-interface/datasource';
 import type { NodeStudy } from '../options/schema/analyzer';
 import type {
@@ -43,12 +42,14 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
       let record: Model = { dataValues: { id: 0 } } as Model;
 
       while (record) {
+        // eslint-disable-next-line no-await-in-loop
         record = await this.recordCache.findOne({
           where: { id: { [Op.gt]: record.dataValues.id } },
           order: [['id', 'ASC']],
         });
 
         if (record)
+          // eslint-disable-next-line no-await-in-loop
           await (record.dataValues.type === 'dump'
             ? target.applyDump(...(record.dataValues.content as [PullDumpResponse, boolean]))
             : target.applyDelta(...(record.dataValues.content as [PushDeltaResponse])));

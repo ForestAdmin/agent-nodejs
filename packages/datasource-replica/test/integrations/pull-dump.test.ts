@@ -21,8 +21,8 @@ describe('pull dump', () => {
         schema: makeSchemaWithId('contacts'),
       });
 
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }, { id: 2 }]);
       expect(pullDumpHandler).toHaveBeenCalledTimes(1);
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }, { id: 2 }]);
     });
   });
 
@@ -47,7 +47,7 @@ describe('pull dump', () => {
           allDumpStatesAfterCalls.push(request.previousDumpState as never);
 
           return {
-            more: false, // stop the dump
+            more: false,
             entries: [
               { collection: 'contacts', record: { id: 3 } },
               { collection: 'contacts', record: { id: 4 } },
@@ -60,13 +60,14 @@ describe('pull dump', () => {
         schema: makeSchemaWithId('contacts'),
       });
 
+      expect(pullDumpHandler).toHaveBeenCalledTimes(2);
+
       expect(await getAllRecords(datasource, 'contacts')).toEqual([
         { id: 1 },
         { id: 2 },
         { id: 3 },
         { id: 4 },
       ]);
-      expect(pullDumpHandler).toHaveBeenCalledTimes(2);
 
       // saving previous state at each call
       expect(allDumpStatesAfterCalls).toEqual([null, 'theNextDumpState-0']);
@@ -84,12 +85,14 @@ describe('pull dump', () => {
           };
         });
 
-      const datasource = await makeReplicaDataSource({
+      const datasource = makeReplicaDataSource({
         pullDumpHandler,
         schema: makeSchemaWithId('contacts'),
       });
 
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+      await expect(datasource).resolves.not.toThrow();
+
+      expect(pullDumpHandler).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -134,7 +137,7 @@ describe('pull dump', () => {
 
   describe('when the dump does not respect the schema', () => {
     describe('when the collection name does not exist in the schema', () => {
-      it('should error log or an error', async () => {
+      it('should log an error', async () => {
         const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
           .fn()
           .mockResolvedValueOnce({

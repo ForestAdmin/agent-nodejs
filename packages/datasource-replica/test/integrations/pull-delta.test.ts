@@ -18,11 +18,11 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
-        pullDeltaOnBeforeAccess: true,
+        pullDeltaOnRestart: true,
       });
 
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }]);
       expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }]);
     });
   });
 
@@ -65,8 +65,10 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
-        pullDeltaOnBeforeAccess: true,
+        pullDeltaOnRestart: true,
       });
+
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([
         { id: 1 },
@@ -76,7 +78,6 @@ describe('pull delta', () => {
 
       // saving previous state at each call
       expect(allDeltaStatesAfterCalls).toEqual([null, 'delta-state1', 'delta-state2']);
-      expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -95,11 +96,12 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
-        pullDeltaOnBeforeAccess: true,
+        pullDeltaOnRestart: true,
       });
 
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
       expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
     });
   });
 
@@ -118,11 +120,12 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
-        pullDeltaOnBeforeAccess: true,
+        pullDeltaOnRestart: true,
       });
 
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }]);
       expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }]);
     });
   });
 
@@ -167,14 +170,14 @@ describe('pull delta', () => {
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
         schema,
-        pullDeltaOnBeforeAccess: true,
+        pullDeltaOnRestart: true,
         flattenOptions: {
           contacts: { asModels: ['details'] },
         },
       });
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
-      expect(pullDeltaHandler).toHaveBeenCalledTimes(3);
     });
 
     describe('when a record is deleted', () => {
@@ -193,11 +196,12 @@ describe('pull delta', () => {
         const datasource = await makeReplicaDataSource({
           pullDeltaHandler,
           schema: makeSchemaWithId('contacts'),
-          pullDeltaOnBeforeAccess: true,
+          pullDeltaOnRestart: true,
         });
 
-        expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
         expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+
+        expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
       });
     });
   });

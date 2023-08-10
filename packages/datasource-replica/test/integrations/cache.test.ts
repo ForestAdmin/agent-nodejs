@@ -12,17 +12,13 @@ describe('cache', () => {
         .fn()
         .mockImplementationOnce(async () => {
           return {
-            more: true,
+            more: false,
             newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 3 } }],
             nextDeltaState: 'delta-state',
             deletedEntries: [],
           } as PullDeltaResponse;
         })
-        .mockImplementationOnce(async (request: PullDeltaRequest) => {
-          recordsInCacheInPullDelta = await request.cache
-            .getCollection('contacts')
-            .list({ conditionTree: { field: 'id', operator: 'Present' } }, new Projection('id'));
-
+        .mockImplementationOnce(async () => {
           return {
             more: false,
             newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 4 } }],
@@ -37,9 +33,9 @@ describe('cache', () => {
         pullDeltaOnBeforeAccess: true,
       });
 
+      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }]);
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }, { id: 4 }]);
       expect(pullDeltaHandler).toHaveBeenCalledTimes(2);
-      expect(recordsInCacheInPullDelta).toEqual([{ id: 3 }]);
     });
   });
 

@@ -45,9 +45,6 @@ export default class CacheTarget implements SynchronizationTarget {
 
     await this.connection.transaction(async transaction => {
       for (const [collection, records] of Object.entries(recordsByCollection)) {
-        // fixme check that no pre-processing of the records are needed to handle
-        // dates, buffers, ...
-        //
         await this.connection.model(collection).bulkCreate(records, { transaction });
       }
     });
@@ -69,9 +66,6 @@ export default class CacheTarget implements SynchronizationTarget {
       for (const entry of changes.newOrUpdatedEntries) {
         if (this.checkCollection(entry.collection)) {
           await this.destroySubModels(entry, transaction);
-
-          // fixme check that no pre-processing of the records are needed to handle
-          // dates, buffers, ...
           for (const subEntry of this.flattenRecord(entry))
             await this.connection
               .model(subEntry.collection)

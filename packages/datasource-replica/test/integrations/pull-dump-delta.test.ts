@@ -38,16 +38,17 @@ describe('pull dump and delta', () => {
         pullDumpHandler,
         pullDeltaHandler,
         schema: makeSchemaWithId('contacts'),
-        pullDeltaOnBeforeAccess: true,
+        pullDeltaOnRestart: true,
       });
+
+      expect(pullDumpHandler).toHaveBeenCalledTimes(1);
+      expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([
         { id: 1 },
         { id: 2 },
         { id: 3 },
       ]);
-      expect(pullDumpHandler).toHaveBeenCalledTimes(1);
-      expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
       expect(deltaDeltaStatesAfterCalls).toEqual(['dump-state']);
     });
   });

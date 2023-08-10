@@ -1,5 +1,3 @@
-/* eslint-disable no-await-in-loop */
-
 import type { NodeStudy } from './analyzer';
 import type { CollectionReplicaSchema, Field, ReplicaDataSourceOptions } from '../../types';
 import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';

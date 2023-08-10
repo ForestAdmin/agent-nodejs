@@ -40,7 +40,6 @@ describe('RelaxedWrappers', () => {
       caller = factories.caller.build();
       collection = factories.collection.build({
         nativeDriver: 'my-native-driver',
-        name: 'my-collection',
         schema: {
           fields: {
             name: factories.columnSchema.build({ columnType: 'String' }),

@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop */
 import type CacheDataSourceInterface from '../cache-interface/datasource';
 import type {
   PullDeltaReason,
@@ -165,6 +164,7 @@ export default class CustomerSource implements SynchronizationSource {
     this.tick();
   }
 
+  /* eslint-disable no-await-in-loop */
   private async runPullDump(queue: Queue<PullDumpReason>): Promise<void> {
     this.isRunning = true;
 
@@ -234,6 +234,7 @@ export default class CustomerSource implements SynchronizationSource {
     queue.deferred.resolve();
     this.tick();
   }
+  /* eslint-enable no-await-in-loop */
 
   private async getStartupState(): Promise<'pending' | 'in_progress' | 'done'> {
     const metadataModel = this.connection.model(`${this.options.cacheNamespace}_metadata`);
