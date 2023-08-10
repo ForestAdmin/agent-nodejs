@@ -6,7 +6,8 @@ import { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '.
 
 describe('cache', () => {
   describe('when reading cache inside a pull delta', () => {
-    it('should return the record already created', async () => {
+    it('should return the record already in the cache', async () => {
+      let recordsAlreadyInCache;
       const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
         .fn()
         .mockImplementationOnce(async () => {
@@ -17,7 +18,9 @@ describe('cache', () => {
             deletedEntries: [],
           } as PullDeltaResponse;
         })
-        .mockImplementationOnce(async () => {
+        .mockImplementationOnce(async request => {
+          recordsAlreadyInCache = await request.cache.getCollection('contacts').list({}, ['id']);
+
           return {
             more: false,
             newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 4 } }],
@@ -32,9 +35,12 @@ describe('cache', () => {
         pullDeltaOnBeforeAccess: true,
       });
 
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }]);
-      expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 3 }, { id: 4 }]);
+      // Force pull delta twice
+      await getAllRecords(datasource, 'contacts');
+      await getAllRecords(datasource, 'contacts');
+
       expect(pullDeltaHandler).toHaveBeenCalledTimes(2);
+      expect(recordsAlreadyInCache).toEqual([{ id: 3 }]);
     });
   });
 
