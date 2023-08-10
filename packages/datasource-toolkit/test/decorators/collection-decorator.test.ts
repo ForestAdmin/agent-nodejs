@@ -22,6 +22,17 @@ class DecoratedCollection extends CollectionDecorator {
 }
 
 describe('CollectionDecorator', () => {
+  describe('nativeDriver', () => {
+    it('should return the native driver of the parent', () => {
+      const decoratedCollection = new DecoratedCollection(
+        factories.collection.build({ nativeDriver: 'a native driver' }),
+        factories.dataSource.build(),
+      );
+
+      expect(decoratedCollection.nativeDriver).toStrictEqual('a native driver');
+    });
+  });
+
   describe('list', () => {
     it('calls the child method list with the refined filter and the projection', async () => {
       const projection = factories.projection.build();

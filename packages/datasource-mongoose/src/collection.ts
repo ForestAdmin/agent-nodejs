@@ -41,7 +41,8 @@ export default class MongooseCollection extends BaseCollection {
     const { prefix } = stack[stack.length - 1];
     const name = prefix ? escape(`${model.modelName}.${prefix}`) : model.modelName;
 
-    super(name, dataSource);
+    super(name, dataSource, { mongoose: model.base, model });
+
     this.model = model;
     this.stack = stack;
 

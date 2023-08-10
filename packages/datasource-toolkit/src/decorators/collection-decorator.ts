@@ -15,6 +15,10 @@ export default class CollectionDecorator implements Collection {
 
   private lastSchema: CollectionSchema;
 
+  get nativeDriver(): unknown {
+    return this.childCollection.nativeDriver;
+  }
+
   get schema(): CollectionSchema {
     if (!this.lastSchema) {
       // If the schema is not cached (at the first call, or after a markSchemaAsDirty call),

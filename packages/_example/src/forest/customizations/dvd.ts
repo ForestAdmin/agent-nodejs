@@ -1,5 +1,5 @@
 import sequelizeMsSql from '../../connections/sequelize-mssql';
-import { DvdCustomizer, DvdRentalAggregation, DvdRentalFilter } from '../typings';
+import { DvdCustomizer } from '../typings';
 
 export default (collection: DvdCustomizer) =>
   collection
@@ -9,22 +9,13 @@ export default (collection: DvdCustomizer) =>
       columnType: 'Number',
       dependencies: ['id'],
       getValues: async (records, context) => {
-        // Query other collection to get the number of rentals per dvd.
-        const filter: DvdRentalFilter = {
-          conditionTree: { field: 'dvdId', operator: 'In', value: records.map(r => r.id) },
-        };
-
-        const aggregation: DvdRentalAggregation = {
-          operation: 'Count',
-          groups: [{ field: 'dvdId' }],
-        };
-
-        const rows = await context.dataSource
-          .getCollection('dvd_rental')
-          .aggregate(filter, aggregation);
+        const rows = await context.collection.nativeDriver.rawQuery(
+          'SELECT dvd_id, COUNT(*) AS count FROM dvd_rental WHERE dvd_id IN (:ids) GROUP BY dvd_id',
+          { ids: records.map(r => r.id) },
+        );
 
         // getValues should return values in the same order than the initial `records` array.
-        return records.map(record => rows.find(r => r.group.dvdId === record.id)?.value ?? 0);
+        return records.map(record => rows.find(r => r.dvd_id === record.id)?.count ?? 0);
       },
     })
     .addAction('Increase the rental price', {

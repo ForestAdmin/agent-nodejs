@@ -18,6 +18,7 @@ export interface DataSource<C extends Collection = Collection> {
 }
 
 export interface Collection {
+  get nativeDriver(): unknown | null;
   get dataSource(): DataSource;
   get name(): string;
   get schema(): CollectionSchema;
