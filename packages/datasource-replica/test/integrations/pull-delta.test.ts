@@ -133,7 +133,9 @@ describe('pull delta', () => {
         .mockImplementationOnce(async () => {
           return {
             more: true,
-            newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 1 } }],
+            newOrUpdatedEntries: [
+              { collection: 'contacts', record: { id: 1, details: { name: 'Florian', age: 25 } } },
+            ],
             nextDeltaState: 'delta-state',
             deletedEntries: [],
           } as PullDeltaResponse;
@@ -141,16 +143,34 @@ describe('pull delta', () => {
         .mockImplementationOnce(async () => {
           return {
             more: true,
-            newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 1 } }],
+            newOrUpdatedEntries: [
+              { collection: 'contacts', record: { id: 1, details: { name: 'Florian', age: 25 } } },
+            ],
             nextDeltaState: 'delta-state',
             deletedEntries: [],
           } as PullDeltaResponse;
         });
 
+      const schema: ReplicaDataSourceOptions['schema'] = [
+        {
+          name: 'contacts',
+          fields: {
+            id: { type: 'Number', isPrimaryKey: true },
+            details: {
+              name: { type: 'String' },
+              age: { type: 'Number' },
+            },
+          },
+        },
+      ];
+
       const datasource = await makeReplicaDataSource({
         pullDeltaHandler,
-        schema: makeSchemaWithId('contacts'),
+        schema,
         pullDeltaOnBeforeAccess: true,
+        flattenOptions: {
+          contacts: { asModels: ['details'] },
+        },
       });
 
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
