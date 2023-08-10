@@ -208,7 +208,7 @@ describe('pull delta', () => {
 
   describe('when the delta does not respect the schema', () => {
     describe('when the collection name does not exist in the schema', () => {
-      it('should error log or an error', async () => {
+      it('should log an error', async () => {
         const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
           .fn()
           .mockImplementationOnce(() => {
@@ -263,13 +263,12 @@ describe('on schedule', () => {
       pullDeltaHandler,
       schema: makeSchemaWithId('contacts'),
       pullDeltaOnSchedule: '* * * * * *',
-      pullDeltaOnBeforeAccessDelay: 1,
-      pullDeltaOnBeforeAccess: true,
     });
 
-    expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
-
+    expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
     expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+
+    expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
 
     await (datasource as unknown as any).childDataSource.options.source.stop();
     expect(schedulerStop).toHaveBeenCalledTimes(1);
