@@ -4,6 +4,30 @@ import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factor
 import { PullDumpRequest, ReplicaDataSourceOptions } from '../../src';
 
 describe('pull dump', () => {
+  describe('when the dump fails', () => {
+    it('should log a warning', async () => {
+      const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest
+        .fn()
+        .mockImplementationOnce(() => {
+          throw new Error('Dump failed');
+        });
+
+      const logger = jest.fn();
+
+      await makeReplicaDataSource(
+        {
+          pullDumpHandler,
+          schema: makeSchemaWithId('contacts'),
+        },
+        logger,
+      );
+
+      const [errorEntries] = logger.mock.calls.filter(entry => entry[0] === 'Warn');
+
+      expect(errorEntries).toEqual(['Warn', 'Dump failed for the namespace "forest": Dump failed']);
+    });
+  });
+
   describe('when the dump is finished', () => {
     it('should insert the records by calling the dump only one time', async () => {
       const pullDumpHandler: ReplicaDataSourceOptions['pullDumpHandler'] = jest

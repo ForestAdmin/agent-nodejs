@@ -192,7 +192,10 @@ export default class CustomerSource implements SynchronizationSource {
           await this.setDeltaState(changes.nextDeltaState);
       } catch (error) {
         more = false;
-        this.logger('Warn', `Dump failed for ${this.options.cacheNamespace}: ${error.message}`);
+        this.logger(
+          'Warn',
+          `Dump failed for the namespace "${this.options.cacheNamespace}": ${error.message}`,
+        );
       }
     }
 
@@ -226,7 +229,10 @@ export default class CustomerSource implements SynchronizationSource {
         more = changes.more;
       } catch (error) {
         more = false;
-        this.logger('Warn', `Delta failed for ${this.options.cacheNamespace}: ${error.message}`);
+        this.logger(
+          'Warn',
+          `Delta failed for the namespace "${this.options.cacheNamespace}": ${error.message}`,
+        );
       }
     }
 
