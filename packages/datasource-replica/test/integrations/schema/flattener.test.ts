@@ -285,12 +285,21 @@ describe('flattener', () => {
                   name: { type: 'String' },
                 },
               },
+              rewards: {
+                fields: {
+                  id: { type: 'Integer', isPrimaryKey: true },
+                  name: { type: 'String' },
+                },
+              },
             },
           },
         ],
         flattenMode: 'manual',
         flattenOptions: {
-          books: { asModels: ['authors'], asFields: ['id', 'prices'] },
+          books: {
+            asModels: ['authors', 'prices', 'rewards'],
+            asFields: ['id', 'prices', 'rewards'],
+          },
         },
       });
 
@@ -313,24 +322,17 @@ describe('flattener', () => {
           type: 'Column',
           validation: undefined,
         },
-        'prices@@@fields.id': {
-          columnType: 'Number',
-          filterOperators: expect.any(Set),
-          type: 'Column',
-          validation: undefined,
-          isReadOnly: undefined,
-          isSortable: true,
-          isPrimaryKey: true,
-          defaultValue: undefined,
+        prices: {
+          foreignCollection: 'books_prices',
+          originKey: '_fpid',
+          originKeyTarget: 'id',
+          type: 'OneToOne',
         },
-        'prices@@@fields.name': {
-          columnType: 'String',
-          filterOperators: expect.any(Set),
-          type: 'Column',
-          validation: undefined,
-          isReadOnly: undefined,
-          isSortable: true,
-          defaultValue: undefined,
+        rewards: {
+          foreignCollection: 'books_rewards',
+          originKey: '_fpid',
+          originKeyTarget: 'id',
+          type: 'OneToOne',
         },
         id: {
           columnType: 'Number',
