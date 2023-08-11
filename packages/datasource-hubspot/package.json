@@ -1,0 +1,34 @@
+{
+  "name": "@forestadmin/datasource-hubspot",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-hubspot"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-replica": "^1.0.0",
+    "@forestadmin/datasource-toolkit": "^1.5.0",
+    "@hubspot/api-client": "^9.0.0",
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
