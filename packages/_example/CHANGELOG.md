@@ -1,3 +1,23 @@
+# example [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.5.0...example@1.6.0) (2023-08-11)
+
+
+### Features
+
+* **datasource-replica:** add replica datasource ([#783](https://github.com/ForestAdmin/agent-nodejs/issues/783)) ([e57a444](https://github.com/ForestAdmin/agent-nodejs/commit/e57a4440eb0f2ef69b95e42e1c41fd81e1813bb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.16.2
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.44
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.1
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.0
+* **@forestadmin/datasource-sql:** upgraded to 1.7.10
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+
 # example [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.4.2...example@1.5.0) (2023-07-27)
 
 
