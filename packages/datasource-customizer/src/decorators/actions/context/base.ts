@@ -3,6 +3,7 @@ import {
   Caller,
   Collection,
   CompositeId,
+  Deferred,
   Projection,
   ProjectionValidator,
   RecordData,
@@ -11,19 +12,6 @@ import {
 
 import CollectionCustomizationContext from '../../../context/collection-context';
 import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
-
-class Deferred<T> {
-  promise: Promise<T>;
-  resolve: (result: T) => void;
-  reject: (error: Error) => void;
-
-  constructor() {
-    this.promise = new Promise((resolve, reject) => {
-      this.reject = reject;
-      this.resolve = resolve;
-    });
-  }
-}
 
 export default class ActionContext<
   S extends TSchema = TSchema,
