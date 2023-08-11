@@ -51,4 +51,38 @@ describe('push delta', () => {
       expect(pushDeltaHandler).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('calling getDeltaState', () => {
+    it('should return the right deltaState', async () => {
+      let apiCall;
+      const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
+        .fn()
+        .mockResolvedValueOnce({
+          more: true,
+          newOrUpdatedEntries: [{ collection: 'contacts', record: { id: 1, name: 'Simon' } }],
+          nextDeltaState: 'delta-state',
+          deletedEntries: [],
+        });
+
+      const pushDeltaHandler: ReplicaDataSourceOptions['pushDeltaHandler'] = jest
+        .fn()
+        .mockImplementationOnce(request => {
+          apiCall = async () => {
+            const deltaState = await request.getPreviousDeltaState();
+
+            return deltaState;
+          };
+        });
+
+      await makeReplicaDataSource({
+        pushDeltaHandler,
+        pullDeltaHandler,
+        schema: makeSchemaWithId('contacts'),
+        pullDeltaOnRestart: true,
+      });
+
+      const previousDeltaState = await apiCall();
+      expect(previousDeltaState).toBe('delta-state');
+    });
+  });
 });
