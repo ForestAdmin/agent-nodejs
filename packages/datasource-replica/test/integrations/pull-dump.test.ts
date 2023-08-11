@@ -150,6 +150,7 @@ describe('pull dump', () => {
         pullDumpOnSchedule: '* * * * * *',
       });
 
+      // Trigger the pullDumpHandler to allow the schedule to be executed before next call
       expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
       expect(pullDumpHandler).toHaveBeenCalledTimes(2);
       expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
