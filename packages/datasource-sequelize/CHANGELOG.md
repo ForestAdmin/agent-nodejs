@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sequelize [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.4.0...@forestadmin/datasource-sequelize@1.5.0) (2023-08-11)
+
+
+### Features
+
+* **datasource-replica:** add replica datasource ([#783](https://github.com/ForestAdmin/agent-nodejs/issues/783)) ([e57a444](https://github.com/ForestAdmin/agent-nodejs/commit/e57a4440eb0f2ef69b95e42e1c41fd81e1813bb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+
 # @forestadmin/datasource-sequelize [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.7...@forestadmin/datasource-sequelize@1.4.0) (2023-07-27)
 
 
