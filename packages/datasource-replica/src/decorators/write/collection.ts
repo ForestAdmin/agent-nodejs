@@ -17,17 +17,13 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports creations');
     }
 
-    if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
-      // I am a root collection, I can forward the creation to the target
-      const promises = data.map(async record => {
-        const newRecord = await this.options.createRecordHandler(this.name, record);
-        Object.assign(record, newRecord ?? {});
-      });
+    // I am a root collection, I can forward the creation to the target
+    const promises = data.map(async record => {
+      const newRecord = await this.options.createRecordHandler(this.name, record);
+      Object.assign(record, newRecord ?? {});
+    });
 
-      await Promise.all(promises);
-    } else {
-      // I am a child collection, I need to transform this creation into an update
-    }
+    await Promise.all(promises);
 
     return this.childCollection.create(caller, data);
   }
@@ -37,18 +33,14 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports updates');
     }
 
-    if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
-      // I am a root collection, I can forward the update to the target
-      const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
-      const promises = recordsPks.map(async record => {
-        Object.assign(record, patch);
-        await this.options.updateRecordHandler(this.name, record);
-      });
+    // I am a root collection, I can forward the update to the target
+    const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
+    const promises = recordsPks.map(async record => {
+      Object.assign(record, patch);
+      await this.options.updateRecordHandler(this.name, record);
+    });
 
-      await Promise.all(promises);
-    } else {
-      // I am a child collection, I need to send whole records to the target
-    }
+    await Promise.all(promises);
 
     return super.update(caller, filter, patch);
   }
@@ -58,17 +50,13 @@ export default class WriteCollectionDecorator extends CollectionDecorator {
       throw new UnprocessableError('This collection does not supports deletes');
     }
 
-    if (this.dataSource.options.schema.find(({ name }) => name === this.name)) {
-      // I am a root collection, I can forward the delete to the target
-      const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
-      const promises = recordsPks.map(async record => {
-        await this.options.deleteRecordHandler(this.name, record);
-      });
+    // I am a root collection, I can forward the delete to the target
+    const recordsPks = await super.list(caller, filter, new Projection().withPks(this));
+    const promises = recordsPks.map(async record => {
+      await this.options.deleteRecordHandler(this.name, record);
+    });
 
-      await Promise.all(promises);
-    } else {
-      // I am a child collection, I need to send whole records to the target
-    }
+    await Promise.all(promises);
 
     return super.delete(caller, filter);
   }
