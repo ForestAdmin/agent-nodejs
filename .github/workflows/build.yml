@@ -64,6 +64,7 @@ jobs:
           - agent
           - datasource-customizer
           - datasource-dummy
+          - datasource-hubspot
           - datasource-mongoose
           - datasource-replica
           - datasource-sequelize
@@ -126,6 +127,7 @@ jobs:
             ${{github.workspace}}/reports/agent/clover.xml:clover
             ${{github.workspace}}/reports/datasource-customizer/clover.xml:clover
             ${{github.workspace}}/reports/datasource-dummy/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-hubspot/clover.xml:clover
             ${{github.workspace}}/reports/datasource-mongoose/clover.xml:clover
             ${{github.workspace}}/reports/datasource-replica/clover.xml:clover
             ${{github.workspace}}/reports/datasource-sequelize/clover.xml:clover
