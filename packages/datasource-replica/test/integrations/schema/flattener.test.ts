@@ -285,10 +285,10 @@ describe('flattener', () => {
                   name: { type: 'String' },
                 },
               },
-              rewards: {
+              pricesReduction: {
                 fields: {
                   id: { type: 'Integer', isPrimaryKey: true },
-                  name: { type: 'String' },
+                  amount: { type: 'Number' },
                 },
               },
             },
@@ -297,8 +297,8 @@ describe('flattener', () => {
         flattenMode: 'manual',
         flattenOptions: {
           books: {
-            asModels: ['authors', 'prices', 'rewards'],
-            asFields: ['id', 'prices', 'rewards'],
+            asModels: ['authors', 'prices', 'pricesReduction'],
+            asFields: ['id', 'prices', 'pricesReduction'],
           },
         },
       });
@@ -328,8 +328,8 @@ describe('flattener', () => {
           originKeyTarget: 'id',
           type: 'OneToOne',
         },
-        rewards: {
-          foreignCollection: 'books_rewards',
+        pricesReduction: {
+          foreignCollection: 'books_pricesReduction',
           originKey: '_fpid',
           originKeyTarget: 'id',
           type: 'OneToOne',
