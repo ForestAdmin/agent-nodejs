@@ -54,7 +54,7 @@ describe('pull dump', () => {
       expect(companies).toEqual([{ city: 'Forest', id: expect.any(String) }]);
       expect(deals).toEqual([{ dealname: 'Forest', id: expect.any(String) }]);
       expect(tickets).toEqual([{ subject: 'Forest', id: expect.any(String) }]);
-      // expect(feedbackSubmissions).toEqual([{ name: 'Forest', id: expect.any(String) }]);
+      expect(feedbackSubmissions).toEqual([{ name: 'Forest', id: expect.any(String) }]);
       expect(lineItems).toEqual([{ name: 'Forest', id: expect.any(String) }]);
       expect(products).toEqual([{ name: 'Forest', id: expect.any(String) }]);
       expect(quotes).toEqual([{ hs_title: 'Forest', id: expect.any(String) }]);
