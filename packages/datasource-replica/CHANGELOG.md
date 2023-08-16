@@ -1,3 +1,10 @@
+## @forestadmin/datasource-replica [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.0...@forestadmin/datasource-replica@1.0.1) (2023-08-16)
+
+
+### Bug Fixes
+
+* **replica:** module not found error when importing the datasource-replica ([#788](https://github.com/ForestAdmin/agent-nodejs/issues/788)) ([d41d897](https://github.com/ForestAdmin/agent-nodejs/commit/d41d8979754f37e7bf7de378c3ffb36665d189fb))
+
 # @forestadmin/datasource-replica 1.0.0 (2023-08-11)
 
 
