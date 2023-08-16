@@ -12,8 +12,8 @@
     "directory": "packages/datasource-replica"
   },
   "files": [
-    "dist/src/**/*.js",
-    "dist/src/**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "scripts": {
     "build": "tsc",
