@@ -1,21 +1,26 @@
 import { CompositeId, Json } from '@forestadmin/datasource-toolkit';
 
+type DropdownOption = { value: string; label: string };
+
 export type ValueOrHandler<Context = unknown, Result = unknown> =
   | ((context: Context) => Promise<Result>)
   | ((context: Context) => Result)
   | Promise<Result>
+  | DropdownOption
   | Result;
 
 interface BaseDynamicField<Type, Context, Result> {
   type: Type;
   label: string;
+  widget?: 'Dropdown';
   description?: string;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
-
+  options?: DropdownOption[];
+  search?: 'disabled';
   if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
   value?: ValueOrHandler<Context, Result>;
-  defaultValue?: ValueOrHandler<Context, Result>;
+  defaultValue?: ValueOrHandler<Context, Result> | ((context: Context) => DropdownOption);
 }
 
 interface CollectionDynamicField<Context>

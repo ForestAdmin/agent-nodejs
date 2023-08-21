@@ -48,7 +48,23 @@ export type ForestServerAction = {
   };
 };
 
-export type ForestServerActionField = {
+export type ForestServerActionFieldWidgetEditBase<TType = string, TConfig = unknown> = {
+  name: TType;
+  parameters: TConfig;
+};
+
+export type ForestServerActionFieldCommon = {
+  value: unknown;
+  defaultValue: unknown;
+  description: string | null;
+  field: string;
+  hook: string;
+  isReadOnly: boolean;
+  isRequired: boolean;
+  type: ForestServerColumnType;
+};
+
+export type ForestServerActionFieldBase = {
   value: unknown;
   defaultValue: unknown;
   description: string | null;
@@ -59,8 +75,19 @@ export type ForestServerActionField = {
   isRequired: boolean;
   reference: string | null;
   type: ForestServerColumnType;
-  widget: null | 'belongsto select' | 'file picker';
 };
+
+export type ForestServerActionFieldDropdownOptions = {
+  widget: 'dropdown';
+  search?: 'static' | 'disabled';
+  options: Array<{ label: string; value: string }>;
+  placeholder: string | null;
+};
+
+export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon &
+  ForestServerActionFieldDropdownOptions;
+
+export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 
 export type ForestServerField = Partial<{
   field: string;

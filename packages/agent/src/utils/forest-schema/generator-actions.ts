@@ -10,7 +10,9 @@ import {
 import { ForestServerAction, ForestServerActionField } from '@forestadmin/forestadmin-client';
 import path from 'path';
 
+import ActionFields from './action-fields';
 import ForestValueConverter from './action-values';
+import GeneratorActionFieldWidget from './generator-action-field-widget';
 
 export default class SchemaGeneratorActions {
   /**
@@ -29,7 +31,6 @@ export default class SchemaGeneratorActions {
       hook: null,
       isRequired: false,
       reference: null,
-      widget: null,
     },
   ];
 
@@ -39,6 +40,7 @@ export default class SchemaGeneratorActions {
 
   static async buildSchema(collection: Collection, name: string): Promise<ForestServerAction> {
     const schema = collection.schema.actions[name];
+
     const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
@@ -74,7 +76,7 @@ export default class SchemaGeneratorActions {
 
     if (watchChanges) output.hook = 'changeHook';
 
-    if (type === 'Collection') {
+    if (ActionFields.isCollectionField(field)) {
       const collection = dataSource.getCollection(field.collectionName);
       const [pk] = SchemaUtils.getPrimaryKeys(collection.schema);
       const pkSchema = collection.schema.fields[pk] as ColumnSchema;
@@ -87,9 +89,11 @@ export default class SchemaGeneratorActions {
       output.type = type as unknown as PrimitiveTypes;
     }
 
-    if (type === 'Enum' || type === 'EnumList') {
+    if (ActionFields.isEnumField(field) || ActionFields.isEnumListField(field)) {
       output.enums = field.enumValues;
     }
+
+    Object.assign(output, GeneratorActionFieldWidget.buildWidgetOptions(field));
 
     return output as ForestServerActionField;
   }
