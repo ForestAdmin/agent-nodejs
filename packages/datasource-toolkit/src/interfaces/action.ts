@@ -43,6 +43,7 @@ export type ActionFieldDropdown = ActionFieldBase & {
   type: 'Date' | 'Dateonly' | 'Number' | 'String';
   options?: DropdownOption[];
   search?: 'static' | 'disabled';
+  placeholder?: string;
 };
 
 export type ActionFieldEnum = ActionFieldBase & {

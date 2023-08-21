@@ -59,6 +59,7 @@ describe('GeneratorActionFieldWidget', () => {
             { value: 'value2', label: 'Value 2' },
           ],
           search: 'static',
+          placeholder: 'Placeholder',
         });
 
         expect(result).toEqual({
@@ -68,6 +69,7 @@ describe('GeneratorActionFieldWidget', () => {
             { value: 'value1', label: 'Value 1' },
             { value: 'value2', label: 'Value 2' },
           ],
+          placeholder: 'Placeholder',
         });
       });
 
@@ -83,6 +85,7 @@ describe('GeneratorActionFieldWidget', () => {
           widget: 'dropdown',
           search: 'disabled',
           options: [],
+          placeholder: null,
         });
       });
     });

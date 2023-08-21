@@ -81,6 +81,7 @@ export type ForestServerActionFieldDropdownOptions = {
   widget: 'dropdown';
   search?: 'static' | 'disabled';
   options: Array<{ label: string; value: string }>;
+  placeholder: string | null;
 };
 
 export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon &

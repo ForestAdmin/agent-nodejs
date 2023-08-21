@@ -25,6 +25,7 @@ export default class GeneratorActionFieldWidget {
       widget: 'dropdown',
       search: field.search || 'disabled',
       options: field.options || [],
+      placeholder: field.placeholder || null,
     };
   }
 }
