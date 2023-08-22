@@ -53,39 +53,44 @@ export type ForestServerActionFieldWidgetEditBase<TType = string, TConfig = unkn
   parameters: TConfig;
 };
 
-export type ForestServerActionFieldCommon = {
-  value: unknown;
-  defaultValue: unknown;
-  description: string | null;
-  field: string;
-  hook: string;
-  isReadOnly: boolean;
-  isRequired: boolean;
-  type: ForestServerColumnType;
+export type WidgetEditConfiguration = {
+  name: string;
+  parameters: Record<string, unknown>;
 };
 
-export type ForestServerActionFieldBase = {
+export type ForestServerActionFieldCommon<
+  TType extends ForestServerColumnType = ForestServerColumnType,
+  TWidgetEdit extends WidgetEditConfiguration = null,
+> = {
+  type: TType;
   value: unknown;
   defaultValue: unknown;
   description: string | null;
-  enums: string[];
   field: string;
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
+  enums: null | string[];
+  widgetEdit: TWidgetEdit;
+};
+
+export type ForestServerActionFieldBase = ForestServerActionFieldCommon & {
   reference: string | null;
-  type: ForestServerColumnType;
 };
 
 export type ForestServerActionFieldDropdownOptions = {
-  widget: 'dropdown';
-  search?: 'static' | 'disabled';
-  options: Array<{ label: string; value: string }>;
-  placeholder: string | null;
+  name: 'dropdown';
+  parameters: {
+    placeholder?: string | null;
+    isSearchable?: boolean;
+    options: Array<{ label: string; value: string }>;
+  };
 };
 
-export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon &
-  ForestServerActionFieldDropdownOptions;
+export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon<
+  'String' | 'Number' | 'Dateonly' | 'Date' | 'Timeonly',
+  ForestServerActionFieldDropdownOptions
+>;
 
 export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 

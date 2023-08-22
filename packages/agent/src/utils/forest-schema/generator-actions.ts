@@ -31,6 +31,7 @@ export default class SchemaGeneratorActions {
       hook: null,
       isRequired: false,
       reference: null,
+      widgetEdit: null,
     },
   ];
 
@@ -93,7 +94,7 @@ export default class SchemaGeneratorActions {
       output.enums = field.enumValues;
     }
 
-    Object.assign(output, GeneratorActionFieldWidget.buildWidgetOptions(field));
+    output.widgetEdit = GeneratorActionFieldWidget.buildWidgetOptions(field);
 
     return output as ForestServerActionField;
   }

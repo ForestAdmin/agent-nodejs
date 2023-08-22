@@ -63,13 +63,15 @@ describe('GeneratorActionFieldWidget', () => {
         });
 
         expect(result).toEqual({
-          widget: 'dropdown',
-          search: 'static',
-          options: [
-            { value: 'value1', label: 'Value 1' },
-            { value: 'value2', label: 'Value 2' },
-          ],
-          placeholder: 'Placeholder',
+          name: 'dropdown',
+          parameters: {
+            isSearchable: true,
+            options: [
+              { value: 'value1', label: 'Value 1' },
+              { value: 'value2', label: 'Value 2' },
+            ],
+            placeholder: 'Placeholder',
+          },
         });
       });
 
@@ -82,10 +84,12 @@ describe('GeneratorActionFieldWidget', () => {
         });
 
         expect(result).toEqual({
-          widget: 'dropdown',
-          search: 'disabled',
-          options: [],
-          placeholder: null,
+          name: 'dropdown',
+          parameters: {
+            isSearchable: false,
+            options: [],
+            placeholder: null,
+          },
         });
       });
     });
