@@ -1,3 +1,11 @@
+# @forestadmin/datasource-toolkit [1.10.0-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.9.0...@forestadmin/datasource-toolkit@1.10.0-alpha-widgets.1) (2023-08-23)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+* allow to use an array of values for dropdown options ([#790](https://github.com/ForestAdmin/agent-nodejs/issues/790)) ([8f09376](https://github.com/ForestAdmin/agent-nodejs/commit/8f09376cee2649a96edc3c2563814e15af5d63be))
+
 # @forestadmin/datasource-toolkit [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.8.0...@forestadmin/datasource-toolkit@1.9.0) (2023-08-11)
 
 
