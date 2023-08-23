@@ -1,3 +1,13 @@
+## @forestadmin/datasource-sequelize [1.4.1-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.4.1-alpha-widgets.1...@forestadmin/datasource-sequelize@1.4.1-alpha-widgets.2) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+
 ## @forestadmin/datasource-sequelize [1.4.1-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.4.0...@forestadmin/datasource-sequelize@1.4.1-alpha-widgets.1) (2023-08-23)
 
 
