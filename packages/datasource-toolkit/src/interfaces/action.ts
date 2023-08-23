@@ -1,7 +1,7 @@
 import { Readable } from 'stream';
 
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
-export type DropdownOption = { value: string; label: string };
+export type DropdownOption<TValue> = { value: TValue; label: string } | TValue;
 
 export type File = {
   mimeType: string;
@@ -38,10 +38,13 @@ export const ActionFieldTypeList = [
 
 export type ActionFieldType = (typeof ActionFieldTypeList)[number];
 
-export type ActionFieldDropdown = ActionFieldBase & {
+export type ActionFieldDropdown<
+  TType extends ActionFieldType = ActionFieldType,
+  TValue = string,
+> = ActionFieldBase & {
   widget: 'Dropdown';
-  type: 'Date' | 'Dateonly' | 'Number' | 'String';
-  options?: DropdownOption[];
+  type: TType;
+  options?: DropdownOption<TValue>[];
   search?: 'static' | 'disabled';
   placeholder?: string;
 };
@@ -66,7 +69,8 @@ export type ActionField =
   | ActionFieldEnum
   | ActionFieldEnumList
   | ActionFieldCollection
-  | ActionFieldDropdown;
+  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldDropdown<'Number', number>;
 
 export type ActionFieldWidget = 'Dropdown'; // Other widgets to be added in the future
 
