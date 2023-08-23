@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.17.0-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.16.1...@forestadmin/agent@1.17.0-alpha-widgets.1) (2023-08-23)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.15.0-alpha-widgets.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.6.0-alpha-widgets.1
+
 ## @forestadmin/agent [1.16.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.16.0...@forestadmin/agent@1.16.1) (2023-07-27)
 
 
