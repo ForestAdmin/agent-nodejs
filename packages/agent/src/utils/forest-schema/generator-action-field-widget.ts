@@ -26,7 +26,9 @@ export default class GeneratorActionFieldWidget {
       parameters: {
         isSearchable: field.search === 'static',
         placeholder: field.placeholder || null,
-        options: field.options || [],
+        static: {
+          options: field.options || [],
+        },
       },
     };
   }

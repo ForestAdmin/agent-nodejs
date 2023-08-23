@@ -66,11 +66,13 @@ describe('GeneratorActionFieldWidget', () => {
           name: 'dropdown',
           parameters: {
             isSearchable: true,
-            options: [
-              { value: 'value1', label: 'Value 1' },
-              { value: 'value2', label: 'Value 2' },
-            ],
             placeholder: 'Placeholder',
+            static: {
+              options: [
+                { value: 'value1', label: 'Value 1' },
+                { value: 'value2', label: 'Value 2' },
+              ],
+            },
           },
         });
       });
@@ -87,8 +89,10 @@ describe('GeneratorActionFieldWidget', () => {
           name: 'dropdown',
           parameters: {
             isSearchable: false,
-            options: [],
             placeholder: null,
+            static: {
+              options: [],
+            },
           },
         });
       });

@@ -78,19 +78,21 @@ export type ForestServerActionFieldBase = ForestServerActionFieldCommon & {
   reference: string | null;
 };
 
-export type ForestServerActionFieldDropdownOptions = {
+export type ForestServerActionFieldDropdownOptions<TValue = string> = {
   name: 'dropdown';
   parameters: {
     placeholder?: string | null;
     isSearchable?: boolean;
-    options: Array<{ label: string; value: string }>;
+    static: {
+      options: Array<{ label: TValue; value: string }>;
+    };
   };
 };
 
 export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon<
-  'String' | 'Number' | 'Dateonly' | 'Date' | 'Timeonly',
-  ForestServerActionFieldDropdownOptions
->;
+  'String' | 'Dateonly' | 'Date' | 'Timeonly',
+  ForestServerActionFieldDropdownOptions<string>
+> | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>;
 
 export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 

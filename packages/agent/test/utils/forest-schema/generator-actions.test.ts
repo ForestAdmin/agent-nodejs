@@ -261,10 +261,12 @@ describe('SchemaGeneratorActions', () => {
           parameters: {
             isSearchable: true,
             placeholder: null,
-            options: [
-              { label: 'Paperback', value: '1' },
-              { label: 'Hardcover', value: '2' },
-            ],
+            static: {
+              options: [
+                { label: 'Paperback', value: '1' },
+                { label: 'Hardcover', value: '2' },
+              ],
+            },
           },
         },
       });
