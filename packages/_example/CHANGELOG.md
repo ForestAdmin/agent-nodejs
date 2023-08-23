@@ -1,3 +1,18 @@
+## example [1.5.1-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.5.1-alpha-widgets.1...example@1.5.1-alpha-widgets.2) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.17.0-alpha-widgets.2
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.44-alpha-widgets.2
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.1-alpha-widgets.2
+* **@forestadmin/datasource-sequelize:** upgraded to 1.4.1-alpha-widgets.2
+* **@forestadmin/datasource-sql:** upgraded to 1.7.10-alpha-widgets.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+
 ## example [1.5.1-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.5.0...example@1.5.1-alpha-widgets.1) (2023-08-23)
 
 
