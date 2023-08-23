@@ -38,7 +38,7 @@ describe('SequelizeDataSource > Collection', () => {
 
   it('should fail to instantiate without a Sequelize model instance', () => {
     const { dataSource, name } = makeConstructorParams();
-    expect(() => new SequelizeCollection(name, dataSource, null)).toThrow(
+    expect(() => new SequelizeCollection(name, dataSource, null as any)).toThrow(
       'Invalid (null) model instance.',
     );
   });
@@ -75,7 +75,7 @@ describe('SequelizeDataSource > Collection', () => {
       sequelizeCollection['model'] = {
         ...sequelize.models[name],
         bulkCreate,
-      } as unknown as ModelDefined<unknown, unknown>;
+      } as unknown as ModelDefined<any, any>;
 
       return {
         bulkCreate,
@@ -158,7 +158,7 @@ describe('SequelizeDataSource > Collection', () => {
 
       const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
-      expect(result).toBeArrayOfSize(1);
+      expect(result).toHaveLength(1);
       expect(result[0]).toStrictEqual(recordData[0]);
       expect(findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -175,7 +175,7 @@ describe('SequelizeDataSource > Collection', () => {
 
       const result = await sequelizeCollection.list(factories.caller.build(), filter, projection);
 
-      expect(result).toBeArrayOfSize(1);
+      expect(result).toHaveLength(1);
       expect(result[0]).toStrictEqual(recordData[0]);
       expect(records[0].get).toHaveBeenCalledWith({ plain: true });
     });
