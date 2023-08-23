@@ -1,6 +1,6 @@
 import { CompositeId, Json } from '@forestadmin/datasource-toolkit';
 
-type DropdownOption<TValue = string> = { value: TValue | null; label: string };
+type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
 
 export type ValueOrHandler<Context = unknown, Result = unknown> =
   | ((context: Context) => Promise<Result>)

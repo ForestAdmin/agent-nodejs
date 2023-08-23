@@ -84,7 +84,7 @@ export type ForestServerActionFieldDropdownOptions<TValue = string> = {
     placeholder?: string | null;
     isSearchable?: boolean;
     static: {
-      options: Array<{ label: TValue; value: string }>;
+      options: Array<{ label: string; value: TValue } | TValue>;
     };
   };
 };
