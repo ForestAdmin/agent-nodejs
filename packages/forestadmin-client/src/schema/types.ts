@@ -89,10 +89,12 @@ export type ForestServerActionFieldDropdownOptions<TValue = string> = {
   };
 };
 
-export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon<
-  'String' | 'Dateonly' | 'Date' | 'Timeonly',
-  ForestServerActionFieldDropdownOptions<string>
-> | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>;
+export type ForestServerActionFieldDropdown =
+  | ForestServerActionFieldCommon<
+      'String' | 'Dateonly' | 'Date' | 'Timeonly',
+      ForestServerActionFieldDropdownOptions<string>
+    >
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>>;
 
 export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 
