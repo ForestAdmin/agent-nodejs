@@ -53,39 +53,48 @@ export type ForestServerActionFieldWidgetEditBase<TType = string, TConfig = unkn
   parameters: TConfig;
 };
 
-export type ForestServerActionFieldCommon = {
-  value: unknown;
-  defaultValue: unknown;
-  description: string | null;
-  field: string;
-  hook: string;
-  isReadOnly: boolean;
-  isRequired: boolean;
-  type: ForestServerColumnType;
+export type WidgetEditConfiguration = {
+  name: string;
+  parameters: Record<string, unknown>;
 };
 
-export type ForestServerActionFieldBase = {
+export type ForestServerActionFieldCommon<
+  TType extends ForestServerColumnType = ForestServerColumnType,
+  TWidgetEdit extends WidgetEditConfiguration = null,
+> = {
+  type: TType;
   value: unknown;
   defaultValue: unknown;
   description: string | null;
-  enums: string[];
   field: string;
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
+  enums: null | string[];
+  widgetEdit: TWidgetEdit;
+};
+
+export type ForestServerActionFieldBase = ForestServerActionFieldCommon & {
   reference: string | null;
-  type: ForestServerColumnType;
 };
 
-export type ForestServerActionFieldDropdownOptions = {
-  widget: 'dropdown';
-  search?: 'static' | 'disabled';
-  options: Array<{ label: string; value: string }>;
-  placeholder: string | null;
+export type ForestServerActionFieldDropdownOptions<TValue = string> = {
+  name: 'dropdown';
+  parameters: {
+    placeholder?: string | null;
+    isSearchable?: boolean;
+    static: {
+      options: Array<{ label: TValue; value: string }>;
+    };
+  };
 };
 
-export type ForestServerActionFieldDropdown = ForestServerActionFieldCommon &
-  ForestServerActionFieldDropdownOptions;
+export type ForestServerActionFieldDropdown =
+  | ForestServerActionFieldCommon<
+      'String' | 'Dateonly' | 'Date' | 'Timeonly',
+      ForestServerActionFieldDropdownOptions<string>
+    >
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>>;
 
 export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 

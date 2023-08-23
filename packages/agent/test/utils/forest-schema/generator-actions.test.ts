@@ -256,12 +256,19 @@ describe('SchemaGeneratorActions', () => {
 
       expect(schema.fields[0]).toMatchObject({
         field: 'format',
-        widget: 'dropdown',
-        options: [
-          { label: 'Paperback', value: '1' },
-          { label: 'Hardcover', value: '2' },
-        ],
-        search: 'static',
+        widgetEdit: {
+          name: 'dropdown',
+          parameters: {
+            isSearchable: true,
+            placeholder: null,
+            static: {
+              options: [
+                { label: 'Paperback', value: '1' },
+                { label: 'Hardcover', value: '2' },
+              ],
+            },
+          },
+        },
       });
     });
   });

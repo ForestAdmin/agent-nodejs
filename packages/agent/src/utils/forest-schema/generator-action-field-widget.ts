@@ -22,10 +22,14 @@ export default class GeneratorActionFieldWidget {
     field: ActionFieldDropdown,
   ): ForestServerActionFieldDropdownOptions {
     return {
-      widget: 'dropdown',
-      search: field.search || 'disabled',
-      options: field.options || [],
-      placeholder: field.placeholder || null,
+      name: 'dropdown',
+      parameters: {
+        isSearchable: field.search === 'static',
+        placeholder: field.placeholder || null,
+        static: {
+          options: field.options || [],
+        },
+      },
     };
   }
 }
