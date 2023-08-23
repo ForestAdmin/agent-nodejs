@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-mongoose",
-  "version": "1.5.1-alpha-widgets.2",
+  "version": "1.5.2-alpha-widgets.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,7 +16,7 @@
     "dist/**/*.d.ts"
   ],
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.9.0-alpha-widgets.2",
+    "@forestadmin/datasource-toolkit": "1.10.0-alpha-widgets.1",
     "luxon": "^3.2.1"
   },
   "devDependencies": {
