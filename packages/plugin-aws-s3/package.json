@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-aws-s3",
-  "version": "1.3.9-alpha-widgets.1",
+  "version": "1.3.9-alpha-widgets.2",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,7 +16,7 @@
     "@aws-sdk/s3-request-presigner": "^3.157.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.16.0-alpha-widgets.1",
+    "@forestadmin/datasource-customizer": "1.16.0-alpha-widgets.2",
     "@forestadmin/datasource-toolkit": "1.10.0-alpha-widgets.1"
   },
   "files": [
