@@ -15,7 +15,7 @@
     "excel4node": "^1.8.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.16.0-alpha-widgets.1",
+    "@forestadmin/datasource-customizer": "1.16.0-alpha-widgets.2",
     "@forestadmin/datasource-toolkit": "1.10.0-alpha-widgets.1"
   },
   "files": [
