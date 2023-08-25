@@ -1,3 +1,13 @@
+# @forestadmin/agent [1.17.0-alpha-widgets.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0-alpha-widgets.3...@forestadmin/agent@1.17.0-alpha-widgets.4) (2023-08-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.16.0-alpha-widgets.2
+
 # @forestadmin/agent [1.17.0-alpha-widgets.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0-alpha-widgets.2...@forestadmin/agent@1.17.0-alpha-widgets.3) (2023-08-23)
 
 
