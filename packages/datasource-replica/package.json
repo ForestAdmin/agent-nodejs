@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-replica",
-  "version": "1.0.2-alpha-widgets.1",
+  "version": "1.0.2-alpha-widgets.2",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -23,7 +23,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.16.0-alpha-widgets.1",
+    "@forestadmin/datasource-customizer": "1.16.0-alpha-widgets.2",
     "@forestadmin/datasource-sequelize": "1.5.1-alpha-widgets.1",
     "@forestadmin/datasource-sql": "1.7.11-alpha-widgets.1",
     "@forestadmin/datasource-toolkit": "1.10.0-alpha-widgets.1",
