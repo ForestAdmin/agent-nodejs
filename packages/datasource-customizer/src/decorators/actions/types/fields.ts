@@ -65,7 +65,7 @@ export type DynamicField<Context = unknown> =
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
-  | NumberListDynamicField<Context>
+  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
-  | StringListDynamicField<Context>;
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>);
