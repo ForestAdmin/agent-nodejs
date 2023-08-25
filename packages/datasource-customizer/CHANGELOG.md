@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.16.0-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.16.0-alpha-widgets.1...@forestadmin/datasource-customizer@1.16.0-alpha-widgets.2) (2023-08-25)
+
+
+### Features
+
+* add support for stringList dropdown ([#793](https://github.com/ForestAdmin/agent-nodejs/issues/793)) ([7a42278](https://github.com/ForestAdmin/agent-nodejs/commit/7a422781a499d5da0bc37d291e2bc664b0216f8f))
+
 # @forestadmin/datasource-customizer [1.16.0-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.15.0...@forestadmin/datasource-customizer@1.16.0-alpha-widgets.1) (2023-08-23)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-customizer",
-  "version": "1.16.0-alpha-widgets.1",
+  "version": "1.16.0-alpha-widgets.2",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
