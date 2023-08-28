@@ -35,10 +35,11 @@ describe('ErrorHandling', () => {
     expect(router.use).toHaveBeenCalledWith(expect.any(Function));
   });
 
-  describe('with the route mounted in production mode, and no custom message', () => {
+  describe('with the route mounted and no custom message', () => {
     const options = factories.forestAdminHttpDriverOptions.build({
-      isProduction: true,
-      customizeErrorMessage: error => (error.message === 'My Error' ? 'My Custom Error' : null),
+      logger: jest.fn(),
+      customizeErrorMessage: (error, context) =>
+        error.message === 'My Error' ? `My Custom Error ${context.message}` : null,
     });
 
     let route: ErrorHandling;
@@ -125,7 +126,8 @@ describe('ErrorHandling', () => {
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'My Custom Error', name: 'Error', status: 500 }],
+        // detail is computed from the error message and the context message
+        errors: [{ detail: 'My Custom Error OK', name: 'Error', status: 500 }],
       });
     });
 
@@ -182,36 +184,19 @@ describe('ErrorHandling', () => {
           });
         });
       });
-    });
-  });
 
-  describe('with the route mounted in dev mode', () => {
-    const options = factories.forestAdminHttpDriverOptions.build({ isProduction: false });
-    let route: ErrorHandling;
-    let handleError: Router.Middleware;
+      test('it should print stuff to the logger in debug level', async () => {
+        const context = createMockContext({ method: 'POST' });
+        const next = jest.fn().mockRejectedValue(new Error('hello'));
 
-    beforeEach(() => {
-      route = new ErrorHandling(services, options);
-      route.setupRoutes({
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        use: (handler: Router.Middleware) => {
-          handleError = handler;
-        },
-      });
-    });
+        await handleError.call(route, context, next);
+        await new Promise(setImmediate);
 
-    test('it should print stuff to stderr', async () => {
-      const context = createMockContext({ method: 'POST' });
-      const next = jest.fn().mockRejectedValue(new Error('hello'));
-
-      await handleError.call(route, context, next);
-      await new Promise(setImmediate);
-
-      expect(console.error).toHaveBeenCalled();
-      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-      expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
+        expect(options.logger).toHaveBeenCalledWith('Debug', expect.any(String));
+        expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+        expect(context.response.body).toStrictEqual({
+          errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
+        });
       });
     });
   });

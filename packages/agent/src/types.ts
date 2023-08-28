@@ -1,12 +1,13 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
+import { Context } from 'koa';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
   authSecret: string;
   envSecret: string;
-  customizeErrorMessage?: ((error: Error) => string | null) | null;
+  customizeErrorMessage?: ((error: Error, context: Context) => string | null) | null;
   forestServerUrl?: string;
   logger?: Logger;
   loggerLevel?: LoggerLevel;

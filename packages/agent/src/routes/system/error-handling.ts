@@ -29,7 +29,7 @@ export default class ErrorHandling extends BaseRoute {
         errors: [
           {
             name: this.getErrorName(e),
-            detail: this.getErrorMessage(e),
+            detail: this.getErrorMessage(e, context),
             // We needed to maintaining this due to the frontend app/utils/ember-error-util.js
             status,
             ...(data ? { data } : {}),
@@ -37,9 +37,7 @@ export default class ErrorHandling extends BaseRoute {
         ],
       };
 
-      if (!this.options.isProduction) {
-        process.nextTick(() => this.debugLogError(context, e));
-      }
+      process.nextTick(() => this.debugLogError(context, e));
     }
   }
 
@@ -52,13 +50,13 @@ export default class ErrorHandling extends BaseRoute {
     return HttpCode.InternalServerError;
   }
 
-  private getErrorMessage(error: Error): string {
+  private getErrorMessage(error: Error, context: Context): string {
     if (error instanceof HttpError || error instanceof BusinessError) {
       return error.message;
     }
 
     if (this.options.customizeErrorMessage) {
-      const message = this.options.customizeErrorMessage(error);
+      const message = this.options.customizeErrorMessage(error, context);
       if (message) return message;
     }
 
@@ -81,21 +79,18 @@ export default class ErrorHandling extends BaseRoute {
     const { request } = context;
 
     const query = JSON.stringify(request.query, null, ' ')?.replace(/"/g, '');
-    console.error('');
-    console.error(`\x1b[33m===== An exception was raised =====\x1b[0m`);
-    console.error(`${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`);
+    const startException = '\x1b[33m===== An exception was raised =====\x1b[0m';
+    const path = `${request.method} \x1b[34m${request.path}\x1b[36m?${query}\x1b[0m`;
+    let body = '';
 
     if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-      const body = JSON.stringify(request.body, null, ' ')?.replace(/"/g, '');
-      console.error('');
-      console.error(`Body \x1b[36m${body}\x1b[0m`);
+      const bodyContent = JSON.stringify(request.body, null, ' ')?.replace(/"/g, '');
+      body = `Body \x1b[36m${bodyContent}\x1b[0m`;
     }
 
-    console.error('');
-    console.error('\x1b[31m', error.message, '\x1b[0m');
-    console.error('');
-    console.error(error.stack);
-    console.error(`\x1b[33m===================================\x1b[0m`);
-    console.error('');
+    const errorMessage = `\x1b[31m${error.message}\x1b[0m\n\n${error.stack}\n`;
+    const message = `${path}\n${body ? `${body}\n` : ''}\n${errorMessage}\n`;
+    const endOfException = '\x1b[33m===================================\x1b[0m';
+    this.options.logger('Debug', `\n${startException}\n${message}${endOfException}\n`);
   }
 }
