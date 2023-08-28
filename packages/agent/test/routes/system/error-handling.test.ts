@@ -185,14 +185,14 @@ describe('ErrorHandling', () => {
         });
       });
 
-      test('it should print stuff to the logger in debug level', async () => {
+      test('it should print stuff to the logger in Error level', async () => {
         const context = createMockContext({ method: 'POST' });
         const next = jest.fn().mockRejectedValue(new Error('hello'));
 
         await handleError.call(route, context, next);
         await new Promise(setImmediate);
 
-        expect(options.logger).toHaveBeenCalledWith('Debug', expect.any(String));
+        expect(options.logger).toHaveBeenCalledWith('Error', expect.any(String));
         expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
         expect(context.response.body).toStrictEqual({
           errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],

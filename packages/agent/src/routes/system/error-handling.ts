@@ -91,6 +91,6 @@ export default class ErrorHandling extends BaseRoute {
     const errorMessage = `\x1b[31m${error.message}\x1b[0m\n\n${error.stack}\n`;
     const message = `${path}\n${body ? `${body}\n` : ''}\n${errorMessage}\n`;
     const endOfException = '\x1b[33m===================================\x1b[0m';
-    this.options.logger('Debug', `\n${startException}\n${message}${endOfException}\n`);
+    this.options.logger('Error', `\n${startException}\n${message}${endOfException}\n`);
   }
 }
