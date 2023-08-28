@@ -55,8 +55,13 @@ interface DropdownDynamicFieldConfiguration<TValue = string> {
   options: DropdownOption<TValue>[];
 }
 
+interface CheckboxDynamicFieldConfiguration {
+  widget: 'Checkbox';
+}
+
 export type DynamicField<Context = unknown> =
   | BooleanDynamicField<Context>
+  | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
   | CollectionDynamicField<Context>
   | EnumDynamicField<Context>
   | EnumListDynamicField<Context>

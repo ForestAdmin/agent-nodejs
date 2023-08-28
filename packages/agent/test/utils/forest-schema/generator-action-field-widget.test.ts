@@ -98,6 +98,22 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('Checkbox', () => {
+      it('should return a valid widget edit', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Boolean',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'Checkbox',
+        });
+
+        expect(result).toEqual({
+          name: 'boolean editor',
+          parameters: {},
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({
