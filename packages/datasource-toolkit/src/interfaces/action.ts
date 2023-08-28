@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
+export type DropdownOption<TValue> = { value: TValue; label: string } | TValue;
 
 export type File = {
   mimeType: string;
@@ -9,7 +10,7 @@ export type File = {
   charset?: string;
 };
 
-export interface ActionField {
+export type ActionFieldBase = {
   type: ActionFieldType;
   label: string;
   description?: string;
@@ -17,24 +18,61 @@ export interface ActionField {
   isReadOnly?: boolean;
   value?: unknown;
   watchChanges: boolean;
-  enumValues?: string[]; // When type === 'Enum'
-  collectionName?: string; // When type === 'Collection'
-}
+};
 
-export type ActionFieldType =
-  | 'Boolean'
-  | 'Collection'
-  | 'Date'
-  | 'Dateonly'
-  | 'Enum'
-  | 'File'
-  | 'Json'
-  | 'Number'
-  | 'String'
-  | 'EnumList'
-  | 'FileList'
-  | 'NumberList'
-  | 'StringList';
+export const ActionFieldTypeList = [
+  'Boolean',
+  'Collection',
+  'Date',
+  'Dateonly',
+  'Enum',
+  'File',
+  'Json',
+  'Number',
+  'String',
+  'EnumList',
+  'FileList',
+  'NumberList',
+  'StringList',
+] as const;
+
+export type ActionFieldType = (typeof ActionFieldTypeList)[number];
+
+export type ActionFieldDropdown<
+  TType extends ActionFieldType = ActionFieldType,
+  TValue = string,
+> = ActionFieldBase & {
+  widget: 'Dropdown';
+  type: TType;
+  options?: DropdownOption<TValue>[];
+  search?: 'static' | 'disabled';
+  placeholder?: string;
+};
+
+export type ActionFieldEnum = ActionFieldBase & {
+  type: 'Enum';
+  enumValues: string[];
+};
+
+export type ActionFieldEnumList = ActionFieldBase & {
+  type: 'EnumList';
+  enumValues: string[];
+};
+
+export type ActionFieldCollection = ActionFieldBase & {
+  type: 'Collection';
+  collectionName: string;
+};
+
+export type ActionField =
+  | ActionFieldBase
+  | ActionFieldEnum
+  | ActionFieldEnumList
+  | ActionFieldCollection
+  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldDropdown<'Number', number>;
+
+export type ActionFieldWidget = 'Dropdown'; // Other widgets to be added in the future
 
 export type SuccessResult = {
   type: 'Success';

@@ -48,19 +48,55 @@ export type ForestServerAction = {
   };
 };
 
-export type ForestServerActionField = {
+export type ForestServerActionFieldWidgetEditBase<TType = string, TConfig = unknown> = {
+  name: TType;
+  parameters: TConfig;
+};
+
+export type WidgetEditConfiguration = {
+  name: string;
+  parameters: Record<string, unknown>;
+};
+
+export type ForestServerActionFieldCommon<
+  TType extends ForestServerColumnType = ForestServerColumnType,
+  TWidgetEdit extends WidgetEditConfiguration = null,
+> = {
+  type: TType;
   value: unknown;
   defaultValue: unknown;
   description: string | null;
-  enums: string[];
   field: string;
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
-  reference: string | null;
-  type: ForestServerColumnType;
-  widget: null | 'belongsto select' | 'file picker';
+  enums: null | string[];
+  widgetEdit: TWidgetEdit;
 };
+
+export type ForestServerActionFieldBase = ForestServerActionFieldCommon & {
+  reference: string | null;
+};
+
+export type ForestServerActionFieldDropdownOptions<TValue = string> = {
+  name: 'dropdown';
+  parameters: {
+    placeholder?: string | null;
+    isSearchable?: boolean;
+    static: {
+      options: Array<{ label: string; value: TValue } | TValue>;
+    };
+  };
+};
+
+export type ForestServerActionFieldDropdown =
+  | ForestServerActionFieldCommon<
+      'String' | 'Dateonly' | 'Date' | 'Timeonly',
+      ForestServerActionFieldDropdownOptions<string>
+    >
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>>;
+
+export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
 
 export type ForestServerField = Partial<{
   field: string;

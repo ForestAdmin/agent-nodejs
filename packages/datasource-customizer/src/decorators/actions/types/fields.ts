@@ -1,5 +1,7 @@
 import { CompositeId, Json } from '@forestadmin/datasource-toolkit';
 
+type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
+
 export type ValueOrHandler<Context = unknown, Result = unknown> =
   | ((context: Context) => Promise<Result>)
   | ((context: Context) => Result)
@@ -12,7 +14,6 @@ interface BaseDynamicField<Type, Context, Result> {
   description?: string;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
-
   if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
   value?: ValueOrHandler<Context, Result>;
   defaultValue?: ValueOrHandler<Context, Result>;
@@ -47,6 +48,13 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
+interface DropdownDynamicFieldConfiguration<TValue = string> {
+  widget: 'Dropdown';
+  placeholder?: string;
+  search?: 'static' | 'disabled';
+  options: DropdownOption<TValue>[];
+}
+
 export type DynamicField<Context = unknown> =
   | BooleanDynamicField<Context>
   | CollectionDynamicField<Context>
@@ -56,6 +64,8 @@ export type DynamicField<Context = unknown> =
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
-  | NumberListDynamicField<Context>
+  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
+  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | StringDynamicField<Context>
-  | StringListDynamicField<Context>;
+  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>);

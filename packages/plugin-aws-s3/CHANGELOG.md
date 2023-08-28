@@ -1,3 +1,24 @@
+## @forestadmin/plugin-aws-s3 [1.3.9-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.9-alpha-widgets.1...@forestadmin/plugin-aws-s3@1.3.9-alpha-widgets.2) (2023-08-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.16.0-alpha-widgets.2
+
+## @forestadmin/plugin-aws-s3 [1.3.9-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.8...@forestadmin/plugin-aws-s3@1.3.9-alpha-widgets.1) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.16.0-alpha-widgets.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0-alpha-widgets.1
+
 ## @forestadmin/plugin-aws-s3 [1.3.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.7...@forestadmin/plugin-aws-s3@1.3.8) (2023-08-11)
 
 
@@ -8,6 +29,28 @@
 
 * **@forestadmin/datasource-customizer:** upgraded to 1.15.0
 * **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+
+## @forestadmin/plugin-aws-s3 [1.3.8-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.8-alpha-widgets.1...@forestadmin/plugin-aws-s3@1.3.8-alpha-widgets.2) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.15.0-alpha-widgets.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+
+## @forestadmin/plugin-aws-s3 [1.3.8-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.7...@forestadmin/plugin-aws-s3@1.3.8-alpha-widgets.1) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.15.0-alpha-widgets.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.1
 
 ## @forestadmin/plugin-aws-s3 [1.3.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.6...@forestadmin/plugin-aws-s3@1.3.7) (2023-07-27)
 
