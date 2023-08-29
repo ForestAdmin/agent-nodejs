@@ -1,5 +1,13 @@
 import { Readable } from 'stream';
 
+type UnionKeys<T> = T extends T ? keyof T : never;
+type StrictUnionHelper<T, TAll> = T extends any
+  ? T & Partial<Record<Exclude<UnionKeys<TAll>, keyof T>, never>>
+  : never;
+// This is a trick to disallow properties
+// that are declared by other types in the union of different types
+type StrictUnion<T> = StrictUnionHelper<T, T>;
+
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
 export type DropdownOption<TValue> = { value: TValue; label: string } | TValue;
 
@@ -70,14 +78,15 @@ export type ActionFieldTextInput = ActionFieldBase & {
   placeholder?: string;
 };
 
-export type ActionField =
+export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
   | ActionFieldCollection
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
   | ActionFieldDropdown<'Number', number>
-  | ActionFieldTextInput;
+  | ActionFieldTextInput
+>;
 
 export type ActionFieldWidget = 'Dropdown' | 'TextInput';
 
