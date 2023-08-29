@@ -62,6 +62,10 @@ type DropdownDynamicFieldConfiguration<TValue = string> = {
   options: DropdownOption<TValue>[];
 };
 
+type CheckboxDynamicFieldConfiguration = {
+  widget: 'Checkbox';
+};
+
 type TextInputFieldConfiguration = {
   widget: 'TextInput';
   placeholder?: string;
@@ -69,6 +73,7 @@ type TextInputFieldConfiguration = {
 
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
+  | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
   | CollectionDynamicField<Context>
   | EnumDynamicField<Context>
   | EnumListDynamicField<Context>

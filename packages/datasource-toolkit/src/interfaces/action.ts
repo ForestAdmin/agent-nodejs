@@ -57,6 +57,11 @@ export type ActionFieldDropdown<
   placeholder?: string;
 };
 
+export type ActionFieldCheckbox = ActionFieldBase & {
+  type: 'Boolean';
+  widget: 'Checkbox';
+};
+
 export type ActionFieldEnum = ActionFieldBase & {
   type: 'Enum';
   enumValues: string[];
@@ -85,10 +90,11 @@ export type ActionField = StrictUnion<
   | ActionFieldCollection
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
   | ActionFieldDropdown<'Number', number>
+  | ActionFieldCheckbox
   | ActionFieldTextInput
 >;
 
-export type ActionFieldWidget = 'Dropdown' | 'TextInput';
+export type ActionFieldWidget = 'Dropdown' | 'Checkbox' | 'TextInput';
 
 export type SuccessResult = {
   type: 'Success';

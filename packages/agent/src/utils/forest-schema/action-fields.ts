@@ -1,5 +1,6 @@
 import {
   ActionField,
+  ActionFieldCheckbox,
   ActionFieldCollection,
   ActionFieldDropdown,
   ActionFieldEnum,
@@ -36,6 +37,10 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldDropdown {
     return (field as ActionFieldDropdown)?.widget === 'Dropdown';
+  }
+
+  public static isCheckboxField(field: ActionField | null | undefined): boolean {
+    return (field as ActionFieldCheckbox)?.widget === 'Checkbox';
   }
 
   public static isTextInputField(

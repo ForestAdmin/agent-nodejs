@@ -98,6 +98,22 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('Checkbox', () => {
+      it('should return a valid widget edit', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Boolean',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'Checkbox',
+        });
+
+        expect(result).toEqual({
+          name: 'boolean editor',
+          parameters: {},
+        });
+      });
+    });
+
     describe('TextInput', () => {
       it('should generate a default text input', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
