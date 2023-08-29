@@ -6,6 +6,7 @@ type StrictUnionHelper<T, TAll> = T extends any
   : never;
 // This is a trick to disallow properties
 // that are declared by other types in the union of different types
+// Source: https://stackoverflow.com/a/65805753
 type StrictUnion<T> = StrictUnionHelper<T, T>;
 
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
