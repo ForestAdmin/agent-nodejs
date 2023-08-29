@@ -37,9 +37,14 @@ export default class ErrorHandling extends BaseRoute {
         ],
       };
 
-      process.nextTick(() =>
-        this.options.logger('Error', ErrorHandling.formatErrorMessage(context, e), e, context),
-      );
+      process.nextTick(() => {
+        const message = this.options.isProduction
+          ? // to avoid leaking sensitive information
+            e.message
+          : ErrorHandling.formatErrorMessage(context, e);
+
+        this.options.logger('Error', message, e, context);
+      });
     }
   }
 
