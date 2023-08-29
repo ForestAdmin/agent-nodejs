@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.18.0...@forestadmin/agent@1.19.0) (2023-08-29)
+
+
+### Features
+
+* **widgets:** add support for text input widget in smart actions ([70c517b](https://github.com/ForestAdmin/agent-nodejs/commit/70c517bdb1d763e62c69dd63c033f3e6c2bcafe8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.18.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.8.0
+
 # @forestadmin/agent [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0...@forestadmin/agent@1.18.0) (2023-08-29)
 
 
