@@ -13,6 +13,7 @@ describe('GeneratorActionFieldWidget', () => {
     });
 
     it('should return null when the field type is Collection', () => {
+      // @ts-expect-error Collection type does not support widget
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'Collection',
         label: 'Label',
@@ -24,6 +25,7 @@ describe('GeneratorActionFieldWidget', () => {
     });
 
     it('should return null when the field type is Enum', () => {
+      // @ts-expect-error Collection type does not support widget
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'Enum',
         label: 'Label',
@@ -36,6 +38,7 @@ describe('GeneratorActionFieldWidget', () => {
     });
 
     it('should return null when the field type is EnumList', () => {
+      // @ts-expect-error Collection type does not support widget
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'EnumList',
         label: 'Label',
