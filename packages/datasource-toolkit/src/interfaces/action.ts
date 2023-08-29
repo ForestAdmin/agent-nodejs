@@ -79,7 +79,7 @@ export type ActionField =
   | ActionFieldDropdown<'Number', number>
   | ActionFieldTextInput;
 
-export type ActionFieldWidget = 'Dropdown' | 'TextInput'; // Other widgets to be added in the future
+export type ActionFieldWidget = 'Dropdown' | 'TextInput';
 
 export type SuccessResult = {
   type: 'Success';
