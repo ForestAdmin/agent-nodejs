@@ -48,16 +48,16 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
-interface DropdownDynamicFieldConfiguration<TValue = string> {
+type DropdownDynamicFieldConfiguration<TValue = string> = {
   widget: 'Dropdown';
   placeholder?: string;
   search?: 'static' | 'disabled';
   options: DropdownOption<TValue>[];
-}
+};
 
-interface CheckboxDynamicFieldConfiguration {
+type CheckboxDynamicFieldConfiguration = {
   widget: 'Checkbox';
-}
+};
 
 export type DynamicField<Context = unknown> =
   | BooleanDynamicField<Context>
