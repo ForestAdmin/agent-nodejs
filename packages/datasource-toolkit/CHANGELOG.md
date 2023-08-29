@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.10.0...@forestadmin/datasource-toolkit@1.11.0) (2023-08-29)
+
+
+### Features
+
+* add support for the checkbox widget for boolean fields in smart actions ([f6de833](https://github.com/ForestAdmin/agent-nodejs/commit/f6de8337497b8ef0b92b5cbd627fddf87d75f3d3))
+
 # @forestadmin/datasource-toolkit [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.9.0...@forestadmin/datasource-toolkit@1.10.0) (2023-08-28)
 
 
