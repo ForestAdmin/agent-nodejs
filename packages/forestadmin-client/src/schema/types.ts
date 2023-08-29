@@ -89,6 +89,11 @@ export type ForestServerActionFieldDropdownOptions<TValue = string> = {
   };
 };
 
+export type ForestServerActionFieldCheckboxOptions = {
+  name: 'boolean editor';
+  parameters: Record<string, never>;
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
