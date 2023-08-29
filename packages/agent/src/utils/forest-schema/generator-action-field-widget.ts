@@ -1,4 +1,4 @@
-import { ActionField, ActionFieldDropdown } from '@forestadmin/datasource-toolkit';
+import { ActionField, ActionFieldDropdownAll } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
@@ -11,7 +11,8 @@ export default class GeneratorActionFieldWidget {
   static buildWidgetOptions(
     field: ActionField,
   ):
-    | ForestServerActionFieldDropdownOptions
+    | ForestServerActionFieldDropdownOptions<string>
+    | ForestServerActionFieldDropdownOptions<number>
     | ForestServerActionFieldCheckboxOptions
     | ForestServerActionFieldTextInputOptions
     | undefined {
@@ -31,8 +32,10 @@ export default class GeneratorActionFieldWidget {
   }
 
   private static buildDropdownWidgetEdit(
-    field: ActionFieldDropdown,
-  ): ForestServerActionFieldDropdownOptions {
+    field: ActionFieldDropdownAll,
+  ):
+    | ForestServerActionFieldDropdownOptions<string>
+    | ForestServerActionFieldDropdownOptions<number> {
     return {
       name: 'dropdown',
       parameters: {
@@ -42,7 +45,9 @@ export default class GeneratorActionFieldWidget {
           options: field.options || [],
         },
       },
-    };
+    } as
+      | ForestServerActionFieldDropdownOptions<number>
+      | ForestServerActionFieldDropdownOptions<number>;
   }
 
   private static buildCheckboxWidgetEdit(): ForestServerActionFieldCheckboxOptions {
@@ -53,7 +58,7 @@ export default class GeneratorActionFieldWidget {
   }
 
   private static buildTextInputWidgetEdit(
-    field: ActionFieldDropdown,
+    field: ActionField,
   ): ForestServerActionFieldTextInputOptions {
     return {
       name: 'text editor',

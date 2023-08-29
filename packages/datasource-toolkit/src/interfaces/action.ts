@@ -48,7 +48,7 @@ export type ActionFieldType = (typeof ActionFieldTypeList)[number];
 
 export type ActionFieldDropdown<
   TType extends ActionFieldType = ActionFieldType,
-  TValue = string,
+  TValue = unknown,
 > = ActionFieldBase & {
   widget: 'Dropdown';
   type: TType;
@@ -83,13 +83,16 @@ export type ActionFieldTextInput = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldDropdownAll =
+  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldDropdown<'Number', number>;
+
 export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
   | ActionFieldCollection
-  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
-  | ActionFieldDropdown<'Number', number>
+  | ActionFieldDropdownAll
   | ActionFieldCheckbox
   | ActionFieldTextInput
 >;

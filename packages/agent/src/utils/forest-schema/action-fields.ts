@@ -3,6 +3,7 @@ import {
   ActionFieldCheckbox,
   ActionFieldCollection,
   ActionFieldDropdown,
+  ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
   ActionFieldTextInput,
@@ -35,11 +36,13 @@ export default class ActionFields {
 
   public static isDropdownField(
     field: ActionField | null | undefined,
-  ): field is ActionFieldDropdown {
+  ): field is ActionFieldDropdownAll {
     return (field as ActionFieldDropdown)?.widget === 'Dropdown';
   }
 
-  public static isCheckboxField(field: ActionField | null | undefined): boolean {
+  public static isCheckboxField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldCheckbox {
     return (field as ActionFieldCheckbox)?.widget === 'Checkbox';
   }
 
@@ -50,7 +53,7 @@ export default class ActionFields {
   }
 
   // Other types to be added here in the future ⤵
-  public static hasWidget(field: ActionField | null | undefined): field is ActionFieldDropdown {
+  public static hasWidget(field: ActionField | null | undefined): field is ActionFieldDropdownAll {
     return Boolean((field as ActionFieldDropdown)?.widget);
   }
 }
