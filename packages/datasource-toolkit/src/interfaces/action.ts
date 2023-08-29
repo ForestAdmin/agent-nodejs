@@ -1,5 +1,14 @@
 import { Readable } from 'stream';
 
+type UnionKeys<T> = T extends T ? keyof T : never;
+type StrictUnionHelper<T, TAll> = T extends any
+  ? T & Partial<Record<Exclude<UnionKeys<TAll>, keyof T>, never>>
+  : never;
+// This is a trick to disallow properties
+// that are declared by other types in the union of different types
+// Source: https://stackoverflow.com/a/65805753
+type StrictUnion<T> = StrictUnionHelper<T, T>;
+
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
 export type DropdownOption<TValue> = { value: TValue; label: string } | TValue;
 
@@ -40,7 +49,7 @@ export type ActionFieldType = (typeof ActionFieldTypeList)[number];
 
 export type ActionFieldDropdown<
   TType extends ActionFieldType = ActionFieldType,
-  TValue = string,
+  TValue = unknown,
 > = ActionFieldBase & {
   widget: 'Dropdown';
   type: TType;
@@ -69,16 +78,27 @@ export type ActionFieldCollection = ActionFieldBase & {
   collectionName: string;
 };
 
-export type ActionField =
+export type ActionFieldTextInput = ActionFieldBase & {
+  type: 'String';
+  widget: 'TextInput';
+  placeholder?: string;
+};
+
+export type ActionFieldDropdownAll =
+  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldDropdown<'Number', number>;
+
+export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
   | ActionFieldCollection
-  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
-  | ActionFieldDropdown<'Number', number>
-  | ActionFieldCheckbox;
+  | ActionFieldDropdownAll
+  | ActionFieldCheckbox
+  | ActionFieldTextInput
+>;
 
-export type ActionFieldWidget = 'Dropdown' | 'Checkbox'; // Other widgets to be added in the future
+export type ActionFieldWidget = 'Dropdown' | 'Checkbox' | 'TextInput';
 
 export type SuccessResult = {
   type: 'Success';

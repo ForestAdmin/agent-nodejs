@@ -94,6 +94,13 @@ export type ForestServerActionFieldCheckboxOptions = {
   parameters: Record<string, never>;
 };
 
+export type ForestServerActionFieldTextInputOptions = {
+  name: 'text editor';
+  parameters: {
+    placeholder?: string | null;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',

@@ -1,5 +1,14 @@
 import { CompositeId, Json } from '@forestadmin/datasource-toolkit';
 
+type UnionKeys<T> = T extends T ? keyof T : never;
+type StrictUnionHelper<T, TAll> = T extends any
+  ? T & Partial<Record<Exclude<UnionKeys<TAll>, keyof T>, never>>
+  : never;
+// This is a trick to disallow properties
+// that are declared by other types in the union of different types
+// Source: https://stackoverflow.com/a/65805753
+type StrictUnion<T> = StrictUnionHelper<T, T>;
+
 type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
 
 export type ValueOrHandler<Context = unknown, Result = unknown> =
@@ -8,7 +17,7 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
   | Promise<Result>
   | Result;
 
-interface BaseDynamicField<Type, Context, Result> {
+type BaseDynamicField<Type, Context, Result> = {
   type: Type;
   label: string;
   description?: string;
@@ -17,20 +26,19 @@ interface BaseDynamicField<Type, Context, Result> {
   if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
   value?: ValueOrHandler<Context, Result>;
   defaultValue?: ValueOrHandler<Context, Result>;
-}
+};
 
-interface CollectionDynamicField<Context>
-  extends BaseDynamicField<'Collection', Context, CompositeId> {
+type CollectionDynamicField<Context> = BaseDynamicField<'Collection', Context, CompositeId> & {
   collectionName: ValueOrHandler<Context, string>;
-}
+};
 
-interface EnumDynamicField<Context> extends BaseDynamicField<'Enum', Context, string> {
+type EnumDynamicField<Context> = BaseDynamicField<'Enum', Context, string> & {
   enumValues: ValueOrHandler<Context, string[]>;
-}
+};
 
-interface EnumListDynamicField<Context> extends BaseDynamicField<'EnumList', Context, string[]> {
+type EnumListDynamicField<Context> = BaseDynamicField<'EnumList', Context, string[]> & {
   enumValues: ValueOrHandler<Context, string[]>;
-}
+};
 
 type BooleanDynamicField<Context> = BaseDynamicField<'Boolean', Context, boolean>;
 type FileDynamicField<Context> = BaseDynamicField<'File', Context, File>;
@@ -59,7 +67,12 @@ type CheckboxDynamicFieldConfiguration = {
   widget: 'Checkbox';
 };
 
-export type DynamicField<Context = unknown> =
+type TextInputFieldConfiguration = {
+  widget: 'TextInput';
+  placeholder?: string;
+};
+
+export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
   | CollectionDynamicField<Context>
@@ -72,5 +85,7 @@ export type DynamicField<Context = unknown> =
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | StringDynamicField<Context>
+  | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
-  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>);
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+>;
