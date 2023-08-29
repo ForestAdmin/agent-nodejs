@@ -7,7 +7,7 @@ import Router from '@koa/router';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import ErrorHandling from '../../../src/routes/system/error-handling';
-import { HttpCode } from '../../../src/types';
+import { AgentOptionsWithDefaults, HttpCode } from '../../../src/types';
 import * as factories from '../../__factories__';
 
 class FakePayloadError extends ForbiddenError {
@@ -37,9 +37,8 @@ describe('ErrorHandling', () => {
 
   describe('with the route mounted and no custom message', () => {
     const options = factories.forestAdminHttpDriverOptions.build({
+      customizeErrorMessage: error => (error.message === 'My Error' ? 'My Custom Error' : null),
       logger: jest.fn(),
-      customizeErrorMessage: (error, context) =>
-        error.message === 'My Error' ? `My Custom Error ${context.message}` : null,
     });
 
     let route: ErrorHandling;
@@ -63,7 +62,7 @@ describe('ErrorHandling', () => {
       await handleError.call(route, context, next);
 
       expect(context).toEqual({});
-      expect(console.error).not.toHaveBeenCalled();
+      expect(options.logger).not.toHaveBeenCalled();
     });
 
     test('it should set the status and body for validation errors', async () => {
@@ -76,7 +75,7 @@ describe('ErrorHandling', () => {
       expect(context.response.body).toStrictEqual({
         errors: [{ detail: 'hello', name: 'ValidationError', status: 400 }],
       });
-      expect(console.error).not.toHaveBeenCalled();
+      expect(options.logger).not.toHaveBeenCalled();
     });
 
     test('it should set the status and body for forbidden errors', async () => {
@@ -89,7 +88,7 @@ describe('ErrorHandling', () => {
       expect(context.response.body).toStrictEqual({
         errors: [{ detail: 'forbidden', name: 'ForbiddenError', status: 403 }],
       });
-      expect(console.error).not.toHaveBeenCalled();
+      expect(options.logger).not.toHaveBeenCalled();
     });
 
     test('it should set the status and body for unprocessable errors', async () => {
@@ -102,7 +101,7 @@ describe('ErrorHandling', () => {
       expect(context.response.body).toStrictEqual({
         errors: [{ detail: 'unprocessable', name: 'UnprocessableError', status: 422 }],
       });
-      expect(console.error).not.toHaveBeenCalled();
+      expect(options.logger).not.toHaveBeenCalled();
     });
 
     test('it should set the status and body for other errors', async () => {
@@ -115,7 +114,7 @@ describe('ErrorHandling', () => {
       expect(context.response.body).toStrictEqual({
         errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
       });
-      expect(console.error).not.toHaveBeenCalled();
+      expect(options.logger).not.toHaveBeenCalled();
     });
 
     test('it should send the customized error message to the frontend', async () => {
@@ -126,8 +125,7 @@ describe('ErrorHandling', () => {
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
-        // detail is computed from the error message and the context message
-        errors: [{ detail: 'My Custom Error OK', name: 'Error', status: 500 }],
+        errors: [{ detail: 'My Custom Error', name: 'Error', status: 500 }],
       });
     });
 
@@ -184,19 +182,49 @@ describe('ErrorHandling', () => {
           });
         });
       });
+    });
+  });
 
-      test('it should print stuff to the logger in Error level', async () => {
-        const context = createMockContext({ method: 'POST' });
-        const next = jest.fn().mockRejectedValue(new Error('hello'));
+  describe('with the route mounted in a specific log level', () => {
+    const makeContext = (loggerLevel: AgentOptionsWithDefaults['loggerLevel']) => {
+      const options = factories.forestAdminHttpDriverOptions.build({
+        loggerLevel,
+        logger: jest.fn(),
+      });
 
-        await handleError.call(route, context, next);
-        await new Promise(setImmediate);
+      let handleError: Router.Middleware;
 
-        expect(options.logger).toHaveBeenCalledWith('Error', expect.any(String));
-        expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-        expect(context.response.body).toStrictEqual({
-          errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
-        });
+      const route = new ErrorHandling(services, options);
+      route.setupRoutes({
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        use: (handler: Router.Middleware) => {
+          handleError = handler;
+        },
+      });
+
+      return { options, handleError, route };
+    };
+
+    const debugMessage = '===== An exception was raised =====';
+    test.each([
+      ['Debug', expect.stringContaining(debugMessage)],
+      ['Error', expect.not.stringContaining(debugMessage)],
+    ])('should print stuff to the logger', async (loggerLevel, expectToRun) => {
+      const { handleError, route, options } = makeContext(
+        loggerLevel as AgentOptionsWithDefaults['loggerLevel'],
+      );
+      const context = createMockContext({ method: 'POST' });
+      const error = new Error('hello');
+      const next = jest.fn().mockRejectedValue(error);
+
+      await handleError.call(route, context, next);
+      await new Promise(setImmediate);
+
+      expect(options.logger).toHaveBeenCalledWith('Error', expectToRun, error, context);
+      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
       });
     });
   });
