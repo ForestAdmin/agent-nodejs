@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.11.0...@forestadmin/datasource-toolkit@1.12.0) (2023-08-29)
+
+
+### Features
+
+* **widgets:** add support for text input widget in smart actions ([70c517b](https://github.com/ForestAdmin/agent-nodejs/commit/70c517bdb1d763e62c69dd63c033f3e6c2bcafe8))
+
 # @forestadmin/datasource-toolkit [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.10.0...@forestadmin/datasource-toolkit@1.11.0) (2023-08-29)
 
 
