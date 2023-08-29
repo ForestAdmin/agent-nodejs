@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.16.0...@forestadmin/datasource-customizer@1.17.0) (2023-08-29)
+
+
+### Features
+
+* add support for the checkbox widget for boolean fields in smart actions ([f6de833](https://github.com/ForestAdmin/agent-nodejs/commit/f6de8337497b8ef0b92b5cbd627fddf87d75f3d3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.11.0
+
 # @forestadmin/datasource-customizer [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.15.0...@forestadmin/datasource-customizer@1.16.0) (2023-08-28)
 
 
