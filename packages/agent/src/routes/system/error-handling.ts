@@ -37,7 +37,9 @@ export default class ErrorHandling extends BaseRoute {
         ],
       };
 
-      process.nextTick(() => this.debugLogError(context, e));
+      process.nextTick(() =>
+        this.options.logger('Error', ErrorHandling.formatErrorMessage(context, e), e, context),
+      );
     }
   }
 
@@ -75,7 +77,7 @@ export default class ErrorHandling extends BaseRoute {
     return null;
   }
 
-  private debugLogError(context: Context, error: Error): void {
+  private static formatErrorMessage(context: Context, error: Error): string {
     const { request } = context;
 
     const query = JSON.stringify(request.query, null, ' ')?.replace(/"/g, '');
@@ -91,6 +93,7 @@ export default class ErrorHandling extends BaseRoute {
     const errorMessage = `\x1b[31m${error.message}\x1b[0m\n\n${error.stack}\n`;
     const message = `${path}\n${body ? `${body}\n` : ''}\n${errorMessage}\n`;
     const endOfException = '\x1b[33m===================================\x1b[0m';
-    this.options.logger('Error', `\n${startException}\n${message}${endOfException}\n`);
+
+    return `\n${startException}\n${message}${endOfException}\n`;
   }
 }
