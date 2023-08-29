@@ -64,15 +64,22 @@ export type ActionFieldCollection = ActionFieldBase & {
   collectionName: string;
 };
 
+export type ActionFieldTextInput = ActionFieldBase & {
+  type: 'String';
+  widget: 'TextInput';
+  placeholder?: string;
+};
+
 export type ActionField =
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
   | ActionFieldCollection
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
-  | ActionFieldDropdown<'Number', number>;
+  | ActionFieldDropdown<'Number', number>
+  | ActionFieldTextInput;
 
-export type ActionFieldWidget = 'Dropdown'; // Other widgets to be added in the future
+export type ActionFieldWidget = 'Dropdown' | 'TextInput'; // Other widgets to be added in the future
 
 export type SuccessResult = {
   type: 'Success';

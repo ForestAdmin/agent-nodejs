@@ -89,6 +89,13 @@ export type ForestServerActionFieldDropdownOptions<TValue = string> = {
   };
 };
 
+export type ForestServerActionFieldTextInputOptions = {
+  name: 'text editor';
+  parameters: {
+    placeholder?: string | null;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',

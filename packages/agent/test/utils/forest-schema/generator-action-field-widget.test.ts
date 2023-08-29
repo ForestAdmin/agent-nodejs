@@ -98,6 +98,41 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('TextInput', () => {
+      it('should generate a default text input', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TextInput',
+        });
+
+        expect(result).toEqual({
+          name: 'text editor',
+          parameters: {
+            placeholder: null,
+          },
+        });
+      });
+
+      it('should add the placeholder if present', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TextInput',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toEqual({
+          name: 'text editor',
+          parameters: {
+            placeholder: 'Placeholder',
+          },
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

@@ -55,6 +55,11 @@ interface DropdownDynamicFieldConfiguration<TValue = string> {
   options: DropdownOption<TValue>[];
 }
 
+type TextInputFieldConfiguration = {
+  widget: 'TextInput';
+  placeholder?: string;
+};
+
 export type DynamicField<Context = unknown> =
   | BooleanDynamicField<Context>
   | CollectionDynamicField<Context>
@@ -67,5 +72,6 @@ export type DynamicField<Context = unknown> =
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | StringDynamicField<Context>
+  | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>);
