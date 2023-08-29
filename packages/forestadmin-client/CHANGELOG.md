@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.6.0...@forestadmin/forestadmin-client@1.7.0) (2023-08-29)
+
+
+### Features
+
+* add support for the checkbox widget for boolean fields in smart actions ([f6de833](https://github.com/ForestAdmin/agent-nodejs/commit/f6de8337497b8ef0b92b5cbd627fddf87d75f3d3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.11.0
+
 # @forestadmin/forestadmin-client [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.5.10...@forestadmin/forestadmin-client@1.6.0) (2023-08-28)
 
 
