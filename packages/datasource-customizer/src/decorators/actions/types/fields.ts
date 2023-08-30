@@ -56,11 +56,11 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
-type DropdownDynamicFieldConfiguration<TValue = string> = {
+type DropdownDynamicFieldConfiguration<Context = unknown, TValue = string> = {
   widget: 'Dropdown';
   placeholder?: string;
   search?: 'static' | 'disabled';
-  options: DropdownOption<TValue>[];
+  options: ValueOrHandler<Context, DropdownOption<TValue>[]>;
 };
 
 type CheckboxDynamicFieldConfiguration = {
@@ -82,10 +82,10 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
-  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
-  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
+  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
-  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
-  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context>)
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context>)
 >;
