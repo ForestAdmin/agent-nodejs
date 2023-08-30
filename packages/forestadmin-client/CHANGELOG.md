@@ -1,3 +1,18 @@
+## @forestadmin/forestadmin-client [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.8.0...@forestadmin/forestadmin-client@1.8.1) (2023-08-30)
+
+
+### Bug Fixes
+
+* type definition of action fields for StringList type with dropdown widget ([4ca945e](https://github.com/ForestAdmin/agent-nodejs/commit/4ca945e1a9038be24e947228ffe04ccde9c38e4c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.1
+
 # @forestadmin/forestadmin-client [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.7.0...@forestadmin/forestadmin-client@1.8.0) (2023-08-29)
 
 

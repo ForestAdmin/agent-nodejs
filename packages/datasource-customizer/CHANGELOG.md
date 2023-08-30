@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.18.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.18.0...@forestadmin/datasource-customizer@1.18.1) (2023-08-30)
+
+
+### Bug Fixes
+
+* **widgets:** allow to use StringList type without a widget in smart actions ([ada41d5](https://github.com/ForestAdmin/agent-nodejs/commit/ada41d544977893b92c1832b0e48bf82a076a795))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.1
+
 # @forestadmin/datasource-customizer [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.17.0...@forestadmin/datasource-customizer@1.18.0) (2023-08-29)
 
 

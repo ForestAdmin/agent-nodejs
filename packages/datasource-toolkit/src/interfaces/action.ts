@@ -85,7 +85,7 @@ export type ActionFieldTextInput = ActionFieldBase & {
 };
 
 export type ActionFieldDropdownAll =
-  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
 
 export type ActionField = StrictUnion<

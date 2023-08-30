@@ -86,6 +86,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
-  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context>)
-  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context>)
+  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | StringListDynamicField<Context>
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
 >;
