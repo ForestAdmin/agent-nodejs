@@ -1,3 +1,11 @@
+## @forestadmin/datasource-toolkit [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.12.0...@forestadmin/datasource-toolkit@1.12.1) (2023-08-30)
+
+
+### Bug Fixes
+
+* type definition ([c3eda48](https://github.com/ForestAdmin/agent-nodejs/commit/c3eda488da65594e0795642224d24c0af99767fc))
+* type definition of action fields for StringList type with dropdown widget ([4ca945e](https://github.com/ForestAdmin/agent-nodejs/commit/4ca945e1a9038be24e947228ffe04ccde9c38e4c))
+
 # @forestadmin/datasource-toolkit [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.11.0...@forestadmin/datasource-toolkit@1.12.0) (2023-08-29)
 
 
