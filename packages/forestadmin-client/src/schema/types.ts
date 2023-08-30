@@ -106,6 +106,7 @@ export type ForestServerActionFieldDropdown =
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
       ForestServerActionFieldDropdownOptions<string>
     >
+  | ForestServerActionFieldCommon<['String'], ForestServerActionFieldDropdownOptions<string[]>>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>>;
 
 export type ForestServerActionField = ForestServerActionFieldDropdown | ForestServerActionFieldBase;
