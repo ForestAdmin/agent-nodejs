@@ -27,8 +27,8 @@ export default class GeneratorActionFieldWidget {
     if (ActionFields.isDropdownField(field))
       return GeneratorActionFieldWidget.buildDropdownWidgetEdit(field);
 
-    if (ActionFields.isRadioButtonGroupField(field))
-      return GeneratorActionFieldWidget.buildRadioButtonGroupWidgetEdit(field);
+    if (ActionFields.isRadioGroupField(field))
+      return GeneratorActionFieldWidget.buildRadioGroupWidgetEdit(field);
 
     if (ActionFields.isCheckboxField(field))
       return GeneratorActionFieldWidget.buildCheckboxWidgetEdit();
@@ -67,7 +67,7 @@ export default class GeneratorActionFieldWidget {
       | ForestServerActionFieldDropdownOptions<number>;
   }
 
-  private static buildRadioButtonGroupWidgetEdit(
+  private static buildRadioGroupWidgetEdit(
     field: ActionFieldRadioGroupButtonAll,
   ):
     | ForestServerActionFieldRadioButtonOptions<string>

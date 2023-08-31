@@ -189,20 +189,20 @@ describe('ActionFields', () => {
     });
   });
 
-  describe('isRadioButtonGroupField', () => {
-    it('should return true when the field type is RadioButtonGroup', () => {
-      const result = ActionFields.isRadioButtonGroupField({
+  describe('isRadioGroupField', () => {
+    it('should return true when the field type is RadioGroup', () => {
+      const result = ActionFields.isRadioGroupField({
         type: 'String',
         label: 'Label',
         watchChanges: false,
-        widget: 'RadioButtonGroup',
+        widget: 'RadioGroup',
       });
 
       expect(result).toBe(true);
     });
 
-    it('should return false when the field type is not RadioButtonGroup', () => {
-      const result = ActionFields.isRadioButtonGroupField({
+    it('should return false when the field type is not RadioGroup', () => {
+      const result = ActionFields.isRadioGroupField({
         type: 'String',
         label: 'Label',
         watchChanges: false,
@@ -212,7 +212,7 @@ describe('ActionFields', () => {
     });
 
     it('should return false when the field is undefined', () => {
-      const result = ActionFields.isRadioButtonGroupField(undefined);
+      const result = ActionFields.isRadioGroupField(undefined);
 
       expect(result).toBe(false);
     });

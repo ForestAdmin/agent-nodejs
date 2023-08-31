@@ -119,8 +119,8 @@ export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Number', number>;
 
 export type ActionFieldRadioGroupButtonAll =
-  | ActionFieldLimitedValue<'RadioButtonGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
-  | ActionFieldLimitedValue<'RadioButtonGroup', 'Number', number>;
+  | ActionFieldLimitedValue<'RadioGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldLimitedValue<'RadioGroup', 'Number', number>;
 
 export type ActionField = StrictUnion<
   | ActionFieldBase
@@ -138,7 +138,7 @@ export type ActionField = StrictUnion<
 
 export type ActionFieldWidget =
   | 'Dropdown'
-  | 'RadioButtonGroup'
+  | 'RadioGroup'
   | 'Checkbox'
   | 'TextInput'
   | 'TextInputList'

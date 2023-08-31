@@ -100,7 +100,7 @@ type RichTextFieldConfiguration = {
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
-> = LimitedValueDynamicFieldConfiguration<Context, 'RadioButtonGroup', TValue>;
+> = LimitedValueDynamicFieldConfiguration<Context, 'RadioGroup', TValue>;
 
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>

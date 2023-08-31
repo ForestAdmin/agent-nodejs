@@ -101,13 +101,13 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
-    describe('RadioButtonGroup', () => {
+    describe('RadioGroup', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
           label: 'Label',
           watchChanges: false,
-          widget: 'RadioButtonGroup',
+          widget: 'RadioGroup',
           options: [
             { value: 'value1', label: 'Value 1' },
             { value: 'value2', label: 'Value 2' },
@@ -132,7 +132,7 @@ describe('GeneratorActionFieldWidget', () => {
           type: 'String',
           label: 'Label',
           watchChanges: false,
-          widget: 'RadioButtonGroup',
+          widget: 'RadioGroup',
         });
 
         expect(result).toEqual({
