@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.19.0...@forestadmin/datasource-customizer@1.20.0) (2023-08-31)
+
+
+### Features
+
+* add support for dynamic options ([#799](https://github.com/ForestAdmin/agent-nodejs/issues/799)) ([264f8d0](https://github.com/ForestAdmin/agent-nodejs/commit/264f8d09a4286b4a8aab64ed150edd909893cd9f))
+
 # @forestadmin/datasource-customizer [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.18.1...@forestadmin/datasource-customizer@1.19.0) (2023-08-31)
 
 
