@@ -6,6 +6,7 @@ import {
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
+  ActionFieldTextArea,
   ActionFieldTextInput,
   ActionFieldTextInputList,
 } from '@forestadmin/datasource-toolkit';
@@ -57,6 +58,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldTextInputList {
     return (field as ActionFieldTextInputList)?.widget === 'TextInputList';
+  }
+
+  public static isTextAreaField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldTextArea {
+    return (field as ActionFieldTextArea)?.widget === 'TextArea';
   }
 
   // Other types to be added here in the future ⤵

@@ -80,6 +80,12 @@ type ArrayInputFieldConfiguration = {
   allowDuplicates?: boolean;
 };
 
+type TextAreaFieldConfiguration = {
+  widget: 'TextArea';
+  placeholder?: string;
+  rows?: number;
+};
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
@@ -95,6 +101,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
   | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)

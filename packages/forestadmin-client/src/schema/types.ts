@@ -111,6 +111,14 @@ export type ForestServerActionFieldTextInputListOptions = {
   };
 };
 
+export type ForestServerActionFieldTextAreaOptions = {
+  name: 'text area editor';
+  parameters: {
+    placeholder?: string | null;
+    rows?: number;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
@@ -124,7 +132,8 @@ export type ForestServerActionField =
   | ForestServerActionFieldBase
   | ForestServerActionFieldCommon<'Boolean', ForestServerActionFieldCheckboxOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
-  | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>;
+  | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>;
 
 export type ForestServerField = Partial<{
   field: string;
