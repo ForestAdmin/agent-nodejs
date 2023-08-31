@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.15...@forestadmin/datasource-sql@1.7.16) (2023-08-31)
+
+
+### Bug Fixes
+
+* detect and log broken relationship ([#760](https://github.com/ForestAdmin/agent-nodejs/issues/760)) ([996899b](https://github.com/ForestAdmin/agent-nodejs/commit/996899b2b425edfd07346ee8fce97a24182fb80f))
+
 ## @forestadmin/datasource-sql [1.7.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.14...@forestadmin/datasource-sql@1.7.15) (2023-08-31)
 
 
