@@ -1,34 +1,36 @@
-import { ActionField, ActionFieldDropdownAll } from '@forestadmin/datasource-toolkit';
 import {
+  ActionField,
+  ActionFieldDropdownAll,
+  ActionFieldTextInputList,
+} from '@forestadmin/datasource-toolkit';
+import {
+  ForestServerActionField,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldTextInputListOptions,
   ForestServerActionFieldTextInputOptions,
 } from '@forestadmin/forestadmin-client';
 
 import ActionFields from './action-fields';
 
 export default class GeneratorActionFieldWidget {
-  static buildWidgetOptions(
-    field: ActionField,
-  ):
-    | ForestServerActionFieldDropdownOptions<string>
-    | ForestServerActionFieldDropdownOptions<number>
-    | ForestServerActionFieldCheckboxOptions
-    | ForestServerActionFieldTextInputOptions
-    | undefined {
+  static buildWidgetOptions(field: ActionField): ForestServerActionField['widgetEdit'] | undefined {
     if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type))
       return undefined;
 
-    switch (true) {
-      case ActionFields.isDropdownField(field):
-        return GeneratorActionFieldWidget.buildDropdownWidgetEdit(field);
-      case ActionFields.isCheckboxField(field):
-        return GeneratorActionFieldWidget.buildCheckboxWidgetEdit();
-      case ActionFields.isTextInputField(field):
-        return GeneratorActionFieldWidget.buildTextInputWidgetEdit(field);
-      default:
-        throw new Error(`Unsupported widget type: ${field.widget}`);
-    }
+    if (ActionFields.isDropdownField(field))
+      return GeneratorActionFieldWidget.buildDropdownWidgetEdit(field);
+
+    if (ActionFields.isCheckboxField(field))
+      return GeneratorActionFieldWidget.buildCheckboxWidgetEdit();
+
+    if (ActionFields.isTextInputField(field))
+      return GeneratorActionFieldWidget.buildTextInputWidgetEdit(field);
+
+    if (ActionFields.isTextInputListField(field))
+      return GeneratorActionFieldWidget.buildTextInputListWidgetEdit(field);
+
+    throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
 
   private static buildDropdownWidgetEdit(
@@ -64,6 +66,20 @@ export default class GeneratorActionFieldWidget {
       name: 'text editor',
       parameters: {
         placeholder: field.placeholder || null,
+      },
+    };
+  }
+
+  private static buildTextInputListWidgetEdit(
+    field: ActionFieldTextInputList,
+  ): ForestServerActionFieldTextInputListOptions {
+    return {
+      name: 'input array',
+      parameters: {
+        placeholder: field.placeholder || null,
+        allowDuplicate: field.allowDuplicates || false,
+        allowEmptyValue: field.allowEmptyValues || false,
+        enableReorder: field.enableReorder ?? true,
       },
     };
   }

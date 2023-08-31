@@ -72,6 +72,14 @@ type TextInputFieldConfiguration = {
   placeholder?: string;
 };
 
+type ArrayInputFieldConfiguration = {
+  widget: 'TextInputList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowEmptyValues?: boolean;
+  allowDuplicates?: boolean;
+};
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
@@ -89,4 +97,5 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
 >;

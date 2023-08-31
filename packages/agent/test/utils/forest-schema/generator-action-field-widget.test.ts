@@ -152,6 +152,50 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('TextInputList', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'StringList',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TextInputList',
+        });
+
+        expect(result).toEqual({
+          name: 'input array',
+          parameters: {
+            placeholder: null,
+            allowDuplicate: false,
+            allowEmptyValue: false,
+            enableReorder: true,
+          },
+        });
+      });
+
+      it('should pass the options to the widget', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'StringList',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TextInputList',
+          placeholder: 'Placeholder',
+          allowDuplicates: true,
+          allowEmptyValues: true,
+          enableReorder: false,
+        });
+
+        expect(result).toEqual({
+          name: 'input array',
+          parameters: {
+            placeholder: 'Placeholder',
+            allowDuplicate: true,
+            allowEmptyValue: true,
+            enableReorder: false,
+          },
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

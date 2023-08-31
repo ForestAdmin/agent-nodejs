@@ -7,6 +7,7 @@ import {
   ActionFieldEnum,
   ActionFieldEnumList,
   ActionFieldTextInput,
+  ActionFieldTextInputList,
 } from '@forestadmin/datasource-toolkit';
 
 export default class ActionFields {
@@ -52,8 +53,20 @@ export default class ActionFields {
     return (field as ActionFieldTextInput)?.widget === 'TextInput';
   }
 
+  public static isTextInputListField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldTextInputList {
+    return (field as ActionFieldTextInputList)?.widget === 'TextInputList';
+  }
+
   // Other types to be added here in the future ⤵
-  public static hasWidget(field: ActionField | null | undefined): field is ActionFieldDropdownAll {
+  public static hasWidget(
+    field: ActionField | null | undefined,
+  ): field is
+    | ActionFieldDropdownAll
+    | ActionFieldCheckbox
+    | ActionFieldTextInput
+    | ActionFieldTextInputList {
     return Boolean((field as ActionFieldDropdown)?.widget);
   }
 }
