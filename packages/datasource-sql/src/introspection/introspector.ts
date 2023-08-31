@@ -1,5 +1,5 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize } from 'sequelize';
+import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
@@ -36,25 +36,33 @@ export default class Introspector {
     logger: Logger,
     tableName: string,
   ): Promise<Table> {
-    // Load columns descriptions, indexes and references of the current table.
     const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
-    const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
-      queryInterface.describeTable(tableName),
-      queryInterface.showIndex(tableName),
-      queryInterface.getForeignKeyReferencesForTable(tableName),
-    ]);
+    const [columnDescriptions, tableIndexes, tableReferences, constraintNamesForForeignKey] =
+      await Promise.all([
+        queryInterface.describeTable(tableName),
+        queryInterface.showIndex(tableName),
+        queryInterface.getForeignKeyReferencesForTable(tableName),
+        sequelize.query(
+          `SELECT constraint_name, table_name from information_schema.table_constraints 
+          where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
+          { replacements: { tableName }, type: QueryTypes.SELECT },
+        ),
+      ]);
 
-    // Create columns
-    const columns = Object.entries(columnDescriptions).map(([name, description]) => {
-      const references = tableReferences.filter(r => r.columnName === name);
-      const options = { name, description, references };
+    const columns = await Promise.all(
+      Object.entries(columnDescriptions).map(async ([name, description]) => {
+        const references = tableReferences.filter(r => r.columnName === name);
+        const options = { name, description, references };
 
-      return this.getColumn(sequelize, logger, tableName, options);
-    });
+        return this.getColumn(sequelize, logger, tableName, options);
+      }),
+    );
+
+    this.detectBrokenRelationship(constraintNamesForForeignKey, tableReferences, logger);
 
     return {
       name: tableName,
-      columns: (await Promise.all(columns)).filter(Boolean),
+      columns: columns.filter(Boolean),
       unique: tableIndexes
         .filter(i => i.unique || i.primary)
         .map(i => i.fields.map(f => f.attribute)),
@@ -124,6 +132,35 @@ export default class Introspector {
           return refTable && refColumn;
         });
       }
+    }
+  }
+
+  private static detectBrokenRelationship(
+    constraintNamesForForeignKey: unknown[],
+    tableReferences: SequelizeReference[],
+    logger: Logger,
+  ) {
+    if (constraintNamesForForeignKey.length !== tableReferences.length) {
+      const constraintNames = new Set(
+        (constraintNamesForForeignKey as [{ constraint_name: string; table_name: string }]).map(
+          c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
+        ),
+      );
+      tableReferences.forEach(({ constraintName }) => {
+        constraintNames.forEach(obj => {
+          if (obj.constraint_name === constraintName) {
+            constraintNames.delete(obj);
+          }
+        });
+      });
+
+      constraintNames.forEach(obj => {
+        logger?.(
+          'Error',
+          // eslint-disable-next-line max-len
+          `Failed to load constraints on relation '${obj.constraint_name}' on table '${obj.table_name}'. The relation will be ignored.`,
+        );
+      });
     }
   }
 }
