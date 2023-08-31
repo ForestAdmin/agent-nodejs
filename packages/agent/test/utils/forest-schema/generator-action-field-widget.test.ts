@@ -196,6 +196,94 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('TextArea', () => {
+      it('should return a valid and empty widget edit', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TextArea',
+        });
+
+        expect(result).toEqual({
+          name: 'text area editor',
+          parameters: {
+            placeholder: null,
+            rows: null,
+          },
+        });
+      });
+
+      it('should return a valid widget edit with placeholder', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TextArea',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toMatchObject({
+          parameters: {
+            placeholder: 'Placeholder',
+          },
+        });
+      });
+
+      describe('rows', () => {
+        it('should return a valid widget edit with rows', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'String',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'TextArea',
+            rows: 10,
+          });
+
+          expect(result).toMatchObject({
+            parameters: {
+              rows: 10,
+            },
+          });
+        });
+
+        it.each([0, -1, null, 'foo'])(
+          `should return a valid widget edit with rows = null when rows is %s`,
+          rows => {
+            const result = GeneratorActionFieldWidget.buildWidgetOptions({
+              type: 'String',
+              label: 'Label',
+              watchChanges: false,
+              widget: 'TextArea',
+              rows: rows as number,
+            });
+
+            expect(result).toMatchObject({
+              parameters: {
+                rows: null,
+              },
+            });
+          },
+        );
+
+        it('should round the rows value', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'String',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'TextArea',
+            rows: 1.5,
+          });
+
+          expect(result).toMatchObject({
+            parameters: {
+              rows: 2,
+            },
+          });
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

@@ -1,12 +1,14 @@
 import {
   ActionField,
   ActionFieldDropdownAll,
+  ActionFieldTextArea,
   ActionFieldTextInputList,
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerActionField,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldTextAreaOptions,
   ForestServerActionFieldTextInputListOptions,
   ForestServerActionFieldTextInputOptions,
 } from '@forestadmin/forestadmin-client';
@@ -29,6 +31,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isTextInputListField(field))
       return GeneratorActionFieldWidget.buildTextInputListWidgetEdit(field);
+
+    if (ActionFields.isTextAreaField(field))
+      return GeneratorActionFieldWidget.buildTextAreaWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -80,6 +85,18 @@ export default class GeneratorActionFieldWidget {
         allowDuplicate: field.allowDuplicates || false,
         allowEmptyValue: field.allowEmptyValues || false,
         enableReorder: field.enableReorder ?? true,
+      },
+    };
+  }
+
+  private static buildTextAreaWidgetEdit(
+    field: ActionFieldTextArea,
+  ): ForestServerActionFieldTextAreaOptions {
+    return {
+      name: 'text area editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+        rows: Number(field.rows) && field.rows > 0 ? Math.round(field.rows) : null,
       },
     };
   }

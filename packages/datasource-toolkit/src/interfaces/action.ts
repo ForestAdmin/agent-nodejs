@@ -93,6 +93,13 @@ export type ActionFieldTextInputList = ActionFieldBase & {
   allowDuplicates?: boolean;
 };
 
+export type ActionFieldTextArea = ActionFieldBase & {
+  type: 'String';
+  widget: 'TextArea';
+  placeholder?: string;
+  rows?: number;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
@@ -106,9 +113,15 @@ export type ActionField = StrictUnion<
   | ActionFieldCheckbox
   | ActionFieldTextInput
   | ActionFieldTextInputList
+  | ActionFieldTextArea
 >;
 
-export type ActionFieldWidget = 'Dropdown' | 'Checkbox' | 'TextInput' | 'TextInputList';
+export type ActionFieldWidget =
+  | 'Dropdown'
+  | 'Checkbox'
+  | 'TextInput'
+  | 'TextInputList'
+  | 'TextArea';
 
 export type SuccessResult = {
   type: 'Success';
