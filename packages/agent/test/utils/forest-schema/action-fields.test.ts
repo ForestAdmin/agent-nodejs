@@ -189,6 +189,80 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isCheckboxField', () => {
+    it('should return true if the field is a checkbox', () => {
+      const result = ActionFields.isCheckboxField({
+        type: 'Boolean',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Checkbox',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a checkbox', () => {
+      const result = ActionFields.isCheckboxField({
+        type: 'Boolean',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'TextInput' as any,
+      });
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('isTextInputField', () => {
+    it('should return true if the field is a text input', () => {
+      const result = ActionFields.isTextInputField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'TextInput',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a text input', () => {
+      const result = ActionFields.isTextInputField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('isTextInputListField', () => {
+    it('should return true if the field is a text input list', () => {
+      const result = ActionFields.isTextInputListField({
+        type: 'StringList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'TextInputList',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a text input list', () => {
+      const result = ActionFields.isTextInputListField({
+        type: 'StringList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({

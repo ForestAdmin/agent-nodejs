@@ -84,6 +84,15 @@ export type ActionFieldTextInput = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldTextInputList = ActionFieldBase & {
+  type: 'StringList';
+  widget: 'TextInputList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowEmptyValues?: boolean;
+  allowDuplicates?: boolean;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
@@ -96,9 +105,10 @@ export type ActionField = StrictUnion<
   | ActionFieldDropdownAll
   | ActionFieldCheckbox
   | ActionFieldTextInput
+  | ActionFieldTextInputList
 >;
 
-export type ActionFieldWidget = 'Dropdown' | 'Checkbox' | 'TextInput';
+export type ActionFieldWidget = 'Dropdown' | 'Checkbox' | 'TextInput' | 'TextInputList';
 
 export type SuccessResult = {
   type: 'Success';
