@@ -1,3 +1,11 @@
+# @forestadmin/datasource-toolkit [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.14.0...@forestadmin/datasource-toolkit@1.15.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** support rich text widget in custom actions ([4a30c7d](https://github.com/ForestAdmin/agent-nodejs/commit/4a30c7d4d4810f2875199f74e38ac8f5ecfa63ce))
+* **widgets:** support rich text widget in custom actions ([#802](https://github.com/ForestAdmin/agent-nodejs/issues/802)) ([e4ebbde](https://github.com/ForestAdmin/agent-nodejs/commit/e4ebbde7238abb797af42d16d47f2431c1d78db8))
+
 # @forestadmin/datasource-toolkit [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.13.0...@forestadmin/datasource-toolkit@1.14.0) (2023-08-31)
 
 
