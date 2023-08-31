@@ -56,15 +56,15 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
-type LimitedValueDynamicFieldConfiguration<TWidget, TValue = string> = {
+type LimitedValueDynamicFieldConfiguration<Context, TWidget, TValue = string> = {
   widget: TWidget;
-  options: DropdownOption<TValue>[];
+  options: ValueOrHandler<Context, DropdownOption<TValue>[]>;
 };
 
-type DropdownDynamicFieldConfiguration<TValue = string> = LimitedValueDynamicFieldConfiguration<
-  'Dropdown',
-  TValue
-> & {
+type DropdownDynamicFieldConfiguration<
+  Context = unknown,
+  TValue = string,
+> = LimitedValueDynamicFieldConfiguration<Context, 'Dropdown', TValue> & {
   placeholder?: string;
   search?: 'static' | 'disabled';
 };
@@ -97,10 +97,10 @@ type RichTextFieldConfiguration = {
   placeholder?: string;
 };
 
-type RadioButtonFieldConfiguration<TValue = string> = LimitedValueDynamicFieldConfiguration<
-  'RadioButtonGroup',
-  TValue
->;
+type RadioButtonFieldConfiguration<
+  Context = unknown,
+  TValue = string,
+> = LimitedValueDynamicFieldConfiguration<Context, 'RadioButtonGroup', TValue>;
 
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
