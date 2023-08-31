@@ -1,6 +1,7 @@
 import {
   ActionField,
   ActionFieldCheckbox,
+  ActionFieldCheckboxGroupAll,
   ActionFieldCollection,
   ActionFieldDropdown,
   ActionFieldDropdownAll,
@@ -48,6 +49,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldRadioGroupAll {
     return (field as ActionFieldRadioGroupAll)?.widget === 'RadioGroup';
+  }
+
+  public static isCheckboxGroupField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldCheckboxGroupAll {
+    return (field as ActionFieldCheckboxGroupAll)?.widget === 'CheckboxGroup';
   }
 
   public static isCheckboxField(

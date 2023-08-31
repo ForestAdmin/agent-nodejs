@@ -122,6 +122,10 @@ export type ActionFieldRadioGroupButtonAll =
   | ActionFieldLimitedValue<'RadioGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
   | ActionFieldLimitedValue<'RadioGroup', 'Number', number>;
 
+export type ActionFieldCheckboxGroupAll =
+  | ActionFieldLimitedValue<'CheckboxGroup', 'StringList', string>
+  | ActionFieldLimitedValue<'CheckboxGroup', 'NumberList', number>;
+
 export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
@@ -129,6 +133,7 @@ export type ActionField = StrictUnion<
   | ActionFieldCollection
   | ActionFieldDropdownAll
   | ActionFieldRadioGroupButtonAll
+  | ActionFieldCheckboxGroupAll
   | ActionFieldCheckbox
   | ActionFieldTextInput
   | ActionFieldTextInputList
@@ -139,6 +144,7 @@ export type ActionField = StrictUnion<
 export type ActionFieldWidget =
   | 'Dropdown'
   | 'RadioGroup'
+  | 'CheckboxGroup'
   | 'Checkbox'
   | 'TextInput'
   | 'TextInputList'
