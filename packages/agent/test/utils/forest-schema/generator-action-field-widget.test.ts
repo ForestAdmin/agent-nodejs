@@ -101,6 +101,51 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('RadioButtonGroup', () => {
+      it('should return a valid widget edit', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'RadioButtonGroup',
+          options: [
+            { value: 'value1', label: 'Value 1' },
+            { value: 'value2', label: 'Value 2' },
+          ],
+        });
+
+        expect(result).toEqual({
+          name: 'radio button',
+          parameters: {
+            static: {
+              options: [
+                { value: 'value1', label: 'Value 1' },
+                { value: 'value2', label: 'Value 2' },
+              ],
+            },
+          },
+        });
+      });
+
+      it('should return a valid configuration with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'RadioButtonGroup',
+        });
+
+        expect(result).toEqual({
+          name: 'radio button',
+          parameters: {
+            static: {
+              options: [],
+            },
+          },
+        });
+      });
+    });
+
     describe('Checkbox', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({

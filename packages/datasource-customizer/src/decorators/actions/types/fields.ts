@@ -56,11 +56,17 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
-type DropdownDynamicFieldConfiguration<Context = unknown, TValue = string> = {
-  widget: 'Dropdown';
+type LimitedValueDynamicFieldConfiguration<TWidget, TValue = string> = {
+  widget: TWidget;
+  options: DropdownOption<TValue>[];
+};
+
+type DropdownDynamicFieldConfiguration<TValue = string> = LimitedValueDynamicFieldConfiguration<
+  'Dropdown',
+  TValue
+> & {
   placeholder?: string;
   search?: 'static' | 'disabled';
-  options: ValueOrHandler<Context, DropdownOption<TValue>[]>;
 };
 
 type CheckboxDynamicFieldConfiguration = {
@@ -91,6 +97,11 @@ type RichTextFieldConfiguration = {
   placeholder?: string;
 };
 
+type RadioButtonFieldConfiguration<TValue = string> = LimitedValueDynamicFieldConfiguration<
+  'RadioButtonGroup',
+  TValue
+>;
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
@@ -101,11 +112,13 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
-  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
-  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
+  | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<number>)
+  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringDynamicField<Context> & RadioButtonFieldConfiguration<string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | StringListDynamicField<Context>
