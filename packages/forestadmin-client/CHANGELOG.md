@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.9.0...@forestadmin/forestadmin-client@1.10.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for textarea widget in custom actions ([a15ae51](https://github.com/ForestAdmin/agent-nodejs/commit/a15ae514467545f9db1ba8c6a9ece49d2e97c7ae))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.14.0
+
 # @forestadmin/forestadmin-client [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.8.1...@forestadmin/forestadmin-client@1.9.0) (2023-08-31)
 
 
