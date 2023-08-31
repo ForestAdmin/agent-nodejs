@@ -1,3 +1,11 @@
+# @forestadmin/datasource-toolkit [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.15.0...@forestadmin/datasource-toolkit@1.16.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for the radio button group widget in custom actions ([dfba9dc](https://github.com/ForestAdmin/agent-nodejs/commit/dfba9dc84c7e2ddf06cfa7331df8b6c9840692c2))
+* **widgets:** add support for the radio button group widget in custom actions ([#803](https://github.com/ForestAdmin/agent-nodejs/issues/803)) ([e2e6a40](https://github.com/ForestAdmin/agent-nodejs/commit/e2e6a406515023d807bf36ec6e594c616f509ea1))
+
 # @forestadmin/datasource-toolkit [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.14.0...@forestadmin/datasource-toolkit@1.15.0) (2023-08-31)
 
 
