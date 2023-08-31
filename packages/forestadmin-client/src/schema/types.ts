@@ -119,6 +119,13 @@ export type ForestServerActionFieldTextAreaOptions = {
   };
 };
 
+export type ForestServerActionFieldRichTextOptions = {
+  name: 'rich text';
+  parameters: {
+    placeholder?: string | null;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
@@ -133,7 +140,8 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Boolean', ForestServerActionFieldCheckboxOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
-  | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>;
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>;
 
 export type ForestServerField = Partial<{
   field: string;

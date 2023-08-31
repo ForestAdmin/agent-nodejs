@@ -86,6 +86,11 @@ type TextAreaFieldConfiguration = {
   rows?: number;
 };
 
+type RichTextFieldConfiguration = {
+  widget: 'RichText';
+  placeholder?: string;
+};
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
@@ -102,6 +107,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
+  | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
   | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)

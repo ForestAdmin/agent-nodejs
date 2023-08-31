@@ -6,6 +6,7 @@ import {
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
+  ActionFieldRichText,
   ActionFieldTextArea,
   ActionFieldTextInput,
   ActionFieldTextInputList,
@@ -64,6 +65,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldTextArea {
     return (field as ActionFieldTextArea)?.widget === 'TextArea';
+  }
+
+  public static isRichTextField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldRichText {
+    return (field as ActionFieldRichText)?.widget === 'RichText';
   }
 
   // Other types to be added here in the future ⤵

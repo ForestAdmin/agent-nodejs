@@ -1,6 +1,7 @@
 import {
   ActionField,
   ActionFieldDropdownAll,
+  ActionFieldRichText,
   ActionFieldTextArea,
   ActionFieldTextInputList,
 } from '@forestadmin/datasource-toolkit';
@@ -8,6 +9,7 @@ import {
   ForestServerActionField,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldRichTextOptions,
   ForestServerActionFieldTextAreaOptions,
   ForestServerActionFieldTextInputListOptions,
   ForestServerActionFieldTextInputOptions,
@@ -34,6 +36,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isTextAreaField(field))
       return GeneratorActionFieldWidget.buildTextAreaWidgetEdit(field);
+
+    if (ActionFields.isRichTextField(field))
+      return GeneratorActionFieldWidget.buildRichTextWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -97,6 +102,17 @@ export default class GeneratorActionFieldWidget {
       parameters: {
         placeholder: field.placeholder || null,
         rows: Number(field.rows) && field.rows > 0 ? Math.round(field.rows) : null,
+      },
+    };
+  }
+
+  private static buildRichTextWidgetEdit(
+    field: ActionFieldRichText,
+  ): ForestServerActionFieldRichTextOptions {
+    return {
+      name: 'rich text',
+      parameters: {
+        placeholder: field.placeholder || null,
       },
     };
   }
