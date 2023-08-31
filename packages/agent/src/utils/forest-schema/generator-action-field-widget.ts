@@ -1,6 +1,7 @@
 import {
   ActionField,
   ActionFieldDropdownAll,
+  ActionFieldRadioGroupButtonAll,
   ActionFieldRichText,
   ActionFieldTextArea,
   ActionFieldTextInputList,
@@ -9,6 +10,7 @@ import {
   ForestServerActionField,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldRadioButtonOptions,
   ForestServerActionFieldRichTextOptions,
   ForestServerActionFieldTextAreaOptions,
   ForestServerActionFieldTextInputListOptions,
@@ -24,6 +26,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isDropdownField(field))
       return GeneratorActionFieldWidget.buildDropdownWidgetEdit(field);
+
+    if (ActionFields.isRadioGroupField(field))
+      return GeneratorActionFieldWidget.buildRadioGroupWidgetEdit(field);
 
     if (ActionFields.isCheckboxField(field))
       return GeneratorActionFieldWidget.buildCheckboxWidgetEdit();
@@ -60,6 +65,23 @@ export default class GeneratorActionFieldWidget {
     } as
       | ForestServerActionFieldDropdownOptions<number>
       | ForestServerActionFieldDropdownOptions<number>;
+  }
+
+  private static buildRadioGroupWidgetEdit(
+    field: ActionFieldRadioGroupButtonAll,
+  ):
+    | ForestServerActionFieldRadioButtonOptions<string>
+    | ForestServerActionFieldRadioButtonOptions<number> {
+    return {
+      name: 'radio button',
+      parameters: {
+        static: {
+          options: field.options || [],
+        },
+      },
+    } as
+      | ForestServerActionFieldRadioButtonOptions<string>
+      | ForestServerActionFieldRadioButtonOptions<number>;
   }
 
   private static buildCheckboxWidgetEdit(): ForestServerActionFieldCheckboxOptions {

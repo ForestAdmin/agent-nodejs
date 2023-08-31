@@ -10,7 +10,7 @@ type StrictUnionHelper<T, TAll> = T extends any
 type StrictUnion<T> = StrictUnionHelper<T, T>;
 
 export type Json = string | number | boolean | { [x: string]: Json } | Array<Json>;
-export type DropdownOption<TValue> = { value: TValue; label: string } | TValue;
+export type LimitedValuesOption<TValue> = { value: TValue; label: string } | TValue;
 
 export type File = {
   mimeType: string;
@@ -47,16 +47,24 @@ export const ActionFieldTypeList = [
 
 export type ActionFieldType = (typeof ActionFieldTypeList)[number];
 
-export type ActionFieldDropdown<
+type ActionFieldLimitedValue<
+  TWidget extends string,
   TType extends ActionFieldType = ActionFieldType,
   TValue = unknown,
 > = ActionFieldBase & {
-  widget: 'Dropdown';
+  widget: TWidget;
   type: TType;
-  options?: DropdownOption<TValue>[];
-  search?: 'static' | 'disabled';
-  placeholder?: string;
+  options?: LimitedValuesOption<TValue>[];
 };
+
+export type ActionFieldDropdown<
+  TType extends ActionFieldType = ActionFieldType,
+  TValue = unknown,
+> = ActionFieldBase &
+  ActionFieldLimitedValue<'Dropdown', TType, TValue> & {
+    search?: 'static' | 'disabled';
+    placeholder?: string;
+  };
 
 export type ActionFieldCheckbox = ActionFieldBase & {
   type: 'Boolean';
@@ -110,12 +118,17 @@ export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
 
+export type ActionFieldRadioGroupButtonAll =
+  | ActionFieldLimitedValue<'RadioGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
+  | ActionFieldLimitedValue<'RadioGroup', 'Number', number>;
+
 export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
   | ActionFieldCollection
   | ActionFieldDropdownAll
+  | ActionFieldRadioGroupButtonAll
   | ActionFieldCheckbox
   | ActionFieldTextInput
   | ActionFieldTextInputList
@@ -125,6 +138,7 @@ export type ActionField = StrictUnion<
 
 export type ActionFieldWidget =
   | 'Dropdown'
+  | 'RadioGroup'
   | 'Checkbox'
   | 'TextInput'
   | 'TextInputList'

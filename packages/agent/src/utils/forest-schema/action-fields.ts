@@ -6,6 +6,7 @@ import {
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
+  ActionFieldRadioGroupButtonAll as ActionFieldRadioGroupAll,
   ActionFieldRichText,
   ActionFieldTextArea,
   ActionFieldTextInput,
@@ -41,6 +42,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldDropdownAll {
     return (field as ActionFieldDropdown)?.widget === 'Dropdown';
+  }
+
+  public static isRadioGroupField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldRadioGroupAll {
+    return (field as ActionFieldRadioGroupAll)?.widget === 'RadioGroup';
   }
 
   public static isCheckboxField(

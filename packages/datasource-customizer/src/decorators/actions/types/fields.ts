@@ -56,11 +56,17 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
-type DropdownDynamicFieldConfiguration<Context = unknown, TValue = string> = {
-  widget: 'Dropdown';
+type LimitedValueDynamicFieldConfiguration<Context, TWidget, TValue = string> = {
+  widget: TWidget;
+  options: ValueOrHandler<Context, DropdownOption<TValue>[]>;
+};
+
+type DropdownDynamicFieldConfiguration<
+  Context = unknown,
+  TValue = string,
+> = LimitedValueDynamicFieldConfiguration<Context, 'Dropdown', TValue> & {
   placeholder?: string;
   search?: 'static' | 'disabled';
-  options: ValueOrHandler<Context, DropdownOption<TValue>[]>;
 };
 
 type CheckboxDynamicFieldConfiguration = {
@@ -91,6 +97,11 @@ type RichTextFieldConfiguration = {
   placeholder?: string;
 };
 
+type RadioButtonFieldConfiguration<
+  Context = unknown,
+  TValue = string,
+> = LimitedValueDynamicFieldConfiguration<Context, 'RadioGroup', TValue>;
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
@@ -102,13 +113,15 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
-  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | StringListDynamicField<Context>
-  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
 >;

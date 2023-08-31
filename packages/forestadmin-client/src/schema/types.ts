@@ -78,16 +78,31 @@ export type ForestServerActionFieldBase = ForestServerActionFieldCommon & {
   reference: string | null;
 };
 
-export type ForestServerActionFieldDropdownOptions<TValue = string> = {
-  name: 'dropdown';
+type ForestServerActionFieldLimitedValueOptions<
+  TName extends string,
+  TValue = string,
+  TParameters = Record<string, never>,
+> = {
+  name: TName;
   parameters: {
-    placeholder?: string | null;
-    isSearchable?: boolean;
     static: {
       options: Array<{ label: string; value: TValue } | TValue>;
     };
-  };
+  } & TParameters;
 };
+
+export type ForestServerActionFieldDropdownOptions<TValue = string> =
+  ForestServerActionFieldLimitedValueOptions<
+    'dropdown',
+    TValue,
+    {
+      placeholder?: string | null;
+      isSearchable?: boolean;
+    }
+  >;
+
+export type ForestServerActionFieldRadioButtonOptions<TValue = string> =
+  ForestServerActionFieldLimitedValueOptions<'radio button', TValue>;
 
 export type ForestServerActionFieldCheckboxOptions = {
   name: 'boolean editor';
@@ -134,8 +149,16 @@ export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldDropdownOptions<string[]>>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldDropdownOptions<number>>;
 
+export type ForestServerActionFieldRadioButton =
+  | ForestServerActionFieldCommon<
+      'String' | 'Dateonly' | 'Date' | 'Timeonly',
+      ForestServerActionFieldRadioButtonOptions<string>
+    >
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldRadioButtonOptions<number>>;
+
 export type ForestServerActionField =
   | ForestServerActionFieldDropdown
+  | ForestServerActionFieldRadioButton
   | ForestServerActionFieldBase
   | ForestServerActionFieldCommon<'Boolean', ForestServerActionFieldCheckboxOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
