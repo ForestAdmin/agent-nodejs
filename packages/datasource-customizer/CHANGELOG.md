@@ -1,3 +1,25 @@
+# @forestadmin/datasource-customizer [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.22.0...@forestadmin/datasource-customizer@1.23.0) (2023-08-31)
+
+
+### Bug Fixes
+
+* allow dynamic options ([badea1b](https://github.com/ForestAdmin/agent-nodejs/commit/badea1b11e4d5ccaa25f0b29d3fc49a23a84043c))
+* type for dynamic dropdowns and radio groups ([7df4523](https://github.com/ForestAdmin/agent-nodejs/commit/7df452344cc48435deb91ca67818594523abb65a))
+
+
+### Features
+
+* **widgets:** add support for the radio button group widget in custom actions ([dfba9dc](https://github.com/ForestAdmin/agent-nodejs/commit/dfba9dc84c7e2ddf06cfa7331df8b6c9840692c2))
+* **widgets:** add support for the radio button group widget in custom actions ([#803](https://github.com/ForestAdmin/agent-nodejs/issues/803)) ([e2e6a40](https://github.com/ForestAdmin/agent-nodejs/commit/e2e6a406515023d807bf36ec6e594c616f509ea1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.16.0
+
 # @forestadmin/datasource-customizer [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.21.0...@forestadmin/datasource-customizer@1.22.0) (2023-08-31)
 
 
