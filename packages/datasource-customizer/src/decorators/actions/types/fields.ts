@@ -112,16 +112,16 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
-  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
-  | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<number>)
-  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<number>)
+  | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
-  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
-  | (StringDynamicField<Context> & RadioButtonFieldConfiguration<string>)
+  | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | StringListDynamicField<Context>
-  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<string>)
+  | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
 >;
