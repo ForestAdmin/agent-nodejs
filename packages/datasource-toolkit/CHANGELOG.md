@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.13.0...@forestadmin/datasource-toolkit@1.14.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for textarea widget in custom actions ([a15ae51](https://github.com/ForestAdmin/agent-nodejs/commit/a15ae514467545f9db1ba8c6a9ece49d2e97c7ae))
+
 # @forestadmin/datasource-toolkit [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.12.1...@forestadmin/datasource-toolkit@1.13.0) (2023-08-31)
 
 
