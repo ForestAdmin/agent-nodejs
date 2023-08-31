@@ -100,6 +100,12 @@ export type ActionFieldTextArea = ActionFieldBase & {
   rows?: number;
 };
 
+export type ActionFieldRichText = ActionFieldBase & {
+  type: 'String';
+  widget: 'RichText';
+  placeholder?: string;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
@@ -114,6 +120,7 @@ export type ActionField = StrictUnion<
   | ActionFieldTextInput
   | ActionFieldTextInputList
   | ActionFieldTextArea
+  | ActionFieldRichText
 >;
 
 export type ActionFieldWidget =
@@ -121,7 +128,8 @@ export type ActionFieldWidget =
   | 'Checkbox'
   | 'TextInput'
   | 'TextInputList'
-  | 'TextArea';
+  | 'TextArea'
+  | 'RichText';
 
 export type SuccessResult = {
   type: 'Success';

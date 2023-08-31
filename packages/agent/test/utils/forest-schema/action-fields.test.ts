@@ -294,6 +294,37 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isRichTextField', () => {
+    it('should return true if the field is a rich text', () => {
+      const result = ActionFields.isRichTextField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'RichText',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a rich text', () => {
+      const result = ActionFields.isRichTextField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isRichTextField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({

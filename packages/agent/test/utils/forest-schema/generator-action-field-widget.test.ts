@@ -284,6 +284,40 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('RichText', () => {
+      it('should return a valid widget edit', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'RichText',
+        });
+
+        expect(result).toMatchObject({
+          name: 'rich text',
+          parameters: {
+            placeholder: null,
+          },
+        });
+      });
+
+      it('should return a valid widget edit with placeholder', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'RichText',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toMatchObject({
+          parameters: {
+            placeholder: 'Placeholder',
+          },
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({
