@@ -144,6 +144,16 @@ export type ForestServerActionFieldRichTextOptions = {
   };
 };
 
+export type ForestServerActionFieldNumberInputOptions = {
+  name: 'number input';
+  parameters: {
+    placeholder?: string | null;
+    min?: number;
+    max?: number;
+    step?: number;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
@@ -172,7 +182,8 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
-  | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>;
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>;
 
 export type ForestServerField = Partial<{
   field: string;

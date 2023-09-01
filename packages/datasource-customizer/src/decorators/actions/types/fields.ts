@@ -97,6 +97,14 @@ type RichTextFieldConfiguration = {
   placeholder?: string;
 };
 
+type NumberInputFieldConfiguration<Context> = {
+  widget: 'NumberInput';
+  placeholder?: string;
+  min?: ValueOrHandler<Context, number>;
+  max?: ValueOrHandler<Context, number>;
+  step?: ValueOrHandler<Context, number>;
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -117,6 +125,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
   | NumberDynamicField<Context>
+  | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)

@@ -2,6 +2,7 @@ import {
   ActionField,
   ActionFieldCheckboxGroupAll,
   ActionFieldDropdownAll,
+  ActionFieldNumberInput,
   ActionFieldRadioGroupButtonAll,
   ActionFieldRichText,
   ActionFieldTextArea,
@@ -12,6 +13,7 @@ import {
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldNumberInputOptions,
   ForestServerActionFieldRadioButtonOptions,
   ForestServerActionFieldRichTextOptions,
   ForestServerActionFieldTextAreaOptions,
@@ -49,6 +51,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isRichTextField(field))
       return GeneratorActionFieldWidget.buildRichTextWidgetEdit(field);
+
+    if (ActionFields.isNumberInputField(field))
+      return GeneratorActionFieldWidget.buildNumberInputWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -145,7 +150,10 @@ export default class GeneratorActionFieldWidget {
       name: 'text area editor',
       parameters: {
         placeholder: field.placeholder || null,
-        rows: Number(field.rows) && field.rows > 0 ? Math.round(field.rows) : null,
+        rows:
+          GeneratorActionFieldWidget.isValidNumber(field.rows) && field.rows > 0
+            ? Math.round(field.rows)
+            : null,
       },
     };
   }
@@ -159,5 +167,23 @@ export default class GeneratorActionFieldWidget {
         placeholder: field.placeholder || null,
       },
     };
+  }
+
+  private static buildNumberInputWidgetEdit(
+    field: ActionFieldNumberInput,
+  ): ForestServerActionFieldNumberInputOptions {
+    return {
+      name: 'number input',
+      parameters: {
+        placeholder: field.placeholder || null,
+        min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
+        max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
+        step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
+      },
+    };
+  }
+
+  private static isValidNumber(value: unknown): boolean {
+    return ![null, undefined].includes(value) && !Number.isNaN(Number(value));
   }
 }

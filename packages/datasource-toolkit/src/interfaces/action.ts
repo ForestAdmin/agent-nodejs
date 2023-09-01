@@ -114,6 +114,15 @@ export type ActionFieldRichText = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldNumberInput = ActionFieldBase & {
+  type: 'Number';
+  widget: 'NumberInput';
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
@@ -139,6 +148,7 @@ export type ActionField = StrictUnion<
   | ActionFieldTextInputList
   | ActionFieldTextArea
   | ActionFieldRichText
+  | ActionFieldNumberInput
 >;
 
 export type ActionFieldWidget =
@@ -149,7 +159,8 @@ export type ActionFieldWidget =
   | 'TextInput'
   | 'TextInputList'
   | 'TextArea'
-  | 'RichText';
+  | 'RichText'
+  | 'NumberInput';
 
 export type SuccessResult = {
   type: 'Success';
