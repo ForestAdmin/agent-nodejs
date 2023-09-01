@@ -1,3 +1,11 @@
+# @forestadmin/datasource-toolkit [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.16.0...@forestadmin/datasource-toolkit@1.17.0) (2023-09-01)
+
+
+### Features
+
+* **widgets:** add support for the checkbox group widget in custom actions ([ee9ba13](https://github.com/ForestAdmin/agent-nodejs/commit/ee9ba13f90cce42d9f0a60ace483246cbaf3048f))
+* **widgets:** add support for the checkbox group widget in custom actions ([#804](https://github.com/ForestAdmin/agent-nodejs/issues/804)) ([e579850](https://github.com/ForestAdmin/agent-nodejs/commit/e57985009eed12362695c0dc029c25277900a626))
+
 # @forestadmin/datasource-toolkit [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.15.0...@forestadmin/datasource-toolkit@1.16.0) (2023-08-31)
 
 
