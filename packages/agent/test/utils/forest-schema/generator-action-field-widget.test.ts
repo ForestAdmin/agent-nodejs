@@ -408,6 +408,61 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('NumberInput', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Number',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'NumberInput',
+        });
+
+        expect(result).toMatchObject({
+          name: 'number input',
+          parameters: {
+            placeholder: null,
+            min: null,
+            max: null,
+            step: null,
+          },
+        });
+      });
+
+      it('should return a valid widget edit with placeholder', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Number',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'NumberInput',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toMatchObject({
+          parameters: {
+            placeholder: 'Placeholder',
+          },
+        });
+      });
+
+      describe.each(['min', 'max', 'step'])('%s', parameter => {
+        it.each([undefined, null, 'foo'])(`should return null when ${parameter} is %s`, value => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'NumberInput',
+            [parameter]: value as unknown as number,
+          });
+
+          expect(result).toMatchObject({
+            parameters: {
+              [parameter]: null,
+            },
+          });
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({
