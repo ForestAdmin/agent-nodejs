@@ -218,6 +218,35 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isCheckboxGroupField', () => {
+    it('should return true when the field type is CheckboxGroup', () => {
+      const result = ActionFields.isCheckboxGroupField({
+        type: 'StringList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'CheckboxGroup',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when the field type is not CheckboxGroup', () => {
+      const result = ActionFields.isCheckboxGroupField({
+        type: 'StringList',
+        label: 'Label',
+        watchChanges: false,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when the field is undefined', () => {
+      const result = ActionFields.isCheckboxGroupField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('isCheckboxField', () => {
     it('should return true if the field is a checkbox', () => {
       const result = ActionFields.isCheckboxField({

@@ -146,6 +146,51 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('CheckboxGroup', () => {
+      it('should return a valid widget edit', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'StringList',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'CheckboxGroup',
+          options: [
+            { value: 'value1', label: 'Value 1' },
+            { value: 'value2', label: 'Value 2' },
+          ],
+        });
+
+        expect(result).toEqual({
+          name: 'checkboxes',
+          parameters: {
+            static: {
+              options: [
+                { value: 'value1', label: 'Value 1' },
+                { value: 'value2', label: 'Value 2' },
+              ],
+            },
+          },
+        });
+      });
+
+      it('should return a valid configuration with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'StringList',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'CheckboxGroup',
+        });
+
+        expect(result).toEqual({
+          name: 'checkboxes',
+          parameters: {
+            static: {
+              options: [],
+            },
+          },
+        });
+      });
+    });
+
     describe('Checkbox', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({

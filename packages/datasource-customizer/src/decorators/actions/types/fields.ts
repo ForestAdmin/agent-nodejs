@@ -102,6 +102,11 @@ type RadioButtonFieldConfiguration<
   TValue = string,
 > = LimitedValueDynamicFieldConfiguration<Context, 'RadioGroup', TValue>;
 
+type CheckboxesFieldConfiguration<
+  Context = unknown,
+  TValue = string,
+> = LimitedValueDynamicFieldConfiguration<Context, 'CheckboxGroup', TValue>;
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)
@@ -115,6 +120,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
@@ -123,5 +129,6 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
 >;
