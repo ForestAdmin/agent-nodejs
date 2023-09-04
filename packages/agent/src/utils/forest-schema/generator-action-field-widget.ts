@@ -3,6 +3,7 @@ import {
   ActionFieldCheckboxGroupAll,
   ActionFieldDropdownAll,
   ActionFieldNumberInput,
+  ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll,
   ActionFieldRichText,
   ActionFieldTextArea,
@@ -13,6 +14,7 @@ import {
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
   ForestServerActionFieldRadioButtonOptions,
   ForestServerActionFieldRichTextOptions,
@@ -54,6 +56,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isNumberInputField(field))
       return GeneratorActionFieldWidget.buildNumberInputWidgetEdit(field);
+
+    if (ActionFields.isNumberInputListField(field))
+      return GeneratorActionFieldWidget.buildNumberInputListWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -176,6 +181,22 @@ export default class GeneratorActionFieldWidget {
       name: 'number input',
       parameters: {
         placeholder: field.placeholder || null,
+        min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
+        max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
+        step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
+      },
+    };
+  }
+
+  private static buildNumberInputListWidgetEdit(
+    field: ActionFieldNumberInputList,
+  ): ForestServerActionFieldNumberInputListOptions {
+    return {
+      name: 'input array',
+      parameters: {
+        placeholder: field.placeholder || null,
+        allowDuplicate: field.allowDuplicates || false,
+        enableReorder: field.enableReorder ?? true,
         min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
         max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
         step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
