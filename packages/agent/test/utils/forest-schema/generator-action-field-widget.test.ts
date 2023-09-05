@@ -463,6 +463,55 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('NumberInputList', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'NumberList',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'NumberInputList',
+        });
+
+        expect(result).toMatchObject({
+          name: 'input array',
+          parameters: {
+            placeholder: null,
+            allowDuplicate: false,
+            enableReorder: true,
+            min: null,
+            max: null,
+            step: null,
+          },
+        });
+      });
+
+      it.each([
+        { property: 'placeholder', value: 'Text' },
+        { property: 'allowDuplicates', value: true, resultProperty: 'allowDuplicate' },
+        { property: 'enableReorder', value: false },
+        { property: 'min', value: 1 },
+        { property: 'max', value: 10 },
+        { property: 'step', value: 2 },
+      ])(
+        `should return a valid widget edit with $property=$value`,
+        ({ property, value, resultProperty }) => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'NumberList',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'NumberInputList',
+            [property]: value,
+          });
+
+          expect(result).toMatchObject({
+            parameters: {
+              [resultProperty || property]: value,
+            },
+          });
+        },
+      );
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

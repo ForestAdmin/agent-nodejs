@@ -123,9 +123,20 @@ export type ActionFieldNumberInput = ActionFieldBase & {
   step?: number;
 };
 
+export type ActionFieldNumberInputList = ActionFieldBase & {
+  widget: 'NumberInputList';
+  type: 'NumberList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowDuplicates?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
-  | ActionFieldDropdown<'Number', number>;
+  | ActionFieldDropdown<'Number' | 'NumberList', number>;
 
 export type ActionFieldRadioGroupButtonAll =
   | ActionFieldLimitedValue<'RadioGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
@@ -149,6 +160,7 @@ export type ActionField = StrictUnion<
   | ActionFieldTextArea
   | ActionFieldRichText
   | ActionFieldNumberInput
+  | ActionFieldNumberInputList
 >;
 
 export type ActionFieldWidget =
@@ -160,7 +172,8 @@ export type ActionFieldWidget =
   | 'TextInputList'
   | 'TextArea'
   | 'RichText'
-  | 'NumberInput';
+  | 'NumberInput'
+  | 'NumberInputList';
 
 export type SuccessResult = {
   type: 'Success';
