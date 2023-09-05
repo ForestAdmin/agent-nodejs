@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.17.0...@forestadmin/datasource-toolkit@1.18.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input in custom actions ([8f52fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8f52fb3c90e5050873390a167fbb11df5fa34863))
+
 # @forestadmin/datasource-toolkit [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.16.0...@forestadmin/datasource-toolkit@1.17.0) (2023-09-01)
 
 
