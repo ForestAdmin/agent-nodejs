@@ -4,6 +4,7 @@ import {
   ActionFieldColorPicker,
   ActionFieldDropdownAll,
   ActionFieldNumberInput,
+  ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll,
   ActionFieldRichText,
   ActionFieldTextArea,
@@ -15,6 +16,7 @@ import {
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldColorPickerOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
   ForestServerActionFieldRadioButtonOptions,
   ForestServerActionFieldRichTextOptions,
@@ -59,6 +61,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isColorPickerField(field))
       return GeneratorActionFieldWidget.buildColorPickerWidgetEdit(field);
+
+    if (ActionFields.isNumberInputListField(field))
+      return GeneratorActionFieldWidget.buildNumberInputListWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -197,6 +202,22 @@ export default class GeneratorActionFieldWidget {
         placeholder: field.placeholder || null,
         enableOpacity: field.enableOpacity || false,
         quickPalette: field.quickPalette?.length ? field.quickPalette : null,
+      },
+    };
+  }
+
+  private static buildNumberInputListWidgetEdit(
+    field: ActionFieldNumberInputList,
+  ): ForestServerActionFieldNumberInputListOptions {
+    return {
+      name: 'input array',
+      parameters: {
+        placeholder: field.placeholder || null,
+        allowDuplicate: field.allowDuplicates || false,
+        enableReorder: field.enableReorder ?? true,
+        min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
+        max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
+        step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
       },
     };
   }

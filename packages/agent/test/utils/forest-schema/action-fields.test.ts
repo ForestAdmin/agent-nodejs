@@ -414,6 +414,37 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isNumberInputListField', () => {
+    it('should return true if the field is a number list input', () => {
+      const result = ActionFields.isNumberInputListField({
+        type: 'NumberList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'NumberInputList',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a number list input', () => {
+      const result = ActionFields.isNumberInputListField({
+        type: 'NumberList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: [{ value: 2, label: 'foo' }],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isNumberInputListField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('isColorPickerField', () => {
     it('should return true if the field is a color input', () => {
       const result = ActionFields.isColorPickerField({

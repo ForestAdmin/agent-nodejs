@@ -9,6 +9,7 @@ import {
   ActionFieldEnum,
   ActionFieldEnumList,
   ActionFieldNumberInput,
+  ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll as ActionFieldRadioGroupAll,
   ActionFieldRichText,
   ActionFieldTextArea,
@@ -99,6 +100,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldColorPicker {
     return (field as ActionFieldColorPicker)?.widget === 'ColorPicker';
+  }
+
+  public static isNumberInputListField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldNumberInputList {
+    return (field as ActionFieldNumberInputList)?.widget === 'NumberInputList';
   }
 
   // Other types to be added here in the future ⤵

@@ -78,12 +78,22 @@ type TextInputFieldConfiguration = {
   placeholder?: string;
 };
 
-type ArrayInputFieldConfiguration = {
+type ArrayTextInputFieldConfiguration = {
   widget: 'TextInputList';
   placeholder?: string;
   enableReorder?: boolean;
   allowEmptyValues?: boolean;
   allowDuplicates?: boolean;
+};
+
+type ArrayNumberInputFieldConfiguration<Context> = {
+  widget: 'NumberInputList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowDuplicates?: boolean;
+  min?: ValueOrHandler<Context, number>;
+  max?: ValueOrHandler<Context, number>;
+  step?: ValueOrHandler<Context, number>;
 };
 
 type TextAreaFieldConfiguration = {
@@ -135,8 +145,10 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
+  | NumberListDynamicField<Context>
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & ArrayNumberInputFieldConfiguration<Context>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
@@ -147,5 +159,5 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
-  | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
+  | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
 >;

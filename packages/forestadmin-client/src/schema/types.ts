@@ -154,6 +154,18 @@ export type ForestServerActionFieldNumberInputOptions = {
   };
 };
 
+export type ForestServerActionFieldNumberInputListOptions = {
+  name: 'input array';
+  parameters: {
+    placeholder?: string | null;
+    enableReorder?: boolean;
+    allowDuplicate?: boolean;
+    min?: number;
+    max?: number;
+    step?: number;
+  };
+};
+
 export type ForestServerActionFieldColorPickerOptions = {
   name: 'color editor';
   parameters: {
@@ -193,6 +205,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
+  | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>;
 
 export type ForestServerField = Partial<{

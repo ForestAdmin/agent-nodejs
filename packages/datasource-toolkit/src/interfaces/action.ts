@@ -131,9 +131,20 @@ export type ActionFieldColorPicker = ActionFieldBase & {
   quickPalette?: string[];
 };
 
+export type ActionFieldNumberInputList = ActionFieldBase & {
+  widget: 'NumberInputList';
+  type: 'NumberList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowDuplicates?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
-  | ActionFieldDropdown<'Number', number>;
+  | ActionFieldDropdown<'Number' | 'NumberList', number>;
 
 export type ActionFieldRadioGroupButtonAll =
   | ActionFieldLimitedValue<'RadioGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
@@ -158,6 +169,7 @@ export type ActionField = StrictUnion<
   | ActionFieldRichText
   | ActionFieldNumberInput
   | ActionFieldColorPicker
+  | ActionFieldNumberInputList
 >;
 
 export type ActionFieldWidget =
@@ -170,6 +182,7 @@ export type ActionFieldWidget =
   | 'TextArea'
   | 'RichText'
   | 'NumberInput'
+  | 'NumberInputList'
   | 'ColorPicker';
 
 export type SuccessResult = {

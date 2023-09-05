@@ -1,3 +1,34 @@
+# @forestadmin/datasource-customizer [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.25.0...@forestadmin/datasource-customizer@1.26.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input lists with options in actions ([519d1b7](https://github.com/ForestAdmin/agent-nodejs/commit/519d1b7c344456cdcf26a8972cef619c4efb1a48))
+* **widgets:** add support for number input lists with options in actions ([#807](https://github.com/ForestAdmin/agent-nodejs/issues/807)) ([22d84bd](https://github.com/ForestAdmin/agent-nodejs/commit/22d84bd104dcc7893a9536365329db5ee2467c28))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.19.0
+
+# @forestadmin/datasource-customizer [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.24.0...@forestadmin/datasource-customizer@1.25.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input in custom actions ([8f52fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8f52fb3c90e5050873390a167fbb11df5fa34863))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+
 # @forestadmin/datasource-customizer [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.23.0...@forestadmin/datasource-customizer@1.24.0) (2023-09-01)
 
 
