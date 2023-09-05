@@ -3,6 +3,7 @@ import {
   ActionFieldCheckbox,
   ActionFieldCheckboxGroupAll,
   ActionFieldCollection,
+  ActionFieldColorPicker,
   ActionFieldDropdown,
   ActionFieldDropdownAll,
   ActionFieldEnum,
@@ -92,6 +93,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldNumberInput {
     return (field as ActionFieldNumberInput)?.widget === 'NumberInput';
+  }
+
+  public static isColorPickerField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldColorPicker {
+    return (field as ActionFieldColorPicker)?.widget === 'ColorPicker';
   }
 
   // Other types to be added here in the future ⤵

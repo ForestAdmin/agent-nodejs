@@ -414,6 +414,37 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isColorPickerField', () => {
+    it('should return true if the field is a color input', () => {
+      const result = ActionFields.isColorPickerField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'ColorPicker',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a color input', () => {
+      const result = ActionFields.isColorPickerField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isColorPickerField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({

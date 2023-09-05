@@ -123,6 +123,14 @@ export type ActionFieldNumberInput = ActionFieldBase & {
   step?: number;
 };
 
+export type ActionFieldColorPicker = ActionFieldBase & {
+  type: 'String';
+  widget: 'ColorPicker';
+  placeholder?: string;
+  enableOpacity?: boolean;
+  quickPalette?: string[];
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number', number>;
@@ -149,6 +157,7 @@ export type ActionField = StrictUnion<
   | ActionFieldTextArea
   | ActionFieldRichText
   | ActionFieldNumberInput
+  | ActionFieldColorPicker
 >;
 
 export type ActionFieldWidget =
@@ -160,7 +169,8 @@ export type ActionFieldWidget =
   | 'TextInputList'
   | 'TextArea'
   | 'RichText'
-  | 'NumberInput';
+  | 'NumberInput'
+  | 'ColorPicker';
 
 export type SuccessResult = {
   type: 'Success';

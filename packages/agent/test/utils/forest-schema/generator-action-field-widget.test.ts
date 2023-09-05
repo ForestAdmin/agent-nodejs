@@ -463,16 +463,45 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
-    it('should throw an error when the widget is not supported', () => {
-      expect(() => {
-        GeneratorActionFieldWidget.buildWidgetOptions({
+    describe('ColorPicker', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
           label: 'Label',
           watchChanges: false,
-          // @ts-expect-error Unsupported widget
-          widget: 'UnsupportedWidget',
+          widget: 'ColorPicker',
         });
-      }).toThrow('Unsupported widget type: UnsupportedWidget');
+
+        expect(result).toEqual({
+          name: 'color editor',
+          parameters: {
+            enableOpacity: false,
+            placeholder: null,
+            quickPalette: null,
+          },
+        });
+      });
+    });
+
+    it('should return a valid widget with all the properties', () => {
+      const result = GeneratorActionFieldWidget.buildWidgetOptions({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'ColorPicker',
+        enableOpacity: true,
+        quickPalette: ['red', 'green', 'blue'],
+        placeholder: 'Placeholder',
+      });
+
+      expect(result).toEqual({
+        name: 'color editor',
+        parameters: {
+          placeholder: 'Placeholder',
+          enableOpacity: true,
+          quickPalette: ['red', 'green', 'blue'],
+        },
+      });
     });
   });
 });
