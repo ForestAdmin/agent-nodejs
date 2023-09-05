@@ -66,7 +66,7 @@ type DropdownDynamicFieldConfiguration<
   TValue = string,
 > = LimitedValueDynamicFieldConfiguration<Context, 'Dropdown', TValue> & {
   placeholder?: string;
-  search?: 'static' | 'disabled';
+  search?: 'static' | 'disabled' | 'dynamic';
 };
 
 type CheckboxDynamicFieldConfiguration = {

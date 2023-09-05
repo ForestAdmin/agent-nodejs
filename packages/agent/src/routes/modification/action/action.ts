@@ -56,6 +56,13 @@ export default class ActionRoute extends CollectionRoute {
     );
     router.post(`${path}/hooks/load`, this.handleHook.bind(this));
     router.post(`${path}/hooks/change`, this.handleHook.bind(this));
+    router.post(`${path}/hooks/search`, this.handleSearchHook.bind(this));
+  }
+
+  private async handleSearchHook(context: Context): Promise<void> {
+    context.response.body = {
+      data: ['toto', 'tata', 'titi', 'tutu'],
+    };
   }
 
   private async handleExecute(context: Context): Promise<void> {

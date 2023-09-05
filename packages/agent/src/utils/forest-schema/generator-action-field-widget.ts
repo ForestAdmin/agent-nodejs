@@ -23,6 +23,10 @@ import {
 
 import ActionFields from './action-fields';
 
+type DropdownWidgetEdit =
+  | ForestServerActionFieldDropdownOptions<string>
+  | ForestServerActionFieldDropdownOptions<number>;
+
 export default class GeneratorActionFieldWidget {
   static buildWidgetOptions(field: ActionField): ForestServerActionField['widgetEdit'] | undefined {
     if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type))
@@ -58,23 +62,36 @@ export default class GeneratorActionFieldWidget {
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
 
-  private static buildDropdownWidgetEdit(
-    field: ActionFieldDropdownAll,
-  ):
-    | ForestServerActionFieldDropdownOptions<string>
-    | ForestServerActionFieldDropdownOptions<number> {
-    return {
+  private static buildDropdownWidgetEdit(field: ActionFieldDropdownAll): DropdownWidgetEdit {
+    const widgetEdit: { [k: string]: any } = {
       name: 'dropdown',
       parameters: {
-        isSearchable: field.search === 'static',
+        isSearchable: ['static', 'dynamic'].includes(field.search),
         placeholder: field.placeholder || null,
-        static: {
-          options: field.options || [],
-        },
       },
-    } as
-      | ForestServerActionFieldDropdownOptions<number>
-      | ForestServerActionFieldDropdownOptions<number>;
+    };
+
+    switch (field.search) {
+      case 'static':
+        widgetEdit.parameters.static = {
+          options: field.options || [],
+        };
+        break;
+      case 'dynamic':
+        /*         widgetEdit.parameters.dynamic = {
+          simple: null,
+          smart: { path: '/forest/_actions/card/0/search/hooks/search' },
+        }; */
+        widgetEdit.parameters.dynamic = {
+          agent: {},
+        };
+        break;
+
+      default:
+        break;
+    }
+
+    return widgetEdit as DropdownWidgetEdit;
   }
 
   private static buildRadioGroupWidgetEdit(
