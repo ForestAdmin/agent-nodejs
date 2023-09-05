@@ -1,3 +1,11 @@
+# @forestadmin/datasource-toolkit [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.18.0...@forestadmin/datasource-toolkit@1.19.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input lists with options in actions ([519d1b7](https://github.com/ForestAdmin/agent-nodejs/commit/519d1b7c344456cdcf26a8972cef619c4efb1a48))
+* **widgets:** add support for number input lists with options in actions ([#807](https://github.com/ForestAdmin/agent-nodejs/issues/807)) ([22d84bd](https://github.com/ForestAdmin/agent-nodejs/commit/22d84bd104dcc7893a9536365329db5ee2467c28))
+
 # @forestadmin/datasource-toolkit [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.17.0...@forestadmin/datasource-toolkit@1.18.0) (2023-09-05)
 
 
