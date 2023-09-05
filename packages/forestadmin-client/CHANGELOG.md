@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.13.0...@forestadmin/forestadmin-client@1.14.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input in custom actions ([8f52fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8f52fb3c90e5050873390a167fbb11df5fa34863))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+
 # @forestadmin/forestadmin-client [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.12.0...@forestadmin/forestadmin-client@1.13.0) (2023-09-01)
 
 
