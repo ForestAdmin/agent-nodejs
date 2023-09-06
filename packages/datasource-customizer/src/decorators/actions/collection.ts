@@ -54,7 +54,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: { changedField: string },
+    metas?: { changedField: string; searchField: string; searchValue: string },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
@@ -62,11 +62,23 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     const formValues = data ? { ...data } : {};
     const used = new Set<string>();
-    const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
+    const context = this.getContext(
+      caller,
+      action,
+      formValues,
+      filter,
+      used,
+      metas?.changedField,
+      metas?.searchValue,
+    );
 
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[];
-    dynamicFields = action.form.map(c => ({ ...c }));
+
+    dynamicFields = action.form
+      .map(c => ({ ...c }))
+      .filter(field => [undefined, field.label].includes(metas?.searchField)); // in the case of
+    // a search hook, we don't want to rebuild all the fields. only the one searched
     dynamicFields = await this.dropDefaults(context, dynamicFields, !data, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 
@@ -106,12 +118,21 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     filter: Filter,
     used?: Set<string>,
     changedField?: string,
+    searchValue?: string,
   ): ActionContext {
     return new {
       Global: ActionContext,
       Bulk: ActionContext,
       Single: ActionContextSingle,
-    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
+    }[action.scope](
+      this,
+      caller,
+      formValues,
+      filter as unknown as PlainFilter,
+      used,
+      changedField,
+      searchValue,
+    );
   }
 
   private async dropDefaults(

@@ -20,6 +20,7 @@ export default class ActionContext<
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   readonly filter: TFilter<S, N>;
   readonly changedField: string;
+  readonly searchValue: string;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
@@ -31,11 +32,13 @@ export default class ActionContext<
     filter: TFilter<S, N>,
     used?: Set<string>,
     changedField?: string,
+    searchValue?: string,
   ) {
     super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
     this.changedField = changedField;
+    this.searchValue = searchValue;
     this.reset();
 
     // Spy on which formValues are accessed to set-up change hooks

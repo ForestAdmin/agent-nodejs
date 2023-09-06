@@ -78,12 +78,9 @@ export default class GeneratorActionFieldWidget {
         };
         break;
       case 'dynamic':
-        /*         widgetEdit.parameters.dynamic = {
-          simple: null,
-          smart: { path: '/forest/_actions/card/0/search/hooks/search' },
-        }; */
         widgetEdit.parameters.dynamic = {
-          agent: {},
+          agent: 'searchHook',
+          options: field.options || [],
         };
         break;
 
