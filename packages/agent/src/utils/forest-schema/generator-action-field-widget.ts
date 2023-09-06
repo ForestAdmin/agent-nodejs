@@ -23,10 +23,6 @@ import {
 
 import ActionFields from './action-fields';
 
-type DropdownWidgetEdit =
-  | ForestServerActionFieldDropdownOptions<string>
-  | ForestServerActionFieldDropdownOptions<number>;
-
 export default class GeneratorActionFieldWidget {
   static buildWidgetOptions(field: ActionField): ForestServerActionField['widgetEdit'] | undefined {
     if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type))
@@ -62,7 +58,7 @@ export default class GeneratorActionFieldWidget {
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
 
-  private static buildDropdownWidgetEdit(field: ActionFieldDropdownAll): DropdownWidgetEdit {
+  private static buildDropdownWidgetEdit(field: ActionFieldDropdownAll) {
     return {
       name: 'dropdown',
       parameters: {
@@ -71,7 +67,9 @@ export default class GeneratorActionFieldWidget {
         placeholder: field.placeholder || null,
         static: { options: field.options || [] },
       },
-    };
+    } as
+      | ForestServerActionFieldDropdownOptions<string>
+      | ForestServerActionFieldDropdownOptions<number>;
   }
 
   private static buildRadioGroupWidgetEdit(
