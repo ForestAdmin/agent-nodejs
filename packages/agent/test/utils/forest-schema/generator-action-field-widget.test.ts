@@ -532,6 +532,18 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    it('should throw an error when the widget is not supported', () => {
+      expect(() => {
+        GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          // @ts-expect-error Unsupported widget
+          widget: 'UnsupportedWidget',
+        });
+      }).toThrow('Unsupported widget type: UnsupportedWidget');
+    });
+
     it('should return a valid widget with all the properties', () => {
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'String',
