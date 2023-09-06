@@ -63,32 +63,15 @@ export default class GeneratorActionFieldWidget {
   }
 
   private static buildDropdownWidgetEdit(field: ActionFieldDropdownAll): DropdownWidgetEdit {
-    const widgetEdit: { [k: string]: any } = {
+    return {
       name: 'dropdown',
       parameters: {
+        searchType: field.search === 'dynamic' ? 'dynamic' : null,
         isSearchable: ['static', 'dynamic'].includes(field.search),
         placeholder: field.placeholder || null,
+        static: { options: field.options || [] },
       },
     };
-
-    switch (field.search) {
-      case 'static':
-        widgetEdit.parameters.static = {
-          options: field.options || [],
-        };
-        break;
-      case 'dynamic':
-        widgetEdit.parameters.dynamic = {
-          agent: 'searchHook',
-          options: field.options || [],
-        };
-        break;
-
-      default:
-        break;
-    }
-
-    return widgetEdit as DropdownWidgetEdit;
   }
 
   private static buildRadioGroupWidgetEdit(
