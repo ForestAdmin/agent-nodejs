@@ -80,6 +80,29 @@ describe('GeneratorActionFieldWidget', () => {
           },
         });
       });
+      it('should include the searchType="dynamic"', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'Dropdown',
+          options: ['1', '2'],
+          search: 'dynamic',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toEqual({
+          name: 'dropdown',
+          parameters: {
+            isSearchable: true,
+            searchType: 'dynamic',
+            placeholder: 'Placeholder',
+            static: {
+              options: ['1', '2'],
+            },
+          },
+        });
+      });
 
       it('should return a valid configuration with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({

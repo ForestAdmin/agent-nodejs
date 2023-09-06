@@ -106,7 +106,7 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm(
         factories.caller.build(),
         'make photocopy',
-        null,
+        undefined,
         filter,
       );
 
@@ -218,6 +218,49 @@ describe('ActionDecorator', () => {
       expect(fields).toEqual([
         { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
         { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+      ]);
+    });
+  });
+  describe('with single action with search hook', () => {
+    beforeEach(() => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'firstname',
+            type: 'String',
+            defaultValue: () => 'DynamicDefault',
+          },
+          {
+            label: 'lastname',
+            type: 'String',
+            isReadOnly: context => !!context.formValues.firstname,
+          },
+        ],
+      });
+    });
+    test('should only return the field matching the searchField', async () => {
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        undefined,
+        undefined,
+        {
+          changedField: 'toto',
+          searchField: 'firstname',
+          searchValue: 'first',
+        },
+      );
+      expect(fields).toEqual([
+        {
+          label: 'firstname',
+          type: 'String',
+          value: 'DynamicDefault',
+          watchChanges: false,
+        },
       ]);
     });
   });
