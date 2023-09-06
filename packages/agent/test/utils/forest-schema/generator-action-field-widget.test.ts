@@ -69,6 +69,7 @@ describe('GeneratorActionFieldWidget', () => {
           name: 'dropdown',
           parameters: {
             isSearchable: true,
+            searchType: null,
             placeholder: 'Placeholder',
             static: {
               options: [
@@ -92,6 +93,7 @@ describe('GeneratorActionFieldWidget', () => {
           name: 'dropdown',
           parameters: {
             isSearchable: false,
+            searchType: null,
             placeholder: null,
             static: {
               options: [],
