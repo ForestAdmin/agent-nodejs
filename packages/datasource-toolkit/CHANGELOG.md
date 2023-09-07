@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.19.0...@forestadmin/datasource-toolkit@1.20.0) (2023-09-07)
+
+
+### Features
+
+* **widgets:** add support for color picker in actions ([bae889c](https://github.com/ForestAdmin/agent-nodejs/commit/bae889c144e6d24d58a601f1ea4dea658889b321))
+
 # @forestadmin/datasource-toolkit [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.18.0...@forestadmin/datasource-toolkit@1.19.0) (2023-09-05)
 
 
