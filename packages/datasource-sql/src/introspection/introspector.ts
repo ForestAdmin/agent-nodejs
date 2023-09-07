@@ -37,8 +37,6 @@ export default class Introspector {
     tableName: string,
   ): Promise<Table> {
     const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
-    let constraintNamesForForeignKey: any[] = [];
-    const dialect = sequelize.getDialect() as Dialect;
 
     const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
       queryInterface.describeTable(tableName),
@@ -46,26 +44,7 @@ export default class Introspector {
       queryInterface.getForeignKeyReferencesForTable(tableName),
     ]);
 
-    if (dialect === 'sqlite') {
-      const test = await sequelize.query(
-        `SELECT "from" from pragma_foreign_key_list(:tableName);`,
-        {
-          replacements: { tableName },
-          type: QueryTypes.SELECT,
-        },
-      );
-
-      constraintNamesForForeignKey = test.map((valeur: any) => ({
-        table_name: tableName,
-        constraint_name: valeur.from,
-      }));
-    } else {
-      constraintNamesForForeignKey = await sequelize.query(
-        `SELECT constraint_name, table_name from information_schema.table_constraints
-          where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
-        { replacements: { tableName }, type: QueryTypes.SELECT },
-      );
-    }
+    this.detectBrokenRelationship(tableName, sequelize, tableReferences, logger);
 
     const columns = await Promise.all(
       Object.entries(columnDescriptions).map(async ([name, description]) => {
@@ -75,7 +54,6 @@ export default class Introspector {
         return this.getColumn(sequelize, logger, tableName, options);
       }),
     );
-    this.detectBrokenRelationship(constraintNamesForForeignKey, tableReferences, logger);
 
     return {
       name: tableName,
@@ -152,7 +130,51 @@ export default class Introspector {
     }
   }
 
-  private static detectBrokenRelationship(
+  private static async detectBrokenRelationship(
+    tableName: string,
+    sequelize: Sequelize,
+    tableReferences: SequelizeReference[],
+    logger: Logger,
+  ) {
+    let constraintNamesForForeignKey: any[] = [];
+    const dialect = sequelize.getDialect() as Dialect;
+
+    if (dialect === 'sqlite') {
+      const foreignKeys = await sequelize.query<{ from: string }>(
+        `SELECT "from" from pragma_foreign_key_list(:tableName);`,
+        {
+          replacements: { tableName },
+          type: QueryTypes.SELECT,
+        },
+      );
+
+      console.log(
+        'coucou: ',
+        await sequelize.query<{ from: string }>(
+          `SELECT * from pragma_foreign_key_list(:tableName);`,
+          {
+            replacements: { tableName },
+            type: QueryTypes.SELECT,
+          },
+        ),
+      );
+
+      constraintNamesForForeignKey = foreignKeys.map((value: { from: string }) => ({
+        table_name: tableName,
+        constraint_name: value.from,
+      }));
+    } else {
+      constraintNamesForForeignKey = await sequelize.query(
+        `SELECT constraint_name, table_name from information_schema.table_constraints
+          where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
+        { replacements: { tableName }, type: QueryTypes.SELECT },
+      );
+    }
+
+    this.logBrokenRelationship(constraintNamesForForeignKey, tableReferences, logger);
+  }
+
+  private static logBrokenRelationship(
     constraintNamesForForeignKey: unknown[],
     tableReferences: SequelizeReference[],
     logger: Logger,
