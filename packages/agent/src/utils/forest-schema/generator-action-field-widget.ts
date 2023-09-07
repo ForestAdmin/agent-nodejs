@@ -1,6 +1,7 @@
 import {
   ActionField,
   ActionFieldCheckboxGroupAll,
+  ActionFieldColorPicker,
   ActionFieldDropdownAll,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
@@ -13,6 +14,7 @@ import {
   ForestServerActionField,
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
+  ForestServerActionFieldColorPickerOptions,
   ForestServerActionFieldDropdownOptions,
   ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
@@ -56,6 +58,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isNumberInputField(field))
       return GeneratorActionFieldWidget.buildNumberInputWidgetEdit(field);
+
+    if (ActionFields.isColorPickerField(field))
+      return GeneratorActionFieldWidget.buildColorPickerWidgetEdit(field);
 
     if (ActionFields.isNumberInputListField(field))
       return GeneratorActionFieldWidget.buildNumberInputListWidgetEdit(field);
@@ -184,6 +189,19 @@ export default class GeneratorActionFieldWidget {
         min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
         max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
         step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
+      },
+    };
+  }
+
+  private static buildColorPickerWidgetEdit(
+    field: ActionFieldColorPicker,
+  ): ForestServerActionFieldColorPickerOptions {
+    return {
+      name: 'color editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+        enableOpacity: field.enableOpacity || false,
+        quickPalette: field.quickPalette?.length ? field.quickPalette : null,
       },
     };
   }

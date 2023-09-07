@@ -123,6 +123,14 @@ export type ActionFieldNumberInput = ActionFieldBase & {
   step?: number;
 };
 
+export type ActionFieldColorPicker = ActionFieldBase & {
+  type: 'String';
+  widget: 'ColorPicker';
+  placeholder?: string;
+  enableOpacity?: boolean;
+  quickPalette?: string[];
+};
+
 export type ActionFieldNumberInputList = ActionFieldBase & {
   widget: 'NumberInputList';
   type: 'NumberList';
@@ -160,6 +168,7 @@ export type ActionField = StrictUnion<
   | ActionFieldTextArea
   | ActionFieldRichText
   | ActionFieldNumberInput
+  | ActionFieldColorPicker
   | ActionFieldNumberInputList
 >;
 
@@ -173,7 +182,8 @@ export type ActionFieldWidget =
   | 'TextArea'
   | 'RichText'
   | 'NumberInput'
-  | 'NumberInputList';
+  | 'NumberInputList'
+  | 'ColorPicker';
 
 export type SuccessResult = {
   type: 'Success';

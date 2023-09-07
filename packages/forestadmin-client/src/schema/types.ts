@@ -166,6 +166,15 @@ export type ForestServerActionFieldNumberInputListOptions = {
   };
 };
 
+export type ForestServerActionFieldColorPickerOptions = {
+  name: 'color editor';
+  parameters: {
+    placeholder?: string | null;
+    enableOpacity?: boolean;
+    quickPalette?: string[];
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
@@ -196,7 +205,8 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
-  | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>;
+  | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>;
 
 export type ForestServerField = Partial<{
   field: string;

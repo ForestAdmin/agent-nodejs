@@ -115,6 +115,13 @@ type NumberInputFieldConfiguration<Context> = {
   step?: ValueOrHandler<Context, number>;
 };
 
+type ColorPickerFieldConfiguration = {
+  widget: 'ColorPicker';
+  placeholder?: string;
+  enableOpacity?: boolean;
+  quickPalette?: string[];
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -148,6 +155,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
+  | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
