@@ -148,17 +148,6 @@ export default class Introspector {
         },
       );
 
-      console.log(
-        'coucou: ',
-        await sequelize.query<{ from: string }>(
-          `SELECT * from pragma_foreign_key_list(:tableName);`,
-          {
-            replacements: { tableName },
-            type: QueryTypes.SELECT,
-          },
-        ),
-      );
-
       constraintNamesForForeignKey = foreignKeys.map((value: { from: string }) => ({
         table_name: tableName,
         constraint_name: value.from,
