@@ -11,9 +11,12 @@ type StrictUnion<T> = StrictUnionHelper<T, T>;
 
 type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
 
-export type ValueOrHandler<Context = unknown, Result = unknown> =
+type Handler<Context = unknown, Result = unknown> =
   | ((context: Context) => Promise<Result>)
-  | ((context: Context) => Result)
+  | ((context: Context) => Result);
+
+export type ValueOrHandler<Context = unknown, Result = unknown> =
+  | Handler<Context, Result>
   | Promise<Result>
   | Result;
 
@@ -66,7 +69,14 @@ type DropdownDynamicFieldConfiguration<
   TValue = string,
 > = LimitedValueDynamicFieldConfiguration<Context, 'Dropdown', TValue> & {
   placeholder?: string;
-  search?: 'static' | 'disabled' | 'dynamic';
+  search?: 'static' | 'disabled';
+};
+
+type DropdownDynamicSearchFieldConfiguration<Context = unknown, TValue = string> = {
+  widget: 'Dropdown';
+  options: Handler<Context, DropdownOption<TValue>[]>;
+  placeholder?: string;
+  search?: 'dynamic';
 };
 
 type CheckboxDynamicFieldConfiguration = {
@@ -127,17 +137,21 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | NumberDynamicField<Context>
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
 >;
