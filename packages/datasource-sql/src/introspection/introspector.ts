@@ -167,50 +167,11 @@ export default class Introspector {
       console.log('tableReference: ', tableReferences);
       tableReferences.forEach(({ constraintName }) => {
         constraintNames.forEach(obj => {
-          // console.log('l egalité: ', obj.constraint_name, ' et ', constraintName);
-
           if (obj.constraint_name === constraintName) {
             constraintNames.delete(obj);
           }
         });
       });
-
-      constraintNames.forEach(obj => {
-        logger?.(
-          'Error',
-          // eslint-disable-next-line max-len
-          `Failed to load constraints on relation '${obj.constraint_name}' on table '${obj.table_name}'. The relation will be ignored.`,
-        );
-      });
-    }
-  }
-
-  private static detectSQLiteBrokenRelationship(
-    constraintNamesForForeignKey: unknown[],
-    tableReferences: SequelizeReference[],
-    logger: Logger,
-  ) {
-    if (constraintNamesForForeignKey.length !== tableReferences.length) {
-      const constraintNames = new Set(
-        (constraintNamesForForeignKey as [{ constraint_name: string; table_name: string }]).map(
-          c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
-        ),
-      );
-      console.log('constraintNamesForForeignKey: ', constraintNamesForForeignKey);
-
-      console.log('tableReference: ', tableReferences);
-      tableReferences.forEach(({ columnName }) => {
-        constraintNames.forEach(obj => {
-          // console.log('l egalité: ', obj.constraint_name, ' et ', columnName);
-
-          if (obj.constraint_name === columnName) {
-            console.log('dedanssss');
-            constraintNames.delete(obj);
-          }
-        });
-      });
-
-      console.log('les contraintes finales: ', constraintNames);
 
       constraintNames.forEach(obj => {
         logger?.(
