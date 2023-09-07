@@ -37,7 +37,7 @@ export default class Introspector {
     tableName: string,
   ): Promise<Table> {
     const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
-    let constraintNamesForForeignKey;
+    let constraintNamesForForeignKey: any[] = [];
     const dialect = sequelize.getDialect() as Dialect;
 
     const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
@@ -47,14 +47,21 @@ export default class Introspector {
     ]);
 
     if (dialect === 'sqlite') {
-      constraintNamesForForeignKey = await sequelize.query(
-        `SELECT name, tbl_name from sqlite_master 
-          where type = 'table' AND sql LIKE '%FOREIGN KEY%' AND tbl_name = :tableName;`,
-        { replacements: { tableName }, type: QueryTypes.SELECT },
+      const test = await sequelize.query(
+        `SELECT "from" from pragma_foreign_key_list(:tableName);`,
+        {
+          replacements: { tableName },
+          type: QueryTypes.SELECT,
+        },
       );
+
+      constraintNamesForForeignKey = test.map((valeur: any) => ({
+        table_name: tableName,
+        constraint_name: valeur.from,
+      }));
     } else {
       constraintNamesForForeignKey = await sequelize.query(
-        `SELECT constraint_name, table_name from information_schema.table_constraints 
+        `SELECT constraint_name, table_name from information_schema.table_constraints
           where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
         { replacements: { tableName }, type: QueryTypes.SELECT },
       );
@@ -68,7 +75,6 @@ export default class Introspector {
         return this.getColumn(sequelize, logger, tableName, options);
       }),
     );
-
     this.detectBrokenRelationship(constraintNamesForForeignKey, tableReferences, logger);
 
     return {
@@ -157,13 +163,54 @@ export default class Introspector {
           c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
         ),
       );
+      console.log('constraintNamesForForeignKey: ', constraintNamesForForeignKey);
+      console.log('tableReference: ', tableReferences);
       tableReferences.forEach(({ constraintName }) => {
         constraintNames.forEach(obj => {
+          // console.log('l egalité: ', obj.constraint_name, ' et ', constraintName);
+
           if (obj.constraint_name === constraintName) {
             constraintNames.delete(obj);
           }
         });
       });
+
+      constraintNames.forEach(obj => {
+        logger?.(
+          'Error',
+          // eslint-disable-next-line max-len
+          `Failed to load constraints on relation '${obj.constraint_name}' on table '${obj.table_name}'. The relation will be ignored.`,
+        );
+      });
+    }
+  }
+
+  private static detectSQLiteBrokenRelationship(
+    constraintNamesForForeignKey: unknown[],
+    tableReferences: SequelizeReference[],
+    logger: Logger,
+  ) {
+    if (constraintNamesForForeignKey.length !== tableReferences.length) {
+      const constraintNames = new Set(
+        (constraintNamesForForeignKey as [{ constraint_name: string; table_name: string }]).map(
+          c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
+        ),
+      );
+      console.log('constraintNamesForForeignKey: ', constraintNamesForForeignKey);
+
+      console.log('tableReference: ', tableReferences);
+      tableReferences.forEach(({ columnName }) => {
+        constraintNames.forEach(obj => {
+          // console.log('l egalité: ', obj.constraint_name, ' et ', columnName);
+
+          if (obj.constraint_name === columnName) {
+            console.log('dedanssss');
+            constraintNames.delete(obj);
+          }
+        });
+      });
+
+      console.log('les contraintes finales: ', constraintNames);
 
       constraintNames.forEach(obj => {
         logger?.(

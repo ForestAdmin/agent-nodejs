@@ -68,12 +68,13 @@ describe('Introspector', () => {
       expect(mockDescribeTable).toHaveBeenCalledWith('table1');
       expect(mockShowIndex).toHaveBeenCalledWith('table1');
       expect(mockQuery).toHaveBeenCalledWith(
-        `SELECT constraint_name, table_name from information_schema.table_constraints 
+        `SELECT constraint_name, table_name from information_schema.table_constraints
           where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
         { replacements: { tableName: 'table1' }, type: QueryTypes.SELECT },
       );
 
       // Assert the logger call
+      expect(logger).toHaveBeenCalledTimes(1);
       expect(logger).toHaveBeenCalledWith(
         'Error',
         // eslint-disable-next-line max-len
@@ -89,16 +90,13 @@ describe('Introspector', () => {
       const mockShowIndex = jest.fn().mockResolvedValue([{ fields: ['column1'], unique: true }]);
       const mockQuery = jest.fn().mockResolvedValue([
         {
-          table_name: 'table1',
-          constraint_name: 'fk_column1',
+          from: 'fk_column1',
         },
         {
-          table_name: 'table1',
-          constraint_name: 'fk_column2',
+          from: 'fk_column2',
         },
         {
-          table_name: 'table1',
-          constraint_name: 'fk_unknown_column',
+          from: 'fk_unknown_column',
         },
       ]);
       mockQueryInterface.describeTable = mockDescribeTable;
@@ -112,12 +110,15 @@ describe('Introspector', () => {
       expect(mockDescribeTable).toHaveBeenCalledWith('table1');
       expect(mockShowIndex).toHaveBeenCalledWith('table1');
       expect(mockQuery).toHaveBeenCalledWith(
-        `SELECT name, tbl_name from sqlite_master 
-          where type = 'table' AND sql LIKE '%FOREIGN KEY%' AND tbl_name = :tableName;`,
-        { replacements: { tableName: 'table1' }, type: QueryTypes.SELECT },
+        `SELECT "from" from pragma_foreign_key_list(:tableName);`,
+        {
+          replacements: { tableName: 'table1' },
+          type: QueryTypes.SELECT,
+        },
       );
 
       // Assert the logger call
+      expect(logger).toHaveBeenCalledTimes(1);
       expect(logger).toHaveBeenCalledWith(
         'Error',
         // eslint-disable-next-line max-len
