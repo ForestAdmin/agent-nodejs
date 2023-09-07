@@ -37,17 +37,28 @@ export default class Introspector {
     tableName: string,
   ): Promise<Table> {
     const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
-    const [columnDescriptions, tableIndexes, tableReferences, constraintNamesForForeignKey] =
-      await Promise.all([
-        queryInterface.describeTable(tableName),
-        queryInterface.showIndex(tableName),
-        queryInterface.getForeignKeyReferencesForTable(tableName),
-        sequelize.query(
-          `SELECT constraint_name, table_name from information_schema.table_constraints 
+    let constraintNamesForForeignKey;
+    const dialect = sequelize.getDialect() as Dialect;
+
+    const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
+      queryInterface.describeTable(tableName),
+      queryInterface.showIndex(tableName),
+      queryInterface.getForeignKeyReferencesForTable(tableName),
+    ]);
+
+    if (dialect === 'sqlite') {
+      constraintNamesForForeignKey = await sequelize.query(
+        `SELECT name, tbl_name from sqlite_master 
+          where type = 'table' AND sql LIKE '%FOREIGN KEY%' AND tbl_name = :tableName;`,
+        { replacements: { tableName }, type: QueryTypes.SELECT },
+      );
+    } else {
+      constraintNamesForForeignKey = await sequelize.query(
+        `SELECT constraint_name, table_name from information_schema.table_constraints 
           where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
-          { replacements: { tableName }, type: QueryTypes.SELECT },
-        ),
-      ]);
+        { replacements: { tableName }, type: QueryTypes.SELECT },
+      );
+    }
 
     const columns = await Promise.all(
       Object.entries(columnDescriptions).map(async ([name, description]) => {
