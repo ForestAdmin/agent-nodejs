@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.15.0...@forestadmin/forestadmin-client@1.16.0) (2023-09-07)
+
+
+### Features
+
+* **widgets:** add support for color picker in actions ([bae889c](https://github.com/ForestAdmin/agent-nodejs/commit/bae889c144e6d24d58a601f1ea4dea658889b321))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.0
+
 # @forestadmin/forestadmin-client [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.14.0...@forestadmin/forestadmin-client@1.15.0) (2023-09-05)
 
 
