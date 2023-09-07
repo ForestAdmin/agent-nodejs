@@ -163,8 +163,6 @@ export default class Introspector {
           c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
         ),
       );
-      console.log('constraintNamesForForeignKey: ', constraintNamesForForeignKey);
-      console.log('tableReference: ', tableReferences);
       tableReferences.forEach(({ constraintName }) => {
         constraintNames.forEach(obj => {
           if (obj.constraint_name === constraintName) {
