@@ -122,6 +122,16 @@ type ColorPickerFieldConfiguration = {
   quickPalette?: string[];
 };
 
+type CurrencyInputFieldConfiguration<Context> = {
+  widget: 'CurrencyInput';
+  placeholder?: string;
+  currency: ValueOrHandler<Context, string>;
+  base?: ValueOrHandler<Context, 'unit' | 'cent'>;
+  min?: ValueOrHandler<Context, number>;
+  max?: ValueOrHandler<Context, number>;
+  step?: ValueOrHandler<Context, number>;
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -145,6 +155,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & CurrencyInputFieldConfiguration<Context>)
   | NumberListDynamicField<Context>
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)

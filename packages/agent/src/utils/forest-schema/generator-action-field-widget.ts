@@ -2,6 +2,7 @@ import {
   ActionField,
   ActionFieldCheckboxGroupAll,
   ActionFieldColorPicker,
+  ActionFieldCurrencyInput,
   ActionFieldDropdownAll,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
@@ -15,6 +16,7 @@ import {
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldColorPickerOptions,
+  ForestServerActionFieldCurrencyInputOptions,
   ForestServerActionFieldDropdownOptions,
   ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
@@ -64,6 +66,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isNumberInputListField(field))
       return GeneratorActionFieldWidget.buildNumberInputListWidgetEdit(field);
+
+    if (ActionFields.isCurrencyInputField(field))
+      return GeneratorActionFieldWidget.buildCurrencyInputWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -220,6 +225,35 @@ export default class GeneratorActionFieldWidget {
         step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
       },
     };
+  }
+
+  private static buildCurrencyInputWidgetEdit(
+    field: ActionFieldCurrencyInput,
+  ): ForestServerActionFieldCurrencyInputOptions {
+    return {
+      name: 'price editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+        min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
+        max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
+        step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
+        currency: field.currency || null, // Default value handled by the frontend
+        base: GeneratorActionFieldWidget.mapCurrencyBase(field.base),
+      },
+    };
+  }
+
+  private static mapCurrencyBase(base: string): 'Unit' | 'Cents' {
+    switch (base?.toLowerCase()) {
+      case 'cent':
+      case 'cents':
+        return 'Cents';
+
+      case 'unit':
+      case 'units':
+      default:
+        return 'Unit';
+    }
   }
 
   private static isValidNumber(value: unknown): boolean {
