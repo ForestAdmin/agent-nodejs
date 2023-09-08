@@ -19,10 +19,17 @@ export default class ActionContext<
 > extends CollectionCustomizationContext<S, N> {
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   readonly filter: TFilter<S, N>;
+
+  /**
+   * @deprecated use `hasFieldChange` instead. [linked issue](https://github.com/ForestAdmin/agent-nodejs/issues/815).
+   * @todo make it private on the next major version.
+   */
   readonly changedField: string;
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
+
+  public hasFieldChanged: (fieldName: string) => boolean;
 
   constructor(
     collection: Collection,
@@ -50,6 +57,12 @@ export default class ActionContext<
           throw new Error('formValues is readonly');
         },
       });
+
+      this.hasFieldChanged = (fieldName: string) => {
+        used.add(fieldName);
+
+        return this.changedField === fieldName;
+      };
     }
   }
 

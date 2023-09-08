@@ -8,13 +8,6 @@ import {
   TSortClause
 } from '@forestadmin/agent';
 
-export type DevXpMembersCustomizer = CollectionCustomizer<Schema, 'dev_xp_members'>;
-export type DevXpMembersRecord = TPartialRow<Schema, 'dev_xp_members'>;
-export type DevXpMembersConditionTree = TConditionTree<Schema, 'dev_xp_members'>;
-export type DevXpMembersFilter = TPaginatedFilter<Schema, 'dev_xp_members'>;
-export type DevXpMembersSortClause = TSortClause<Schema, 'dev_xp_members'>;
-export type DevXpMembersAggregation = TAggregation<Schema, 'dev_xp_members'>;
-
 export type CustomerCustomizer = CollectionCustomizer<Schema, 'customer'>;
 export type CustomerRecord = TPartialRow<Schema, 'customer'>;
 export type CustomerConditionTree = TConditionTree<Schema, 'customer'>;
@@ -293,14 +286,6 @@ export type Schema = {
       'createdAt': string;
       'updatedAt': string;
       'deletedAt': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'dev_xp_members': {
-    plain: {
-      'id': number;
-      'name': string;
     };
     nested: {};
     flat: {};
