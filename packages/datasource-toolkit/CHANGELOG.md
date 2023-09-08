@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.20.0...@forestadmin/datasource-toolkit@1.20.1) (2023-09-08)
+
+
+### Bug Fixes
+
+* **datasource-toolkit:** return null instead of undefined inside field value getter ([#813](https://github.com/ForestAdmin/agent-nodejs/issues/813)) ([443382e](https://github.com/ForestAdmin/agent-nodejs/commit/443382e82988bb6b33084012afc47b64d96f7a41))
+
 # @forestadmin/datasource-toolkit [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.19.0...@forestadmin/datasource-toolkit@1.20.0) (2023-09-07)
 
 
