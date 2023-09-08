@@ -22,6 +22,6 @@ export default class RecordUtils {
       current = current[path.shift()] as RecordData;
     }
 
-    return path.length === 0 ? current : undefined;
+    return path.length === 0 ? current : null;
   }
 }
