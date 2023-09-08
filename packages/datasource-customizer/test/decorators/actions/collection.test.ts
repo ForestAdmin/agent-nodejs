@@ -106,7 +106,7 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm(
         factories.caller.build(),
         'make photocopy',
-        null,
+        undefined,
         filter,
       );
 
@@ -186,7 +186,7 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute dynamic default value (no data == load hook)', async () => {
-      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', null);
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', undefined);
 
       expect(fields).toEqual([
         {
@@ -254,4 +254,46 @@ describe('ActionDecorator', () => {
       });
     },
   );
+
+  describe('hasFieldChanged', () => {
+    test('should add watchChange to field', async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'change',
+            type: 'String',
+          },
+          {
+            label: 'to change',
+            type: 'String',
+            isReadOnly: true,
+            value: context => {
+              if (context.hasFieldChanged('change')) {
+                return context.formValues.change;
+              }
+            },
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
+      expect(fields).toEqual([
+        {
+          label: 'change',
+          type: 'String',
+          watchChanges: true,
+        },
+        {
+          label: 'to change',
+          type: 'String',
+          isReadOnly: true,
+          watchChanges: false,
+        },
+      ]);
+    });
+  });
 });

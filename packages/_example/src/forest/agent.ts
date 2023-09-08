@@ -30,50 +30,48 @@ export default function makeAgent() {
     typingsPath: 'src/forest/typings.ts',
   };
 
-  return (
-    createAgent<Schema>(envOptions)
-      // .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
+  return createAgent<Schema>(envOptions)
+    .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
-      .addDataSource(
-        // Using an URI
-        createSqlDataSource('mariadb://example:password@localhost:3808/example'),
-        { include: ['customer'] },
-      )
-      .addDataSource(
-        // Using a connection object
-        createSqlDataSource({
-          dialect: 'mariadb',
-          username: 'example',
-          password: 'password',
-          port: 3808,
-          database: 'example',
-        }),
-        { include: ['card'] },
-      )
-      .addDataSource(createTypicode())
-      .addDataSource(createSequelizeDataSource(sequelizePostgres))
-      .addDataSource(createSequelizeDataSource(sequelizeMySql))
-      .addDataSource(createSequelizeDataSource(sequelizeMsSql))
-      .addDataSource(
-        createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
-      )
+    .addDataSource(
+      // Using an URI
+      createSqlDataSource('mariadb://example:password@localhost:3808/example'),
+      { include: ['customer'] },
+    )
+    .addDataSource(
+      // Using a connection object
+      createSqlDataSource({
+        dialect: 'mariadb',
+        username: 'example',
+        password: 'password',
+        port: 3808,
+        database: 'example',
+      }),
+      { include: ['card'] },
+    )
+    .addDataSource(createTypicode())
+    .addDataSource(createSequelizeDataSource(sequelizePostgres))
+    .addDataSource(createSequelizeDataSource(sequelizeMySql))
+    .addDataSource(createSequelizeDataSource(sequelizeMsSql))
+    .addDataSource(
+      createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+    )
 
-      .addChart('numRentals', async (context, resultBuilder) => {
-        const rentals = context.dataSource.getCollection('rental');
-        const rows = await rentals.aggregate({}, { operation: 'Count' });
+    .addChart('numRentals', async (context, resultBuilder) => {
+      const rentals = context.dataSource.getCollection('rental');
+      const rows = await rentals.aggregate({}, { operation: 'Count' });
 
-        return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
-      })
+      return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
+    })
 
-      .customizeCollection('card', customizeCard)
-      .customizeCollection('account', customizeAccount)
-      .customizeCollection('owner', customizeOwner)
-      .customizeCollection('store', customizeStore)
-      .customizeCollection('rental', customizeRental)
-      .customizeCollection('dvd', customizeDvd)
-      .customizeCollection('customer', customizeCustomer)
-      .customizeCollection('post', customizePost)
-      .customizeCollection('comment', customizeComment)
-      .customizeCollection('review', customizeReview)
-  );
+    .customizeCollection('card', customizeCard)
+    .customizeCollection('account', customizeAccount)
+    .customizeCollection('owner', customizeOwner)
+    .customizeCollection('store', customizeStore)
+    .customizeCollection('rental', customizeRental)
+    .customizeCollection('dvd', customizeDvd)
+    .customizeCollection('customer', customizeCustomer)
+    .customizeCollection('post', customizePost)
+    .customizeCollection('comment', customizeComment)
+    .customizeCollection('review', customizeReview);
 }
