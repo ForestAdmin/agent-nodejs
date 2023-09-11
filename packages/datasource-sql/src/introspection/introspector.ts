@@ -44,7 +44,7 @@ export default class Introspector {
       queryInterface.getForeignKeyReferencesForTable(tableName),
     ]);
 
-    this.detectBrokenRelationship(tableName, sequelize, tableReferences, logger);
+    await this.detectBrokenRelationship(tableName, sequelize, tableReferences, logger);
 
     const columns = await Promise.all(
       Object.entries(columnDescriptions).map(async ([name, description]) => {
