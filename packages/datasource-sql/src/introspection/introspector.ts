@@ -140,18 +140,14 @@ export default class Introspector {
     const dialect = sequelize.getDialect() as Dialect;
 
     if (dialect === 'sqlite') {
-      const foreignKeys = await sequelize.query<{ from: string }>(
-        `SELECT "from" from pragma_foreign_key_list(:tableName);`,
+      constraintNamesForForeignKey = await sequelize.query<{ from: string }>(
+        `SELECT :tableName as table_name, "from" as constraint_name
+        from pragma_foreign_key_list(:tableName);`,
         {
           replacements: { tableName },
           type: QueryTypes.SELECT,
         },
       );
-
-      constraintNamesForForeignKey = foreignKeys.map((value: { from: string }) => ({
-        table_name: tableName,
-        constraint_name: value.from,
-      }));
     } else {
       constraintNamesForForeignKey = await sequelize.query(
         `SELECT constraint_name, table_name from information_schema.table_constraints

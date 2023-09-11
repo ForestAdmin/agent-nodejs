@@ -90,13 +90,16 @@ describe('Introspector', () => {
       const mockShowIndex = jest.fn().mockResolvedValue([{ fields: ['column1'], unique: true }]);
       const mockQuery = jest.fn().mockResolvedValue([
         {
-          from: 'fk_column1',
+          table_name: 'table1',
+          constraint_name: 'fk_column1',
         },
         {
-          from: 'fk_column2',
+          table_name: 'table1',
+          constraint_name: 'fk_column2',
         },
         {
-          from: 'fk_unknown_column',
+          table_name: 'table1',
+          constraint_name: 'fk_unknown_column',
         },
       ]);
       mockQueryInterface.describeTable = mockDescribeTable;
@@ -110,7 +113,8 @@ describe('Introspector', () => {
       expect(mockDescribeTable).toHaveBeenCalledWith('table1');
       expect(mockShowIndex).toHaveBeenCalledWith('table1');
       expect(mockQuery).toHaveBeenCalledWith(
-        `SELECT "from" from pragma_foreign_key_list(:tableName);`,
+        `SELECT :tableName as table_name, "from" as constraint_name
+        from pragma_foreign_key_list(:tableName);`,
         {
           replacements: { tableName: 'table1' },
           type: QueryTypes.SELECT,
