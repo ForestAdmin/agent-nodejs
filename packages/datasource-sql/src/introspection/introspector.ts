@@ -136,11 +136,14 @@ export default class Introspector {
     tableReferences: SequelizeReference[],
     logger: Logger,
   ) {
-    let constraintNamesForForeignKey: any[] = [];
+    let constraintNamesForForeignKey: Array<{ table_name: string; constraint_name: string }> = [];
     const dialect = sequelize.getDialect() as Dialect;
 
     if (dialect === 'sqlite') {
-      constraintNamesForForeignKey = await sequelize.query<{ from: string }>(
+      constraintNamesForForeignKey = await sequelize.query<{
+        table_name: string;
+        constraint_name: string;
+      }>(
         `SELECT :tableName as table_name, "from" as constraint_name
         from pragma_foreign_key_list(:tableName);`,
         {
