@@ -113,15 +113,30 @@ export default class MongooseCollection extends BaseCollection {
 
     // Only array fields can create subdocuments (the others should use update)
     const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
-    if (!schema.isArray)
-      throw new ValidationError('Trying to create subrecords on a non-array field');
 
-    // Transform list of subrecords to a list of modifications that we'll apply to the root record.
+    if (schema.isArray) {
+      return this._createForArraySubfield(data, flatData, schema);
+    }
+
+    return this._createForObjectSubfield(data, flatData);
+  }
+
+  private computeSubFieldName() {
     const lastStackStep = this.stack[this.stack.length - 1];
     const fieldName =
       this.stack.length > 2
         ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
         : lastStackStep.prefix;
+
+    return fieldName;
+  }
+
+  private async _createForArraySubfield(
+    data: RecordData[],
+    flatData: RecordData[],
+    schema: MongooseSchema,
+  ) {
+    const fieldName = this.computeSubFieldName();
 
     const updates: Record<string, { rootId: unknown; path: string; records: unknown[] }> = {};
     const results = [];
@@ -146,15 +161,47 @@ export default class MongooseCollection extends BaseCollection {
 
     // Apply the modifications to the root document.
     const promises = Object.values(updates).map(({ rootId, path, records }) =>
-      this.model.updateOne(
-        { _id: rootId },
-        { $push: { [path]: { $position: 0, $each: records } } },
-      ),
+      schema.isArray
+        ? this.model.updateOne(
+            { _id: rootId },
+            { $push: { [path]: { $position: 0, $each: records } } },
+          )
+        : this.model.updateOne({ _id: rootId }, { $set: { [path]: records[0] } }),
     );
 
     await Promise.all(promises);
 
     return results;
+  }
+
+  private async _createForObjectSubfield(data: RecordData[], flatData: RecordData[]) {
+    if (data.length > 1) throw new ValidationError('Trying to create multiple subrecords at once');
+
+    const fieldName = this.computeSubFieldName();
+
+    const entry = data[0];
+    const flatEntry = flatData[0];
+    const { parentId, ...rest } = entry;
+
+    if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
+
+    const [rootId, path] = splitId(`${parentId}.${fieldName}`);
+
+    await this.model.updateOne(
+      { _id: rootId },
+      {
+        $set: {
+          [path]: rest,
+        },
+      },
+    );
+
+    return [
+      {
+        _id: `${rootId}.${path}`,
+        ...flatEntry,
+      },
+    ];
   }
 
   private async _update(caller: Caller, filter: Filter, flatPatch: RecordData): Promise<void> {

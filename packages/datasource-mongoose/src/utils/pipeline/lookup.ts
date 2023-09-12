@@ -10,21 +10,33 @@ import { Stack } from '../../types';
  */
 export default class LookupGenerator {
   static lookup(model: Model<unknown>, stack: Stack, projection: Projection): PipelineStage[] {
-    const childSchema = MongooseSchema.fromModel(model).applyStack(stack, true).fields;
+    const schemaStack = stack.reduce(
+      (acc, stackElement) => {
+        const lastModel = acc[acc.length - 1];
 
-    return this.lookupProjection(model.db.models, null, childSchema, projection);
+        return [...acc, lastModel.applyStack([stackElement], true)];
+      },
+      [MongooseSchema.fromModel(model)],
+    );
+
+    return this.lookupProjection(
+      model.db.models,
+      null,
+      schemaStack.map(s => s.fields),
+      projection,
+    );
   }
 
   private static lookupProjection(
     models: Record<string, Model<unknown>>,
     currentPath: string,
-    schema: SchemaNode,
+    schemaStack: SchemaNode[],
     projection: Projection,
   ): PipelineStage[] {
     const pipeline = [];
 
     for (const [name, subProjection] of Object.entries(projection.relations))
-      pipeline.push(...this.lookupRelation(models, currentPath, schema, name, subProjection));
+      pipeline.push(...this.lookupRelation(models, currentPath, schemaStack, name, subProjection));
 
     return pipeline;
   }
@@ -32,16 +44,23 @@ export default class LookupGenerator {
   private static lookupRelation(
     models: Record<string, Model<unknown>>,
     currentPath: string,
-    schema: SchemaNode,
+    schemaStack: SchemaNode[],
     name: string,
     subProjection: Projection,
   ): PipelineStage[] {
     const as = currentPath ? `${currentPath}.${name}` : name;
 
+    if (!schemaStack.length) {
+      throw new Error(`Unexpected relation: '${name}' (empty schema stack)`);
+    }
+
+    const lastSchema = schemaStack[schemaStack.length - 1];
+    const previousSchemas = schemaStack.slice(0, schemaStack.length - 1);
+
     // Native many to one relation
     if (name.endsWith('__manyToOne')) {
       const foreignKeyName = name.substring(0, name.length - '__manyToOne'.length);
-      const model = models[schema[foreignKeyName].options.ref];
+      const model = models[lastSchema[foreignKeyName].options.ref];
 
       const from = model.collection.collectionName;
       const localField = currentPath ? `${currentPath}.${foreignKeyName}` : foreignKeyName;
@@ -55,13 +74,18 @@ export default class LookupGenerator {
         { $unwind: { path: `$${as}`, preserveNullAndEmptyArrays: true } },
 
         // Recurse to get relations of relations
-        ...this.lookupProjection(models, as, subSchema, subProjection),
+        ...this.lookupProjection(models, as, [...schemaStack, subSchema], subProjection),
       ];
     }
 
-    // Fake relation or inverse of fake relation
-    if (name === 'parent' || schema[name]) {
-      return this.lookupProjection(models, as, schema[name], subProjection);
+    // Inverse of fake relation
+    if (name === 'parent' && previousSchemas.length) {
+      return this.lookupProjection(models, as, previousSchemas, subProjection);
+    }
+
+    // Fake relation
+    if (lastSchema[name]) {
+      return this.lookupProjection(models, as, [...schemaStack, lastSchema[name]], subProjection);
     }
 
     // We should have handled all possible cases.

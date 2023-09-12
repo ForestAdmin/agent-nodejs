@@ -169,7 +169,7 @@ describe('Complex flattening', () => {
     );
   });
 
-  it('creating a subModel should fail', async () => {
+  it('creating a subModel should work', async () => {
     connection = await setupFlattener('collection_flattener_create');
 
     const dataSource = new MongooseDatasource(connection, {
@@ -180,10 +180,28 @@ describe('Complex flattening', () => {
       .getCollection('cars')
       .create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
 
-    await expect(
-      dataSource
-        .getCollection('cars_engine')
-        .create(caller, [{ parentId: car._id, horsePower: '12' }]),
-    ).rejects.toThrow('Trying to create subrecords on a non-array field');
+    const result = await dataSource
+      .getCollection('cars_engine')
+      .create(caller, [{ parentId: car._id, horsePower: '12' }]);
+
+    const doc = await connection.model('cars').findOne({ _id: car._id });
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          horsePower: '12',
+        }),
+      ]),
+    );
+
+    expect(doc).toEqual(
+      expect.objectContaining({
+        name: 'my fiesta',
+        wheelSize: 12,
+        engine: expect.objectContaining({
+          horsePower: '12',
+        }),
+      }),
+    );
   });
 });
