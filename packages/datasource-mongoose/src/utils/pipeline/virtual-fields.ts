@@ -62,5 +62,7 @@ export default class VirtualFieldsGenerator {
       // really be used as a reserved word
       return `$${field.substring(0, field.length - 8)}`;
     }
+
+    return `$${field}`;
   }
 }
