@@ -20,11 +20,20 @@ export default class ActionContext<
   readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   readonly filter: TFilter<S, N>;
 
+  private _changedField: string;
+
   /**
    * @deprecated use `hasFieldChange` instead. [linked issue](https://github.com/ForestAdmin/agent-nodejs/issues/815).
-   * @todo make it private on the next major version.
+   * @todo remove accessor
    */
-  readonly changedField: string;
+  get changedField() {
+    console.warn(
+      '\x1b[33mwarning:\x1b[0m',
+      'Usage of changedField is deprecated, please use `hasFieldChanged` instead.',
+    );
+
+    return this._changedField;
+  }
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
@@ -42,7 +51,7 @@ export default class ActionContext<
     super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
-    this.changedField = changedField;
+    this._changedField = changedField;
     this.reset();
 
     // Spy on which formValues are accessed to set-up change hooks
@@ -61,7 +70,7 @@ export default class ActionContext<
       this.hasFieldChanged = (fieldName: string) => {
         used.add(fieldName);
 
-        return this.changedField === fieldName;
+        return this._changedField === fieldName;
       };
     }
   }
