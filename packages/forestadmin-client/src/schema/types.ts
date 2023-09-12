@@ -119,6 +119,13 @@ export type ForestServerActionFieldTextInputOptions = {
   };
 };
 
+export type ForestServerActionFieldDateInputOptions = {
+  name: 'date editor';
+  parameters: {
+    format?: string | null;
+  };
+};
+
 export type ForestServerActionFieldTextInputListOptions = {
   name: 'input array';
   parameters: {
@@ -201,6 +208,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldBase
   | ForestServerActionFieldCommon<'Boolean', ForestServerActionFieldCheckboxOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
+  | ForestServerActionFieldCommon<'Date', ForestServerActionFieldDateInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>

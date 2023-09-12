@@ -92,6 +92,12 @@ export type ActionFieldTextInput = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldDateInput = ActionFieldBase & {
+  type: 'Date';
+  widget: 'Date';
+  format?: string;
+};
+
 export type ActionFieldTextInputList = ActionFieldBase & {
   type: 'StringList';
   widget: 'TextInputList';
@@ -170,6 +176,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInput
   | ActionFieldColorPicker
   | ActionFieldNumberInputList
+  | ActionFieldDateInput
 >;
 
 export type ActionFieldWidget =

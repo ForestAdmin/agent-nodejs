@@ -78,6 +78,11 @@ type TextInputFieldConfiguration = {
   placeholder?: string;
 };
 
+type DateInputFieldConfiguration = {
+  widget: 'Date';
+  format?: string;
+};
+
 type ArrayTextInputFieldConfiguration = {
   widget: 'TextInputList';
   placeholder?: string;
@@ -151,6 +156,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberListDynamicField<Context> & ArrayNumberInputFieldConfiguration<Context>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
+  | (StringDynamicField<Context> & DateInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
