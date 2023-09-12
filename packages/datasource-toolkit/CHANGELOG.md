@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.20.1...@forestadmin/datasource-toolkit@1.21.0) (2023-09-12)
+
+
+### Features
+
+* **widgets:** add support for currency widget ([#812](https://github.com/ForestAdmin/agent-nodejs/issues/812)) ([2f263bb](https://github.com/ForestAdmin/agent-nodejs/commit/2f263bb2d263a6e942a349ec7744284837e01ad4))
+
 ## @forestadmin/datasource-toolkit [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.20.0...@forestadmin/datasource-toolkit@1.20.1) (2023-09-08)
 
 
