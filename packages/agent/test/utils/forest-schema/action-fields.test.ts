@@ -476,6 +476,38 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isCurrencyInputField', () => {
+    it('should return true if the field is a currency input', () => {
+      const result = ActionFields.isCurrencyInputField({
+        type: 'Number',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'CurrencyInput',
+        currency: 'USD',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a currency input', () => {
+      const result = ActionFields.isCurrencyInputField({
+        type: 'Number',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isCurrencyInputField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({

@@ -142,6 +142,17 @@ export type ActionFieldNumberInputList = ActionFieldBase & {
   step?: number;
 };
 
+export type ActionFieldCurrencyInput = ActionFieldBase & {
+  type: 'Number';
+  widget: 'CurrencyInput';
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  currency: string;
+  base?: 'Unit' | 'Cent';
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number' | 'NumberList', number>;
@@ -170,6 +181,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInput
   | ActionFieldColorPicker
   | ActionFieldNumberInputList
+  | ActionFieldCurrencyInput
 >;
 
 export type ActionFieldWidget =
