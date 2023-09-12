@@ -675,6 +675,62 @@ describe('GeneratorActionFieldWidget', () => {
           });
         });
       });
+
+      describe('currency', () => {
+        it('should copy a valid value in parameters', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'EUR',
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              currency: 'EUR',
+            },
+          });
+        });
+
+        it('should uppercase the currency', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'eur',
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              currency: 'EUR',
+            },
+          });
+        });
+
+        it.each([123, 'EURO', null, ''])(
+          'should set currency to null when equal to %s',
+          currency => {
+            const result = GeneratorActionFieldWidget.buildWidgetOptions({
+              type: 'Number',
+              label: 'Label',
+              watchChanges: false,
+              widget: 'CurrencyInput',
+              currency: currency as string,
+            });
+
+            expect(result).toMatchObject({
+              name: 'price editor',
+              parameters: {
+                currency: null,
+              },
+            });
+          },
+        );
+      });
     });
 
     it('should throw an error when the widget is not supported', () => {

@@ -237,7 +237,10 @@ export default class GeneratorActionFieldWidget {
         min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
         max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
         step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
-        currency: field.currency || null, // Default value handled by the frontend
+        currency:
+          field.currency && typeof field.currency === 'string' && field.currency?.length === 3
+            ? field.currency?.toUpperCase()
+            : null, // Default value handled by the frontend
         base: GeneratorActionFieldWidget.mapCurrencyBase(field.base),
       },
     };

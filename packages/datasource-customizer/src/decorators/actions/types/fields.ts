@@ -126,7 +126,7 @@ type CurrencyInputFieldConfiguration<Context> = {
   widget: 'CurrencyInput';
   placeholder?: string;
   currency: ValueOrHandler<Context, string>;
-  base?: ValueOrHandler<Context, 'unit' | 'cent'>;
+  base?: ValueOrHandler<Context, 'Unit' | 'Cent'>;
   min?: ValueOrHandler<Context, number>;
   max?: ValueOrHandler<Context, number>;
   step?: ValueOrHandler<Context, number>;

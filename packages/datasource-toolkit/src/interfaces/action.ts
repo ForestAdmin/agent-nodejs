@@ -150,7 +150,7 @@ export type ActionFieldCurrencyInput = ActionFieldBase & {
   max?: number;
   step?: number;
   currency: string;
-  base?: 'unit' | 'cent';
+  base?: 'Unit' | 'Cent';
 };
 
 export type ActionFieldDropdownAll =
