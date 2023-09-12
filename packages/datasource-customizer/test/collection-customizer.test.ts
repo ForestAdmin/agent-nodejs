@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import { ColumnSchema, ConditionTreeLeaf, Sort } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, ConditionTreeLeaf, Projection, Sort } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import {
@@ -17,6 +17,31 @@ describe('Builder > Collection', () => {
   const logger = () => {};
 
   const setup = async () => {
+    const authors = factories.collection.build({
+      name: 'authors',
+      schema: factories.collectionSchema.build({
+        countable: true,
+        fields: {
+          translator: factories.oneToOneSchema.build({
+            foreignCollection: 'translators',
+            originKey: 'authorId',
+            originKeyTarget: 'authorId',
+          }),
+          authorId: factories.columnSchema.uuidPrimaryKey().build({
+            filterOperators: new Set(['Equal', 'In']),
+          }),
+          firstName: factories.columnSchema.build({
+            isSortable: true,
+            filterOperators: new Set(['Equal']),
+          }),
+          lastName: factories.columnSchema.build({
+            filterOperators: new Set(),
+          }),
+        },
+      }),
+    });
+    authors.list = jest.fn().mockResolvedValue([{ firstName: 'John' }]);
+
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
         name: 'translators',
@@ -35,29 +60,7 @@ describe('Builder > Collection', () => {
           },
         }),
       }),
-      factories.collection.build({
-        name: 'authors',
-        schema: factories.collectionSchema.build({
-          countable: true,
-          fields: {
-            translator: factories.oneToOneSchema.build({
-              foreignCollection: 'translators',
-              originKey: 'authorId',
-              originKeyTarget: 'authorId',
-            }),
-            authorId: factories.columnSchema.uuidPrimaryKey().build({
-              filterOperators: new Set(['Equal', 'In']),
-            }),
-            firstName: factories.columnSchema.build({
-              isSortable: true,
-              filterOperators: new Set(['Equal']),
-            }),
-            lastName: factories.columnSchema.build({
-              filterOperators: new Set(),
-            }),
-          },
-        }),
-      }),
+      authors,
       factories.collection.build({
         name: 'book_author',
         schema: factories.collectionSchema.build({
@@ -399,6 +402,100 @@ describe('Builder > Collection', () => {
       expect(
         getValues([{ firstName: 'John' }], null as unknown as CollectionCustomizationContext),
       ).toStrictEqual(['aaa']);
+    });
+
+    describe('when the getValues uses a computed relationship inside its definition', () => {
+      const setupAuthorsCollection = async () => {
+        const authors = factories.collection.build({
+          name: 'authors',
+          schema: factories.collectionSchema.build({
+            fields: {
+              authorId: factories.columnSchema.numericPrimaryKey().build(),
+              firstName: factories.columnSchema.build(),
+            },
+          }),
+        });
+        authors.list = jest.fn().mockResolvedValue([{ firstName: 'John', authorId: 1 }]);
+        const dataSource = factories.dataSource.buildWithCollection(authors);
+
+        const customizerDatasource = new DataSourceCustomizer();
+        customizerDatasource.addDataSource(() => Promise.resolve(dataSource));
+
+        await customizerDatasource.getDataSource(logger);
+
+        const customizer = new CollectionCustomizer(
+          customizerDatasource,
+          // @ts-ignore
+          customizerDatasource.stack,
+          'authors',
+        );
+
+        // Add a relation to itself on the record
+        customizer.addManyToOneRelation('mySelf', 'authors', {
+          foreignKey: 'authorId',
+          foreignKeyTarget: 'authorId',
+        });
+
+        return { customizerDatasource, customizer };
+      };
+
+      describe('when the external dependency is not given', () => {
+        it('should throw an error to notify the user', async () => {
+          const { customizerDatasource, customizer } = await setupAuthorsCollection();
+
+          const fieldDefinition: ComputedDefinition = {
+            columnType: 'String',
+            dependencies: ['firstName'],
+            getValues: async (records, context) => {
+              return context.dataSource.getCollection('authors').list({}, ['mySelf:firstName']);
+            },
+          };
+
+          customizer.addField('newField', fieldDefinition);
+          // apply the customizations
+          const dataSource = await customizerDatasource.getDataSource(logger);
+
+          const listToThrow = async () =>
+            dataSource
+              .getCollection('authors')
+              .list(factories.caller.build(), factories.filter.build(), new Projection('newField'));
+
+          await expect(listToThrow).rejects.toThrow(
+            'Cannot find field "mySelf" in collection "authors".\n' +
+              'You are probably trying to access a field from a relation that does not exist.\n' +
+              "Have you considered including the field's path in the dependencies property?",
+          );
+        });
+      });
+
+      describe('when the external dependency is given', () => {
+        it('should compute the records without errors', async () => {
+          const { customizerDatasource, customizer } = await setupAuthorsCollection();
+
+          let recordsInGetValues;
+          const fieldDefinition: ComputedDefinition = {
+            columnType: 'String',
+            dependencies: ['firstName'],
+            externalDependencies: [{ collectionName: 'authors', field: 'mySelf:firstName' }],
+            getValues: async (records, context) => {
+              recordsInGetValues = records;
+
+              return context.dataSource.getCollection('authors').list({}, ['mySelf:firstName']);
+            },
+          };
+
+          customizer.addField('newField', fieldDefinition);
+          // apply the customizations
+          const dataSource = await customizerDatasource.getDataSource(logger);
+
+          const result = await dataSource
+            .getCollection('authors')
+            .list(factories.caller.build(), factories.filter.build(), new Projection('newField'));
+
+          expect(result).toStrictEqual([{ newField: { mySelf: { firstName: 'John' } } }]);
+          expect(recordsInGetValues).toEqual([{ firstName: 'John' }]);
+        });
+      });
     });
   });
 

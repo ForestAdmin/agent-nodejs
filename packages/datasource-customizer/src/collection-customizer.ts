@@ -161,24 +161,34 @@ export default class CollectionCustomizer<
    * .addField('fullName', {
    *    columnType: 'String',
    *    dependencies: ['firstName', 'lastName'],
+   *    externalDependencies: [{collectionName: 'users', field: 'firstName'}],
    *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
   addField(name: string, definition: ComputedDefinition<S, N>): this {
     return this.pushCustomization(async () => {
-      const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
-      const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
-      const canBeComputedBeforeRelations = definition.dependencies.every(field => {
+      const dependencies = (definition.dependencies ?? []).map(dependency => {
+        return {
+          collectionName: this.name,
+          field: dependency,
+        };
+      });
+      const allDependencies = [...dependencies, ...(definition.externalDependencies ?? [])];
+
+      const canBeComputedBeforeRelations = allDependencies.every(({ collectionName, field }) => {
         try {
-          return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
+          return !!CollectionUtils.getFieldSchema(
+            this.stack.earlyComputed.getCollection(collectionName),
+            field,
+          );
         } catch {
           return false;
         }
       });
 
       const collection = canBeComputedBeforeRelations
-        ? collectionBeforeRelations
-        : collectionAfterRelations;
+        ? this.stack.earlyComputed.getCollection(this.name)
+        : this.stack.lateComputed.getCollection(this.name);
 
       collection.registerComputed(name, definition as ComputedDefinition);
     });
