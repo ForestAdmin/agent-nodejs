@@ -159,12 +159,10 @@ export default class MongooseCollection extends BaseCollection {
 
     // Apply the modifications to the root document.
     const promises = Object.values(updates).map(({ rootId, path, records }) =>
-      schema.isArray
-        ? this.model.updateOne(
-            { _id: rootId },
-            { $push: { [path]: { $position: 0, $each: records } } },
-          )
-        : this.model.updateOne({ _id: rootId }, { $set: { [path]: records[0] } }),
+      this.model.updateOne(
+        { _id: rootId },
+        { $push: { [path]: { $position: 0, $each: records } } },
+      ),
     );
 
     await Promise.all(promises);
