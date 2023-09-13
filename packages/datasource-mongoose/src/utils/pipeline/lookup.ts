@@ -51,10 +51,6 @@ export default class LookupGenerator {
   ): PipelineStage[] {
     const as = currentPath ? `${currentPath}.${name}` : name;
 
-    if (!schemaStack.length) {
-      throw new Error(`Unexpected relation: '${name}' (empty schema stack)`);
-    }
-
     const lastSchema = schemaStack[schemaStack.length - 1];
     const previousSchemas = schemaStack.slice(0, schemaStack.length - 1);
 
