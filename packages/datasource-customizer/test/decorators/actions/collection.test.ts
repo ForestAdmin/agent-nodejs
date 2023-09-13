@@ -285,7 +285,7 @@ describe('ActionDecorator', () => {
       await newBooks.getForm(factories.caller.build(), 'make photocopy');
       expect(logSpy).toHaveBeenCalledWith(
         '\x1b[33mwarning:\x1b[0m',
-        'Usage of changedField is deprecated, please use `hasFieldChanged` instead.',
+        'Usage of `changedField` is deprecated, please use `hasFieldChanged` instead.',
       );
     });
   });

@@ -29,7 +29,7 @@ export default class ActionContext<
   get changedField() {
     console.warn(
       '\x1b[33mwarning:\x1b[0m',
-      'Usage of changedField is deprecated, please use `hasFieldChanged` instead.',
+      'Usage of `changedField` is deprecated, please use `hasFieldChanged` instead.',
     );
 
     return this._changedField;
