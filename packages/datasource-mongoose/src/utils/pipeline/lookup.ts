@@ -11,10 +11,11 @@ import { Stack } from '../../types';
 export default class LookupGenerator {
   static lookup(model: Model<unknown>, stack: Stack, projection: Projection): PipelineStage[] {
     const schemaStack = stack.reduce(
-      (acc, stackElement) => {
-        const lastModel = acc[acc.length - 1];
-
-        return [...acc, lastModel.applyStack([stackElement], true)];
+      (acc, _, index) => {
+        return [
+          ...acc,
+          MongooseSchema.fromModel(model).applyStack(stack.slice(0, index + 1), true),
+        ];
       },
       [MongooseSchema.fromModel(model)],
     );
