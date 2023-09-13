@@ -174,6 +174,7 @@ export default class MongooseCollection extends BaseCollection {
 
   private async _createForObjectSubfield(data: RecordData[], flatData: RecordData[]) {
     if (data.length > 1) throw new ValidationError('Trying to create multiple subrecords at once');
+    if (data.length === 0) throw new ValidationError('Trying to create without data');
 
     const fieldName = this.computeSubFieldName();
 
