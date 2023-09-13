@@ -113,15 +113,28 @@ export default class MongooseCollection extends BaseCollection {
 
     // Only array fields can create subdocuments (the others should use update)
     const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
-    if (!schema.isArray)
-      throw new ValidationError('Trying to create subrecords on a non-array field');
 
-    // Transform list of subrecords to a list of modifications that we'll apply to the root record.
+    if (schema.isArray) {
+      return this.createForArraySubfield(data, flatData, schema);
+    }
+
+    return this.createForObjectSubfield(data, flatData);
+  }
+
+  private computeSubFieldName() {
     const lastStackStep = this.stack[this.stack.length - 1];
-    const fieldName =
-      this.stack.length > 2
-        ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
-        : lastStackStep.prefix;
+
+    return this.stack.length > 2
+      ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
+      : lastStackStep.prefix;
+  }
+
+  private async createForArraySubfield(
+    data: RecordData[],
+    flatData: RecordData[],
+    schema: MongooseSchema,
+  ) {
+    const fieldName = this.computeSubFieldName();
 
     const updates: Record<string, { rootId: unknown; path: string; records: unknown[] }> = {};
     const results = [];
@@ -155,6 +168,23 @@ export default class MongooseCollection extends BaseCollection {
     await Promise.all(promises);
 
     return results;
+  }
+
+  private async createForObjectSubfield(data: RecordData[], flatData: RecordData[]) {
+    if (data.length > 1) throw new ValidationError('Trying to create multiple subrecords at once');
+    if (data.length === 0) throw new ValidationError('Trying to create without data');
+
+    const fieldName = this.computeSubFieldName();
+
+    const { parentId, ...rest } = data[0];
+
+    if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
+
+    const [rootId, path] = splitId(`${parentId}.${fieldName}`);
+
+    await this.model.updateOne({ _id: rootId }, { $set: { [path]: rest } });
+
+    return [{ _id: `${rootId}.${path}`, ...flatData[0] }];
   }
 
   private async _update(caller: Caller, filter: Filter, flatPatch: RecordData): Promise<void> {
