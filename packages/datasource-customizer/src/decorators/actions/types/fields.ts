@@ -79,11 +79,11 @@ type TextInputFieldConfiguration = {
 };
 
 type DateInputFieldConfiguration<Context> = {
-  widget: 'Date';
+  widget: 'DateTime';
   format?: ValueOrHandler<Context, string>;
   placeholder?: string;
-  minDate?: ValueOrHandler<Context, Date>;
-  maxDate?: ValueOrHandler<Context, Date>;
+  min?: ValueOrHandler<Context, Date>;
+  max?: ValueOrHandler<Context, Date>;
 };
 
 type ArrayTextInputFieldConfiguration = {

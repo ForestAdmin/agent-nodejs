@@ -77,7 +77,7 @@ export default class ActionFields {
   public static isDateInputField(
     field: ActionField | null | undefined,
   ): field is ActionFieldDateInput {
-    return (field as ActionFieldDateInput)?.widget === 'Date';
+    return (field as ActionFieldDateInput)?.widget === 'DateTime';
   }
 
   public static isTextInputListField(
