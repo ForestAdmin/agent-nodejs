@@ -439,7 +439,7 @@ describe('Builder > Collection', () => {
         return { customizerDatasource };
       };
 
-      describe('when the external dependency is not given', () => {
+      describe('when the foreignRelationDependencies is not given', () => {
         it('should throw an error to notify the user', async () => {
           const { customizerDatasource } =
             await setupAuthorsCollectionWithManyToOneComputedRelation();
@@ -465,12 +465,12 @@ describe('Builder > Collection', () => {
             'Cannot find field "mySelf" in collection "authors".\n' +
               'You are probably trying to access a field from a computed relationship.\n' +
               // eslint-disable-next-line max-len
-              "Have you considered including the field's path in the externalDependencies property?",
+              "Have you considered including the field's path in the foreignRelationDependencies property?",
           );
         });
       });
 
-      describe('when the external dependency is given', () => {
+      describe('when the foreignRelationDependencies is given', () => {
         it('can return the records because the relation is computed after the field', async () => {
           const { customizerDatasource } =
             await setupAuthorsCollectionWithManyToOneComputedRelation();
@@ -479,7 +479,7 @@ describe('Builder > Collection', () => {
           const fieldDefinition: ComputedDefinition = {
             columnType: 'String',
             dependencies: ['firstName'],
-            externalDependencies: [{ collectionName: 'authors', path: 'mySelf:firstName' }],
+            foreignRelationDependencies: [{ collectionName: 'authors', path: 'mySelf:firstName' }],
             getValues: async (records, context) => {
               recordsInGetValues = records;
 

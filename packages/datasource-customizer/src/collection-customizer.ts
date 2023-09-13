@@ -172,7 +172,7 @@ export default class CollectionCustomizer<
           path: dependency,
         };
       });
-      const allDependencies = [...dependencies, ...(definition.externalDependencies ?? [])];
+      const allDependencies = [...dependencies, ...(definition.foreignRelationDependencies ?? [])];
 
       const canBeComputedBeforeRelations = allDependencies.every(({ collectionName, path }) => {
         try {

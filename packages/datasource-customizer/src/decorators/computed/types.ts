@@ -9,7 +9,7 @@ import {
   TSchema,
 } from '../../templates';
 
-export type ExternalDependency<S extends TSchema> = {
+export type ForeignRelationDependency<S extends TSchema> = {
   readonly [CollectionName in TCollectionName<S>]?: {
     readonly collectionName: CollectionName;
     readonly path: TFieldNameFromRelation<S, CollectionName>;
@@ -22,7 +22,7 @@ export interface ComputedDefinition<
 > {
   readonly columnType: ColumnType;
   readonly dependencies: TFieldName<S, N>[];
-  readonly externalDependencies?: ExternalDependency<S>[];
+  readonly foreignRelationDependencies?: ForeignRelationDependency<S>[];
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
 

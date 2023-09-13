@@ -12,7 +12,8 @@ export default function rewriteField(collection: ComputedCollection, path: strin
       throw new Error(
         `Cannot find field "${prefix}" in collection "${collection.name}".\n` +
           `You are probably trying to access a field from a computed relationship.\n` +
-          `Have you considered including the field's path in the externalDependencies property?`,
+          // eslint-disable-next-line max-len
+          `Have you considered including the field's path in the foreignRelationDependencies property?`,
       );
     }
 
