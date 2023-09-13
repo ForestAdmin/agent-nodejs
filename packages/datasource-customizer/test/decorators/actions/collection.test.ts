@@ -106,7 +106,7 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm(
         factories.caller.build(),
         'make photocopy',
-        null,
+        undefined,
         filter,
       );
 
@@ -186,7 +186,7 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute dynamic default value (no data == load hook)', async () => {
-      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', null);
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', undefined);
 
       expect(fields).toEqual([
         {
@@ -196,6 +196,28 @@ describe('ActionDecorator', () => {
           value: 'DynamicDefault',
         },
         { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+      ]);
+    });
+
+    test('should compute dynamic default value on added field', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {
+        lastname: 'value',
+      });
+
+      expect(fields).toEqual([
+        {
+          label: 'firstname',
+          type: 'String',
+          watchChanges: true,
+          value: 'DynamicDefault',
+        },
+        {
+          label: 'lastname',
+          type: 'String',
+          value: 'value',
+          isReadOnly: true,
+          watchChanges: false,
+        },
       ]);
     });
 
