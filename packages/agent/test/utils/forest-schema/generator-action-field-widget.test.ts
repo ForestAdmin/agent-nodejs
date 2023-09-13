@@ -733,13 +733,13 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
-    describe('DateEditor', () => {
+    describe('DateTime', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Date',
           label: 'Label',
           watchChanges: false,
-          widget: 'Date',
+          widget: 'DateTime',
         });
 
         expect(result).toEqual({
@@ -747,8 +747,8 @@ describe('GeneratorActionFieldWidget', () => {
           parameters: {
             placeholder: null,
             format: null,
-            minDate: null,
-            maxDate: null,
+            min: null,
+            max: null,
           },
         });
       });
@@ -759,7 +759,7 @@ describe('GeneratorActionFieldWidget', () => {
             type: 'Date',
             label: 'Label',
             watchChanges: false,
-            widget: 'Date',
+            widget: 'DateTime',
             [parameter]: 'ABC',
           });
 
@@ -771,14 +771,14 @@ describe('GeneratorActionFieldWidget', () => {
           });
         });
       });
-      describe.each(['minDate', 'maxDate'])('%s', parameter => {
+      describe.each(['min', 'max'])('%s', parameter => {
         it('should copy a valid value in parameters', () => {
           const date = new Date();
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Date',
             label: 'Label',
             watchChanges: false,
-            widget: 'Date',
+            widget: 'DateTime',
             [parameter]: date,
           });
 
@@ -795,7 +795,7 @@ describe('GeneratorActionFieldWidget', () => {
             type: 'Date',
             label: 'Label',
             watchChanges: false,
-            widget: 'Date',
+            widget: 'DateTime',
             [parameter]: 'foo',
           });
 
