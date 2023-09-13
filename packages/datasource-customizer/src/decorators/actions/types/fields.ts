@@ -45,11 +45,11 @@ type FileDynamicField<Context> = BaseDynamicField<'File', Context, File>;
 type FileListDynamicField<Context> = BaseDynamicField<'FileList', Context, File[]>;
 type JsonDynamicField<Context> = BaseDynamicField<'Json', Context, Json>;
 type NumberDynamicField<Context> = BaseDynamicField<'Number', Context, number>;
-
 type NumberListDynamicField<Context> = BaseDynamicField<'NumberList', Context, number[]>;
+type DateDynamicField<Context> = BaseDynamicField<'Date' | 'Dateonly', Context, Date>;
 
 type StringDynamicField<Context> = BaseDynamicField<
-  'Date' | 'Dateonly' | 'String',
+  'String' | 'Date' | 'Dateonly',
   Context,
   string
 >;
@@ -169,8 +169,8 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & ArrayNumberInputFieldConfiguration<Context>)
   | StringDynamicField<Context>
+  | (DateDynamicField<Context> & DatePickerInputFieldConfiguration<Context>)
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
-  | (StringDynamicField<Context> & DatePickerInputFieldConfiguration<Context>)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
