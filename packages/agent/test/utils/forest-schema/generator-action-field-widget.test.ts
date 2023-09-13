@@ -733,13 +733,13 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
-    describe('DateTime', () => {
+    describe('DatePicker', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Date',
           label: 'Label',
           watchChanges: false,
-          widget: 'DateTime',
+          widget: 'DatePicker',
         });
 
         expect(result).toEqual({
@@ -759,7 +759,7 @@ describe('GeneratorActionFieldWidget', () => {
             type: 'Date',
             label: 'Label',
             watchChanges: false,
-            widget: 'DateTime',
+            widget: 'DatePicker',
             [parameter]: 'ABC',
           });
 
@@ -778,7 +778,7 @@ describe('GeneratorActionFieldWidget', () => {
             type: 'Date',
             label: 'Label',
             watchChanges: false,
-            widget: 'DateTime',
+            widget: 'DatePicker',
             [parameter]: date,
           });
 
@@ -795,7 +795,7 @@ describe('GeneratorActionFieldWidget', () => {
             type: 'Date',
             label: 'Label',
             watchChanges: false,
-            widget: 'DateTime',
+            widget: 'DatePicker',
             [parameter]: 'foo',
           });
 

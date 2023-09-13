@@ -119,7 +119,7 @@ export type ForestServerActionFieldTextInputOptions = {
   };
 };
 
-export type ForestServerActionFieldDateInputOptions = {
+export type ForestServerActionFieldDatePickerInputOptions = {
   name: 'date editor';
   parameters: {
     format?: string | null;
@@ -223,7 +223,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldBase
   | ForestServerActionFieldCommon<'Boolean', ForestServerActionFieldCheckboxOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
-  | ForestServerActionFieldCommon<'Date', ForestServerActionFieldDateInputOptions>
+  | ForestServerActionFieldCommon<'Date', ForestServerActionFieldDatePickerInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>

@@ -92,9 +92,9 @@ export type ActionFieldTextInput = ActionFieldBase & {
   placeholder?: string;
 };
 
-export type ActionFieldDateInput = ActionFieldBase & {
-  type: 'Date';
-  widget: 'DateTime';
+export type ActionFieldDatePickerInput = ActionFieldBase & {
+  type: 'Date' | 'Dateonly' | 'String';
+  widget: 'DatePicker';
   format?: string;
   min?: Date;
   max?: Date;
@@ -190,7 +190,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInput
   | ActionFieldColorPicker
   | ActionFieldNumberInputList
-  | ActionFieldDateInput
+  | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
 >;
 
