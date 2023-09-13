@@ -123,12 +123,10 @@ export default class MongooseCollection extends BaseCollection {
 
   private computeSubFieldName() {
     const lastStackStep = this.stack[this.stack.length - 1];
-    const fieldName =
-      this.stack.length > 2
-        ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
-        : lastStackStep.prefix;
 
-    return fieldName;
+    return this.stack.length > 2
+      ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
+      : lastStackStep.prefix;
   }
 
   private async _createForArraySubfield(
