@@ -155,6 +155,39 @@ export type ForestServerActionFieldNumberInputOptions = {
   };
 };
 
+export type ForestServerActionFieldNumberInputListOptions = {
+  name: 'input array';
+  parameters: {
+    placeholder?: string | null;
+    enableReorder?: boolean;
+    allowDuplicate?: boolean;
+    min?: number;
+    max?: number;
+    step?: number;
+  };
+};
+
+export type ForestServerActionFieldColorPickerOptions = {
+  name: 'color editor';
+  parameters: {
+    placeholder?: string | null;
+    enableOpacity?: boolean;
+    quickPalette?: string[];
+  };
+};
+
+export type ForestServerActionFieldCurrencyInputOptions = {
+  name: 'price editor';
+  parameters: {
+    placeholder?: string | null;
+    min?: number;
+    max?: number;
+    step?: number;
+    currency: string;
+    base: 'Unit' | 'Cents';
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
@@ -184,7 +217,10 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
-  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>;
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
+  | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>;
 
 export type ForestServerField = Partial<{
   field: string;

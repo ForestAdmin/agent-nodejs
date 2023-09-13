@@ -414,6 +414,100 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isNumberInputListField', () => {
+    it('should return true if the field is a number list input', () => {
+      const result = ActionFields.isNumberInputListField({
+        type: 'NumberList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'NumberInputList',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a number list input', () => {
+      const result = ActionFields.isNumberInputListField({
+        type: 'NumberList',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: [{ value: 2, label: 'foo' }],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isNumberInputListField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('isColorPickerField', () => {
+    it('should return true if the field is a color input', () => {
+      const result = ActionFields.isColorPickerField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'ColorPicker',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a color input', () => {
+      const result = ActionFields.isColorPickerField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isColorPickerField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('isCurrencyInputField', () => {
+    it('should return true if the field is a currency input', () => {
+      const result = ActionFields.isCurrencyInputField({
+        type: 'Number',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'CurrencyInput',
+        currency: 'USD',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a currency input', () => {
+      const result = ActionFields.isCurrencyInputField({
+        type: 'Number',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isCurrencyInputField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({

@@ -88,12 +88,22 @@ type TextInputFieldConfiguration = {
   placeholder?: string;
 };
 
-type ArrayInputFieldConfiguration = {
+type ArrayTextInputFieldConfiguration = {
   widget: 'TextInputList';
   placeholder?: string;
   enableReorder?: boolean;
   allowEmptyValues?: boolean;
   allowDuplicates?: boolean;
+};
+
+type ArrayNumberInputFieldConfiguration<Context> = {
+  widget: 'NumberInputList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowDuplicates?: boolean;
+  min?: ValueOrHandler<Context, number>;
+  max?: ValueOrHandler<Context, number>;
+  step?: ValueOrHandler<Context, number>;
 };
 
 type TextAreaFieldConfiguration = {
@@ -110,6 +120,23 @@ type RichTextFieldConfiguration = {
 type NumberInputFieldConfiguration<Context> = {
   widget: 'NumberInput';
   placeholder?: string;
+  min?: ValueOrHandler<Context, number>;
+  max?: ValueOrHandler<Context, number>;
+  step?: ValueOrHandler<Context, number>;
+};
+
+type ColorPickerFieldConfiguration = {
+  widget: 'ColorPicker';
+  placeholder?: string;
+  enableOpacity?: boolean;
+  quickPalette?: string[];
+};
+
+type CurrencyInputFieldConfiguration<Context> = {
+  widget: 'CurrencyInput';
+  placeholder?: string;
+  currency: ValueOrHandler<Context, string>;
+  base?: ValueOrHandler<Context, 'Unit' | 'Cent'>;
   min?: ValueOrHandler<Context, number>;
   max?: ValueOrHandler<Context, number>;
   step?: ValueOrHandler<Context, number>;
@@ -139,9 +166,12 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & CurrencyInputFieldConfiguration<Context>)
+  | NumberListDynamicField<Context>
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & ArrayNumberInputFieldConfiguration<Context>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
@@ -149,9 +179,10 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
+  | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
-  | (StringListDynamicField<Context> & ArrayInputFieldConfiguration)
+  | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
 >;

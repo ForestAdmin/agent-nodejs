@@ -1,3 +1,39 @@
+# @forestadmin/datasource-toolkit [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.20.1...@forestadmin/datasource-toolkit@1.21.0) (2023-09-12)
+
+
+### Features
+
+* **widgets:** add support for currency widget ([#812](https://github.com/ForestAdmin/agent-nodejs/issues/812)) ([2f263bb](https://github.com/ForestAdmin/agent-nodejs/commit/2f263bb2d263a6e942a349ec7744284837e01ad4))
+
+## @forestadmin/datasource-toolkit [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.20.0...@forestadmin/datasource-toolkit@1.20.1) (2023-09-08)
+
+
+### Bug Fixes
+
+* **datasource-toolkit:** return null instead of undefined inside field value getter ([#813](https://github.com/ForestAdmin/agent-nodejs/issues/813)) ([443382e](https://github.com/ForestAdmin/agent-nodejs/commit/443382e82988bb6b33084012afc47b64d96f7a41))
+
+# @forestadmin/datasource-toolkit [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.19.0...@forestadmin/datasource-toolkit@1.20.0) (2023-09-07)
+
+
+### Features
+
+* **widgets:** add support for color picker in actions ([bae889c](https://github.com/ForestAdmin/agent-nodejs/commit/bae889c144e6d24d58a601f1ea4dea658889b321))
+
+# @forestadmin/datasource-toolkit [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.18.0...@forestadmin/datasource-toolkit@1.19.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input lists with options in actions ([519d1b7](https://github.com/ForestAdmin/agent-nodejs/commit/519d1b7c344456cdcf26a8972cef619c4efb1a48))
+* **widgets:** add support for number input lists with options in actions ([#807](https://github.com/ForestAdmin/agent-nodejs/issues/807)) ([22d84bd](https://github.com/ForestAdmin/agent-nodejs/commit/22d84bd104dcc7893a9536365329db5ee2467c28))
+
+# @forestadmin/datasource-toolkit [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.17.0...@forestadmin/datasource-toolkit@1.18.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input in custom actions ([8f52fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8f52fb3c90e5050873390a167fbb11df5fa34863))
+
 # @forestadmin/datasource-toolkit [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.16.0...@forestadmin/datasource-toolkit@1.17.0) (2023-09-01)
 
 

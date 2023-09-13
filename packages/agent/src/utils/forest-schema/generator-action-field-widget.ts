@@ -1,8 +1,11 @@
 import {
   ActionField,
   ActionFieldCheckboxGroupAll,
+  ActionFieldColorPicker,
+  ActionFieldCurrencyInput,
   ActionFieldDropdownAll,
   ActionFieldNumberInput,
+  ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll,
   ActionFieldRichText,
   ActionFieldTextArea,
@@ -12,7 +15,10 @@ import {
   ForestServerActionField,
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
+  ForestServerActionFieldColorPickerOptions,
+  ForestServerActionFieldCurrencyInputOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
   ForestServerActionFieldRadioButtonOptions,
   ForestServerActionFieldRichTextOptions,
@@ -54,6 +60,15 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isNumberInputField(field))
       return GeneratorActionFieldWidget.buildNumberInputWidgetEdit(field);
+
+    if (ActionFields.isColorPickerField(field))
+      return GeneratorActionFieldWidget.buildColorPickerWidgetEdit(field);
+
+    if (ActionFields.isNumberInputListField(field))
+      return GeneratorActionFieldWidget.buildNumberInputListWidgetEdit(field);
+
+    if (ActionFields.isCurrencyInputField(field))
+      return GeneratorActionFieldWidget.buildCurrencyInputWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -176,6 +191,67 @@ export default class GeneratorActionFieldWidget {
         step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
       },
     };
+  }
+
+  private static buildColorPickerWidgetEdit(
+    field: ActionFieldColorPicker,
+  ): ForestServerActionFieldColorPickerOptions {
+    return {
+      name: 'color editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+        enableOpacity: field.enableOpacity || false,
+        quickPalette: field.quickPalette?.length ? field.quickPalette : null,
+      },
+    };
+  }
+
+  private static buildNumberInputListWidgetEdit(
+    field: ActionFieldNumberInputList,
+  ): ForestServerActionFieldNumberInputListOptions {
+    return {
+      name: 'input array',
+      parameters: {
+        placeholder: field.placeholder || null,
+        allowDuplicate: field.allowDuplicates || false,
+        enableReorder: field.enableReorder ?? true,
+        min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
+        max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
+        step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
+      },
+    };
+  }
+
+  private static buildCurrencyInputWidgetEdit(
+    field: ActionFieldCurrencyInput,
+  ): ForestServerActionFieldCurrencyInputOptions {
+    return {
+      name: 'price editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+        min: GeneratorActionFieldWidget.isValidNumber(field.min) ? field.min : null,
+        max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
+        step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
+        currency:
+          field.currency && typeof field.currency === 'string' && field.currency?.length === 3
+            ? field.currency?.toUpperCase()
+            : null, // Default value handled by the frontend
+        base: GeneratorActionFieldWidget.mapCurrencyBase(field.base),
+      },
+    };
+  }
+
+  private static mapCurrencyBase(base: string): 'Unit' | 'Cents' {
+    switch (base?.toLowerCase()) {
+      case 'cent':
+      case 'cents':
+        return 'Cents';
+
+      case 'unit':
+      case 'units':
+      default:
+        return 'Unit';
+    }
   }
 
   private static isValidNumber(value: unknown): boolean {

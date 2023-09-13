@@ -488,6 +488,276 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('NumberInputList', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'NumberList',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'NumberInputList',
+        });
+
+        expect(result).toMatchObject({
+          name: 'input array',
+          parameters: {
+            placeholder: null,
+            allowDuplicate: false,
+            enableReorder: true,
+            min: null,
+            max: null,
+            step: null,
+          },
+        });
+      });
+
+      it.each([
+        { property: 'placeholder', value: 'Text' },
+        { property: 'allowDuplicates', value: true, resultProperty: 'allowDuplicate' },
+        { property: 'enableReorder', value: false },
+        { property: 'min', value: 1 },
+        { property: 'max', value: 10 },
+        { property: 'step', value: 2 },
+      ])(
+        `should return a valid widget edit with $property=$value`,
+        ({ property, value, resultProperty }) => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'NumberList',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'NumberInputList',
+            [property]: value,
+          });
+
+          expect(result).toMatchObject({
+            parameters: {
+              [resultProperty || property]: value,
+            },
+          });
+        },
+      );
+    });
+
+    describe('ColorPicker', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'ColorPicker',
+        });
+
+        expect(result).toEqual({
+          name: 'color editor',
+          parameters: {
+            enableOpacity: false,
+            placeholder: null,
+            quickPalette: null,
+          },
+        });
+      });
+    });
+
+    describe('CurrencyInput', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Number',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'CurrencyInput',
+          currency: 'EUR',
+        });
+
+        expect(result).toEqual({
+          name: 'price editor',
+          parameters: {
+            placeholder: null,
+            min: null,
+            max: null,
+            step: null,
+            currency: 'EUR',
+            base: 'Unit',
+          },
+        });
+      });
+
+      describe.each(['min', 'max', 'step'])('%s', parameter => {
+        it('should copy a valid value in parameters', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'EUR',
+            [parameter]: 10,
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              [parameter]: 10,
+            },
+          });
+        });
+
+        it('should ignore an invalid value and replace it by null', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'EUR',
+            [parameter]: 'foo',
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              [parameter]: null,
+            },
+          });
+        });
+      });
+
+      it('should copy the placeholder', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Number',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'CurrencyInput',
+          currency: 'EUR',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toMatchObject({
+          name: 'price editor',
+          parameters: {
+            placeholder: 'Placeholder',
+          },
+        });
+      });
+
+      describe('base', () => {
+        it.each(['unit', 'units', 'Unit', 'Units'])(
+          `should return 'Unit' when base is %s`,
+          base => {
+            const result = GeneratorActionFieldWidget.buildWidgetOptions({
+              type: 'Number',
+              label: 'Label',
+              watchChanges: false,
+              widget: 'CurrencyInput',
+              currency: 'EUR',
+              // @ts-expect-error -- testing invalid values but we want to support them
+              base,
+            });
+
+            expect(result).toMatchObject({
+              name: 'price editor',
+              parameters: {
+                base: 'Unit',
+              },
+            });
+          },
+        );
+
+        it.each(['cent', 'cents', 'Cent', 'Cents'])(
+          `should return 'Cents' when base is %s`,
+          base => {
+            const result = GeneratorActionFieldWidget.buildWidgetOptions({
+              type: 'Number',
+              label: 'Label',
+              watchChanges: false,
+              widget: 'CurrencyInput',
+              currency: 'EUR',
+              // @ts-expect-error -- testing invalid values but we want to support them
+              base,
+            });
+
+            expect(result).toMatchObject({
+              name: 'price editor',
+              parameters: {
+                base: 'Cents',
+              },
+            });
+          },
+        );
+
+        it('should replace invalid values by Unit', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'EUR',
+            // @ts-expect-error -- testing invalid values
+            base: 'foo',
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              base: 'Unit',
+            },
+          });
+        });
+      });
+
+      describe('currency', () => {
+        it('should copy a valid value in parameters', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'EUR',
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              currency: 'EUR',
+            },
+          });
+        });
+
+        it('should uppercase the currency', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Number',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'CurrencyInput',
+            currency: 'eur',
+          });
+
+          expect(result).toMatchObject({
+            name: 'price editor',
+            parameters: {
+              currency: 'EUR',
+            },
+          });
+        });
+
+        it.each([123, 'EURO', null, ''])(
+          'should set currency to null when equal to %s',
+          currency => {
+            const result = GeneratorActionFieldWidget.buildWidgetOptions({
+              type: 'Number',
+              label: 'Label',
+              watchChanges: false,
+              widget: 'CurrencyInput',
+              currency: currency as string,
+            });
+
+            expect(result).toMatchObject({
+              name: 'price editor',
+              parameters: {
+                currency: null,
+              },
+            });
+          },
+        );
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({
@@ -498,6 +768,27 @@ describe('GeneratorActionFieldWidget', () => {
           widget: 'UnsupportedWidget',
         });
       }).toThrow('Unsupported widget type: UnsupportedWidget');
+    });
+
+    it('should return a valid widget with all the properties', () => {
+      const result = GeneratorActionFieldWidget.buildWidgetOptions({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'ColorPicker',
+        enableOpacity: true,
+        quickPalette: ['red', 'green', 'blue'],
+        placeholder: 'Placeholder',
+      });
+
+      expect(result).toEqual({
+        name: 'color editor',
+        parameters: {
+          placeholder: 'Placeholder',
+          enableOpacity: true,
+          quickPalette: ['red', 'green', 'blue'],
+        },
+      });
     });
   });
 });

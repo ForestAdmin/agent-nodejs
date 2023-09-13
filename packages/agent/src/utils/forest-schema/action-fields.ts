@@ -3,11 +3,14 @@ import {
   ActionFieldCheckbox,
   ActionFieldCheckboxGroupAll,
   ActionFieldCollection,
+  ActionFieldColorPicker,
+  ActionFieldCurrencyInput,
   ActionFieldDropdown,
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
   ActionFieldNumberInput,
+  ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll as ActionFieldRadioGroupAll,
   ActionFieldRichText,
   ActionFieldTextArea,
@@ -94,14 +97,28 @@ export default class ActionFields {
     return (field as ActionFieldNumberInput)?.widget === 'NumberInput';
   }
 
+  public static isColorPickerField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldColorPicker {
+    return (field as ActionFieldColorPicker)?.widget === 'ColorPicker';
+  }
+
+  public static isNumberInputListField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldNumberInputList {
+    return (field as ActionFieldNumberInputList)?.widget === 'NumberInputList';
+  }
+
+  public static isCurrencyInputField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldCurrencyInput {
+    return (field as ActionFieldCurrencyInput)?.widget === 'CurrencyInput';
+  }
+
   // Other types to be added here in the future ⤵
   public static hasWidget(
     field: ActionField | null | undefined,
-  ): field is
-    | ActionFieldDropdownAll
-    | ActionFieldCheckbox
-    | ActionFieldTextInput
-    | ActionFieldTextInputList {
+  ): field is ActionField & { widget: string } {
     return Boolean((field as ActionFieldDropdown)?.widget);
   }
 }

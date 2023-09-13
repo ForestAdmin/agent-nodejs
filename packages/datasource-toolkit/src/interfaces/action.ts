@@ -123,9 +123,39 @@ export type ActionFieldNumberInput = ActionFieldBase & {
   step?: number;
 };
 
+export type ActionFieldColorPicker = ActionFieldBase & {
+  type: 'String';
+  widget: 'ColorPicker';
+  placeholder?: string;
+  enableOpacity?: boolean;
+  quickPalette?: string[];
+};
+
+export type ActionFieldNumberInputList = ActionFieldBase & {
+  widget: 'NumberInputList';
+  type: 'NumberList';
+  placeholder?: string;
+  enableReorder?: boolean;
+  allowDuplicates?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
+export type ActionFieldCurrencyInput = ActionFieldBase & {
+  type: 'Number';
+  widget: 'CurrencyInput';
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  currency: string;
+  base?: 'Unit' | 'Cent';
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
-  | ActionFieldDropdown<'Number', number>;
+  | ActionFieldDropdown<'Number' | 'NumberList', number>;
 
 export type ActionFieldRadioGroupButtonAll =
   | ActionFieldLimitedValue<'RadioGroup', 'Date' | 'Dateonly' | 'Number' | 'String', string>
@@ -149,6 +179,9 @@ export type ActionField = StrictUnion<
   | ActionFieldTextArea
   | ActionFieldRichText
   | ActionFieldNumberInput
+  | ActionFieldColorPicker
+  | ActionFieldNumberInputList
+  | ActionFieldCurrencyInput
 >;
 
 export type ActionFieldWidget =
@@ -160,7 +193,9 @@ export type ActionFieldWidget =
   | 'TextInputList'
   | 'TextArea'
   | 'RichText'
-  | 'NumberInput';
+  | 'NumberInput'
+  | 'NumberInputList'
+  | 'ColorPicker';
 
 export type SuccessResult = {
   type: 'Success';

@@ -1,3 +1,88 @@
+## example [1.6.17](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.16...example@1.6.17) (2023-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.28.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.59
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.16
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.14
+* **@forestadmin/datasource-sql:** upgraded to 1.7.25
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+
+## example [1.6.16](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.15...example@1.6.16) (2023-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.15
+
+## example [1.6.15](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.14...example@1.6.15) (2023-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.27.1
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.58
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.14
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.13
+* **@forestadmin/datasource-sql:** upgraded to 1.7.24
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.1
+
+## example [1.6.14](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.13...example@1.6.14) (2023-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.27.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.57
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.13
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.12
+* **@forestadmin/datasource-sql:** upgraded to 1.7.23
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.0
+
+## example [1.6.13](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.12...example@1.6.13) (2023-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.26.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.56
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.12
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.11
+* **@forestadmin/datasource-sql:** upgraded to 1.7.22
+* **@forestadmin/datasource-toolkit:** upgraded to 1.19.0
+
+## example [1.6.12](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.11...example@1.6.12) (2023-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.25.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.55
+* **@forestadmin/datasource-mongoose:** upgraded to 1.5.11
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.10
+* **@forestadmin/datasource-sql:** upgraded to 1.7.21
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+
 ## example [1.6.11](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.10...example@1.6.11) (2023-09-01)
 
 
