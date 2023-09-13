@@ -177,9 +177,7 @@ export default class MongooseCollection extends BaseCollection {
 
     const fieldName = this.computeSubFieldName();
 
-    const entry = data[0];
-    const flatEntry = flatData[0];
-    const { parentId, ...rest } = entry;
+    const { parentId, ...rest } = data[0];
 
     if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
 
@@ -197,7 +195,7 @@ export default class MongooseCollection extends BaseCollection {
     return [
       {
         _id: `${rootId}.${path}`,
-        ...flatEntry,
+        ...flatData[0],
       },
     ];
   }
@@ -266,7 +264,6 @@ export default class MongooseCollection extends BaseCollection {
       return;
     }
 
-    const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
     const idsByPath = groupIdsByPath(ids);
 
     if (schema.isArray) {
