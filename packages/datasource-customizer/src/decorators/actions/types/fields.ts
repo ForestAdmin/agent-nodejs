@@ -78,12 +78,12 @@ type TextInputFieldConfiguration = {
   placeholder?: string;
 };
 
-type DateInputFieldConfiguration = {
+type DateInputFieldConfiguration<Context> = {
   widget: 'Date';
-  format?: string;
+  format?: ValueOrHandler<Context, string>;
   placeholder?: string;
-  minDate?: Date;
-  maxDate?: Date;
+  minDate?: ValueOrHandler<Context, Date>;
+  maxDate?: ValueOrHandler<Context, Date>;
 };
 
 type ArrayTextInputFieldConfiguration = {
@@ -170,7 +170,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (NumberListDynamicField<Context> & ArrayNumberInputFieldConfiguration<Context>)
   | StringDynamicField<Context>
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
-  | (StringDynamicField<Context> & DateInputFieldConfiguration)
+  | (StringDynamicField<Context> & DateInputFieldConfiguration<Context>)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
