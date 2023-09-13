@@ -264,6 +264,7 @@ export default class MongooseCollection extends BaseCollection {
       return;
     }
 
+    const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
     const idsByPath = groupIdsByPath(ids);
 
     if (schema.isArray) {
