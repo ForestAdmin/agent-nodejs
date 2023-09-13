@@ -405,7 +405,7 @@ describe('Builder > Collection', () => {
     });
 
     describe('when the getValues uses a computed relationship inside its definition', () => {
-      const setupAuthorsCollection = async () => {
+      const setupAuthorsCollectionWithManyToOneComputedRelation = async () => {
         const authors = factories.collection.build({
           name: 'authors',
           schema: factories.collectionSchema.build({
@@ -436,12 +436,13 @@ describe('Builder > Collection', () => {
           foreignKeyTarget: 'authorId',
         });
 
-        return { customizerDatasource, customizer };
+        return { customizerDatasource };
       };
 
       describe('when the external dependency is not given', () => {
         it('should throw an error to notify the user', async () => {
-          const { customizerDatasource, customizer } = await setupAuthorsCollection();
+          const { customizerDatasource } =
+            await setupAuthorsCollectionWithManyToOneComputedRelation();
 
           const fieldDefinition: ComputedDefinition = {
             columnType: 'String',
@@ -451,7 +452,7 @@ describe('Builder > Collection', () => {
             },
           };
 
-          customizer.addField('newField', fieldDefinition);
+          customizerDatasource.getCollection('authors').addField('newField', fieldDefinition);
           // apply the customizations
           const dataSource = await customizerDatasource.getDataSource(logger);
 
@@ -462,21 +463,23 @@ describe('Builder > Collection', () => {
 
           await expect(listToThrow).rejects.toThrow(
             'Cannot find field "mySelf" in collection "authors".\n' +
-              'You are probably trying to access a field from a relation that does not exist.\n' +
-              "Have you considered including the field's path in the dependencies property?",
+              'You are probably trying to access a field from a computed relationship.\n' +
+              // eslint-disable-next-line max-len
+              "Have you considered including the field's path in the externalDependencies property?",
           );
         });
       });
 
       describe('when the external dependency is given', () => {
-        it('should compute the records without errors', async () => {
-          const { customizerDatasource, customizer } = await setupAuthorsCollection();
+        it('can return the records because the relation is computed after the field', async () => {
+          const { customizerDatasource } =
+            await setupAuthorsCollectionWithManyToOneComputedRelation();
 
           let recordsInGetValues;
           const fieldDefinition: ComputedDefinition = {
             columnType: 'String',
             dependencies: ['firstName'],
-            externalDependencies: [{ collectionName: 'authors', field: 'mySelf:firstName' }],
+            externalDependencies: [{ collectionName: 'authors', path: 'mySelf:firstName' }],
             getValues: async (records, context) => {
               recordsInGetValues = records;
 
@@ -484,7 +487,7 @@ describe('Builder > Collection', () => {
             },
           };
 
-          customizer.addField('newField', fieldDefinition);
+          customizerDatasource.getCollection('authors').addField('newField', fieldDefinition);
           // apply the customizations
           const dataSource = await customizerDatasource.getDataSource(logger);
 

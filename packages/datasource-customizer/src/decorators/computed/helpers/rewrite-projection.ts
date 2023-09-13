@@ -11,8 +11,8 @@ export default function rewriteField(collection: ComputedCollection, path: strin
     if (!schema) {
       throw new Error(
         `Cannot find field "${prefix}" in collection "${collection.name}".\n` +
-          `You are probably trying to access a field from a relation that does not exist.\n` +
-          `Have you considered including the field's path in the dependencies property?`,
+          `You are probably trying to access a field from a computed relationship.\n` +
+          `Have you considered including the field's path in the externalDependencies property?`,
       );
     }
 

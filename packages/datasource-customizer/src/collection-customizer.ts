@@ -161,7 +161,6 @@ export default class CollectionCustomizer<
    * .addField('fullName', {
    *    columnType: 'String',
    *    dependencies: ['firstName', 'lastName'],
-   *    externalDependencies: [{collectionName: 'users', field: 'firstName'}],
    *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
@@ -170,16 +169,16 @@ export default class CollectionCustomizer<
       const dependencies = (definition.dependencies ?? []).map(dependency => {
         return {
           collectionName: this.name,
-          field: dependency,
+          path: dependency,
         };
       });
       const allDependencies = [...dependencies, ...(definition.externalDependencies ?? [])];
 
-      const canBeComputedBeforeRelations = allDependencies.every(({ collectionName, field }) => {
+      const canBeComputedBeforeRelations = allDependencies.every(({ collectionName, path }) => {
         try {
           return !!CollectionUtils.getFieldSchema(
             this.stack.earlyComputed.getCollection(collectionName),
-            field,
+            path,
           );
         } catch {
           return false;

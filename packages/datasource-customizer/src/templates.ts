@@ -27,11 +27,16 @@ export type TColumnName<S extends TSchema, N extends TCollectionName<S>> = Extra
   string
 >;
 
-/** Field name (with relations) */
-export type TFieldName<S extends TSchema, N extends TCollectionName<S>> = Extract<
-  keyof S[N]['plain'] | keyof S[N]['flat'],
+/** Field name from relation */
+export type TFieldNameFromRelation<S extends TSchema, N extends TCollectionName<S>> = Extract<
+  keyof S[N]['flat'],
   string
 >;
+
+/** Field name (with relations) */
+export type TFieldName<S extends TSchema, N extends TCollectionName<S>> =
+  | Extract<keyof S[N]['plain'], string>
+  | TFieldNameFromRelation<S, N>;
 
 /** Type of a given field */
 export type TFieldType<

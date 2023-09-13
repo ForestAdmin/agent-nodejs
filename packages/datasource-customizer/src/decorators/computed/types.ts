@@ -1,12 +1,18 @@
 import { ColumnType } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TFieldName, TRow, TSchema } from '../../templates';
+import {
+  TCollectionName,
+  TFieldName,
+  TFieldNameFromRelation,
+  TRow,
+  TSchema,
+} from '../../templates';
 
 export type ExternalDependency<S extends TSchema> = {
   readonly [CollectionName in TCollectionName<S>]?: {
     readonly collectionName: CollectionName;
-    readonly field: TFieldName<S, CollectionName>;
+    readonly path: TFieldNameFromRelation<S, CollectionName>;
   };
 }[TCollectionName<S>];
 
