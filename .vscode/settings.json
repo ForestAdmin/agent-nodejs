@@ -51,4 +51,7 @@
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Debugging tests
+  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000"
 }
