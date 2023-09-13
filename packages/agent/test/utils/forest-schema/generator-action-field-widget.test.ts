@@ -733,6 +733,81 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('DateEditor', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Date',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'Date',
+        });
+
+        expect(result).toEqual({
+          name: 'date editor',
+          parameters: {
+            placeholder: null,
+            format: null,
+            minDate: null,
+            maxDate: null,
+          },
+        });
+      });
+
+      describe.each(['placeholder', 'format'])('%s', parameter => {
+        it('should copy a valid value in parameters', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Date',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'Date',
+            [parameter]: 'ABC',
+          });
+
+          expect(result).toMatchObject({
+            name: 'date editor',
+            parameters: {
+              [parameter]: 'ABC',
+            },
+          });
+        });
+      });
+      describe.each(['minDate', 'maxDate'])('%s', parameter => {
+        it('should copy a valid value in parameters', () => {
+          const date = new Date();
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Date',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'Date',
+            [parameter]: date,
+          });
+
+          expect(result).toMatchObject({
+            name: 'date editor',
+            parameters: {
+              [parameter]: date.toDateString(),
+            },
+          });
+        });
+
+        it('should ignore an invalid value and replace it by null', () => {
+          const result = GeneratorActionFieldWidget.buildWidgetOptions({
+            type: 'Date',
+            label: 'Label',
+            watchChanges: false,
+            widget: 'Date',
+            [parameter]: 'foo',
+          });
+
+          expect(result).toMatchObject({
+            name: 'date editor',
+            parameters: {
+              [parameter]: null,
+            },
+          });
+        });
+      });
+    });
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({
