@@ -307,11 +307,16 @@ describe('on schedule', () => {
 
   it('should add scheduler with a delay on handler', async () => {
     const schedulerStop = jest.fn();
-    Croner.Cron = jest.fn().mockImplementation((pattern, func) => {
-      func();
+    let resolveScheduledTask;
+    const scheduledTaskExecuted = new Promise(resolve => {
+      resolveScheduledTask = resolve;
+    });
 
-      return { stop: schedulerStop };
-    }) as unknown as typeof Croner.Cron;
+    jest.spyOn(Croner, 'Cron').mockImplementation((pattern: string | Date, func: any) => {
+      func().then(() => resolveScheduledTask());
+
+      return { stop: schedulerStop } as unknown as Croner.Cron;
+    });
 
     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
       .fn()
@@ -332,9 +337,9 @@ describe('on schedule', () => {
     expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
     expect(pullDeltaHandler).toHaveBeenCalledTimes(0);
 
-    await new Promise(resolve => {
-      setTimeout(resolve, 3);
-    });
+    expect(Croner.Cron).toHaveBeenCalledWith('* * * * * *', expect.any(Function));
+
+    await scheduledTaskExecuted;
 
     expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
 
