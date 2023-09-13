@@ -115,10 +115,10 @@ export default class MongooseCollection extends BaseCollection {
     const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
 
     if (schema.isArray) {
-      return this._createForArraySubfield(data, flatData, schema);
+      return this.createForArraySubfield(data, flatData, schema);
     }
 
-    return this._createForObjectSubfield(data, flatData);
+    return this.createForObjectSubfield(data, flatData);
   }
 
   private computeSubFieldName() {
@@ -129,7 +129,7 @@ export default class MongooseCollection extends BaseCollection {
       : lastStackStep.prefix;
   }
 
-  private async _createForArraySubfield(
+  private async createForArraySubfield(
     data: RecordData[],
     flatData: RecordData[],
     schema: MongooseSchema,
@@ -170,7 +170,7 @@ export default class MongooseCollection extends BaseCollection {
     return results;
   }
 
-  private async _createForObjectSubfield(data: RecordData[], flatData: RecordData[]) {
+  private async createForObjectSubfield(data: RecordData[], flatData: RecordData[]) {
     if (data.length > 1) throw new ValidationError('Trying to create multiple subrecords at once');
     if (data.length === 0) throw new ValidationError('Trying to create without data');
 
