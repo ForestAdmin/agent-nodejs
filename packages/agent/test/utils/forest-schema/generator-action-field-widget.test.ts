@@ -747,8 +747,8 @@ describe('GeneratorActionFieldWidget', () => {
           parameters: {
             placeholder: null,
             format: null,
-            min: null,
-            max: null,
+            minDate: null,
+            maxDate: null,
           },
         });
       });
@@ -785,7 +785,7 @@ describe('GeneratorActionFieldWidget', () => {
           expect(result).toMatchObject({
             name: 'date editor',
             parameters: {
-              [parameter]: date.toDateString(),
+              [`${parameter}Date`]: date.toDateString(),
             },
           });
         });
@@ -802,7 +802,7 @@ describe('GeneratorActionFieldWidget', () => {
           expect(result).toMatchObject({
             name: 'date editor',
             parameters: {
-              [parameter]: null,
+              [`${parameter}Date`]: null,
             },
           });
         });
