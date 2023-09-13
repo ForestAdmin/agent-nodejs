@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.28.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.1...@forestadmin/datasource-customizer@1.28.2) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** add hasFieldChanged function to handle change hook on this field ([#816](https://github.com/ForestAdmin/agent-nodejs/issues/816)) ([46bae6d](https://github.com/ForestAdmin/agent-nodejs/commit/46bae6d92d6fefe93b43a8a58ae6d7127fa3eacf))
+
 ## @forestadmin/datasource-customizer [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.0...@forestadmin/datasource-customizer@1.28.1) (2023-09-13)
 
 
