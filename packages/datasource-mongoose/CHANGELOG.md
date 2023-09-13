@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.5.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.16...@forestadmin/datasource-mongoose@1.5.17) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** fix errors when creating or retrieving records from collections created with asModel on an object field ([#821](https://github.com/ForestAdmin/agent-nodejs/issues/821)) ([d3858fe](https://github.com/ForestAdmin/agent-nodejs/commit/d3858fedbdde37c20811ff9505e9fd57d4c6b2c5))
+
 ## @forestadmin/datasource-mongoose [1.5.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.15...@forestadmin/datasource-mongoose@1.5.16) (2023-09-12)
 
 

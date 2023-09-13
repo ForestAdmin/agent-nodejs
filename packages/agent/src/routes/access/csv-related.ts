@@ -24,8 +24,8 @@ export default class CsvRelatedRoute extends RelationRoute {
   }
 
   async handleRelatedCsv(context: Context): Promise<void> {
-    await this.services.authorization.assertCanBrowse(context, this.collection.name);
-    await this.services.authorization.assertCanExport(context, this.collection.name);
+    await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
+    await this.services.authorization.assertCanExport(context, this.foreignCollection.name);
 
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);

@@ -138,18 +138,16 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   private async dropDefaults(
     context: ActionContext,
     fields: DynamicField[],
-    isFirstCall: boolean,
     data: Record<string, unknown>,
   ): Promise<DynamicField[]> {
-    if (isFirstCall) {
-      const defaults = await Promise.all(
-        fields.map(field => this.evaluate(context, field.defaultValue)),
-      );
+    const unvaluedFields = fields.filter(field => data[field.label] === undefined);
+    const defaults = await Promise.all(
+      unvaluedFields.map(field => this.evaluate(context, field.defaultValue)),
+    );
 
-      fields.forEach((field, index) => {
-        data[field.label] = defaults[index];
-      });
-    }
+    unvaluedFields.forEach((field, index) => {
+      data[field.label] = defaults[index];
+    });
 
     fields.forEach(field => delete field.defaultValue);
 

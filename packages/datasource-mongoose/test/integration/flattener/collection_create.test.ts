@@ -169,7 +169,7 @@ describe('Complex flattening', () => {
     );
   });
 
-  it('creating a subModel should fail', async () => {
+  it('should create a model', async () => {
     connection = await setupFlattener('collection_flattener_create');
 
     const dataSource = new MongooseDatasource(connection, {
@@ -180,10 +180,63 @@ describe('Complex flattening', () => {
       .getCollection('cars')
       .create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
 
+    const result = await dataSource
+      .getCollection('cars_engine')
+      .create(caller, [{ parentId: car._id, horsePower: '12' }]);
+
+    const doc = await connection.model('cars').findOne({ _id: car._id });
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          horsePower: '12',
+        }),
+      ]),
+    );
+
+    expect(doc).toEqual(
+      expect.objectContaining({
+        name: 'my fiesta',
+        wheelSize: 12,
+        engine: expect.objectContaining({
+          horsePower: '12',
+        }),
+      }),
+    );
+  });
+
+  it('should throw an error when creating a model with an empty list of elements', async () => {
+    connection = await setupFlattener('collection_flattener_create');
+
+    const dataSource = new MongooseDatasource(connection, {
+      asModels: { cars: ['engine', 'engine.fuel'] },
+    });
+
+    await dataSource.getCollection('cars').create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
+
+    await expect(dataSource.getCollection('cars_engine').create(caller, [])).rejects.toThrow(
+      'Trying to create without data',
+    );
+  });
+
+  it('should throw an error when creating multiple objects in an object model', async () => {
+    connection = await setupFlattener('collection_flattener_create');
+
+    const dataSource = new MongooseDatasource(connection, {
+      asModels: { cars: ['engine', 'engine.fuel'] },
+    });
+
+    const [car] = await dataSource
+      .getCollection('cars')
+      .create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
+
+    await dataSource.getCollection('cars').create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
+
     await expect(
-      dataSource
-        .getCollection('cars_engine')
-        .create(caller, [{ parentId: car._id, horsePower: '12' }]),
-    ).rejects.toThrow('Trying to create subrecords on a non-array field');
+      dataSource.getCollection('cars_engine').create(caller, [
+        { parentId: car._id, horsePower: '12' },
+        { parentId: car._id, horsePower: '13' },
+      ]),
+    ).rejects.toThrow('Trying to create multiple subrecords at once');
   });
 });

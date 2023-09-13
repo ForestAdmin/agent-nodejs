@@ -186,7 +186,7 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute dynamic default value (no data == load hook)', async () => {
-      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', null);
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', undefined);
 
       expect(fields).toEqual([
         {
@@ -196,6 +196,28 @@ describe('ActionDecorator', () => {
           value: 'DynamicDefault',
         },
         { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+      ]);
+    });
+
+    test('should compute dynamic default value on added field', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {
+        lastname: 'value',
+      });
+
+      expect(fields).toEqual([
+        {
+          label: 'firstname',
+          type: 'String',
+          watchChanges: true,
+          value: 'DynamicDefault',
+        },
+        {
+          label: 'lastname',
+          type: 'String',
+          value: 'value',
+          isReadOnly: true,
+          watchChanges: false,
+        },
       ]);
     });
 
@@ -297,4 +319,82 @@ describe('ActionDecorator', () => {
       });
     },
   );
+
+  describe('chnagedField', () => {
+    test(`should log warning on changedField usage`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'change',
+            type: 'String',
+          },
+          {
+            label: 'to change',
+            type: 'String',
+            isReadOnly: true,
+            value: context => {
+              if (context.changedField === 'change') {
+                return context.formValues.change;
+              }
+            },
+          },
+        ],
+      });
+
+      const logSpy = jest.spyOn(console, 'warn');
+
+      await newBooks.getForm(factories.caller.build(), 'make photocopy');
+      expect(logSpy).toHaveBeenCalledWith(
+        '\x1b[33mwarning:\x1b[0m',
+        'Usage of `changedField` is deprecated, please use `hasFieldChanged` instead.',
+      );
+    });
+  });
+
+  describe('hasFieldChanged', () => {
+    // eslint-disable-next-line max-len
+    test(`should add watchChange property to fields that need to trigger a recompute on change`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'change',
+            type: 'String',
+          },
+          {
+            label: 'to change',
+            type: 'String',
+            isReadOnly: true,
+            value: context => {
+              if (context.hasFieldChanged('change')) {
+                return context.formValues.change;
+              }
+            },
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
+      expect(fields).toEqual([
+        {
+          label: 'change',
+          type: 'String',
+          watchChanges: true,
+        },
+        {
+          label: 'to change',
+          type: 'String',
+          isReadOnly: true,
+          watchChanges: false,
+        },
+      ]);
+    });
+  });
 });
