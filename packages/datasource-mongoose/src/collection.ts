@@ -184,21 +184,9 @@ export default class MongooseCollection extends BaseCollection {
 
     const [rootId, path] = splitId(`${parentId}.${fieldName}`);
 
-    await this.model.updateOne(
-      { _id: rootId },
-      {
-        $set: {
-          [path]: rest,
-        },
-      },
-    );
+    await this.model.updateOne({ _id: rootId }, { $set: { [path]: rest } });
 
-    return [
-      {
-        _id: `${rootId}.${path}`,
-        ...flatData[0],
-      },
-    ];
+    return [{ _id: `${rootId}.${path}`, ...flatData[0] }];
   }
 
   private async _update(caller: Caller, filter: Filter, flatPatch: RecordData): Promise<void> {
