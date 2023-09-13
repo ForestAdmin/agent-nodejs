@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.28.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.28.1...@forestadmin/agent@1.28.2) (2023-09-13)
+
+
+### Bug Fixes
+
+* **agent:** fix related data access permissions ([#823](https://github.com/ForestAdmin/agent-nodejs/issues/823)) ([14b4e3e](https://github.com/ForestAdmin/agent-nodejs/commit/14b4e3e111667465342f2606a909f61e29e59a8e))
+
 ## @forestadmin/agent [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.28.0...@forestadmin/agent@1.28.1) (2023-09-13)
 
 
