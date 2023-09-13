@@ -96,6 +96,9 @@ export type ActionFieldDateInput = ActionFieldBase & {
   type: 'Date';
   widget: 'Date';
   format?: string;
+  minDate?: Date;
+  maxDate?: Date;
+  placeholder: string;
 };
 
 export type ActionFieldTextInputList = ActionFieldBase & {

@@ -150,6 +150,9 @@ export default class GeneratorActionFieldWidget {
       name: 'date editor',
       parameters: {
         format: field.format || null,
+        placeholder: field.placeholder || null,
+        minDate: field.minDate?.toDateString() || null,
+        maxDate: field.maxDate?.toDateString() || null,
       },
     };
   }

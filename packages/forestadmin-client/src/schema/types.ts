@@ -123,6 +123,9 @@ export type ForestServerActionFieldDateInputOptions = {
   name: 'date editor';
   parameters: {
     format?: string | null;
+    placeholder?: string | null;
+    minDate?: string;
+    maxDate?: string;
   };
 };
 

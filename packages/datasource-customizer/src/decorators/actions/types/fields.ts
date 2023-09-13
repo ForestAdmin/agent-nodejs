@@ -81,6 +81,9 @@ type TextInputFieldConfiguration = {
 type DateInputFieldConfiguration = {
   widget: 'Date';
   format?: string;
+  placeholder?: string;
+  minDate?: Date;
+  maxDate?: Date;
 };
 
 type ArrayTextInputFieldConfiguration = {
