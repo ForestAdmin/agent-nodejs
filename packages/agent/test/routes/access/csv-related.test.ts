@@ -117,8 +117,8 @@ describe('CsvRelatedRoute', () => {
       // then
       expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
-      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
-      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'persons');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'persons');
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
@@ -211,8 +211,8 @@ describe('CsvRelatedRoute', () => {
       // then
       expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
-      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
-      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'persons');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'persons');
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
