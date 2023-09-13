@@ -156,7 +156,7 @@ describe('ListRelatedRoute', () => {
         });
         await count.handleListRelated(context);
 
-        expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+        expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'persons');
       });
 
       test('it should apply the scope', async () => {

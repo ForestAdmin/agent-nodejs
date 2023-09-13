@@ -16,7 +16,7 @@ export default class ListRelatedRoute extends RelationRoute {
   }
 
   public async handleListRelated(context: Context): Promise<void> {
-    await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
