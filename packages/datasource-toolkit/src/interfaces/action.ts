@@ -98,7 +98,7 @@ export type ActionFieldDateInput = ActionFieldBase & {
   format?: string;
   minDate?: Date;
   maxDate?: Date;
-  placeholder: string;
+  placeholder?: string;
 };
 
 export type ActionFieldTextInputList = ActionFieldBase & {
