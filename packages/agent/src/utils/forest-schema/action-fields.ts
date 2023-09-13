@@ -5,6 +5,7 @@ import {
   ActionFieldCollection,
   ActionFieldColorPicker,
   ActionFieldDateInput,
+  ActionFieldCurrencyInput,
   ActionFieldDropdown,
   ActionFieldDropdownAll,
   ActionFieldEnum,
@@ -115,14 +116,16 @@ export default class ActionFields {
     return (field as ActionFieldNumberInputList)?.widget === 'NumberInputList';
   }
 
+  public static isCurrencyInputField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldCurrencyInput {
+    return (field as ActionFieldCurrencyInput)?.widget === 'CurrencyInput';
+  }
+
   // Other types to be added here in the future ⤵
   public static hasWidget(
     field: ActionField | null | undefined,
-  ): field is
-    | ActionFieldDropdownAll
-    | ActionFieldCheckbox
-    | ActionFieldTextInput
-    | ActionFieldTextInputList {
+  ): field is ActionField & { widget: string } {
     return Boolean((field as ActionFieldDropdown)?.widget);
   }
 }

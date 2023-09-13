@@ -1,3 +1,16 @@
+## @forestadmin/datasource-replica [1.0.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.16...@forestadmin/datasource-replica@1.0.17) (2023-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.28.0
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.14
+* **@forestadmin/datasource-sql:** upgraded to 1.7.25
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+
 ## @forestadmin/datasource-replica [1.0.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.15...@forestadmin/datasource-replica@1.0.16) (2023-09-08)
 
 

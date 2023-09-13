@@ -1,3 +1,20 @@
+## @forestadmin/datasource-mongoose [1.5.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.15...@forestadmin/datasource-mongoose@1.5.16) (2023-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+
+## @forestadmin/datasource-mongoose [1.5.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.14...@forestadmin/datasource-mongoose@1.5.15) (2023-09-12)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** return values instead of null when querying nested properties on a flattened field ([#820](https://github.com/ForestAdmin/agent-nodejs/issues/820)) ([1434c9f](https://github.com/ForestAdmin/agent-nodejs/commit/1434c9f53896a54b470a3a226e62865d80318ace))
+
 ## @forestadmin/datasource-mongoose [1.5.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.13...@forestadmin/datasource-mongoose@1.5.14) (2023-09-08)
 
 

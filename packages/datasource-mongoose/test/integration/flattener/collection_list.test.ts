@@ -112,4 +112,39 @@ describe('Complex flattening', () => {
 
     expect(moreRecords).toEqual([expect.objectContaining({ _id: `${car._id}.engine` })]);
   });
+
+  describe('asModels', () => {
+    describe('used on an object field', () => {
+      it('should correctly retrieve fields on the flattened model', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: {
+            cars: { asModels: ['engine'] },
+          },
+        });
+
+        const [car] = await dataSource
+          .getCollection('cars')
+          .create(caller, [{ name: 'my fiesta', wheelSize: 12, engine: { horsePower: 98 } }]);
+
+        const records = await dataSource.getCollection('cars').list(
+          caller,
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('_id', 'Equal', `${car._id}`),
+          }),
+          new Projection('_id', 'engine:horsePower'),
+        );
+
+        expect(records).toEqual([
+          expect.objectContaining({
+            _id: car._id,
+            engine: {
+              horsePower: '98',
+            },
+          }),
+        ]);
+      });
+    });
+  });
 });

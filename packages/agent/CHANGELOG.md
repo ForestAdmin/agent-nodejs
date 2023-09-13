@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.27.1...@forestadmin/agent@1.28.0) (2023-09-12)
+
+
+### Features
+
+* **widgets:** add support for currency widget ([#812](https://github.com/ForestAdmin/agent-nodejs/issues/812)) ([2f263bb](https://github.com/ForestAdmin/agent-nodejs/commit/2f263bb2d263a6e942a349ec7744284837e01ad4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.28.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.17.0
+
 ## @forestadmin/agent [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.27.0...@forestadmin/agent@1.27.1) (2023-09-08)
 
 

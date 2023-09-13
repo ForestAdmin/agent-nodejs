@@ -185,6 +185,18 @@ export type ForestServerActionFieldColorPickerOptions = {
   };
 };
 
+export type ForestServerActionFieldCurrencyInputOptions = {
+  name: 'price editor';
+  parameters: {
+    placeholder?: string | null;
+    min?: number;
+    max?: number;
+    step?: number;
+    currency: string;
+    base: 'Unit' | 'Cents';
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Timeonly',
@@ -216,6 +228,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
+  | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>;
 
