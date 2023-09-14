@@ -48,7 +48,7 @@ export interface ComputedDefinition<
    *
    * // Usage in 'getValues' method
    * getValues: (records, context) => {
-   *   // Ensure that computed relations is computed before proceeding.
+   *   // Ensure that 'author:firstName' relation is computed before proceeding.
    *   return context.dataSource.getCollection('books').list({}, ['author:firstName']);
    * }
    */
