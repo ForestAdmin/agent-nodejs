@@ -773,7 +773,7 @@ describe('GeneratorActionFieldWidget', () => {
       });
       describe.each(['min', 'max'])('%s', parameter => {
         it('should copy a valid value in parameters', () => {
-          const date = new Date();
+          const date = new Date(2000, 1, 1, 1, 1, 1, 1);
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Date',
             label: 'Label',
@@ -785,7 +785,7 @@ describe('GeneratorActionFieldWidget', () => {
           expect(result).toMatchObject({
             name: 'date editor',
             parameters: {
-              [`${parameter}Date`]: date.toDateString(),
+              [`${parameter}Date`]: '2000-02-01T00:01:01.001Z',
             },
           });
         });
