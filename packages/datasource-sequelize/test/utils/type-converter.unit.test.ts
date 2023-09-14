@@ -15,7 +15,7 @@ describe('Utils > TypeConverter', () => {
       expect(TypeConverter.fromDataType(DataTypes.BOOLEAN())).toBe('Boolean');
       expect(TypeConverter.fromDataType(DataTypes.BLOB())).toBe('Binary');
       expect(TypeConverter.fromDataType(DataTypes.DATEONLY())).toBe('Dateonly');
-      expect(TypeConverter.fromDataType(DataTypes.TIME())).toBe('Timeonly');
+      expect(TypeConverter.fromDataType(DataTypes.TIME())).toBe('Time');
     });
 
     it('should return an array column type when needed', () => {

@@ -59,7 +59,7 @@ describe('TypeGetter', () => {
 
       describe('when there is only the time', () => {
         it('should return the expected type', () => {
-          expect(TypeGetter.get('09:24:15.123', 'Date')).toEqual('Timeonly');
+          expect(TypeGetter.get('09:24:15.123', 'Date')).toEqual('Time');
         });
       });
     });
