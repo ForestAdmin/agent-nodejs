@@ -154,6 +154,10 @@ export type ForestServerActionFieldRichTextOptions = {
   };
 };
 
+export type ForestServerActionFieldTimePickerOptions = {
+  name: 'time editor';
+};
+
 export type ForestServerActionFieldNumberInputOptions = {
   name: 'number input';
   parameters: {

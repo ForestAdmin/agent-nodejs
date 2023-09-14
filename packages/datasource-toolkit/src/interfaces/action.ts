@@ -34,6 +34,7 @@ export const ActionFieldTypeList = [
   'Collection',
   'Date',
   'Dateonly',
+  'Time',
   'Enum',
   'File',
   'Json',
@@ -162,6 +163,11 @@ export type ActionFieldCurrencyInput = ActionFieldBase & {
   base?: 'Unit' | 'Cent';
 };
 
+export type ActionFieldTimePicker = ActionFieldBase & {
+  type: 'Time';
+  widget: 'TimePicker';
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number' | 'NumberList', number>;
@@ -192,6 +198,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInputList
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
+  | ActionFieldTimePicker
 >;
 
 export type ActionFieldWidget =
