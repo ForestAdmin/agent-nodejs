@@ -13,7 +13,7 @@ export default function rewriteField(collection: ComputedCollection, path: strin
         `Cannot find field "${prefix}" in collection "${collection.name}".\n` +
           `You are probably trying to access a field from a computed relationship.\n` +
           // eslint-disable-next-line max-len
-          `Have you considered including the field's path in the foreignRelationDependencies property?`,
+          `Have you considered including the field's path in the computedRelationDependencies property?`,
       );
     }
 
