@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.2...@forestadmin/datasource-customizer@1.29.0) (2023-09-15)
+
+
+### Features
+
+* support date picker in action form widgets ([#819](https://github.com/ForestAdmin/agent-nodejs/issues/819)) ([f7ead87](https://github.com/ForestAdmin/agent-nodejs/commit/f7ead87f6c4bc3970f07ec7c965725a4c40b4ad6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
 ## @forestadmin/datasource-customizer [1.28.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.1...@forestadmin/datasource-customizer@1.28.2) (2023-09-13)
 
 

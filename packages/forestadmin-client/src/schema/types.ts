@@ -120,6 +120,16 @@ export type ForestServerActionFieldTextInputOptions = {
   };
 };
 
+export type ForestServerActionFieldDatePickerInputOptions = {
+  name: 'date editor';
+  parameters: {
+    format?: string | null;
+    placeholder?: string | null;
+    minDate?: string;
+    maxDate?: string;
+  };
+};
+
 export type ForestServerActionFieldTextInputListOptions = {
   name: 'input array';
   parameters: {
@@ -214,6 +224,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldBase
   | ForestServerActionFieldCommon<'Boolean', ForestServerActionFieldCheckboxOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextInputOptions>
+  | ForestServerActionFieldCommon<'Date', ForestServerActionFieldDatePickerInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
