@@ -17,6 +17,7 @@ import {
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldColorPickerOptions,
   ForestServerActionFieldCurrencyInputOptions,
+  ForestServerActionFieldDatePickerInputOptions,
   ForestServerActionFieldDropdownOptions,
   ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
@@ -48,6 +49,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isTextInputField(field))
       return GeneratorActionFieldWidget.buildTextInputWidgetEdit(field);
+
+    if (ActionFields.isDatePickerInputField(field))
+      return GeneratorActionFieldWidget.buildDatePickerInputWidgetEdit(field);
 
     if (ActionFields.isTextInputListField(field))
       return GeneratorActionFieldWidget.buildTextInputListWidgetEdit(field);
@@ -140,6 +144,20 @@ export default class GeneratorActionFieldWidget {
       name: 'text editor',
       parameters: {
         placeholder: field.placeholder || null,
+      },
+    };
+  }
+
+  private static buildDatePickerInputWidgetEdit(
+    field: ActionField,
+  ): ForestServerActionFieldDatePickerInputOptions {
+    return {
+      name: 'date editor',
+      parameters: {
+        format: field.format || null,
+        placeholder: field.placeholder || null,
+        minDate: field.min instanceof Date ? field.min.toISOString() : null,
+        maxDate: field.max instanceof Date ? field.max.toISOString() : null,
       },
     };
   }

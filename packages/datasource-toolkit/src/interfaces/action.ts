@@ -92,6 +92,15 @@ export type ActionFieldTextInput = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldDatePickerInput = ActionFieldBase & {
+  type: 'Date' | 'Dateonly' | 'String';
+  widget: 'DatePicker';
+  format?: string;
+  min?: Date;
+  max?: Date;
+  placeholder?: string;
+};
+
 export type ActionFieldTextInputList = ActionFieldBase & {
   type: 'StringList';
   widget: 'TextInputList';
@@ -181,6 +190,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInput
   | ActionFieldColorPicker
   | ActionFieldNumberInputList
+  | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
 >;
 
@@ -195,7 +205,8 @@ export type ActionFieldWidget =
   | 'RichText'
   | 'NumberInput'
   | 'NumberInputList'
-  | 'ColorPicker';
+  | 'ColorPicker'
+  | 'DatePicker';
 
 export type SuccessResult = {
   type: 'Success';
