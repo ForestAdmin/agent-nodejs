@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.17.0...@forestadmin/forestadmin-client@1.18.0) (2023-09-15)
+
+
+### Features
+
+* support date picker in action form widgets ([#819](https://github.com/ForestAdmin/agent-nodejs/issues/819)) ([f7ead87](https://github.com/ForestAdmin/agent-nodejs/commit/f7ead87f6c4bc3970f07ec7c965725a4c40b4ad6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
 # @forestadmin/forestadmin-client [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.16.1...@forestadmin/forestadmin-client@1.17.0) (2023-09-12)
 
 
