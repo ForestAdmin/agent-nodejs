@@ -1,3 +1,21 @@
+## @forestadmin/datasource-sql [1.7.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.26...@forestadmin/datasource-sql@1.7.27) (2023-09-15)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.15
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
+## @forestadmin/datasource-sql [1.7.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.25...@forestadmin/datasource-sql@1.7.26) (2023-09-13)
+
+
+### Bug Fixes
+
+* **introspection:** handle sqlite datasources in broken relationship logger ([#811](https://github.com/ForestAdmin/agent-nodejs/issues/811)) ([78be39d](https://github.com/ForestAdmin/agent-nodejs/commit/78be39dc79e043d34684a9389d77f3dff4ce70b0))
+
 ## @forestadmin/datasource-sql [1.7.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.24...@forestadmin/datasource-sql@1.7.25) (2023-09-12)
 
 

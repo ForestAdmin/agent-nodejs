@@ -160,8 +160,8 @@ export default class GeneratorActionFieldWidget {
       parameters: {
         format: field.format || null,
         placeholder: field.placeholder || null,
-        minDate: field.min instanceof Date ? field.min.toDateString() : null,
-        maxDate: field.max instanceof Date ? field.max.toDateString() : null,
+        minDate: field.min instanceof Date ? field.min.toISOString() : null,
+        maxDate: field.max instanceof Date ? field.max.toISOString() : null,
       },
     };
   }

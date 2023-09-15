@@ -1,3 +1,32 @@
+# @forestadmin/datasource-customizer [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.2...@forestadmin/datasource-customizer@1.29.0) (2023-09-15)
+
+
+### Features
+
+* support date picker in action form widgets ([#819](https://github.com/ForestAdmin/agent-nodejs/issues/819)) ([f7ead87](https://github.com/ForestAdmin/agent-nodejs/commit/f7ead87f6c4bc3970f07ec7c965725a4c40b4ad6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
+## @forestadmin/datasource-customizer [1.28.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.1...@forestadmin/datasource-customizer@1.28.2) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** add hasFieldChanged function to handle change hook on this field ([#816](https://github.com/ForestAdmin/agent-nodejs/issues/816)) ([46bae6d](https://github.com/ForestAdmin/agent-nodejs/commit/46bae6d92d6fefe93b43a8a58ae6d7127fa3eacf))
+
+## @forestadmin/datasource-customizer [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.0...@forestadmin/datasource-customizer@1.28.1) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** fix smart action default value behavior ([#817](https://github.com/ForestAdmin/agent-nodejs/issues/817)) ([2f9c4c1](https://github.com/ForestAdmin/agent-nodejs/commit/2f9c4c1a967bd4b2189ff10c24d536f4124f37a1))
+
 # @forestadmin/datasource-customizer [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.27.1...@forestadmin/datasource-customizer@1.28.0) (2023-09-12)
 
 

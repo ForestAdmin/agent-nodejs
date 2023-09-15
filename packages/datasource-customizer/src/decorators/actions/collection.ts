@@ -67,7 +67,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[];
     dynamicFields = action.form.map(c => ({ ...c }));
-    dynamicFields = await this.dropDefaults(context, dynamicFields, !data, formValues);
+    dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 
     const fields = await this.dropDeferred(context, dynamicFields);
@@ -117,18 +117,16 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   private async dropDefaults(
     context: ActionContext,
     fields: DynamicField[],
-    isFirstCall: boolean,
     data: Record<string, unknown>,
   ): Promise<DynamicField[]> {
-    if (isFirstCall) {
-      const defaults = await Promise.all(
-        fields.map(field => this.evaluate(context, field.defaultValue)),
-      );
+    const unvaluedFields = fields.filter(field => data[field.label] === undefined);
+    const defaults = await Promise.all(
+      unvaluedFields.map(field => this.evaluate(context, field.defaultValue)),
+    );
 
-      fields.forEach((field, index) => {
-        data[field.label] = defaults[index];
-      });
-    }
+    unvaluedFields.forEach((field, index) => {
+      data[field.label] = defaults[index];
+    });
 
     fields.forEach(field => delete field.defaultValue);
 

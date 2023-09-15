@@ -212,7 +212,8 @@ export type ActionFieldWidget =
   | 'RichText'
   | 'NumberInput'
   | 'NumberInputList'
-  | 'ColorPicker';
+  | 'ColorPicker'
+  | 'DatePicker';
 
 export type SuccessResult = {
   type: 'Success';
