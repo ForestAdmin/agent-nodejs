@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.29.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.0...@forestadmin/datasource-customizer@1.29.1) (2023-09-18)
+
+
+### Bug Fixes
+
+* formValues type definition on action context ([#828](https://github.com/ForestAdmin/agent-nodejs/issues/828)) ([2659435](https://github.com/ForestAdmin/agent-nodejs/commit/26594353f99c03a974bb89d43561d6c4325d6414))
+
 # @forestadmin/datasource-customizer [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.2...@forestadmin/datasource-customizer@1.29.0) (2023-09-15)
 
 
