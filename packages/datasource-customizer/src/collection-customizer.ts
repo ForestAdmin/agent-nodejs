@@ -10,7 +10,8 @@ import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
 import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
-import { ComputedDefinition } from './decorators/computed/types';
+import { ComputedDefinition, DeprecatedComputedDefinition } from './decorators/computed/types';
+import mapDeprecated from './decorators/computed/utils/deprecation-map';
 import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
@@ -164,7 +165,16 @@ export default class CollectionCustomizer<
    *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
-  addField(name: string, definition: ComputedDefinition<S, N>): this {
+  addField: {
+    (name: string, definition: ComputedDefinition<S, N>): CollectionCustomizer<S, N>;
+    /** @deprecated
+     * Use 'Time' instead of 'Timeonly' as your columnType
+     * */
+    (name: string, definition: DeprecatedComputedDefinition<S, N>): CollectionCustomizer<S, N>;
+  } = (
+    name: string,
+    definition: DeprecatedComputedDefinition<S, N> | ComputedDefinition<S, N>,
+  ): this => {
     return this.pushCustomization(async () => {
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
@@ -180,9 +190,9 @@ export default class CollectionCustomizer<
         ? collectionBeforeRelations
         : collectionAfterRelations;
 
-      collection.registerComputed(name, definition as ComputedDefinition);
+      collection.registerComputed(name, mapDeprecated<S, N>(definition));
     });
-  }
+  };
 
   /**
    * Add a new validator to the edition form of a given field
