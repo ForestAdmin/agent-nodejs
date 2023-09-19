@@ -1,4 +1,11 @@
+import { ColumnType } from '@forestadmin/datasource-toolkit';
+
+import {
+  ComputedDefinition,
+  DeprecatedComputedDefinition,
+} from '../../../src/decorators/computed/types';
 import transformUniqueValues from '../../../src/decorators/computed/utils/deduplication';
+import mapDeprecated from '../../../src/decorators/computed/utils/deprecation-map';
 import {
   flatten,
   unflatten,
@@ -88,5 +95,48 @@ describe('deduplication', () => {
     expect(result).toEqual([2, null, 4, 4, null, 1332]);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith([1, 2, 666]);
+  });
+});
+
+describe('deprecation-map', () => {
+  describe('for deprecated columnType (Timeonly)', () => {
+    test('it should map the column type to a non deprecated and leave the rest', async () => {
+      const input = {
+        columnType: 'Timeonly',
+        dependencies: ['dep'],
+        getValues: records => records.map(() => 'abc'),
+      } as DeprecatedComputedDefinition;
+      expect(mapDeprecated(input)).toStrictEqual({
+        columnType: 'Time',
+        dependencies: ['dep'],
+        getValues: expect.any(Function),
+      });
+    });
+  });
+  describe.each([
+    'String',
+    'Binary',
+    'Boolean',
+    'Date',
+    'Dateonly',
+    'Enum',
+    'Json',
+    'Number',
+    'Point',
+    'Time',
+    'Uuid',
+  ] as ColumnType[])('for a non deprecated columnType %s', columnType => {
+    test('it should leave the definition as is', async () => {
+      const input = {
+        columnType,
+        dependencies: ['dep'],
+        getValues: records => records.map(() => 'abc'),
+      } as ComputedDefinition;
+      expect(mapDeprecated(input)).toStrictEqual({
+        columnType,
+        dependencies: ['dep'],
+        getValues: expect.any(Function),
+      });
+    });
   });
 });
