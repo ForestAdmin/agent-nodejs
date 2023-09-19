@@ -74,9 +74,11 @@ type DropdownDynamicFieldConfiguration<
 
 type DropdownDynamicSearchFieldConfiguration<Context = unknown, TValue = string> = {
   widget: 'Dropdown';
-  options: Handler<Context, DropdownOption<TValue>[]>;
+  options:
+    | ((context: Context, searchValue: string) => DropdownOption<TValue>[])
+    | ((context: Context, searchValue: string) => Promise<DropdownOption<TValue>[]>);
   placeholder?: string;
-  search?: 'dynamic';
+  search: 'dynamic';
 };
 
 type CheckboxDynamicFieldConfiguration = {
