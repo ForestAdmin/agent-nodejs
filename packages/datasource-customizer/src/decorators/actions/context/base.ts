@@ -17,7 +17,7 @@ export default class ActionContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends CollectionCustomizationContext<S, N> {
-  readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  readonly formValues: RecordData;
   readonly filter: TFilter<S, N>;
 
   private _changedField: string;
