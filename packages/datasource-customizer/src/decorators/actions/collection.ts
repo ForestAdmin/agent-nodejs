@@ -14,13 +14,7 @@ import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
-import {
-  DropdownOption,
-  DynamicField,
-  Handler,
-  SearchOptionsHandler,
-  ValueOrHandler,
-} from './types/fields';
+import { DynamicField, Handler, SearchOptionsHandler, ValueOrHandler } from './types/fields';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
@@ -191,6 +185,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return value;
   }
 
+  // eslint-disable-next-line @typescript-eslint/ban-types
   private isHandler(value: ValueOrHandler): value is Function {
     return typeof value === 'function';
   }
