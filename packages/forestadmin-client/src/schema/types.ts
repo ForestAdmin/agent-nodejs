@@ -156,7 +156,7 @@ export type ForestServerActionFieldRichTextOptions = {
 
 export type ForestServerActionFieldTimePickerOptions = {
   name: 'time editor';
-  parameters: {};
+  parameters: Record<string, never>;
 };
 
 export type ForestServerActionFieldNumberInputOptions = {
