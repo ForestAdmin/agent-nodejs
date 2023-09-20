@@ -9,9 +9,9 @@ type StrictUnionHelper<T, TAll> = T extends any
 // Source: https://stackoverflow.com/a/65805753
 type StrictUnion<T> = StrictUnionHelper<T, T>;
 
-type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
+export type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
 
-type Handler<Context = unknown, Result = unknown> =
+export type Handler<Context = unknown, Result = unknown> =
   | ((context: Context) => Promise<Result>)
   | ((context: Context) => Result);
 
@@ -71,12 +71,13 @@ type DropdownDynamicFieldConfiguration<
   placeholder?: string;
   search?: 'static' | 'disabled';
 };
+export type SearchOptionsHandler<Context = unknown, TValue = string> =
+  | ((context: Context, searchValue: string) => DropdownOption<TValue>[])
+  | ((context: Context, searchValue: string) => Promise<DropdownOption<TValue>[]>);
 
 type DropdownDynamicSearchFieldConfiguration<Context = unknown, TValue = string> = {
   widget: 'Dropdown';
-  options:
-    | ((context: Context, searchValue: string) => DropdownOption<TValue>[])
-    | ((context: Context, searchValue: string) => Promise<DropdownOption<TValue>[]>);
+  options: SearchOptionsHandler<Context, TValue>;
   placeholder?: string;
   search: 'dynamic';
 };

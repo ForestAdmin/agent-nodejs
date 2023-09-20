@@ -14,7 +14,13 @@ import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
-import { DynamicField, ValueOrHandler } from './types/fields';
+import {
+  DropdownOption,
+  DynamicField,
+  Handler,
+  SearchOptionsHandler,
+  ValueOrHandler,
+} from './types/fields';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
@@ -171,8 +177,27 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   private async evaluate<T>(
     context: ActionContext,
     searchValue: string | null,
-    value: ValueOrHandler,
-  ): Promise<T> {
-    return typeof value === 'function' ? value(context, searchValue) : value;
+    value: ValueOrHandler<ActionContext, T> | SearchOptionsHandler<ActionContext, T>,
+  ) {
+    if (this.isHandler(value)) {
+      // Only the options key of the dynamic search dropdown widget accept a searchValue
+      if (this.isSearchOptionsHandler<T>(value)) {
+        return value(context, searchValue);
+      }
+
+      return value(context);
+    }
+
+    return value;
+  }
+
+  private isHandler(value: ValueOrHandler): value is Function {
+    return typeof value === 'function';
+  }
+
+  private isSearchOptionsHandler<T>(
+    value: Handler<ActionContext, T> | SearchOptionsHandler<ActionContext, T>,
+  ): value is SearchOptionsHandler<ActionContext, T> {
+    return value.name === 'options';
   }
 }
