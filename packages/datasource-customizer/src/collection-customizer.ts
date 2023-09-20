@@ -11,7 +11,7 @@ import { ActionDefinition } from './decorators/actions/types/actions';
 import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition, DeprecatedComputedDefinition } from './decorators/computed/types';
-import mapDeprecated from './decorators/computed/utils/deprecation-map';
+import mapDeprecated from './decorators/computed/utils/map-deprecated';
 import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';

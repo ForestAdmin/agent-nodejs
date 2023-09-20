@@ -5,12 +5,12 @@ import {
   DeprecatedComputedDefinition,
 } from '../../../src/decorators/computed/types';
 import transformUniqueValues from '../../../src/decorators/computed/utils/deduplication';
-import mapDeprecated from '../../../src/decorators/computed/utils/deprecation-map';
 import {
   flatten,
   unflatten,
   withNullMarkers,
 } from '../../../src/decorators/computed/utils/flattener';
+import mapDeprecated from '../../../src/decorators/computed/utils/map-deprecated';
 
 describe('flattener', () => {
   test('unflatten simple case', () => {
