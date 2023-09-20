@@ -252,6 +252,7 @@ export default class GeneratorActionFieldWidget {
   private static buildTimePickerWidgetEdit(): ForestServerActionFieldTimePickerOptions {
     return {
       name: 'time editor',
+      parameters: {},
     };
   }
 
