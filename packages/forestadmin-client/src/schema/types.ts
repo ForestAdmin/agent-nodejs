@@ -203,7 +203,7 @@ export type ForestServerActionFieldCurrencyInputOptions = {
 
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
-      'String' | 'Dateonly' | 'Date' | 'Timeonly',
+      'String' | 'Dateonly' | 'Date' | 'Time',
       ForestServerActionFieldDropdownOptions<string>
     >
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldDropdownOptions<string[]>>
@@ -211,7 +211,7 @@ export type ForestServerActionFieldDropdown =
 
 export type ForestServerActionFieldRadioGroup =
   | ForestServerActionFieldCommon<
-      'String' | 'Dateonly' | 'Date' | 'Timeonly',
+      'String' | 'Dateonly' | 'Date' | 'Time',
       ForestServerActionFieldRadioButtonOptions<string>
     >
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldRadioButtonOptions<number>>;

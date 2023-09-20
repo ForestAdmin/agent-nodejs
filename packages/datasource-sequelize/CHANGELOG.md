@@ -1,3 +1,18 @@
+## @forestadmin/datasource-sequelize [1.5.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.15...@forestadmin/datasource-sequelize@1.5.16) (2023-09-20)
+
+
+### Bug Fixes
+
+* deprecate timeonly custom field type and map it to time ([#827](https://github.com/ForestAdmin/agent-nodejs/issues/827)) ([0311f7d](https://github.com/ForestAdmin/agent-nodejs/commit/0311f7d8367abc4cd9aed7f73c8bbe09dc203821))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.1
+
 ## @forestadmin/datasource-sequelize [1.5.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.14...@forestadmin/datasource-sequelize@1.5.15) (2023-09-15)
 
 

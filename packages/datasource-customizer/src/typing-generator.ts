@@ -179,7 +179,7 @@ export default class TypingGenerator {
         Number: 'number',
         Point: '[number, number]',
         String: 'string',
-        Timeonly: 'string',
+        Time: 'string',
         Uuid: 'string',
       }[field.columnType];
     }
