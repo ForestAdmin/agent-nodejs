@@ -364,7 +364,7 @@ describe('ActionDecorator', () => {
     });
   });
 
-  describe('chnagedField', () => {
+  describe('changedField', () => {
     test(`should log warning on changedField usage`, async () => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',
