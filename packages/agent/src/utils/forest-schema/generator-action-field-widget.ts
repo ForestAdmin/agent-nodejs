@@ -4,7 +4,6 @@ import {
   ActionFieldColorPicker,
   ActionFieldCurrencyInput,
   ActionFieldDropdownAll,
-  ActionFieldJsonEditor,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll,
