@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.18.1...@forestadmin/forestadmin-client@1.19.0) (2023-09-21)
+
+
+### Features
+
+* dynamic search support for dropdown widget in smart action forms ([#810](https://github.com/ForestAdmin/agent-nodejs/issues/810)) ([92460a8](https://github.com/ForestAdmin/agent-nodejs/commit/92460a86fb4504047d35203440cc9a5e96af599b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.23.0
+
 ## @forestadmin/forestadmin-client [1.18.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.18.0...@forestadmin/forestadmin-client@1.18.1) (2023-09-20)
 
 
