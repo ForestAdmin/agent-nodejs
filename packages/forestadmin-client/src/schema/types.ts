@@ -197,6 +197,13 @@ export type ForestServerActionFieldCurrencyInputOptions = {
   };
 };
 
+export type ForestServerActionFieldUserDropdown = {
+  name: 'assignee editor';
+  parameters: {
+    placeholder?: string | null;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Time',
@@ -226,6 +233,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Date', ForestServerActionFieldDatePickerInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldUserDropdown>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>

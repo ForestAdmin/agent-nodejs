@@ -17,6 +17,7 @@ import {
   ActionFieldTextArea,
   ActionFieldTextInput,
   ActionFieldTextInputList,
+  ActionFieldUserDropdown,
 } from '@forestadmin/datasource-toolkit';
 
 export default class ActionFields {
@@ -120,6 +121,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldCurrencyInput {
     return (field as ActionFieldCurrencyInput)?.widget === 'CurrencyInput';
+  }
+
+  public static isUserDropdownField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldUserDropdown {
+    return (field as ActionFieldUserDropdown)?.widget === 'UserDropdown';
   }
 
   // Other types to be added here in the future ⤵

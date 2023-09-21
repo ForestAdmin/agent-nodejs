@@ -162,6 +162,12 @@ export type ActionFieldCurrencyInput = ActionFieldBase & {
   base?: 'Unit' | 'Cent';
 };
 
+export type ActionFieldUserDropdown = ActionFieldBase & {
+  type: 'String';
+  widget: 'UserDropdown';
+  placeholder?: string;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number' | 'NumberList', number>;
@@ -192,6 +198,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInputList
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
+  | ActionFieldUserDropdown
 >;
 
 export type ActionFieldWidget =
