@@ -77,7 +77,7 @@ export default class GeneratorActionFieldWidget {
       return GeneratorActionFieldWidget.buildCurrencyInputWidgetEdit(field);
 
     if (ActionFields.isJsonEditorField(field))
-      return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit(field);
+      return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit();
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -281,9 +281,7 @@ export default class GeneratorActionFieldWidget {
     return ![null, undefined].includes(value) && !Number.isNaN(Number(value));
   }
 
-  private static buildJsonEditorWidgetEdit(
-    field: ActionFieldJsonEditor,
-  ): ForestServerActionFieldJsonEditorOptions {
+  private static buildJsonEditorWidgetEdit(): ForestServerActionFieldJsonEditorOptions {
     return {
       name: 'json code editor',
       parameters: {},
