@@ -319,6 +319,50 @@ describe('ActionDecorator', () => {
       });
     },
   );
+  describe('searchField', () => {
+    test(`it should pass and use the context and searchField in the options handler`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: () => {},
+        form: [
+          {
+            label: 'default',
+            type: 'String',
+            defaultValue: 'hello',
+            value: 'hello',
+          },
+          {
+            label: 'dynamic search',
+            type: 'String',
+            widget: 'Dropdown',
+            search: 'dynamic',
+            options: (context, searchValue) => {
+              return [searchValue, context.caller.email];
+            },
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        {},
+        undefined,
+        { changedField: '', searchField: 'dynamic search', searchValue: '123' },
+      );
+      expect(fields).toStrictEqual([
+        {
+          label: 'dynamic search',
+          type: 'String',
+          options: expect.arrayContaining(['123', 'user@domain.com']),
+          search: 'dynamic',
+          value: undefined,
+          watchChanges: false,
+          widget: 'Dropdown',
+        },
+      ]);
+    });
+  });
 
   describe('chnagedField', () => {
     test(`should log warning on changedField usage`, async () => {
