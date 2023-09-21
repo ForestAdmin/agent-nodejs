@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.2...@forestadmin/datasource-customizer@1.30.0) (2023-09-21)
+
+
+### Features
+
+* dynamic search support for dropdown widget in smart action forms ([#810](https://github.com/ForestAdmin/agent-nodejs/issues/810)) ([92460a8](https://github.com/ForestAdmin/agent-nodejs/commit/92460a86fb4504047d35203440cc9a5e96af599b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.23.0
+
 ## @forestadmin/datasource-customizer [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.1...@forestadmin/datasource-customizer@1.29.2) (2023-09-20)
 
 
