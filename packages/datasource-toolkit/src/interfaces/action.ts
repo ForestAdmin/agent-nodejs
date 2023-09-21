@@ -162,6 +162,11 @@ export type ActionFieldCurrencyInput = ActionFieldBase & {
   base?: 'Unit' | 'Cent';
 };
 
+export type ActionFieldJsonEditor = ActionFieldBase & {
+  type: 'Json';
+  widget: 'JsonEditor';
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number' | 'NumberList', number>;
@@ -192,6 +197,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInputList
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
+  | ActionFieldJsonEditor
 >;
 
 export type ActionFieldWidget =
@@ -206,7 +212,8 @@ export type ActionFieldWidget =
   | 'NumberInput'
   | 'NumberInputList'
   | 'ColorPicker'
-  | 'DatePicker';
+  | 'DatePicker'
+  | 'JsonEditor';
 
 export type SuccessResult = {
   type: 'Success';
