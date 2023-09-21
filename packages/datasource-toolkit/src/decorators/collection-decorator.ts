@@ -69,7 +69,7 @@ export default class CollectionDecorator implements Collection {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: { changedField: string },
+    metas?: { changedField: string; searchValue: string; searchField: string },
   ): Promise<ActionField[]> {
     const refinedFilter = await this.refineFilter(caller, filter);
 

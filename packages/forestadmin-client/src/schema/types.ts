@@ -98,6 +98,7 @@ export type ForestServerActionFieldDropdownOptions<TValue = string> =
     {
       placeholder?: string | null;
       isSearchable?: boolean;
+      searchType?: 'dynamic';
     }
   >;
 

@@ -62,7 +62,7 @@ export type ActionFieldDropdown<
   TValue = unknown,
 > = ActionFieldBase &
   ActionFieldLimitedValue<'Dropdown', TType, TValue> & {
-    search?: 'static' | 'disabled';
+    search?: 'static' | 'disabled' | 'dynamic';
     placeholder?: string;
   };
 
