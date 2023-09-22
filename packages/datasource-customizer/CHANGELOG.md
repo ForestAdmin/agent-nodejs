@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.30.0...@forestadmin/datasource-customizer@1.31.0) (2023-09-22)
+
+
+### Features
+
+* **widgets:** add support for the json editor widget in actions ([#830](https://github.com/ForestAdmin/agent-nodejs/issues/830)) ([cbd2661](https://github.com/ForestAdmin/agent-nodejs/commit/cbd26616af62846d54a596ce14fe972b8df73bab))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.24.0
+
 # @forestadmin/datasource-customizer [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.2...@forestadmin/datasource-customizer@1.30.0) (2023-09-21)
 
 
