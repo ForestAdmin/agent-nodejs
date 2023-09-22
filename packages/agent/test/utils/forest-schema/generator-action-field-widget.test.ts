@@ -833,6 +833,23 @@ describe('GeneratorActionFieldWidget', () => {
         });
       });
     });
+
+    describe('JsonEditor', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Json',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'JsonEditor',
+        });
+
+        expect(result).toEqual({
+          name: 'json code editor',
+          parameters: {},
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

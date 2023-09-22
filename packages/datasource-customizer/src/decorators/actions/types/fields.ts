@@ -153,6 +153,10 @@ type CurrencyInputFieldConfiguration<Context> = {
   step?: ValueOrHandler<Context, number>;
 };
 
+type JsonEditorFieldConfiguration = {
+  widget: 'JsonEditor';
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -172,6 +176,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | FileDynamicField<Context>
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
+  | (JsonDynamicField<Context> & JsonEditorFieldConfiguration)
   | NumberDynamicField<Context>
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
