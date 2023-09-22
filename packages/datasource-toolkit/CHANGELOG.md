@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.23.0...@forestadmin/datasource-toolkit@1.24.0) (2023-09-22)
+
+
+### Features
+
+* **widgets:** add support for the json editor widget in actions ([#830](https://github.com/ForestAdmin/agent-nodejs/issues/830)) ([cbd2661](https://github.com/ForestAdmin/agent-nodejs/commit/cbd26616af62846d54a596ce14fe972b8df73bab))
+
 # @forestadmin/datasource-toolkit [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.22.1...@forestadmin/datasource-toolkit@1.23.0) (2023-09-21)
 
 
