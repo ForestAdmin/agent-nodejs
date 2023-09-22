@@ -1,7 +1,9 @@
 import {
+  Aggregation,
   Caller,
   CollectionUtils,
   CompositeId,
+  ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Filter,
@@ -94,15 +96,21 @@ export default class UpdateRelation extends RelationRoute {
       relation.originKeyTarget,
     );
 
-    // Break old relation (may update zero or one records).
-    const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
-    await this.foreignCollection.update(
-      caller,
-      new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope) }),
-      { [relation.originKey]: null },
-    );
+    await this.breakOldOneToOneRelationship(scope, relation, originValue, linkedId, caller);
 
-    // Create new relation (will update exactly one record).
+    await this.createNewOneToOneRelationship(scope, relation, originValue, linkedId, caller);
+  }
+
+  /**
+   * Create new relation (will update exactly one record).
+   */
+  private async createNewOneToOneRelationship(
+    scope: ConditionTree,
+    relation: OneToOneSchema,
+    originValue: unknown,
+    linkedId: CompositeId,
+    caller: Caller,
+  ) {
     if (linkedId) {
       const newFkOwner = ConditionTreeFactory.matchIds(this.foreignCollection.schema, [linkedId]);
       await this.foreignCollection.update(
@@ -110,6 +118,44 @@ export default class UpdateRelation extends RelationRoute {
         new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
         { [relation.originKey]: originValue },
       );
+    }
+  }
+
+  /**
+   * Break old relation (may update zero or one records).
+   */
+  async breakOldOneToOneRelationship(
+    scope: ConditionTree,
+    relation: OneToOneSchema,
+    originValue: unknown,
+    linkedId: CompositeId,
+    caller: Caller,
+  ): Promise<void> {
+    const oldFkOwnerToRemoveFilter = new Filter({
+      conditionTree: ConditionTreeFactory.intersect(
+        new ConditionTreeLeaf(relation.originKey, 'Equal', originValue),
+        // Don't set the new record's field to null
+        // if it's already initialized with the right value
+        ...(linkedId
+          ? [ConditionTreeFactory.matchIds(this.foreignCollection.schema, [linkedId]).inverse()]
+          : []),
+        scope,
+      ),
+    });
+
+    const [count] = await this.foreignCollection.aggregate(
+      caller,
+      oldFkOwnerToRemoveFilter,
+      new Aggregation({ operation: 'Count' }),
+      1,
+    );
+
+    if (count.value > 0) {
+      // Avoids updating records to null if it's not authorized by the ORM
+      // and if there is no record to update (the filter returns no record)
+      await this.foreignCollection.update(caller, oldFkOwnerToRemoveFilter, {
+        [relation.originKey]: null,
+      });
     }
   }
 }
