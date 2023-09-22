@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.31.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.31.0...@forestadmin/agent@1.31.1) (2023-09-22)
+
+
+### Bug Fixes
+
+* create records with a hasOne relationship and a notNull constraint without error ([#826](https://github.com/ForestAdmin/agent-nodejs/issues/826)) ([32457b7](https://github.com/ForestAdmin/agent-nodejs/commit/32457b77a43612ed3164a5e8b0498e09f1bad607))
+
 # @forestadmin/agent [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.30.0...@forestadmin/agent@1.31.0) (2023-09-22)
 
 
