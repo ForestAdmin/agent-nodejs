@@ -167,6 +167,12 @@ export type ActionFieldJsonEditor = ActionFieldBase & {
   widget: 'JsonEditor';
 };
 
+export type ActionFieldAddressPicker = ActionFieldBase & {
+  type: 'String';
+  widget: 'AddressPicker';
+  placeholder?: string;
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number' | 'NumberList', number>;
@@ -198,6 +204,7 @@ export type ActionField = StrictUnion<
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
   | ActionFieldJsonEditor
+  | ActionFieldAddressPicker
 >;
 
 export type ActionFieldWidget =
@@ -213,7 +220,8 @@ export type ActionFieldWidget =
   | 'NumberInputList'
   | 'ColorPicker'
   | 'DatePicker'
-  | 'JsonEditor';
+  | 'JsonEditor'
+  | 'AddressPicker';
 
 export type SuccessResult = {
   type: 'Success';

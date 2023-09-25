@@ -157,6 +157,11 @@ type JsonEditorFieldConfiguration = {
   widget: 'JsonEditor';
 };
 
+type AddressPickerFieldConfiguration = {
+  widget: 'AddressPicker';
+  placeholder?: string;
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -197,6 +202,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
+  | (StringDynamicField<Context> & AddressPickerFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)

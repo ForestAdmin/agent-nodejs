@@ -1,5 +1,6 @@
 import {
   ActionField,
+  ActionFieldAddressPicker,
   ActionFieldCheckboxGroupAll,
   ActionFieldColorPicker,
   ActionFieldCurrencyInput,
@@ -13,6 +14,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerActionField,
+  ForestServerActionFieldAddressPickerOptions,
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldColorPickerOptions,
@@ -77,6 +79,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isJsonEditorField(field))
       return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit();
+
+    if (ActionFields.isAddressPickerField(field))
+      return GeneratorActionFieldWidget.buildAddressPickerWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -284,6 +289,17 @@ export default class GeneratorActionFieldWidget {
     return {
       name: 'json code editor',
       parameters: {},
+    };
+  }
+
+  private static buildAddressPickerWidgetEdit(
+    field: ActionFieldAddressPicker,
+  ): ForestServerActionFieldAddressPickerOptions {
+    return {
+      name: 'address editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+      },
     };
   }
 }

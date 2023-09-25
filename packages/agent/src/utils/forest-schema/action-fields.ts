@@ -1,5 +1,6 @@
 import {
   ActionField,
+  ActionFieldAddressPicker,
   ActionFieldCheckbox,
   ActionFieldCheckboxGroupAll,
   ActionFieldCollection,
@@ -127,6 +128,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldJsonEditor {
     return (field as ActionField)?.widget === 'JsonEditor';
+  }
+
+  public static isAddressPickerField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldAddressPicker {
+    return (field as ActionField)?.widget === 'AddressPicker';
   }
 
   // Other types to be added here in the future ⤵

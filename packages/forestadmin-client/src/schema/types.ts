@@ -120,6 +120,13 @@ export type ForestServerActionFieldTextInputOptions = {
   };
 };
 
+export type ForestServerActionFieldAddressPickerOptions = {
+  name: 'address editor';
+  parameters: {
+    placeholder?: string | null;
+  };
+};
+
 export type ForestServerActionFieldDatePickerInputOptions = {
   name: 'date editor';
   parameters: {
@@ -237,7 +244,8 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>
-  | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>;
+  | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldAddressPickerOptions>;
 
 export type ForestServerField = Partial<{
   field: string;
