@@ -10,6 +10,7 @@ import {
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
+  ActionFieldJsonEditor,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll as ActionFieldRadioGroupAll,
@@ -127,6 +128,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldUserDropdown {
     return (field as ActionFieldUserDropdown)?.widget === 'UserDropdown';
+  }
+
+  public static isJsonEditorField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldJsonEditor {
+    return (field as ActionField)?.widget === 'JsonEditor';
   }
 
   // Other types to be added here in the future ⤵

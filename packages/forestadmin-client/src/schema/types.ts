@@ -98,6 +98,7 @@ export type ForestServerActionFieldDropdownOptions<TValue = string> =
     {
       placeholder?: string | null;
       isSearchable?: boolean;
+      searchType?: 'dynamic';
     }
   >;
 
@@ -204,6 +205,11 @@ export type ForestServerActionFieldUserDropdown = {
   };
 };
 
+export type ForestServerActionFieldJsonEditorOptions = {
+  name: 'json code editor';
+  parameters: Record<string, never>;
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Time',
@@ -238,7 +244,8 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
-  | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>;
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>
+  | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>;
 
 export type ForestServerField = Partial<{
   field: string;

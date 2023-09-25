@@ -508,6 +508,36 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isJsonEditorField', () => {
+    it('should return true if the field is a json editor', () => {
+      const result = ActionFields.isJsonEditorField({
+        type: 'Json',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'JsonEditor',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a json editor', () => {
+      const result = ActionFields.isJsonEditorField({
+        type: 'Json',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown' as any,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isJsonEditorField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('isUserDropdownField', () => {
     it('should return true if the field is a currency input', () => {
       const result = ActionFields.isUserDropdownField({

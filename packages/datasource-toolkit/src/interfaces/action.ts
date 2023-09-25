@@ -62,7 +62,7 @@ export type ActionFieldDropdown<
   TValue = unknown,
 > = ActionFieldBase &
   ActionFieldLimitedValue<'Dropdown', TType, TValue> & {
-    search?: 'static' | 'disabled';
+    search?: 'static' | 'disabled' | 'dynamic';
     placeholder?: string;
   };
 
@@ -168,6 +168,11 @@ export type ActionFieldUserDropdown = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldJsonEditor = ActionFieldBase & {
+  type: 'Json';
+  widget: 'JsonEditor';
+};
+
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
   | ActionFieldDropdown<'Number' | 'NumberList', number>;
@@ -199,6 +204,7 @@ export type ActionField = StrictUnion<
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
   | ActionFieldUserDropdown
+  | ActionFieldJsonEditor
 >;
 
 export type ActionFieldWidget =
@@ -209,11 +215,14 @@ export type ActionFieldWidget =
   | 'TextInput'
   | 'TextInputList'
   | 'TextArea'
+  | 'Timepicker'
   | 'RichText'
   | 'NumberInput'
   | 'NumberInputList'
   | 'ColorPicker'
-  | 'DatePicker';
+  | 'DatePicker'
+  | 'UserDropdown'
+  | 'JsonEditor';
 
 export type SuccessResult = {
   type: 'Success';

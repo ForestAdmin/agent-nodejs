@@ -20,6 +20,7 @@ import {
   ForestServerActionFieldCurrencyInputOptions,
   ForestServerActionFieldDatePickerInputOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldJsonEditorOptions,
   ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
   ForestServerActionFieldRadioButtonOptions,
@@ -79,25 +80,23 @@ export default class GeneratorActionFieldWidget {
     if (ActionFields.isUserDropdownField(field))
       return GeneratorActionFieldWidget.buildUserDropdownWidgetEdit(field);
 
+    if (ActionFields.isJsonEditorField(field))
+      return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit();
+
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
 
-  private static buildDropdownWidgetEdit(
-    field: ActionFieldDropdownAll,
-  ):
-    | ForestServerActionFieldDropdownOptions<string>
-    | ForestServerActionFieldDropdownOptions<number> {
+  private static buildDropdownWidgetEdit(field: ActionFieldDropdownAll) {
     return {
       name: 'dropdown',
       parameters: {
-        isSearchable: field.search === 'static',
+        searchType: field.search === 'dynamic' ? 'dynamic' : null,
+        isSearchable: ['static', 'dynamic'].includes(field.search),
         placeholder: field.placeholder || null,
-        static: {
-          options: field.options || [],
-        },
+        static: { options: field.options || [] },
       },
     } as
-      | ForestServerActionFieldDropdownOptions<number>
+      | ForestServerActionFieldDropdownOptions<string>
       | ForestServerActionFieldDropdownOptions<number>;
   }
 
@@ -295,5 +294,12 @@ export default class GeneratorActionFieldWidget {
 
   private static isValidNumber(value: unknown): boolean {
     return ![null, undefined].includes(value) && !Number.isNaN(Number(value));
+  }
+
+  private static buildJsonEditorWidgetEdit(): ForestServerActionFieldJsonEditorOptions {
+    return {
+      name: 'json code editor',
+      parameters: {},
+    };
   }
 }
