@@ -23,7 +23,7 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
 type BaseDynamicField<Type, Context, Result> = {
   type: Type;
   label: string;
-  description?: string;
+  description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
   if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
