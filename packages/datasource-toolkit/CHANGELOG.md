@@ -1,3 +1,17 @@
+# @forestadmin/datasource-toolkit [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.23.0...@forestadmin/datasource-toolkit@1.24.0) (2023-09-22)
+
+
+### Features
+
+* **widgets:** add support for the json editor widget in actions ([#830](https://github.com/ForestAdmin/agent-nodejs/issues/830)) ([cbd2661](https://github.com/ForestAdmin/agent-nodejs/commit/cbd26616af62846d54a596ce14fe972b8df73bab))
+
+# @forestadmin/datasource-toolkit [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.22.1...@forestadmin/datasource-toolkit@1.23.0) (2023-09-21)
+
+
+### Features
+
+* dynamic search support for dropdown widget in smart action forms ([#810](https://github.com/ForestAdmin/agent-nodejs/issues/810)) ([92460a8](https://github.com/ForestAdmin/agent-nodejs/commit/92460a86fb4504047d35203440cc9a5e96af599b))
+
 ## @forestadmin/datasource-toolkit [1.22.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.22.0...@forestadmin/datasource-toolkit@1.22.1) (2023-09-20)
 
 

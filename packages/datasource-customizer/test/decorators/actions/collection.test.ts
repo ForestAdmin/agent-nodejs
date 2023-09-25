@@ -243,6 +243,49 @@ describe('ActionDecorator', () => {
       ]);
     });
   });
+  describe('with single action with search hook', () => {
+    beforeEach(() => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'firstname',
+            type: 'String',
+            defaultValue: () => 'DynamicDefault',
+          },
+          {
+            label: 'lastname',
+            type: 'String',
+            isReadOnly: context => !!context.formValues.firstname,
+          },
+        ],
+      });
+    });
+    test('should only return the field matching the searchField', async () => {
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        undefined,
+        undefined,
+        {
+          changedField: 'toto',
+          searchField: 'firstname',
+          searchValue: 'first',
+        },
+      );
+      expect(fields).toEqual([
+        {
+          label: 'firstname',
+          type: 'String',
+          value: 'DynamicDefault',
+          watchChanges: false,
+        },
+      ]);
+    });
+  });
 
   describe.each(['Single', 'Bulk', 'Global'])(
     'with a %s action with a async dynamic form',
@@ -276,8 +319,52 @@ describe('ActionDecorator', () => {
       });
     },
   );
+  describe('searchField', () => {
+    test(`it should pass and use the context and searchField in the options handler`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: () => {},
+        form: [
+          {
+            label: 'default',
+            type: 'String',
+            defaultValue: 'hello',
+            value: 'hello',
+          },
+          {
+            label: 'dynamic search',
+            type: 'String',
+            widget: 'Dropdown',
+            search: 'dynamic',
+            options: (context, searchValue) => {
+              return [searchValue, context.caller.email];
+            },
+          },
+        ],
+      });
 
-  describe('chnagedField', () => {
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        {},
+        undefined,
+        { changedField: '', searchField: 'dynamic search', searchValue: '123' },
+      );
+      expect(fields).toStrictEqual([
+        {
+          label: 'dynamic search',
+          type: 'String',
+          options: expect.arrayContaining(['123', 'user@domain.com']),
+          search: 'dynamic',
+          value: undefined,
+          watchChanges: false,
+          widget: 'Dropdown',
+        },
+      ]);
+    });
+  });
+
+  describe('changedField', () => {
     test(`should log warning on changedField usage`, async () => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',

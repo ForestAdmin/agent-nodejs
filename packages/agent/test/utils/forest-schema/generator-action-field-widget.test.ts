@@ -69,12 +69,36 @@ describe('GeneratorActionFieldWidget', () => {
           name: 'dropdown',
           parameters: {
             isSearchable: true,
+            searchType: null,
             placeholder: 'Placeholder',
             static: {
               options: [
                 { value: 'value1', label: 'Value 1' },
                 { value: 'value2', label: 'Value 2' },
               ],
+            },
+          },
+        });
+      });
+      it('should include the searchType="dynamic"', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'Dropdown',
+          options: ['1', '2'],
+          search: 'dynamic',
+          placeholder: 'Placeholder',
+        });
+
+        expect(result).toEqual({
+          name: 'dropdown',
+          parameters: {
+            isSearchable: true,
+            searchType: 'dynamic',
+            placeholder: 'Placeholder',
+            static: {
+              options: ['1', '2'],
             },
           },
         });
@@ -92,6 +116,7 @@ describe('GeneratorActionFieldWidget', () => {
           name: 'dropdown',
           parameters: {
             isSearchable: false,
+            searchType: null,
             placeholder: null,
             static: {
               options: [],
@@ -823,6 +848,23 @@ describe('GeneratorActionFieldWidget', () => {
         });
       });
     });
+
+    describe('JsonEditor', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Json',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'JsonEditor',
+        });
+
+        expect(result).toEqual({
+          name: 'json code editor',
+          parameters: {},
+        });
+      });
+    });
+
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

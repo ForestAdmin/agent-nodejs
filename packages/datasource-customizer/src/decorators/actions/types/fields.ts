@@ -9,11 +9,14 @@ type StrictUnionHelper<T, TAll> = T extends any
 // Source: https://stackoverflow.com/a/65805753
 type StrictUnion<T> = StrictUnionHelper<T, T>;
 
-type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
+export type DropdownOption<TValue = string> = { value: TValue | null; label: string } | TValue;
+
+export type Handler<Context = unknown, Result = unknown> =
+  | ((context: Context) => Promise<Result>)
+  | ((context: Context) => Result);
 
 export type ValueOrHandler<Context = unknown, Result = unknown> =
-  | ((context: Context) => Promise<Result>)
-  | ((context: Context) => Result)
+  | Handler<Context, Result>
   | Promise<Result>
   | Result;
 
@@ -70,6 +73,16 @@ type DropdownDynamicFieldConfiguration<
 > = LimitedValueDynamicFieldConfiguration<Context, 'Dropdown', TValue> & {
   placeholder?: string;
   search?: 'static' | 'disabled';
+};
+export type SearchOptionsHandler<Context = unknown, TValue = string> =
+  | ((context: Context, searchValue: string) => DropdownOption<TValue>[])
+  | ((context: Context, searchValue: string) => Promise<DropdownOption<TValue>[]>);
+
+type DropdownDynamicSearchFieldConfiguration<Context = unknown, TValue = string> = {
+  widget: 'Dropdown';
+  options: SearchOptionsHandler<Context, TValue>;
+  placeholder?: string;
+  search: 'dynamic';
 };
 
 type CheckboxDynamicFieldConfiguration = {
@@ -143,6 +156,10 @@ type CurrencyInputFieldConfiguration<Context> = {
   step?: ValueOrHandler<Context, number>;
 };
 
+type JsonEditorFieldConfiguration = {
+  widget: 'JsonEditor';
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -162,26 +179,31 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | FileDynamicField<Context>
   | FileListDynamicField<Context>
   | JsonDynamicField<Context>
+  | (JsonDynamicField<Context> & JsonEditorFieldConfiguration)
   | NumberDynamicField<Context>
   | TimeDynamicField<Context>
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & RadioButtonFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & CurrencyInputFieldConfiguration<Context>)
   | NumberListDynamicField<Context>
   | (NumberListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
+  | (NumberListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & CheckboxesFieldConfiguration<Context, number>)
   | (NumberListDynamicField<Context> & ArrayNumberInputFieldConfiguration<Context>)
   | StringDynamicField<Context>
   | (DateDynamicField<Context> & DatePickerInputFieldConfiguration<Context>)
   | (StringDynamicField<Context> & TextInputFieldConfiguration)
   | (StringDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & RadioButtonFieldConfiguration<Context, string>)
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
+  | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
 >;

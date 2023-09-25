@@ -22,6 +22,8 @@ export interface SmartActionHookRequestBody extends SmartActionRequestBody {
   data: SmartActionRequestBody['data'] & {
     attributes: SmartActionRequestBody['data']['attributes'] & {
       changed_field: string;
+      search_field: string;
+      search_value: string;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fields: any[];
     };

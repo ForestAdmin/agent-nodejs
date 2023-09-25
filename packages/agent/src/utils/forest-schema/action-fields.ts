@@ -10,6 +10,7 @@ import {
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
+  ActionFieldJsonEditor,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll as ActionFieldRadioGroupAll,
@@ -121,6 +122,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldCurrencyInput {
     return (field as ActionFieldCurrencyInput)?.widget === 'CurrencyInput';
+  }
+
+  public static isJsonEditorField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldJsonEditor {
+    return (field as ActionField)?.widget === 'JsonEditor';
   }
 
   public static isTimePicker(

@@ -14,7 +14,7 @@ import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
-import { DynamicField, ValueOrHandler } from './types/fields';
+import { DynamicField, Handler, SearchOptionsHandler, ValueOrHandler } from './types/fields';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
@@ -54,7 +54,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: { changedField: string },
+    metas?: { changedField: string; searchField?: string; searchValue?: string },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
@@ -66,11 +66,15 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[];
-    dynamicFields = action.form.map(c => ({ ...c }));
+
+    dynamicFields = action.form
+      .map(c => ({ ...c }))
+      .filter(field => [undefined, field.label].includes(metas?.searchField)); // in the case of
+    // a search hook, we don't want to rebuild all the fields. only the one searched
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 
-    const fields = await this.dropDeferred(context, dynamicFields);
+    const fields = await this.dropDeferred(context, metas?.searchValue, dynamicFields);
 
     for (const field of fields) {
       // customer did not define a handler to rewrite the previous value => reuse current one.
@@ -121,7 +125,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   ): Promise<DynamicField[]> {
     const unvaluedFields = fields.filter(field => data[field.label] === undefined);
     const defaults = await Promise.all(
-      unvaluedFields.map(field => this.evaluate(context, field.defaultValue)),
+      unvaluedFields.map(field => this.evaluate(context, null, field.defaultValue)),
     );
 
     unvaluedFields.forEach((field, index) => {
@@ -136,7 +140,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   private async dropIfs(context: ActionContext, fields: DynamicField[]): Promise<DynamicField[]> {
     // Remove fields which have falsy if
     const ifValues = await Promise.all(
-      fields.map(field => !field.if || this.evaluate(context, field.if)),
+      fields.map(field => !field.if || this.evaluate(context, null, field.if)),
     );
     const newFields = fields.filter((_, index) => ifValues[index]);
     newFields.forEach(field => delete field.if);
@@ -146,12 +150,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private async dropDeferred(
     context: ActionContext,
+    searchValue: string | null,
     fields: DynamicField[],
   ): Promise<ActionField[]> {
     const newFields = fields.map(async (field): Promise<ActionField> => {
       const keys = Object.keys(field);
       const values = await Promise.all(
-        Object.values(field).map(value => this.evaluate(context, value)),
+        Object.values(field).map(value => this.evaluate(context, searchValue, value)),
       );
 
       return keys.reduce<ActionField>(
@@ -163,7 +168,31 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return Promise.all(newFields);
   }
 
-  private async evaluate<T>(context: ActionContext, value: ValueOrHandler): Promise<T> {
-    return typeof value === 'function' ? value(context) : value;
+  private async evaluate<T>(
+    context: ActionContext,
+    searchValue: string | null,
+    value: ValueOrHandler<ActionContext, T> | SearchOptionsHandler<ActionContext, T>,
+  ) {
+    if (this.isHandler(value)) {
+      // Only the options key of the dynamic search dropdown widget accept a searchValue
+      if (this.isSearchOptionsHandler<T>(value)) {
+        return value(context, searchValue);
+      }
+
+      return value(context);
+    }
+
+    return value;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private isHandler(value: ValueOrHandler): value is Function {
+    return typeof value === 'function';
+  }
+
+  private isSearchOptionsHandler<T>(
+    value: Handler<ActionContext, T> | SearchOptionsHandler<ActionContext, T>,
+  ): value is SearchOptionsHandler<ActionContext, T> {
+    return value.name === 'options';
   }
 }
