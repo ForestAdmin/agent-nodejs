@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.24.0...@forestadmin/datasource-toolkit@1.25.0) (2023-09-25)
+
+
+### Features
+
+* support time picker widget ([#825](https://github.com/ForestAdmin/agent-nodejs/issues/825)) ([e6acd0a](https://github.com/ForestAdmin/agent-nodejs/commit/e6acd0a85c78725ffd5bd31580aef7ce4b90a665)), closes [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828)
+
 # @forestadmin/datasource-toolkit [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.23.0...@forestadmin/datasource-toolkit@1.24.0) (2023-09-22)
 
 
