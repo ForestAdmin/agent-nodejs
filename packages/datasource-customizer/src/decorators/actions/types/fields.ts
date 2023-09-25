@@ -48,6 +48,9 @@ type FileDynamicField<Context> = BaseDynamicField<'File', Context, File>;
 type FileListDynamicField<Context> = BaseDynamicField<'FileList', Context, File[]>;
 type JsonDynamicField<Context> = BaseDynamicField<'Json', Context, Json>;
 type NumberDynamicField<Context> = BaseDynamicField<'Number', Context, number>;
+type TimeDynamicField<Context> = BaseDynamicField<'Time', Context, number> & {
+  widget: 'TimePicker';
+};
 type NumberListDynamicField<Context> = BaseDynamicField<'NumberList', Context, number[]>;
 type DateDynamicField<Context> = BaseDynamicField<'Date' | 'Dateonly', Context, Date>;
 
@@ -178,6 +181,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | JsonDynamicField<Context>
   | (JsonDynamicField<Context> & JsonEditorFieldConfiguration)
   | NumberDynamicField<Context>
+  | TimeDynamicField<Context>
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)

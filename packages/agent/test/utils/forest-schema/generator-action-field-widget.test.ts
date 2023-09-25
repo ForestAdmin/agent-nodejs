@@ -833,6 +833,21 @@ describe('GeneratorActionFieldWidget', () => {
         });
       });
     });
+    describe('TimePicker', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Time',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TimePicker',
+        });
+
+        expect(result).toEqual({
+          name: 'time editor',
+          parameters: {},
+        });
+      });
+    });
 
     describe('JsonEditor', () => {
       it('should return a valid widget edit with default values', () => {

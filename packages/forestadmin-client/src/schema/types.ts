@@ -155,6 +155,11 @@ export type ForestServerActionFieldRichTextOptions = {
   };
 };
 
+export type ForestServerActionFieldTimePickerOptions = {
+  name: 'time editor';
+  parameters: Record<string, never>;
+};
+
 export type ForestServerActionFieldNumberInputOptions = {
   name: 'number input';
   parameters: {
@@ -233,6 +238,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
+  | ForestServerActionFieldCommon<'Time', ForestServerActionFieldTimePickerOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
