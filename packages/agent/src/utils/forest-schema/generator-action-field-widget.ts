@@ -10,6 +10,7 @@ import {
   ActionFieldRichText,
   ActionFieldTextArea,
   ActionFieldTextInputList,
+  ActionFieldUserDropdown,
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerActionField,
@@ -28,6 +29,7 @@ import {
   ForestServerActionFieldTextInputListOptions,
   ForestServerActionFieldTextInputOptions,
   ForestServerActionFieldTimePickerOptions,
+  ForestServerActionFieldUserDropdown,
 } from '@forestadmin/forestadmin-client';
 
 import ActionFields from './action-fields';
@@ -75,6 +77,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isCurrencyInputField(field))
       return GeneratorActionFieldWidget.buildCurrencyInputWidgetEdit(field);
+
+    if (ActionFields.isUserDropdownField(field))
+      return GeneratorActionFieldWidget.buildUserDropdownWidgetEdit(field);
 
     if (ActionFields.isTimePicker(field))
       return GeneratorActionFieldWidget.buildTimePickerWidgetEdit();
@@ -285,6 +290,17 @@ export default class GeneratorActionFieldWidget {
       default:
         return 'Unit';
     }
+  }
+
+  private static buildUserDropdownWidgetEdit(
+    field: ActionFieldUserDropdown,
+  ): ForestServerActionFieldUserDropdown {
+    return {
+      name: 'assignee editor',
+      parameters: {
+        placeholder: field.placeholder || null,
+      },
+    };
   }
 
   private static isValidNumber(value: unknown): boolean {

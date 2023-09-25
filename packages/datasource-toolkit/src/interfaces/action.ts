@@ -163,6 +163,12 @@ export type ActionFieldCurrencyInput = ActionFieldBase & {
   base?: 'Unit' | 'Cent';
 };
 
+export type ActionFieldUserDropdown = ActionFieldBase & {
+  type: 'String';
+  widget: 'UserDropdown';
+  placeholder?: string;
+};
+
 export type ActionFieldTimePicker = ActionFieldBase & {
   type: 'Time';
   widget: 'TimePicker';
@@ -203,6 +209,7 @@ export type ActionField = StrictUnion<
   | ActionFieldNumberInputList
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
+  | ActionFieldUserDropdown
   | ActionFieldTimePicker
   | ActionFieldJsonEditor
 >;
@@ -215,11 +222,13 @@ export type ActionFieldWidget =
   | 'TextInput'
   | 'TextInputList'
   | 'TextArea'
+  | 'Timepicker'
   | 'RichText'
   | 'NumberInput'
   | 'NumberInputList'
   | 'ColorPicker'
   | 'DatePicker'
+  | 'UserDropdown'
   | 'TimePicker'
   | 'JsonEditor';
 

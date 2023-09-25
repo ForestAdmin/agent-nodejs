@@ -146,6 +146,11 @@ type ColorPickerFieldConfiguration = {
   quickPalette?: string[];
 };
 
+type UserDropdownFieldConfiguration = {
+  widget: 'UserDropdown';
+  placeholder?: string;
+};
+
 type CurrencyInputFieldConfiguration<Context> = {
   widget: 'CurrencyInput';
   placeholder?: string;
@@ -201,9 +206,11 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
+  | (StringDynamicField<Context> & UserDropdownFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
+  | (StringListDynamicField<Context> & UserDropdownFieldConfiguration)
 >;
