@@ -220,6 +220,7 @@ export type ActionFieldWidget =
   | 'NumberInputList'
   | 'ColorPicker'
   | 'DatePicker'
+  | 'TimePicker'
   | 'JsonEditor';
 
 export type SuccessResult = {
