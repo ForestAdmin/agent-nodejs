@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.21.0...@forestadmin/forestadmin-client@1.22.0) (2023-09-25)
+
+
+### Features
+
+* support user dropdown in smart action forms ([#831](https://github.com/ForestAdmin/agent-nodejs/issues/831)) ([e88e43a](https://github.com/ForestAdmin/agent-nodejs/commit/e88e43a30694f9b5f3e7ce2d627388f6576111c3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.26.0
+
 # @forestadmin/forestadmin-client [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.20.0...@forestadmin/forestadmin-client@1.21.0) (2023-09-25)
 
 
