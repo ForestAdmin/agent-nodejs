@@ -34,6 +34,7 @@ export const ActionFieldTypeList = [
   'Collection',
   'Date',
   'Dateonly',
+  'Time',
   'Enum',
   'File',
   'Json',
@@ -168,6 +169,11 @@ export type ActionFieldUserDropdown = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldTimePicker = ActionFieldBase & {
+  type: 'Time';
+  widget: 'TimePicker';
+};
+
 export type ActionFieldJsonEditor = ActionFieldBase & {
   type: 'Json';
   widget: 'JsonEditor';
@@ -204,6 +210,7 @@ export type ActionField = StrictUnion<
   | ActionFieldDatePickerInput
   | ActionFieldCurrencyInput
   | ActionFieldUserDropdown
+  | ActionFieldTimePicker
   | ActionFieldJsonEditor
 >;
 
@@ -222,6 +229,7 @@ export type ActionFieldWidget =
   | 'ColorPicker'
   | 'DatePicker'
   | 'UserDropdown'
+  | 'TimePicker'
   | 'JsonEditor';
 
 export type SuccessResult = {

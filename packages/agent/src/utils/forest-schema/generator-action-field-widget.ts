@@ -28,6 +28,7 @@ import {
   ForestServerActionFieldTextAreaOptions,
   ForestServerActionFieldTextInputListOptions,
   ForestServerActionFieldTextInputOptions,
+  ForestServerActionFieldTimePickerOptions,
   ForestServerActionFieldUserDropdown,
 } from '@forestadmin/forestadmin-client';
 
@@ -79,6 +80,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isUserDropdownField(field))
       return GeneratorActionFieldWidget.buildUserDropdownWidgetEdit(field);
+
+    if (ActionFields.isTimePicker(field))
+      return GeneratorActionFieldWidget.buildTimePickerWidgetEdit();
 
     if (ActionFields.isJsonEditorField(field))
       return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit();
@@ -246,6 +250,13 @@ export default class GeneratorActionFieldWidget {
         max: GeneratorActionFieldWidget.isValidNumber(field.max) ? field.max : null,
         step: GeneratorActionFieldWidget.isValidNumber(field.step) ? field.step : null,
       },
+    };
+  }
+
+  private static buildTimePickerWidgetEdit(): ForestServerActionFieldTimePickerOptions {
+    return {
+      name: 'time editor',
+      parameters: {},
     };
   }
 

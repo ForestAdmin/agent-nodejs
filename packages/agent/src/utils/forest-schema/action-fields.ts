@@ -18,6 +18,7 @@ import {
   ActionFieldTextArea,
   ActionFieldTextInput,
   ActionFieldTextInputList,
+  ActionFieldTimePicker,
   ActionFieldUserDropdown,
 } from '@forestadmin/datasource-toolkit';
 
@@ -134,6 +135,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldJsonEditor {
     return (field as ActionField)?.widget === 'JsonEditor';
+  }
+
+  public static isTimePicker(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldTimePicker {
+    return (field as ActionFieldTimePicker)?.widget === 'TimePicker';
   }
 
   // Other types to be added here in the future ⤵
