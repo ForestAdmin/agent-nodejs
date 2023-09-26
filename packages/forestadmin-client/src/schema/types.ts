@@ -162,6 +162,11 @@ export type ForestServerActionFieldRichTextOptions = {
   };
 };
 
+export type ForestServerActionFieldTimePickerOptions = {
+  name: 'time editor';
+  parameters: Record<string, never>;
+};
+
 export type ForestServerActionFieldNumberInputOptions = {
   name: 'number input';
   parameters: {
@@ -205,6 +210,13 @@ export type ForestServerActionFieldCurrencyInputOptions = {
   };
 };
 
+export type ForestServerActionFieldUserDropdown = {
+  name: 'assignee editor';
+  parameters: {
+    placeholder?: string | null;
+  };
+};
+
 export type ForestServerActionFieldJsonEditorOptions = {
   name: 'json code editor';
   parameters: Record<string, never>;
@@ -239,7 +251,9 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Date', ForestServerActionFieldDatePickerInputOptions>
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldTextInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldTextAreaOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldUserDropdown>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldRichTextOptions>
+  | ForestServerActionFieldCommon<'Time', ForestServerActionFieldTimePickerOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldNumberInputOptions>
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>

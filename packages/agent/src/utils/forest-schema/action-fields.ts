@@ -19,6 +19,8 @@ import {
   ActionFieldTextArea,
   ActionFieldTextInput,
   ActionFieldTextInputList,
+  ActionFieldTimePicker,
+  ActionFieldUserDropdown,
 } from '@forestadmin/datasource-toolkit';
 
 export default class ActionFields {
@@ -124,6 +126,12 @@ export default class ActionFields {
     return (field as ActionFieldCurrencyInput)?.widget === 'CurrencyInput';
   }
 
+  public static isUserDropdownField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldUserDropdown {
+    return (field as ActionFieldUserDropdown)?.widget === 'UserDropdown';
+  }
+
   public static isJsonEditorField(
     field: ActionField | null | undefined,
   ): field is ActionFieldJsonEditor {
@@ -134,6 +142,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldAddressPicker {
     return (field as ActionField)?.widget === 'AddressPicker';
+  }
+
+  public static isTimePicker(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldTimePicker {
+    return (field as ActionFieldTimePicker)?.widget === 'TimePicker';
   }
 
   // Other types to be added here in the future ⤵

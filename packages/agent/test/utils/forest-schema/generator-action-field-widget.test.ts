@@ -833,6 +833,21 @@ describe('GeneratorActionFieldWidget', () => {
         });
       });
     });
+    describe('TimePicker', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'Time',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'TimePicker',
+        });
+
+        expect(result).toEqual({
+          name: 'time editor',
+          parameters: {},
+        });
+      });
+    });
 
     describe('JsonEditor', () => {
       it('should return a valid widget edit with default values', () => {
@@ -850,6 +865,39 @@ describe('GeneratorActionFieldWidget', () => {
       });
     });
 
+    describe('UserDropdown', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'UserDropdown',
+        });
+
+        expect(result).toEqual({
+          name: 'assignee editor',
+          parameters: {
+            placeholder: null,
+          },
+        });
+      });
+      it('should return a valid widget edit with placeholder mapped in parameters', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'String',
+          label: 'Label',
+          watchChanges: false,
+          placeholder: 'abc',
+          widget: 'UserDropdown',
+        });
+
+        expect(result).toEqual({
+          name: 'assignee editor',
+          parameters: {
+            placeholder: 'abc',
+          },
+        });
+      });
+    });
     it('should throw an error when the widget is not supported', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({

@@ -23,7 +23,7 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
 type BaseDynamicField<Type, Context, Result> = {
   type: Type;
   label: string;
-  description?: string;
+  description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
   if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
@@ -48,6 +48,9 @@ type FileDynamicField<Context> = BaseDynamicField<'File', Context, File>;
 type FileListDynamicField<Context> = BaseDynamicField<'FileList', Context, File[]>;
 type JsonDynamicField<Context> = BaseDynamicField<'Json', Context, Json>;
 type NumberDynamicField<Context> = BaseDynamicField<'Number', Context, number>;
+type TimeDynamicField<Context> = BaseDynamicField<'Time', Context, number> & {
+  widget: 'TimePicker';
+};
 type NumberListDynamicField<Context> = BaseDynamicField<'NumberList', Context, number[]>;
 type DateDynamicField<Context> = BaseDynamicField<'Date' | 'Dateonly', Context, Date>;
 
@@ -143,6 +146,11 @@ type ColorPickerFieldConfiguration = {
   quickPalette?: string[];
 };
 
+type UserDropdownFieldConfiguration = {
+  widget: 'UserDropdown';
+  placeholder?: string;
+};
+
 type CurrencyInputFieldConfiguration<Context> = {
   widget: 'CurrencyInput';
   placeholder?: string;
@@ -183,6 +191,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | JsonDynamicField<Context>
   | (JsonDynamicField<Context> & JsonEditorFieldConfiguration)
   | NumberDynamicField<Context>
+  | TimeDynamicField<Context>
   | (NumberDynamicField<Context> & NumberInputFieldConfiguration<Context>)
   | (NumberDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, number>)
   | (NumberDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, number>)
@@ -203,9 +212,11 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
   | (StringDynamicField<Context> & AddressPickerFieldConfiguration)
+  | (StringDynamicField<Context> & UserDropdownFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
+  | (StringListDynamicField<Context> & UserDropdownFieldConfiguration)
 >;

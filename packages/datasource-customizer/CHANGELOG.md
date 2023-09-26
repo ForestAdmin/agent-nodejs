@@ -1,3 +1,38 @@
+# @forestadmin/datasource-customizer [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.32.0...@forestadmin/datasource-customizer@1.33.0) (2023-09-25)
+
+
+### Features
+
+* support user dropdown in smart action forms ([#831](https://github.com/ForestAdmin/agent-nodejs/issues/831)) ([e88e43a](https://github.com/ForestAdmin/agent-nodejs/commit/e88e43a30694f9b5f3e7ce2d627388f6576111c3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.26.0
+
+# @forestadmin/datasource-customizer [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.31.0...@forestadmin/datasource-customizer@1.32.0) (2023-09-25)
+
+
+### Bug Fixes
+
+* allow dynamic description in smart action form fields ([#833](https://github.com/ForestAdmin/agent-nodejs/issues/833)) ([26e8d62](https://github.com/ForestAdmin/agent-nodejs/commit/26e8d62bf23cadde8567a9f1e5c353b83edd37b9))
+
+
+### Features
+
+* support time picker widget ([#825](https://github.com/ForestAdmin/agent-nodejs/issues/825)) ([e6acd0a](https://github.com/ForestAdmin/agent-nodejs/commit/e6acd0a85c78725ffd5bd31580aef7ce4b90a665)), closes [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.25.0
+
 # @forestadmin/datasource-customizer [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.30.0...@forestadmin/datasource-customizer@1.31.0) (2023-09-22)
 
 

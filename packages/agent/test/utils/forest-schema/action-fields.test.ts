@@ -538,6 +538,38 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isUserDropdownField', () => {
+    it('should return true if the field is a currency input', () => {
+      const result = ActionFields.isUserDropdownField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'UserDropdown',
+        placeholder: '12',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not a currency input', () => {
+      const result = ActionFields.isUserDropdownField({
+        type: 'Number',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown',
+        options: ['foo'],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isUserDropdownField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({
