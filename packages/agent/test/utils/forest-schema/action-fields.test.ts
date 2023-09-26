@@ -570,6 +570,36 @@ describe('ActionFields', () => {
     });
   });
 
+  describe('isAddressAutocompleteField', () => {
+    it('should return true if the field is an address autocomplete', () => {
+      const result = ActionFields.isAddressAutocompleteField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'AddressAutocomplete',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false if the field is not an address autocomplete', () => {
+      const result = ActionFields.isAddressAutocompleteField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown' as any,
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false if the field is undefined', () => {
+      const result = ActionFields.isAddressAutocompleteField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('hasWidget', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({
