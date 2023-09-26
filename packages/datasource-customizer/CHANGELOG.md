@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.34.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.34.0...@forestadmin/datasource-customizer@1.34.1) (2023-09-26)
+
+
+### Bug Fixes
+
+* prevent smart action from from being cleared on change hook ([#834](https://github.com/ForestAdmin/agent-nodejs/issues/834)) ([f9ab089](https://github.com/ForestAdmin/agent-nodejs/commit/f9ab0892fb8f4b20fbccccaca6f1013cdf664988))
+
 # @forestadmin/datasource-customizer [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.33.0...@forestadmin/datasource-customizer@1.34.0) (2023-09-26)
 
 
