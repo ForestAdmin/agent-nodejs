@@ -1,5 +1,6 @@
 import {
   ActionField,
+  ActionFieldAddressAutocomplete,
   ActionFieldCheckbox,
   ActionFieldCheckboxGroupAll,
   ActionFieldCollection,
@@ -135,6 +136,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldJsonEditor {
     return (field as ActionField)?.widget === 'JsonEditor';
+  }
+
+  public static isAddressAutocompleteField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldAddressAutocomplete {
+    return (field as ActionField)?.widget === 'AddressAutocomplete';
   }
 
   public static isTimePicker(
