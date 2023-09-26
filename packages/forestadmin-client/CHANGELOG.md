@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.22.0...@forestadmin/forestadmin-client@1.23.0) (2023-09-26)
+
+
+### Features
+
+* **widgets:** add support for address picker in custom actions ([#832](https://github.com/ForestAdmin/agent-nodejs/issues/832)) ([6441d8e](https://github.com/ForestAdmin/agent-nodejs/commit/6441d8ee257ef6bef3e27f18f37377eecf0c0730))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.27.0
+
 # @forestadmin/forestadmin-client [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.21.0...@forestadmin/forestadmin-client@1.22.0) (2023-09-25)
 
 
