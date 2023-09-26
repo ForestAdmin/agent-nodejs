@@ -54,7 +54,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: { changedField: string; searchField?: string; searchValue?: string | null },
+    metas?: { changedField: string; searchField?: string | null; searchValue?: string | null },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);

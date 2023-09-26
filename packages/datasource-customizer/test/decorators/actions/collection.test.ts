@@ -243,7 +243,7 @@ describe('ActionDecorator', () => {
       ]);
     });
 
-    describe.each([null, undefined])('with a %s searchValue', searchValue => {
+    describe.each([null, undefined])('with a %s searchField', searchField => {
       test('it should compute all fields', async () => {
         const fields = await newBooks.getForm(
           factories.caller.build(),
@@ -252,7 +252,7 @@ describe('ActionDecorator', () => {
             firstname: 'John',
           },
           undefined,
-          { changedField: 'firstname', searchValue },
+          { changedField: 'firstname', searchValue: null, searchField },
         );
 
         expect(fields).toEqual([
