@@ -165,8 +165,8 @@ type JsonEditorFieldConfiguration = {
   widget: 'JsonEditor';
 };
 
-type AddressPickerFieldConfiguration = {
-  widget: 'AddressPicker';
+type AddressAutocompleteFieldConfiguration = {
+  widget: 'AddressAutocomplete';
   placeholder?: string;
 };
 
@@ -211,7 +211,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
-  | (StringDynamicField<Context> & AddressPickerFieldConfiguration)
+  | (StringDynamicField<Context> & AddressAutocompleteFieldConfiguration)
   | (StringDynamicField<Context> & UserDropdownFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)

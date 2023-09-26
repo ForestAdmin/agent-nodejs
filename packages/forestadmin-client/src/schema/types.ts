@@ -120,7 +120,7 @@ export type ForestServerActionFieldTextInputOptions = {
   };
 };
 
-export type ForestServerActionFieldAddressPickerOptions = {
+export type ForestServerActionFieldAddressAutocompleteOptions = {
   name: 'address editor';
   parameters: {
     placeholder?: string | null;
@@ -259,7 +259,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>
   | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>
-  | ForestServerActionFieldCommon<'String', ForestServerActionFieldAddressPickerOptions>;
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldAddressAutocompleteOptions>;
 
 export type ForestServerField = Partial<{
   field: string;

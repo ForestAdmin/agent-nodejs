@@ -179,9 +179,9 @@ export type ActionFieldJsonEditor = ActionFieldBase & {
   widget: 'JsonEditor';
 };
 
-export type ActionFieldAddressPicker = ActionFieldBase & {
+export type ActionFieldAddressAutocomplete = ActionFieldBase & {
   type: 'String';
-  widget: 'AddressPicker';
+  widget: 'AddressAutocomplete';
   placeholder?: string;
 };
 
@@ -218,7 +218,7 @@ export type ActionField = StrictUnion<
   | ActionFieldUserDropdown
   | ActionFieldTimePicker
   | ActionFieldJsonEditor
-  | ActionFieldAddressPicker
+  | ActionFieldAddressAutocomplete
 >;
 
 export type ActionFieldWidget =
@@ -235,7 +235,7 @@ export type ActionFieldWidget =
   | 'NumberInputList'
   | 'ColorPicker'
   | 'DatePicker'
-  | 'AddressPicker'
+  | 'AddressAutocomplete'
   | 'UserDropdown'
   | 'TimePicker'
   | 'JsonEditor';
