@@ -102,6 +102,14 @@ export type ActionFieldDatePickerInput = ActionFieldBase & {
   placeholder?: string;
 };
 
+export type ActionFieldFilePicker = ActionFieldBase & {
+  type: 'String' | 'StringList';
+  widget: 'FilePicker';
+  maxCount?: number;
+  extensions?: string[];
+  maxSizeMb?: number;
+};
+
 export type ActionFieldTextInputList = ActionFieldBase & {
   type: 'StringList';
   widget: 'TextInputList';
@@ -212,6 +220,7 @@ export type ActionField = StrictUnion<
   | ActionFieldUserDropdown
   | ActionFieldTimePicker
   | ActionFieldJsonEditor
+  | ActionFieldFilePicker
 >;
 
 export type ActionFieldWidget =
@@ -230,6 +239,7 @@ export type ActionFieldWidget =
   | 'DatePicker'
   | 'UserDropdown'
   | 'TimePicker'
+  | 'FilePicker'
   | 'JsonEditor';
 
 export type SuccessResult = {

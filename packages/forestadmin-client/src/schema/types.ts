@@ -215,6 +215,17 @@ export type ForestServerActionFieldJsonEditorOptions = {
   parameters: Record<string, never>;
 };
 
+export type ForestServerActionFieldFilePickerOptions = {
+  name: 'file picker';
+  parameters: {
+    // the prefix is useless in smart actions as it can be added in the execute as needed
+    prefix: null;
+    filesCountLimit: number | null;
+    filesExtensions: string[] | null;
+    filesSizeLimit: number | null;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Time',
@@ -251,6 +262,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>
+  | ForestServerActionFieldCommon<'String', ForestServerActionFieldFilePickerOptions>
   | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>;
 
 export type ForestServerField = Partial<{

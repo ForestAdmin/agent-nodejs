@@ -1,4 +1,4 @@
-import { CompositeId, Json } from '@forestadmin/datasource-toolkit';
+import { CompositeId, File, Json } from '@forestadmin/datasource-toolkit';
 
 type UnionKeys<T> = T extends T ? keyof T : never;
 type StrictUnionHelper<T, TAll> = T extends any
@@ -165,6 +165,16 @@ type JsonEditorFieldConfiguration = {
   widget: 'JsonEditor';
 };
 
+type FileListPickerFieldConfiguration = FilePickerFieldConfiguration & {
+  maxCount?: ValueOrHandler<number>;
+};
+
+type FilePickerFieldConfiguration = {
+  widget: 'FilePicker';
+  extensions?: ValueOrHandler<string[]>;
+  maxSizeMb?: ValueOrHandler<number>;
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -207,10 +217,12 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
   | (StringDynamicField<Context> & UserDropdownFieldConfiguration)
+  | (FileDynamicField<Context> & FilePickerFieldConfiguration)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
   | (StringListDynamicField<Context> & UserDropdownFieldConfiguration)
+  | (FileListDynamicField<Context> & FileListPickerFieldConfiguration)
 >;

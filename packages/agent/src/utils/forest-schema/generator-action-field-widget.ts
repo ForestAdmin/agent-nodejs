@@ -4,6 +4,7 @@ import {
   ActionFieldColorPicker,
   ActionFieldCurrencyInput,
   ActionFieldDropdownAll,
+  ActionFieldFilePicker,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
   ActionFieldRadioGroupButtonAll,
@@ -20,6 +21,7 @@ import {
   ForestServerActionFieldCurrencyInputOptions,
   ForestServerActionFieldDatePickerInputOptions,
   ForestServerActionFieldDropdownOptions,
+  ForestServerActionFieldFilePickerOptions,
   ForestServerActionFieldJsonEditorOptions,
   ForestServerActionFieldNumberInputListOptions,
   ForestServerActionFieldNumberInputOptions,
@@ -86,6 +88,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isJsonEditorField(field))
       return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit();
+
+    if (ActionFields.isFilePickerField(field))
+      return GeneratorActionFieldWidget.buildFilePickerWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -311,6 +316,20 @@ export default class GeneratorActionFieldWidget {
     return {
       name: 'json code editor',
       parameters: {},
+    };
+  }
+
+  private static buildFilePickerWidgetEdit(
+    field: ActionFieldFilePicker,
+  ): ForestServerActionFieldFilePickerOptions {
+    return {
+      name: 'file picker',
+      parameters: {
+        prefix: null,
+        filesExtensions: field.extensions || null,
+        filesSizeLimit: field.maxSizeMb || null,
+        filesCountLimit: field.maxCount || null,
+      },
     };
   }
 }
