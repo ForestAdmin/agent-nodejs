@@ -54,7 +54,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: { changedField: string; searchField?: string; searchValue?: string },
+    metas?: { changedField: string; searchField?: string | null; searchValue?: string | null },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
@@ -69,8 +69,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     dynamicFields = action.form
       .map(c => ({ ...c }))
-      .filter(field => [undefined, field.label].includes(metas?.searchField)); // in the case of
-    // a search hook, we don't want to rebuild all the fields. only the one searched
+      .filter(field => [undefined, null, field.label].includes(metas?.searchField));
+    // in the case of a search hook,
+    // we don't want to rebuild all the fields. only the one searched
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 

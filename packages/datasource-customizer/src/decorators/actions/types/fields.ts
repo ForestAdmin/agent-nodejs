@@ -175,6 +175,11 @@ type FilePickerFieldConfiguration = {
   maxSizeMb?: ValueOrHandler<number>;
 };
 
+type AddressAutocompleteFieldConfiguration = {
+  widget: 'AddressAutocomplete';
+  placeholder?: string;
+};
+
 type RadioButtonFieldConfiguration<
   Context = unknown,
   TValue = string,
@@ -216,6 +221,7 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & TextAreaFieldConfiguration)
   | (StringDynamicField<Context> & RichTextFieldConfiguration)
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
+  | (StringDynamicField<Context> & AddressAutocompleteFieldConfiguration)
   | (StringDynamicField<Context> & UserDropdownFieldConfiguration)
   | (FileDynamicField<Context> & FilePickerFieldConfiguration)
   | StringListDynamicField<Context>

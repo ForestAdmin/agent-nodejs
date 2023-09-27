@@ -242,6 +242,25 @@ describe('ActionDecorator', () => {
         { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
       ]);
     });
+
+    describe.each([null, undefined])('with a %s searchField', searchField => {
+      test('it should compute all fields', async () => {
+        const fields = await newBooks.getForm(
+          factories.caller.build(),
+          'make photocopy',
+          {
+            firstname: 'John',
+          },
+          undefined,
+          { changedField: 'firstname', searchValue: null, searchField },
+        );
+
+        expect(fields).toEqual([
+          { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
+          { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+        ]);
+      });
+    });
   });
   describe('with single action with search hook', () => {
     beforeEach(() => {

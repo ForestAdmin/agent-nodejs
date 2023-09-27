@@ -1,3 +1,25 @@
+## @forestadmin/datasource-customizer [1.34.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.34.0...@forestadmin/datasource-customizer@1.34.1) (2023-09-26)
+
+
+### Bug Fixes
+
+* prevent smart action from from being cleared on change hook ([#834](https://github.com/ForestAdmin/agent-nodejs/issues/834)) ([f9ab089](https://github.com/ForestAdmin/agent-nodejs/commit/f9ab0892fb8f4b20fbccccaca6f1013cdf664988))
+
+# @forestadmin/datasource-customizer [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.33.0...@forestadmin/datasource-customizer@1.34.0) (2023-09-26)
+
+
+### Features
+
+* **widgets:** add support for address picker in custom actions ([#832](https://github.com/ForestAdmin/agent-nodejs/issues/832)) ([6441d8e](https://github.com/ForestAdmin/agent-nodejs/commit/6441d8ee257ef6bef3e27f18f37377eecf0c0730))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.27.0
+
 # @forestadmin/datasource-customizer [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.32.0...@forestadmin/datasource-customizer@1.33.0) (2023-09-25)
 
 

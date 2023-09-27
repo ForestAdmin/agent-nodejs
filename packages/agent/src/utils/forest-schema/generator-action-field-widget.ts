@@ -1,5 +1,6 @@
 import {
   ActionField,
+  ActionFieldAddressAutocomplete,
   ActionFieldCheckboxGroupAll,
   ActionFieldColorPicker,
   ActionFieldCurrencyInput,
@@ -15,6 +16,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerActionField,
+  ForestServerActionFieldAddressAutocompleteOptions,
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
   ForestServerActionFieldColorPickerOptions,
@@ -91,6 +93,9 @@ export default class GeneratorActionFieldWidget {
 
     if (ActionFields.isFilePickerField(field))
       return GeneratorActionFieldWidget.buildFilePickerWidgetEdit(field);
+
+    if (ActionFields.isAddressAutocompleteField(field))
+      return GeneratorActionFieldWidget.buildAddressAutocompleteWidgetEdit(field);
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }
@@ -329,6 +334,17 @@ export default class GeneratorActionFieldWidget {
         filesExtensions: field.extensions || null,
         filesSizeLimit: field.maxSizeMb || null,
         filesCountLimit: field.maxCount || null,
+      },
+    };
+  }
+
+  private static buildAddressAutocompleteWidgetEdit(
+    field: ActionFieldAddressAutocomplete,
+  ): ForestServerActionFieldAddressAutocompleteOptions {
+    return {
+      name: 'address editor',
+      parameters: {
+        placeholder: field.placeholder || null,
       },
     };
   }

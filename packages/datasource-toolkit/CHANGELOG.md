@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.26.0...@forestadmin/datasource-toolkit@1.27.0) (2023-09-26)
+
+
+### Features
+
+* **widgets:** add support for address picker in custom actions ([#832](https://github.com/ForestAdmin/agent-nodejs/issues/832)) ([6441d8e](https://github.com/ForestAdmin/agent-nodejs/commit/6441d8ee257ef6bef3e27f18f37377eecf0c0730))
+
 # @forestadmin/datasource-toolkit [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.25.0...@forestadmin/datasource-toolkit@1.26.0) (2023-09-25)
 
 
