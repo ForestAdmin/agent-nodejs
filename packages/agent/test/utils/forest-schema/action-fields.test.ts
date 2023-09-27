@@ -603,7 +603,7 @@ describe('ActionFields', () => {
   describe('isFilePickerField', () => {
     it('should return true if the field is a file picker', () => {
       const result = ActionFields.isFilePickerField({
-        type: 'String',
+        type: 'File',
         label: 'Label',
         watchChanges: false,
         widget: 'FilePicker',
@@ -612,13 +612,17 @@ describe('ActionFields', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false if the field is not a file picker', () => {
+    it('should return false when passing undefined', () => {
+      const result = ActionFields.isFilePickerField(undefined);
+
+      expect(result).toBe(false);
+    });
+    it('should return false when passing another type of widget', () => {
       const result = ActionFields.isFilePickerField({
         type: 'String',
         label: 'Label',
         watchChanges: false,
-        // @ts-expect-error not file picker
-        widget: 'Checkbox',
+        widget: 'Dropdown' as any,
       });
 
       expect(result).toBe(false);
