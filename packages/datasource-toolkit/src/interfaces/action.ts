@@ -103,7 +103,7 @@ export type ActionFieldDatePickerInput = ActionFieldBase & {
 };
 
 export type ActionFieldFilePicker = ActionFieldBase & {
-  type: 'String' | 'StringList';
+  type: 'File' | 'FileList';
   widget: 'FilePicker';
   maxCount?: number;
   extensions?: string[];
