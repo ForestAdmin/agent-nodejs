@@ -57,9 +57,10 @@ export type WidgetEditConfiguration = {
   name: string;
   parameters: Record<string, unknown>;
 };
+type ForestServerActionFieldType = ForestServerColumnType | 'File' | ['File'];
 
 export type ForestServerActionFieldCommon<
-  TType extends ForestServerColumnType = ForestServerColumnType,
+  TType extends ForestServerActionFieldType = ForestServerActionFieldType,
   TWidgetEdit extends WidgetEditConfiguration = null,
 > = {
   type: TType;
@@ -269,7 +270,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>
-  | ForestServerActionFieldCommon<'String', ForestServerActionFieldFilePickerOptions>
+  | ForestServerActionFieldCommon<'File' | ['File'], ForestServerActionFieldFilePickerOptions>
   | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldAddressAutocompleteOptions>;
 
