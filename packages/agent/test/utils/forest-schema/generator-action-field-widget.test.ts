@@ -936,7 +936,7 @@ describe('GeneratorActionFieldWidget', () => {
     describe('FilePicker', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
-          type: 'String',
+          type: 'File',
           label: 'Label',
           watchChanges: false,
           widget: 'FilePicker',
@@ -954,7 +954,7 @@ describe('GeneratorActionFieldWidget', () => {
       });
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
-          type: 'String',
+          type: 'File',
           label: 'Label',
           watchChanges: false,
           widget: 'FilePicker',
