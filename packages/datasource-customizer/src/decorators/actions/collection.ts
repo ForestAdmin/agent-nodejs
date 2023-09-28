@@ -73,8 +73,8 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       dynamicFields = dynamicFields.filter(field => field.label === metas.searchField);
     }
 
-    dynamicFields = await this.dropIfs(context, dynamicFields);
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
+    dynamicFields = await this.dropIfs(context, dynamicFields);
 
     const fields = await this.dropDeferred(context, metas?.searchValue, dynamicFields);
 
