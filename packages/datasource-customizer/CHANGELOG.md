@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.0...@forestadmin/datasource-customizer@1.35.1) (2023-09-28)
+
+
+### Performance Improvements
+
+* do not send large files to apimap ([#838](https://github.com/ForestAdmin/agent-nodejs/issues/838)) ([30ca9d1](https://github.com/ForestAdmin/agent-nodejs/commit/30ca9d11fbed081770ceb22b19479fd0dd48fda8))
+
 # @forestadmin/datasource-customizer [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.34.1...@forestadmin/datasource-customizer@1.35.0) (2023-09-28)
 
 
