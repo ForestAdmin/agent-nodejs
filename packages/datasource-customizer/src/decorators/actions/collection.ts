@@ -72,10 +72,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       // we don't want to rebuild all the fields. only the one searched
       // and we don't need to recalculate defaults and ifs
       dynamicFields = dynamicFields.filter(field => field.label === metas.searchField);
-    } else {
-      dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
-      dynamicFields = await this.dropIfs(context, dynamicFields);
     }
+
+    dynamicFields = await this.dropIfs(context, dynamicFields);
+    dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
 
     const fields = await this.dropDeferred(context, metas?.searchValue, dynamicFields);
 
