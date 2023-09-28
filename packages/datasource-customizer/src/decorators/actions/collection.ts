@@ -98,9 +98,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         field =>
           Object.values(field).some(value => typeof value === 'function') ||
           // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
-          (field.type.includes('File') &&
-            field.defaultValue &&
-            typeof field.defaultValue !== 'function'),
+          (field.type.includes('File') && field.defaultValue),
       );
 
       newSchema.actions[name] = { scope, generateFile: !!generateFile, staticForm: !isDynamic };
