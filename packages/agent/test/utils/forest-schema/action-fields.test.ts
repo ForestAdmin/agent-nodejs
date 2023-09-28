@@ -539,7 +539,7 @@ describe('ActionFields', () => {
   });
 
   describe('isUserDropdownField', () => {
-    it('should return true if the field is a currency input', () => {
+    it('should return true if the field is a user input', () => {
       const result = ActionFields.isUserDropdownField({
         type: 'String',
         label: 'Label',
@@ -551,7 +551,7 @@ describe('ActionFields', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false if the field is not a currency input', () => {
+    it('should return false if the field is not a user input', () => {
       const result = ActionFields.isUserDropdownField({
         type: 'Number',
         label: 'Label',
@@ -595,6 +595,35 @@ describe('ActionFields', () => {
 
     it('should return false if the field is undefined', () => {
       const result = ActionFields.isAddressAutocompleteField(undefined);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('isFilePickerField', () => {
+    it('should return true if the field is a file picker', () => {
+      const result = ActionFields.isFilePickerField({
+        type: 'File',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'FilePicker',
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when passing undefined', () => {
+      const result = ActionFields.isFilePickerField(undefined);
+
+      expect(result).toBe(false);
+    });
+    it('should return false when passing another type of widget', () => {
+      const result = ActionFields.isFilePickerField({
+        type: 'String',
+        label: 'Label',
+        watchChanges: false,
+        widget: 'Dropdown' as any,
+      });
 
       expect(result).toBe(false);
     });

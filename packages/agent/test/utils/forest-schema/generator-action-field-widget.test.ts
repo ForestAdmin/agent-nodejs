@@ -933,6 +933,47 @@ describe('GeneratorActionFieldWidget', () => {
         });
       });
     });
+    describe('FilePicker', () => {
+      it('should return a valid widget edit with default values', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'File',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'FilePicker',
+        });
+
+        expect(result).toEqual({
+          name: 'file picker',
+          parameters: {
+            prefix: null,
+            filesExtensions: null,
+            filesSizeLimit: null,
+            filesCountLimit: null,
+          },
+        });
+      });
+      it('should return a valid widget edit with placeholder mapped in parameters', () => {
+        const result = GeneratorActionFieldWidget.buildWidgetOptions({
+          type: 'File',
+          label: 'Label',
+          watchChanges: false,
+          widget: 'FilePicker',
+          extensions: ['png', 'jpg'],
+          maxCount: 10,
+          maxSizeMb: 12,
+        });
+
+        expect(result).toEqual({
+          name: 'file picker',
+          parameters: {
+            prefix: null,
+            filesExtensions: ['png', 'jpg'],
+            filesSizeLimit: 12,
+            filesCountLimit: 10,
+          },
+        });
+      });
+    });
 
     it('should throw an error when the widget is not supported', () => {
       expect(() => {

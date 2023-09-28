@@ -11,6 +11,7 @@ import {
   ActionFieldDropdownAll,
   ActionFieldEnum,
   ActionFieldEnumList,
+  ActionFieldFilePicker,
   ActionFieldJsonEditor,
   ActionFieldNumberInput,
   ActionFieldNumberInputList,
@@ -82,6 +83,12 @@ export default class ActionFields {
     field: ActionField | null | undefined,
   ): field is ActionFieldDatePickerInput {
     return (field as ActionFieldDatePickerInput)?.widget === 'DatePicker';
+  }
+
+  public static isFilePickerField(
+    field: ActionField | null | undefined,
+  ): field is ActionFieldFilePicker {
+    return (field as ActionFieldFilePicker)?.widget === 'FilePicker';
   }
 
   public static isTextInputListField(

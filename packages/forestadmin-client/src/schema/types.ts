@@ -57,9 +57,10 @@ export type WidgetEditConfiguration = {
   name: string;
   parameters: Record<string, unknown>;
 };
+type ForestServerActionFieldType = ForestServerColumnType | 'File' | ['File'];
 
 export type ForestServerActionFieldCommon<
-  TType extends ForestServerColumnType = ForestServerColumnType,
+  TType extends ForestServerActionFieldType = ForestServerActionFieldType,
   TWidgetEdit extends WidgetEditConfiguration = null,
 > = {
   type: TType;
@@ -222,6 +223,17 @@ export type ForestServerActionFieldJsonEditorOptions = {
   parameters: Record<string, never>;
 };
 
+export type ForestServerActionFieldFilePickerOptions = {
+  name: 'file picker';
+  parameters: {
+    // the prefix is useless in smart actions as it can be added in the execute as needed
+    prefix: null;
+    filesCountLimit: number | null;
+    filesExtensions: string[] | null;
+    filesSizeLimit: number | null;
+  };
+};
+
 export type ForestServerActionFieldDropdown =
   | ForestServerActionFieldCommon<
       'String' | 'Dateonly' | 'Date' | 'Time',
@@ -258,6 +270,7 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'Number', ForestServerActionFieldCurrencyInputOptions>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldNumberInputListOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldColorPickerOptions>
+  | ForestServerActionFieldCommon<'File' | ['File'], ForestServerActionFieldFilePickerOptions>
   | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldAddressAutocompleteOptions>;
 
