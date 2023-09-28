@@ -165,14 +165,15 @@ type JsonEditorFieldConfiguration = {
   widget: 'JsonEditor';
 };
 
-type FileListPickerFieldConfiguration = FilePickerFieldConfiguration & {
+type FileListPickerFieldConfiguration<Context> = FilePickerFieldConfiguration<Context> & {
   maxCount?: ValueOrHandler<number>;
 };
 
-type FilePickerFieldConfiguration = {
+type FilePickerFieldConfiguration<Context> = {
   widget: 'FilePicker';
   extensions?: ValueOrHandler<string[]>;
   maxSizeMb?: ValueOrHandler<number>;
+  defaultValue?: Handler<Context, File>;
 };
 
 type AddressAutocompleteFieldConfiguration = {
@@ -223,12 +224,12 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringDynamicField<Context> & ColorPickerFieldConfiguration)
   | (StringDynamicField<Context> & AddressAutocompleteFieldConfiguration)
   | (StringDynamicField<Context> & UserDropdownFieldConfiguration)
-  | (FileDynamicField<Context> & FilePickerFieldConfiguration)
+  | (FileDynamicField<Context> & FilePickerFieldConfiguration<Context>)
   | StringListDynamicField<Context>
   | (StringListDynamicField<Context> & DropdownDynamicFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & DropdownDynamicSearchFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & CheckboxesFieldConfiguration<Context, string>)
   | (StringListDynamicField<Context> & ArrayTextInputFieldConfiguration)
   | (StringListDynamicField<Context> & UserDropdownFieldConfiguration)
-  | (FileListDynamicField<Context> & FileListPickerFieldConfiguration)
+  | (FileListDynamicField<Context> & FileListPickerFieldConfiguration<Context>)
 >;
