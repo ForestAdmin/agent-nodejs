@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.27.0...@forestadmin/datasource-toolkit@1.28.0) (2023-09-28)
+
+
+### Features
+
+* support file picker widget in smart action form fields ([#835](https://github.com/ForestAdmin/agent-nodejs/issues/835)) ([b895784](https://github.com/ForestAdmin/agent-nodejs/commit/b8957840458513c2127df5e62d76f5c26637ff0e))
+
 # @forestadmin/datasource-toolkit [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.26.0...@forestadmin/datasource-toolkit@1.27.0) (2023-09-26)
 
 
