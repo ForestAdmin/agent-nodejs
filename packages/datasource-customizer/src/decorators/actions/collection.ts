@@ -94,8 +94,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     for (const [name, { form, scope, generateFile }] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it.
-      const isDynamic = form?.some(field =>
-        Object.values(field).some(value => typeof value === 'function'),
+      const isDynamic = form?.some(
+        field =>
+          Object.values(field).some(value => typeof value === 'function') ||
+          // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
+          (field.type.includes('File') &&
+            field.defaultValue &&
+            typeof field.defaultValue !== 'function'),
       );
 
       newSchema.actions[name] = { scope, generateFile: !!generateFile, staticForm: !isDynamic };
