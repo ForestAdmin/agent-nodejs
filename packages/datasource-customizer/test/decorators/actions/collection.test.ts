@@ -3,6 +3,7 @@ import {
   Collection,
   DataSource,
   DataSourceDecorator,
+  File,
   Filter,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
@@ -303,6 +304,75 @@ describe('ActionDecorator', () => {
           watchChanges: false,
         },
       ]);
+    });
+  });
+
+  describe('File type', () => {
+    describe('with single action with File type and hardcoded defaultValue', () => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: () => {},
+          form: [
+            {
+              label: 'firstname',
+              type: 'File',
+              defaultValue: 'hello' as unknown as File,
+            },
+          ],
+        });
+      });
+      test('should mark the action as dynamic', async () => {
+        expect(newBooks.schema.actions['make photocopy']).toEqual({
+          scope: 'Single',
+          generateFile: false,
+          staticForm: false,
+        });
+      });
+    });
+    describe('with single action with File type and function defaultValue', () => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: () => {},
+          form: [
+            {
+              label: 'firstname',
+              type: 'File',
+              defaultValue: 'hello' as unknown as File,
+            },
+          ],
+        });
+      });
+      test('should mark the action as dynamic', async () => {
+        expect(newBooks.schema.actions['make photocopy']).toEqual({
+          scope: 'Single',
+          generateFile: false,
+          staticForm: false,
+        });
+      });
+    });
+    describe('with single action with String type and hardcoded defaultValue', () => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: () => {},
+          form: [
+            {
+              label: 'firstname',
+              type: 'String',
+              defaultValue: 'hello',
+            },
+          ],
+        });
+      });
+      test('should mark the action as static', async () => {
+        expect(newBooks.schema.actions['make photocopy']).toEqual({
+          scope: 'Single',
+          generateFile: false,
+          staticForm: true,
+        });
+      });
     });
   });
 
