@@ -70,7 +70,6 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     if (metas?.searchField) {
       // in the case of a search hook,
       // we don't want to rebuild all the fields. only the one searched
-      // and we don't need to recalculate defaults and ifs
       dynamicFields = dynamicFields.filter(field => field.label === metas.searchField);
     }
 
