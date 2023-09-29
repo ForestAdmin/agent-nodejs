@@ -196,11 +196,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations
-    this.nocodeCustomizer = new DataSourceCustomizer<S>();
-    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
-    this.nocodeCustomizer.use(this.customizationService.addCustomizations);
+    // this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    // this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
+    // this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
-    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+    const dataSource = await this.customizer.getDataSource(logger);
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),

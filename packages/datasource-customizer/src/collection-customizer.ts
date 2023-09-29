@@ -10,12 +10,15 @@ import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
 import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
-import { ComputedDefinition, DeprecatedComputedDefinition } from './decorators/computed/types';
+import {
+  ComputedDefinition,
+  DeprecatedComputedDefinition,
+  RelationDefinition,
+} from './decorators/computed/types';
 import mapDeprecated from './decorators/computed/utils/map-deprecated';
 import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
-import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
 import { WriteDefinition } from './decorators/write/write-replace/types';
@@ -176,8 +179,8 @@ export default class CollectionCustomizer<
     definition: DeprecatedComputedDefinition<S, N> | ComputedDefinition<S, N>,
   ): this => {
     return this.pushCustomization(async () => {
-      const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
-      const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
+      const collectionBeforeRelations = this.stack.computed.getCollection(this.name);
+      const collectionAfterRelations = this.stack.computed.getCollection(this.name);
       const canBeComputedBeforeRelations = definition.dependencies.every(field => {
         try {
           return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
@@ -417,7 +420,7 @@ export default class CollectionCustomizer<
    */
   emulateFieldFiltering(name: TColumnName<S, N>): this {
     return this.pushCustomization(async () => {
-      const collection = this.stack.lateOpEmulate.getCollection(this.name);
+      const collection = this.stack.computed.getCollection(this.name);
       const field = collection.schema.fields[name] as ColumnSchema;
 
       if (typeof field.columnType === 'string') {
@@ -443,9 +446,7 @@ export default class CollectionCustomizer<
    */
   emulateFieldOperator(name: TColumnName<S, N>, operator: Operator): this {
     return this.pushCustomization(async () => {
-      const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-        ? this.stack.earlyOpEmulate.getCollection(this.name)
-        : this.stack.lateOpEmulate.getCollection(this.name);
+      const collection = this.stack.opEmulate.getCollection(this.name);
 
       collection.emulateFieldOperator(name, operator);
     });
@@ -499,9 +500,7 @@ export default class CollectionCustomizer<
     replacer: OperatorDefinition<S, N, C>,
   ): this {
     return this.pushCustomization(async () => {
-      const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
-        ? this.stack.earlyOpEmulate.getCollection(this.name)
-        : this.stack.lateOpEmulate.getCollection(this.name);
+      const collection = this.stack.opEmulate.getCollection(this.name);
 
       collection.replaceFieldOperator(name, operator, replacer as OperatorDefinition);
     });
@@ -547,7 +546,7 @@ export default class CollectionCustomizer<
 
   private pushRelation(name: string, definition: RelationDefinition): this {
     return this.pushCustomization(async () => {
-      this.stack.relation.getCollection(this.name).addRelation(name, definition);
+      this.stack.computed.getCollection(this.name).addRelation(name, definition);
     });
   }
 
