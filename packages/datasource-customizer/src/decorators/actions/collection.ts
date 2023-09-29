@@ -65,13 +65,14 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
 
     // Convert DynamicField to ActionField in successive steps.
-    let dynamicFields: DynamicField[];
+    let dynamicFields: DynamicField[] = action.form.map(c => ({ ...c }));
 
-    dynamicFields = action.form
-      .map(c => ({ ...c }))
-      .filter(field => [undefined, null, field.label].includes(metas?.searchField));
-    // in the case of a search hook,
-    // we don't want to rebuild all the fields. only the one searched
+    if (metas?.searchField) {
+      // in the case of a search hook,
+      // we don't want to rebuild all the fields. only the one searched
+      dynamicFields = [dynamicFields.find(field => field.label === metas.searchField)];
+    }
+
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 
