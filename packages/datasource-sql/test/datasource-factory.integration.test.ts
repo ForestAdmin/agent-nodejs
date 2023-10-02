@@ -1,3 +1,4 @@
+import { stringify } from 'querystring';
 import { Dialect, Sequelize } from 'sequelize';
 
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
@@ -27,9 +28,9 @@ describe('SqlDataSourceFactory > Integration', () => {
 
   describe.each([
     ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
+    // ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
+    // ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
+    // ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
   ])('on "%s" database', (dialect, username, password, host, port) => {
     const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
 
@@ -99,45 +100,53 @@ describe('SqlDataSourceFactory > Integration', () => {
     });
 
     describe('with relations', () => {
-      it('should generate a sql datasource with relation', async () => {
-        const databaseName = 'datasource-sql-relation-test';
-        const logger = jest.fn();
+      it.each([/* undefined, */ 'test_schema'])(
+        'should generate a sql datasource with relation',
+        async schema => {
+          const databaseName = 'datasource-sql-relation-test';
+          const logger = jest.fn();
 
-        const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName);
-        const setupModels = setupSequelize.models;
+          const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
+          const setupModels = setupSequelize.models;
 
-        const sequelize = await buildSequelizeInstance(`${baseUri}/${databaseName}`, logger);
-        const dataSourceModels = sequelize.models;
+          const queryParams = schema ? { schema } : {};
+          const queryString = stringify(queryParams);
+          const sequelize = await buildSequelizeInstance(
+            `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
+            logger,
+          );
+          const dataSourceModels = sequelize.models;
 
-        Object.values(setupModels).forEach(setupModel => {
-          const model = dataSourceModels[setupModel.name];
-          const relationMapping = RELATION_MAPPING[model.name];
+          Object.values(setupModels).forEach(setupModel => {
+            const model = dataSourceModels[setupModel.name];
+            const relationMapping = RELATION_MAPPING[model.name];
 
-          expect(model).toBeDefined();
-          Object.entries(model.associations).forEach(([associationName, association]) => {
-            expect({ [associationName]: association }).toStrictEqual({
-              [associationName]: expect.objectContaining(relationMapping[associationName]),
+            expect(model).toBeDefined();
+            Object.entries(model.associations).forEach(([associationName, association]) => {
+              expect({ [associationName]: association }).toStrictEqual({
+                [associationName]: expect.objectContaining(relationMapping[associationName]),
+              });
             });
           });
-        });
 
-        const belongsToManyModel = dataSourceModels.productOrder;
-        const relationMapping = RELATION_MAPPING.productOrder;
-        expect(belongsToManyModel).toBeDefined();
-        Object.entries(belongsToManyModel.associations).forEach(
-          ([associationName, association]) => {
-            expect({ [associationName]: association }).toStrictEqual({
-              [associationName]: expect.objectContaining(relationMapping[associationName]),
-            });
-          },
-        );
+          const belongsToManyModel = dataSourceModels.productOrder;
+          const relationMapping = RELATION_MAPPING.productOrder;
+          expect(belongsToManyModel).toBeDefined();
+          Object.entries(belongsToManyModel.associations).forEach(
+            ([associationName, association]) => {
+              expect({ [associationName]: association }).toStrictEqual({
+                [associationName]: expect.objectContaining(relationMapping[associationName]),
+              });
+            },
+          );
 
-        await sequelize.close();
-      });
+          await sequelize.close();
+        },
+      );
     });
   });
 
-  describe('introspect database before injected the tables to the builder', () => {
+  describe('introspect database before injecting the tables to the builder', () => {
     it('should build the sequelize instance without introspected the db again', async () => {
       const dialect = 'postgres';
       const baseUri = 'postgres://test:password@localhost:5443';

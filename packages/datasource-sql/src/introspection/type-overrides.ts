@@ -25,6 +25,11 @@ export interface SequelizeColumn extends ColumnDescription {
   special?: string[];
 }
 
+export interface SequelizeTableIdentifier {
+  tableName: string;
+  schema?: string;
+}
+
 export type SequelizeColumnType = AbstractDataType | AbstractDataTypeConstructor;
 
 export type SequelizeReference = {

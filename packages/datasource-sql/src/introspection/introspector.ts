@@ -3,7 +3,12 @@ import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
-import { QueryInterfaceExt, SequelizeColumn, SequelizeReference } from './type-overrides';
+import {
+  QueryInterfaceExt,
+  SequelizeColumn,
+  SequelizeReference,
+  SequelizeTableIdentifier,
+} from './type-overrides';
 import { Table } from './types';
 
 export default class Introspector {
@@ -18,45 +23,51 @@ export default class Introspector {
   }
 
   /** Get names of all tables in the public schema of the db */
-  private static async getTableNames(sequelize: Sequelize): Promise<string[]> {
+  private static async getTableNames(sequelize: Sequelize): Promise<SequelizeTableIdentifier[]> {
     const names: ({ tableName: string } | string)[] = await sequelize
       .getQueryInterface()
       .showAllTables();
 
-    // Fixes Sequelize behavior incorrectly implemented.
-    // Types indicate that showAllTables() should return a list of string, but it
-    // returns a list of object for both mariadb & mssql
     // @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
-    return names.map(name => (typeof name === 'string' ? name : name?.tableName));
+    return names.map(tableIdentifier =>
+      typeof tableIdentifier === 'string' ? { tableName: tableIdentifier } : tableIdentifier,
+    );
   }
 
   /** Instrospect a single table */
   private static async getTable(
     sequelize: Sequelize,
     logger: Logger,
-    tableName: string,
+    tableIdentifier: SequelizeTableIdentifier,
   ): Promise<Table> {
     const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
 
     const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
-      queryInterface.describeTable(tableName),
-      queryInterface.showIndex(tableName),
-      queryInterface.getForeignKeyReferencesForTable(tableName),
+      queryInterface.describeTable(tableIdentifier),
+      queryInterface.showIndex(tableIdentifier),
+
+      queryInterface.getForeignKeyReferencesForTable(tableIdentifier),
     ]);
 
-    await this.detectBrokenRelationship(tableName, sequelize, tableReferences, logger);
+    await this.detectBrokenRelationship(tableIdentifier, sequelize, tableReferences, logger);
 
     const columns = await Promise.all(
       Object.entries(columnDescriptions).map(async ([name, description]) => {
-        const references = tableReferences.filter(r => r.columnName === name);
+        const references = tableReferences.filter(
+          // There is a bug right now with sequelize on postgresql: returned association
+          // are not filtered on the schema. So we have to filter them manually.
+          // Should be fixed with Sequelize v7
+          r => r.columnName === name && r.tableSchema === tableIdentifier.schema,
+        );
         const options = { name, description, references };
 
-        return this.getColumn(sequelize, logger, tableName, options);
+        return this.getColumn(sequelize, logger, tableIdentifier, options);
       }),
     );
 
     return {
-      name: tableName,
+      name: tableIdentifier.tableName,
+      schema: tableIdentifier.schema,
       columns: columns.filter(Boolean),
       unique: tableIndexes
         .filter(i => i.unique || i.primary)
@@ -67,7 +78,7 @@ export default class Introspector {
   private static async getColumn(
     sequelize: Sequelize,
     logger: Logger,
-    tableName: string,
+    tableIdentifier: SequelizeTableIdentifier,
     options: {
       name: string;
       description: SequelizeColumn;
@@ -79,7 +90,7 @@ export default class Introspector {
     const typeConverter = new SqlTypeConverter(sequelize);
 
     try {
-      const type = await typeConverter.convert(tableName, name, description);
+      const type = await typeConverter.convert(tableIdentifier, name, description);
       const parser = new DefaultValueParser(dialect);
 
       // Workaround autoincrement flag not being properly set when using postgres
@@ -103,7 +114,7 @@ export default class Introspector {
         })),
       };
     } catch (e) {
-      logger?.('Warn', `Skipping column ${tableName}.${name} (${e.message})`);
+      logger?.('Warn', `Skipping column ${tableIdentifier.tableName}.${name} (${e.message})`);
     }
   }
 
@@ -131,7 +142,7 @@ export default class Introspector {
   }
 
   private static async detectBrokenRelationship(
-    tableName: string,
+    tableIdentifier: SequelizeTableIdentifier,
     sequelize: Sequelize,
     tableReferences: SequelizeReference[],
     logger: Logger,
@@ -147,7 +158,7 @@ export default class Introspector {
         `SELECT "from" as constraint_name, :tableName as table_name
         from pragma_foreign_key_list(:tableName);`,
         {
-          replacements: { tableName },
+          replacements: { tableName: tableIdentifier.tableName },
           type: QueryTypes.SELECT,
         },
       );
@@ -156,9 +167,20 @@ export default class Introspector {
         constraint_name: string;
         table_name: string;
       }>(
-        `SELECT constraint_name, table_name from information_schema.table_constraints
-          where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
-        { replacements: { tableName }, type: QueryTypes.SELECT },
+        `
+        SELECT constraint_name, table_name
+          FROM information_schema.table_constraints
+          WHERE table_name = :tableName 
+            AND constraint_type = 'FOREIGN KEY'
+            AND (:schema IS NULL OR table_schema = :schema);
+        `,
+        {
+          replacements: {
+            tableName: tableIdentifier.tableName,
+            schema: tableIdentifier.schema || null,
+          },
+          type: QueryTypes.SELECT,
+        },
       );
     }
 

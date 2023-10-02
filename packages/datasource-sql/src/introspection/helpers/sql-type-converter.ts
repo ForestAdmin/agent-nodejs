@@ -1,6 +1,6 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
-import { SequelizeColumn } from '../type-overrides';
+import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 import { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
@@ -12,13 +12,13 @@ export default class SqlTypeConverter {
   }
 
   async convert(
-    tableName: string,
+    tableIdentifier: SequelizeTableIdentifier,
     columnName: string,
     columnInfo: SequelizeColumn,
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
-        return this.getArrayType(tableName, columnName);
+        return this.getArrayType(tableIdentifier, columnName);
 
       case 'USER-DEFINED':
       case this.typeMatch(columnInfo.type, SqlTypeConverter.enumRegex):
@@ -50,7 +50,10 @@ export default class SqlTypeConverter {
    * Note that we don't need to write multiple SQL queries, because arrays are only supported by
    * Postgres
    */
-  private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
+  private async getArrayType(
+    tableIdentifier: SequelizeTableIdentifier,
+    columnName: string,
+  ): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
     const [{ udtName, dataType, charLength, schema, rawEnumValues }] = await this.sequelize.query<{
       udtName: string;
@@ -79,10 +82,18 @@ export default class SqlTypeConverter {
         c.table_schema = e.object_schema AND
         c.table_name = e.object_name AND
         'TABLE' = e.object_type AND
+        (:schema IS NULL OR c.table_schema = :schema) AND
         c.dtd_identifier = e.collection_type_identifier
       )
       WHERE table_name = :tableName AND c.column_name = :columnName;`.replace(/\s+/g, ' '),
-      { replacements: { tableName, columnName }, type: QueryTypes.SELECT },
+      {
+        replacements: {
+          tableName: tableIdentifier.tableName,
+          schema: tableIdentifier.schema || null,
+          columnName,
+        },
+        type: QueryTypes.SELECT,
+      },
     );
 
     let subType: ColumnType;
