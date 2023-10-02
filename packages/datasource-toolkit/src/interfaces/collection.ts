@@ -34,6 +34,7 @@ export interface Collection {
     caller: Caller,
     name: string,
     formValues?: RecordData,
+    searchValues?: Record<string, string | null>,
     filter?: Filter,
     metas?: { changedField: string; searchField?: string; searchValue?: string },
   ): Promise<ActionField[]>;

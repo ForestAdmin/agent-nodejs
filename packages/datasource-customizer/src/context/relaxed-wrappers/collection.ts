@@ -76,7 +76,7 @@ export default class RelaxedCollection<
   getForm(name: string, formValues?: RecordData, filter?: TFilter<S, N>): Promise<ActionField[]> {
     const filterInstance = this.buildFilter(filter);
 
-    return this.collection.getForm(this.caller, name, formValues, filterInstance);
+    return this.collection.getForm(this.caller, name, formValues, null, filterInstance);
   }
 
   /**

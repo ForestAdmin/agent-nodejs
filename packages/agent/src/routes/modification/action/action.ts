@@ -97,6 +97,7 @@ export default class ActionRoute extends CollectionRoute {
       caller,
       this.actionName,
       unsafeData,
+      null,
       filterForCaller,
     );
 
@@ -143,14 +144,26 @@ export default class ActionRoute extends CollectionRoute {
     const data = forestFields
       ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
+    const searchValues: Record<string, string | null> = {};
+
+    if (forestFields)
+      for (const field of forestFields) {
+        searchValues[field.field] = field.searchValue;
+      }
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
-    const fields = await this.collection.getForm(caller, this.actionName, data, filter, {
-      changedField: body.data.attributes.changed_field,
-      searchField: body.data.attributes.search_field,
-      searchValue: body.data.attributes.search_value,
-    });
+    const fields = await this.collection.getForm(
+      caller,
+      this.actionName,
+      data,
+      searchValues,
+      filter,
+      {
+        changedField: body.data.attributes.changed_field,
+        searchField: body.data.attributes.search_field,
+      },
+    );
 
     context.response.body = {
       fields: fields.map(field =>
