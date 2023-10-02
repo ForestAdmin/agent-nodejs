@@ -1,34 +1,26 @@
-import { stringify } from 'querystring';
 import { DataTypes, Sequelize } from 'sequelize';
 
 export default async (baseUri: string, database: string, schema?: string): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
-    sequelize = new Sequelize(baseUri, { logging: true });
+    sequelize = new Sequelize(baseUri, { logging: false });
     const queryInterface = sequelize.getQueryInterface();
 
     await queryInterface.dropDatabase(database);
     await queryInterface.createDatabase(database);
 
-    if (schema) {
-      await queryInterface.dropSchema(schema);
-      console.log('Creating schema');
-
-      try {
-        await queryInterface.createSchema(schema, { logging: true });
-      } catch (e) {
-        console.error('Error', e);
-        throw e;
-      }
-    }
-
     await sequelize.close();
 
     sequelize = new Sequelize(`${baseUri}/${database}`, {
-      logging: true,
+      logging: false,
       schema,
     });
+
+    if (schema) {
+      await sequelize.getQueryInterface().dropSchema(schema);
+      await sequelize.getQueryInterface().createSchema(schema);
+    }
 
     const member = sequelize.define(
       'member',
@@ -60,12 +52,7 @@ export default async (baseUri: string, database: string, schema?: string): Promi
     customer.hasOne(account);
     account.belongsTo(customer);
 
-    try {
-      await sequelize.sync({ force: true, schema, logging: true });
-    } catch (e) {
-      console.error('Error', e);
-      throw e;
-    }
+    await sequelize.sync({ force: true, schema });
 
     await sequelize
       .getQueryInterface()
