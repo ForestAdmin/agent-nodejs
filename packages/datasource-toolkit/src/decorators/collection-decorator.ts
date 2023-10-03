@@ -68,7 +68,7 @@ export default class CollectionDecorator implements Collection {
     caller: Caller,
     name: string,
     data?: RecordData,
-    searchValues?: Record<string, string | null>,
+    searchValues?: Record<string, string | null> | null,
     filter?: Filter,
     metas?: { changedField: string; searchValue: string; searchField: string },
   ): Promise<ActionField[]> {
