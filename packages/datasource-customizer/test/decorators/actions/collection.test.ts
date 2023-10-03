@@ -54,11 +54,13 @@ describe('ActionDecorator', () => {
     test('should delegate getForm calls', async () => {
       const caller = factories.caller.build();
       const filter = new Filter({});
+      const searchValues = {};
       const metas = { changedField: 'a field' };
       const fields = await newBooks.getForm(
         caller,
         'someAction',
         { firstname: 'John' },
+        searchValues,
         filter,
         metas,
       );
@@ -68,6 +70,7 @@ describe('ActionDecorator', () => {
         caller,
         'someAction',
         { firstname: 'John' },
+        searchValues,
         filter,
         metas,
       );
@@ -108,6 +111,7 @@ describe('ActionDecorator', () => {
         factories.caller.build(),
         'make photocopy',
         undefined,
+        undefined,
         filter,
       );
 
@@ -117,7 +121,13 @@ describe('ActionDecorator', () => {
 
     test('should generate empty form (with data)', async () => {
       const filter = new Filter({});
-      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {}, filter);
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        {},
+        {},
+        filter,
+      );
 
       expect(books.getForm).not.toHaveBeenCalled();
       expect(fields).toEqual([]);
@@ -253,7 +263,8 @@ describe('ActionDecorator', () => {
             firstname: 'John',
           },
           undefined,
-          { changedField: 'firstname', searchValue: null, searchField },
+          undefined,
+          { changedField: 'firstname', searchField },
         );
 
         expect(fields).toEqual([
@@ -290,10 +301,10 @@ describe('ActionDecorator', () => {
         'make photocopy',
         undefined,
         undefined,
+        undefined,
         {
           changedField: 'toto',
           searchField: 'firstname',
-          searchValue: 'first',
         },
       );
       expect(fields).toEqual([
@@ -436,8 +447,9 @@ describe('ActionDecorator', () => {
         factories.caller.build(),
         'make photocopy',
         {},
+        { 'dynamic search': '123' },
         undefined,
-        { changedField: '', searchField: 'dynamic search', searchValue: '123' },
+        { changedField: '', searchField: 'dynamic search' },
       );
       expect(fields).toStrictEqual([
         {
