@@ -50,32 +50,66 @@ async function setupTestDB(connectionDetails, schema) {
 
 describe('Integration > SqlTypeConverter', () => {
   describe.each(CONNECTION_DETAILS)('On $dialect', connectionDetails => {
-    describe.each([
-      { connectionDetails, schema: undefined },
-      ...(connectionDetails.supports.schemas ? [{ connectionDetails, schema: 'test_schema' }] : []),
-    ])('With schema=$schema', ({ connectionDetails, schema }) => {
-      let sequelize: Sequelize;
+    describe.each([undefined, ...(connectionDetails.supports.schemas ? ['test_schema'] : [])])(
+      'With schema=%s',
+      schema => {
+        let sequelize: Sequelize;
 
-      beforeEach(async () => {
-        sequelize = await setupTestDB(connectionDetails, schema);
-      });
+        beforeEach(async () => {
+          sequelize = await setupTestDB(connectionDetails, schema);
+        });
 
-      afterEach(async () => {
-        sequelize?.close();
-      });
+        afterEach(async () => {
+          sequelize?.close();
+        });
 
-      describe.each(
-        SCALAR_TYPES.filter(
-          ([, , dialects]) => !dialects || dialects.includes(connectionDetails.dialect),
-        ),
-      )('when converting scalar type %s', (sqlType: string, expectedType) => {
-        it(`should return ${expectedType}`, async () => {
-          try {
+        describe.each(
+          SCALAR_TYPES.filter(
+            ([, , dialects]) => !dialects || dialects.includes(connectionDetails.dialect),
+          ),
+        )('when converting scalar type %s', (sqlType: string, expectedType) => {
+          it(`should return ${expectedType}`, async () => {
+            try {
+              sequelize.define(
+                'test',
+                {
+                  column: {
+                    type: sqlType,
+                  },
+                },
+                { schema, tableName: 'test', timestamps: false },
+              );
+
+              await sequelize.sync();
+
+              const sqlTypeConverter = new SqlTypeConverter(sequelize);
+
+              const columnDescriptions = await sequelize.getQueryInterface().describeTable('test');
+
+              const result = await sqlTypeConverter.convert(
+                { tableName: 'test', schema },
+                'column',
+                columnDescriptions.column,
+              );
+
+              expect(result).toEqual({ type: 'scalar', subType: expectedType });
+            } catch (e) {
+              // It helps displaying real errors
+              console.error('Error', e);
+              throw e;
+            }
+          });
+        });
+
+        describe('when converting an enum', () => {
+          it('should return the enum as a subtype', async () => {
             sequelize.define(
               'test',
               {
                 column: {
-                  type: sqlType,
+                  type: DataTypes.ENUM({
+                    values: ['value1', 'value2'],
+                  }),
                 },
               },
               { schema, tableName: 'test', timestamps: false },
@@ -93,52 +127,18 @@ describe('Integration > SqlTypeConverter', () => {
               columnDescriptions.column,
             );
 
-            expect(result).toEqual({ type: 'scalar', subType: expectedType });
-          } catch (e) {
-            // It helps displaying real errors
-            console.error('Error', e);
-            throw e;
-          }
-        });
-      });
-
-      describe('when converting an enum', () => {
-        it('should return the enum as a subtype', async () => {
-          sequelize.define(
-            'test',
-            {
-              column: {
-                type: DataTypes.ENUM({
+            const expectedResult = connectionDetails.supports.enums
+              ? {
+                  type: 'enum',
                   values: ['value1', 'value2'],
-                }),
-              },
-            },
-            { schema, tableName: 'test', timestamps: false },
-          );
+                }
+              : { type: 'scalar', subType: 'STRING' };
 
-          await sequelize.sync();
-
-          const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
-          const columnDescriptions = await sequelize.getQueryInterface().describeTable('test');
-
-          const result = await sqlTypeConverter.convert(
-            { tableName: 'test', schema },
-            'column',
-            columnDescriptions.column,
-          );
-
-          const expectedResult = connectionDetails.supports.enums
-            ? {
-                type: 'enum',
-                values: ['value1', 'value2'],
-              }
-            : { type: 'scalar', subType: 'STRING' };
-
-          expect(result).toEqual(expectedResult);
+            expect(result).toEqual(expectedResult);
+          });
         });
-      });
-    });
+      },
+    );
   });
 
   describe.each(CONNECTION_DETAILS.filter(connectionDetails => connectionDetails.supports.arrays))(
