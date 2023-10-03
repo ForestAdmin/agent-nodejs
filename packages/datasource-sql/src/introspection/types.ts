@@ -37,6 +37,7 @@ export type ColumnType =
 
 export type Table = {
   name: string;
+  schema: string | undefined;
   unique: string[][];
   columns: {
     name: string;
