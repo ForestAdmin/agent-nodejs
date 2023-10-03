@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.1...@forestadmin/agent@1.35.2) (2023-10-03)
+
+
+### Bug Fixes
+
+* fatal error with collection names containing some special characters ([#841](https://github.com/ForestAdmin/agent-nodejs/issues/841)) ([64bd49e](https://github.com/ForestAdmin/agent-nodejs/commit/64bd49e34e75d391d96634916fa48eb333968e26))
+
 ## @forestadmin/agent [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.0...@forestadmin/agent@1.35.1) (2023-09-28)
 
 
