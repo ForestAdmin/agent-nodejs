@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.35](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.34...@forestadmin/datasource-sql@1.7.35) (2023-10-03)
+
+
+### Bug Fixes
+
+* support schema different from the default one ([#839](https://github.com/ForestAdmin/agent-nodejs/issues/839)) ([18828c0](https://github.com/ForestAdmin/agent-nodejs/commit/18828c082e3975fe2648f4d9a982e1b19e423730))
+
 ## @forestadmin/datasource-sql [1.7.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.33...@forestadmin/datasource-sql@1.7.34) (2023-09-28)
 
 
