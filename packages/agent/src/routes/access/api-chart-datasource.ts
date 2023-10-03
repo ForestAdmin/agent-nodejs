@@ -15,6 +15,10 @@ export default class DataSourceApiChartRoute extends BaseRoute {
   private dataSource: DataSource;
   private chartName: string;
 
+  get chartUrlSlug(): string {
+    return this.escapeUrlSlug(this.chartName);
+  }
+
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
@@ -29,7 +33,7 @@ export default class DataSourceApiChartRoute extends BaseRoute {
 
   setupRoutes(router: Router): void {
     // Mount both GET and POST, respectively for smart and api charts.
-    const suffix = `/_charts/${this.chartName}`;
+    const suffix = `/_charts/${this.chartUrlSlug}`;
     router.get(suffix, this.handleSmartChart.bind(this));
     router.post(suffix, this.handleApiChart.bind(this));
 

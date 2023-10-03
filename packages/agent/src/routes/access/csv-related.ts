@@ -18,7 +18,7 @@ import RelationRoute from '../relation-route';
 export default class CsvRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.get(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}.csv`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}.csv`,
       this.handleRelatedCsv.bind(this),
     );
   }

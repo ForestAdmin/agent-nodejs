@@ -16,7 +16,7 @@ import CollectionRoute from '../collection-route';
 export default class UpdateField extends CollectionRoute {
   setupRoutes(router: Router): void {
     router.put(
-      `/${this.collection.name}/:id/relationships/:field/:index(\\d+)`,
+      `/${this.collectionUrlSlug}/:id/relationships/:field/:index(\\d+)`,
       this.handleUpdate.bind(this),
     );
   }

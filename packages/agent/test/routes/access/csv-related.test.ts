@@ -234,4 +234,29 @@ describe('CsvRelatedRoute', () => {
       );
     });
   });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+      const services = factories.forestAdminHttpDriverServices.build();
+      const dataSource = factories.dataSource.buildWithCollection({
+        name: 'books+?*',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+          },
+        }),
+      });
+
+      const route = new CsvRoute(services, options, dataSource, 'books+?*', 'myPersons+?*');
+
+      route.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith(
+        '/books\\+\\?\\*/:parentId/relationships/myPersons\\+\\?\\*.csv',
+        expect.any(Function),
+      );
+    });
+  });
 });

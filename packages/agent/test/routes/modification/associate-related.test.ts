@@ -219,4 +219,52 @@ describe('AssociateRelatedRoute', () => {
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
   });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+
+      const bookPersons = factories.collection.build({
+        name: 'bookPersons+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+          },
+        }),
+      });
+
+      const books = factories.collection.build({
+        name: 'books+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            myBookPersons: factories.oneToManySchema.build({
+              foreignCollection: 'bookPersons',
+              originKey: 'bookId',
+              originKeyTarget: 'id',
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
+
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books+*?',
+        'myBookPersons+*?',
+      );
+
+      route.setupRoutes(router);
+
+      expect(router.post).toHaveBeenCalledWith(
+        '/books\\+\\*\\?/:parentId/relationships/myBookPersons\\+\\*\\?',
+        expect.any(Function),
+      );
+    });
+  });
 });

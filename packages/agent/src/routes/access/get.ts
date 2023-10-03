@@ -13,7 +13,7 @@ import CollectionRoute from '../collection-route';
 
 export default class GetRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.get(`/${this.collection.name}/:id`, this.handleGet.bind(this));
+    router.get(`/${this.collectionUrlSlug}/:id`, this.handleGet.bind(this));
   }
 
   public async handleGet(context: Context) {

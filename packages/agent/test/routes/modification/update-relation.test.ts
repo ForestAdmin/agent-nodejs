@@ -6,13 +6,13 @@ import { HttpCode } from '../../../src/types';
 import * as factories from '../../__factories__';
 
 describe('UpdateRelationRoute', () => {
-  const setupWithManyToOneRelation = () => {
+  const setupWithManyToOneRelation = (namesSuffix = '') => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
     const router = factories.router.mockAllMethods().build();
 
     const persons = factories.collection.build({
-      name: 'persons',
+      name: `persons${namesSuffix}`,
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.uuidPrimaryKey().build(),
@@ -22,13 +22,13 @@ describe('UpdateRelationRoute', () => {
     });
 
     const books = factories.collection.build({
-      name: 'books',
+      name: `books${namesSuffix}`,
       schema: factories.collectionSchema.build({
         fields: {
           id: factories.columnSchema.uuidPrimaryKey().build(),
           personId: factories.columnSchema.build({ columnType: 'Uuid' }),
           myPersons: factories.manyToOneSchema.build({
-            foreignCollection: 'persons',
+            foreignCollection: `persons${namesSuffix}`,
             foreignKey: 'personId',
           }),
         },
@@ -47,6 +47,24 @@ describe('UpdateRelationRoute', () => {
 
     expect(router.put).toHaveBeenCalledWith(
       '/books/:parentId/relationships/myPersons',
+      expect.any(Function),
+    );
+  });
+
+  test('it should register the route with escaped characters', () => {
+    const { services, dataSource, options, router } = setupWithManyToOneRelation('+*?');
+
+    const update = new UpdateRelationRoute(
+      services,
+      options,
+      dataSource,
+      'books+*?',
+      'myPersons+*?',
+    );
+    update.setupRoutes(router);
+
+    expect(router.put).toHaveBeenCalledWith(
+      '/books\\+\\*\\?/:parentId/relationships/myPersons\\+\\*\\?',
       expect.any(Function),
     );
   });

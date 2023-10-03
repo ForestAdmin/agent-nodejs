@@ -13,6 +13,10 @@ import CollectionRoute from '../collection-route';
 export default class CollectionApiChartRoute extends CollectionRoute {
   private chartName: string;
 
+  get chartUrlSlug(): string {
+    return this.escapeUrlSlug(this.chartName);
+  }
+
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
@@ -26,7 +30,7 @@ export default class CollectionApiChartRoute extends CollectionRoute {
 
   setupRoutes(router: Router): void {
     // Mount both GET and POST, respectively for smart and api charts.
-    const suffix = `/_charts/${this.collection.name}/${this.chartName}`;
+    const suffix = `/_charts/${this.collectionUrlSlug}/${this.chartUrlSlug}`;
     router.get(suffix, this.handleSmartChart.bind(this));
     router.post(suffix, this.handleApiChart.bind(this));
 

@@ -14,6 +14,10 @@ export default abstract class CollectionRoute extends BaseRoute {
     return this.dataSource.getCollection(this.collectionName);
   }
 
+  protected get collectionUrlSlug(): string {
+    return this.escapeUrlSlug(this.collectionName);
+  }
+
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,

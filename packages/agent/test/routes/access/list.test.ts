@@ -134,4 +134,28 @@ describe('ListRoute', () => {
       );
     });
   });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const collection = factories.collection.build({
+        name: 'books+?*',
+        list: jest.fn(),
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(collection);
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+      const services = factories.forestAdminHttpDriverServices.build();
+
+      const list = new List(services, options, dataSource, collection.name);
+
+      list.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith('/books\\+\\?\\*', expect.any(Function));
+    });
+  });
 });

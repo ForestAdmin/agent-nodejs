@@ -7,7 +7,7 @@ import CollectionRoute from '../collection-route';
 
 export default class ListRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.get(`/${this.collection.name}`, this.handleList.bind(this));
+    router.get(`/${this.collectionUrlSlug}`, this.handleList.bind(this));
   }
 
   public async handleList(context: Context) {
