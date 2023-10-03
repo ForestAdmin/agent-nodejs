@@ -120,8 +120,6 @@ describe('SqlDataSourceFactory > Integration', () => {
         const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
         const setupModels = setupSequelize.models;
 
-        const queryParams = schema ? { schema } : {};
-        const queryString = stringify(queryParams);
         const sequelize = await buildSequelizeInstance(
           `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
           logger,
