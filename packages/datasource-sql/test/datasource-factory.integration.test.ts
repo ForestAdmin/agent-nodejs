@@ -1,6 +1,7 @@
 import { stringify } from 'querystring';
 import { Dialect, Sequelize } from 'sequelize';
 
+import CONNECTION_DETAILS from './_helpers/connection-details';
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
 import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
 import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
@@ -26,14 +27,30 @@ describe('SqlDataSourceFactory > Integration', () => {
     });
   });
 
-  describe.each([
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, undefined],
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443, 'test_schema'],
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307, undefined],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434, undefined],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434, 'test_schema'],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809, undefined],
-  ])('on "%s" database', (dialect, username, password, host, port, schema) => {
+  describe.each(
+    CONNECTION_DETAILS.flatMap(connectionDetails => [
+      [
+        connectionDetails.dialect,
+        connectionDetails.username,
+        connectionDetails.password,
+        connectionDetails.host,
+        connectionDetails.port,
+        undefined,
+      ],
+      ...(connectionDetails.supports.schemas
+        ? [
+            [
+              connectionDetails.dialect,
+              connectionDetails.username,
+              connectionDetails.password,
+              connectionDetails.host,
+              connectionDetails.port,
+              'test_schema',
+            ],
+          ]
+        : []),
+    ]) as [Dialect, string, string, string, number, string | undefined][],
+  )('on "%s" database', (dialect, username, password, host, port, schema) => {
     const queryParams = schema ? { schema } : {};
     const queryString = stringify(queryParams);
     const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
