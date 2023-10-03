@@ -128,4 +128,29 @@ describe('CsvRoute', () => {
       expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3\n']);
     });
   });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped names', () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+      const services = factories.forestAdminHttpDriverServices.build();
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({
+          name: 'books+*?',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build({ columnType: 'String' }),
+            },
+          }),
+        }),
+      );
+
+      const route = new CsvRoute(services, options, dataSource, 'books+*?');
+
+      route.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith('/books\\+\\*\\?.csv', expect.any(Function));
+    });
+  });
 });

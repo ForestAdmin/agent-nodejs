@@ -21,7 +21,7 @@ import RelationRoute from '../relation-route';
 export default class AssociateRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.post(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}`,
       this.handleAssociateRelatedRoute.bind(this),
     );
   }
