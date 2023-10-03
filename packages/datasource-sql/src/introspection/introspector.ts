@@ -24,12 +24,14 @@ export default class Introspector {
 
   /** Get names of all tables in the public schema of the db */
   private static async getTableNames(sequelize: Sequelize): Promise<SequelizeTableIdentifier[]> {
-    const names: ({ tableName: string } | string)[] = await sequelize
+    const tableIdentifiers: ({ tableName: string } | string)[] = await sequelize
       .getQueryInterface()
       .showAllTables();
 
+    // Sometimes sequelize returns only strings,
+    // and sometimes objects with a tableName and schema property.
     // @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
-    return names.map(tableIdentifier =>
+    return tableIdentifiers.map(tableIdentifier =>
       typeof tableIdentifier === 'string' ? { tableName: tableIdentifier } : tableIdentifier,
     );
   }
