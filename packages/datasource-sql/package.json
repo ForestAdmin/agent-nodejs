@@ -14,11 +14,11 @@
   "dependencies": {
     "@forestadmin/datasource-sequelize": "1.5.22",
     "@forestadmin/datasource-toolkit": "1.28.0",
-    "@types/ssh2": "^1.11.11",
     "pluralize": "^8.0.0",
-    "sequelize": "^6.33.0",
+    "sequelize": "^6.28.0",
     "socks": "^2.7.1",
-    "ssh2": "^1.14.0"
+    "ssh2": "^1.14.0",
+    "@types/ssh2": "^1.11.11"
   },
   "files": [
     "dist/**/*.js",
