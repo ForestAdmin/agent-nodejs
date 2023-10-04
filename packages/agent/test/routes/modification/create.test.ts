@@ -302,4 +302,17 @@ describe('CreateRoute', () => {
       });
     });
   });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'books+*?' }),
+      );
+      const create = new CreateRoute(services, options, dataSource, 'books+*?');
+
+      create.setupRoutes(router);
+
+      expect(router.post).toHaveBeenCalledWith('/books\\+\\*\\?', expect.any(Function));
+    });
+  });
 });

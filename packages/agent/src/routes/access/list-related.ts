@@ -10,7 +10,7 @@ import RelationRoute from '../relation-route';
 export default class ListRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.get(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}`,
       this.handleListRelated.bind(this),
     );
   }

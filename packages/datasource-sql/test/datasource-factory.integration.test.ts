@@ -1,5 +1,7 @@
+import { stringify } from 'querystring';
 import { Dialect, Sequelize } from 'sequelize';
 
+import CONNECTION_DETAILS from './_helpers/connection-details';
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
 import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
 import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
@@ -25,12 +27,32 @@ describe('SqlDataSourceFactory > Integration', () => {
     });
   });
 
-  describe.each([
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
-  ])('on "%s" database', (dialect, username, password, host, port) => {
+  describe.each(
+    CONNECTION_DETAILS.flatMap(connectionDetails => [
+      [
+        connectionDetails.dialect,
+        connectionDetails.username,
+        connectionDetails.password,
+        connectionDetails.host,
+        connectionDetails.port,
+        undefined,
+      ],
+      ...(connectionDetails.supports.schemas
+        ? [
+            [
+              connectionDetails.dialect,
+              connectionDetails.username,
+              connectionDetails.password,
+              connectionDetails.host,
+              connectionDetails.port,
+              'test_schema',
+            ],
+          ]
+        : []),
+    ]) as [Dialect, string, string, string, number, string | undefined][],
+  )('on "%s" database', (dialect, username, password, host, port, schema) => {
+    const queryParams = schema ? { schema } : {};
+    const queryString = stringify(queryParams);
     const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
 
     describe('Connecting with different options', () => {
@@ -38,9 +60,12 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       it('using uri', async () => {
         const database = 'datasource-sql-connect-with-uri-test';
-        await setupDatabaseWithTypes(baseUri, dialect, database);
+        await setupDatabaseWithTypes(baseUri, dialect, database, schema);
 
-        const sequelize = await buildSequelizeInstance(`${baseUri}/${database}`, logger);
+        const sequelize = await buildSequelizeInstance(
+          `${baseUri}/${database}?${queryString}`,
+          logger,
+        );
 
         await sequelize.close();
         expect(sequelize).toBeInstanceOf(Sequelize);
@@ -48,9 +73,12 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       it('using uri in options', async () => {
         const database = 'datasource-sql-connect-with-uri-in-options-test';
-        await setupDatabaseWithTypes(baseUri, dialect, database);
+        await setupDatabaseWithTypes(baseUri, dialect, database, schema);
 
-        const sequelize = await buildSequelizeInstance({ uri: `${baseUri}/${database}` }, logger);
+        const sequelize = await buildSequelizeInstance(
+          { uri: `${baseUri}/${database}?${queryString}` },
+          logger,
+        );
 
         await sequelize.close();
         expect(sequelize).toBeInstanceOf(Sequelize);
@@ -58,10 +86,10 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       it('using options', async () => {
         const database = 'datasource-sql-connect-with-options-test';
-        await setupDatabaseWithTypes(baseUri, dialect, database);
+        await setupDatabaseWithTypes(baseUri, dialect, database, schema);
 
         const sequelize = await buildSequelizeInstance(
-          { dialect, username, password, port, host, database },
+          { dialect, username, password, port, host, database, schema },
           logger,
         );
 
@@ -75,11 +103,14 @@ describe('SqlDataSourceFactory > Integration', () => {
         const databaseName = 'datasource-sql-primitive-field-test';
         const logger = jest.fn();
 
-        const setupSequelize = await setupDatabaseWithTypes(baseUri, dialect, databaseName);
+        const setupSequelize = await setupDatabaseWithTypes(baseUri, dialect, databaseName, schema);
         const setupModels = setupSequelize.models;
         const attributesMapping = getAttributeMapping(dialect as Dialect);
 
-        const sequelize = await buildSequelizeInstance(`${baseUri}/${databaseName}`, logger);
+        const sequelize = await buildSequelizeInstance(
+          `${baseUri}/${databaseName}?${queryString}`,
+          logger,
+        );
         const dataSourceModels = sequelize.models;
 
         Object.values(setupModels).forEach(setupModel => {
@@ -99,14 +130,17 @@ describe('SqlDataSourceFactory > Integration', () => {
     });
 
     describe('with relations', () => {
-      it('should generate a sql datasource with relation', async () => {
+      it('should generate a sql datasource with relation when schema is %s', async () => {
         const databaseName = 'datasource-sql-relation-test';
         const logger = jest.fn();
 
-        const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName);
+        const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
         const setupModels = setupSequelize.models;
 
-        const sequelize = await buildSequelizeInstance(`${baseUri}/${databaseName}`, logger);
+        const sequelize = await buildSequelizeInstance(
+          `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
+          logger,
+        );
         const dataSourceModels = sequelize.models;
 
         Object.values(setupModels).forEach(setupModel => {
@@ -137,14 +171,19 @@ describe('SqlDataSourceFactory > Integration', () => {
     });
   });
 
-  describe('introspect database before injected the tables to the builder', () => {
+  describe('introspect database before injecting the tables to the builder', () => {
     it('should build the sequelize instance without introspected the db again', async () => {
       const dialect = 'postgres';
       const baseUri = 'postgres://test:password@localhost:5443';
       const databaseName = 'datasource-sql-primitive-field-test';
       const logger = jest.fn();
 
-      const setupSequelize = await setupDatabaseWithTypes(baseUri, dialect, databaseName);
+      const setupSequelize = await setupDatabaseWithTypes(
+        baseUri,
+        dialect,
+        databaseName,
+        undefined,
+      );
       const setupModels = setupSequelize.models;
       const attributesMapping = getAttributeMapping(dialect);
 

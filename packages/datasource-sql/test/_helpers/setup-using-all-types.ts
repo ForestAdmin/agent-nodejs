@@ -153,7 +153,12 @@ export function getAttributeMapping(dialect: Dialect) {
   };
 }
 
-export default async (baseUri: string, dialect: string, database: string): Promise<Sequelize> => {
+export default async (
+  baseUri: string,
+  dialect: string,
+  database: string,
+  schema,
+): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
@@ -163,7 +168,12 @@ export default async (baseUri: string, dialect: string, database: string): Promi
     await sequelize.getQueryInterface().createDatabase(database);
     await sequelize.close();
 
-    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false });
+    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false, schema });
+
+    if (schema) {
+      await sequelize.getQueryInterface().dropSchema(schema);
+      await sequelize.getQueryInterface().createSchema(schema);
+    }
 
     sequelize.define(
       'primitiveT',

@@ -65,12 +65,17 @@ describe('Introspector', () => {
       await Introspector.introspect(mockSequelize, logger);
 
       // Assert the Sequelize method calls
-      expect(mockDescribeTable).toHaveBeenCalledWith('table1');
-      expect(mockShowIndex).toHaveBeenCalledWith('table1');
+      expect(mockDescribeTable).toHaveBeenCalledWith({ tableName: 'table1' });
+      expect(mockShowIndex).toHaveBeenCalledWith({ tableName: 'table1' });
       expect(mockQuery).toHaveBeenCalledWith(
-        `SELECT constraint_name, table_name from information_schema.table_constraints
-          where table_name = :tableName and constraint_type = 'FOREIGN KEY';`,
-        { replacements: { tableName: 'table1' }, type: QueryTypes.SELECT },
+        `
+        SELECT constraint_name, table_name
+          FROM information_schema.table_constraints
+          WHERE table_name = :tableName 
+            AND constraint_type = 'FOREIGN KEY'
+            AND (:schema IS NULL OR table_schema = :schema);
+        `,
+        { replacements: { tableName: 'table1', schema: null }, type: QueryTypes.SELECT },
       );
 
       // Assert the logger call
@@ -110,8 +115,8 @@ describe('Introspector', () => {
       await Introspector.introspect(mockSequelize, logger);
 
       // Assert the Sequelize method calls
-      expect(mockDescribeTable).toHaveBeenCalledWith('table1');
-      expect(mockShowIndex).toHaveBeenCalledWith('table1');
+      expect(mockDescribeTable).toHaveBeenCalledWith({ tableName: 'table1' });
+      expect(mockShowIndex).toHaveBeenCalledWith({ tableName: 'table1' });
       expect(mockQuery).toHaveBeenCalledWith(
         `SELECT "from" as constraint_name, :tableName as table_name
         from pragma_foreign_key_list(:tableName);`,

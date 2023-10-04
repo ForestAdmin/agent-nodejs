@@ -1,27 +1,49 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-export default async (baseUri: string, database: string): Promise<Sequelize> => {
+export default async (baseUri: string, database: string, schema?: string): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
     sequelize = new Sequelize(baseUri, { logging: false });
-    await sequelize.getQueryInterface().dropDatabase(database);
-    await sequelize.getQueryInterface().createDatabase(database);
+    const queryInterface = sequelize.getQueryInterface();
+
+    await queryInterface.dropDatabase(database);
+    await queryInterface.createDatabase(database);
 
     await sequelize.close();
 
-    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false });
+    sequelize = new Sequelize(`${baseUri}/${database}`, {
+      logging: false,
+      schema,
+    });
+
+    if (schema) {
+      await sequelize.getQueryInterface().dropSchema(schema);
+      await sequelize.getQueryInterface().createSchema(schema);
+    }
 
     const member = sequelize.define(
       'member',
       { role: DataTypes.STRING },
-      { tableName: 'member', timestamps: false },
+      { tableName: 'member', schema, timestamps: false },
     );
-    const group = sequelize.define('group', {}, { tableName: 'group', timestamps: false });
-    const product = sequelize.define('product', {}, { tableName: 'product', timestamps: false });
-    const order = sequelize.define('order', {}, { tableName: 'order', timestamps: false });
-    const account = sequelize.define('account', {}, { tableName: 'account', timestamps: false });
-    const customer = sequelize.define('customer', {}, { tableName: 'customer', timestamps: false });
+    const group = sequelize.define('group', {}, { tableName: 'group', schema, timestamps: false });
+    const product = sequelize.define(
+      'product',
+      {},
+      { tableName: 'product', schema, timestamps: false },
+    );
+    const order = sequelize.define('order', {}, { tableName: 'order', schema, timestamps: false });
+    const account = sequelize.define(
+      'account',
+      {},
+      { tableName: 'account', schema, timestamps: false },
+    );
+    const customer = sequelize.define(
+      'customer',
+      {},
+      { tableName: 'customer', schema, timestamps: false },
+    );
 
     member.belongsTo(group);
     group.hasMany(member);
@@ -30,15 +52,25 @@ export default async (baseUri: string, database: string): Promise<Sequelize> => 
     customer.hasOne(account);
     account.belongsTo(customer);
 
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ force: true, schema });
+
     await sequelize
       .getQueryInterface()
-      .addConstraint(account.name, { type: 'unique', fields: ['customerId'] });
+      .addConstraint(
+        { tableName: account.name, schema },
+        { type: 'unique', fields: ['customerId'] },
+      );
     await sequelize
       .getQueryInterface()
-      .addConstraint(member.name, { type: 'unique', fields: ['groupId', 'role'] });
+      .addConstraint(
+        { tableName: member.name, schema },
+        { type: 'unique', fields: ['groupId', 'role'] },
+      );
 
     return sequelize;
+  } catch (e) {
+    console.error('Error', e);
+    throw e;
   } finally {
     await sequelize?.close();
   }

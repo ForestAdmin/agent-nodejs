@@ -18,7 +18,7 @@ import CollectionRoute from '../collection-route';
 
 export default class CreateRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.post(`/${this.collection.name}`, this.handleCreate.bind(this));
+    router.post(`/${this.collectionUrlSlug}`, this.handleCreate.bind(this));
   }
 
   public async handleCreate(context: Context) {

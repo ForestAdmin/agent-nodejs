@@ -21,7 +21,7 @@ import RelationRoute from '../relation-route';
 export default class UpdateRelation extends RelationRoute {
   setupRoutes(router: Router): void {
     router.put(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}`,
       this.handleUpdateRelationRoute.bind(this),
     );
   }

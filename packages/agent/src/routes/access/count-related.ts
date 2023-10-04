@@ -10,7 +10,7 @@ import RelationRoute from '../relation-route';
 export default class CountRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.get(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}/count`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}/count`,
       this.handleCountRelated.bind(this),
     );
   }

@@ -19,4 +19,8 @@ export default abstract class BaseRoute {
   }
 
   abstract setupRoutes(router: Router): void;
+
+  protected escapeUrlSlug(name: string): string {
+    return name.replace(/([+?*])/g, '\\$1');
+  }
 }

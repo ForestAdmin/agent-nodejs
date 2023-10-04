@@ -11,8 +11,8 @@ import CollectionRoute from '../collection-route';
 
 export default class DeleteRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.delete(`/${this.collection.name}`, this.handleListDelete.bind(this));
-    router.delete(`/${this.collection.name}/:id`, this.handleDelete.bind(this));
+    router.delete(`/${this.collectionUrlSlug}`, this.handleListDelete.bind(this));
+    router.delete(`/${this.collectionUrlSlug}/:id`, this.handleDelete.bind(this));
   }
 
   public async handleDelete(context: Context): Promise<void> {
