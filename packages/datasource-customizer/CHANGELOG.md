@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.1...@forestadmin/datasource-customizer@1.35.2) (2023-10-04)
+
+
+### Bug Fixes
+
+* **widgets:** fix the definition of the options property on dropdown to correctly retrieve the type of context ([#842](https://github.com/ForestAdmin/agent-nodejs/issues/842)) ([ee07a42](https://github.com/ForestAdmin/agent-nodejs/commit/ee07a422f1e823076e8c0c08c2643786ad1528be))
+
 ## @forestadmin/datasource-customizer [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.0...@forestadmin/datasource-customizer@1.35.1) (2023-09-28)
 
 
