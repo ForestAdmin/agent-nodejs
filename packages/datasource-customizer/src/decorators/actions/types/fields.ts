@@ -71,7 +71,8 @@ type LimitedValueDynamicFieldConfiguration<Context, TWidget, TValue = string> = 
   options:
     | DropdownOption<TValue>[]
     | Promise<DropdownOption<TValue>[]>
-    // The searchOptionsHandle is not 100% accurate with all the widget that are extending this type.
+    // The searchOptionsHandle is not 100% accurate
+    // with all the widget that are extending this type.
     // But we have an issue with the context argument that is not correctly typed if we
     // use a stricter definition for this property.
     | SearchOptionsHandler<Context, TValue>;
