@@ -62,9 +62,19 @@ type StringDynamicField<Context> = BaseDynamicField<
 
 type StringListDynamicField<Context> = BaseDynamicField<'StringList', Context, string[]>;
 
+export type SearchOptionsHandler<Context = unknown, TValue = string> =
+  | ((context: Context, searchValue: string) => DropdownOption<TValue>[])
+  | ((context: Context, searchValue: string) => Promise<DropdownOption<TValue>[]>);
+
 type LimitedValueDynamicFieldConfiguration<Context, TWidget, TValue = string> = {
   widget: TWidget;
-  options: ValueOrHandler<Context, DropdownOption<TValue>[]>;
+  options:
+    | DropdownOption<TValue>[]
+    | Promise<DropdownOption<TValue>[]>
+    // The searchOptionsHandle is not 100% accurate with all the widget that are extending this type.
+    // But we have an issue with the context argument that is not correctly typed if we
+    // use a stricter definition for this property.
+    | SearchOptionsHandler<Context, TValue>;
 };
 
 type DropdownDynamicFieldConfiguration<
@@ -74,9 +84,6 @@ type DropdownDynamicFieldConfiguration<
   placeholder?: string;
   search?: 'static' | 'disabled';
 };
-export type SearchOptionsHandler<Context = unknown, TValue = string> =
-  | ((context: Context, searchValue: string) => DropdownOption<TValue>[])
-  | ((context: Context, searchValue: string) => Promise<DropdownOption<TValue>[]>);
 
 type DropdownDynamicSearchFieldConfiguration<Context = unknown, TValue = string> = {
   widget: 'Dropdown';
