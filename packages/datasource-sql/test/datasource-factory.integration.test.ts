@@ -12,8 +12,8 @@ function extractTablesAndRelations(
   models: Sequelize['models'],
 ): Record<string, Record<string, string>> {
   return Object.entries(models).reduce(
-    (models, [name, model]) => ({
-      ...models,
+    (modelsAccumulator, [name, model]) => ({
+      ...modelsAccumulator,
       [name]: Object.entries(model.associations).reduce(
         (associations, [key, value]) => ({
           ...associations,
