@@ -2,6 +2,7 @@ import {
   CollectionSchema,
   CollectionUtils,
   ColumnSchema,
+  Logger,
   Operator,
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
@@ -53,8 +54,8 @@ export default class CollectionCustomizer<
    * collection.use(createFileField, { fieldname: 'avatar' }),
    */
   use<Options>(plugin: Plugin<Options>, options?: Options): this {
-    return this.pushCustomization(async () => {
-      await plugin(this.dataSourceCustomizer, this, options);
+    return this.pushCustomization(async (logger: Logger) => {
+      await plugin(this.dataSourceCustomizer, this, options, logger);
     });
   }
 
@@ -551,7 +552,7 @@ export default class CollectionCustomizer<
     });
   }
 
-  private pushCustomization(customization: () => Promise<void>): this {
+  private pushCustomization(customization: (logger: Logger) => Promise<void>): this {
     this.stack.queueCustomization(customization);
 
     return this;
