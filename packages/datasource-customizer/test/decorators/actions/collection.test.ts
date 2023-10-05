@@ -253,7 +253,7 @@ describe('ActionDecorator', () => {
             firstname: 'John',
           },
           undefined,
-          { changedField: 'firstname', searchValue: null, searchField },
+          { changedField: 'firstname', searchField },
         );
 
         expect(fields).toEqual([
@@ -293,7 +293,7 @@ describe('ActionDecorator', () => {
         {
           changedField: 'toto',
           searchField: 'firstname',
-          searchValue: 'first',
+          searchValues: { firstName: 'first' },
         },
       );
       expect(fields).toEqual([
@@ -437,7 +437,11 @@ describe('ActionDecorator', () => {
         'make photocopy',
         {},
         undefined,
-        { changedField: '', searchField: 'dynamic search', searchValue: '123' },
+        {
+          changedField: '',
+          searchField: 'dynamic search',
+          searchValues: { 'dynamic search': '123' },
+        },
       );
       expect(fields).toStrictEqual([
         {
