@@ -37,7 +37,7 @@ export async function buildSequelizeInstance(
 
   try {
     sequelize = await connect(options);
-    const tables = introspection || (await Introspector.introspect(sequelize, logger));
+    const tables = introspection ?? (await Introspector.introspect(sequelize, logger));
     ModelBuilder.defineModels(sequelize, logger, tables);
     RelationBuilder.defineRelations(sequelize, logger, tables);
   } catch (error) {
