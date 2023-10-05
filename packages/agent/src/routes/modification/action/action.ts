@@ -97,7 +97,6 @@ export default class ActionRoute extends CollectionRoute {
       caller,
       this.actionName,
       unsafeData,
-      null,
       filterForCaller,
     );
 
@@ -153,17 +152,11 @@ export default class ActionRoute extends CollectionRoute {
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
-    const fields = await this.collection.getForm(
-      caller,
-      this.actionName,
-      data,
+    const fields = await this.collection.getForm(caller, this.actionName, data, filter, {
+      changedField: body.data.attributes.changed_field,
+      searchField: body.data.attributes.search_field,
       searchValues,
-      filter,
-      {
-        changedField: body.data.attributes.changed_field,
-        searchField: body.data.attributes.search_field,
-      },
-    );
+    });
 
     context.response.body = {
       fields: fields.map(field =>

@@ -53,13 +53,15 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     caller: Caller,
     name: string,
     data?: RecordData,
-    searchValues?: Record<string, string | null>,
     filter?: Filter,
-    metas?: { changedField: string; searchField?: string | null },
+    metas?: {
+      changedField: string;
+      searchField?: string | null;
+      searchValues: Record<string, string | null>;
+    },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
-    if (!action)
-      return this.childCollection.getForm(caller, name, data, searchValues, filter, metas);
+    if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
     if (!action.form) return [];
 
     const formValues = data ? { ...data } : {};
@@ -78,7 +80,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 
-    const fields = await this.dropDeferred(context, searchValues, dynamicFields);
+    const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 
     for (const field of fields) {
       // customer did not define a handler to rewrite the previous value => reuse current one.

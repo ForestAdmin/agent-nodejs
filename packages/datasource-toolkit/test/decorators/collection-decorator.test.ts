@@ -217,24 +217,10 @@ describe('CollectionDecorator', () => {
       );
 
       const caller = factories.caller.build();
-      const result = await decoratedCollection.getForm(
-        caller,
-        'an action name',
-        {},
-        null,
-        undefined,
-        undefined,
-      );
+      const result = await decoratedCollection.getForm(caller, 'an action name', {}, null, null);
 
       expect(result).toStrictEqual(fields);
-      expect(childGetForm).toHaveBeenCalledWith(
-        caller,
-        'an action name',
-        {},
-        null,
-        undefined,
-        undefined,
-      );
+      expect(childGetForm).toHaveBeenCalledWith(caller, 'an action name', {}, null, null);
     });
   });
 
