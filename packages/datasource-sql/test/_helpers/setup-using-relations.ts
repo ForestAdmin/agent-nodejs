@@ -12,9 +12,10 @@ export default async (baseUri: string, database: string, schema?: string): Promi
 
     await sequelize.close();
 
+    const optionalSchemaOption = schema ? { schema } : {};
     sequelize = new Sequelize(`${baseUri}/${database}`, {
       logging: false,
-      schema,
+      ...optionalSchemaOption,
     });
 
     if (schema) {
@@ -25,24 +26,32 @@ export default async (baseUri: string, database: string, schema?: string): Promi
     const member = sequelize.define(
       'member',
       { role: DataTypes.STRING },
-      { tableName: 'member', schema, timestamps: false },
+      { tableName: 'member', ...optionalSchemaOption, timestamps: false },
     );
-    const group = sequelize.define('group', {}, { tableName: 'group', schema, timestamps: false });
+    const group = sequelize.define(
+      'group',
+      {},
+      { tableName: 'group', ...optionalSchemaOption, timestamps: false },
+    );
     const product = sequelize.define(
       'product',
       {},
-      { tableName: 'product', schema, timestamps: false },
+      { tableName: 'product', ...optionalSchemaOption, timestamps: false },
     );
-    const order = sequelize.define('order', {}, { tableName: 'order', schema, timestamps: false });
+    const order = sequelize.define(
+      'order',
+      {},
+      { tableName: 'order', ...optionalSchemaOption, timestamps: false },
+    );
     const account = sequelize.define(
       'account',
       {},
-      { tableName: 'account', schema, timestamps: false },
+      { tableName: 'account', ...optionalSchemaOption, timestamps: false },
     );
     const customer = sequelize.define(
       'customer',
       {},
-      { tableName: 'customer', schema, timestamps: false },
+      { tableName: 'customer', ...optionalSchemaOption, timestamps: false },
     );
 
     member.belongsTo(group);
@@ -52,18 +61,18 @@ export default async (baseUri: string, database: string, schema?: string): Promi
     customer.hasOne(account);
     account.belongsTo(customer);
 
-    await sequelize.sync({ force: true, schema });
+    await sequelize.sync({ force: true, ...optionalSchemaOption });
 
     await sequelize
       .getQueryInterface()
       .addConstraint(
-        { tableName: account.name, schema },
+        { tableName: account.name, ...optionalSchemaOption },
         { type: 'unique', fields: ['customerId'] },
       );
     await sequelize
       .getQueryInterface()
       .addConstraint(
-        { tableName: member.name, schema },
+        { tableName: member.name, ...optionalSchemaOption },
         { type: 'unique', fields: ['groupId', 'role'] },
       );
 
@@ -78,41 +87,25 @@ export default async (baseUri: string, database: string, schema?: string): Promi
 
 export const RELATION_MAPPING = {
   member: {
-    group: {
-      associationType: 'BelongsTo',
-    },
+    group: 'BelongsTo',
   },
   group: {
-    members: {
-      associationType: 'HasMany',
-    },
+    members: 'HasMany',
   },
   product: {
-    orders: {
-      associationType: 'BelongsToMany',
-    },
+    orders: 'BelongsToMany',
   },
   order: {
-    products: {
-      associationType: 'BelongsToMany',
-    },
+    products: 'BelongsToMany',
   },
   productOrder: {
-    product: {
-      associationType: 'BelongsTo',
-    },
-    order: {
-      associationType: 'BelongsTo',
-    },
+    product: 'BelongsTo',
+    order: 'BelongsTo',
   },
   customer: {
-    account: {
-      associationType: 'HasOne',
-    },
+    account: 'HasOne',
   },
   account: {
-    customer: {
-      associationType: 'BelongsTo',
-    },
+    customer: 'BelongsTo',
   },
 };

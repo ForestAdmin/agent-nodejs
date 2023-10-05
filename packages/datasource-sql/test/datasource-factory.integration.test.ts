@@ -136,43 +136,45 @@ describe('SqlDataSourceFactory > Integration', () => {
       });
 
       describe('with relations', () => {
-        it(`should generate a sql datasource with relation`, async () => {
+        let setupSequelize: Sequelize;
+        let modelSequelize: Sequelize;
+
+        beforeEach(async () => {
           const databaseName = 'datasource-sql-relation-test';
+
+          setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
+          await setupSequelize.close();
+
           const logger = jest.fn();
 
-          const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
-          const setupModels = setupSequelize.models;
-
-          const sequelize = await buildSequelizeInstance(
+          modelSequelize = await buildSequelizeInstance(
             `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
             logger,
           );
-          const dataSourceModels = sequelize.models;
+        });
 
-          Object.values(setupModels).forEach(setupModel => {
-            const model = dataSourceModels[setupModel.name];
-            const relationMapping = RELATION_MAPPING[model.name];
+        afterEach(async () => {
+          await modelSequelize.close();
+        });
 
-            expect(model).toBeDefined();
-            Object.entries(model.associations).forEach(([associationName, association]) => {
-              expect({ [associationName]: association }).toStrictEqual({
-                [associationName]: expect.objectContaining(relationMapping[associationName]),
-              });
-            });
-          });
+        it(`should generate a sql datasource with relation`, async () => {
+          const dataSourceModels = modelSequelize.models;
 
-          const belongsToManyModel = dataSourceModels.productOrder;
-          const relationMapping = RELATION_MAPPING.productOrder;
-          expect(belongsToManyModel).toBeDefined();
-          Object.entries(belongsToManyModel.associations).forEach(
-            ([associationName, association]) => {
-              expect({ [associationName]: association }).toStrictEqual({
-                [associationName]: expect.objectContaining(relationMapping[associationName]),
-              });
-            },
+          const modelAssociations = Object.entries(dataSourceModels).reduce(
+            (models, [name, model]) => ({
+              ...models,
+              [name]: Object.entries(model.associations).reduce(
+                (associations, [key, value]) => ({
+                  ...associations,
+                  [key]: value.associationType,
+                }),
+                {},
+              ),
+            }),
+            {},
           );
 
-          await sequelize.close();
+          expect(modelAssociations).toMatchObject(RELATION_MAPPING);
         });
       });
     });

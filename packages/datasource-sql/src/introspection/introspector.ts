@@ -46,7 +46,7 @@ export default class Introspector {
     );
   }
 
-  private static getDefaultSchema(sequelize: Sequelize): string | undefined {
+  private static getDefaultSchema(sequelize: SequelizeWithOptions): string | undefined {
     switch (sequelize.getDialect()) {
       case 'postgres':
         return 'public';
@@ -80,7 +80,10 @@ export default class Introspector {
           // There is a bug right now with sequelize on postgresql: returned association
           // are not filtered on the schema. So we have to filter them manually.
           // Should be fixed with Sequelize v7
-          r => r.columnName === name && r.tableSchema === tableIdentifier.schema,
+          r =>
+            r.columnName === name &&
+            // MySQL returns schema = databaseName instead of schema = null
+            (!tableIdentifier.schema || r.tableSchema === tableIdentifier.schema),
         );
         const options = { name, description, references };
 
