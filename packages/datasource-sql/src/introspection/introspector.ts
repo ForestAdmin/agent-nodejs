@@ -31,17 +31,30 @@ export default class Introspector {
       .getQueryInterface()
       .showAllTables();
 
+    const defaultSchema = sequelize.options.schema || this.getDefaultSchema(sequelize);
+
     // Sometimes sequelize returns only strings,
     // and sometimes objects with a tableName and schema property.
     // @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
-    return tableIdentifiers.map(tableIdentifier =>
+    return tableIdentifiers.map((tableIdentifier: string | SequelizeTableIdentifier) =>
       typeof tableIdentifier === 'string'
-        ? { tableName: tableIdentifier, schema: sequelize.options.schema }
+        ? { tableName: tableIdentifier, schema: defaultSchema }
         : {
-            schema: sequelize.options.schema,
-            ...tableIdentifier,
+            schema: tableIdentifier.schema || defaultSchema,
+            tableName: tableIdentifier.tableName,
           },
     );
+  }
+
+  private static getDefaultSchema(sequelize: Sequelize): string | undefined {
+    switch (sequelize.getDialect()) {
+      case 'postgres':
+        return 'public';
+      case 'mssql':
+        return 'dbo';
+      default:
+        return undefined;
+    }
   }
 
   /** Instrospect a single table */
