@@ -57,7 +57,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     metas?: {
       changedField: string;
       searchField?: string | null;
-      searchValues: Record<string, string | null>;
+      searchValues?: Record<string, string | null>;
     },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
