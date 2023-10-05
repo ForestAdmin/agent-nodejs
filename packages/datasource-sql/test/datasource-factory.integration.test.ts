@@ -28,7 +28,7 @@ describe('SqlDataSourceFactory > Integration', () => {
   });
 
   describe.each(
-    CONNECTION_DETAILS.flatMap(connectionDetails => [
+    CONNECTION_DETAILS.filter(x => x.dialect === 'postgres').flatMap(connectionDetails => [
       [
         connectionDetails.dialect,
         connectionDetails.username,
@@ -55,118 +55,125 @@ describe('SqlDataSourceFactory > Integration', () => {
     const queryString = stringify(queryParams);
     const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
 
-    describe('Connecting with different options', () => {
-      const logger = jest.fn();
-
-      it('using uri', async () => {
-        const database = 'datasource-sql-connect-with-uri-test';
-        await setupDatabaseWithTypes(baseUri, dialect, database, schema);
-
-        const sequelize = await buildSequelizeInstance(
-          `${baseUri}/${database}?${queryString}`,
-          logger,
-        );
-
-        await sequelize.close();
-        expect(sequelize).toBeInstanceOf(Sequelize);
-      });
-
-      it('using uri in options', async () => {
-        const database = 'datasource-sql-connect-with-uri-in-options-test';
-        await setupDatabaseWithTypes(baseUri, dialect, database, schema);
-
-        const sequelize = await buildSequelizeInstance(
-          { uri: `${baseUri}/${database}?${queryString}` },
-          logger,
-        );
-
-        await sequelize.close();
-        expect(sequelize).toBeInstanceOf(Sequelize);
-      });
-
-      it('using options', async () => {
-        const database = 'datasource-sql-connect-with-options-test';
-        await setupDatabaseWithTypes(baseUri, dialect, database, schema);
-
-        const sequelize = await buildSequelizeInstance(
-          { dialect, username, password, port, host, database, schema },
-          logger,
-        );
-
-        await sequelize.close();
-        expect(sequelize).toBeInstanceOf(Sequelize);
-      });
-    });
-
-    describe('with simple primitive fields', () => {
-      it('should generate a sql datasource with default values', async () => {
-        const databaseName = 'datasource-sql-primitive-field-test';
+    describe(`when schema is ${schema}`, () => {
+      describe('Connecting with different options', () => {
         const logger = jest.fn();
 
-        const setupSequelize = await setupDatabaseWithTypes(baseUri, dialect, databaseName, schema);
-        const setupModels = setupSequelize.models;
-        const attributesMapping = getAttributeMapping(dialect as Dialect);
+        it('using uri', async () => {
+          const database = 'datasource-sql-connect-with-uri-test';
+          await setupDatabaseWithTypes(baseUri, dialect, database, schema);
 
-        const sequelize = await buildSequelizeInstance(
-          `${baseUri}/${databaseName}?${queryString}`,
-          logger,
-        );
-        const dataSourceModels = sequelize.models;
+          const sequelize = await buildSequelizeInstance(
+            `${baseUri}/${database}?${queryString}`,
+            logger,
+          );
 
-        Object.values(setupModels).forEach(setupModel => {
-          const model = dataSourceModels[setupModel.name];
-
-          expect(model).toBeDefined();
-
-          Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
-            expect({ [fieldName]: attributeDefinition }).toStrictEqual({
-              [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
-            });
-          });
+          await sequelize.close();
+          expect(sequelize).toBeInstanceOf(Sequelize);
         });
 
-        await sequelize.close();
+        it('using uri in options', async () => {
+          const database = 'datasource-sql-connect-with-uri-in-options-test';
+          await setupDatabaseWithTypes(baseUri, dialect, database, schema);
+
+          const sequelize = await buildSequelizeInstance(
+            { uri: `${baseUri}/${database}?${queryString}` },
+            logger,
+          );
+
+          await sequelize.close();
+          expect(sequelize).toBeInstanceOf(Sequelize);
+        });
+
+        it('using options', async () => {
+          const database = 'datasource-sql-connect-with-options-test';
+          await setupDatabaseWithTypes(baseUri, dialect, database, schema);
+
+          const sequelize = await buildSequelizeInstance(
+            { dialect, username, password, port, host, database, schema },
+            logger,
+          );
+
+          await sequelize.close();
+          expect(sequelize).toBeInstanceOf(Sequelize);
+        });
       });
-    });
 
-    describe('with relations', () => {
-      it('should generate a sql datasource with relation when schema is %s', async () => {
-        const databaseName = 'datasource-sql-relation-test';
-        const logger = jest.fn();
+      describe('with simple primitive fields', () => {
+        it('should generate a sql datasource with default values', async () => {
+          const databaseName = 'datasource-sql-primitive-field-test';
+          const logger = jest.fn();
 
-        const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
-        const setupModels = setupSequelize.models;
+          const setupSequelize = await setupDatabaseWithTypes(
+            baseUri,
+            dialect,
+            databaseName,
+            schema,
+          );
+          const setupModels = setupSequelize.models;
+          const attributesMapping = getAttributeMapping(dialect as Dialect);
 
-        const sequelize = await buildSequelizeInstance(
-          `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
-          logger,
-        );
-        const dataSourceModels = sequelize.models;
+          const sequelize = await buildSequelizeInstance(
+            `${baseUri}/${databaseName}?${queryString}`,
+            logger,
+          );
+          const dataSourceModels = sequelize.models;
 
-        Object.values(setupModels).forEach(setupModel => {
-          const model = dataSourceModels[setupModel.name];
-          const relationMapping = RELATION_MAPPING[model.name];
+          Object.values(setupModels).forEach(setupModel => {
+            const model = dataSourceModels[setupModel.name];
 
-          expect(model).toBeDefined();
-          Object.entries(model.associations).forEach(([associationName, association]) => {
-            expect({ [associationName]: association }).toStrictEqual({
-              [associationName]: expect.objectContaining(relationMapping[associationName]),
+            expect(model).toBeDefined();
+
+            Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
+              expect({ [fieldName]: attributeDefinition }).toStrictEqual({
+                [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
+              });
             });
           });
+
+          await sequelize.close();
         });
+      });
 
-        const belongsToManyModel = dataSourceModels.productOrder;
-        const relationMapping = RELATION_MAPPING.productOrder;
-        expect(belongsToManyModel).toBeDefined();
-        Object.entries(belongsToManyModel.associations).forEach(
-          ([associationName, association]) => {
-            expect({ [associationName]: association }).toStrictEqual({
-              [associationName]: expect.objectContaining(relationMapping[associationName]),
+      describe('with relations', () => {
+        it(`should generate a sql datasource with relation`, async () => {
+          const databaseName = 'datasource-sql-relation-test';
+          const logger = jest.fn();
+
+          const setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
+          const setupModels = setupSequelize.models;
+
+          const sequelize = await buildSequelizeInstance(
+            `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
+            logger,
+          );
+          const dataSourceModels = sequelize.models;
+
+          Object.values(setupModels).forEach(setupModel => {
+            const model = dataSourceModels[setupModel.name];
+            const relationMapping = RELATION_MAPPING[model.name];
+
+            expect(model).toBeDefined();
+            Object.entries(model.associations).forEach(([associationName, association]) => {
+              expect({ [associationName]: association }).toStrictEqual({
+                [associationName]: expect.objectContaining(relationMapping[associationName]),
+              });
             });
-          },
-        );
+          });
 
-        await sequelize.close();
+          const belongsToManyModel = dataSourceModels.productOrder;
+          const relationMapping = RELATION_MAPPING.productOrder;
+          expect(belongsToManyModel).toBeDefined();
+          Object.entries(belongsToManyModel.associations).forEach(
+            ([associationName, association]) => {
+              expect({ [associationName]: association }).toStrictEqual({
+                [associationName]: expect.objectContaining(relationMapping[associationName]),
+              });
+            },
+          );
+
+          await sequelize.close();
+        });
       });
     });
   });

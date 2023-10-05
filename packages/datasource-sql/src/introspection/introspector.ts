@@ -8,12 +8,13 @@ import {
   SequelizeColumn,
   SequelizeReference,
   SequelizeTableIdentifier,
+  SequelizeWithOptions,
 } from './type-overrides';
 import { Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-    const tableNames = await this.getTableNames(sequelize);
+    const tableNames = await this.getTableNames(sequelize as SequelizeWithOptions);
     const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
     const tables = await Promise.all(promises);
 
@@ -23,20 +24,23 @@ export default class Introspector {
   }
 
   /** Get names of all tables in the public schema of the db */
-  private static async getTableNames(sequelize: Sequelize): Promise<SequelizeTableIdentifier[]> {
+  private static async getTableNames(
+    sequelize: SequelizeWithOptions,
+  ): Promise<SequelizeTableIdentifier[]> {
     const tableIdentifiers: ({ tableName: string } | string)[] = await sequelize
       .getQueryInterface()
       .showAllTables();
-
-    const defaultSchema = sequelize.getDialect() === 'postgres' ? 'public' : undefined;
 
     // Sometimes sequelize returns only strings,
     // and sometimes objects with a tableName and schema property.
     // @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
     return tableIdentifiers.map(tableIdentifier =>
       typeof tableIdentifier === 'string'
-        ? { tableName: tableIdentifier, schema: defaultSchema }
-        : { schema: defaultSchema, ...tableIdentifier },
+        ? { tableName: tableIdentifier, schema: sequelize.options.schema }
+        : {
+            schema: sequelize.options.schema,
+            ...tableIdentifier,
+          },
     );
   }
 

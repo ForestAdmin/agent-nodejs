@@ -1,9 +1,10 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
+import { SequelizeWithOptions } from '../../src/introspection/type-overrides';
 
 // Mock Sequelize and Logger for testing
-const mockSequelize: Sequelize = jest.createMockFromModule('sequelize');
+const mockSequelize: SequelizeWithOptions = jest.createMockFromModule('sequelize');
 const logger = jest.fn();
 // Mock the necessary Sequelize methods and their return values
 const mockGetQueryInterface = jest.fn();
@@ -61,12 +62,13 @@ describe('Introspector', () => {
       mockQueryInterface.showIndex = mockShowIndex;
       mockSequelize.query = mockQuery;
       mockSequelize.getDialect = jest.fn().mockReturnValue('postgres');
+      mockSequelize.options = { schema: 'public' };
 
       await Introspector.introspect(mockSequelize, logger);
 
       // Assert the Sequelize method calls
-      expect(mockDescribeTable).toHaveBeenCalledWith({ tableName: 'table1' });
-      expect(mockShowIndex).toHaveBeenCalledWith({ tableName: 'table1' });
+      expect(mockDescribeTable).toHaveBeenCalledWith({ tableName: 'table1', schema: 'public' });
+      expect(mockShowIndex).toHaveBeenCalledWith({ tableName: 'table1', schema: 'public' });
       expect(mockQuery).toHaveBeenCalledWith(
         `
         SELECT constraint_name, table_name
@@ -75,7 +77,7 @@ describe('Introspector', () => {
             AND constraint_type = 'FOREIGN KEY'
             AND (:schema IS NULL OR table_schema = :schema);
         `,
-        { replacements: { tableName: 'table1', schema: null }, type: QueryTypes.SELECT },
+        { replacements: { tableName: 'table1', schema: 'public' }, type: QueryTypes.SELECT },
       );
 
       // Assert the logger call
@@ -111,12 +113,13 @@ describe('Introspector', () => {
       mockQueryInterface.showIndex = mockShowIndex;
       mockSequelize.query = mockQuery;
       mockSequelize.getDialect = jest.fn().mockReturnValue('sqlite');
+      mockSequelize.options = { schema: 'public' };
 
       await Introspector.introspect(mockSequelize, logger);
 
       // Assert the Sequelize method calls
-      expect(mockDescribeTable).toHaveBeenCalledWith({ tableName: 'table1' });
-      expect(mockShowIndex).toHaveBeenCalledWith({ tableName: 'table1' });
+      expect(mockDescribeTable).toHaveBeenCalledWith({ tableName: 'table1', schema: 'public' });
+      expect(mockShowIndex).toHaveBeenCalledWith({ tableName: 'table1', schema: 'public' });
       expect(mockQuery).toHaveBeenCalledWith(
         `SELECT "from" as constraint_name, :tableName as table_name
         from pragma_foreign_key_list(:tableName);`,
