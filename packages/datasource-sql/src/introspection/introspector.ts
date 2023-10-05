@@ -28,11 +28,15 @@ export default class Introspector {
       .getQueryInterface()
       .showAllTables();
 
+    const defaultSchema = sequelize.getDialect() === 'postgres' ? 'public' : undefined;
+
     // Sometimes sequelize returns only strings,
     // and sometimes objects with a tableName and schema property.
     // @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
     return tableIdentifiers.map(tableIdentifier =>
-      typeof tableIdentifier === 'string' ? { tableName: tableIdentifier } : tableIdentifier,
+      typeof tableIdentifier === 'string'
+        ? { tableName: tableIdentifier, schema: defaultSchema }
+        : { schema: defaultSchema, ...tableIdentifier },
     );
   }
 
