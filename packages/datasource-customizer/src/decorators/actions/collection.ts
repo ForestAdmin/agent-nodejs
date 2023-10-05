@@ -54,7 +54,11 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: { changedField: string; searchField?: string | null; searchValue?: string | null },
+    metas?: {
+      changedField: string;
+      searchField?: string | null;
+      searchValues?: Record<string, string | null>;
+    },
   ): Promise<ActionField[]> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
@@ -76,7 +80,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
     dynamicFields = await this.dropIfs(context, dynamicFields);
 
-    const fields = await this.dropDeferred(context, metas?.searchValue, dynamicFields);
+    const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 
     for (const field of fields) {
       // customer did not define a handler to rewrite the previous value => reuse current one.
@@ -155,13 +159,15 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private async dropDeferred(
     context: ActionContext,
-    searchValue: string | null,
+    searchValues: Record<string, string | null> | null,
     fields: DynamicField[],
   ): Promise<ActionField[]> {
     const newFields = fields.map(async (field): Promise<ActionField> => {
       const keys = Object.keys(field);
       const values = await Promise.all(
-        Object.values(field).map(value => this.evaluate(context, searchValue, value)),
+        Object.values(field).map(value =>
+          this.evaluate(context, searchValues?.[field.label], value),
+        ),
       );
 
       return keys.reduce<ActionField>(
