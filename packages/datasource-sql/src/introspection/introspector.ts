@@ -31,18 +31,23 @@ export default class Introspector {
       .getQueryInterface()
       .showAllTables();
 
-    const defaultSchema = sequelize.options.schema || this.getDefaultSchema(sequelize);
+    const requestedSchema = sequelize.options.schema || this.getDefaultSchema(sequelize);
 
     // Sometimes sequelize returns only strings,
     // and sometimes objects with a tableName and schema property.
     // @see https://github.com/sequelize/sequelize/blob/main/src/dialects/mariadb/query.js#L295
-    return tableIdentifiers.map((tableIdentifier: string | SequelizeTableIdentifier) =>
-      typeof tableIdentifier === 'string'
-        ? { tableName: tableIdentifier, schema: defaultSchema }
-        : {
-            schema: tableIdentifier.schema || defaultSchema,
-            tableName: tableIdentifier.tableName,
-          },
+    return (
+      tableIdentifiers
+        .map((tableIdentifier: string | SequelizeTableIdentifier) =>
+          typeof tableIdentifier === 'string'
+            ? { tableName: tableIdentifier, schema: requestedSchema }
+            : {
+                schema: tableIdentifier.schema || requestedSchema,
+                tableName: tableIdentifier.tableName,
+              },
+        )
+        // MSSQL returns all tables, not filtered by schema
+        .filter(identifier => identifier.schema === requestedSchema)
     );
   }
 
@@ -52,6 +57,10 @@ export default class Introspector {
         return 'public';
       case 'mssql':
         return 'dbo';
+      // MariaDB returns the database name as "schema" in table identifiers
+      case 'mariadb':
+      case 'mysql':
+        return sequelize.getDatabaseName();
       default:
         return undefined;
     }
@@ -80,10 +89,7 @@ export default class Introspector {
           // There is a bug right now with sequelize on postgresql: returned association
           // are not filtered on the schema. So we have to filter them manually.
           // Should be fixed with Sequelize v7
-          r =>
-            r.columnName === name &&
-            // MySQL returns schema = databaseName instead of schema = null
-            (!tableIdentifier.schema || r.tableSchema === tableIdentifier.schema),
+          r => r.columnName === name && r.tableSchema === tableIdentifier.schema,
         );
         const options = { name, description, references };
 
