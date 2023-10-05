@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.35.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.3...@forestadmin/agent@1.35.4) (2023-10-05)
+
+
+### Bug Fixes
+
+* keep searched value in smart action form changes ([#840](https://github.com/ForestAdmin/agent-nodejs/issues/840)) ([83c0b31](https://github.com/ForestAdmin/agent-nodejs/commit/83c0b31422e622bed4867c4b882cba2f9571066d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.1
+
 ## @forestadmin/agent [1.35.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.2...@forestadmin/agent@1.35.3) (2023-10-04)
 
 
