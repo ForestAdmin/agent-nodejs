@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.28.0...@forestadmin/datasource-toolkit@1.28.1) (2023-10-05)
+
+
+### Bug Fixes
+
+* keep searched value in smart action form changes ([#840](https://github.com/ForestAdmin/agent-nodejs/issues/840)) ([83c0b31](https://github.com/ForestAdmin/agent-nodejs/commit/83c0b31422e622bed4867c4b882cba2f9571066d))
+
 # @forestadmin/datasource-toolkit [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.27.0...@forestadmin/datasource-toolkit@1.28.0) (2023-09-28)
 
 
