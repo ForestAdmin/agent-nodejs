@@ -1,3 +1,5 @@
+## @forestadmin/datasource-customizer [1.35.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.3...@forestadmin/datasource-customizer@1.35.4) (2023-10-05)
+
 ## @forestadmin/datasource-customizer [1.35.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.2...@forestadmin/datasource-customizer@1.35.3) (2023-10-05)
 
 
