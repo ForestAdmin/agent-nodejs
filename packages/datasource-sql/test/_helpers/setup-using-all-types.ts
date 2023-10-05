@@ -168,7 +168,12 @@ export default async (
     await sequelize.getQueryInterface().createDatabase(database);
     await sequelize.close();
 
-    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false, schema });
+    const optionalSchemaOption = schema ? { schema } : {};
+
+    sequelize = new Sequelize(`${baseUri}/${database}`, {
+      logging: false,
+      ...optionalSchemaOption,
+    });
 
     if (schema) {
       await sequelize.getQueryInterface().dropSchema(schema);
