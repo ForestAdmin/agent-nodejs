@@ -28,7 +28,7 @@ describe('SqlDataSourceFactory > Integration', () => {
   });
 
   describe.each(
-    CONNECTION_DETAILS.filter(x => x.dialect === 'postgres').flatMap(connectionDetails => [
+    CONNECTION_DETAILS.flatMap(connectionDetails => [
       [
         connectionDetails.dialect,
         connectionDetails.username,
