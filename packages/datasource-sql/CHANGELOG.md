@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.37](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.36...@forestadmin/datasource-sql@1.7.37) (2023-10-05)
+
+
+### Bug Fixes
+
+* correctly detect relationships on PG ([#843](https://github.com/ForestAdmin/agent-nodejs/issues/843)) ([baef067](https://github.com/ForestAdmin/agent-nodejs/commit/baef067c29669f61347ee9d01c62ee2ccdc87b58))
+
 ## @forestadmin/datasource-sql [1.7.36](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.35...@forestadmin/datasource-sql@1.7.36) (2023-10-05)
 
 
