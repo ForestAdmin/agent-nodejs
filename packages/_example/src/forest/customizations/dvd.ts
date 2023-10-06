@@ -28,6 +28,10 @@ export default (collection: DvdCustomizer) =>
           ids: await context.getRecordIds(),
         };
 
+        // Price increase above 50% needs to be validated by a manager !
+        // This feature needs a Paying Plan.
+        if (context.formValues.percentage > 50) return resultBuilder.requestApproval();
+
         await sequelizeMsSql.query(
           'UPDATE dvd SET rental_price = ROUND(rental_price * :multiplier, 2) WHERE id IN (:ids)',
           { replacements },

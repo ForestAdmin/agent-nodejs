@@ -56,4 +56,10 @@ describe('ResultBuilder', () => {
       body: {},
     });
   });
+
+  test('requestApproval', () => {
+    expect(builder.requestApproval()).toEqual({
+      type: 'RequestApproval',
+    });
+  });
 });
