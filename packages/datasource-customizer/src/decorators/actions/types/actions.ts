@@ -5,6 +5,7 @@ import { TCollectionName, TSchema } from '../../../templates';
 import ActionContext from '../context/base';
 import ActionContextSingle from '../context/single';
 import ResultBuilder from '../result-builder';
+import { WebhookApprovalRequestedContext } from '../../webhook/types';
 
 export { ActionContext, ActionContextSingle };
 
@@ -21,6 +22,7 @@ export interface BaseAction<
     context: Context,
     resultBuilder: ResultBuilder,
   ): void | ActionResult | Promise<void> | Promise<ActionResult>;
+  onApprovalRequested?(context: WebhookApprovalRequestedContext): void | Promise<void>;
 }
 
 export type ActionGlobal<

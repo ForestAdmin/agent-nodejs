@@ -122,6 +122,8 @@ export interface PermissionService {
     customActionName: string;
     collectionName: string;
   }): Promise<Array<number>>;
+
+  getUsersForRoles(roleIds: number[]): Promise<UserPermissionV4[]>
 }
 
 export interface ChartHandlerInterface {

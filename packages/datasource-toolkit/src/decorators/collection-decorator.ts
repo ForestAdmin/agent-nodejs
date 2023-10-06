@@ -132,4 +132,16 @@ export default class CollectionDecorator implements Collection {
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return subSchema;
   }
+
+  async executeWebhook(
+    caller: Caller,
+    filter: Filter,
+    name: string,
+    type: string,
+    flexContext: unknown
+  ): Promise<void> {
+    const refinedFilter = await this.refineFilter(caller, filter);
+
+    return this.childCollection.executeWebhook(caller, refinedFilter, name, type, flexContext);
+  }
 }

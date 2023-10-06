@@ -36,4 +36,10 @@ export default (collection: DvdCustomizer) =>
         // Customize success message.
         return resultBuilder.success(`Rental price increased`);
       },
+      onApprovalRequested: async (context) => {
+        // TODO: Send a Slack notif on a channel using usersAllowed list
+
+        const usersAllowed = await context.getUsersAllowedToApprove();
+        console.log('ApprovalRequested allowed to approve:', usersAllowed)
+      },
     });

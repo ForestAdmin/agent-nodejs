@@ -12,6 +12,7 @@ import { Context, Next } from 'koa';
 import ActionAuthorizationService from './action-authorization';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
+  SmartActionExecuteWebhookHookRequestBody,
   SmartActionApprovalRequestBody,
   SmartActionHookRequestBody,
   SmartActionRequestBody,
@@ -57,6 +58,7 @@ export default class ActionRoute extends CollectionRoute {
     router.post(`${path}/hooks/load`, this.handleHook.bind(this));
     router.post(`${path}/hooks/change`, this.handleHook.bind(this));
     router.post(`${path}/hooks/search`, this.handleHook.bind(this));
+    router.post(`${path}/hooks/approval-requested`, this.handleApprovalRequestedHook.bind(this));
   }
 
   private async handleExecute(context: Context): Promise<void> {
@@ -219,5 +221,34 @@ export default class ActionRoute extends CollectionRoute {
     }
 
     return filter;
+  }
+
+  private async handleApprovalRequestedHook(context: Context): Promise<void> {
+    const body = context.request.body as SmartActionExecuteWebhookHookRequestBody;
+
+    const { id: userId } = context.state.user as UserInfo;
+
+    await this.actionAuthorizationService.assertCanRequestCustomActionParameters({
+      userId,
+      customActionName: this.actionName,
+      collectionName: this.collection.name,
+    });
+
+    const caller = QueryStringParser.parseCaller(context);
+    const filter = await this.getRecordSelection(context);
+    const rawFields = body.data.attributes.fields;
+    const roleIds = body.data.attributes.role_ids_allowed_to_approve;
+
+    const unsafeData = ForestValueConverter.makeFormDataFromFields(this.collection.dataSource, rawFields);
+
+    // const forestFields = body.data.attributes.fields;
+    // const formValues = forestFields
+    //   ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
+    //   : null;
+
+    // Call handler
+    await this.collection.executeWebhook(caller, filter, this.actionName, 'ApprovalRequested', { roles: roleIds, data: unsafeData, service: { getUsersForRoles: (roleIds: number[]) => this.options.forestAdminClient.permissionService.getUsersForRoles(roleIds) } });
+
+    context.response.body = { ok: true };
   }
 }

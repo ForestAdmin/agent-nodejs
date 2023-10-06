@@ -4,7 +4,7 @@ import {
   generateCustomActionIdentifier,
 } from './generate-action-identifier';
 import RenderingPermissionService from './rendering-permission';
-import { CollectionActionEvent, CustomActionEvent } from './types';
+import { CollectionActionEvent, CustomActionEvent, UserPermissionV4 } from './types';
 import { Chart } from '../charts/types';
 import { PermissionService } from '../types';
 
@@ -223,6 +223,10 @@ export default class PermissionServiceWithCache implements PermissionService {
       userId,
       chartRequest,
     });
+  }
+
+  public getUsersForRoles(roleIds: number[]): Promise<UserPermissionV4[]> {
+    return this.renderingPermissionService.getUsersForRoles(roleIds);
   }
 
   private async getRoleIdForUserId(userId: number) {

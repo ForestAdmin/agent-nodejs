@@ -1,6 +1,7 @@
 import { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
+import WebhookCollectionDecorator from './webhook/collection';
 import BinaryCollectionDecorator from './binary/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
@@ -20,6 +21,7 @@ import WriteDataSourceDecorator from './write/datasource';
 
 export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
+  webhook: DataSourceDecorator<WebhookCollectionDecorator>;
   binary: DataSourceDecorator<BinaryCollectionDecorator>;
   chart: ChartDataSourceDecorator;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
@@ -67,6 +69,7 @@ export default class DecoratorsStack {
     // Step 3: Access to all fields AND emulated capabilities
     last = this.chart = new ChartDataSourceDecorator(last);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
+    last = this.webhook = new DataSourceDecorator(last, WebhookCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.write = new WriteDataSourceDecorator(last);
     last = this.hook = new DataSourceDecorator(last, HookCollectionDecorator);

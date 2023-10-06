@@ -30,6 +30,14 @@ export interface SmartActionHookRequestBody extends SmartActionRequestBody {
   };
 }
 
+export interface SmartActionExecuteWebhookHookRequestBody extends SmartActionHookRequestBody {
+  data: SmartActionHookRequestBody['data'] & {
+    attributes: SmartActionHookRequestBody['data']['attributes'] & {
+      role_ids_allowed_to_approve?: number[];
+    };
+  };
+}
+
 export interface SmartActionApprovalRequestBody extends SmartActionRequestBody {
   data: SmartActionRequestBody['data'] & {
     attributes: SmartActionRequestBody['data']['attributes'] & {
