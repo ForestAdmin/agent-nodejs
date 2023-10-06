@@ -10,6 +10,7 @@ import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
 import ActionAuthorizationService from './action-authorization';
+import CustomActionRequiresApprovalError from './errors/custom-action-requires-approval-error';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
@@ -24,7 +25,6 @@ import SchemaGeneratorActions from '../../../utils/forest-schema/generator-actio
 import IdUtils from '../../../utils/id';
 import QueryStringParser from '../../../utils/query-string';
 import CollectionRoute from '../../collection-route';
-import CustomActionRequiresApprovalError from './errors/custom-action-requires-approval-error';
 
 export default class ActionRoute extends CollectionRoute {
   private readonly actionName: string;
@@ -124,13 +124,9 @@ export default class ActionRoute extends CollectionRoute {
       context.response.set('Access-Control-Expose-Headers', 'Content-Disposition');
       context.response.type = result.mimeType;
       context.response.body = result.stream;
-
     } else if (result.type === 'RequestApproval') {
-      // Later on we could create an interface to let user put the role allowed
-      // For now we put null and the backend we be able to handle it
-      throw new CustomActionRequiresApprovalError(undefined);
+      throw new CustomActionRequiresApprovalError(result.approverRoles);
     } else {
-
       throw new Error('Unexpected Action result.');
     }
   }

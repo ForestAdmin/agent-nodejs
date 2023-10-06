@@ -9,6 +9,7 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Readable } from 'stream';
 
 import ActionRoute from '../../../../src/routes/modification/action/action';
+import CustomActionRequiresApprovalError from '../../../../src/routes/modification/action/errors/custom-action-requires-approval-error';
 import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/custom-action-trigger-forbidden-error';
 import * as factories from '../../../__factories__';
 
@@ -407,6 +408,32 @@ describe('ActionRoute', () => {
         expect(context.response.body).toEqual(expectedBody);
       },
     );
+
+    test('handleExecute should handle the response (RequestApproval)', async () => {
+      // Mock action
+      (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+        type: 'RequestApproval',
+        approverRoles: [1, 2],
+      });
+
+      // Test
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              values: { firstname: 'John' },
+            },
+          },
+        },
+      });
+
+      // @ts-expect-error: test private method
+      await expect(route.handleExecute(context)).rejects.toThrow(
+        new CustomActionRequiresApprovalError([1, 2]),
+      );
+    });
 
     test('handleExecute should format the response (File)', async () => {
       // Mock action
