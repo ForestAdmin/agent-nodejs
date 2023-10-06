@@ -283,9 +283,14 @@ export type RedirectResult = {
   path: string;
 };
 
+export type RequestApprovalResult = {
+  type: 'RequestApproval';
+};
+
 export type ActionResult =
   | SuccessResult
   | ErrorResult
   | WebHookResult
   | FileResult
-  | RedirectResult;
+  | RedirectResult
+  | RequestApprovalResult;
