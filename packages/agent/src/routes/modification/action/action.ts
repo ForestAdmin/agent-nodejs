@@ -12,8 +12,8 @@ import { Context, Next } from 'koa';
 import ActionAuthorizationService from './action-authorization';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
-  SmartActionExecuteWebhookHookRequestBody,
   SmartActionApprovalRequestBody,
+  SmartActionExecuteWebhookHookRequestBody,
   SmartActionHookRequestBody,
   SmartActionRequestBody,
 } from '../../../services/authorization/types';
@@ -239,7 +239,10 @@ export default class ActionRoute extends CollectionRoute {
     const rawFields = body.data.attributes.fields;
     const roleIds = body.data.attributes.role_ids_allowed_to_approve;
 
-    const unsafeData = ForestValueConverter.makeFormDataFromFields(this.collection.dataSource, rawFields);
+    const unsafeData = ForestValueConverter.makeFormDataFromFields(
+      this.collection.dataSource,
+      rawFields,
+    );
 
     // const forestFields = body.data.attributes.fields;
     // const formValues = forestFields
@@ -247,7 +250,14 @@ export default class ActionRoute extends CollectionRoute {
     //   : null;
 
     // Call handler
-    await this.collection.executeWebhook(caller, filter, this.actionName, 'ApprovalRequested', { roles: roleIds, data: unsafeData, service: { getUsersForRoles: (roleIds: number[]) => this.options.forestAdminClient.permissionService.getUsersForRoles(roleIds) } });
+    await this.collection.executeWebhook(caller, filter, this.actionName, 'ApprovalRequested', {
+      roles: roleIds,
+      data: unsafeData,
+      service: {
+        getUsersForRoles: (roleIds: number[]) =>
+          this.options.forestAdminClient.permissionService.getUsersForRoles(roleIds),
+      },
+    });
 
     context.response.body = { ok: true };
   }
