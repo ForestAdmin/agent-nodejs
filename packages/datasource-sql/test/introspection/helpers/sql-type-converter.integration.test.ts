@@ -56,7 +56,7 @@ describe('Integration > SqlTypeConverter', () => {
         let sequelize: Sequelize;
 
         beforeEach(async () => {
-          sequelize = await setupTestDB(connectionDetails, schema);
+          sequelize = await setupTestDB(connectionDetails.options(), schema);
         });
 
         afterEach(async () => {
@@ -150,7 +150,7 @@ describe('Integration > SqlTypeConverter', () => {
           let sequelize: Sequelize;
 
           beforeEach(async () => {
-            sequelize = await setupTestDB(connectionDetails, schema);
+            sequelize = await setupTestDB(connectionDetails.options(), schema);
           });
 
           afterEach(async () => {
