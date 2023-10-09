@@ -66,6 +66,22 @@ export default class Introspector {
     }
   }
 
+  private static getTableIdentifier(
+    tableIdentifier: SequelizeTableIdentifier,
+    sequelize: Sequelize,
+  ): SequelizeTableIdentifier {
+    switch (sequelize.getDialect()) {
+      case 'postgres':
+      case 'mssql':
+      case 'sqlite':
+        return tableIdentifier;
+      case 'mariadb':
+      case 'mysql':
+      default:
+        return { tableName: tableIdentifier.tableName };
+    }
+  }
+
   /** Instrospect a single table */
   private static async getTable(
     sequelize: Sequelize,
@@ -73,15 +89,24 @@ export default class Introspector {
     tableIdentifier: SequelizeTableIdentifier,
   ): Promise<Table> {
     const queryInterface = sequelize.getQueryInterface() as QueryInterfaceExt;
+    // Sequelize is not consistent in the way it handles table identifiers either when it returns
+    // it, when it uses it internally, or when it is passed as an argument.
+    // Plus it has some bugs with schema handling in postgresql that forces us to be sure that
+    // the table identifier is correct on our side
+    const tableIdentifierForQuery = Introspector.getTableIdentifier(tableIdentifier, sequelize);
 
     const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
-      queryInterface.describeTable(tableIdentifier),
-      queryInterface.showIndex(tableIdentifier),
-
-      queryInterface.getForeignKeyReferencesForTable(tableIdentifier),
+      queryInterface.describeTable(tableIdentifierForQuery),
+      queryInterface.showIndex(tableIdentifierForQuery),
+      queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery),
     ]);
 
-    await this.detectBrokenRelationship(tableIdentifier, sequelize, tableReferences, logger);
+    await this.detectBrokenRelationship(
+      tableIdentifierForQuery,
+      sequelize,
+      tableReferences,
+      logger,
+    );
 
     const columns = await Promise.all(
       Object.entries(columnDescriptions).map(async ([name, description]) => {
@@ -98,8 +123,8 @@ export default class Introspector {
     );
 
     return {
-      name: tableIdentifier.tableName,
-      schema: tableIdentifier.schema,
+      name: tableIdentifierForQuery.tableName,
+      schema: tableIdentifierForQuery.schema,
       columns: columns.filter(Boolean),
       unique: tableIndexes
         .filter(i => i.unique || i.primary)
