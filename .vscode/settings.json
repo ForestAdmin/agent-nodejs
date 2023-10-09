@@ -53,5 +53,11 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
 
   // Debugging tests
-  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000"
+  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000",
+  "conventionalCommits.scopes": [
+    "webhook-custom-actions",
+    "widgets",
+    "datasource-mongoose",
+    "datasource-sql"
+  ]
 }
