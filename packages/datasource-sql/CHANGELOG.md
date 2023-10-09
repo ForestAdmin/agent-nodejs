@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.38](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.37...@forestadmin/datasource-sql@1.7.38) (2023-10-09)
+
+
+### Bug Fixes
+
+* **datasource-sql:** errors "table not found" on mysql ([#847](https://github.com/ForestAdmin/agent-nodejs/issues/847)) ([acbee30](https://github.com/ForestAdmin/agent-nodejs/commit/acbee30b45fc9d22f8737f458dec670f5008d1f0))
+
 ## @forestadmin/datasource-sql [1.7.37](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.36...@forestadmin/datasource-sql@1.7.37) (2023-10-05)
 
 
