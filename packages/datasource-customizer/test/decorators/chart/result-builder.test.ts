@@ -95,4 +95,36 @@ describe('Chart result builder', () => {
   test('smart() is the identity function', () => {
     expect(builder.smart(34)).toStrictEqual(34);
   });
+
+  describe('multipleTimeBased()', () => {
+    test('should return the labels and the key/values for each line', () => {
+      const result = builder.multipleTimeBased(
+        'Year',
+        ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+        [
+          {
+            label: 'firstLine',
+            values: [1, 2, 3, null],
+          },
+          {
+            label: 'secondLine',
+            values: [4, 2, 6, 7],
+          },
+          {
+            label: 'thirdLine',
+            values: [1, null],
+          },
+        ],
+      );
+
+      expect(result).toStrictEqual({
+        labels: ['1985', '1986'],
+        values: [
+          { key: 'firstLine', values: [1, 5] },
+          { key: 'secondLine', values: [11, 8] },
+          { key: 'thirdLine', values: [1, 0] },
+        ],
+      });
+    });
+  });
 });
