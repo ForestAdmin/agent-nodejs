@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-mongoose",
-  "version": "1.5.26",
+  "version": "1.5.27",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,7 +16,7 @@
     "dist/**/*.d.ts"
   ],
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.28.1",
+    "@forestadmin/datasource-toolkit": "1.29.0",
     "luxon": "^3.2.1"
   },
   "devDependencies": {
