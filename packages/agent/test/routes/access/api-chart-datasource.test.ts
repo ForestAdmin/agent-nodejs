@@ -88,5 +88,24 @@ describe('DataSourceApiChartRoute', () => {
 
       expect(router.get).toHaveBeenCalledWith('/_charts/myChart\\+\\*\\?', expect.any(Function));
     });
+
+    it('should register routes with encoded names', () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+      const services = factories.forestAdminHttpDriverServices.build();
+      const dataSource = factories.dataSource.build({
+        schema: { charts: ['my awesome chart'] },
+        renderChart: jest.fn().mockResolvedValue({ countCurrent: 12 }),
+      });
+
+      const route = new DataSourceApiChartRoute(services, options, dataSource, 'my awesome chart');
+
+      route.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith(
+        '/_charts/my%20awesome%20chart',
+        expect.any(Function),
+      );
+    });
   });
 });
