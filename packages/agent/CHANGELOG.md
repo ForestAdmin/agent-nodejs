@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.35.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.6...@forestadmin/agent@1.35.7) (2023-10-11)
+
+
+### Bug Fixes
+
+* **charts:** 404 error when retrieving a chart with spaces in the name ([#851](https://github.com/ForestAdmin/agent-nodejs/issues/851)) ([29b47db](https://github.com/ForestAdmin/agent-nodejs/commit/29b47db8ee33b837df535101df584fb7eceb778e))
+
 ## @forestadmin/agent [1.35.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.5...@forestadmin/agent@1.35.6) (2023-10-11)
 
 
