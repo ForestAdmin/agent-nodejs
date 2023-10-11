@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.35.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.4...@forestadmin/datasource-customizer@1.35.5) (2023-10-11)
+
+
+### Bug Fixes
+
+* error starting the server because of a too large string when generating typings ([#849](https://github.com/ForestAdmin/agent-nodejs/issues/849)) ([b2d4943](https://github.com/ForestAdmin/agent-nodejs/commit/b2d4943537211b867e0030f70b8ac271f2f85aa7))
+
 ## @forestadmin/datasource-customizer [1.35.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.3...@forestadmin/datasource-customizer@1.35.4) (2023-10-05)
 
 ## @forestadmin/datasource-customizer [1.35.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.2...@forestadmin/datasource-customizer@1.35.3) (2023-10-05)
