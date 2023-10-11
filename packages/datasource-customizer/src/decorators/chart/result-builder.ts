@@ -27,35 +27,65 @@ export default class ResultBuilder {
     return Object.entries(obj).map(([key, value]) => ({ key, value }));
   }
 
+  /**
+   * Add a TimeBasedChart based on a time range and a set of values.
+   * @param {DateOperation} timeRange - The time range for the chart, specified as a DateOperation.
+   * @param {Array<{ date: Date; value: number | null }> | Record<string, number>} values -
+   *  This can be an array of objects with 'date' and 'value' properties,
+   *  or a record (object) with date-value pairs.
+   *
+   * @returns {TimeBasedChart} Returns a TimeBasedChart representing the data within the specified
+   * time range.
+   *
+   * @example
+   * collection.timeBased(
+   *  'Day',
+   *   [
+   *    { date: new Date('2023-01-01'), value: 42 },
+   *    { date: new Date('2023-01-02'), value: 55 },
+   *    { date: new Date('2023-01-03'), value: null },
+   *   ]
+   * );
+   */
   timeBased(
     timeRange: DateOperation,
-    values: Array<{ date: Date; value: number | null }> | Record<string, number>,
+    values: Array<{ date: Date; value: number | null }> | Record<string, number | null>,
   ): TimeBasedChart {
     if (Array.isArray(values)) return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
 
-    const formattedValues = Object.entries(values).reduce((computed, [dateString, value]) => {
-      computed.push({ date: new Date(dateString), value });
-
-      return computed;
-    }, []);
+    const formattedValues = [];
+    Object.entries(values).forEach(([stringDate, value]) => {
+      formattedValues.push({ date: new Date(stringDate), value });
+    });
 
     return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues);
   }
 
   /**
-   * Add lines on the same timeBased chart.
-   * @param timeRange time range of the chart.
-   * @param dates dates of the chart.
-   * @param lines
-   * @param lines.label label of the line. It will be displayed in the legend.
-   * @param lines.values values of the line. It must be in the same order as the times.
-   * @returns time based chart with the lines.
+   * Add a MultipleTimeBasedChart based on a time range,
+   * an array of dates, and multiple lines of data.
+   *
+   * @param {DateOperation} timeRange - The time range for the chart, specified as a DateOperation.
+   * @param {Date[]} dates - An array of dates that define the x-axis values for the chart.
+   * @param {Array<{ label: string; values: Array<number | null> }>} lines - An array of lines,
+   * each containing a label and an array of numeric data values (or null)
+   * corresponding to the dates.
+   *
+   * @returns {MultipleTimeBasedChart} Returns a MultipleTimeBasedChart representing multiple
+   * lines of data within the specified time range.
    *
    * @example
    * collection.multipleTimeBased(
    *  'Day',
-   *  ['1985-10-26', '2011-10-05T14:48:00.000Z', new Date().toISOString()],
-   *  [{ label: 'line1', values: [1, 2, 3] }, { label: 'line2', values: [3, 4, null] }],
+   *  [
+   *    new Date('1985-10-26'),
+   *    new Date('2011-10-05T14:48:00.000Z'),
+   *    new Date()
+   *  ],
+   *  [
+   *    { label: 'line1', values: [1, 2, 3] },
+   *    { label: 'line2', values: [3, 4, null] }
+   *  ],
    * );
    */
   multipleTimeBased(
@@ -99,13 +129,13 @@ export default class ResultBuilder {
   /*
    * Normalize the time based chart result to have a value for each time range.
    * For example, if the time range is 'Month' and the values are:
-   * {
+   * [
    *  // YYYY-MM-DD
-   *  '2022-01-07': 1, // Jan 22
-   *  '2022-02-02': 2, // Feb 22
-   *  '2022-01-01': 3, // Jan 22
-   *  '2022-02-01': 4, // Feb 22
-   * }
+   *  { date: new Date('2022-01-07'), value: 1 }, // Jan 22
+   *  { date: new Date('2022-02-02'), value: 2 }, // Feb 22
+   *  { date: new Date('2022-01-01'), value: 3 }, // Jan 22
+   *  { date: new Date('2022-02-01'), value: 4 }, // Feb 22
+   * ]
    * The result will be:
    * [
    *  { label: 'Jan 22', values: { value: 4 } },
@@ -116,20 +146,25 @@ export default class ResultBuilder {
     timeRange: DateOperation,
     points: Array<{ date: Date; value: number | null }>,
   ): TimeBasedChart {
+    const pointsInDateTime: { date: DateTime; value: number | null }[] = [];
+    points.forEach(point => {
+      pointsInDateTime.push({ date: DateTime.fromJSDate(point.date), value: point.value });
+    });
+
     const format = ResultBuilder.formats[timeRange];
     const formatted = {};
 
-    points.forEach(point => {
-      const label = DateTime.fromISO(point.date.toISOString()).toFormat(format);
-
+    pointsInDateTime.forEach(point => {
+      const label = point.date.toFormat(format);
       if (typeof point.value === 'number') formatted[label] = (formatted[label] ?? 0) + point.value;
     });
 
     const dataPoints = [];
-    const stringDates = points.map(p => p.date.toISOString());
-    const dates = stringDates.sort((dateA, dateB) => dateA.localeCompare(dateB));
-    const first = DateTime.fromISO(dates[0]).startOf(timeRange.toLowerCase() as DateTimeUnit);
-    const last = DateTime.fromISO(dates[dates.length - 1]);
+    const dates = pointsInDateTime
+      .map(p => p.date)
+      .sort((dateA, dateB) => dateA.toUnixInteger() - dateB.toUnixInteger());
+    const first = dates[0].startOf(timeRange.toLowerCase() as DateTimeUnit);
+    const last = dates[dates.length - 1];
 
     for (let current = first; current <= last; current = current.plus({ [timeRange]: 1 })) {
       const label = current.toFormat(format);
