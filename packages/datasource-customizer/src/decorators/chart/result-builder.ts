@@ -38,7 +38,7 @@ export default class ResultBuilder {
    * time range.
    *
    * @example
-   * collection.timeBased(
+   * timeBased(
    *  'Day',
    *   [
    *    { date: new Date('2023-01-01'), value: 42 },
@@ -75,7 +75,7 @@ export default class ResultBuilder {
    * lines of data within the specified time range.
    *
    * @example
-   * collection.multipleTimeBased(
+   * multipleTimeBased(
    *  'Day',
    *  [
    *    new Date('1985-10-26'),
