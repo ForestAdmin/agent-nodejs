@@ -100,7 +100,12 @@ describe('Chart result builder', () => {
     test('should return the labels and the key/values for each line', () => {
       const result = builder.multipleTimeBased(
         'Year',
-        ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+        [
+          new Date('1985-10-26'),
+          new Date('1986-01-07'),
+          new Date('1986-01-08'),
+          new Date('1985-10-27'),
+        ],
         [
           {
             label: 'firstLine',
@@ -126,7 +131,12 @@ describe('Chart result builder', () => {
       it('should display null value', () => {
         const result = builder.multipleTimeBased(
           'Year',
-          ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+          [
+            new Date('1985-10-26'),
+            new Date('1986-01-07'),
+            new Date('1986-01-08'),
+            new Date('1985-10-27'),
+          ],
           [{ label: 'firstLine', values: [null, 2, 3, null] }],
         );
 
@@ -141,7 +151,12 @@ describe('Chart result builder', () => {
       it('should display a number', () => {
         const result = builder.multipleTimeBased(
           'Year',
-          ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+          [
+            new Date('1985-10-26'),
+            new Date('1986-01-07'),
+            new Date('1986-01-08'),
+            new Date('1985-10-27'),
+          ],
           [{ label: 'firstLine', values: [100, 1, 2, null] }],
         );
 
@@ -156,7 +171,12 @@ describe('Chart result builder', () => {
       it('should display null value', () => {
         const result = builder.multipleTimeBased(
           'Year',
-          ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+          [
+            new Date('1985-10-26'),
+            new Date('1986-01-07'),
+            new Date('1986-01-08'),
+            new Date('1985-10-27'),
+          ],
           [{ label: 'firstLine', values: [0] }],
         );
 
@@ -164,18 +184,6 @@ describe('Chart result builder', () => {
           labels: ['1985', '1986'],
           values: [{ key: 'firstLine', values: [0, null] }],
         });
-      });
-    });
-
-    describe('when a date is not in ISO format', () => {
-      it('should throw an error', () => {
-        expect(() =>
-          builder.multipleTimeBased(
-            'Year',
-            ['11 Oct 2023 08:52:12 GMT'], // UTC FORMAT
-            [{ label: 'firstLine', values: [0] }],
-          ),
-        ).toThrow('Date 11 Oct 2023 08:52:12 GMT must be to ISO format.');
       });
     });
   });

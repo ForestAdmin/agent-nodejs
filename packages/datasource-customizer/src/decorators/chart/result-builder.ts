@@ -27,17 +27,29 @@ export default class ResultBuilder {
     return Object.entries(obj).map(([key, value]) => ({ key, value }));
   }
 
-  timeBased(timeRange: DateOperation, values: Record<string, number>): TimeBasedChart {
-    return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
+  timeBased(
+    timeRange: DateOperation,
+    values: Array<{ date: Date; value: number | null }> | Record<string, number>,
+  ): TimeBasedChart {
+    if (Array.isArray(values)) return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
+
+    const formattedValues = Object.entries(values).reduce((computed, [dateString, value]) => {
+      computed.push({ date: new Date(dateString), value });
+
+      return computed;
+    }, []);
+
+    return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues);
   }
 
   /**
    * Add lines on the same timeBased chart.
    * @param timeRange time range of the chart.
-   * @param times times of the chart in the ISO format.
-   * @param lines:label label of the line. It will be displayed in the legend.
-   * @param lines:values values of the line. It must be in the same order as the times.
-   * @returns the time based chart with the lines.
+   * @param dates dates of the chart.
+   * @param lines
+   * @param lines.label label of the line. It will be displayed in the legend.
+   * @param lines.values values of the line. It must be in the same order as the times.
+   * @returns time based chart with the lines.
    *
    * @example
    * collection.multipleTimeBased(
@@ -48,16 +60,16 @@ export default class ResultBuilder {
    */
   multipleTimeBased(
     timeRange: DateOperation,
-    times: string[],
-    lines: { label: string; values: number[] }[],
+    dates: Date[],
+    lines: Array<{ label: string; values: Array<number | null> }>,
   ): MultipleTimeBasedChart {
     let formattedTimes;
     const formattedLine = lines.map(line => {
-      const values = times.reduce((computed, time, index) => {
-        computed[time] = line.values[index];
+      const values = dates.reduce((computed, date, index) => {
+        computed.push({ date, value: line.values[index] });
 
         return computed;
-      }, {});
+      }, []);
 
       const buildTimeBased = ResultBuilder.buildTimeBasedChartResult(timeRange, values);
       if (!formattedTimes) formattedTimes = buildTimeBased.map(timeBased => timeBased.label);
@@ -102,21 +114,20 @@ export default class ResultBuilder {
    */
   private static buildTimeBasedChartResult(
     timeRange: DateOperation,
-    values: Record<string, number>,
+    points: Array<{ date: Date; value: number | null }>,
   ): TimeBasedChart {
     const format = ResultBuilder.formats[timeRange];
     const formatted = {};
 
-    for (const [date, value] of Object.entries(values)) {
-      const isoDate = DateTime.fromISO(date);
-      if (!isoDate.isValid) throw new Error(`Date ${date} must be to ISO format.`);
-      const label = isoDate.toFormat(format);
+    points.forEach(point => {
+      const label = DateTime.fromISO(point.date.toISOString()).toFormat(format);
 
-      if (typeof value === 'number') formatted[label] = (formatted[label] ?? 0) + value;
-    }
+      if (typeof point.value === 'number') formatted[label] = (formatted[label] ?? 0) + point.value;
+    });
 
     const dataPoints = [];
-    const dates = Object.keys(values).sort((dateA, dateB) => dateA.localeCompare(dateB));
+    const stringDates = points.map(p => p.date.toISOString());
+    const dates = stringDates.sort((dateA, dateB) => dateA.localeCompare(dateB));
     const first = DateTime.fromISO(dates[0]).startOf(timeRange.toLowerCase() as DateTimeUnit);
     const last = DateTime.fromISO(dates[dates.length - 1]);
 
