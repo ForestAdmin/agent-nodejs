@@ -1,3 +1,5 @@
+import type { Logger, ManyToOneSchema, OneToOneSchema } from '@forestadmin/datasource-toolkit';
+
 import {
   Collection,
   CollectionUtils,
@@ -8,17 +10,25 @@ import {
 import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {
+  private readonly options = {
+    maxFieldsCount: 10_000,
+  };
+
+  constructor(private readonly logger: Logger, options: { maxFieldsCount?: number } = {}) {
+    this.options.maxFieldsCount = options.maxFieldsCount ?? this.options.maxFieldsCount;
+  }
+
   /**
    * Write types to disk at a given path.
    * This method read the file which is already there before overwriting so that customers
    * using equivalents to nodemon to not enter restart loops.
    */
-  static async updateTypesOnFileSystem(
+  public async updateTypesOnFileSystem(
     dataSource: DataSource,
     typingsPath: string,
     typingsMaxDepth: number,
   ): Promise<void> {
-    const newTypes = TypingGenerator.generateTypes(dataSource, typingsMaxDepth);
+    const newTypes = this.generateTypes(dataSource, typingsMaxDepth);
     let olderTypes: string | null = null;
 
     try {
@@ -36,7 +46,7 @@ export default class TypingGenerator {
   /**
    * Generates types on a string.
    */
-  static generateTypes(dataSource: DataSource, maxDepth: number): string {
+  public generateTypes(dataSource: DataSource, maxDepth: number): string {
     const collections = [...dataSource.collections].sort((a, b) => a.name.localeCompare(b.name));
 
     return [
@@ -66,7 +76,7 @@ export default class TypingGenerator {
     ].join('\n');
   }
 
-  private static generateAliases(dataSource: DataSource): string {
+  private generateAliases(dataSource: DataSource): string {
     return dataSource.collections
       .flatMap(collection => {
         const name =
@@ -87,7 +97,7 @@ export default class TypingGenerator {
       .join('\n');
   }
 
-  private static getRow(collection: Collection): string {
+  private getRow(collection: Collection): string {
     const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
       return field.type === 'Column' ? [...memo, `      '${name}': ${this.getType(field)};`] : memo;
     }, []);
@@ -95,7 +105,7 @@ export default class TypingGenerator {
     return `    plain: {\n${content.join('\n')}\n    };`;
   }
 
-  private static getRelations(collection: Collection): string {
+  private getRelations(collection: Collection): string {
     const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
       if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
         const relation = field.foreignCollection;
@@ -112,52 +122,72 @@ export default class TypingGenerator {
     return content.length ? `    nested: {\n${content.join('\n')}\n    };` : `    nested: {};`;
   }
 
-  private static getFlatRelations(collection: Collection, maxDepth: number): string {
-    const fields = this.getFieldsRec(collection, maxDepth, []);
+  private getFlatRelations(collection: Collection, maxDepth: number): string {
+    const fields = this.getFieldsOnCollection(collection, maxDepth);
 
     return fields.length
       ? `    flat: {\n      ${fields.join('\n      ')}\n    };`
       : `    flat: {};`;
   }
 
-  private static getFieldsRec(
-    collection: Collection,
-    maxDepth: number,
-    traversed: { c: Collection; r: string }[],
-  ): string[] {
-    const columns =
-      traversed.length > 0
-        ? Object.entries(collection.schema.fields)
+  private getFieldsOnCollection(mainCollection: Collection, maxDepth: number): string[] {
+    const result = [];
+
+    const queue = [{ collection: mainCollection, depth: 0, prefix: '', traversed: [] }];
+
+    while (queue.length > 0 && result.length < this.options.maxFieldsCount) {
+      const { collection, depth, prefix, traversed } = queue.shift();
+
+      if (prefix) {
+        result.push(
+          ...Object.entries(collection.schema.fields)
             .filter(([, schema]) => schema.type === 'Column')
-            .map(([name, schema]) => `'${name}': ${this.getType(schema as ColumnSchema)};`)
-        : [];
+            .map(
+              ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,
+            ),
+        );
+      }
 
-    const relations = Object.entries(collection.schema.fields).reduce((memo, [name, schema]) => {
-      if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') return memo;
+      if (depth < maxDepth) {
+        queue.push(
+          ...Object.entries(collection.schema.fields)
+            .filter(([, schema]) => schema.type === 'ManyToOne' || schema.type === 'OneToOne')
+            .map(([name, schema]: [name: string, schema: OneToOneSchema | ManyToOneSchema]) => {
+              return {
+                subCollection: collection.dataSource.getCollection(schema.foreignCollection),
+                inverse: CollectionUtils.getInverseRelation(collection, name),
+                name,
+                schema,
+              };
+            })
+            .filter(({ subCollection, inverse }) => {
+              // Do not expand inverse relations, as those create useless cycles
+              return !traversed.find(({ c, r }) => c === subCollection && r === inverse);
+            })
+            .map(({ subCollection, name }) => {
+              return {
+                collection: subCollection,
+                depth: depth + 1,
+                prefix: prefix ? `${prefix}:${name}` : name,
+                traversed: [...traversed, { c: collection, r: name }],
+              };
+            }),
+        );
+      }
+    }
 
-      const subCollection = collection.dataSource.getCollection(schema.foreignCollection);
-      const inverse = CollectionUtils.getInverseRelation(collection, name);
+    if (queue.length || result.length >= this.options.maxFieldsCount) {
+      this.logger?.(
+        'Warn',
+        `Fields generation stopped on collection ${mainCollection.name}, ` +
+          `try using a lower typingsMaxDepth (${maxDepth}) to avoid this issue.`,
+      );
+    }
 
-      // Do not expand inverse relations, as those create useless cycles
-      const expand =
-        traversed.length < maxDepth &&
-        !traversed.find(({ c, r }) => c === subCollection && r === inverse);
-      if (!expand) return memo;
-
-      // Manually expand the field type (cycles are not allowed in template literal types)
-      return [
-        ...memo,
-        ...this.getFieldsRec(subCollection, maxDepth, [
-          ...traversed,
-          { c: collection, r: name },
-        ]).map(f => `'${name}:${f.slice(1)}`),
-      ];
-    }, []);
-
-    return [...columns, ...relations];
+    return result.slice(0, this.options.maxFieldsCount);
   }
 
-  private static getType(field: { columnType: ColumnType; enumValues?: string[] }): string {
+  private getType(field: { columnType: ColumnType; enumValues?: string[] }): string {
     if (Array.isArray(field.columnType)) {
       return `Array<${this.getType({
         columnType: field.columnType[0],
