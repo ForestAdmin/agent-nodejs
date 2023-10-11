@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.5...@forestadmin/datasource-customizer@1.36.0) (2023-10-11)
+
+
+### Features
+
+* **chart:** add multiple time based chart ([#848](https://github.com/ForestAdmin/agent-nodejs/issues/848)) ([0d67ee6](https://github.com/ForestAdmin/agent-nodejs/commit/0d67ee6c62e13f3efb31394177abae6681187e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.0
+
 ## @forestadmin/datasource-customizer [1.35.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.4...@forestadmin/datasource-customizer@1.35.5) (2023-10-11)
 
 
