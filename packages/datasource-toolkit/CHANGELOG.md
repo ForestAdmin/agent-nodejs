@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.28.1...@forestadmin/datasource-toolkit@1.29.0) (2023-10-11)
+
+
+### Features
+
+* **chart:** add multiple time based chart ([#848](https://github.com/ForestAdmin/agent-nodejs/issues/848)) ([0d67ee6](https://github.com/ForestAdmin/agent-nodejs/commit/0d67ee6c62e13f3efb31394177abae6681187e63))
+
 ## @forestadmin/datasource-toolkit [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.28.0...@forestadmin/datasource-toolkit@1.28.1) (2023-10-05)
 
 
