@@ -25,8 +25,8 @@ describe('Chart result builder', () => {
     expect(result).toStrictEqual([
       { label: '26/10/1985', values: { value: 1 } },
       { label: '27/10/1985', values: { value: 2 } },
-      { label: '28/10/1985', values: { value: 0 } },
-      { label: '29/10/1985', values: { value: 0 } },
+      { label: '28/10/1985', values: { value: null } },
+      { label: '29/10/1985', values: { value: null } },
       { label: '30/10/1985', values: { value: 3 } },
     ]);
   });
@@ -40,7 +40,7 @@ describe('Chart result builder', () => {
 
     expect(result).toStrictEqual([
       { label: 'W52-1985', values: { value: 1 } },
-      { label: 'W1-1986', values: { value: 0 } },
+      { label: 'W1-1986', values: { value: null } },
       { label: 'W2-1986', values: { value: 7 } },
     ]);
   });
@@ -56,7 +56,7 @@ describe('Chart result builder', () => {
     expect(result).toStrictEqual([
       { label: 'Oct 85', values: { value: 1 } },
       { label: 'Nov 85', values: { value: 2 } },
-      { label: 'Dec 85', values: { value: 0 } },
+      { label: 'Dec 85', values: { value: null } },
       { label: 'Jan 86', values: { value: 7 } },
     ]);
   });
@@ -110,10 +110,6 @@ describe('Chart result builder', () => {
             label: 'secondLine',
             values: [4, 2, 6, 7],
           },
-          {
-            label: 'thirdLine',
-            values: [1, null],
-          },
         ],
       );
 
@@ -122,8 +118,64 @@ describe('Chart result builder', () => {
         values: [
           { key: 'firstLine', values: [1, 5] },
           { key: 'secondLine', values: [11, 8] },
-          { key: 'thirdLine', values: [1, 0] },
         ],
+      });
+    });
+
+    describe('when there are only null values for a time range', () => {
+      it('should display null value', () => {
+        const result = builder.multipleTimeBased(
+          'Year',
+          ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+          [{ label: 'firstLine', values: [null, 2, 3, null] }],
+        );
+
+        expect(result).toStrictEqual({
+          labels: ['1985', '1986'],
+          values: [{ key: 'firstLine', values: [null, 5] }],
+        });
+      });
+    });
+
+    describe('when there is null and number values for a time range', () => {
+      it('should display a number', () => {
+        const result = builder.multipleTimeBased(
+          'Year',
+          ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+          [{ label: 'firstLine', values: [100, 1, 2, null] }],
+        );
+
+        expect(result).toStrictEqual({
+          labels: ['1985', '1986'],
+          values: [{ key: 'firstLine', values: [100, 3] }],
+        });
+      });
+    });
+
+    describe('when there is no value for a time range', () => {
+      it('should display null value', () => {
+        const result = builder.multipleTimeBased(
+          'Year',
+          ['1985-10-26', '1986-01-07', '1986-01-08', '1985-10-27'],
+          [{ label: 'firstLine', values: [0] }],
+        );
+
+        expect(result).toStrictEqual({
+          labels: ['1985', '1986'],
+          values: [{ key: 'firstLine', values: [0, null] }],
+        });
+      });
+    });
+
+    describe('when a date is not in ISO format', () => {
+      it('should throw an error', () => {
+        expect(() =>
+          builder.multipleTimeBased(
+            'Year',
+            ['11 Oct 2023 08:52:12 GMT'], // UTC FORMAT
+            [{ label: 'firstLine', values: [0] }],
+          ),
+        ).toThrow('Date 11 Oct 2023 08:52:12 GMT must be to ISO format.');
       });
     });
   });

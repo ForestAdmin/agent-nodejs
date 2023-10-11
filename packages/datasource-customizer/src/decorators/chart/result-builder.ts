@@ -31,6 +31,21 @@ export default class ResultBuilder {
     return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
   }
 
+  /**
+   * Add lines on the same timeBased chart.
+   * @param timeRange time range of the chart.
+   * @param times times of the chart in the ISO format.
+   * @param lines:label label of the line. It will be displayed in the legend.
+   * @param lines:values values of the line. It must be in the same order as the times.
+   * @returns the time based chart with the lines.
+   *
+   * @example
+   * collection.multipleTimeBased(
+   *  'Day',
+   *  ['1985-10-26', '2011-10-05T14:48:00.000Z', new Date().toISOString()],
+   *  [{ label: 'line1', values: [1, 2, 3] }, { label: 'line2', values: [3, 4, null] }],
+   * );
+   */
   multipleTimeBased(
     timeRange: DateOperation,
     times: string[],
@@ -93,8 +108,11 @@ export default class ResultBuilder {
     const formatted = {};
 
     for (const [date, value] of Object.entries(values)) {
-      const label = DateTime.fromISO(date).toFormat(format);
-      formatted[label] = (formatted[label] ?? 0) + (value ?? 0);
+      const isoDate = DateTime.fromISO(date);
+      if (!isoDate.isValid) throw new Error(`Date ${date} must be to ISO format.`);
+      const label = isoDate.toFormat(format);
+
+      if (typeof value === 'number') formatted[label] = (formatted[label] ?? 0) + value;
     }
 
     const dataPoints = [];
@@ -104,7 +122,7 @@ export default class ResultBuilder {
 
     for (let current = first; current <= last; current = current.plus({ [timeRange]: 1 })) {
       const label = current.toFormat(format);
-      dataPoints.push({ label, values: { value: formatted[label] ?? 0 } });
+      dataPoints.push({ label, values: { value: formatted[label] ?? null } });
     }
 
     return dataPoints;
