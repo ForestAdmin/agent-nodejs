@@ -46,7 +46,7 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
       import { CollectionCustomizer, TAggregation, TConditionTree, TPaginatedFilter, TPartialRow, TSortClause } from '@forestadmin/agent';
@@ -83,7 +83,7 @@ describe('TypingGenerator', () => {
       factories.collection.build({ name: 'a_collection_name' }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'a_collection_name'>;
       export type ACollectionNameRecord = TPartialRow<Schema, 'a_collection_name'>;
@@ -114,7 +114,7 @@ describe('TypingGenerator', () => {
         }),
       ]);
 
-      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
       const expected = `
       export type Schema = {
         'aCollectionName': {
@@ -139,7 +139,7 @@ describe('TypingGenerator', () => {
         factories.collection.build({ name: collectionName }),
       ]);
 
-      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
       const expected = `
       export type Schema = {
         ${expectedCollectionName}: {
@@ -166,7 +166,7 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       export type Schema = {
         'col1': {
@@ -211,7 +211,7 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       export type Schema = {
         'col1': {
@@ -272,7 +272,7 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 3);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 3);
     const expected = `
       export type Schema = {
         'col1': {
@@ -317,5 +317,62 @@ describe('TypingGenerator', () => {
       };`;
 
     expectContains(generated, expected);
+  });
+
+  test('it should stop generating fields where there are too many of them', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'col1',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            ...new Array(100).fill(0).reduce(
+              (acc, _, i) => ({
+                ...acc,
+                [`field${i}`]: factories.columnSchema.build({ columnType: 'String' }),
+              }),
+              {},
+            ),
+            col2: factories.manyToOneSchema.build({ foreignCollection: 'col2', foreignKey: 'id' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'col2',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            ...new Array(100).fill(0).reduce(
+              (acc, _, i) => ({
+                ...acc,
+                [`field${i}`]: factories.columnSchema.build({ columnType: 'String' }),
+              }),
+              {},
+            ),
+            col1: factories.oneToOneSchema.build({ foreignCollection: 'col1', originKey: 'id' }),
+          },
+        },
+      }),
+    ]);
+
+    const logger = jest.fn();
+
+    const generated = new TypingGenerator(logger, { maxFieldsCount: 2 }).generateTypes(
+      datasource,
+      5,
+    );
+    const expected = `
+      flat: {
+        'col1:id': number;
+        'col1:field0': string;
+      };
+    `;
+
+    expectContains(generated, expected);
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      `Fields generation stopped on collection col1, ` +
+        `try using a lower typingsMaxDepth (5) to avoid this issue.`,
+    );
   });
 });

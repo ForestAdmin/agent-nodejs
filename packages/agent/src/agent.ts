@@ -205,7 +205,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
       !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger)
         : Promise.resolve(),
     ]);
 
