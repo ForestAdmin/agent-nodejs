@@ -186,5 +186,24 @@ describe('Chart result builder', () => {
         });
       });
     });
+
+    describe('when there is no date', () => {
+      it('should return empty labels and values', () => {
+        const result = builder.multipleTimeBased('Year', [], [{ label: 'firstLine', values: [0] }]);
+
+        expect(result).toStrictEqual({
+          labels: [],
+          values: [{ key: 'firstLine', values: [0] }],
+        });
+      });
+    });
+
+    describe('when there is no line', () => {
+      it('should return empty labels and values', () => {
+        const result = builder.multipleTimeBased('Year', [new Date('1985-10-26')], []);
+
+        expect(result).toStrictEqual({ labels: [], values: [] });
+      });
+    });
   });
 });

@@ -107,7 +107,7 @@ export default class ResultBuilder {
       return { key: line.label, values: buildTimeBased.map(timeBased => timeBased.values.value) };
     });
 
-    return { labels: formattedTimes, values: formattedLine };
+    return { labels: formattedTimes ?? [], values: formattedLine };
   }
 
   percentage(value: number): PercentageChart {
@@ -146,6 +146,8 @@ export default class ResultBuilder {
     timeRange: DateOperation,
     points: Array<{ date: Date; value: number | null }>,
   ): TimeBasedChart {
+    if (!points.length) return [];
+
     const pointsInDateTime: { date: DateTime; value: number | null }[] = [];
     points.forEach(point => {
       pointsInDateTime.push({ date: DateTime.fromJSDate(point.date), value: point.value });
