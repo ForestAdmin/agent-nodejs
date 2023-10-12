@@ -74,6 +74,18 @@ describe('Chart result builder', () => {
     ]);
   });
 
+  test('timeBased() should return empty array when null is given for values property', () => {
+    const result = builder.timeBased('Year', null);
+
+    expect(result).toStrictEqual([]);
+  });
+
+  test('timeBased() should return empty array when empty array is given', () => {
+    const result = builder.timeBased('Year', []);
+
+    expect(result).toStrictEqual([]);
+  });
+
   test('percentage() is the identify function', () => {
     expect(builder.percentage(34)).toStrictEqual(34);
   });
@@ -188,21 +200,26 @@ describe('Chart result builder', () => {
     });
 
     describe('when there is no date', () => {
-      it('should return empty labels and values', () => {
+      it('should return empty array labels and null values for the line', () => {
         const result = builder.multipleTimeBased('Year', [], [{ label: 'firstLine', values: [0] }]);
 
-        expect(result).toStrictEqual({
-          labels: [],
-          values: [{ key: 'firstLine', values: [0] }],
-        });
+        expect(result).toStrictEqual({ labels: [], values: null });
       });
     });
 
     describe('when there is no line', () => {
-      it('should return empty labels and values', () => {
+      it('should return null labels and empty array for values', () => {
         const result = builder.multipleTimeBased('Year', [new Date('1985-10-26')], []);
 
-        expect(result).toStrictEqual({ labels: [], values: [] });
+        expect(result).toStrictEqual({ labels: null, values: null });
+      });
+    });
+
+    describe('when there are no date and lines', () => {
+      it('should return null labels and values', () => {
+        const result = builder.multipleTimeBased('Year', null, null);
+
+        expect(result).toStrictEqual({ labels: null, values: null });
       });
     });
   });
