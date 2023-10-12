@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.36.0...@forestadmin/datasource-customizer@1.36.1) (2023-10-12)
+
+
+### Bug Fixes
+
+* **time-based-chart:** don't crash when there is no value and format the data to display "no data" on the front ([#852](https://github.com/ForestAdmin/agent-nodejs/issues/852)) ([3f033eb](https://github.com/ForestAdmin/agent-nodejs/commit/3f033eb7526f1681f15d9e89b36210b7aef6c536))
+
 # @forestadmin/datasource-customizer [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.5...@forestadmin/datasource-customizer@1.36.0) (2023-10-11)
 
 
