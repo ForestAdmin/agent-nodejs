@@ -51,6 +51,7 @@ export default class ResultBuilder {
     timeRange: DateOperation,
     values: Array<{ date: Date; value: number | null }> | Record<string, number | null>,
   ): TimeBasedChart {
+    if (!values) return [];
     if (Array.isArray(values)) return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
 
     const formattedValues = [];
@@ -93,7 +94,9 @@ export default class ResultBuilder {
     dates: Date[],
     lines: Array<{ label: string; values: Array<number | null> }>,
   ): MultipleTimeBasedChart {
-    let formattedTimes;
+    if (!dates || !lines) return { labels: null, values: null };
+
+    let formattedTimes = null;
     const formattedLine = lines.map(line => {
       const values = dates.reduce((computed, date, index) => {
         computed.push({ date, value: line.values[index] });
@@ -107,7 +110,10 @@ export default class ResultBuilder {
       return { key: line.label, values: buildTimeBased.map(timeBased => timeBased.values.value) };
     });
 
-    return { labels: formattedTimes, values: formattedLine };
+    return {
+      labels: formattedTimes,
+      values: formattedTimes && formattedTimes.length > 0 ? formattedLine : null,
+    };
   }
 
   percentage(value: number): PercentageChart {
@@ -146,6 +152,8 @@ export default class ResultBuilder {
     timeRange: DateOperation,
     points: Array<{ date: Date; value: number | null }>,
   ): TimeBasedChart {
+    if (!points.length) return [];
+
     const pointsInDateTime: { date: DateTime; value: number | null }[] = [];
     points.forEach(point => {
       pointsInDateTime.push({ date: DateTime.fromJSDate(point.date), value: point.value });
