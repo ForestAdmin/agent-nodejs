@@ -36,6 +36,7 @@ export default class OptionsValidator {
     copyOptions.loggerLevel = copyOptions.loggerLevel || 'Info';
     copyOptions.skipSchemaUpdate = copyOptions.skipSchemaUpdate || false;
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
+    copyOptions.bodyParser = copyOptions.bodyParser || { jsonLimit: '50mb' };
 
     if (copyOptions.instantCacheRefresh && copyOptions.permissionsCacheDurationInSeconds) {
       copyOptions.logger(
