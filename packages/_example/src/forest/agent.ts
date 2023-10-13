@@ -13,6 +13,7 @@ import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeReview from './customizations/review';
 import customizeStore from './customizations/store';
+import createGQL from './datasources/gql';
 import createTypicode from './datasources/typicode';
 import { Schema } from './typings';
 import mongoose from '../connections/mongoose';
@@ -55,6 +56,12 @@ export default function makeAgent() {
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
     .addDataSource(
       createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+    )
+    .addDataSource(
+      createGQL({
+        cacheInto: 'postgres://forest:secret@localhost:5435/bookshelf_gql',
+        gqlServerApiUrl: 'http://localhost:4000/graphql',
+      }),
     )
 
     .addChart('numRentals', async (context, resultBuilder) => {
