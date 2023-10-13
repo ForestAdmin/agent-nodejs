@@ -56,12 +56,25 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
+    return this._list(
+      AsModelNotNullGenerator.asModelNotNull(this.model, this.stack),
+      filter,
+      projection,
+    );
+  }
+
+  private async _list(
+    pipelineBefore: PipelineStage[],
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     const lookupProjection = projection.union(
       filter.conditionTree?.projection,
       filter.sort?.projection,
     );
 
     const records = await this.model.aggregate([
+      ...(pipelineBefore || []),
       ...this.buildBasePipeline(filter, lookupProjection),
       ...ProjectionGenerator.project(projection),
     ]);
@@ -195,7 +208,7 @@ export default class MongooseCollection extends BaseCollection {
     // Fetch the ids of the documents OR subdocuments that will be updated.
     // We need to do that regardless of `this.prefix` because the filter may contain conditions on
     // relationships.
-    const records = await this.list(caller, filter, new Projection('_id'));
+    const records = await this._list([], filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {
@@ -243,7 +256,7 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   private async _delete(caller: Caller, filter: Filter): Promise<void> {
-    const records = await this.list(caller, filter, new Projection('_id'));
+    const records = await this._list([], filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {
@@ -297,7 +310,6 @@ export default class MongooseCollection extends BaseCollection {
     lookupProjection: Projection,
   ): PipelineStage[] {
     return [
-      ...AsModelNotNullGenerator.asModelNotNull(this.model, this.stack),
       ...ReparentGenerator.reparent(this.model, this.stack),
       ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
       ...LookupGenerator.lookup(this.model, this.stack, lookupProjection),
