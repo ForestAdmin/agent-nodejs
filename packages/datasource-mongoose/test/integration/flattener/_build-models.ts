@@ -37,6 +37,9 @@ export default async function setupFlattener(dbName = 'test') {
       name: String,
       address: {
         street: String,
+        city: String,
+        zipCode: String,
+        number: String,
       },
     }),
   );

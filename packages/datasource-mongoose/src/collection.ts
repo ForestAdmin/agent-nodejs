@@ -25,6 +25,7 @@ import {
   splitId,
   unflattenRecord,
 } from './utils/helpers';
+import AsModelNotNullGenerator from './utils/pipeline/as-model-not-null';
 import FilterGenerator from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
 import LookupGenerator from './utils/pipeline/lookup';
@@ -296,6 +297,7 @@ export default class MongooseCollection extends BaseCollection {
     lookupProjection: Projection,
   ): PipelineStage[] {
     return [
+      ...AsModelNotNullGenerator.asModelNotNull(this.model, this.stack),
       ...ReparentGenerator.reparent(this.model, this.stack),
       ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
       ...LookupGenerator.lookup(this.model, this.stack, lookupProjection),
