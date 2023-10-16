@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.35.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.9...@forestadmin/agent@1.35.10) (2023-10-16)
+
+
+### Bug Fixes
+
+* **agent:** add body parser options to allow increase body limits ([#854](https://github.com/ForestAdmin/agent-nodejs/issues/854)) ([a4de720](https://github.com/ForestAdmin/agent-nodejs/commit/a4de72094182a163846993d84d55670b1b452535))
+
 ## @forestadmin/agent [1.35.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.8...@forestadmin/agent@1.35.9) (2023-10-12)
 
 
