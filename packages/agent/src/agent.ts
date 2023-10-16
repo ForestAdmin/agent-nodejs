@@ -186,7 +186,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Build router
     const router = new Router();
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
-    router.use(bodyParser({ ...this.options.bodyParser }));
+    router.use(bodyParser({ jsonLimit: this.options.maxBodySize }));
     routes.forEach(route => route.setupRoutes(router));
 
     return router;

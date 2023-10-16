@@ -1,7 +1,6 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
-import { Options as BodyParserOption } from 'koa-bodyparser';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
@@ -24,7 +23,7 @@ export type AgentOptions = {
     webhookCustomActions?: boolean;
     updateRecordCustomActions?: boolean;
   };
-  bodyParser?: BodyParserOption;
+  maxBodySize?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
