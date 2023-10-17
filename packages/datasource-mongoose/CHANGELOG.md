@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.5.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.27...@forestadmin/datasource-mongoose@1.5.28) (2023-10-17)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** don't return records for null values of flattened fields when using asModel on object fields ([#853](https://github.com/ForestAdmin/agent-nodejs/issues/853)) ([d4b3f0c](https://github.com/ForestAdmin/agent-nodejs/commit/d4b3f0c9b671efc5df7ab9af6b939ba5a587862b))
+
 ## @forestadmin/datasource-mongoose [1.5.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.26...@forestadmin/datasource-mongoose@1.5.27) (2023-10-11)
 
 
