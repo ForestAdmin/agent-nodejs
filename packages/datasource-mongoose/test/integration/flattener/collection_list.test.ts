@@ -179,6 +179,30 @@ describe('Complex flattening', () => {
           }),
         ]);
       });
+
+      it('should not retrieve records for children models when the value is null', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: {
+            companies: { asModels: ['address'] },
+          },
+        });
+
+        const [company] = await dataSource
+          .getCollection('companies')
+          .create(caller, [{ name: 'Renault' }]);
+
+        const records = await dataSource.getCollection('companies_address').list(
+          caller,
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('parent:_id', 'Equal', `${company._id}`),
+          }),
+          new Projection('_id', 'horsePower', 'parentId', 'parent:_id', 'parent:address:city'),
+        );
+
+        expect(records).toEqual([]);
+      });
     });
   });
 });
