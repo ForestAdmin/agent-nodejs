@@ -283,17 +283,9 @@ export type RedirectResult = {
   path: string;
 };
 
-export type RequestApprovalResult = {
-  type: 'RequestApproval';
-  // Later on we could create an interface to let user put the role allowed
-  // For now we're not defining it and the backend we be able to handle it
-  approverRoles?: number[];
-};
-
 export type ActionResult =
   | SuccessResult
   | ErrorResult
   | WebHookResult
   | FileResult
-  | RedirectResult
-  | RequestApprovalResult;
+  | RedirectResult;

@@ -10,7 +10,6 @@ import Router from '@koa/router';
 import { Context, Next } from 'koa';
 
 import ActionAuthorizationService from './action-authorization';
-import CustomActionRequiresApprovalError from './errors/custom-action-requires-approval-error';
 import { ForestAdminHttpDriverServices } from '../../../services';
 import {
   SmartActionApprovalRequestBody,
@@ -101,8 +100,11 @@ export default class ActionRoute extends CollectionRoute {
       filterForCaller,
     );
 
-    // Now that we have the field list, we can parse the data again.
-    const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
+    const data = {
+      // Now that we have the field list, we can parse the data again.
+      fromData: ForestValueConverter.makeFormData(dataSource, rawData, fields),
+      isApproval: Boolean(requestBody?.data?.attributes?.requester_id),
+    };
     const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
 
     if (result?.type === 'Error') {
@@ -124,8 +126,6 @@ export default class ActionRoute extends CollectionRoute {
       context.response.set('Access-Control-Expose-Headers', 'Content-Disposition');
       context.response.type = result.mimeType;
       context.response.body = result.stream;
-    } else if (result.type === 'RequestApproval') {
-      throw new CustomActionRequiresApprovalError(result.approverRoles);
     } else {
       throw new Error('Unexpected Action result.');
     }

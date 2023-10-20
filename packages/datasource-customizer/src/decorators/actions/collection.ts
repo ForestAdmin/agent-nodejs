@@ -36,7 +36,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     if (!action) return this.childCollection.execute(caller, name, data, filter);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const context = this.getContext(caller, action, data, filter) as any;
+    const context = this.getContext(caller, action, data.fromData, filter, {
+      isApproval: data.isApproval,
+    }) as any;
     const resultBuilder = new ResultBuilder();
     const result = await action.execute(context, resultBuilder);
 
@@ -66,7 +68,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     const formValues = data ? { ...data } : {};
     const used = new Set<string>();
-    const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
+    const context = this.getContext(caller, action, formValues, filter, {
+      used,
+      changedField: metas?.changedField,
+    });
 
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicField[] = action.form.map(c => ({ ...c }));
@@ -117,14 +122,17 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     action: ActionSingle | ActionBulk | ActionGlobal,
     formValues: RecordData,
     filter: Filter,
-    used?: Set<string>,
-    changedField?: string,
+    options: {
+      used?: Set<string>;
+      changedField?: string;
+      isApproval?: boolean;
+    } = {},
   ): ActionContext {
     return new {
       Global: ActionContext,
       Bulk: ActionContext,
       Single: ActionContextSingle,
-    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
+    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, options);
   }
 
   private async dropDefaults(

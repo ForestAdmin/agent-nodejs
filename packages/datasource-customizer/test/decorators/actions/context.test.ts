@@ -24,7 +24,7 @@ describe('ActionContext', () => {
   test('should factorize calls to list made at the same time', async () => {
     const caller = factories.caller.build();
 
-    const context = new ActionContextSingle(books, caller, {}, {});
+    const context = new ActionContextSingle(books, caller, {}, {}, {});
     const [id, partial1, partial2, partial3] = await Promise.all([
       context.getRecordId(),
       context.getRecord(['title']),
@@ -47,7 +47,7 @@ describe('ActionContext', () => {
       factories.caller.build(),
       { title: 'Foundation' },
       {},
-      used,
+      { used },
     );
 
     expect(context.formValues.title).toEqual('Foundation');
@@ -63,7 +63,7 @@ describe('ActionContext', () => {
       factories.caller.build(),
       { title: 'Foundation' },
       {},
-      new Set<string>(),
+      { used: new Set<string>() },
     );
 
     expect(() => {
@@ -72,7 +72,13 @@ describe('ActionContext', () => {
   });
 
   test('should work in bulk mode', async () => {
-    const context = new ActionContext(books, factories.caller.build(), { title: 'Foundation' }, {});
+    const context = new ActionContext(
+      books,
+      factories.caller.build(),
+      { title: 'Foundation' },
+      {},
+      {},
+    );
     const [ids, partials] = await Promise.all([
       context.getRecordIds(),
       context.getRecords(['title']),
@@ -86,11 +92,41 @@ describe('ActionContext', () => {
   test('getrecords should reject all promises if the query fails', async () => {
     (books.list as jest.Mock).mockRejectedValue(new Error('bad request'));
 
-    const context = new ActionContext(books, factories.caller.build(), { title: 'Foundation' }, {});
+    const context = new ActionContext(
+      books,
+      factories.caller.build(),
+      { title: 'Foundation' },
+      {},
+      {},
+    );
     const promise1 = context.getRecords(['title']);
     const promise2 = context.getRecords(['id']);
 
     await expect(promise1).rejects.toThrow('bad request');
     await expect(promise2).rejects.toThrow('bad request');
+  });
+
+  describe('requestApproval', () => {
+    test('should not throw when approving', () => {
+      const context = new ActionContext(
+        books,
+        factories.caller.build(),
+        { title: 'Foundation' },
+        {},
+        { isApproval: true },
+      );
+      expect(() => context.requestApproval()).not.toThrow();
+    });
+
+    test('should only throw on trigger', () => {
+      const context = new ActionContext(
+        books,
+        factories.caller.build(),
+        { title: 'Foundation' },
+        {},
+        { isApproval: false },
+      );
+      expect(() => context.requestApproval()).toThrow();
+    });
   });
 });

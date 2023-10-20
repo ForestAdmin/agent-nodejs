@@ -90,13 +90,4 @@ export default class ResultBuilder {
   redirectTo(path: string): ActionResult {
     return { type: 'Redirect', path };
   }
-
-  /**
-   * Request an approval from the code
-   * @example
-   * .requestApproval();
-   */
-  requestApproval(): ActionResult {
-    return { type: 'RequestApproval' };
-  }
 }
