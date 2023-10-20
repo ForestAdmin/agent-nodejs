@@ -21,6 +21,7 @@ export interface BaseAction<
     context: Context,
     resultBuilder: ResultBuilder,
   ): void | ActionResult | Promise<void> | Promise<ActionResult>;
+  mustRequestApproval?(context: Context): boolean | Promise<boolean>;
 }
 
 export type ActionGlobal<

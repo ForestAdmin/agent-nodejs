@@ -36,7 +36,16 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     if (!action) return this.childCollection.execute(caller, name, data, filter);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const context = this.getContext(caller, action, data, filter) as any;
+    const context = this.getContext(caller, action, data.fromData, filter) as any;
+
+    if (
+      !data.isApproval &&
+      action.mustRequestApproval &&
+      (await action.mustRequestApproval(context))
+    ) {
+      return { type: 'RequestApproval' };
+    }
+
     const resultBuilder = new ResultBuilder();
     const result = await action.execute(context, resultBuilder);
 
