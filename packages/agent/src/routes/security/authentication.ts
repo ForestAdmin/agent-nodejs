@@ -1,9 +1,8 @@
-import type { Client } from 'openid-client';
-
 import { ValidationError } from '@forestadmin/datasource-toolkit';
+import { AuthenticationError } from '@forestadmin/forestadmin-client';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
-import { Context } from 'koa';
+import { Context, Next } from 'koa';
 import jwt from 'koa-jwt';
 
 import { RouteType } from '../../types';
@@ -12,15 +11,17 @@ import BaseRoute from '../base-route';
 export default class Authentication extends BaseRoute {
   readonly type = RouteType.Authentication;
 
-  private client: Client;
-
   override async bootstrap(): Promise<void> {
-    this.client = await this.options.forestAdminClient.getOpenIdClient();
+    await this.options.forestAdminClient.authService.init();
   }
 
   setupRoutes(router: Router): void {
     router.post('/authentication', this.handleAuthentication.bind(this));
-    router.get('/authentication/callback', this.handleAuthenticationCallback.bind(this));
+    router.get(
+      '/authentication/callback',
+      this.handleError.bind(this),
+      this.handleAuthenticationCallback.bind(this),
+    );
 
     router.use(jwt({ secret: this.options.authSecret, cookie: 'forest_session_token' }));
   }
@@ -31,10 +32,11 @@ export default class Authentication extends BaseRoute {
     const renderingId = Number(body?.renderingId);
     Authentication.checkRenderingId(renderingId);
 
-    const authorizationUrl = this.client.authorizationUrl({
-      scope: 'openid email profile',
-      state: JSON.stringify({ renderingId }),
-    });
+    const authorizationUrl =
+      await this.options.forestAdminClient.authService.generateAuthorizationUrl({
+        scope: 'openid email profile',
+        state: JSON.stringify({ renderingId }),
+      });
 
     context.response.body = { authorizationUrl };
   }
@@ -53,9 +55,15 @@ export default class Authentication extends BaseRoute {
     }
 
     // Retrieve user
-    const tokenSet = await this.client.callback(undefined, query, { state });
-    const accessToken = tokenSet.access_token;
-    const user = await this.options.forestAdminClient.getUserInfo(renderingId, accessToken);
+    const tokenSet = await this.options.forestAdminClient.authService.generateTokens({
+      query,
+      state,
+    });
+    const { accessToken } = tokenSet;
+    const user = await this.options.forestAdminClient.authService.getUserInfo(
+      renderingId,
+      accessToken,
+    );
 
     // Generate final token.
     const token = jsonwebtoken.sign(user, this.options.authSecret, { expiresIn: '1 hours' });
@@ -66,6 +74,25 @@ export default class Authentication extends BaseRoute {
   private static checkRenderingId(renderingId: number): void {
     if (Number.isNaN(renderingId)) {
       throw new ValidationError('Rendering id must be a number');
+    }
+  }
+
+  private async handleError(context: Context, next: Next): Promise<void> {
+    try {
+      await next();
+    } catch (e) {
+      if (e instanceof AuthenticationError) {
+        context.response.status = 401;
+        context.response.body = {
+          error: e.code,
+          error_description: e.description,
+          state: e.state,
+        };
+
+        return;
+      }
+
+      throw e;
     }
   }
 }

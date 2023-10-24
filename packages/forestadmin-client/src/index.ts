@@ -74,3 +74,5 @@ export { default as buildApplicationServices } from './build-application-service
 
 // export is necessary for the agent-generator package
 export { default as SchemaService } from './schema';
+
+export * from './auth/errors';

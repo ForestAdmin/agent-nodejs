@@ -1,7 +1,4 @@
-import { Client } from 'openid-client';
-
 import AuthService from './auth';
-import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
 import {
   BaseEventsSubscriptionService,
@@ -31,7 +28,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly chartHandler: ChartHandler,
     protected readonly ipWhitelistService: IpWhiteListService,
     protected readonly schemaService: SchemaService,
-    protected readonly authService: AuthService,
+    public readonly authService: AuthService,
     public readonly modelCustomizationService: ModelCustomizationService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
@@ -47,14 +44,6 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     return this.schemaService.postSchema(schema);
-  }
-
-  getOpenIdClient(): Promise<Client> {
-    return this.authService.getOpenIdClient();
-  }
-
-  getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
-    return this.authService.getUserInfo(renderingId, accessToken);
   }
 
   public async getScope({
