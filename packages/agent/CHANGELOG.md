@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.35.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.10...@forestadmin/agent@1.35.11) (2023-10-25)
+
+
+### Bug Fixes
+
+* **authentication:** return errors details during authentication instead of generic 500s ([#857](https://github.com/ForestAdmin/agent-nodejs/issues/857)) ([3ec14e6](https://github.com/ForestAdmin/agent-nodejs/commit/3ec14e653a58feb3ae2ad4e15e6722227bbc5a6e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.3
+
 ## @forestadmin/agent [1.35.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.9...@forestadmin/agent@1.35.10) (2023-10-16)
 
 
