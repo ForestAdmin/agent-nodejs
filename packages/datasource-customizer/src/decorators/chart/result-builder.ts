@@ -31,12 +31,13 @@ export default class ResultBuilder {
 
   /**
    * Add a TimeBasedChart based on a time range and a set of values.
-   * @param {DateOperation} timeRange - The time range for the chart, specified as a DateOperation.
+   * @param {DateOperation} timeRange - The time range for the chart,
+   * specified as "Year", "Month", "Week" or "Day".
    * @param {Array<{ date: Date; value: number | null }> | Record<string, number>} values -
    *  This can be an array of objects with 'date' and 'value' properties,
    *  or a record (object) with date-value pairs.
-   * @param {TimeBasedChartOptions} options - Only one option for now: displayMissingPointsAsZeros,
-   *  allow displaying a continue line even if some data is missing.
+   * @param {TimeBasedChartOptions} options - displayMissingPointsAsZeros:
+   *  display a continuous line even if some data is missing.
    *
    * @returns {TimeBasedChart} Returns a TimeBasedChart representing the data within the specified
    * time range.
@@ -74,11 +75,14 @@ export default class ResultBuilder {
    * Add a MultipleTimeBasedChart based on a time range,
    * an array of dates, and multiple lines of data.
    *
-   * @param {DateOperation} timeRange - The time range for the chart, specified as a DateOperation.
+   * @param {DateOperation} timeRange - The time range for the chart,
+   * specified as "Year", "Month", "Week" or "Day".
    * @param {Date[]} dates - An array of dates that define the x-axis values for the chart.
    * @param {Array<{ label: string; values: Array<number | null> }>} lines - An array of lines,
    * each containing a label and an array of numeric data values (or null)
    * corresponding to the dates.
+   * @param {TimeBasedChartOptions} options - displayMissingPointsAsZeros:
+   *  display a continuous line even if some data is missing.
    *
    * @returns {MultipleTimeBasedChart} Returns a MultipleTimeBasedChart representing multiple
    * lines of data within the specified time range.
