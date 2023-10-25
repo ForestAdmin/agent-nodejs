@@ -35,6 +35,8 @@ export default class ResultBuilder {
    * @param {Array<{ date: Date; value: number | null }> | Record<string, number>} values -
    *  This can be an array of objects with 'date' and 'value' properties,
    *  or a record (object) with date-value pairs.
+   * @param {TimeBasedChartOptions} options - Only one option for now: displayMissingPointsAsZeros,
+   *  allow displaying a continue line even if some data is missing.
    *
    * @returns {TimeBasedChart} Returns a TimeBasedChart representing the data within the specified
    * time range.
@@ -55,13 +57,15 @@ export default class ResultBuilder {
     options?: TimeBasedChartOptions,
   ): TimeBasedChart {
     if (!values) return [];
-    if (Array.isArray(values))
-      return ResultBuilder.buildTimeBasedChartResult(timeRange, values, options);
 
-    const formattedValues = [];
-    Object.entries(values).forEach(([stringDate, value]) => {
-      formattedValues.push({ date: new Date(stringDate), value });
-    });
+    if (Array.isArray(values)) {
+      return ResultBuilder.buildTimeBasedChartResult(timeRange, values, options);
+    }
+
+    const formattedValues = Object.entries(values).map(([stringDate, value]) => ({
+      date: new Date(stringDate),
+      value,
+    }));
 
     return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues, options);
   }
@@ -180,11 +184,11 @@ export default class ResultBuilder {
     const first = dates[0].startOf(timeRange.toLowerCase() as DateTimeUnit);
     const last = dates[dates.length - 1];
 
-    const defaultValues = options?.displayMissingPointsAsZeros ? 0 : null;
+    const defaultValue = options?.displayMissingPointsAsZeros ? 0 : null;
 
     for (let current = first; current <= last; current = current.plus({ [timeRange]: 1 })) {
       const label = current.toFormat(format);
-      dataPoints.push({ label, values: { value: formatted[label] ?? defaultValues } });
+      dataPoints.push({ label, values: { value: formatted[label] ?? defaultValue } });
     }
 
     return dataPoints;
