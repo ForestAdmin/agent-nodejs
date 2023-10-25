@@ -8,7 +8,7 @@ import { ForestAdminAuthServiceInterface, ForestAdminClientOptionsWithDefaults }
 import ServerUtils from '../utils/server';
 
 export default class AuthService implements ForestAdminAuthServiceInterface {
-  private client: BaseClient;
+  protected client: BaseClient;
 
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
