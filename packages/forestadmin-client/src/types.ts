@@ -1,8 +1,9 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
-import type { Client } from 'openid-client';
 
-import { UserInfo } from './auth/types';
+import { ParsedUrlQuery } from 'querystring';
+
+import { Tokens, UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
 import { HttpOptions } from './permissions/forest-http-api';
@@ -32,20 +33,25 @@ export type ForestAdminClientOptions = {
 
 export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions>;
 
+export type ForestAdminAuthServiceInterface = {
+  init: () => Promise<void>;
+  getUserInfo: (renderingId: number, accessToken: string) => Promise<UserInfo>;
+  generateAuthorizationUrl: (params: { scope: string; state: string }) => Promise<string>;
+  generateTokens: (params: { query: ParsedUrlQuery; state: string }) => Promise<Tokens>;
+};
+
 export interface ForestAdminClient {
   readonly permissionService: PermissionService;
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
   readonly modelCustomizationService: ModelCustomizationService;
+  readonly authService: ForestAdminAuthServiceInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
   getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration>;
 
   postSchema(schema: ForestSchema): Promise<boolean>;
-  getOpenIdClient(): Promise<Client>;
-
-  getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo>;
 
   getScope(params: {
     renderingId: number | string;
