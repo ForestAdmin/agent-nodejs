@@ -86,6 +86,24 @@ describe('Chart result builder', () => {
     expect(result).toStrictEqual([]);
   });
 
+  test('timeBased() should replace null values with zeros if option set to true', () => {
+    const result = builder.timeBased(
+      'Year',
+      {
+        '1985-10-26': 1,
+        '1986-01-07': null,
+        '1987-01-08': 4,
+      },
+      { displayMissingPointsAsZeros: true },
+    );
+
+    expect(result).toStrictEqual([
+      { label: '1985', values: { value: 1 } },
+      { label: '1986', values: { value: 0 } },
+      { label: '1987', values: { value: 4 } },
+    ]);
+  });
+
   test('percentage() is the identify function', () => {
     expect(builder.percentage(34)).toStrictEqual(34);
   });
@@ -195,6 +213,25 @@ describe('Chart result builder', () => {
         expect(result).toStrictEqual({
           labels: ['1985', '1986'],
           values: [{ key: 'firstLine', values: [0, null] }],
+        });
+      });
+
+      it('should display zeros if option displayMissingPointsAsZeros set to true', () => {
+        const result = builder.multipleTimeBased(
+          'Year',
+          [
+            new Date('1985-10-26'),
+            new Date('1986-01-07'),
+            new Date('1986-01-08'),
+            new Date('1985-10-27'),
+          ],
+          [{ label: 'firstLine', values: [0] }],
+          { displayMissingPointsAsZeros: true },
+        );
+
+        expect(result).toStrictEqual({
+          labels: ['1985', '1986'],
+          values: [{ key: 'firstLine', values: [0, 0] }],
         });
       });
     });
