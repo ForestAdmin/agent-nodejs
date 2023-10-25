@@ -1,4 +1,3 @@
-import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import {
   BaseEventsSubscriptionService,
@@ -13,6 +12,7 @@ import verifyAndExtractApproval from './permissions/verify-approval';
 import SchemaService from './schema';
 import { ForestSchema } from './schema/types';
 import {
+  ForestAdminAuthServiceInterface,
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
@@ -28,7 +28,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly chartHandler: ChartHandler,
     protected readonly ipWhitelistService: IpWhiteListService,
     protected readonly schemaService: SchemaService,
-    public readonly authService: AuthService,
+    public readonly authService: ForestAdminAuthServiceInterface,
     public readonly modelCustomizationService: ModelCustomizationService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
