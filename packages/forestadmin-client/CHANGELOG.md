@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.24.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.24.5...@forestadmin/forestadmin-client@1.24.6) (2023-10-26)
+
+
+### Bug Fixes
+
+* **authentication:** don't crash if an error occurs when initializing the authentication client ([#862](https://github.com/ForestAdmin/agent-nodejs/issues/862)) ([265b1b4](https://github.com/ForestAdmin/agent-nodejs/commit/265b1b489b4a3b3b0e11b6410c878fa116c3edbf))
+
 ## @forestadmin/forestadmin-client [1.24.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.24.4...@forestadmin/forestadmin-client@1.24.5) (2023-10-25)
 
 ## @forestadmin/forestadmin-client [1.24.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.24.3...@forestadmin/forestadmin-client@1.24.4) (2023-10-25)
