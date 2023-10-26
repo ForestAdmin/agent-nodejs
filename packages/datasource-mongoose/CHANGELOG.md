@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.5.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.28...@forestadmin/datasource-mongoose@1.5.29) (2023-10-26)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** error on a nested field when requesting a child property on a missing value ([#860](https://github.com/ForestAdmin/agent-nodejs/issues/860)) ([6a04be7](https://github.com/ForestAdmin/agent-nodejs/commit/6a04be7bd525e5d4c73a95c019191a8c0ec3c0db))
+
 ## @forestadmin/datasource-mongoose [1.5.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.27...@forestadmin/datasource-mongoose@1.5.28) (2023-10-17)
 
 
