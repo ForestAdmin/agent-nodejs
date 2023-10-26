@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.36.1...@forestadmin/datasource-customizer@1.37.0) (2023-10-26)
+
+
+### Features
+
+* **charts:** timebasedCharts: add option to display missing points as zeros ([#861](https://github.com/ForestAdmin/agent-nodejs/issues/861)) ([b314d3a](https://github.com/ForestAdmin/agent-nodejs/commit/b314d3a7715e06d7ae7a7ec4bb9b89e4c776e0fd))
+
 ## @forestadmin/datasource-customizer [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.36.0...@forestadmin/datasource-customizer@1.36.1) (2023-10-12)
 
 
