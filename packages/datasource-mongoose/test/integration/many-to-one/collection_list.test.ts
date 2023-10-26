@@ -115,7 +115,7 @@ describe('MongooseCollection', () => {
       new Projection('name', 'storeId__manyToOne:name'),
     );
 
-    expect(expectedOwner).toEqual([{ name: 'aOwner' }]);
+    expect(expectedOwner).toEqual([{ name: 'aOwner', storeId__manyToOne: null }]);
   });
 
   it('should filter by relation', async () => {

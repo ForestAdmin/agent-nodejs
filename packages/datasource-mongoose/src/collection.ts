@@ -16,6 +16,7 @@ import { Error, Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema from './mongoose/schema';
 import { Stack } from './types';
+import addNullValues from './utils/add-null-values';
 import {
   buildSubdocumentPatch,
   compareIds,
@@ -79,7 +80,7 @@ export default class MongooseCollection extends BaseCollection {
       ...ProjectionGenerator.project(projection),
     ]);
 
-    return replaceMongoTypes(records);
+    return addNullValues(replaceMongoTypes(records), projection);
   }
 
   async aggregate(
