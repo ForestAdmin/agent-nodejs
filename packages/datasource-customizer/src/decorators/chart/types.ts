@@ -14,3 +14,7 @@ export type CollectionChartDefinition<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = (context: CollectionChartContext<S, N>, resultBuilder: ResultBuilder) => Promise<Chart> | Chart;
+
+export type TimeBasedChartOptions = {
+  displayMissingPointsAsZeros?: boolean;
+};

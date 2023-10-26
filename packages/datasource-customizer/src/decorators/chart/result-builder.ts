@@ -11,6 +11,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { DateTime, DateTimeUnit } from 'luxon';
 
+import { TimeBasedChartOptions } from './types';
+
 export default class ResultBuilder {
   private static readonly formats: Record<DateOperation, string> = {
     Day: 'dd/MM/yyyy',
@@ -29,10 +31,13 @@ export default class ResultBuilder {
 
   /**
    * Add a TimeBasedChart based on a time range and a set of values.
-   * @param {DateOperation} timeRange - The time range for the chart, specified as a DateOperation.
+   * @param {DateOperation} timeRange - The time range for the chart,
+   * specified as "Year", "Month", "Week" or "Day".
    * @param {Array<{ date: Date; value: number | null }> | Record<string, number>} values -
    *  This can be an array of objects with 'date' and 'value' properties,
    *  or a record (object) with date-value pairs.
+   * @param {TimeBasedChartOptions} options - displayMissingPointsAsZeros:
+   *  display a continuous line even if some data is missing.
    *
    * @returns {TimeBasedChart} Returns a TimeBasedChart representing the data within the specified
    * time range.
@@ -50,27 +55,34 @@ export default class ResultBuilder {
   timeBased(
     timeRange: DateOperation,
     values: Array<{ date: Date; value: number | null }> | Record<string, number | null>,
+    options?: TimeBasedChartOptions,
   ): TimeBasedChart {
     if (!values) return [];
-    if (Array.isArray(values)) return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
 
-    const formattedValues = [];
-    Object.entries(values).forEach(([stringDate, value]) => {
-      formattedValues.push({ date: new Date(stringDate), value });
-    });
+    if (Array.isArray(values)) {
+      return ResultBuilder.buildTimeBasedChartResult(timeRange, values, options);
+    }
 
-    return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues);
+    const formattedValues = Object.entries(values).map(([stringDate, value]) => ({
+      date: new Date(stringDate),
+      value,
+    }));
+
+    return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues, options);
   }
 
   /**
    * Add a MultipleTimeBasedChart based on a time range,
    * an array of dates, and multiple lines of data.
    *
-   * @param {DateOperation} timeRange - The time range for the chart, specified as a DateOperation.
+   * @param {DateOperation} timeRange - The time range for the chart,
+   * specified as "Year", "Month", "Week" or "Day".
    * @param {Date[]} dates - An array of dates that define the x-axis values for the chart.
    * @param {Array<{ label: string; values: Array<number | null> }>} lines - An array of lines,
    * each containing a label and an array of numeric data values (or null)
    * corresponding to the dates.
+   * @param {TimeBasedChartOptions} options - displayMissingPointsAsZeros:
+   *  display a continuous line even if some data is missing.
    *
    * @returns {MultipleTimeBasedChart} Returns a MultipleTimeBasedChart representing multiple
    * lines of data within the specified time range.
@@ -93,6 +105,7 @@ export default class ResultBuilder {
     timeRange: DateOperation,
     dates: Date[],
     lines: Array<{ label: string; values: Array<number | null> }>,
+    options?: TimeBasedChartOptions,
   ): MultipleTimeBasedChart {
     if (!dates || !lines) return { labels: null, values: null };
 
@@ -104,7 +117,7 @@ export default class ResultBuilder {
         return computed;
       }, []);
 
-      const buildTimeBased = ResultBuilder.buildTimeBasedChartResult(timeRange, values);
+      const buildTimeBased = ResultBuilder.buildTimeBasedChartResult(timeRange, values, options);
       if (!formattedTimes) formattedTimes = buildTimeBased.map(timeBased => timeBased.label);
 
       return { key: line.label, values: buildTimeBased.map(timeBased => timeBased.values.value) };
@@ -112,7 +125,7 @@ export default class ResultBuilder {
 
     return {
       labels: formattedTimes,
-      values: formattedTimes && formattedTimes.length > 0 ? formattedLine : null,
+      values: formattedTimes?.length > 0 ? formattedLine : null,
     };
   }
 
@@ -151,13 +164,14 @@ export default class ResultBuilder {
   private static buildTimeBasedChartResult(
     timeRange: DateOperation,
     points: Array<{ date: Date; value: number | null }>,
+    options?: TimeBasedChartOptions,
   ): TimeBasedChart {
     if (!points.length) return [];
 
-    const pointsInDateTime: { date: DateTime; value: number | null }[] = [];
-    points.forEach(point => {
-      pointsInDateTime.push({ date: DateTime.fromJSDate(point.date), value: point.value });
-    });
+    const pointsInDateTime = points.map(point => ({
+      date: DateTime.fromJSDate(point.date),
+      value: point.value,
+    }));
 
     const format = ResultBuilder.formats[timeRange];
     const formatted = {};
@@ -174,9 +188,11 @@ export default class ResultBuilder {
     const first = dates[0].startOf(timeRange.toLowerCase() as DateTimeUnit);
     const last = dates[dates.length - 1];
 
+    const defaultValue = options?.displayMissingPointsAsZeros ? 0 : null;
+
     for (let current = first; current <= last; current = current.plus({ [timeRange]: 1 })) {
       const label = current.toFormat(format);
-      dataPoints.push({ label, values: { value: formatted[label] ?? null } });
+      dataPoints.push({ label, values: { value: formatted[label] ?? defaultValue } });
     }
 
     return dataPoints;
