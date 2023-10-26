@@ -12,21 +12,25 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
 
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
+  /**
+   * Initialize the authentication client upfront. This speeds up the first
+   * authentication request.
+   */
   public async init(): Promise<void> {
-    if (this.client) return;
-
-    // We can't use 'Issuer.discover' because the oidc config is behind an auth-wall.
-    const url = '/oidc/.well-known/openid-configuration';
-    const config = await ServerUtils.query<IssuerMetadata>(this.options, 'get', url);
-    const issuer = new Issuer(config);
-    const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
-
-    this.client = await (issuer.Client as ClientExt).register(registration, {
-      initialAccessToken: this.options.envSecret,
-    });
+    try {
+      await this.createClient();
+    } catch (e) {
+      // Sometimes the authentication client can't be initialized because of a
+      // server or network error. We don't want the application to crash.
+      this.options.logger(
+        'Warn',
+        // eslint-disable-next-line max-len
+        `Error while registering the authentication client. Authentication might not work: ${e.message}`,
+      );
+    }
   }
 
-  async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
+  public async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
     const url = `/liana/v2/renderings/${renderingId}/authorization`;
     const headers = { 'forest-token': accessToken };
 
@@ -56,14 +60,12 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
     scope: string;
     state: string;
   }): Promise<string> {
-    if (!this.client) throw new Error('AuthService not initialized');
+    await this.createClient();
 
-    const url = this.client.authorizationUrl({
+    return this.client.authorizationUrl({
       scope,
       state,
     });
-
-    return url;
   }
 
   public async generateTokens({
@@ -73,7 +75,7 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
     query: ParsedUrlQuery;
     state: string;
   }): Promise<Tokens> {
-    if (!this.client) throw new Error('AuthService not initialized');
+    await this.createClient();
 
     try {
       const tokens = await this.client.callback(undefined, query, { state });
@@ -84,6 +86,21 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
     } catch (e) {
       this.handleError(e);
     }
+  }
+
+  protected async createClient() {
+    if (this.client) return;
+
+    // We can't use async 'Issuer.discover' because the oidc config is behind an auth-wall.
+    const url = '/oidc/.well-known/openid-configuration';
+    const config = await ServerUtils.query<IssuerMetadata>(this.options, 'get', url);
+    const issuer = new Issuer(config);
+
+    const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
+
+    this.client = await (issuer.Client as ClientExt).register(registration, {
+      initialAccessToken: this.options.envSecret,
+    });
   }
 
   private handleError(e: Error) {
