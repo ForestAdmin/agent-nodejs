@@ -30,22 +30,7 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
     }
   }
 
-  protected async createClient() {
-    if (this.client) return;
-
-    // We can't use async 'Issuer.discover' because the oidc config is behind an auth-wall.
-    const url = '/oidc/.well-known/openid-configuration';
-    const config = await ServerUtils.query<IssuerMetadata>(this.options, 'get', url);
-    const issuer = new Issuer(config);
-
-    const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
-
-    this.client = await (issuer.Client as ClientExt).register(registration, {
-      initialAccessToken: this.options.envSecret,
-    });
-  }
-
-  async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
+  public async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
     const url = `/liana/v2/renderings/${renderingId}/authorization`;
     const headers = { 'forest-token': accessToken };
 
@@ -103,6 +88,21 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
     } catch (e) {
       this.handleError(e);
     }
+  }
+
+  protected async createClient() {
+    if (this.client) return;
+
+    // We can't use async 'Issuer.discover' because the oidc config is behind an auth-wall.
+    const url = '/oidc/.well-known/openid-configuration';
+    const config = await ServerUtils.query<IssuerMetadata>(this.options, 'get', url);
+    const issuer = new Issuer(config);
+
+    const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
+
+    this.client = await (issuer.Client as ClientExt).register(registration, {
+      initialAccessToken: this.options.envSecret,
+    });
   }
 
   private handleError(e: Error) {
