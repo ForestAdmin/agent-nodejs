@@ -62,12 +62,10 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
   }): Promise<string> {
     await this.createClient();
 
-    const url = this.client.authorizationUrl({
+    return this.client.authorizationUrl({
       scope,
       state,
     });
-
-    return url;
   }
 
   public async generateTokens({
