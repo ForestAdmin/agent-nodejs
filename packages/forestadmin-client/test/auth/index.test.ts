@@ -52,6 +52,21 @@ describe('AuthService', () => {
         { initialAccessToken: options.envSecret },
       );
     });
+
+    it('should only log the error and not throw if creating the client throws', async () => {
+      serverQueryMock.mockImplementationOnce(() => {
+        throw new Error('myError');
+      });
+
+      const options = factories.forestAdminClientOptions.build();
+      const service = new AuthService(options);
+
+      await expect(service.init()).resolves.toBe(undefined);
+      expect(options.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Error while registering the authentication client. Authentication might not work: myError',
+      );
+    });
   });
 
   describe('getUserInfo', () => {
@@ -133,19 +148,6 @@ describe('AuthService', () => {
           state: 'myState',
         });
       });
-
-      test('should throw if the client is not initialized', async () => {
-        const options = factories.forestAdminClientOptions.build();
-        const unitializedService = new AuthService(options);
-
-        const fn = () =>
-          unitializedService.generateAuthorizationUrl({
-            scope: 'myScope',
-            state: 'myState',
-          });
-
-        await expect(fn).rejects.toThrow('AuthService not initialized');
-      });
     });
 
     describe('generateTokens', () => {
@@ -162,19 +164,6 @@ describe('AuthService', () => {
         expect(tokens).toEqual({
           accessToken: 'myAccessToken',
         });
-      });
-
-      test('should throw if the client is not initialized', async () => {
-        const options = factories.forestAdminClientOptions.build();
-        const unitializedService = new AuthService(options);
-
-        const fn = () =>
-          unitializedService.generateTokens({
-            query: { code: 'myCode' },
-            state: 'myState',
-          });
-
-        await expect(fn).rejects.toThrow('AuthService not initialized');
       });
 
       test('should translate an OPError to an AuthenticationError', async () => {
@@ -205,6 +194,89 @@ describe('AuthService', () => {
           });
 
         await expect(fn).rejects.toThrow(error);
+      });
+    });
+  });
+
+  describe('if initialization failed', () => {
+    let fakeClient: {
+      authorizationUrl: jest.Mock;
+      callback: jest.Mock;
+    };
+    let service: AuthService;
+
+    beforeEach(async () => {
+      fakeClient = {
+        authorizationUrl: jest.fn(),
+        callback: jest.fn(),
+      };
+      const fakeIssuer = {
+        Client: { register: jest.fn().mockReturnValue(fakeClient) },
+      };
+
+      issuerMock.mockReturnValue(fakeIssuer);
+      const options = factories.forestAdminClientOptions.build();
+      service = new AuthService(options);
+    });
+
+    describe('generateAuthorizationUrl', () => {
+      it('should try to reinit the client if initialization failed', async () => {
+        fakeClient.authorizationUrl.mockResolvedValue('myAuthorizationUrl');
+
+        await service.generateAuthorizationUrl({
+          scope: 'myScope',
+          state: 'myState',
+        });
+
+        expect(issuerMock).toHaveBeenCalledTimes(1);
+        expect(fakeClient.authorizationUrl).toHaveBeenCalledTimes(1);
+      });
+
+      it('should throw an error if reinitialization failed', async () => {
+        fakeClient.authorizationUrl.mockResolvedValue('myAuthorizationUrl');
+        const error = new Error('myError');
+        issuerMock.mockImplementationOnce(() => {
+          throw error;
+        });
+
+        const fn = () =>
+          service.generateAuthorizationUrl({
+            scope: 'myScope',
+            state: 'myState',
+          });
+
+        await expect(fn).rejects.toEqual(error);
+      });
+    });
+
+    describe('generateTokens', () => {
+      it('should try to reinit the client if initialization failed', async () => {
+        fakeClient.callback.mockResolvedValue({
+          access_token: 'myAccessToken',
+        });
+
+        await service.generateTokens({
+          query: { code: 'myCode' },
+          state: 'myState',
+        });
+
+        expect(issuerMock).toHaveBeenCalledTimes(1);
+        expect(fakeClient.callback).toHaveBeenCalledTimes(1);
+      });
+
+      it('should throw an error if reinitialization failed', async () => {
+        fakeClient.authorizationUrl.mockResolvedValue('myAuthorizationUrl');
+        const error = new Error('myError');
+        issuerMock.mockImplementationOnce(() => {
+          throw error;
+        });
+
+        await expect(
+          service.generateTokens({
+            query: { code: 'myCode' },
+            state: 'myState',
+          }),
+        ).rejects.toEqual(error);
       });
     });
   });
