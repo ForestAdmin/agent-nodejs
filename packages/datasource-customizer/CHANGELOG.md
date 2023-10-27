@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.0...@forestadmin/datasource-customizer@1.37.1) (2023-10-27)
+
+
+### Bug Fixes
+
+* **charts:** remove option to set zeros instead of null values & do it by default ([#863](https://github.com/ForestAdmin/agent-nodejs/issues/863)) ([5f88663](https://github.com/ForestAdmin/agent-nodejs/commit/5f8866301b82fdfd0694010aad432fea99c1955e))
+
 # @forestadmin/datasource-customizer [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.36.1...@forestadmin/datasource-customizer@1.37.0) (2023-10-26)
 
 
