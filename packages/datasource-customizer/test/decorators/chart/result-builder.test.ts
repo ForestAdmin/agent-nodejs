@@ -25,8 +25,8 @@ describe('Chart result builder', () => {
     expect(result).toStrictEqual([
       { label: '26/10/1985', values: { value: 1 } },
       { label: '27/10/1985', values: { value: 2 } },
-      { label: '28/10/1985', values: { value: null } },
-      { label: '29/10/1985', values: { value: null } },
+      { label: '28/10/1985', values: { value: 0 } },
+      { label: '29/10/1985', values: { value: 0 } },
       { label: '30/10/1985', values: { value: 3 } },
     ]);
   });
@@ -40,7 +40,7 @@ describe('Chart result builder', () => {
 
     expect(result).toStrictEqual([
       { label: 'W52-1985', values: { value: 1 } },
-      { label: 'W1-1986', values: { value: null } },
+      { label: 'W1-1986', values: { value: 0 } },
       { label: 'W2-1986', values: { value: 7 } },
     ]);
   });
@@ -56,7 +56,7 @@ describe('Chart result builder', () => {
     expect(result).toStrictEqual([
       { label: 'Oct 85', values: { value: 1 } },
       { label: 'Nov 85', values: { value: 2 } },
-      { label: 'Dec 85', values: { value: null } },
+      { label: 'Dec 85', values: { value: 0 } },
       { label: 'Jan 86', values: { value: 7 } },
     ]);
   });
@@ -84,24 +84,6 @@ describe('Chart result builder', () => {
     const result = builder.timeBased('Year', []);
 
     expect(result).toStrictEqual([]);
-  });
-
-  test('timeBased() should replace null values with zeros if option set to true', () => {
-    const result = builder.timeBased(
-      'Year',
-      {
-        '1985-10-26': 1,
-        '1986-01-07': null,
-        '1987-01-08': 4,
-      },
-      { displayMissingPointsAsZeros: true },
-    );
-
-    expect(result).toStrictEqual([
-      { label: '1985', values: { value: 1 } },
-      { label: '1986', values: { value: 0 } },
-      { label: '1987', values: { value: 4 } },
-    ]);
   });
 
   test('percentage() is the identify function', () => {
@@ -158,7 +140,7 @@ describe('Chart result builder', () => {
     });
 
     describe('when there are only null values for a time range', () => {
-      it('should display null value', () => {
+      it('should display 0', () => {
         const result = builder.multipleTimeBased(
           'Year',
           [
@@ -172,7 +154,7 @@ describe('Chart result builder', () => {
 
         expect(result).toStrictEqual({
           labels: ['1985', '1986'],
-          values: [{ key: 'firstLine', values: [null, 5] }],
+          values: [{ key: 'firstLine', values: [0, 5] }],
         });
       });
     });
@@ -198,7 +180,7 @@ describe('Chart result builder', () => {
     });
 
     describe('when there is no value for a time range', () => {
-      it('should display null value', () => {
+      it('should display 0', () => {
         const result = builder.multipleTimeBased(
           'Year',
           [
@@ -208,25 +190,6 @@ describe('Chart result builder', () => {
             new Date('1985-10-27'),
           ],
           [{ label: 'firstLine', values: [0] }],
-        );
-
-        expect(result).toStrictEqual({
-          labels: ['1985', '1986'],
-          values: [{ key: 'firstLine', values: [0, null] }],
-        });
-      });
-
-      it('should display zeros if option displayMissingPointsAsZeros set to true', () => {
-        const result = builder.multipleTimeBased(
-          'Year',
-          [
-            new Date('1985-10-26'),
-            new Date('1986-01-07'),
-            new Date('1986-01-08'),
-            new Date('1985-10-27'),
-          ],
-          [{ label: 'firstLine', values: [0] }],
-          { displayMissingPointsAsZeros: true },
         );
 
         expect(result).toStrictEqual({

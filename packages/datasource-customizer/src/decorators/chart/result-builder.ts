@@ -11,8 +11,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { DateTime, DateTimeUnit } from 'luxon';
 
-import { TimeBasedChartOptions } from './types';
-
 export default class ResultBuilder {
   private static readonly formats: Record<DateOperation, string> = {
     Day: 'dd/MM/yyyy',
@@ -36,8 +34,6 @@ export default class ResultBuilder {
    * @param {Array<{ date: Date; value: number | null }> | Record<string, number>} values -
    *  This can be an array of objects with 'date' and 'value' properties,
    *  or a record (object) with date-value pairs.
-   * @param {TimeBasedChartOptions} options - displayMissingPointsAsZeros:
-   *  display a continuous line even if some data is missing.
    *
    * @returns {TimeBasedChart} Returns a TimeBasedChart representing the data within the specified
    * time range.
@@ -55,12 +51,11 @@ export default class ResultBuilder {
   timeBased(
     timeRange: DateOperation,
     values: Array<{ date: Date; value: number | null }> | Record<string, number | null>,
-    options?: TimeBasedChartOptions,
   ): TimeBasedChart {
     if (!values) return [];
 
     if (Array.isArray(values)) {
-      return ResultBuilder.buildTimeBasedChartResult(timeRange, values, options);
+      return ResultBuilder.buildTimeBasedChartResult(timeRange, values);
     }
 
     const formattedValues = Object.entries(values).map(([stringDate, value]) => ({
@@ -68,7 +63,7 @@ export default class ResultBuilder {
       value,
     }));
 
-    return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues, options);
+    return ResultBuilder.buildTimeBasedChartResult(timeRange, formattedValues);
   }
 
   /**
@@ -81,8 +76,6 @@ export default class ResultBuilder {
    * @param {Array<{ label: string; values: Array<number | null> }>} lines - An array of lines,
    * each containing a label and an array of numeric data values (or null)
    * corresponding to the dates.
-   * @param {TimeBasedChartOptions} options - displayMissingPointsAsZeros:
-   *  display a continuous line even if some data is missing.
    *
    * @returns {MultipleTimeBasedChart} Returns a MultipleTimeBasedChart representing multiple
    * lines of data within the specified time range.
@@ -105,7 +98,6 @@ export default class ResultBuilder {
     timeRange: DateOperation,
     dates: Date[],
     lines: Array<{ label: string; values: Array<number | null> }>,
-    options?: TimeBasedChartOptions,
   ): MultipleTimeBasedChart {
     if (!dates || !lines) return { labels: null, values: null };
 
@@ -117,7 +109,7 @@ export default class ResultBuilder {
         return computed;
       }, []);
 
-      const buildTimeBased = ResultBuilder.buildTimeBasedChartResult(timeRange, values, options);
+      const buildTimeBased = ResultBuilder.buildTimeBasedChartResult(timeRange, values);
       if (!formattedTimes) formattedTimes = buildTimeBased.map(timeBased => timeBased.label);
 
       return { key: line.label, values: buildTimeBased.map(timeBased => timeBased.values.value) };
@@ -164,7 +156,6 @@ export default class ResultBuilder {
   private static buildTimeBasedChartResult(
     timeRange: DateOperation,
     points: Array<{ date: Date; value: number | null }>,
-    options?: TimeBasedChartOptions,
   ): TimeBasedChart {
     if (!points.length) return [];
 
@@ -188,11 +179,9 @@ export default class ResultBuilder {
     const first = dates[0].startOf(timeRange.toLowerCase() as DateTimeUnit);
     const last = dates[dates.length - 1];
 
-    const defaultValue = options?.displayMissingPointsAsZeros ? 0 : null;
-
     for (let current = first; current <= last; current = current.plus({ [timeRange]: 1 })) {
       const label = current.toFormat(format);
-      dataPoints.push({ label, values: { value: formatted[label] ?? defaultValue } });
+      dataPoints.push({ label, values: { value: formatted[label] ?? 0 } });
     }
 
     return dataPoints;
