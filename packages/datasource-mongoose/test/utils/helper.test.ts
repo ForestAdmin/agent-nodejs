@@ -49,18 +49,19 @@ describe('helpers', () => {
     });
   });
 
-  it('replaceMongoTypes should replace objectids and dates by strings', () => {
+  it('replaceMongoTypes should replace objectids, decimal128 and dates by strings', () => {
     const record = helpers.replaceMongoTypes({
       nested: [
         {
           _id: new Types.ObjectId('5a934e000102030405000000'),
           date: new Date('1985-10-26T01:22:00-08:00'),
+          price: new Types.Decimal128('42'),
         },
       ],
     });
 
     expect(record).toEqual({
-      nested: [{ _id: '5a934e000102030405000000', date: '1985-10-26T09:22:00.000Z' }],
+      nested: [{ _id: '5a934e000102030405000000', date: '1985-10-26T09:22:00.000Z', price: '42' }],
     });
   });
 });
