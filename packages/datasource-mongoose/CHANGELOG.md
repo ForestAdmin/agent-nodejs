@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.5.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.29...@forestadmin/datasource-mongoose@1.5.30) (2023-10-31)
+
+
+### Bug Fixes
+
+* support mangoose decimal128 type ([#864](https://github.com/ForestAdmin/agent-nodejs/issues/864)) ([5bbed39](https://github.com/ForestAdmin/agent-nodejs/commit/5bbed39c05546ffcba8d4de2f7aef3844a4e1972))
+
 ## @forestadmin/datasource-mongoose [1.5.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.28...@forestadmin/datasource-mongoose@1.5.29) (2023-10-26)
 
 
