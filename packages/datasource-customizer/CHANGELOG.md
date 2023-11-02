@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.1...@forestadmin/datasource-customizer@1.37.2) (2023-11-02)
+
+
+### Bug Fixes
+
+* **renameAndRemoveField:** allow to rename or remove a relation by improving the TS typing ([#865](https://github.com/ForestAdmin/agent-nodejs/issues/865)) ([1a6a4b4](https://github.com/ForestAdmin/agent-nodejs/commit/1a6a4b45d878eb6c71787b5c8d725ec61e09cc25))
+
 ## @forestadmin/datasource-customizer [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.0...@forestadmin/datasource-customizer@1.37.1) (2023-10-27)
 
 
