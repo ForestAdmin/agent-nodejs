@@ -18,6 +18,12 @@ export default class SchemaService {
       await ServerUtils.query(this.options, 'post', '/forest/apimaps', {}, apimap);
     }
 
+    const message = shouldSend
+      ? 'Schema was updated, sending new version'
+      : 'Schema was not updated since last run';
+
+    this.options.logger('Info', `${message} (hash: ${apimap.meta.schemaFileHash})`);
+
     return shouldSend;
   }
 
