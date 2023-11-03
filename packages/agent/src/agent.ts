@@ -249,11 +249,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
 
     // Send schema to forest servers
-    const updated = await this.options.forestAdminClient.postSchema(schema);
-    const message = updated
-      ? 'Schema was updated, sending new version'
-      : 'Schema was not updated since last run';
-
-    this.options.logger('Info', message);
+    await this.options.forestAdminClient.postSchema(schema);
   }
 }
