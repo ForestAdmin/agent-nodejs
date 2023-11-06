@@ -46,13 +46,13 @@ describe('Utils > handleErrors', () => {
     );
   });
 
-  it('should rethrow other errors', async () => {
+  it('should rethrow other errors with details', async () => {
     const error = new Error('');
     const fn = () =>
       handleErrors('delete', () => {
         throw error;
       });
 
-    await expect(fn).rejects.toThrow(error);
+    await expect(fn).rejects.toThrow(ValidationError);
   });
 });
