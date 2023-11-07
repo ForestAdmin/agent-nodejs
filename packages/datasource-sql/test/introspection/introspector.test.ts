@@ -148,7 +148,7 @@ describe('Introspector', () => {
       expect(result).toStrictEqual([expect.objectContaining({ name: 'table2' })]);
       expect(logger).toHaveBeenCalledWith(
         'Warn',
-        "Skipping table 'table.1', MSSQL tables with dots in their names are not supported",
+        "Skipping table(s): 'table.1'. MSSQL tables with dots are not supported",
       );
     });
   });
