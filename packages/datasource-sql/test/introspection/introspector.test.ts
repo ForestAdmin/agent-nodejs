@@ -137,5 +137,44 @@ describe('Introspector', () => {
         "Failed to load constraints on relation 'fk_unknown_column' on table 'table1'. The relation will be ignored.",
       );
     });
+    it('should return null and log errors when failing to get table description', async () => {
+      const mockDescribeTable = jest
+        .fn()
+        .mockRejectedValue(new Error(`No description found for "table1" table`));
+      mockQueryInterface.describeTable = mockDescribeTable;
+      mockSequelize.getDialect = jest.fn().mockReturnValue('sqlite');
+      mockSequelize.options = { schema: 'public' };
+
+      const result = await Introspector.introspect(mockSequelize, logger);
+      expect(result).toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Skipping table \'table1\'. No description found for "table1" table',
+      );
+    });
+    it('should log a specific errors for mssql tables with dots in their names', async () => {
+      const mockDescribeTable = jest
+        .fn()
+        .mockRejectedValue(new Error(`No description found for "table.1" table`));
+      mockQueryInterface.describeTable = mockDescribeTable;
+      mockQueryInterface.showAllTables = jest.fn().mockResolvedValue([{ tableName: 'table.1' }]);
+      mockSequelize.getDialect = jest.fn().mockReturnValue('mssql');
+
+      const result = await Introspector.introspect(mockSequelize, logger);
+      expect(result).toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        "Skipping table 'table.1'. MSSQL tables with dots in their names are not supported",
+      );
+    });
+    it('should throw other errors', async () => {
+      mockQueryInterface.describeTable = jest.fn().mockRejectedValue(new Error(`A random error`));
+      mockSequelize.getDialect = jest.fn().mockReturnValue('sqlite');
+
+      await expect(Introspector.introspect(mockSequelize, logger)).rejects.toStrictEqual(
+        new Error(`A random error`),
+      );
+      expect(logger).not.toHaveBeenCalled();
+    });
   });
 });

@@ -145,9 +145,11 @@ export default class Introspector {
               : e.message
           }`,
         );
-      } else {
-        throw e;
+
+        return null;
       }
+
+      throw e;
     }
   }
 
