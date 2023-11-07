@@ -16,7 +16,7 @@ export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
     const tableNames = await this.getTableNames(sequelize as SequelizeWithOptions);
     const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
-    const tables = await Promise.all(promises);
+    const tables = (await Promise.all(promises)).filter(table => Boolean(table));
 
     this.sanitizeInPlace(tables);
 
@@ -95,41 +95,60 @@ export default class Introspector {
     // the table identifier is correct on our side
     const tableIdentifierForQuery = Introspector.getTableIdentifier(tableIdentifier, sequelize);
 
-    const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
-      queryInterface.describeTable(tableIdentifierForQuery),
-      queryInterface.showIndex(tableIdentifierForQuery),
-      queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery),
-    ]);
+    try {
+      const [columnDescriptions, tableIndexes, tableReferences] = await Promise.all([
+        queryInterface.describeTable(tableIdentifierForQuery),
+        queryInterface.showIndex(tableIdentifierForQuery),
+        queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery),
+      ]);
 
-    await this.detectBrokenRelationship(
-      tableIdentifierForQuery,
-      sequelize,
-      tableReferences,
-      logger,
-    );
+      await this.detectBrokenRelationship(
+        tableIdentifierForQuery,
+        sequelize,
+        tableReferences,
+        logger,
+      );
 
-    const columns = await Promise.all(
-      Object.entries(columnDescriptions).map(async ([name, description]) => {
-        const references = tableReferences.filter(
-          // There is a bug right now with sequelize on postgresql: returned association
-          // are not filtered on the schema. So we have to filter them manually.
-          // Should be fixed with Sequelize v7
-          r => r.columnName === name && r.tableSchema === tableIdentifier.schema,
+      const columns = await Promise.all(
+        Object.entries(columnDescriptions).map(async ([name, description]) => {
+          const references = tableReferences.filter(
+            // There is a bug right now with sequelize on postgresql: returned association
+            // are not filtered on the schema. So we have to filter them manually.
+            // Should be fixed with Sequelize v7
+            r => r.columnName === name && r.tableSchema === tableIdentifier.schema,
+          );
+          const options = { name, description, references };
+
+          return this.getColumn(sequelize, logger, tableIdentifier, options);
+        }),
+      );
+
+      return {
+        name: tableIdentifierForQuery.tableName,
+        schema: tableIdentifierForQuery.schema,
+        columns: columns.filter(Boolean),
+        unique: tableIndexes
+          .filter(i => i.unique || i.primary)
+          .map(i => i.fields.map(f => f.attribute)),
+      };
+    } catch (e) {
+      if (
+        (e as Error).message.includes(
+          `No description found for "${tableIdentifierForQuery.tableName}" table`,
+        )
+      ) {
+        logger?.(
+          'Warn',
+          `Skipping table '${tableIdentifier.tableName}'. ${
+            sequelize.getDialect() === 'mssql' && tableIdentifier.tableName.includes('.')
+              ? 'MSSQL tables with dots in their names are not supported'
+              : e.message
+          }`,
         );
-        const options = { name, description, references };
-
-        return this.getColumn(sequelize, logger, tableIdentifier, options);
-      }),
-    );
-
-    return {
-      name: tableIdentifierForQuery.tableName,
-      schema: tableIdentifierForQuery.schema,
-      columns: columns.filter(Boolean),
-      unique: tableIndexes
-        .filter(i => i.unique || i.primary)
-        .map(i => i.fields.map(f => f.attribute)),
-    };
+      } else {
+        throw e;
+      }
+    }
   }
 
   private static async getColumn(
