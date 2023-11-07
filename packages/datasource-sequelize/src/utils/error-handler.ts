@@ -32,6 +32,6 @@ export default async function handleErrors<T>(
       throw new ValidationError(message);
     }
 
-    throw new ValidationError(e.original);
+    throw new ValidationError(e);
   }
 }
