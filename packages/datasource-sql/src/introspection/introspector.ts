@@ -28,7 +28,7 @@ export default class Introspector {
 
       return this.getTable(sequelize, logger, name);
     });
-    const tables = (await Promise.all(promises)).filter(table => Boolean(table));
+    const tables = await Promise.all(promises.filter(promise => Boolean(promise)));
 
     this.sanitizeInPlace(tables);
 

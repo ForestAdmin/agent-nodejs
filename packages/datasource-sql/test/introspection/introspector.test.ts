@@ -88,7 +88,6 @@ describe('Introspector', () => {
         "Failed to load constraints on relation 'fk_unknown_column' on table 'table1'. The relation will be ignored.",
       );
     });
-
     it('should log errors for missing constraint names for sqlite datasources', async () => {
       // Mock the Sequelize methods
       const mockDescribeTable = jest.fn().mockResolvedValue({
@@ -135,6 +134,21 @@ describe('Introspector', () => {
         'Error',
         // eslint-disable-next-line max-len
         "Failed to load constraints on relation 'fk_unknown_column' on table 'table1'. The relation will be ignored.",
+      );
+    });
+    it('should skip mssql tables with dots in their names and log a warning', async () => {
+      mockQueryInterface.showAllTables = jest
+        .fn()
+        .mockResolvedValue([{ tableName: 'table.1' }, { tableName: 'table2' }]);
+
+      mockSequelize.query = jest.fn().mockResolvedValue([]);
+      mockSequelize.getDialect = jest.fn().mockReturnValue('mssql');
+
+      const result = await Introspector.introspect(mockSequelize, logger);
+      expect(result).toStrictEqual([expect.objectContaining({ name: 'table2' })]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        "Skipping table 'table.1', MSSQL tables with dots in their names are not supported",
       );
     });
   });
