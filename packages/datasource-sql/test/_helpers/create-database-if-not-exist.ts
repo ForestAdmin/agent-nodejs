@@ -1,6 +1,10 @@
 import { Sequelize } from 'sequelize';
 
-export default async function createDatabaseIfNotExist(baseUri: string, database: string) {
+export default async function createDatabaseIfNotExist(
+  baseUri: string,
+  database: string,
+  closeConnection = false,
+) {
   const sequelize = new Sequelize(baseUri, { logging: false });
 
   try {
@@ -10,6 +14,8 @@ export default async function createDatabaseIfNotExist(baseUri: string, database
 
     throw e;
   } finally {
-    await sequelize.close();
+    if (closeConnection) await sequelize.close();
   }
+
+  return sequelize;
 }
