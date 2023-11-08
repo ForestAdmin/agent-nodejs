@@ -7,23 +7,14 @@ import CONNECTION_DETAILS from '../_helpers/connection-details';
 const db = 'database_introspector';
 const URL = CONNECTION_DETAILS.find(connection => connection.dialect === 'mssql')?.url() as string;
 
-const dropTableQuery = (tableName, sequelize) => {
-  const b = `DROP TABLE IF EXISTS dbo.[${tableName}]`;
-
-  return sequelize.query(b);
-};
-
 describe('Introspector > Integration', () => {
   it('should skip MSSQL tables with dots in their names and their relations', async () => {
     let sequelize = new Sequelize(URL, { logging: false });
+    await sequelize.getQueryInterface().dropDatabase(db);
     await sequelize.getQueryInterface().createDatabase(db);
     sequelize.close();
 
     sequelize = new Sequelize(`${URL}/${db}`, { logging: false });
-
-    await dropTableQuery('Orders', sequelize);
-    await dropTableQuery('Customers', sequelize);
-    await dropTableQuery('Employees.oldVersion', sequelize);
 
     await sequelize.query(`
 CREATE TABLE "Employees.oldVersion" (
@@ -50,7 +41,7 @@ CREATE TABLE "Orders" (
 )
       `);
     const tables = await Introspector.introspect(sequelize);
-    expect(tables.length).toBe(2);
+    expect(tables).toHaveLength(2);
     const orders = tables.find(table => table.name === 'Orders');
     expect(orders?.columns[1].constraints).toStrictEqual([
       {
