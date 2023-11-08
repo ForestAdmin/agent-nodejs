@@ -141,7 +141,15 @@ describe('Introspector', () => {
         .fn()
         .mockResolvedValue([{ tableName: 'table.1' }, { tableName: 'table2' }]);
 
-      mockSequelize.query = jest.fn().mockResolvedValue([]);
+      const getForeignKeyReferencesForTable = jest.fn().mockResolvedValue([]);
+
+      mockQueryInterface.getForeignKeyReferencesForTable = getForeignKeyReferencesForTable;
+      mockSequelize.query = jest.fn().mockResolvedValue([
+        {
+          constraint_name: 'fk_column1',
+          table_name: 'table.1',
+        },
+      ]);
       mockSequelize.getDialect = jest.fn().mockReturnValue('mssql');
 
       const result = await Introspector.introspect(mockSequelize, logger);
@@ -149,6 +157,11 @@ describe('Introspector', () => {
       expect(logger).toHaveBeenCalledWith(
         'Warn',
         "Skipping table(s): 'table.1'. MSSQL tables with dots are not supported",
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        // eslint-disable-next-line max-len
+        "Failed to load constraints on relation 'fk_column1' on table 'table.1'. The relation will be ignored.",
       );
     });
   });
