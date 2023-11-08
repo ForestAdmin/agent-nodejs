@@ -91,7 +91,3 @@ const CONNECTION_DETAILS = [
 ];
 
 export default CONNECTION_DETAILS;
-
-export const mssqlConnection = CONNECTION_DETAILS.find(
-  connection => connection.dialect === 'mssql',
-);
