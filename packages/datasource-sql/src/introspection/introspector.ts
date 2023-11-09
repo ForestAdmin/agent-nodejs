@@ -14,8 +14,22 @@ import { Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-    const tableNames = await this.getTableNames(sequelize as SequelizeWithOptions);
-    const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
+    const tableNamesAndSchemas = await this.getTableNames(sequelize as SequelizeWithOptions);
+    const validTableNames = tableNamesAndSchemas.filter(
+      name => sequelize.getDialect() !== 'mssql' || !name.tableName.includes('.'),
+    );
+
+    if (validTableNames.length < tableNamesAndSchemas.length) {
+      const diff = tableNamesAndSchemas.filter(name => !validTableNames.includes(name));
+      logger?.(
+        'Warn',
+        `Skipping table(s): ${diff
+          .map(tableNameAndSchema => `'${tableNameAndSchema.tableName}'`)
+          .join(', ')}. MSSQL tables with dots are not supported`,
+      );
+    }
+
+    const promises = validTableNames.map(name => this.getTable(sequelize, logger, name));
     const tables = await Promise.all(promises);
 
     this.sanitizeInPlace(tables);
