@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.41](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.40...@forestadmin/datasource-sql@1.7.41) (2023-11-09)
+
+
+### Bug Fixes
+
+* skip mssql tables with dots in their names instead of crashing the agent ([#870](https://github.com/ForestAdmin/agent-nodejs/issues/870)) ([97aea61](https://github.com/ForestAdmin/agent-nodejs/commit/97aea61e38f6563ec6bc7e83f34afc71c292c1a3))
+
 ## @forestadmin/datasource-sql [1.7.40](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.39...@forestadmin/datasource-sql@1.7.40) (2023-11-07)
 
 
