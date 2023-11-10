@@ -1,35 +1,40 @@
-import { Dialect } from 'sequelize';
+import { Dialect, Options } from 'sequelize';
 
 export type ConnectionDetails = {
+  name: string;
   dialect: Dialect;
-  username: string;
-  password: string;
-  host: string;
-  port: number;
-  supportsSchema: boolean;
+  url: (dbName?: string) => string;
+  options: (dbName?: string) => Options;
+  supports: {
+    schemas?: boolean;
+    enums?: boolean;
+    arrays?: boolean;
+  };
+  defaultSchema?: string;
 };
 
-const CONNECTION_DETAILS = [
-  {
-    name: 'PostgreSQL',
-    dialect: 'postgres',
-    url: (dbName?: string) =>
-      `postgres://test:password@localhost:5443${dbName ? `/${dbName}` : ''}`,
-    options: (dbName?: string) => ({
-      dialect: 'postgres' as Dialect,
-      username: 'test',
-      password: 'password',
-      host: 'localhost',
-      port: 5443,
-      database: dbName,
-    }),
-    supports: {
-      schemas: true,
-      enums: true,
-      arrays: true,
-    },
-    defaultSchema: 'public',
+export const POSTGRESQL_DETAILS: ConnectionDetails = {
+  name: 'PostgreSQL',
+  dialect: 'postgres',
+  url: (dbName?: string) => `postgres://test:password@localhost:5443${dbName ? `/${dbName}` : ''}`,
+  options: (dbName?: string) => ({
+    dialect: 'postgres' as Dialect,
+    username: 'test',
+    password: 'password',
+    host: 'localhost',
+    port: 5443,
+    database: dbName,
+  }),
+  supports: {
+    schemas: true,
+    enums: true,
+    arrays: true,
   },
+  defaultSchema: 'public',
+};
+
+const CONNECTION_DETAILS: ConnectionDetails[] = [
+  POSTGRESQL_DETAILS,
   {
     name: 'MySQL',
     dialect: 'mysql',
