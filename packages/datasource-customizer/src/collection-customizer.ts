@@ -183,22 +183,32 @@ export default class CollectionCustomizer<
     name: string,
     definition: DeprecatedComputedDefinition<S, N> | ComputedDefinition<S, N>,
   ): this => {
-    return this.pushCustomization(async () => {
+    return this.pushCustomization(async (logger: Logger) => {
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
-      const canBeComputedBeforeRelations = definition.dependencies.every(field => {
-        try {
-          return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
-        } catch {
-          return false;
-        }
-      });
 
-      const collection = canBeComputedBeforeRelations
-        ? collectionBeforeRelations
-        : collectionAfterRelations;
+      if (definition.dependencies) {
+        const canBeComputedBeforeRelations = definition.dependencies.every(field => {
+          try {
+            return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
+          } catch {
+            return false;
+          }
+        });
 
-      collection.registerComputed(name, mapDeprecated<S, N>(definition));
+        const collection = canBeComputedBeforeRelations
+          ? collectionBeforeRelations
+          : collectionAfterRelations;
+
+        collection.registerComputed(name, mapDeprecated<S, N>(definition));
+      } else {
+        logger(
+          'Error',
+          `Computed field '${
+            this.stack.validation.getCollection(this.name).name
+          }.${name}' must have at least one dependency`,
+        );
+      }
     });
   };
 
