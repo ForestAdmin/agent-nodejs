@@ -192,7 +192,7 @@ export default class CollectionCustomizer<
           'Error',
           `Computed field '${
             this.stack.validation.getCollection(this.name).name
-          }.${name}' must have at least one dependency`,
+          }.${name}' must have the 'dependencies' parameter defined`,
         );
 
         return;

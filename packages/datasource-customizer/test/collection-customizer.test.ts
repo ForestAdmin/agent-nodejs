@@ -363,7 +363,8 @@ describe('Builder > Collection', () => {
 
       expect(loggerMock).toHaveBeenCalledWith(
         'Error',
-        "Computed field 'authors.no_dependency_field' must have at least one dependency",
+        // eslint-disable-next-line max-len
+        "Computed field 'authors.no_dependency_field' must have the 'dependencies' parameter defined",
       );
     });
 
