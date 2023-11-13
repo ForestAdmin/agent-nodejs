@@ -3,5 +3,7 @@
   "compilerOptions": {
     "outDir": "dist"
   },
-  "include": ["src/**/*", "test/__factories__/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

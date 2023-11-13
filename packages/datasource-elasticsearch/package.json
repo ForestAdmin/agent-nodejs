@@ -12,7 +12,7 @@
     "directory": "packages/datasource-elasticsearch"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^8.10.0",
+    "@elastic/elasticsearch": "^7.16.0",
     "@forestadmin/datasource-toolkit": "^1.29.0"
   },
   "files": [
@@ -27,7 +27,6 @@
     "test": "jest"
   },
   "types": "./dist/index.d.ts",
-  "description": "> TODO: description",
   "bugs": {
     "url": "https://github.com/ForestAdmin/agent-nodejs/issues"
   },

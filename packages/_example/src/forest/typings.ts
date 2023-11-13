@@ -15,6 +15,13 @@ export type DevXpMembersFilter = TPaginatedFilter<Schema, 'dev_xp_members'>;
 export type DevXpMembersSortClause = TSortClause<Schema, 'dev_xp_members'>;
 export type DevXpMembersAggregation = TAggregation<Schema, 'dev_xp_members'>;
 
+export type ActivityLogsCustomizer = CollectionCustomizer<Schema, 'ActivityLogs'>;
+export type ActivityLogsRecord = TPartialRow<Schema, 'ActivityLogs'>;
+export type ActivityLogsConditionTree = TConditionTree<Schema, 'ActivityLogs'>;
+export type ActivityLogsFilter = TPaginatedFilter<Schema, 'ActivityLogs'>;
+export type ActivityLogsSortClause = TSortClause<Schema, 'ActivityLogs'>;
+export type ActivityLogsAggregation = TAggregation<Schema, 'ActivityLogs'>;
+
 export type CustomerCustomizer = CollectionCustomizer<Schema, 'customer'>;
 export type CustomerRecord = TPartialRow<Schema, 'customer'>;
 export type CustomerConditionTree = TConditionTree<Schema, 'customer'>;
@@ -243,6 +250,26 @@ export type Schema = {
       'parent:parent:store:owner:fullName': string;
     };
   };
+  'ActivityLogs': {
+    plain: {
+      'renderingId': string;
+      'records': string;
+      'timingRequest': number;
+      'label': string;
+      'timingInterface': number;
+      'type': string;
+      'userId': string;
+      'createdAt': string;
+      'dashboardId': string;
+      'action': string;
+      'databaseId': number;
+      'collectionId': string;
+      'workspaceId': string;
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'card': {
     plain: {
       'id': number;
@@ -342,25 +369,25 @@ export type Schema = {
       'dvd:rentalPrice': number;
       'dvd:storeId': number;
       'dvd:numberOfRentals': number;
-      'dvd:store:id': number;
-      'dvd:store:name': string;
-      'dvd:store:ownerId': number;
-      'dvd:store:ownerFullName': string;
-      'dvd:store:owner:id': number;
-      'dvd:store:owner:firstName': string;
-      'dvd:store:owner:lastName': string;
-      'dvd:store:owner:fullName': string;
       'rental:id': number;
       'rental:startDate': string;
       'rental:endDate': string;
       'rental:customerId': number;
       'rental:numberOfDays': number;
+      'dvd:store:id': number;
+      'dvd:store:name': string;
+      'dvd:store:ownerId': number;
+      'dvd:store:ownerFullName': string;
       'rental:customer:id': number;
       'rental:customer:name': string;
       'rental:customer:firstName': string;
       'rental:customer:createdAt': string;
       'rental:customer:updatedAt': string;
       'rental:customer:deletedAt': string;
+      'dvd:store:owner:id': number;
+      'dvd:store:owner:firstName': string;
+      'dvd:store:owner:lastName': string;
+      'dvd:store:owner:fullName': string;
     };
   };
   'owner': {
