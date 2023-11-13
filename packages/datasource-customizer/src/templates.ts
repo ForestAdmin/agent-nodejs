@@ -27,6 +27,15 @@ export type TColumnName<S extends TSchema, N extends TCollectionName<S>> = Extra
   string
 >;
 
+/**
+ * Column name and Relation name
+ * It only returns the relation name, excluding the related fields, in contrast to TFieldName.
+ * */
+export type TColumnNameAndRelationName<S extends TSchema, N extends TCollectionName<S>> = Extract<
+  keyof S[N]['plain'] | keyof S[N]['nested'],
+  string
+>;
+
 /** Field name (with relations) */
 export type TFieldName<S extends TSchema, N extends TCollectionName<S>> = Extract<
   keyof S[N]['plain'] | keyof S[N]['flat'],

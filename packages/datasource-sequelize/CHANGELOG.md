@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.5.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.24...@forestadmin/datasource-sequelize@1.5.25) (2023-11-07)
+
+
+### Bug Fixes
+
+* send details to frontend on unexpected sequelize errors ([#868](https://github.com/ForestAdmin/agent-nodejs/issues/868)) ([f6cb9a5](https://github.com/ForestAdmin/agent-nodejs/commit/f6cb9a50dbadd123fbb22a5cb4b470012742651a))
+
 ## @forestadmin/datasource-sequelize [1.5.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.23...@forestadmin/datasource-sequelize@1.5.24) (2023-10-11)
 
 

@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.24.6...@forestadmin/forestadmin-client@1.25.0) (2023-11-03)
+
+
+### Features
+
+* **forestadmin-client:** add schema hash to startup logs ([#867](https://github.com/ForestAdmin/agent-nodejs/issues/867)) ([d13a671](https://github.com/ForestAdmin/agent-nodejs/commit/d13a671eaf44d60db0bd1415619fdf70d8351b61))
+
 ## @forestadmin/forestadmin-client [1.24.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.24.5...@forestadmin/forestadmin-client@1.24.6) (2023-10-26)
 
 

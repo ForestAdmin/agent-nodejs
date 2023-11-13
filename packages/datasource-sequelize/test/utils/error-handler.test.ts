@@ -46,13 +46,14 @@ describe('Utils > handleErrors', () => {
     );
   });
 
-  it('should rethrow other errors', async () => {
-    const error = new Error('');
+  it('should rethrow other errors with details', async () => {
+    const error = new Error('SequelizeDatabase error: expect a string instead of int');
     const fn = () =>
       handleErrors('delete', () => {
         throw error;
       });
 
-    await expect(fn).rejects.toThrow(error);
+    await expect(fn).rejects.toThrow(ValidationError);
+    await expect(fn).rejects.toThrow('SequelizeDatabase error: expect a string instead of int');
   });
 });

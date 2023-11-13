@@ -127,7 +127,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * Remove collections from the exported schema (they will still be usable within the agent).
    * @param names the collections to remove
    * @example
-   * .removeField('aCollectionToRemove', 'anotherCollectionToRemove');
+   * .removeCollection('aCollectionToRemove', 'anotherCollectionToRemove');
    */
   removeCollection(...names: TCollectionName<S>[]): this {
     this.stack.queueCustomization(async () => {
