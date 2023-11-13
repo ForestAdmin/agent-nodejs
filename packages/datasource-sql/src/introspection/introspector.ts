@@ -3,11 +3,9 @@ import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
 import PostgreSQLDialect from './dialects/postgresql-dialect';
-import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import {
   QueryInterfaceExt,
-  SequelizeColumn,
   SequelizeReference,
   SequelizeTableIdentifier,
   SequelizeWithOptions,
@@ -17,7 +15,7 @@ import { Table } from './types';
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
     const tableNames = await this.getTableNames(sequelize as SequelizeWithOptions);
-    const tables = await this.getTables(tableNames, sequelize);
+    const tables = await this.getTables(tableNames, sequelize, logger);
     // const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
     // const tables = await Promise.all(promises);
 

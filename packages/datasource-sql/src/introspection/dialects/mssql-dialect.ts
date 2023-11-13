@@ -1,10 +1,22 @@
-import { Sequelize } from 'sequelize';
+import { QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeTableIdentifier } from '../type-overrides';
+import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 
+type DBColumn = {
+  Schema: string;
+  Table: string;
+  Name: string;
+  Type: string;
+  Length: number;
+  IsNull: 'YES' | 'NO';
+  Default: string;
+  Constraint: string;
+  IsIdentity: number;
+  Comment: string;
+};
 export default class MsSQLDialect implements IntrospectionDialect {
-  listColumns(
+  async listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,
   ): Promise<ColumnDescription[][]> {
@@ -21,6 +33,8 @@ export default class MsSQLDialect implements IntrospectionDialect {
 
     const query = `
       SELECT 
+        c.TABLE_SCHEMA AS 'Schema',
+        c.TABLE_NAME AS 'Table',
         c.COLUMN_NAME AS 'Name',
         c.DATA_TYPE AS 'Type',
         c.CHARACTER_MAXIMUM_LENGTH AS 'Length',
@@ -62,11 +76,123 @@ export default class MsSQLDialect implements IntrospectionDialect {
       (acc, tableName, index) => ({
         ...acc,
         [`tableName${index}`]: tableName.tableName,
-        [`schemaName${index}`]: tableName.schema || 'public',
+        [`schemaName${index}`]: tableName.schema || 'dbo',
       }),
       {
         database: sequelize.getDatabaseName(),
       },
     );
+
+    const results = await sequelize.query<DBColumn>(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+      logging: false,
+    });
+
+    return tableNames.map(tableName => {
+      return results
+        .filter(
+          column =>
+            column.Table === tableName.tableName && column.Schema === (tableName.schema || 'dbo'),
+        )
+        .map(column => this.getColumnDescription(column));
+    });
+  }
+
+  private getColumnDescription(dbColumn: DBColumn): ColumnDescription {
+    let type = dbColumn.Type.toUpperCase();
+
+    if (type.includes('CHAR')) {
+      type = `${type}(${dbColumn.Length === -1 ? 'MAX' : dbColumn.Length})`;
+    }
+
+    const sequelizeColumn: SequelizeColumn = {
+      type,
+      allowNull: dbColumn.IsNull === 'YES',
+      comment: dbColumn.Comment,
+      primaryKey: dbColumn.Constraint === 'PRIMARY KEY',
+      defaultValue: dbColumn.Default,
+      autoIncrement: dbColumn.IsIdentity === 1,
+      special: [],
+    };
+
+    const { defaultValue, isLiteralDefaultValue } = this.mapDefaultValue(sequelizeColumn);
+
+    return {
+      ...sequelizeColumn,
+      name: dbColumn.Name,
+      defaultValue,
+      isLiteralDefaultValue,
+    };
+  }
+
+  /**
+   * Fixes the default behavior of Sequelize that does not allow us to
+   * detect if a value is a function call or a constant value
+   */
+  private mapDefaultValue(description: SequelizeColumn): {
+    defaultValue: string;
+    isLiteralDefaultValue: boolean;
+  } {
+    if (
+      description.defaultValue === null ||
+      !description.defaultValue?.startsWith('(') ||
+      !description.defaultValue?.endsWith(')')
+    ) {
+      // Strange case if not null
+      return {
+        defaultValue: null,
+        isLiteralDefaultValue: false,
+      };
+    }
+
+    const defaultValueWithoutParenthesis = description.defaultValue.slice(1, -1);
+
+    if (
+      defaultValueWithoutParenthesis.startsWith("N'") &&
+      defaultValueWithoutParenthesis.endsWith("'")
+    ) {
+      return {
+        defaultValue: this.extractConstantValue(defaultValueWithoutParenthesis.slice(2, -1)),
+        isLiteralDefaultValue: false,
+      };
+    }
+
+    if (
+      defaultValueWithoutParenthesis.startsWith("'") &&
+      defaultValueWithoutParenthesis.endsWith("'")
+    ) {
+      return {
+        defaultValue: this.extractConstantValue(defaultValueWithoutParenthesis.slice(1, -1)),
+        isLiteralDefaultValue: false,
+      };
+    }
+
+    if (
+      defaultValueWithoutParenthesis.startsWith('(') &&
+      defaultValueWithoutParenthesis.endsWith(')') &&
+      !Number.isNaN(Number(defaultValueWithoutParenthesis.slice(1, -1)))
+    ) {
+      return {
+        defaultValue: defaultValueWithoutParenthesis.slice(1, -1),
+        isLiteralDefaultValue: false,
+      };
+    }
+
+    if (defaultValueWithoutParenthesis === 'NULL') {
+      return {
+        defaultValue: null,
+        isLiteralDefaultValue: false,
+      };
+    }
+
+    return {
+      defaultValue: defaultValueWithoutParenthesis,
+      isLiteralDefaultValue: true,
+    };
+  }
+
+  private extractConstantValue(value: string): string {
+    return value.replace(/''/g, "'");
   }
 }

@@ -9,6 +9,8 @@ export type ConnectionDetails = {
     schemas?: boolean;
     enums?: boolean;
     arrays?: boolean;
+    booleans?: boolean;
+    json?: boolean;
   };
   defaultSchema?: string;
 };
@@ -29,8 +31,33 @@ export const POSTGRESQL_DETAILS: ConnectionDetails = {
     schemas: true,
     enums: true,
     arrays: true,
+    booleans: false,
+    json: true,
   },
   defaultSchema: 'public',
+};
+
+export const MSSQL_DETAILS: ConnectionDetails = {
+  name: 'MS SQL Server',
+  dialect: 'mssql',
+  url: (dbName?: string) =>
+    `mssql://sa:yourStrong(!)Password@localhost:1434${dbName ? `/${dbName}` : ''}`,
+  options: (dbName?: string) => ({
+    dialect: 'mssql' as Dialect,
+    username: 'sa',
+    password: 'yourStrong(!)Password',
+    host: 'localhost',
+    port: 1434,
+    database: dbName,
+  }),
+  supports: {
+    schemas: true,
+    enums: false,
+    arrays: false,
+    booleans: false,
+    json: false,
+  },
+  defaultSchema: 'dbo',
 };
 
 const CONNECTION_DETAILS: ConnectionDetails[] = [
@@ -51,29 +78,11 @@ const CONNECTION_DETAILS: ConnectionDetails[] = [
       schemas: false,
       enums: true,
       arrays: false,
+      booleans: true,
     },
     defaultSchema: undefined,
   },
-  {
-    name: 'MS SQL Server',
-    dialect: 'mssql',
-    url: (dbName?: string) =>
-      `mssql://sa:yourStrong(!)Password@localhost:1434${dbName ? `/${dbName}` : ''}`,
-    options: (dbName?: string) => ({
-      dialect: 'mssql' as Dialect,
-      username: 'sa',
-      password: 'yourStrong(!)Password',
-      host: 'localhost',
-      port: 1434,
-      database: dbName,
-    }),
-    supports: {
-      schemas: true,
-      enums: false,
-      arrays: false,
-    },
-    defaultSchema: 'dbo',
-  },
+  MSSQL_DETAILS,
   {
     name: 'MariaDB',
     dialect: 'mariadb',
