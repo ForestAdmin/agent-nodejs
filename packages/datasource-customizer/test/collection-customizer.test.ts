@@ -359,7 +359,7 @@ describe('Builder > Collection', () => {
 
       customizer.addField('no_dependency_field', fieldDefinition);
 
-      await dsc.getDataSource(loggerMock);
+      await expect(dsc.getDataSource(loggerMock)).resolves.not.toThrow();
 
       expect(loggerMock).toHaveBeenCalledWith(
         'Error',

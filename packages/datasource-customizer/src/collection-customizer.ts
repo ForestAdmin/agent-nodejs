@@ -187,28 +187,30 @@ export default class CollectionCustomizer<
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
 
-      if (definition.dependencies) {
-        const canBeComputedBeforeRelations = definition.dependencies.every(field => {
-          try {
-            return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
-          } catch {
-            return false;
-          }
-        });
-
-        const collection = canBeComputedBeforeRelations
-          ? collectionBeforeRelations
-          : collectionAfterRelations;
-
-        collection.registerComputed(name, mapDeprecated<S, N>(definition));
-      } else {
+      if (!definition.dependencies) {
         logger(
           'Error',
           `Computed field '${
             this.stack.validation.getCollection(this.name).name
           }.${name}' must have at least one dependency`,
         );
+
+        return;
       }
+
+      const canBeComputedBeforeRelations = definition.dependencies.every(field => {
+        try {
+          return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
+        } catch {
+          return false;
+        }
+      });
+
+      const collection = canBeComputedBeforeRelations
+        ? collectionBeforeRelations
+        : collectionAfterRelations;
+
+      collection.registerComputed(name, mapDeprecated<S, N>(definition));
     });
   };
 
