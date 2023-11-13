@@ -38,7 +38,7 @@ export default class FrontendFilterableUtils {
       'Contains',
       'NotContains',
     ],
-    Timeonly: [...FrontendFilterableUtils.baseOperators, 'GreaterThan', 'LessThan'],
+    Time: [...FrontendFilterableUtils.baseOperators, 'GreaterThan', 'LessThan'],
     Uuid: FrontendFilterableUtils.baseOperators,
   };
 

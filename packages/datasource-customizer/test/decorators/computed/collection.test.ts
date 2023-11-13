@@ -2,13 +2,13 @@ import {
   Aggregation,
   Collection,
   DataSource,
+  DataSourceDecorator,
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ComputedCollection from '../../../src/decorators/computed/collection';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
 describe('ComputedDecorator', () => {
   // State
@@ -112,6 +112,24 @@ describe('ComputedDecorator', () => {
         getValues: () => Promise.reject(),
       });
     }).toThrow("Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')");
+  });
+
+  test('should throw when adding field with name including space', () => {
+    expect(() =>
+      newPersons.registerComputed('full name', {
+        columnType: 'String',
+        dependencies: ['firstName', 'lastName'],
+        getValues: records => {
+          return new Promise(resolve => {
+            const result = records.map(record => `${record.firstName} ${record.lastName}`);
+            setTimeout(() => resolve(result));
+          });
+        },
+      }),
+    ).toThrow(
+      `The name of field 'full name' you configured on 'persons' must not contain space.` +
+        ` Something like 'fullName' should work has expected.`,
+    );
   });
 
   describe('With a computed', () => {

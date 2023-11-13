@@ -6,6 +6,8 @@ export { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE as allowedOperatorsForColumnType 
 // Base Collection & DataSource
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
+export { default as DataSourceDecorator } from './decorators/datasource-decorator';
+export { default as CollectionDecorator } from './decorators/collection-decorator';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';
@@ -58,3 +60,4 @@ export { default as SortValidator } from './validation/sort';
 export { default as CollectionUtils } from './utils/collection';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
+export { default as Deferred } from './deferred';

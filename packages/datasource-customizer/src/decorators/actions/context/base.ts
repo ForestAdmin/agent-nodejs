@@ -3,6 +3,7 @@ import {
   Caller,
   Collection,
   CompositeId,
+  Deferred,
   Projection,
   ProjectionValidator,
   RecordData,
@@ -12,28 +13,32 @@ import {
 import CollectionCustomizationContext from '../../../context/collection-context';
 import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
 
-class Deferred<T> {
-  promise: Promise<T>;
-  resolve: (result: T) => void;
-  reject: (error: Error) => void;
-
-  constructor() {
-    this.promise = new Promise((resolve, reject) => {
-      this.reject = reject;
-      this.resolve = resolve;
-    });
-  }
-}
-
 export default class ActionContext<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends CollectionCustomizationContext<S, N> {
-  readonly formValues: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  readonly formValues: RecordData;
   readonly filter: TFilter<S, N>;
+
+  private _changedField: string;
+
+  /**
+   * @deprecated use `hasFieldChange` instead. [linked issue](https://github.com/ForestAdmin/agent-nodejs/issues/815).
+   * @todo remove accessor
+   */
+  get changedField() {
+    console.warn(
+      '\x1b[33mwarning:\x1b[0m',
+      'Usage of `changedField` is deprecated, please use `hasFieldChanged` instead.',
+    );
+
+    return this._changedField;
+  }
 
   private queries: Array<{ projection: Projection; deferred: Deferred<RecordData[]> }>;
   private projection: Projection;
+
+  public hasFieldChanged: (fieldName: string) => boolean;
 
   constructor(
     collection: Collection,
@@ -41,10 +46,12 @@ export default class ActionContext<
     formValue: RecordData,
     filter: TFilter<S, N>,
     used?: Set<string>,
+    changedField?: string,
   ) {
     super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
+    this._changedField = changedField;
     this.reset();
 
     // Spy on which formValues are accessed to set-up change hooks
@@ -59,6 +66,12 @@ export default class ActionContext<
           throw new Error('formValues is readonly');
         },
       });
+
+      this.hasFieldChanged = (fieldName: string) => {
+        used.add(fieldName);
+
+        return this._changedField === fieldName;
+      };
     }
   }
 

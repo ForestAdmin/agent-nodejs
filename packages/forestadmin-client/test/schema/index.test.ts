@@ -26,9 +26,10 @@ describe('SchemaService', () => {
       const schemaService = new SchemaService(options);
       const sent = await schemaService.postSchema({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -55,10 +56,16 @@ describe('SchemaService', () => {
           meta: {
             liana: 'forest-nodejs-agent',
             liana_version: '1.0.0',
+            liana_features: null,
             stack: { engine: 'nodejs', engine_version: '16.0.0' },
             schemaFileHash: expect.any(String),
           },
         }),
+      );
+      expect(options.logger).toHaveBeenCalledTimes(1);
+      expect(options.logger).toHaveBeenCalledWith(
+        'Info',
+        'Schema was updated, sending new version (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
       );
     });
   });
@@ -78,9 +85,10 @@ describe('SchemaService', () => {
       const schemaService = new SchemaService(options);
       const sent = await schemaService.postSchema({
         collections: [],
-        metadata: {
+        meta: {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
+          liana_features: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -94,6 +102,11 @@ describe('SchemaService', () => {
         '/forest/apimaps/hashcheck',
         {},
         expect.objectContaining({}),
+      );
+      expect(options.logger).toHaveBeenCalledTimes(1);
+      expect(options.logger).toHaveBeenCalledWith(
+        'Info',
+        'Schema was not updated since last run (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
       );
     });
   });

@@ -107,6 +107,22 @@ describe('MongooseCollection', () => {
 
       expect(records).toEqual([{ message: 'a message' }]);
     });
+
+    it('should return the given record with null as the nested projection', async () => {
+      connection = await setupReview('collection_review_list');
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const expectedRecord = { message: 'a message', title: 'a title' };
+      await review.create(factories.caller.build(), [expectedRecord]);
+
+      const records = await review.list(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Projection('nestedField:nested:level'),
+      );
+
+      expect(records).toEqual([{ nestedField: null }]);
+    });
   });
 
   describe('condition tree', () => {
@@ -389,7 +405,7 @@ describe('MongooseCollection', () => {
               field: 'nestedField.nested.level',
             }),
           }),
-          new Projection('nestedField.nested.level'),
+          new Projection('nestedField:nested:level'),
         );
 
         expect(records).toEqual([{ nestedField: { nested: [{ level: 10 }] } }]);

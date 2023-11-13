@@ -4,6 +4,7 @@ import {
   ColumnSchema,
   ConditionTreeLeaf,
   DataSource,
+  DataSourceDecorator,
   Filter,
   ManyToManySchema,
   PaginatedFilter,
@@ -12,7 +13,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import RelationCollectionDecorator from '../../../src/decorators/relation/collection';
 
 describe('RelationCollectionDecorator', () => {
@@ -266,7 +266,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: '__nonExisting__',
             foreignKey: 'ownerId',
           }),
-        ).toThrow("Collection '__nonExisting__' not found.");
+        ).toThrow('dsmock: "__nonExisting__" does not exist');
       });
 
       test('should throw with a non existent fk', () => {
@@ -332,7 +332,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: '__nonExisting__',
           } as ManyToManySchema),
-        ).toThrow("Collection '__nonExisting__' not found.");
+        ).toThrow('dsmock: "__nonExisting__" does not exist');
       });
 
       test('should throw with a non existent originKey', () => {

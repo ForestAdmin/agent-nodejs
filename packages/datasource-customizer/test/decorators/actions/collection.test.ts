@@ -1,8 +1,14 @@
-import { ActionScope, Collection, DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import {
+  ActionScope,
+  Collection,
+  DataSource,
+  DataSourceDecorator,
+  File,
+  Filter,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ActionCollection from '../../../src/decorators/actions/collection';
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 
 describe('ActionDecorator', () => {
   // State
@@ -48,7 +54,14 @@ describe('ActionDecorator', () => {
     test('should delegate getForm calls', async () => {
       const caller = factories.caller.build();
       const filter = new Filter({});
-      const fields = await newBooks.getForm(caller, 'someAction', { firstname: 'John' }, filter);
+      const metas = { changedField: 'a field' };
+      const fields = await newBooks.getForm(
+        caller,
+        'someAction',
+        { firstname: 'John' },
+        filter,
+        metas,
+      );
 
       expect(fields).toEqual([]);
       expect(books.getForm).toHaveBeenCalledWith(
@@ -56,6 +69,7 @@ describe('ActionDecorator', () => {
         'someAction',
         { firstname: 'John' },
         filter,
+        metas,
       );
     });
   });
@@ -93,7 +107,7 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm(
         factories.caller.build(),
         'make photocopy',
-        null,
+        undefined,
         filter,
       );
 
@@ -173,7 +187,7 @@ describe('ActionDecorator', () => {
     });
 
     test('should compute dynamic default value (no data == load hook)', async () => {
-      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', null);
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', undefined);
 
       expect(fields).toEqual([
         {
@@ -183,6 +197,28 @@ describe('ActionDecorator', () => {
           value: 'DynamicDefault',
         },
         { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+      ]);
+    });
+
+    test('should compute dynamic default value on added field', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {
+        lastname: 'value',
+      });
+
+      expect(fields).toEqual([
+        {
+          label: 'firstname',
+          type: 'String',
+          watchChanges: true,
+          value: 'DynamicDefault',
+        },
+        {
+          label: 'lastname',
+          type: 'String',
+          value: 'value',
+          isReadOnly: true,
+          watchChanges: false,
+        },
       ]);
     });
 
@@ -206,6 +242,137 @@ describe('ActionDecorator', () => {
         { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
         { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
       ]);
+    });
+
+    describe.each([null, undefined])('with a %s searchField', searchField => {
+      test('it should compute all fields', async () => {
+        const fields = await newBooks.getForm(
+          factories.caller.build(),
+          'make photocopy',
+          {
+            firstname: 'John',
+          },
+          undefined,
+          { changedField: 'firstname', searchField },
+        );
+
+        expect(fields).toEqual([
+          { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
+          { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+        ]);
+      });
+    });
+  });
+  describe('with single action with search hook', () => {
+    beforeEach(() => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'firstname',
+            type: 'String',
+            defaultValue: () => 'DynamicDefault',
+          },
+          {
+            label: 'lastname',
+            type: 'String',
+            isReadOnly: context => !!context.formValues.firstname,
+          },
+        ],
+      });
+    });
+    test('should only return the field matching the searchField', async () => {
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        undefined,
+        undefined,
+        {
+          changedField: 'toto',
+          searchField: 'firstname',
+          searchValues: { firstName: 'first' },
+        },
+      );
+      expect(fields).toEqual([
+        {
+          label: 'firstname',
+          type: 'String',
+          value: 'DynamicDefault',
+          watchChanges: false,
+        },
+      ]);
+    });
+  });
+
+  describe('File type', () => {
+    describe('with single action with File type and hardcoded defaultValue', () => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: () => {},
+          form: [
+            {
+              label: 'firstname',
+              type: 'File',
+              defaultValue: 'hello' as unknown as File,
+            },
+          ],
+        });
+      });
+      test('should mark the action as dynamic', async () => {
+        expect(newBooks.schema.actions['make photocopy']).toEqual({
+          scope: 'Single',
+          generateFile: false,
+          staticForm: false,
+        });
+      });
+    });
+    describe('with single action with File type and function defaultValue', () => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: () => {},
+          form: [
+            {
+              label: 'firstname',
+              type: 'File',
+              defaultValue: 'hello' as unknown as File,
+            },
+          ],
+        });
+      });
+      test('should mark the action as dynamic', async () => {
+        expect(newBooks.schema.actions['make photocopy']).toEqual({
+          scope: 'Single',
+          generateFile: false,
+          staticForm: false,
+        });
+      });
+    });
+    describe('with single action with String type and hardcoded defaultValue', () => {
+      beforeEach(() => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: () => {},
+          form: [
+            {
+              label: 'firstname',
+              type: 'String',
+              defaultValue: 'hello',
+            },
+          ],
+        });
+      });
+      test('should mark the action as static', async () => {
+        expect(newBooks.schema.actions['make photocopy']).toEqual({
+          scope: 'Single',
+          generateFile: false,
+          staticForm: true,
+        });
+      });
     });
   });
 
@@ -241,4 +408,130 @@ describe('ActionDecorator', () => {
       });
     },
   );
+  describe('searchField', () => {
+    test(`it should pass and use the context and searchField in the options handler`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: () => {},
+        form: [
+          {
+            label: 'default',
+            type: 'String',
+            defaultValue: 'hello',
+            value: 'hello',
+          },
+          {
+            label: 'dynamic search',
+            type: 'String',
+            widget: 'Dropdown',
+            search: 'dynamic',
+            options: (context, searchValue) => {
+              return [searchValue, context.caller.email];
+            },
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        {},
+        undefined,
+        {
+          changedField: '',
+          searchField: 'dynamic search',
+          searchValues: { 'dynamic search': '123' },
+        },
+      );
+      expect(fields).toStrictEqual([
+        {
+          label: 'dynamic search',
+          type: 'String',
+          options: expect.arrayContaining(['123', 'user@domain.com']),
+          search: 'dynamic',
+          value: undefined,
+          watchChanges: false,
+          widget: 'Dropdown',
+        },
+      ]);
+    });
+  });
+
+  describe('changedField', () => {
+    test(`should log warning on changedField usage`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'change',
+            type: 'String',
+          },
+          {
+            label: 'to change',
+            type: 'String',
+            isReadOnly: true,
+            value: context => {
+              if (context.changedField === 'change') {
+                return context.formValues.change;
+              }
+            },
+          },
+        ],
+      });
+
+      const logSpy = jest.spyOn(console, 'warn');
+
+      await newBooks.getForm(factories.caller.build(), 'make photocopy');
+      expect(logSpy).toHaveBeenCalledWith(
+        '\x1b[33mwarning:\x1b[0m',
+        'Usage of `changedField` is deprecated, please use `hasFieldChanged` instead.',
+      );
+    });
+  });
+
+  describe('hasFieldChanged', () => {
+    // eslint-disable-next-line max-len
+    test(`should add watchChange property to fields that need to trigger a recompute on change`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            label: 'change',
+            type: 'String',
+          },
+          {
+            label: 'to change',
+            type: 'String',
+            isReadOnly: true,
+            value: context => {
+              if (context.hasFieldChanged('change')) {
+                return context.formValues.change;
+              }
+            },
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
+      expect(fields).toEqual([
+        {
+          label: 'change',
+          type: 'String',
+          watchChanges: true,
+        },
+        {
+          label: 'to change',
+          type: 'String',
+          isReadOnly: true,
+          watchChanges: false,
+        },
+      ]);
+    });
+  });
 });

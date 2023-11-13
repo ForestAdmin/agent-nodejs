@@ -18,6 +18,10 @@ const router = new Router().get('/', async ctx => {
   ctx.response.body = { error: null, message: 'Agent is running' };
 });
 
+const newRouter = new Router().get('/resource', async ctx => {
+  ctx.response.body = { message: 'Here is your resource' };
+});
+
 describe('Builder > Agent', () => {
   describe('standalone mode', () => {
     describe('when starting the agent is a success', () => {
@@ -28,7 +32,8 @@ describe('Builder > Agent', () => {
         mounter.mountOnStandaloneServer(9997, 'localhost');
 
         try {
-          await mounter.start(router);
+          // @ts-expect-error: testing a protected method
+          await mounter.mount(router);
 
           const response = await superagent.get('http://localhost:9997/my-api/forest');
           expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
@@ -59,10 +64,12 @@ describe('Builder > Agent', () => {
 
         try {
           mounter.mountOnStandaloneServer(9997, 'localhost');
-          await mounter.start(router);
+          // @ts-expect-error: testing a protected method
+          await mounter.mount(router);
           // throw error on start by mount two servers on the same port
           mounter2.mountOnStandaloneServer(9997, 'localhost');
-          await mounter2.start(router);
+          // @ts-expect-error: testing a protected method
+          await mounter2.mount(router);
         } catch (e) {
           // eslint-disable-next-line jest/no-conditional-expect
           expect(e.message).toContain('9997');
@@ -74,14 +81,116 @@ describe('Builder > Agent', () => {
     });
   });
 
-  describe('when agent is mounted without the standalone mode', () => {
+  describe('when agent is mounted without the standalone mode or koa', () => {
     describe('when the agent is not started', () => {
-      it('should return a response', async () => {
+      it('should return a default response "Agent is not started"', async () => {
         expect.assertions(1);
         const app = express();
 
         const mounter = new FrameworkMounter('my-api', logger);
         mounter.mountOnExpress(app);
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: 'Agent is not started' });
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    describe('when the agent is restarted', () => {
+      it('should unmount previous routes and mount new ones', async () => {
+        const app = express();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnExpress(app);
+        // @ts-expect-error: testing a protected method
+        await mounter.mount(router);
+
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+
+          // Mounting new routes (a.k.a restart)
+          // @ts-expect-error: testing a protected method
+          await mounter.remount(newRouter);
+
+          const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
+          expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
+
+          // The previous route has been unmounted
+          await expect(superagent.get('http://localhost:9998/my-api/forest')).rejects.toThrow(
+            'Not Found',
+          );
+        } finally {
+          server.close();
+        }
+      });
+    });
+  });
+
+  describe('in an koa app', () => {
+    it('should work in an koa app', async () => {
+      const app = new Koa();
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnKoa(app);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(router);
+
+      const server = app.listen(9998);
+
+      try {
+        const response = await superagent.get('http://localhost:9998/my-api/forest');
+        expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+      } finally {
+        server.close();
+      }
+    });
+
+    describe('when the agent is restarted', () => {
+      it('should unmount previous routes and mount new ones', async () => {
+        const app = new Koa();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnKoa(app);
+        // @ts-expect-error: testing a protected method
+        await mounter.mount(router);
+
+        const server = app.listen(9998);
+
+        try {
+          const response = await superagent.get('http://localhost:9998/my-api/forest');
+          expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+
+          // Mounting new routes (a.k.a restart)
+          // @ts-expect-error: testing a protected method
+          await mounter.remount(newRouter);
+
+          const newResponse = await superagent.get('http://localhost:9998/my-api/forest/resource');
+          expect(newResponse.body).toStrictEqual({ message: 'Here is your resource' });
+
+          // The previous route has been unmounted
+          await expect(superagent.get('http://localhost:9998/my-api/forest')).rejects.toThrow(
+            'Not Found',
+          );
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    describe('when the agent is not started', () => {
+      it('should return a default response "Agent is not started"', async () => {
+        const app = new Koa();
+
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnKoa(app);
+
         const server = app.listen(9998);
 
         try {
@@ -99,24 +208,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnExpress(app);
-    await mounter.start(router);
-
-    const server = app.listen(9998);
-
-    try {
-      const response = await superagent.get('http://localhost:9998/my-api/forest');
-      expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
-    } finally {
-      server.close();
-    }
-  });
-
-  it('should work in an koa app', async () => {
-    const app = new Koa();
-
-    const mounter = new FrameworkMounter('my-api', logger);
-    mounter.mountOnKoa(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     const server = app.listen(9998);
 
@@ -136,7 +229,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnFastify(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     await app.listen(9999);
 
@@ -155,7 +249,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnNestJs(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     await app.listen(9996);
 
@@ -176,7 +271,8 @@ describe('Builder > Agent', () => {
 
     const mounter = new FrameworkMounter('my-api', logger);
     mounter.mountOnNestJs(app);
-    await mounter.start(router);
+    // @ts-expect-error: testing a protected method
+    await mounter.mount(router);
 
     await app.listen(9995);
 

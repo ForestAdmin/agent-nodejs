@@ -6,4 +6,6 @@ export default Factory.define<ForestAdminServerInterface>(() => ({
   getRenderingPermissions: jest.fn(),
   getEnvironmentPermissions: jest.fn(),
   getUsers: jest.fn(),
+  getModelCustomizations: jest.fn(),
+  makeAuthService: jest.fn(),
 }));

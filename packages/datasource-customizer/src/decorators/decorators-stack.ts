@@ -1,15 +1,14 @@
-import { DataSource, Logger } from '@forestadmin/datasource-toolkit';
+import { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
 import BinaryCollectionDecorator from './binary/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
-import DataSourceDecorator from './datasource-decorator';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
 import OperatorsEquivalenceCollectionDecorator from './operators-equivalence/collection';
-import PublicationFieldCollectionDecorator from './publication-field/collection';
+import PublicationDataSourceDecorator from './publication/datasource';
 import RelationCollectionDecorator from './relation/collection';
 import RenameFieldCollectionDecorator from './rename-field/collection';
 import SchemaCollectionDecorator from './schema/collection';
@@ -25,10 +24,11 @@ export default class DecoratorsStack {
   chart: ChartDataSourceDecorator;
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  relation: DataSourceDecorator<RelationCollectionDecorator>;
+  hook: DataSourceDecorator<HookCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  publication: DataSourceDecorator<PublicationFieldCollectionDecorator>;
+  publication: PublicationDataSourceDecorator;
+  relation: DataSourceDecorator<RelationCollectionDecorator>;
   renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
   schema: DataSourceDecorator<SchemaCollectionDecorator>;
   search: DataSourceDecorator<SearchCollectionDecorator>;
@@ -36,7 +36,6 @@ export default class DecoratorsStack {
   sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
   validation: DataSourceDecorator<ValidationCollectionDecorator>;
   write: WriteDataSourceDecorator;
-  hook: DataSourceDecorator<HookCollectionDecorator>;
   dataSource: DataSource;
 
   private customizations: Array<(logger: Logger) => Promise<void>> = [];
@@ -76,7 +75,7 @@ export default class DecoratorsStack {
 
     // Step 4: Renaming must be either the very first or very last so that naming in customer code
     // is consistent.
-    last = this.publication = new DataSourceDecorator(last, PublicationFieldCollectionDecorator);
+    last = this.publication = new PublicationDataSourceDecorator(last);
     last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
     /* eslint-enable no-multi-assign */
 

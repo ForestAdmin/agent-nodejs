@@ -2,6 +2,7 @@ import {
   Collection,
   ColumnSchema,
   DataSource,
+  DataSourceDecorator,
   Page,
   PaginatedFilter,
   Projection,
@@ -10,7 +11,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import SortEmulationDecorator from '../../../src/decorators/sort-emulate/collection';
 
 describe('SortEmulationDecoratorCollection', () => {

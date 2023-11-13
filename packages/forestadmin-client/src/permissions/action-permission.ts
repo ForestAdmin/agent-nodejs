@@ -5,15 +5,20 @@ import generateActionsFromPermissions, {
   ActionPermissions,
 } from './generate-actions-from-permissions';
 import { ForestAdminServerInterface } from '../types';
+import TTLCache from '../utils/ttl-cache';
 
 export default class ActionPermissionService {
-  private permissionsPromise: Promise<ActionPermissions> | undefined;
-  private permissionExpirationTimestamp: number | undefined;
+  private permissionsCache: TTLCache<ActionPermissions>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly forestAdminServerInterface: ForestAdminServerInterface,
-  ) {}
+  ) {
+    this.permissionsCache = new TTLCache(
+      this.fetchEnvironmentPermissions.bind(this),
+      this.options.permissionsCacheDurationInSeconds * 1000,
+    );
+  }
 
   public async isDevelopmentPermission(): Promise<boolean> {
     const permissions = await this.getPermissions();
@@ -26,7 +31,8 @@ export default class ActionPermissionService {
     return this.hasPermissionOrRefetch({
       roleId,
       actionName,
-      allowRefetch: true,
+      // Only allow refetch when not using server events
+      allowRefetch: !this.options.instantCacheRefresh,
     });
   }
 
@@ -43,8 +49,7 @@ export default class ActionPermissionService {
     const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
     if (!isAllowed && allowRefetch) {
-      this.permissionsPromise = undefined;
-      this.permissionExpirationTimestamp = undefined;
+      this.invalidateCache();
 
       return this.hasPermissionOrRefetch({
         roleId,
@@ -55,8 +60,7 @@ export default class ActionPermissionService {
 
     this.options.logger(
       'Debug',
-      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform
-      }${actionName}`,
+      `User ${roleId} is ${isAllowed ? '' : 'not '}allowed to perform ${actionName}`,
     );
 
     return isAllowed;
@@ -80,19 +84,7 @@ export default class ActionPermissionService {
   }
 
   private async getPermissions(): Promise<ActionPermissions> {
-    if (
-      this.permissionsPromise &&
-      this.permissionExpirationTimestamp &&
-      this.permissionExpirationTimestamp > Date.now()
-    ) {
-      return this.permissionsPromise;
-    }
-
-    this.permissionsPromise = this.fetchEnvironmentPermissions();
-    this.permissionExpirationTimestamp =
-      Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
-
-    return this.permissionsPromise;
+    return this.permissionsCache.fetch('currentEnvironment');
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
@@ -139,5 +131,11 @@ export default class ActionPermissionService {
     return Array.from(approvalPermission.allowedRoles).filter(
       roleId => !approvalPermission.conditionsByRole?.has(roleId),
     );
+  }
+
+  public invalidateCache() {
+    this.options.logger('Debug', 'Invalidating roles permissions cache..');
+
+    this.permissionsCache.clear();
   }
 }

@@ -131,7 +131,45 @@ describe('Complex flattening', () => {
     );
   });
 
-  it('creating a subModel should fail', async () => {
+  /** @see https://community.forestadmin.com/t/bug-report-with-smart-models-on-node-js-agent/6480/6 */
+  it('should work when creating a submodel with nested fields', async () => {
+    const flatRecord = {
+      date: '2010-01-01T00:00:00.000Z',
+      comment: 'hi!',
+      'nested@@@subNested': 'hi!',
+      'nested@@@subNested2': 'hi!',
+    };
+
+    connection = await setupFlattener('collection_flattener_create');
+
+    const dataSource = new MongooseDatasource(connection, {
+      flattenMode: 'manual',
+      flattenOptions: {
+        cars: {
+          asFields: ['engine.comments.nested'],
+          asModels: ['engine.comments'],
+        },
+      },
+    });
+
+    const [car] = await dataSource.getCollection('cars').create(caller, [{ name: 'my fiesta' }]);
+    const [carCommentFromApp] = await dataSource
+      .getCollection('cars_engine_comments')
+      .create(caller, [{ parentId: car._id, ...flatRecord }]);
+
+    const carSeenFromDb = await connection.model('cars').findOne({ _id: car._id });
+
+    expect(carCommentFromApp).toMatchObject(flatRecord);
+    expect(carSeenFromDb.engine.comments[0]).toEqual(
+      expect.objectContaining({
+        date: expect.any(Date),
+        comment: 'hi!',
+        nested: { subNested: 'hi!', subNested2: 'hi!' },
+      }),
+    );
+  });
+
+  it('should create a model', async () => {
     connection = await setupFlattener('collection_flattener_create');
 
     const dataSource = new MongooseDatasource(connection, {
@@ -142,10 +180,63 @@ describe('Complex flattening', () => {
       .getCollection('cars')
       .create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
 
+    const result = await dataSource
+      .getCollection('cars_engine')
+      .create(caller, [{ parentId: car._id, horsePower: '12' }]);
+
+    const doc = await connection.model('cars').findOne({ _id: car._id });
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          horsePower: '12',
+        }),
+      ]),
+    );
+
+    expect(doc).toEqual(
+      expect.objectContaining({
+        name: 'my fiesta',
+        wheelSize: 12,
+        engine: expect.objectContaining({
+          horsePower: '12',
+        }),
+      }),
+    );
+  });
+
+  it('should throw an error when creating a model with an empty list of elements', async () => {
+    connection = await setupFlattener('collection_flattener_create');
+
+    const dataSource = new MongooseDatasource(connection, {
+      asModels: { cars: ['engine', 'engine.fuel'] },
+    });
+
+    await dataSource.getCollection('cars').create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
+
+    await expect(dataSource.getCollection('cars_engine').create(caller, [])).rejects.toThrow(
+      'Trying to create without data',
+    );
+  });
+
+  it('should throw an error when creating multiple objects in an object model', async () => {
+    connection = await setupFlattener('collection_flattener_create');
+
+    const dataSource = new MongooseDatasource(connection, {
+      asModels: { cars: ['engine', 'engine.fuel'] },
+    });
+
+    const [car] = await dataSource
+      .getCollection('cars')
+      .create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
+
+    await dataSource.getCollection('cars').create(caller, [{ name: 'my fiesta', wheelSize: 12 }]);
+
     await expect(
-      dataSource
-        .getCollection('cars_engine')
-        .create(caller, [{ parentId: car._id, horsePower: '12' }]),
-    ).rejects.toThrow('Trying to create subrecords on a non-array field');
+      dataSource.getCollection('cars_engine').create(caller, [
+        { parentId: car._id, horsePower: '12' },
+        { parentId: car._id, horsePower: '13' },
+      ]),
+    ).rejects.toThrow('Trying to create multiple subrecords at once');
   });
 });

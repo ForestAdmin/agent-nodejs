@@ -54,7 +54,17 @@ export default class CsvGenerator {
 
   private static convert(records: RecordData[], projection: Projection): Promise<string> {
     return writeToString(
-      records.map(record => projection.map(field => RecordUtils.getFieldValue(record, field))),
+      records.map(record =>
+        projection.map(field => {
+          const value = RecordUtils.getFieldValue(record, field);
+
+          if (value?.toString() === '[object Object]') {
+            return JSON.stringify(value);
+          }
+
+          return value;
+        }),
+      ),
       { includeEndRowDelimiter: true },
     );
   }

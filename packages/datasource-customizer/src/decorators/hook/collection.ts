@@ -2,6 +2,7 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   Filter,
   PaginatedFilter,
   Projection,
@@ -36,7 +37,6 @@ import {
 } from './context/update';
 import Hooks from './hook';
 import { HookHandler, HookPosition, HookType, HooksContext } from './types';
-import CollectionDecorator from '../collection-decorator';
 
 export default class CollectionHookDecorator extends CollectionDecorator {
   private hooks: { [type in HookType<'After'>]: Hooks<HookContext, HookContext> } = {

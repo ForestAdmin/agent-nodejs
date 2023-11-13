@@ -103,7 +103,7 @@ describe('ListRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new PaginatedFilter({
             search: 'aName',
             searchExtended: false,
@@ -156,7 +156,7 @@ describe('ListRelatedRoute', () => {
         });
         await count.handleListRelated(context);
 
-        expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
+        expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'persons');
       });
 
       test('it should apply the scope', async () => {
@@ -208,7 +208,7 @@ describe('ListRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myPersons',
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new PaginatedFilter({
             search: 'aName',
             searchExtended: false,
@@ -239,6 +239,46 @@ describe('ListRelatedRoute', () => {
           context,
         );
       });
+    });
+  });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+
+      const persons = factories.collection.build({
+        name: 'persons+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            name: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        }),
+      });
+
+      const books = factories.collection.build({
+        name: 'books+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            myPersons: factories.oneToManySchema.build({
+              foreignCollection: 'persons+*?',
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([persons, books]);
+
+      const count = new ListRelatedRoute(services, options, dataSource, 'books+*?', 'myPersons+*?');
+
+      count.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith(
+        '/books\\+\\*\\?/:parentId/relationships/myPersons\\+\\*\\?',
+        expect.any(Function),
+      );
     });
   });
 });

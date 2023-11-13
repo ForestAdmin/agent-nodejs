@@ -50,7 +50,7 @@ describe('ListRoute', () => {
 
       // then
       expect(collection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         {
           conditionTree: null,
           search: '2',
@@ -113,7 +113,7 @@ describe('ListRoute', () => {
 
       // then
       expect(collection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         {
           conditionTree: {
             field: 'title',
@@ -132,6 +132,30 @@ describe('ListRoute', () => {
         dataSource.getCollection('books'),
         context,
       );
+    });
+  });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const collection = factories.collection.build({
+        name: 'books+?*',
+        list: jest.fn(),
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(collection);
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+      const services = factories.forestAdminHttpDriverServices.build();
+
+      const list = new List(services, options, dataSource, collection.name);
+
+      list.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith('/books\\+\\?\\*', expect.any(Function));
     });
   });
 });

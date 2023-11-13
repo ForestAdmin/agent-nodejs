@@ -38,8 +38,19 @@ describe('RelaxedWrappers', () => {
 
     beforeEach(() => {
       caller = factories.caller.build();
-      collection = factories.collection.build();
+      collection = factories.collection.build({
+        nativeDriver: 'my-native-driver',
+        schema: {
+          fields: {
+            name: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        },
+      });
       relaxed = new RelatedCollection(collection, caller);
+    });
+
+    test('should forward nativeDriver calls', async () => {
+      expect(relaxed.nativeDriver).toBe('my-native-driver');
     });
 
     test('should call list when provided with a plain object', async () => {
@@ -154,6 +165,14 @@ describe('RelaxedWrappers', () => {
       );
     });
 
+    test('should validate patch operation before forwarding update', async () => {
+      await expect(() =>
+        relaxed.update({ segment: 'some_segment' }, { nonexistingField: 'newValue' }),
+      ).toThrow('Unknown field "nonexistingField"');
+
+      expect(collection.update).not.toHaveBeenCalled();
+    });
+
     test('should forward delete and transform filter', async () => {
       await relaxed.delete({ segment: 'some_segment' });
 
@@ -181,6 +200,12 @@ describe('RelaxedWrappers', () => {
         new Aggregation({ operation: 'Count' }),
         66,
       );
+    });
+
+    describe('schema', () => {
+      it("should return the base collection's schema", () => {
+        expect(relaxed.schema).toBe(collection.schema);
+      });
     });
   });
 });

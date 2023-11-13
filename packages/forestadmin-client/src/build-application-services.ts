@@ -1,12 +1,17 @@
-import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
+import EventsSubscriptionService from './events-subscription';
+import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
+import { RefreshEventsHandlerService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
+import ModelCustomizationFromApiService from './model-customizations/model-customization-from-api';
+import { ModelCustomizationService } from './model-customizations/types';
 import ActionPermissionService from './permissions/action-permission';
 import PermissionService from './permissions/permission-with-cache';
 import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
 import SchemaService from './schema';
 import {
+  ForestAdminAuthServiceInterface,
   ForestAdminClientOptions,
   ForestAdminClientOptionsWithDefaults,
   ForestAdminServerInterface,
@@ -25,35 +30,61 @@ export default function buildApplicationServices(
   ipWhitelist: IpWhiteListService;
   permission: PermissionService;
   chartHandler: ChartHandler;
-  auth: AuthService;
+  auth: ForestAdminAuthServiceInterface;
+  modelCustomizationService: ModelCustomizationService;
+  eventsSubscription: EventsSubscriptionService;
+  eventsHandler: RefreshEventsHandlerService;
 } {
   const optionsWithDefaults = {
     forestServerUrl: 'https://api.forestadmin.com',
     permissionsCacheDurationInSeconds: 15 * 60,
     logger: defaultLogger,
+    instantCacheRefresh: true,
     ...options,
   };
 
-  const renderingPermission = new RenderingPermissionService(
+  const usersPermission = new UserPermissionService(
     optionsWithDefaults,
-    new UserPermissionService(optionsWithDefaults, forestAdminServerInterface),
     forestAdminServerInterface,
   );
+
+  const renderingPermission = new RenderingPermissionService(
+    optionsWithDefaults,
+    usersPermission,
+    forestAdminServerInterface,
+  );
+
+  const actionPermission = new ActionPermissionService(
+    optionsWithDefaults,
+    forestAdminServerInterface,
+  );
+
   const contextVariables = new ContextVariablesInstantiator(renderingPermission);
 
-  const permission = new PermissionService(
-    new ActionPermissionService(optionsWithDefaults, forestAdminServerInterface),
+  const permission = new PermissionService(actionPermission, renderingPermission);
+
+  const eventsHandler = new NativeRefreshEventsHandlerService(
+    actionPermission,
+    usersPermission,
     renderingPermission,
   );
+
+  const eventsSubscription = new EventsSubscriptionService(optionsWithDefaults, eventsHandler);
 
   return {
     renderingPermission,
     optionsWithDefaults,
     permission,
     contextVariables,
+    eventsSubscription,
+    eventsHandler,
     chartHandler: new ChartHandler(contextVariables),
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
-    auth: new AuthService(optionsWithDefaults),
+    auth: forestAdminServerInterface.makeAuthService(optionsWithDefaults),
+    modelCustomizationService: new ModelCustomizationFromApiService(
+      forestAdminServerInterface,
+      optionsWithDefaults,
+    ),
   };
 }

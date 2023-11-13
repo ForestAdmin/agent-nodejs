@@ -11,6 +11,12 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   markScopesAsUpdated: jest.fn(),
   getIpWhitelistConfiguration: jest.fn(),
   postSchema: jest.fn(),
+  authService: {
+    init: jest.fn(),
+    getUserInfo: jest.fn(),
+    generateAuthorizationUrl: jest.fn(),
+    generateTokens: jest.fn(),
+  },
   permissionService: {
     canExecuteSegmentQuery: jest.fn(),
     canApproveCustomAction: jest.fn(),
@@ -34,6 +40,12 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   },
   getOpenIdClient: jest.fn(),
   getUserInfo: jest.fn(),
+  modelCustomizationService: {
+    getConfiguration: jest.fn(),
+  },
+  subscribeToServerEvents: jest.fn(),
+  close: jest.fn(),
+  onRefreshCustomizations: jest.fn(),
 }));
 
 export default forestAdminClientFactory;

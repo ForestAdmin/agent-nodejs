@@ -79,7 +79,7 @@ export type PrimitiveTypes =
   | 'Number'
   | 'Point'
   | 'String'
-  | 'Timeonly'
+  | 'Time'
   | 'Uuid';
 
 export type FieldTypes = 'Column' | 'ManyToOne' | 'OneToOne' | 'OneToMany' | 'ManyToMany';

@@ -8,17 +8,17 @@ import Projection from './query/projection';
 import { CompositeId, RecordData } from './record';
 import { CollectionSchema, DataSourceSchema } from './schema';
 
-export interface DataSource {
-  get collections(): Collection[];
+export interface DataSource<C extends Collection = Collection> {
+  get collections(): C[];
   get schema(): DataSourceSchema;
 
-  getCollection(name: string): Collection;
-  addCollection(collection: Collection): void;
+  getCollection(name: string): C;
 
   renderChart(caller: Caller, name: string): Promise<Chart>;
 }
 
 export interface Collection {
+  get nativeDriver(): unknown | null;
   get dataSource(): DataSource;
   get name(): string;
   get schema(): CollectionSchema;
@@ -35,6 +35,11 @@ export interface Collection {
     name: string,
     formValues?: RecordData,
     filter?: Filter,
+    metas?: {
+      changedField?: string;
+      searchValues?: Record<string, string | null>;
+      searchField?: string;
+    },
   ): Promise<ActionField[]>;
 
   create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;

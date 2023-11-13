@@ -1,6 +1,4 @@
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../collection-decorator';
+import { CollectionDecorator, CollectionSchema } from '@forestadmin/datasource-toolkit';
 
 /**
  * This decorator allows to override parts of the collections schema.

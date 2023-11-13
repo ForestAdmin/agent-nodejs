@@ -28,6 +28,11 @@ export default class DefaultValueParser {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  isLiteral(expression: any, columnType: ColumnType): boolean {
+    return this.parse(expression, columnType)?.constructor.name === 'Literal';
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseGeneric(expression: any, columnType: ColumnType): unknown {
     let sanitizedExpression = expression;
 

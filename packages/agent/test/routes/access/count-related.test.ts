@@ -124,7 +124,7 @@ describe('CountRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             search: 'searched argument',
             searchExtended: false,
@@ -223,7 +223,7 @@ describe('CountRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             search: 'searched argument',
             searchExtended: false,
@@ -339,6 +339,52 @@ describe('CountRelatedRoute', () => {
 
         expect(context.response.body).toEqual({ meta: { count: 'deactivated' } });
       });
+    });
+  });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+
+      const bookPersons = factories.collection.build({
+        name: 'bookPersons+*?',
+        schema: factories.collectionSchema.build({
+          countable: true,
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+          },
+        }),
+      });
+
+      const books = factories.collection.build({
+        name: 'books+?*',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            myBookPersons: factories.oneToManySchema.build({
+              foreignCollection: 'bookPersons+*?',
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
+
+      const oneToManyRelationName = 'myBookPersons+*?';
+      const count = new CountRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books+?*',
+        oneToManyRelationName,
+      );
+      count.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith(
+        '/books\\+\\?\\*/:parentId/relationships/myBookPersons\\+\\*\\?/count',
+        expect.any(Function),
+      );
     });
   });
 });

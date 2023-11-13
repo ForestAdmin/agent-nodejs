@@ -1,6 +1,4 @@
-import { CollectionCustomizer } from '@forestadmin/agent';
+import { AccountCustomizer } from '../typings';
 
-import { Schema } from '../typings';
-
-export default (collection: CollectionCustomizer<Schema, 'account'>) =>
+export default (collection: AccountCustomizer) =>
   collection.addManyToOneRelation('store', 'store', { foreignKey: 'storeId' });

@@ -15,7 +15,7 @@ import CollectionRoute from '../collection-route';
 
 export default class UpdateRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.put(`/${this.collection.name}/:id`, this.handleUpdate.bind(this));
+    router.put(`/${this.collectionUrlSlug}/:id`, this.handleUpdate.bind(this));
   }
 
   public async handleUpdate(context: Context): Promise<void> {

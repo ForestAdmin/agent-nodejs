@@ -15,9 +15,15 @@ export type AgentOptions = {
   schemaPath?: string;
   typingsPath?: string | null;
   typingsMaxDepth?: number;
+  instantCacheRefresh?: boolean;
   permissionsCacheDurationInSeconds?: number;
   skipSchemaUpdate?: boolean;
   forestAdminClient?: ForestAdminClient;
+  experimental?: {
+    webhookCustomActions?: boolean;
+    updateRecordCustomActions?: boolean;
+  };
+  maxBodySize?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

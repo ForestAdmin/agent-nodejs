@@ -1,4 +1,4 @@
-import { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import { Logger, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizer from './collection-customizer';
 import CollectionCustomizationContext from './context/collection-context';
@@ -29,4 +29,5 @@ export type Plugin<Options> = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   collectionCustomizer: CollectionCustomizer<any, any>,
   options?: Options,
-) => Promise<void>;
+  logger?: Logger,
+) => Promise<void> | void;

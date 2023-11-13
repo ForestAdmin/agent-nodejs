@@ -1,6 +1,6 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
-import { SequelizeColumn } from '../type-overrides';
+import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 import { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
@@ -12,13 +12,13 @@ export default class SqlTypeConverter {
   }
 
   async convert(
-    tableName: string,
+    tableIdentifier: SequelizeTableIdentifier,
     columnName: string,
     columnInfo: SequelizeColumn,
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
-        return this.getArrayType(tableName, columnName);
+        return this.getArrayType(tableIdentifier, columnName);
 
       case 'USER-DEFINED':
       case this.typeMatch(columnInfo.type, SqlTypeConverter.enumRegex):
@@ -50,7 +50,10 @@ export default class SqlTypeConverter {
    * Note that we don't need to write multiple SQL queries, because arrays are only supported by
    * Postgres
    */
-  private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
+  private async getArrayType(
+    tableIdentifier: SequelizeTableIdentifier,
+    columnName: string,
+  ): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
     const [{ udtName, dataType, charLength, schema, rawEnumValues }] = await this.sequelize.query<{
       udtName: string;
@@ -79,10 +82,18 @@ export default class SqlTypeConverter {
         c.table_schema = e.object_schema AND
         c.table_name = e.object_name AND
         'TABLE' = e.object_type AND
+        (:schema IS NULL OR c.table_schema = :schema) AND
         c.dtd_identifier = e.collection_type_identifier
       )
       WHERE table_name = :tableName AND c.column_name = :columnName;`.replace(/\s+/g, ' '),
-      { replacements: { tableName, columnName }, type: QueryTypes.SELECT },
+      {
+        replacements: {
+          tableName: tableIdentifier.tableName,
+          schema: tableIdentifier.schema || null,
+          columnName,
+        },
+        type: QueryTypes.SELECT,
+      },
     );
 
     let subType: ColumnType;
@@ -92,7 +103,7 @@ export default class SqlTypeConverter {
       const queryGen = queryInterface.queryGenerator as { fromArray: (values: string) => string[] };
       const enumValues = queryGen.fromArray(rawEnumValues);
 
-      subType = { type: 'enum', schema, name: udtName, values: enumValues };
+      subType = { type: 'enum', schema, name: udtName, values: [...enumValues].sort() };
     } else {
       const dataTypeWithLength = charLength ? `${dataType}(${charLength})` : dataType;
 
@@ -103,7 +114,9 @@ export default class SqlTypeConverter {
   }
 
   private getScalarType(type: string): ScalarSubType {
-    switch (type.toUpperCase()) {
+    const upType = type.toUpperCase();
+
+    switch (upType) {
       case 'JSON':
         return 'JSON';
       case 'BIT(1)': // In MySQL / MariaDB / Postgres, BIT(N) is used for bitmasks
@@ -114,14 +127,14 @@ export default class SqlTypeConverter {
       case 'CHARACTER VARYING':
       case 'TEXT':
       case 'NTEXT': // MSSQL type
-      case this.typeContains(type, 'TEXT'):
-      case this.typeContains(type, 'VARCHAR'):
-      case this.typeContains(type, 'CHAR'):
+      case this.typeContains(upType, 'TEXT'):
+      case this.typeContains(upType, 'VARCHAR'):
+      case this.typeContains(upType, 'CHAR'):
       case 'NVARCHAR': // NOTICE: MSSQL type
         return 'STRING';
 
-      case this.typeStartsWith(type, 'VARBINARY'):
-      case this.typeStartsWith(type, 'BINARY'):
+      case this.typeStartsWith(upType, 'VARBINARY'):
+      case this.typeStartsWith(upType, 'BINARY'):
       case 'TINYBLOB':
       case 'BLOB':
       case 'MEDIUMBLOB':
@@ -137,25 +150,25 @@ export default class SqlTypeConverter {
       case 'INTEGER':
       case 'SERIAL':
       case 'BIGSERIAL':
-      case this.typeStartsWith(type, 'INT'):
-      case this.typeStartsWith(type, 'SMALLINT'):
-      case this.typeStartsWith(type, 'TINYINT'):
-      case this.typeStartsWith(type, 'MEDIUMINT'):
+      case this.typeStartsWith(upType, 'INT'):
+      case this.typeStartsWith(upType, 'SMALLINT'):
+      case this.typeStartsWith(upType, 'TINYINT'):
+      case this.typeStartsWith(upType, 'MEDIUMINT'):
         return 'NUMBER';
-      case this.typeStartsWith(type, 'BIGINT'):
+      case this.typeStartsWith(upType, 'BIGINT'):
         return 'BIGINT';
-      case this.typeContains(type, 'FLOAT'):
+      case this.typeContains(upType, 'FLOAT'):
         return 'FLOAT';
       case 'NUMERIC':
       case 'REAL':
       case 'DOUBLE':
       case 'DOUBLE PRECISION':
-      case this.typeContains(type, 'DECIMAL'):
+      case this.typeContains(upType, 'DECIMAL'):
         return 'DOUBLE';
       case 'DATE':
         return 'DATEONLY';
-      case this.typeStartsWith(type, 'DATETIME'):
-      case this.typeStartsWith(type, 'TIMESTAMP'):
+      case this.typeStartsWith(upType, 'DATETIME'):
+      case this.typeStartsWith(upType, 'TIMESTAMP'):
         return 'DATE';
       case 'TIME':
       case 'TIME WITHOUT TIME ZONE':

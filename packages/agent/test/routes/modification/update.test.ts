@@ -19,6 +19,16 @@ describe('UpdateRoute', () => {
     expect(router.put).toHaveBeenCalledWith('/books/:id', expect.any(Function));
   });
 
+  test('it should escape names in registered route', () => {
+    const bookCollection = factories.collection.build({ name: 'books+*?' });
+    const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
+    const updateRoute = new UpdateRoute(services, options, dataSource, 'books+*?');
+
+    updateRoute.setupRoutes(router);
+
+    expect(router.put).toHaveBeenCalledWith('/books\\+\\*\\?/:id', expect.any(Function));
+  });
+
   describe('handleUpdate', () => {
     it('should call the update action successfully when providing a valid request', async () => {
       const bookCollection = factories.collection.build({
@@ -56,12 +66,12 @@ describe('UpdateRoute', () => {
       });
 
       expect(bookCollection.update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         { name: 'foo name' },
       );
       expect(bookCollection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('id', 'name'),
       );
@@ -119,12 +129,12 @@ describe('UpdateRoute', () => {
       });
 
       expect(bookCollection.update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         { name: 'foo name' },
       );
       expect(bookCollection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expectedFilter,
         new Projection('id', 'name'),
       );

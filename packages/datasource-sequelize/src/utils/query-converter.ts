@@ -148,7 +148,9 @@ export default class QueryConverter {
   async getWhereFromConditionTreeToByPassInclude(
     conditionTree?: ConditionTree,
   ): Promise<WhereOptions> {
-    const include = conditionTree ? this.getIncludeFromProjection(conditionTree.projection) : [];
+    const include = conditionTree
+      ? this.getIncludeFromProjection(new Projection(), conditionTree.projection)
+      : [];
     const whereOptions = this.getWhereFromConditionTree(conditionTree);
 
     if (include.length === 0) {
@@ -207,25 +209,22 @@ export default class QueryConverter {
     return sequelizeWhereClause;
   }
 
-  private computeIncludeFromProjection(
-    projection: Projection,
-    withAttributes = true,
+  getIncludeFromProjection(
+    attrProjection: Projection,
+    tableProjection: Projection = new Projection(),
   ): IncludeOptions[] {
-    return Object.entries(projection.relations).map(([relationName, relationProjection]) => {
+    const projection = attrProjection.union(tableProjection);
+
+    return Object.keys(projection.relations).map(name => {
+      const relAttrProjection = attrProjection.relations[name] ?? new Projection();
+      const relTableProjection = tableProjection.relations[name] ?? new Projection();
+
       return {
-        association: relationName,
-        attributes: withAttributes ? relationProjection.columns : [],
-        include: this.computeIncludeFromProjection(relationProjection, withAttributes),
+        association: name,
+        attributes: relAttrProjection.columns,
+        include: this.getIncludeFromProjection(relAttrProjection, relTableProjection),
       };
     });
-  }
-
-  getIncludeFromProjection(projection: Projection): IncludeOptions[] {
-    return this.computeIncludeFromProjection(projection, false);
-  }
-
-  getIncludeWithAttributesFromProjection(projection: Projection): IncludeOptions[] {
-    return this.computeIncludeFromProjection(projection);
   }
 
   getOrderFromSort(sort: Sort): OrderItem[] {

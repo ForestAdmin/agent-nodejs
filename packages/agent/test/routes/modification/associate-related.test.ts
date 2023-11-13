@@ -87,7 +87,7 @@ describe('AssociateRelatedRoute', () => {
 
       // then
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -207,7 +207,7 @@ describe('AssociateRelatedRoute', () => {
 
       // then
       expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         [
           {
             bookId: '123e4567-e89b-12d3-a456-111111111111',
@@ -217,6 +217,54 @@ describe('AssociateRelatedRoute', () => {
       );
       expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
+    });
+  });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+
+      const bookPersons = factories.collection.build({
+        name: 'bookPersons+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+          },
+        }),
+      });
+
+      const books = factories.collection.build({
+        name: 'books+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            myBookPersons: factories.oneToManySchema.build({
+              foreignCollection: 'bookPersons',
+              originKey: 'bookId',
+              originKeyTarget: 'id',
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
+
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books+*?',
+        'myBookPersons+*?',
+      );
+
+      route.setupRoutes(router);
+
+      expect(router.post).toHaveBeenCalledWith(
+        '/books\\+\\*\\?/:parentId/relationships/myBookPersons\\+\\*\\?',
+        expect.any(Function),
+      );
     });
   });
 });

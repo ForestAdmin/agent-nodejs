@@ -1,26 +1,36 @@
-import { Client, ClientAuthMethod, Issuer, IssuerMetadata } from 'openid-client';
+import { BaseClient, ClientAuthMethod, Issuer, IssuerMetadata, errors } from 'openid-client';
+import { ParsedUrlQuery } from 'querystring';
 
+import { AuthenticationError } from './errors';
 import { ClientExt } from './type-overrides';
-import { UserInfo } from './types';
-import { ForestAdminClientOptionsWithDefaults } from '../types';
+import { Tokens, UserInfo } from './types';
+import { ForestAdminAuthServiceInterface, ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
 
-export default class AuthService {
+export default class AuthService implements ForestAdminAuthServiceInterface {
+  protected client: BaseClient;
+
   constructor(private options: ForestAdminClientOptionsWithDefaults) {}
 
-  async getOpenIdClient(): Promise<Client> {
-    // We can't use 'Issuer.discover' because the oidc config is behind an auth-wall.
-    const url = '/oidc/.well-known/openid-configuration';
-    const config = await ServerUtils.query<IssuerMetadata>(this.options, 'get', url);
-    const issuer = new Issuer(config);
-    const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
-
-    return (issuer.Client as ClientExt).register(registration, {
-      initialAccessToken: this.options.envSecret,
-    });
+  /**
+   * Initialize the authentication client upfront. This speeds up the first
+   * authentication request.
+   */
+  public async init(): Promise<void> {
+    try {
+      await this.createClient();
+    } catch (e) {
+      // Sometimes the authentication client can't be initialized because of a
+      // server or network error. We don't want the application to crash.
+      this.options.logger(
+        'Warn',
+        // eslint-disable-next-line max-len
+        `Error while registering the authentication client. Authentication might not work: ${e.message}`,
+      );
+    }
   }
 
-  async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
+  public async getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
     const url = `/liana/v2/renderings/${renderingId}/authorization`;
     const headers = { 'forest-token': accessToken };
 
@@ -41,5 +51,63 @@ export default class AuthService {
         {},
       ),
     };
+  }
+
+  public async generateAuthorizationUrl({
+    scope,
+    state,
+  }: {
+    scope: string;
+    state: string;
+  }): Promise<string> {
+    await this.createClient();
+
+    return this.client.authorizationUrl({
+      scope,
+      state,
+    });
+  }
+
+  public async generateTokens({
+    query,
+    state,
+  }: {
+    query: ParsedUrlQuery;
+    state: string;
+  }): Promise<Tokens> {
+    await this.createClient();
+
+    try {
+      const tokens = await this.client.callback(undefined, query, { state });
+
+      return {
+        accessToken: tokens.access_token,
+      };
+    } catch (e) {
+      this.handleError(e);
+    }
+  }
+
+  protected async createClient() {
+    if (this.client) return;
+
+    // We can't use async 'Issuer.discover' because the oidc config is behind an auth-wall.
+    const url = '/oidc/.well-known/openid-configuration';
+    const config = await ServerUtils.query<IssuerMetadata>(this.options, 'get', url);
+    const issuer = new Issuer(config);
+
+    const registration = { token_endpoint_auth_method: 'none' as ClientAuthMethod };
+
+    this.client = await (issuer.Client as ClientExt).register(registration, {
+      initialAccessToken: this.options.envSecret,
+    });
+  }
+
+  private handleError(e: Error) {
+    if (e instanceof errors.OPError) {
+      throw new AuthenticationError(e);
+    }
+
+    throw e;
   }
 }

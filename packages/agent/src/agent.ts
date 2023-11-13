@@ -19,6 +19,7 @@ import bodyParser from 'koa-bodyparser';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
+import CustomizationService from './services/model-customizations/customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
@@ -36,6 +37,8 @@ import OptionsValidator from './utils/options-validator';
 export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter {
   private options: AgentOptionsWithDefaults;
   private customizer: DataSourceCustomizer<S>;
+  private nocodeCustomizer: DataSourceCustomizer<S>;
+  private customizationService: CustomizationService;
 
   /**
    * Create a new Agent Builder.
@@ -59,30 +62,46 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>();
+    this.customizationService = new CustomizationService(allOptions);
   }
 
   /**
    * Start the agent.
    */
-  override async start(): Promise<void> {
-    const { isProduction, logger, skipSchemaUpdate, typingsPath, typingsMaxDepth } = this.options;
+  async start(): Promise<void> {
+    const router = await this.buildRouterAndSendSchema();
 
-    const dataSource = await this.customizer.getDataSource(logger);
-    const [router] = await Promise.all([
-      this.getRouter(dataSource),
-      !skipSchemaUpdate ? this.sendSchema(dataSource) : Promise.resolve(),
-      !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
-        : Promise.resolve(),
-    ]);
+    await this.options.forestAdminClient.subscribeToServerEvents();
+    this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-    return super.start(router);
+    await this.mount(router);
+  }
+
+  /**
+   * Stop the agent.
+   */
+  override async stop(): Promise<void> {
+    // Close anything related to ForestAdmin client
+    this.options.forestAdminClient.close();
+    // Stop at framework level
+    await super.stop();
+  }
+
+  /**
+   * Restart the agent at runtime (remount routes).
+   */
+  private async restart(): Promise<void> {
+    // We force sending schema when restarting
+    const updatedRouter = await this.buildRouterAndSendSchema();
+
+    await this.remount(updatedRouter);
   }
 
   /**
    * Add a datasource
    * @param factory the datasource to add
    * @param options the options
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/connection Documentation Link}
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.customizer.addDataSource(factory, options);
@@ -94,12 +113,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Create a new API chart
    * @param name name of the chart
    * @param definition definition of the chart
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/charts Documentation Link}
    * @example
-   * .addChart('numCustomers', {
-   *   type: 'Value',
-   *   render: (context, resultBuilder) => {
-   *     return resultBuilder.value(123);
-   *   }
+   * .addChart('numCustomers', (context, resultBuilder) => {
+   *   return resultBuilder.distribution({
+   *     tomatoes: 10,
+   *     potatoes: 20,
+   *     carrots: 30,
+   *   });
    * })
    */
   addChart(name: string, definition: DataSourceChartDefinition<S>): this {
@@ -111,8 +132,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Allow to interact with a decorated collection
    * @param name the name of the collection to manipulate
-   * @param handle a function that provide a
-   *   collection builder on the given collection name
+   * @param handle a function that provide a collection builder on the given collection name
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/agent-customization Documentation Link}
    * @example
    * .customizeCollection('books', books => books.renameField('xx', 'yy'))
    */
@@ -126,9 +147,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
+   * Remove collections from the exported schema (they will still be usable within the agent).
+   * @param names the collections to remove
+   * @example
+   * .removeField('aCollectionToRemove', 'anotherCollectionToRemove');
+   */
+  removeCollection(...names: TCollectionName<S>[]): this {
+    this.customizer.removeCollection(...names);
+
+    return this;
+  }
+
+  /**
    * Load a plugin across all collections
    * @param plugin instance of the plugin
    * @param options options which need to be passed to the plugin
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/plugins Documentation Link}
    * @example
    * import advancedExportPlugin from '@forestadmin/plugin-advanced-export';
    *
@@ -152,8 +186,28 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Build router
     const router = new Router();
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
-    router.use(bodyParser({ jsonLimit: '50mb' }));
+    router.use(bodyParser({ jsonLimit: this.options.maxBodySize }));
     routes.forEach(route => route.setupRoutes(router));
+
+    return router;
+  }
+
+  private async buildRouterAndSendSchema(): Promise<Router> {
+    const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
+
+    // It allows to rebuild the full customization stack with no code customizations
+    this.nocodeCustomizer = new DataSourceCustomizer<S>();
+    this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
+    this.nocodeCustomizer.use(this.customizationService.addCustomizations);
+
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+    const [router] = await Promise.all([
+      this.getRouter(dataSource),
+      this.sendSchema(dataSource),
+      !isProduction && typingsPath
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger)
+        : Promise.resolve(),
+    ]);
 
     return router;
   }
@@ -162,30 +216,39 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Send the apimap to forest admin server
    */
   private async sendSchema(dataSource: DataSource): Promise<void> {
-    const { schemaPath } = this.options;
+    const { schemaPath, skipSchemaUpdate, isProduction, experimental } = this.options;
+
+    // skipSchemaUpdate is mainly used in cloud version
+    if (skipSchemaUpdate) {
+      this.options.logger(
+        'Warn',
+        'Schema update was skipped (caused by options.skipSchemaUpdate=true)',
+      );
+
+      return;
+    }
 
     // Either load the schema from the file system or build it
     let schema: ForestSchema;
 
-    if (this.options.isProduction) {
+    // When using experimental no-code features even in production we need to build a new schema
+    if (!experimental?.webhookCustomActions && isProduction) {
       try {
         schema = JSON.parse(await readFile(schemaPath, { encoding: 'utf-8' }));
       } catch (e) {
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(dataSource);
+      schema = await SchemaGenerator.buildSchema(
+        dataSource,
+        this.customizationService.buildFeatures(),
+      );
 
       const pretty = stringify(schema, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     // Send schema to forest servers
-    const updated = await this.options.forestAdminClient.postSchema(schema);
-    const message = updated
-      ? 'Schema was updated, sending new version'
-      : 'Schema was not updated since last run';
-
-    this.options.logger('Info', message);
+    await this.options.forestAdminClient.postSchema(schema);
   }
 }

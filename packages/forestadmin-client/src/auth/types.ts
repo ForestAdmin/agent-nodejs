@@ -9,3 +9,7 @@ export type UserInfo = {
   tags: { [key: string]: string };
   permissionLevel: string;
 };
+
+export type Tokens = {
+  accessToken: string;
+};

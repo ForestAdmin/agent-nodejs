@@ -42,6 +42,9 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     auth,
+    modelCustomizationService,
+    eventsSubscription,
+    eventsHandler,
   } = buildApplicationServices(new ForestHttpApi(), options);
 
   return new ForestAdminClientWithCache(
@@ -53,11 +56,16 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     auth,
+    modelCustomizationService,
+    eventsSubscription,
+    eventsHandler,
   );
 }
 
 export * from './charts/types';
 export * from './schema/types';
+export * from './model-customizations/types';
+
 export { default as ContextVariablesInjector } from './utils/context-variables-injector';
 export { default as ContextVariables } from './utils/context-variables';
 export { default as ChartHandler } from './charts/chart-handler';
@@ -66,3 +74,5 @@ export { default as buildApplicationServices } from './build-application-service
 
 // export is necessary for the agent-generator package
 export { default as SchemaService } from './schema';
+
+export * from './auth/errors';

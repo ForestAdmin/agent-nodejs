@@ -2,17 +2,17 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   CollectionSchema,
+  DataSourceDecorator,
   FieldSchema,
+  FieldValidator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 /**
  * This decorator renames fields.
@@ -34,6 +34,8 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
     }
 
     let initialName = currentName;
+
+    FieldValidator.validateName(this.name, newName);
 
     // Revert previous renaming (avoids conflicts and need to recurse on this.toSubCollection).
     if (this.toChildCollection[currentName]) {

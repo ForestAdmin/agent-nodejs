@@ -10,13 +10,16 @@ describe('CompositeDataSource', () => {
 
   describe('addDataSource', () => {
     it('should add all the collections from all the data sources', () => {
-      const compositeDataSource = new CompositeDataSource<Collection>();
-      compositeDataSource.addCollection(factories.collection.build({ name: 'collection1' }));
-      const newDataSource = factories.dataSource.buildWithCollection(
+      const aDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+      const anotherDataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({ name: 'collection2' }),
       );
 
-      compositeDataSource.addDataSource(newDataSource);
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(aDataSource);
+      compositeDataSource.addDataSource(anotherDataSource);
 
       expect(compositeDataSource.collections.map(c => c.name)).toEqual([
         'collection1',
@@ -29,9 +32,26 @@ describe('CompositeDataSource', () => {
       const aDataSource = factories.dataSource.buildWithCharts(['chart1', 'chart2']);
       const otherDataSource = factories.dataSource.buildWithCharts(['chart3', 'chart4']);
 
-      compositeDataSource.addDataSource(aDataSource).addDataSource(otherDataSource);
+      compositeDataSource.addDataSource(aDataSource);
+      compositeDataSource.addDataSource(otherDataSource);
 
       expect(compositeDataSource.schema.charts).toEqual(['chart1', 'chart2', 'chart3', 'chart4']);
+    });
+
+    it('should throw with collectio name conflict', () => {
+      const aDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+      const anotherDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(aDataSource);
+
+      expect(() => compositeDataSource.addDataSource(anotherDataSource)).toThrow(
+        "Collection 'collection1' already exists",
+      );
     });
 
     it('should throw an error if a chart name is already registered', () => {
@@ -46,6 +66,21 @@ describe('CompositeDataSource', () => {
     });
   });
 
+  describe('getCollection', () => {
+    it('should throw an error when the collection does not exist', () => {
+      const aDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection1' }),
+      );
+
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(aDataSource);
+
+      expect(() => compositeDataSource.getCollection('missing')).toThrow(
+        "Collection 'missing' not found. List of available collections: collection1",
+      );
+    });
+  });
+
   describe('renderChart', () => {
     it('should not throw error when the chart exists', async () => {
       const compositeDataSource = new CompositeDataSource<Collection>();
@@ -53,9 +88,9 @@ describe('CompositeDataSource', () => {
 
       compositeDataSource.addDataSource(aDataSource);
 
-      await expect(() =>
+      await expect(
         compositeDataSource.renderChart(factories.caller.build(), 'chart1'),
-      ).not.toThrow();
+      ).resolves.not.toThrow();
     });
 
     it('should throw an error when the chart does not exist', async () => {
@@ -64,9 +99,9 @@ describe('CompositeDataSource', () => {
 
       compositeDataSource.addDataSource(aDataSource);
 
-      await expect(() =>
+      await expect(
         compositeDataSource.renderChart(factories.caller.build(), 'chart1'),
-      ).toThrow("Chart 'chart1' is not defined in the dataSource.");
+      ).rejects.toThrow("Chart 'chart1' is not defined in the dataSource.");
     });
   });
 });

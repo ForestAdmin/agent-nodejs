@@ -1,7 +1,10 @@
-import { CollectionSchema, FieldSchema } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionDecorator,
+  CollectionSchema,
+  FieldSchema,
+} from '@forestadmin/datasource-toolkit';
 
 import CollectionRenameDataSourceDecorator from './datasource';
-import CollectionDecorator from '../collection-decorator';
 
 /**
  * This decorator renames collections.
@@ -10,20 +13,8 @@ import CollectionDecorator from '../collection-decorator';
 export default class RenameCollectionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: CollectionRenameDataSourceDecorator;
 
-  private substitutedName: string = null;
-
   override get name() {
-    return this.substitutedName ?? this.childCollection.name;
-  }
-
-  /** @internal */
-  rename(name: string): void {
-    this.substitutedName = name;
-
-    // Invalidate all schemas
-    for (const collection of this.dataSource.collections) {
-      collection.markSchemaAsDirty();
-    }
+    return this.dataSource.getCollectionName(super.name);
   }
 
   protected override refineSchema(childSchema: CollectionSchema): CollectionSchema {
@@ -32,13 +23,10 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
     for (const [name, oldSchema] of Object.entries(childSchema.fields)) {
       const schema = { ...oldSchema };
 
-      if (schema.type === 'ManyToOne') {
-        schema.foreignCollection = this.getNewName(schema.foreignCollection);
-      } else if (schema.type === 'OneToMany' || schema.type === 'OneToOne') {
-        schema.foreignCollection = this.getNewName(schema.foreignCollection);
-      } else if (schema.type === 'ManyToMany') {
-        schema.throughCollection = this.getNewName(schema.throughCollection);
-        schema.foreignCollection = this.getNewName(schema.foreignCollection);
+      if (schema.type !== 'Column') {
+        schema.foreignCollection = this.dataSource.getCollectionName(schema.foreignCollection);
+        if (schema.type === 'ManyToMany')
+          schema.throughCollection = this.dataSource.getCollectionName(schema.throughCollection);
       }
 
       fields[name] = schema;
@@ -47,7 +35,11 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
     return { ...childSchema, fields };
   }
 
-  private getNewName(oldName: string): string {
-    return this.dataSource.collections.find(c => c.childCollection.name === oldName).name;
+  /**
+   * Override visibility of the markSchemaAsDirty method so that we can call it
+   * from the datasource.
+   */
+  public override markSchemaAsDirty(): void {
+    return super.markSchemaAsDirty();
   }
 }

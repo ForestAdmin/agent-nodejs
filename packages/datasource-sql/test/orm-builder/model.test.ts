@@ -10,6 +10,7 @@ const baseColumn = {
   constraints: [],
   defaultValue: null,
   type: { type: 'scalar', subType: 'NUMBER' } as unknown as ColumnType,
+  isLiteralDefaultValue: false,
 };
 
 describe('ModelBuilder', () => {
@@ -18,6 +19,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           { ...baseColumn, name: 'enumList', type: { type: 'invalid' } as unknown as ColumnType },
         ],
@@ -33,6 +35,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           {
             ...baseColumn,
@@ -52,6 +55,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           { ...baseColumn, name: 'enumList', type: { type: 'enum', values: ['a', 'b', 'c'] } },
         ],
@@ -70,6 +74,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           {
             name: 'enumList',
@@ -79,6 +84,7 @@ describe('ModelBuilder', () => {
             type: { type: 'enum', schema: 'public', name: 'custom_type', values: ['a', 'b', 'c'] },
             constraints: [],
             defaultValue: null,
+            isLiteralDefaultValue: false,
           },
         ],
         unique: [],
@@ -99,6 +105,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
           unique: [],
         },
@@ -115,6 +122,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [
             { ...baseColumn, name: 'uniqueTogether1', primaryKey: false },
             { ...baseColumn, name: 'uniqueTogether2', primaryKey: false },
@@ -135,6 +143,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [
             { ...baseColumn, name: 'nonUniqueField', primaryKey: false },
             { ...baseColumn, name: 'uniqueTogether1', primaryKey: false },
@@ -156,6 +165,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [
             {
               ...baseColumn,
@@ -182,7 +192,7 @@ describe('ModelBuilder', () => {
     });
 
     it('should skip the collection if sequelize throws at our definition', () => {
-      const tables: Table[] = [{ name: 'myTable', columns: [], unique: [] }];
+      const tables: Table[] = [{ name: 'myTable', schema: undefined, columns: [], unique: [] }];
       const logger = jest.fn();
       const sequelize = {
         getDialect: jest.fn().mockReturnValue('postgres'),
@@ -197,6 +207,79 @@ describe('ModelBuilder', () => {
         'Warn',
         'Skipping table "myTable" because of error: Invalid Model.',
       );
+    });
+  });
+
+  describe('when the default value is a literal', () => {
+    it('should cast the default value as a Literal sequelize object', () => {
+      const sequelize = new Sequelize('postgres://');
+      const column = {
+        // a literal default value
+        defaultValue: { val: 'gen_random_uuid()' },
+        type: { type: 'scalar', subType: 'UUID' },
+        autoIncrement: false,
+        isLiteralDefaultValue: true,
+        name: 'uuid',
+        allowNull: false,
+        primaryKey: false,
+        constraints: [],
+      };
+      const tables = [
+        { columns: [column], name: 'aModel', schema: undefined, unique: [] },
+      ] as Table[];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.aModel).toBeDefined();
+      expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toStrictEqual(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Sequelize.literal((column.defaultValue as any).val),
+      );
+    });
+
+    describe('when there is no defaultValue', () => {
+      it('should not cast the default value as a Literal sequelize object', () => {
+        const sequelize = new Sequelize('postgres://');
+        const column = {
+          defaultValue: null,
+          type: { type: 'scalar', subType: 'UUID' },
+          autoIncrement: false,
+          isLiteralDefaultValue: true,
+          name: 'uuid',
+          allowNull: false,
+          primaryKey: false,
+          constraints: [],
+        };
+        const tables = [
+          { columns: [column], name: 'aModel', schema: undefined, unique: [] },
+        ] as Table[];
+
+        ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+        expect(sequelize.models.aModel).toBeDefined();
+        expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
+      });
+    });
+  });
+
+  describe('when there is a schema', () => {
+    it('should declare the model in the schema', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          schema: 'mySchema',
+          columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
+          unique: [],
+        },
+      ];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.myTable.getTableName()).toMatchObject({
+        schema: 'mySchema',
+        tableName: 'myTable',
+      });
     });
   });
 });

@@ -1,5 +1,3 @@
-import LruCache from 'lru-cache';
-
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
 import {
@@ -15,6 +13,7 @@ import { Chart, QueryChart } from '../charts/types';
 import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
+import TTLCache from '../utils/ttl-cache';
 
 export type RenderingPermission = {
   team: Team;
@@ -23,18 +22,17 @@ export type RenderingPermission = {
 };
 
 export default class RenderingPermissionService {
-  private readonly permissionsByRendering: LruCache<string, RenderingPermission>;
+  private readonly permissionsByRendering: TTLCache<RenderingPermission>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly userPermissions: UserPermissionService,
     private readonly forestAdminServerInterface: ForestAdminServerInterface,
   ) {
-    this.permissionsByRendering = new LruCache({
-      max: 256,
-      ttl: this.options.permissionsCacheDurationInSeconds * 1000,
-      fetchMethod: renderingId => this.loadPermissions(Number(renderingId)),
-    });
+    this.permissionsByRendering = new TTLCache(
+      async renderingId => this.loadPermissions(Number(renderingId)),
+      this.options.permissionsCacheDurationInSeconds * 1000,
+    );
   }
 
   public async getScope({
@@ -46,7 +44,13 @@ export default class RenderingPermissionService {
     collectionName: string;
     userId: number | string;
   }): Promise<RawTree> {
-    return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: true });
+    return this.getScopeOrRetry({
+      renderingId,
+      collectionName,
+      userId,
+      // Only allow retry when not using server events
+      allowRetry: !this.options.instantCacheRefresh,
+    });
   }
 
   private async getScopeOrRetry({
@@ -60,7 +64,7 @@ export default class RenderingPermissionService {
     userId: number | string;
     allowRetry: boolean;
   }): Promise<RawTree> {
-    const [permissions, userInfo]: [RenderingPermission, UserPermissionV4] = await Promise.all([
+    const [permissions, userInfo] = await Promise.all([
       this.permissionsByRendering.fetch(`${renderingId}`),
       this.userPermissions.getUserInfo(userId),
     ]);
@@ -71,7 +75,12 @@ export default class RenderingPermissionService {
       if (allowRetry) {
         this.invalidateCache(renderingId);
 
-        return this.getScopeOrRetry({ renderingId, collectionName, userId, allowRetry: false });
+        return this.getScopeOrRetry({
+          renderingId,
+          collectionName,
+          userId,
+          allowRetry: false,
+        });
       }
 
       return null;
@@ -97,7 +106,8 @@ export default class RenderingPermissionService {
         renderingId,
         collectionName,
         segmentQuery,
-        allowRetry: true,
+        // Only allow retry when not using server events
+        allowRetry: !this.options.instantCacheRefresh,
       })) && verifySQLQuery(segmentQuery)
     );
   }
@@ -113,9 +123,7 @@ export default class RenderingPermissionService {
     segmentQuery: string;
     allowRetry: boolean;
   }): Promise<boolean> {
-    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
-      `${renderingId}`,
-    );
+    const permissions = await this.permissionsByRendering.fetch(`${renderingId}`);
 
     const collectionPermissions = permissions?.collections?.[collectionName];
 
@@ -180,7 +188,8 @@ export default class RenderingPermissionService {
         renderingId,
         chartHash,
         userId,
-        allowRetry: true,
+        // Only allow retry when not using server events
+        allowRetry: !this.options.instantCacheRefresh,
       })) &&
       (!this.isQueryChart(chartRequest) || verifySQLQuery(chartRequest.query))
     );
@@ -215,7 +224,7 @@ export default class RenderingPermissionService {
 
     if (allowRetry) {
       this.invalidateCache(renderingId);
-      this.userPermissions.clearCache();
+      this.userPermissions.invalidateCache();
 
       return this.canRetrieveChartHashOrRetry({
         renderingId,
@@ -242,14 +251,18 @@ export default class RenderingPermissionService {
     this.permissionsByRendering.delete(`${renderingId}`);
   }
 
+  public invalidateAllCache() {
+    this.options.logger('Debug', `Invalidating rendering permissions cache for all renderings`);
+
+    this.permissionsByRendering.clear();
+  }
+
   public async getUser(userId: number | string): Promise<UserPermissionV4> {
     return this.userPermissions.getUserInfo(userId);
   }
 
   public async getTeam(renderingId: number | string): Promise<Team> {
-    const permissions: RenderingPermission = await this.permissionsByRendering.fetch(
-      `${renderingId}`,
-    );
+    const permissions = await this.permissionsByRendering.fetch(`${renderingId}`);
 
     return permissions.team;
   }

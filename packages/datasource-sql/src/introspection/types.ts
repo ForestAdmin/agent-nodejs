@@ -37,11 +37,13 @@ export type ColumnType =
 
 export type Table = {
   name: string;
+  schema: string | undefined;
   unique: string[][];
   columns: {
     name: string;
     type: ColumnType;
     defaultValue: unknown;
+    isLiteralDefaultValue: boolean;
     allowNull: boolean;
     autoIncrement: boolean;
     primaryKey: boolean;

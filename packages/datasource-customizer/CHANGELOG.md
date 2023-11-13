@@ -1,3 +1,677 @@
+## @forestadmin/datasource-customizer [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.1...@forestadmin/datasource-customizer@1.37.2) (2023-11-02)
+
+
+### Bug Fixes
+
+* **renameAndRemoveField:** allow to rename or remove a relation by improving the TS typing ([#865](https://github.com/ForestAdmin/agent-nodejs/issues/865)) ([1a6a4b4](https://github.com/ForestAdmin/agent-nodejs/commit/1a6a4b45d878eb6c71787b5c8d725ec61e09cc25))
+
+## @forestadmin/datasource-customizer [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.0...@forestadmin/datasource-customizer@1.37.1) (2023-10-27)
+
+
+### Bug Fixes
+
+* **charts:** remove option to set zeros instead of null values & do it by default ([#863](https://github.com/ForestAdmin/agent-nodejs/issues/863)) ([5f88663](https://github.com/ForestAdmin/agent-nodejs/commit/5f8866301b82fdfd0694010aad432fea99c1955e))
+
+# @forestadmin/datasource-customizer [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.36.1...@forestadmin/datasource-customizer@1.37.0) (2023-10-26)
+
+
+### Features
+
+* **charts:** timebasedCharts: add option to display missing points as zeros ([#861](https://github.com/ForestAdmin/agent-nodejs/issues/861)) ([b314d3a](https://github.com/ForestAdmin/agent-nodejs/commit/b314d3a7715e06d7ae7a7ec4bb9b89e4c776e0fd))
+
+## @forestadmin/datasource-customizer [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.36.0...@forestadmin/datasource-customizer@1.36.1) (2023-10-12)
+
+
+### Bug Fixes
+
+* **time-based-chart:** don't crash when there is no value and format the data to display "no data" on the front ([#852](https://github.com/ForestAdmin/agent-nodejs/issues/852)) ([3f033eb](https://github.com/ForestAdmin/agent-nodejs/commit/3f033eb7526f1681f15d9e89b36210b7aef6c536))
+
+# @forestadmin/datasource-customizer [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.5...@forestadmin/datasource-customizer@1.36.0) (2023-10-11)
+
+
+### Features
+
+* **chart:** add multiple time based chart ([#848](https://github.com/ForestAdmin/agent-nodejs/issues/848)) ([0d67ee6](https://github.com/ForestAdmin/agent-nodejs/commit/0d67ee6c62e13f3efb31394177abae6681187e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.0
+
+## @forestadmin/datasource-customizer [1.35.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.4...@forestadmin/datasource-customizer@1.35.5) (2023-10-11)
+
+
+### Bug Fixes
+
+* error starting the server because of a too large string when generating typings ([#849](https://github.com/ForestAdmin/agent-nodejs/issues/849)) ([b2d4943](https://github.com/ForestAdmin/agent-nodejs/commit/b2d4943537211b867e0030f70b8ac271f2f85aa7))
+
+## @forestadmin/datasource-customizer [1.35.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.3...@forestadmin/datasource-customizer@1.35.4) (2023-10-05)
+
+## @forestadmin/datasource-customizer [1.35.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.2...@forestadmin/datasource-customizer@1.35.3) (2023-10-05)
+
+
+### Bug Fixes
+
+* keep searched value in smart action form changes ([#840](https://github.com/ForestAdmin/agent-nodejs/issues/840)) ([83c0b31](https://github.com/ForestAdmin/agent-nodejs/commit/83c0b31422e622bed4867c4b882cba2f9571066d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.1
+
+## @forestadmin/datasource-customizer [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.1...@forestadmin/datasource-customizer@1.35.2) (2023-10-04)
+
+
+### Bug Fixes
+
+* **widgets:** fix the definition of the options property on dropdown to correctly retrieve the type of context ([#842](https://github.com/ForestAdmin/agent-nodejs/issues/842)) ([ee07a42](https://github.com/ForestAdmin/agent-nodejs/commit/ee07a422f1e823076e8c0c08c2643786ad1528be))
+
+## @forestadmin/datasource-customizer [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.35.0...@forestadmin/datasource-customizer@1.35.1) (2023-09-28)
+
+
+### Performance Improvements
+
+* do not send large files to apimap ([#838](https://github.com/ForestAdmin/agent-nodejs/issues/838)) ([30ca9d1](https://github.com/ForestAdmin/agent-nodejs/commit/30ca9d11fbed081770ceb22b19479fd0dd48fda8))
+
+# @forestadmin/datasource-customizer [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.34.1...@forestadmin/datasource-customizer@1.35.0) (2023-09-28)
+
+
+### Features
+
+* support file picker widget in smart action form fields ([#835](https://github.com/ForestAdmin/agent-nodejs/issues/835)) ([b895784](https://github.com/ForestAdmin/agent-nodejs/commit/b8957840458513c2127df5e62d76f5c26637ff0e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.0
+
+## @forestadmin/datasource-customizer [1.34.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.34.0...@forestadmin/datasource-customizer@1.34.1) (2023-09-26)
+
+
+### Bug Fixes
+
+* prevent smart action from from being cleared on change hook ([#834](https://github.com/ForestAdmin/agent-nodejs/issues/834)) ([f9ab089](https://github.com/ForestAdmin/agent-nodejs/commit/f9ab0892fb8f4b20fbccccaca6f1013cdf664988))
+
+# @forestadmin/datasource-customizer [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.33.0...@forestadmin/datasource-customizer@1.34.0) (2023-09-26)
+
+
+### Features
+
+* **widgets:** add support for address picker in custom actions ([#832](https://github.com/ForestAdmin/agent-nodejs/issues/832)) ([6441d8e](https://github.com/ForestAdmin/agent-nodejs/commit/6441d8ee257ef6bef3e27f18f37377eecf0c0730))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.27.0
+
+# @forestadmin/datasource-customizer [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.32.0...@forestadmin/datasource-customizer@1.33.0) (2023-09-25)
+
+
+### Features
+
+* support user dropdown in smart action forms ([#831](https://github.com/ForestAdmin/agent-nodejs/issues/831)) ([e88e43a](https://github.com/ForestAdmin/agent-nodejs/commit/e88e43a30694f9b5f3e7ce2d627388f6576111c3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.26.0
+
+# @forestadmin/datasource-customizer [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.31.0...@forestadmin/datasource-customizer@1.32.0) (2023-09-25)
+
+
+### Bug Fixes
+
+* allow dynamic description in smart action form fields ([#833](https://github.com/ForestAdmin/agent-nodejs/issues/833)) ([26e8d62](https://github.com/ForestAdmin/agent-nodejs/commit/26e8d62bf23cadde8567a9f1e5c353b83edd37b9))
+
+
+### Features
+
+* support time picker widget ([#825](https://github.com/ForestAdmin/agent-nodejs/issues/825)) ([e6acd0a](https://github.com/ForestAdmin/agent-nodejs/commit/e6acd0a85c78725ffd5bd31580aef7ce4b90a665)), closes [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.25.0
+
+# @forestadmin/datasource-customizer [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.30.0...@forestadmin/datasource-customizer@1.31.0) (2023-09-22)
+
+
+### Features
+
+* **widgets:** add support for the json editor widget in actions ([#830](https://github.com/ForestAdmin/agent-nodejs/issues/830)) ([cbd2661](https://github.com/ForestAdmin/agent-nodejs/commit/cbd26616af62846d54a596ce14fe972b8df73bab))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.24.0
+
+# @forestadmin/datasource-customizer [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.2...@forestadmin/datasource-customizer@1.30.0) (2023-09-21)
+
+
+### Features
+
+* dynamic search support for dropdown widget in smart action forms ([#810](https://github.com/ForestAdmin/agent-nodejs/issues/810)) ([92460a8](https://github.com/ForestAdmin/agent-nodejs/commit/92460a86fb4504047d35203440cc9a5e96af599b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.23.0
+
+## @forestadmin/datasource-customizer [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.1...@forestadmin/datasource-customizer@1.29.2) (2023-09-20)
+
+
+### Bug Fixes
+
+* deprecate timeonly custom field type and map it to time ([#827](https://github.com/ForestAdmin/agent-nodejs/issues/827)) ([0311f7d](https://github.com/ForestAdmin/agent-nodejs/commit/0311f7d8367abc4cd9aed7f73c8bbe09dc203821))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.1
+
+## @forestadmin/datasource-customizer [1.29.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.29.0...@forestadmin/datasource-customizer@1.29.1) (2023-09-18)
+
+
+### Bug Fixes
+
+* formValues type definition on action context ([#828](https://github.com/ForestAdmin/agent-nodejs/issues/828)) ([2659435](https://github.com/ForestAdmin/agent-nodejs/commit/26594353f99c03a974bb89d43561d6c4325d6414))
+
+# @forestadmin/datasource-customizer [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.2...@forestadmin/datasource-customizer@1.29.0) (2023-09-15)
+
+
+### Features
+
+* support date picker in action form widgets ([#819](https://github.com/ForestAdmin/agent-nodejs/issues/819)) ([f7ead87](https://github.com/ForestAdmin/agent-nodejs/commit/f7ead87f6c4bc3970f07ec7c965725a4c40b4ad6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
+## @forestadmin/datasource-customizer [1.28.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.1...@forestadmin/datasource-customizer@1.28.2) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** add hasFieldChanged function to handle change hook on this field ([#816](https://github.com/ForestAdmin/agent-nodejs/issues/816)) ([46bae6d](https://github.com/ForestAdmin/agent-nodejs/commit/46bae6d92d6fefe93b43a8a58ae6d7127fa3eacf))
+
+## @forestadmin/datasource-customizer [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.28.0...@forestadmin/datasource-customizer@1.28.1) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** fix smart action default value behavior ([#817](https://github.com/ForestAdmin/agent-nodejs/issues/817)) ([2f9c4c1](https://github.com/ForestAdmin/agent-nodejs/commit/2f9c4c1a967bd4b2189ff10c24d536f4124f37a1))
+
+# @forestadmin/datasource-customizer [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.27.1...@forestadmin/datasource-customizer@1.28.0) (2023-09-12)
+
+
+### Features
+
+* **widgets:** add support for currency widget ([#812](https://github.com/ForestAdmin/agent-nodejs/issues/812)) ([2f263bb](https://github.com/ForestAdmin/agent-nodejs/commit/2f263bb2d263a6e942a349ec7744284837e01ad4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+
+## @forestadmin/datasource-customizer [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.27.0...@forestadmin/datasource-customizer@1.27.1) (2023-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.1
+
+# @forestadmin/datasource-customizer [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.26.0...@forestadmin/datasource-customizer@1.27.0) (2023-09-07)
+
+
+### Features
+
+* **widgets:** add support for color picker in actions ([bae889c](https://github.com/ForestAdmin/agent-nodejs/commit/bae889c144e6d24d58a601f1ea4dea658889b321))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.0
+
+# @forestadmin/datasource-customizer [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.25.0...@forestadmin/datasource-customizer@1.26.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input lists with options in actions ([519d1b7](https://github.com/ForestAdmin/agent-nodejs/commit/519d1b7c344456cdcf26a8972cef619c4efb1a48))
+* **widgets:** add support for number input lists with options in actions ([#807](https://github.com/ForestAdmin/agent-nodejs/issues/807)) ([22d84bd](https://github.com/ForestAdmin/agent-nodejs/commit/22d84bd104dcc7893a9536365329db5ee2467c28))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.19.0
+
+# @forestadmin/datasource-customizer [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.24.0...@forestadmin/datasource-customizer@1.25.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input in custom actions ([8f52fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8f52fb3c90e5050873390a167fbb11df5fa34863))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+
+# @forestadmin/datasource-customizer [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.23.0...@forestadmin/datasource-customizer@1.24.0) (2023-09-01)
+
+
+### Features
+
+* **widgets:** add support for the checkbox group widget in custom actions ([ee9ba13](https://github.com/ForestAdmin/agent-nodejs/commit/ee9ba13f90cce42d9f0a60ace483246cbaf3048f))
+* **widgets:** add support for the checkbox group widget in custom actions ([#804](https://github.com/ForestAdmin/agent-nodejs/issues/804)) ([e579850](https://github.com/ForestAdmin/agent-nodejs/commit/e57985009eed12362695c0dc029c25277900a626))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.17.0
+
+# @forestadmin/datasource-customizer [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.22.0...@forestadmin/datasource-customizer@1.23.0) (2023-08-31)
+
+
+### Bug Fixes
+
+* allow dynamic options ([badea1b](https://github.com/ForestAdmin/agent-nodejs/commit/badea1b11e4d5ccaa25f0b29d3fc49a23a84043c))
+* type for dynamic dropdowns and radio groups ([7df4523](https://github.com/ForestAdmin/agent-nodejs/commit/7df452344cc48435deb91ca67818594523abb65a))
+
+
+### Features
+
+* **widgets:** add support for the radio button group widget in custom actions ([dfba9dc](https://github.com/ForestAdmin/agent-nodejs/commit/dfba9dc84c7e2ddf06cfa7331df8b6c9840692c2))
+* **widgets:** add support for the radio button group widget in custom actions ([#803](https://github.com/ForestAdmin/agent-nodejs/issues/803)) ([e2e6a40](https://github.com/ForestAdmin/agent-nodejs/commit/e2e6a406515023d807bf36ec6e594c616f509ea1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.16.0
+
+# @forestadmin/datasource-customizer [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.21.0...@forestadmin/datasource-customizer@1.22.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** support rich text widget in custom actions ([4a30c7d](https://github.com/ForestAdmin/agent-nodejs/commit/4a30c7d4d4810f2875199f74e38ac8f5ecfa63ce))
+* **widgets:** support rich text widget in custom actions ([#802](https://github.com/ForestAdmin/agent-nodejs/issues/802)) ([e4ebbde](https://github.com/ForestAdmin/agent-nodejs/commit/e4ebbde7238abb797af42d16d47f2431c1d78db8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.15.0
+
+# @forestadmin/datasource-customizer [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.20.0...@forestadmin/datasource-customizer@1.21.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for textarea widget in custom actions ([a15ae51](https://github.com/ForestAdmin/agent-nodejs/commit/a15ae514467545f9db1ba8c6a9ece49d2e97c7ae))
+* **widgets:** add support for textarea widget in custom actions ([#801](https://github.com/ForestAdmin/agent-nodejs/issues/801)) ([9dfa02c](https://github.com/ForestAdmin/agent-nodejs/commit/9dfa02c4703d47dd6a0c77a68e71dec993ed246f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.14.0
+
+# @forestadmin/datasource-customizer [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.19.0...@forestadmin/datasource-customizer@1.20.0) (2023-08-31)
+
+
+### Features
+
+* add support for dynamic options ([#799](https://github.com/ForestAdmin/agent-nodejs/issues/799)) ([264f8d0](https://github.com/ForestAdmin/agent-nodejs/commit/264f8d09a4286b4a8aab64ed150edd909893cd9f))
+
+# @forestadmin/datasource-customizer [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.18.1...@forestadmin/datasource-customizer@1.19.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for TextInputList in smart actions ([779c600](https://github.com/ForestAdmin/agent-nodejs/commit/779c600a8f0ca4b9fc96d39dd6368e43e74aa41f))
+* **widgets:** add support for TextInputList in smart actions ([#798](https://github.com/ForestAdmin/agent-nodejs/issues/798)) ([bab54a8](https://github.com/ForestAdmin/agent-nodejs/commit/bab54a8fb36dd31dbb9c25415248d84e3f9a32f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.13.0
+
+## @forestadmin/datasource-customizer [1.18.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.18.0...@forestadmin/datasource-customizer@1.18.1) (2023-08-30)
+
+
+### Bug Fixes
+
+* **widgets:** allow to use StringList type without a widget in smart actions ([ada41d5](https://github.com/ForestAdmin/agent-nodejs/commit/ada41d544977893b92c1832b0e48bf82a076a795))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.1
+
+# @forestadmin/datasource-customizer [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.17.0...@forestadmin/datasource-customizer@1.18.0) (2023-08-29)
+
+
+### Features
+
+* **widgets:** add support for text input widget in smart actions ([70c517b](https://github.com/ForestAdmin/agent-nodejs/commit/70c517bdb1d763e62c69dd63c033f3e6c2bcafe8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.0
+
+# @forestadmin/datasource-customizer [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.16.0...@forestadmin/datasource-customizer@1.17.0) (2023-08-29)
+
+
+### Features
+
+* add support for the checkbox widget for boolean fields in smart actions ([f6de833](https://github.com/ForestAdmin/agent-nodejs/commit/f6de8337497b8ef0b92b5cbd627fddf87d75f3d3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.11.0
+
+# @forestadmin/datasource-customizer [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.15.0...@forestadmin/datasource-customizer@1.16.0) (2023-08-28)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+* add support for stringList dropdown ([#793](https://github.com/ForestAdmin/agent-nodejs/issues/793)) ([7a42278](https://github.com/ForestAdmin/agent-nodejs/commit/7a422781a499d5da0bc37d291e2bc664b0216f8f))
+* allow to use an array of values for dropdown options ([#790](https://github.com/ForestAdmin/agent-nodejs/issues/790)) ([8f09376](https://github.com/ForestAdmin/agent-nodejs/commit/8f09376cee2649a96edc3c2563814e15af5d63be))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0
+
+# @forestadmin/datasource-customizer [1.16.0-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.16.0-alpha-widgets.1...@forestadmin/datasource-customizer@1.16.0-alpha-widgets.2) (2023-08-25)
+
+
+### Features
+
+* add support for stringList dropdown ([#793](https://github.com/ForestAdmin/agent-nodejs/issues/793)) ([7a42278](https://github.com/ForestAdmin/agent-nodejs/commit/7a422781a499d5da0bc37d291e2bc664b0216f8f))
+
+# @forestadmin/datasource-customizer [1.16.0-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.15.0...@forestadmin/datasource-customizer@1.16.0-alpha-widgets.1) (2023-08-23)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+* allow to use an array of values for dropdown options ([#790](https://github.com/ForestAdmin/agent-nodejs/issues/790)) ([8f09376](https://github.com/ForestAdmin/agent-nodejs/commit/8f09376cee2649a96edc3c2563814e15af5d63be))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0-alpha-widgets.1
+
+# @forestadmin/datasource-customizer [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.14.0...@forestadmin/datasource-customizer@1.15.0) (2023-08-11)
+
+
+### Features
+
+* **datasource-replica:** add replica datasource ([#783](https://github.com/ForestAdmin/agent-nodejs/issues/783)) ([e57a444](https://github.com/ForestAdmin/agent-nodejs/commit/e57a4440eb0f2ef69b95e42e1c41fd81e1813bb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+
+# @forestadmin/datasource-customizer [1.15.0-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.15.0-alpha-widgets.1...@forestadmin/datasource-customizer@1.15.0-alpha-widgets.2) (2023-08-23)
+
+
+### Features
+
+* allow to use an array of values for dropdown options ([#790](https://github.com/ForestAdmin/agent-nodejs/issues/790)) ([8f09376](https://github.com/ForestAdmin/agent-nodejs/commit/8f09376cee2649a96edc3c2563814e15af5d63be))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+
+# @forestadmin/datasource-customizer [1.15.0-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.14.0...@forestadmin/datasource-customizer@1.15.0-alpha-widgets.1) (2023-08-23)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.1
+
+# @forestadmin/datasource-customizer [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.13.0...@forestadmin/datasource-customizer@1.14.0) (2023-07-27)
+
+
+### Features
+
+* **datasource-customizer:** expose native driver to customers ([#779](https://github.com/ForestAdmin/agent-nodejs/issues/779)) ([350b1c3](https://github.com/ForestAdmin/agent-nodejs/commit/350b1c3dc076ab2fdfb2fbba1532548624131b94))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.8.0
+
+# @forestadmin/datasource-customizer [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.12.1...@forestadmin/datasource-customizer@1.13.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** allow removing collections during customization ([#715](https://github.com/ForestAdmin/agent-nodejs/issues/715)) ([831c3c5](https://github.com/ForestAdmin/agent-nodejs/commit/831c3c5c6714f78570a946677749abcbcd768e72))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.7.0
+
+## @forestadmin/datasource-customizer [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.12.0...@forestadmin/datasource-customizer@1.12.1) (2023-07-26)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** fix addChart tsdoc ([#778](https://github.com/ForestAdmin/agent-nodejs/issues/778)) ([f1101fb](https://github.com/ForestAdmin/agent-nodejs/commit/f1101fb432f1b43d7ea1aa27bbe7da9890f1f075))
+
+# @forestadmin/datasource-customizer [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.11.0...@forestadmin/datasource-customizer@1.12.0) (2023-07-26)
+
+
+### Features
+
+* **datasource-customizer:** generate typings aliases for easier use ([#777](https://github.com/ForestAdmin/agent-nodejs/issues/777)) ([7f8f03c](https://github.com/ForestAdmin/agent-nodejs/commit/7f8f03c71b3eedebdfd2deb094a55f05ecba746d))
+
+# @forestadmin/datasource-customizer [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.10.2...@forestadmin/datasource-customizer@1.11.0) (2023-07-25)
+
+
+### Features
+
+* add changed field to action context ([#769](https://github.com/ForestAdmin/agent-nodejs/issues/769)) ([dbfa25e](https://github.com/ForestAdmin/agent-nodejs/commit/dbfa25ec3e0dd09acb39be1ee702505a5cdd60f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.6.0
+
+## @forestadmin/datasource-customizer [1.10.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.10.1...@forestadmin/datasource-customizer@1.10.2) (2023-07-20)
+
+
+### Bug Fixes
+
+* **add field decorator:** throw when put space inside fieldName ([#767](https://github.com/ForestAdmin/agent-nodejs/issues/767)) ([b6840ef](https://github.com/ForestAdmin/agent-nodejs/commit/b6840efaeada99d8056802566e557f57f0c8b4e4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.2
+
+## @forestadmin/datasource-customizer [1.10.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.10.0...@forestadmin/datasource-customizer@1.10.1) (2023-07-05)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** attempt to fix install when using latest nestjs version ([#758](https://github.com/ForestAdmin/agent-nodejs/issues/758)) ([04098ab](https://github.com/ForestAdmin/agent-nodejs/commit/04098abee10495c83881e08a231ecae266c2fefa))
+
+# @forestadmin/datasource-customizer [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.3...@forestadmin/datasource-customizer@1.10.0) (2023-07-05)
+
+
+### Features
+
+* **config:** configuration now allows to differenciate bucket path and database path ([#752](https://github.com/ForestAdmin/agent-nodejs/issues/752)) ([dbc3b78](https://github.com/ForestAdmin/agent-nodejs/commit/dbc3b788585857107c1baf3f0d134408b9eaec2b))
+
+## @forestadmin/datasource-customizer [1.9.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.2...@forestadmin/datasource-customizer@1.9.3) (2023-06-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.1
+
+## @forestadmin/datasource-customizer [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.1...@forestadmin/datasource-customizer@1.9.2) (2023-06-26)
+
+
+### Bug Fixes
+
+* **rename field decorator:** throw when put space inside fieldName ([#748](https://github.com/ForestAdmin/agent-nodejs/issues/748)) ([5793eff](https://github.com/ForestAdmin/agent-nodejs/commit/5793eff8040c04b33afe31932b050fb6f0beb578))
+
+## @forestadmin/datasource-customizer [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.9.0...@forestadmin/datasource-customizer@1.9.1) (2023-06-19)
+
+
+### Bug Fixes
+
+* **customizer:** validate fields on user facing collection interface ([#731](https://github.com/ForestAdmin/agent-nodejs/issues/731)) ([56d4278](https://github.com/ForestAdmin/agent-nodejs/commit/56d42788d9f66fddc88bb79ccf6573bb88202687))
+
+# @forestadmin/datasource-customizer [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.8.0...@forestadmin/datasource-customizer@1.9.0) (2023-06-15)
+
+
+### Features
+
+* **agent:** allow to create update record custom actions from the frontend ([#729](https://github.com/ForestAdmin/agent-nodejs/issues/729)) ([e06ac79](https://github.com/ForestAdmin/agent-nodejs/commit/e06ac79111378c7bdf6e7ab9219e9ea2377e6649))
+
+# @forestadmin/datasource-customizer [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.2...@forestadmin/datasource-customizer@1.8.0) (2023-06-08)
+
+
+### Features
+
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
+
+# @forestadmin/datasource-customizer [1.8.0-alpha-webhook-custom-actions.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.1...@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.2) (2023-06-07)
+
+
+### Bug Fixes
+
+* **typings:** allow incomplete records to be passed to collection.create ([#700](https://github.com/ForestAdmin/agent-nodejs/issues/700)) ([95483e2](https://github.com/ForestAdmin/agent-nodejs/commit/95483e277d695a9f3ed19d86b2f6834413007afc))
+
+# @forestadmin/datasource-customizer [1.8.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.1...@forestadmin/datasource-customizer@1.8.0-alpha-webhook-custom-actions.1) (2023-04-28)
+
+
+### Features
+
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
+## @forestadmin/datasource-customizer [1.7.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.1...@forestadmin/datasource-customizer@1.7.2) (2023-05-24)
+
+
+### Bug Fixes
+
+* **typings:** allow incomplete records to be passed to collection.create ([#700](https://github.com/ForestAdmin/agent-nodejs/issues/700)) ([95483e2](https://github.com/ForestAdmin/agent-nodejs/commit/95483e277d695a9f3ed19d86b2f6834413007afc))
+
 ## @forestadmin/datasource-customizer [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.7.0...@forestadmin/datasource-customizer@1.7.1) (2023-04-27)
 
 
@@ -19,6 +693,13 @@
 ### Dependencies
 
 * **@forestadmin/datasource-toolkit:** upgraded to 1.5.0
+
+# @forestadmin/datasource-customizer [1.7.0-alpha-webhook-custom-actions.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.6.2...@forestadmin/datasource-customizer@1.7.0-alpha-webhook-custom-actions.1) (2023-04-20)
+
+
+### Features
+
+* **webhook-custom-actions:** use webhook nocode smart actions configured in the frontend ([#671](https://github.com/ForestAdmin/agent-nodejs/issues/671)) ([7629699](https://github.com/ForestAdmin/agent-nodejs/commit/762969922c98ad4b15ee2407d5789ab939059020))
 
 ## @forestadmin/datasource-customizer [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.6.1...@forestadmin/datasource-customizer@1.6.2) (2023-04-19)
 

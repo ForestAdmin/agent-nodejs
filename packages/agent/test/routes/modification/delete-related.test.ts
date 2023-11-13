@@ -73,7 +73,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -135,7 +135,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -189,7 +189,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+            {
+              email: 'john.doe@domain.com',
+              requestId: expect.any(String),
+              timezone: 'Europe/Paris',
+            },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'Equal',
@@ -306,7 +310,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -334,7 +338,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       );
 
       expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -409,7 +413,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -437,7 +441,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         );
 
         expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -503,7 +507,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           await count.handleDissociateDeleteRelatedRoute(context);
 
           expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+            {
+              email: 'john.doe@domain.com',
+              requestId: expect.any(String),
+              timezone: 'Europe/Paris',
+            },
             new Filter({
               conditionTree: factories.conditionTreeBranch.build({
                 aggregator: 'And',
@@ -523,7 +531,11 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           );
 
           expect(dataSource.getCollection('libraries').delete).toHaveBeenCalledWith(
-            { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+            {
+              email: 'john.doe@domain.com',
+              requestId: expect.any(String),
+              timezone: 'Europe/Paris',
+            },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
                 operator: 'In',
@@ -539,6 +551,54 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
           expect(context.response.status).toEqual(HttpCode.NoContent);
         });
       });
+    });
+  });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+
+      const bookPersons = factories.collection.build({
+        name: 'bookPersons+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+          },
+        }),
+      });
+
+      const books = factories.collection.build({
+        name: 'books+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            myBookPersons: factories.oneToManySchema.build({
+              foreignCollection: 'bookPersons+*?',
+              originKey: 'bookId',
+              originKeyTarget: 'id',
+            }),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([bookPersons, books]);
+
+      const route = new DissociateDeleteRoute(
+        services,
+        options,
+        dataSource,
+        'books+*?',
+        'myBookPersons+*?',
+      );
+
+      route.setupRoutes(router);
+
+      expect(router.delete).toHaveBeenCalledWith(
+        '/books\\+\\*\\?/:parentId/relationships/myBookPersons\\+\\*\\?',
+        expect.any(Function),
+      );
     });
   });
 });

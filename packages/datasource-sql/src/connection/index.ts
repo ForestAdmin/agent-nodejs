@@ -1,79 +1,62 @@
-import type { ConnectionOptions, SslMode } from '../types';
-import type { Logger } from '@forestadmin/datasource-toolkit';
+import { Sequelize } from 'sequelize';
 
-import { Dialect, Sequelize } from 'sequelize';
-
-import preprocessOptions from './preprocess';
-import { getLogger, getSchema, handleSequelizeError } from './utils';
-
-function getSslConfiguration(
-  dialect: Dialect,
-  sslMode: SslMode,
-  logger?: Logger,
-): Record<string, unknown> {
-  switch (dialect) {
-    case 'mariadb':
-      if (sslMode === 'disabled') return { ssl: false };
-      if (sslMode === 'required') return { ssl: { rejectUnauthorized: false } };
-      if (sslMode === 'verify') return { ssl: true };
-      break;
-
-    case 'mssql':
-      if (sslMode === 'disabled') return { options: { encrypt: false } };
-      if (sslMode === 'required')
-        return { options: { encrypt: true, trustServerCertificate: true } };
-      if (sslMode === 'verify')
-        return { options: { encrypt: true, trustServerCertificate: false } };
-      break;
-
-    case 'mysql':
-      if (sslMode === 'disabled') return { ssl: false };
-      if (sslMode === 'required') return { ssl: { rejectUnauthorized: false } };
-      if (sslMode === 'verify') return { ssl: { rejectUnauthorized: true } };
-      break;
-
-    case 'postgres':
-      if (sslMode === 'disabled') return { ssl: false };
-      if (sslMode === 'required') return { ssl: { require: true, rejectUnauthorized: false } };
-      if (sslMode === 'verify') return { ssl: { require: true, rejectUnauthorized: true } };
-      break;
-
-    case 'db2':
-    case 'oracle':
-    case 'snowflake':
-    case 'sqlite':
-    default:
-      if (sslMode && sslMode !== 'manual') {
-        logger?.('Warn', `ignoring sslMode=${sslMode} (not supported for ${dialect})`);
-      }
-
-      return {};
-  }
-}
+import ConnectionOptions from './connection-options';
+import testConnectionWithTimeOut from './connection-tester';
+import handleErrors from './handle-errors';
+import SequelizeFactory from './sequelize-factory';
+import ReverseProxy from './services/reverse-proxy';
+import SocksProxy from './services/socks-proxy';
+import SshTunnel from './services/ssh-tunnel';
 
 /** Attempt to connect to the database */
-export default async function connect(
-  uriOrOptions: ConnectionOptions,
-  logger?: Logger,
-): Promise<Sequelize> {
+export default async function connect(options: ConnectionOptions): Promise<Sequelize> {
+  let socksProxy: SocksProxy;
+  let sshTunnel: SshTunnel;
+  let reverseProxy: ReverseProxy;
+  let sequelize: Sequelize;
+
   try {
-    const { uri, sslMode, ...opts } = await preprocessOptions(uriOrOptions);
-    const schema = opts.schema ?? getSchema(uri);
-    const logging = logger ? getLogger(logger) : false;
+    if (options.proxyOptions || options.sshOptions) {
+      reverseProxy = new ReverseProxy();
+      await reverseProxy.start();
+    }
 
-    opts.dialectOptions = {
-      ...(opts.dialectOptions ?? {}),
-      ...getSslConfiguration(opts.dialect, sslMode, logger),
-    };
+    if (options.proxyOptions) {
+      // destination is the ssh server or the database
+      const { host, port } = options.sshOptions ?? options;
+      socksProxy = new SocksProxy(options.proxyOptions, host, port);
+      reverseProxy.link(socksProxy);
+    }
 
-    const sequelize = uri
-      ? new Sequelize(uri, { ...opts, schema, logging })
-      : new Sequelize({ ...opts, schema, logging });
+    if (options.sshOptions) {
+      const { host, port, sshOptions } = options;
+      // database is the destination
+      sshTunnel = new SshTunnel(sshOptions, host, port);
+      // if socksProxy is defined, it means that we are using a proxy
+      // so we need to link to the socksProxy otherwise to the reverseProxy
+      (socksProxy ?? reverseProxy).link(sshTunnel);
+    }
 
-    await sequelize.authenticate(); // Test connection
+    // change the host and port of the sequelize options to point to the reverse proxy
+    if (reverseProxy) options.changeHostAndPort(reverseProxy.host, reverseProxy.port);
+
+    sequelize = SequelizeFactory.build(
+      await options.buildSequelizeCtorOptions(),
+      // stop the reverse proxy when the sequelize connection is closed
+      reverseProxy?.stop.bind(reverseProxy),
+    );
+
+    await testConnectionWithTimeOut(
+      sequelize,
+      options.debugDatabaseUri,
+      options.connectionTimeoutInMs,
+    );
 
     return sequelize;
   } catch (e) {
-    handleSequelizeError(e as Error);
+    await sequelize?.close();
+    // if ssh or socksProxy or reverseProxy encountered an error,
+    // we want to throw it instead of the sequelize error
+    handleErrors(sshTunnel?.error ?? socksProxy?.error ?? reverseProxy?.error ?? e, options);
   }
 }

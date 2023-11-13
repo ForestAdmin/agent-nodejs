@@ -1,3 +1,385 @@
+## @forestadmin/datasource-mongoose [1.5.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.29...@forestadmin/datasource-mongoose@1.5.30) (2023-10-31)
+
+
+### Bug Fixes
+
+* support mangoose decimal128 type ([#864](https://github.com/ForestAdmin/agent-nodejs/issues/864)) ([5bbed39](https://github.com/ForestAdmin/agent-nodejs/commit/5bbed39c05546ffcba8d4de2f7aef3844a4e1972))
+
+## @forestadmin/datasource-mongoose [1.5.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.28...@forestadmin/datasource-mongoose@1.5.29) (2023-10-26)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** error on a nested field when requesting a child property on a missing value ([#860](https://github.com/ForestAdmin/agent-nodejs/issues/860)) ([6a04be7](https://github.com/ForestAdmin/agent-nodejs/commit/6a04be7bd525e5d4c73a95c019191a8c0ec3c0db))
+
+## @forestadmin/datasource-mongoose [1.5.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.27...@forestadmin/datasource-mongoose@1.5.28) (2023-10-17)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** don't return records for null values of flattened fields when using asModel on object fields ([#853](https://github.com/ForestAdmin/agent-nodejs/issues/853)) ([d4b3f0c](https://github.com/ForestAdmin/agent-nodejs/commit/d4b3f0c9b671efc5df7ab9af6b939ba5a587862b))
+
+## @forestadmin/datasource-mongoose [1.5.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.26...@forestadmin/datasource-mongoose@1.5.27) (2023-10-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.0
+
+## @forestadmin/datasource-mongoose [1.5.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.25...@forestadmin/datasource-mongoose@1.5.26) (2023-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.1
+
+## @forestadmin/datasource-mongoose [1.5.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.24...@forestadmin/datasource-mongoose@1.5.25) (2023-09-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.0
+
+## @forestadmin/datasource-mongoose [1.5.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.23...@forestadmin/datasource-mongoose@1.5.24) (2023-09-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.27.0
+
+## @forestadmin/datasource-mongoose [1.5.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.22...@forestadmin/datasource-mongoose@1.5.23) (2023-09-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.26.0
+
+## @forestadmin/datasource-mongoose [1.5.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.21...@forestadmin/datasource-mongoose@1.5.22) (2023-09-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.25.0
+
+## @forestadmin/datasource-mongoose [1.5.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.20...@forestadmin/datasource-mongoose@1.5.21) (2023-09-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.24.0
+
+## @forestadmin/datasource-mongoose [1.5.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.19...@forestadmin/datasource-mongoose@1.5.20) (2023-09-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.23.0
+
+## @forestadmin/datasource-mongoose [1.5.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.18...@forestadmin/datasource-mongoose@1.5.19) (2023-09-20)
+
+
+### Bug Fixes
+
+* deprecate timeonly custom field type and map it to time ([#827](https://github.com/ForestAdmin/agent-nodejs/issues/827)) ([0311f7d](https://github.com/ForestAdmin/agent-nodejs/commit/0311f7d8367abc4cd9aed7f73c8bbe09dc203821))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.1
+
+## @forestadmin/datasource-mongoose [1.5.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.17...@forestadmin/datasource-mongoose@1.5.18) (2023-09-15)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
+## @forestadmin/datasource-mongoose [1.5.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.16...@forestadmin/datasource-mongoose@1.5.17) (2023-09-13)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** fix errors when creating or retrieving records from collections created with asModel on an object field ([#821](https://github.com/ForestAdmin/agent-nodejs/issues/821)) ([d3858fe](https://github.com/ForestAdmin/agent-nodejs/commit/d3858fedbdde37c20811ff9505e9fd57d4c6b2c5))
+
+## @forestadmin/datasource-mongoose [1.5.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.15...@forestadmin/datasource-mongoose@1.5.16) (2023-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+
+## @forestadmin/datasource-mongoose [1.5.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.14...@forestadmin/datasource-mongoose@1.5.15) (2023-09-12)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** return values instead of null when querying nested properties on a flattened field ([#820](https://github.com/ForestAdmin/agent-nodejs/issues/820)) ([1434c9f](https://github.com/ForestAdmin/agent-nodejs/commit/1434c9f53896a54b470a3a226e62865d80318ace))
+
+## @forestadmin/datasource-mongoose [1.5.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.13...@forestadmin/datasource-mongoose@1.5.14) (2023-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.1
+
+## @forestadmin/datasource-mongoose [1.5.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.12...@forestadmin/datasource-mongoose@1.5.13) (2023-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.0
+
+## @forestadmin/datasource-mongoose [1.5.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.11...@forestadmin/datasource-mongoose@1.5.12) (2023-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.19.0
+
+## @forestadmin/datasource-mongoose [1.5.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.10...@forestadmin/datasource-mongoose@1.5.11) (2023-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+
+## @forestadmin/datasource-mongoose [1.5.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.9...@forestadmin/datasource-mongoose@1.5.10) (2023-09-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.17.0
+
+## @forestadmin/datasource-mongoose [1.5.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.8...@forestadmin/datasource-mongoose@1.5.9) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.16.0
+
+## @forestadmin/datasource-mongoose [1.5.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.7...@forestadmin/datasource-mongoose@1.5.8) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.15.0
+
+## @forestadmin/datasource-mongoose [1.5.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.6...@forestadmin/datasource-mongoose@1.5.7) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.14.0
+
+## @forestadmin/datasource-mongoose [1.5.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.5...@forestadmin/datasource-mongoose@1.5.6) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.13.0
+
+## @forestadmin/datasource-mongoose [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.4...@forestadmin/datasource-mongoose@1.5.5) (2023-08-30)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.1
+
+## @forestadmin/datasource-mongoose [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.3...@forestadmin/datasource-mongoose@1.5.4) (2023-08-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.0
+
+## @forestadmin/datasource-mongoose [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.2...@forestadmin/datasource-mongoose@1.5.3) (2023-08-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.11.0
+
+## @forestadmin/datasource-mongoose [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.1...@forestadmin/datasource-mongoose@1.5.2) (2023-08-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0
+
+## @forestadmin/datasource-mongoose [1.5.2-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.1...@forestadmin/datasource-mongoose@1.5.2-alpha-widgets.1) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0-alpha-widgets.1
+
+## @forestadmin/datasource-mongoose [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.0...@forestadmin/datasource-mongoose@1.5.1) (2023-08-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+
+## @forestadmin/datasource-mongoose [1.5.1-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.1-alpha-widgets.1...@forestadmin/datasource-mongoose@1.5.1-alpha-widgets.2) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+
+## @forestadmin/datasource-mongoose [1.5.1-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.0...@forestadmin/datasource-mongoose@1.5.1-alpha-widgets.1) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.1
+
+# @forestadmin/datasource-mongoose [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.5...@forestadmin/datasource-mongoose@1.5.0) (2023-07-27)
+
+
+### Features
+
+* **datasource-customizer:** expose native driver to customers ([#779](https://github.com/ForestAdmin/agent-nodejs/issues/779)) ([350b1c3](https://github.com/ForestAdmin/agent-nodejs/commit/350b1c3dc076ab2fdfb2fbba1532548624131b94))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.8.0
+
+## @forestadmin/datasource-mongoose [1.4.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.4...@forestadmin/datasource-mongoose@1.4.5) (2023-07-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.7.0
+
+## @forestadmin/datasource-mongoose [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.3...@forestadmin/datasource-mongoose@1.4.4) (2023-07-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.6.0
+
+## @forestadmin/datasource-mongoose [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.2...@forestadmin/datasource-mongoose@1.4.3) (2023-07-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.2
+
+## @forestadmin/datasource-mongoose [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.1...@forestadmin/datasource-mongoose@1.4.2) (2023-07-10)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** when combining asModels and asFields, collection.create returns invalid records for subcollections ([#763](https://github.com/ForestAdmin/agent-nodejs/issues/763)) ([dda1008](https://github.com/ForestAdmin/agent-nodejs/commit/dda1008dff0362c5784e325dfe55e021cfe390b0))
+
+## @forestadmin/datasource-mongoose [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.4.0...@forestadmin/datasource-mongoose@1.4.1) (2023-06-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.5.1
+
 # @forestadmin/datasource-mongoose [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.3.5...@forestadmin/datasource-mongoose@1.4.0) (2023-04-26)
 
 

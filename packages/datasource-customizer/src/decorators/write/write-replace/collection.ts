@@ -1,7 +1,9 @@
 import {
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
+  DataSourceDecorator,
   Filter,
   RecordData,
   RecordValidator,
@@ -9,8 +11,6 @@ import {
 
 import WriteCustomizationContext from './context';
 import { WriteDefinition } from './types';
-import CollectionDecorator from '../../collection-decorator';
-import DataSourceDecorator from '../../datasource-decorator';
 
 export default class WriteReplacerCollectionDecorator extends CollectionDecorator {
   private handlers: Record<string, WriteDefinition> = {};
@@ -48,7 +48,7 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    const newPatch = await this.rewritePatch(caller, 'update', patch);
+    const newPatch = await this.rewritePatch(caller, 'update', patch, [], filter);
 
     return this.childCollection.update(caller, filter, newPatch);
   }
@@ -61,9 +61,10 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
     action: 'create' | 'update',
     patch: RecordData,
     usedHandlers: string[] = [],
+    filter?: Filter,
   ): Promise<RecordData> {
     // We rewrite the patch by applying all handlers on each field.
-    const context = new WriteCustomizationContext(this, caller, action, patch);
+    const context = new WriteCustomizationContext(this, caller, action, patch, filter);
     const patches = await Promise.all(
       Object.keys(patch).map(key => this.rewriteKey(context, key, usedHandlers)),
     );

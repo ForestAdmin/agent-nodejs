@@ -1,9 +1,12 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
-import type { Client } from 'openid-client';
 
-import { UserInfo } from './auth/types';
+import { ParsedUrlQuery } from 'querystring';
+
+import { Tokens, UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
+import { HttpOptions } from './permissions/forest-http-api';
 import {
   CollectionActionEvent,
   EnvironmentPermissionsV4,
@@ -25,23 +28,30 @@ export type ForestAdminClientOptions = {
   forestServerUrl?: string;
   logger?: Logger;
   permissionsCacheDurationInSeconds?: number;
+  instantCacheRefresh?: boolean;
 };
 
 export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions>;
+
+export type ForestAdminAuthServiceInterface = {
+  init: () => Promise<void>;
+  getUserInfo: (renderingId: number, accessToken: string) => Promise<UserInfo>;
+  generateAuthorizationUrl: (params: { scope: string; state: string }) => Promise<string>;
+  generateTokens: (params: { query: ParsedUrlQuery; state: string }) => Promise<Tokens>;
+};
 
 export interface ForestAdminClient {
   readonly permissionService: PermissionService;
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
+  readonly modelCustomizationService: ModelCustomizationService;
+  readonly authService: ForestAdminAuthServiceInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
   getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration>;
 
   postSchema(schema: ForestSchema): Promise<boolean>;
-  getOpenIdClient(): Promise<Client>;
-
-  getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo>;
 
   getScope(params: {
     renderingId: number | string;
@@ -49,6 +59,10 @@ export interface ForestAdminClient {
     collectionName: string;
   }): Promise<RawTree>;
   markScopesAsUpdated(renderingId: number | string): void;
+
+  subscribeToServerEvents(): Promise<void>;
+  close(): void;
+  onRefreshCustomizations(handler: () => void | Promise<void>): void;
 }
 
 export interface PermissionService {
@@ -141,4 +155,6 @@ export interface ForestAdminServerInterface {
   getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
   getUsers: (...args) => Promise<UserPermissionV4[]>;
   getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
+  getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
+  makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
 }

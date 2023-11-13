@@ -2,11 +2,13 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ColumnType,
   ConditionTree,
   ConditionTreeLeaf,
+  DataSourceDecorator,
   FieldSchema,
   Filter,
   PaginatedFilter,
@@ -17,8 +19,6 @@ import {
 import FileType from 'file-type';
 
 import { BinaryMode } from './types';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data

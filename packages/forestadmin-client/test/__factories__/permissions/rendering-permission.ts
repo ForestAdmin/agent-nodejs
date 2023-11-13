@@ -2,7 +2,7 @@ import { Factory } from 'fishery';
 
 import userPermissionsFactory from './user-permission';
 import RenderingPermissionService from '../../../src/permissions/rendering-permission';
-import { forestAdminServerInterface } from '../index';
+import { forestAdminClientOptions, forestAdminServerInterface } from '../index';
 
 export class RenderingPermissionsFactory extends Factory<RenderingPermissionService> {
   mockAllMethods() {
@@ -10,6 +10,7 @@ export class RenderingPermissionsFactory extends Factory<RenderingPermissionServ
       permissions.getScope = jest.fn();
       permissions.canExecuteChart = jest.fn();
       permissions.invalidateCache = jest.fn();
+      permissions.invalidateAllCache = jest.fn();
       permissions.canExecuteSegmentQuery = jest.fn();
       permissions.getUser = jest.fn();
       permissions.getTeam = jest.fn();
@@ -20,12 +21,7 @@ export class RenderingPermissionsFactory extends Factory<RenderingPermissionServ
 const renderingPermissionsFactory = RenderingPermissionsFactory.define(
   () =>
     new RenderingPermissionService(
-      {
-        envSecret: '123',
-        forestServerUrl: 'http://api',
-        permissionsCacheDurationInSeconds: 15 * 60,
-        logger: () => {},
-      },
+      forestAdminClientOptions.build(),
       userPermissionsFactory.build(),
       forestAdminServerInterface.build(),
     ),

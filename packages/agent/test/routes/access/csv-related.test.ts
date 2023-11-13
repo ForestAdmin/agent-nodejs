@@ -117,12 +117,12 @@ describe('CsvRelatedRoute', () => {
       // then
       expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
-      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
-      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'persons');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'persons');
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
@@ -134,7 +134,7 @@ describe('CsvRelatedRoute', () => {
         dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );
@@ -211,12 +211,12 @@ describe('CsvRelatedRoute', () => {
       // then
       expect(buildPaginated).toHaveBeenCalledWith(personsCollection, context, scopeCondition);
 
-      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'books');
-      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanBrowse).toHaveBeenCalledWith(context, 'persons');
+      expect(services.authorization.assertCanExport).toHaveBeenCalledWith(context, 'persons');
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
@@ -228,9 +228,34 @@ describe('CsvRelatedRoute', () => {
         dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
-        { email: 'john.doe@domain.com', timezone: 'Europe/Paris' },
+        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
         expect.any(PaginatedFilter),
         expect.any(Projection),
+      );
+    });
+  });
+
+  describe('with special characters in names', () => {
+    it('should register routes with escaped characters', () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const router = factories.router.mockAllMethods().build();
+      const services = factories.forestAdminHttpDriverServices.build();
+      const dataSource = factories.dataSource.buildWithCollection({
+        name: 'books+?*',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+          },
+        }),
+      });
+
+      const route = new CsvRoute(services, options, dataSource, 'books+?*', 'myPersons+?*');
+
+      route.setupRoutes(router);
+
+      expect(router.get).toHaveBeenCalledWith(
+        '/books\\+\\?\\*/:parentId/relationships/myPersons\\+\\?\\*.csv',
+        expect.any(Function),
       );
     });
   });

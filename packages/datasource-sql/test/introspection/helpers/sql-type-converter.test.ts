@@ -74,7 +74,7 @@ describe('SqlTypeConverter', () => {
         const sqlTypeConverter = new SqlTypeConverter(sequelize);
         expect(
           await sqlTypeConverter.convert(
-            'test',
+            { tableName: 'test', schema: 'public' },
             `column-${columnType}`,
             makeColumnDescriptionForType(columnType),
           ),
@@ -89,7 +89,7 @@ describe('SqlTypeConverter', () => {
 
         expect(
           await sqlTypeConverter.convert(
-            'test',
+            { tableName: 'test', schema: 'public' },
             'column-ENUM-a-b',
             makeColumnDescriptionForType("ENUM('a','b')"),
           ),
@@ -105,7 +105,7 @@ describe('SqlTypeConverter', () => {
 
           expect(
             await sqlTypeConverter.convert(
-              'test',
+              { tableName: 'test', schema: 'public' },
               'column-USER-DEFINED-ENUM',
               makeColumnDescriptionForEnum(['valueA', 'valueB']),
             ),
@@ -120,7 +120,7 @@ describe('SqlTypeConverter', () => {
 
           expect(
             await sqlTypeConverter.convert(
-              'test',
+              { tableName: 'test', schema: 'public' },
               'column-USER-DEFINED-ENUM-WITH-NO-VALUES',
               makeColumnDescriptionForEnum([]),
             ),
@@ -130,7 +130,7 @@ describe('SqlTypeConverter', () => {
     });
 
     describe('from a table with arrays of integers, strings and enums', () => {
-      it('should detect the proper types on %s', async () => {
+      it('should detect the proper types', async () => {
         const connectionUri = 'postgres://test:password@localhost:5443';
         let sequelize: Sequelize | null = null;
 
@@ -148,8 +148,9 @@ describe('SqlTypeConverter', () => {
               arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
               arrayString: DataTypes.ARRAY(DataTypes.STRING),
               arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
+              arrayTimestamp: DataTypes.ARRAY(DataTypes.TIME),
             },
-            { tableName: 'arrayTable' },
+            { tableName: 'arrayTable', schema: 'public' },
           );
 
           await sequelize.sync({ force: true });
@@ -157,17 +158,35 @@ describe('SqlTypeConverter', () => {
           const converter = new SqlTypeConverter(sequelize);
           const description = makeColumnDescriptionForType('ARRAY');
 
-          expect(await converter.convert('arrayTable', 'arrayInt', description)).toStrictEqual({
+          expect(
+            await converter.convert(
+              { tableName: 'arrayTable', schema: 'public' },
+              'arrayInt',
+              description,
+            ),
+          ).toStrictEqual({
             type: 'array',
             subType: { type: 'scalar', subType: 'NUMBER' },
           });
 
-          expect(await converter.convert('arrayTable', 'arrayString', description)).toStrictEqual({
+          expect(
+            await converter.convert(
+              { tableName: 'arrayTable', schema: 'public' },
+              'arrayString',
+              description,
+            ),
+          ).toStrictEqual({
             type: 'array',
             subType: { type: 'scalar', subType: 'STRING' },
           });
 
-          expect(await converter.convert('arrayTable', 'arrayEnum', description)).toStrictEqual({
+          expect(
+            await converter.convert(
+              { tableName: 'arrayTable', schema: 'public' },
+              'arrayEnum',
+              description,
+            ),
+          ).toStrictEqual({
             type: 'array',
             subType: {
               type: 'enum',
@@ -175,6 +194,17 @@ describe('SqlTypeConverter', () => {
               name: 'enum_arrayTable_arrayEnum',
               values: ['enum1', 'enum2'],
             },
+          });
+
+          expect(
+            await converter.convert(
+              { tableName: 'arrayTable', schema: 'public' },
+              'arrayTimestamp',
+              description,
+            ),
+          ).toStrictEqual({
+            type: 'array',
+            subType: { type: 'scalar', subType: 'TIME' },
           });
         } finally {
           await sequelize?.close();
@@ -189,7 +219,7 @@ describe('SqlTypeConverter', () => {
 
         await expect(
           sqlTypeConverter.convert(
-            'test',
+            { tableName: 'test', schema: 'public' },
             'column-WITH-UNKNOWN-TYPE',
             makeColumnDescriptionForType('UNKNOWN'),
           ),

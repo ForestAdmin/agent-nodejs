@@ -2,7 +2,9 @@ import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   CollectionSchema,
+  DataSourceDecorator,
   FieldValidator,
   Filter,
   PaginatedFilter,
@@ -15,8 +17,6 @@ import computeFromRecords from './helpers/compute-fields';
 import rewriteField from './helpers/rewrite-projection';
 import { ComputedDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
-import CollectionDecorator from '../collection-decorator';
-import DataSourceDecorator from '../datasource-decorator';
 
 /** Decorator injects computed fields */
 export default class ComputedCollection extends CollectionDecorator {
@@ -35,6 +35,8 @@ export default class ComputedCollection extends CollectionDecorator {
   }
 
   registerComputed(name: string, computed: ComputedDefinition): void {
+    FieldValidator.validateName(this.name, name);
+
     // Check that all dependencies exist and are columns
     for (const field of computed.dependencies) {
       FieldValidator.validate(this, field);

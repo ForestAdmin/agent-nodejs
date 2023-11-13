@@ -1,6 +1,21 @@
+/* eslint-disable max-len,jest/expect-expect */
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import TypingGenerator from '../src/typing-generator';
+
+const expectEqual = (a: string, b: string) => {
+  const aWithoutSpaces = a.replace(/[ \n]+/g, '');
+  const bWithoutSpaces = b.replace(/[ \n]+/g, '');
+
+  expect(aWithoutSpaces).toEqual(bWithoutSpaces);
+};
+
+const expectContains = (a: string, b: string) => {
+  const aWithoutSpaces = a.replace(/[ \n]+/g, '');
+  const bWithoutSpaces = b.replace(/[ \n]+/g, '');
+
+  expect(aWithoutSpaces.includes(bWithoutSpaces)).toBeTruthy();
+};
 
 describe('TypingGenerator', () => {
   test('should work with a single collection', () => {
@@ -31,9 +46,18 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
+      import { CollectionCustomizer, TAggregation, TConditionTree, TPaginatedFilter, TPartialRow, TSortClause } from '@forestadmin/agent';
+
+      export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'aCollectionName'>;
+      export type ACollectionNameRecord = TPartialRow<Schema, 'aCollectionName'>;
+      export type ACollectionNameConditionTree = TConditionTree<Schema, 'aCollectionName'>;
+      export type ACollectionNameFilter = TPaginatedFilter<Schema,'aCollectionName'>;
+      export type ACollectionNameSortClause = TSortClause<Schema,'aCollectionName'>;
+      export type ACollectionNameAggregation = TAggregation<Schema, 'aCollectionName'>;
+      
       export type Schema = {
         'aCollectionName': {
           plain: {
@@ -51,7 +75,25 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectEqual(generated, expected);
+  });
+
+  test('aliaes should work with a collection with underscores', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({ name: 'a_collection_name' }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'a_collection_name'>;
+      export type ACollectionNameRecord = TPartialRow<Schema, 'a_collection_name'>;
+      export type ACollectionNameConditionTree = TConditionTree<Schema, 'a_collection_name'>;
+      export type ACollectionNameFilter = TPaginatedFilter<Schema,'a_collection_name'>;
+      export type ACollectionNameSortClause = TSortClause<Schema,'a_collection_name'>;
+      export type ACollectionNameAggregation = TAggregation<Schema, 'a_collection_name'>;
+    `;
+
+    expectContains(generated, expected);
   });
 
   const cases = [
@@ -72,9 +114,8 @@ describe('TypingGenerator', () => {
         }),
       ]);
 
-      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
       const expected = `
-      /* eslint-disable */
       export type Schema = {
         'aCollectionName': {
           plain: { ${expectedFieldName}:string; };
@@ -83,7 +124,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-      expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+      expectContains(generated, expected);
     },
   );
 
@@ -98,9 +139,8 @@ describe('TypingGenerator', () => {
         factories.collection.build({ name: collectionName }),
       ]);
 
-      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
       const expected = `
-      /* eslint-disable */
       export type Schema = {
         ${expectedCollectionName}: {
           plain: {};
@@ -109,7 +149,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-      expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+      expectContains(generated, expected);
     },
   );
 
@@ -126,9 +166,8 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
-      /* eslint-disable */
       export type Schema = {
         'col1': {
           plain: { 
@@ -147,7 +186,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectContains(generated, expected);
   });
 
   test('should work with a cycle (inverse)', () => {
@@ -172,9 +211,8 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
-      /* eslint-disable */
       export type Schema = {
         'col1': {
           plain: {
@@ -200,7 +238,7 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectContains(generated, expected);
   });
 
   test('should work with a cycle (A -> B -> C -> A)', () => {
@@ -234,9 +272,8 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 3);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 3);
     const expected = `
-      /* eslint-disable */
       export type Schema = {
         'col1': {
           plain: { 
@@ -279,6 +316,63 @@ describe('TypingGenerator', () => {
         };
       };`;
 
-    expect(generated.replace(/[ \n]+/g, '')).toStrictEqual(expected.replace(/[ \n]+/g, ''));
+    expectContains(generated, expected);
+  });
+
+  test('it should stop generating fields where there are too many of them', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'col1',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            ...new Array(100).fill(0).reduce(
+              (acc, _, i) => ({
+                ...acc,
+                [`field${i}`]: factories.columnSchema.build({ columnType: 'String' }),
+              }),
+              {},
+            ),
+            col2: factories.manyToOneSchema.build({ foreignCollection: 'col2', foreignKey: 'id' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'col2',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            ...new Array(100).fill(0).reduce(
+              (acc, _, i) => ({
+                ...acc,
+                [`field${i}`]: factories.columnSchema.build({ columnType: 'String' }),
+              }),
+              {},
+            ),
+            col1: factories.oneToOneSchema.build({ foreignCollection: 'col1', originKey: 'id' }),
+          },
+        },
+      }),
+    ]);
+
+    const logger = jest.fn();
+
+    const generated = new TypingGenerator(logger, { maxFieldsCount: 2 }).generateTypes(
+      datasource,
+      5,
+    );
+    const expected = `
+      flat: {
+        'col1:id': number;
+        'col1:field0': string;
+      };
+    `;
+
+    expectContains(generated, expected);
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      `Fields generation stopped on collection col1, ` +
+        `try using a lower typingsMaxDepth (5) to avoid this issue.`,
+    );
   });
 });

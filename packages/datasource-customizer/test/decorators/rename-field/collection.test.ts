@@ -4,6 +4,7 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   DataSource,
+  DataSourceDecorator,
   Filter,
   PaginatedFilter,
   Projection,
@@ -11,7 +12,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import DataSourceDecorator from '../../../src/decorators/datasource-decorator';
 import RenameFieldCollectionDecorator from '../../../src/decorators/rename-field/collection';
 
 describe('RenameFieldCollectionDecorator', () => {
@@ -138,6 +138,13 @@ describe('RenameFieldCollectionDecorator', () => {
   test('should throw when renaming a field using an older name', () => {
     newPersons.renameField('id', 'key');
     expect(() => newPersons.renameField('id', 'primaryKey')).toThrow(`No such field 'id'`);
+  });
+
+  test('should throw when renaming with a name including space', () => {
+    expect(() => newPersons.renameField('id', 'the key')).toThrow(
+      `The name of field 'the key' you configured on 'persons' must not contain space.` +
+        ` Something like 'theKey' should work has expected.`,
+    );
   });
 
   test('should allow renaming multiple times the same field', () => {

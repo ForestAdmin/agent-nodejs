@@ -119,7 +119,6 @@ export default class CollectionUtils {
     projection: Projection,
   ): Promise<RecordData[]> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
-    const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
     // Optimization for many to many when there is not search/segment.
     if (relation.type === 'ManyToMany' && foreignFilter.isNestable) {
@@ -146,11 +145,13 @@ export default class CollectionUtils {
     }
 
     // Otherwise fetch the target table (this works with both relation types)
-    return foreign.list(
-      caller,
-      await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
-      projection,
-    );
+    return collection.dataSource
+      .getCollection(relation.foreignCollection)
+      .list(
+        caller,
+        await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
+        projection,
+      );
   }
 
   static async aggregateRelation(
@@ -163,7 +164,6 @@ export default class CollectionUtils {
     limit?: number,
   ): Promise<AggregateResult[]> {
     const relation = SchemaUtils.getToManyRelation(collection.schema, relationName);
-    const foreign = collection.dataSource.getCollection(relation.foreignCollection);
 
     // Optimization for many to many when there is not search/segment (saves one query)
     if (relation.type === 'ManyToMany' && foreignFilter.isNestable) {
@@ -195,12 +195,14 @@ export default class CollectionUtils {
     }
 
     // Otherwise fetch the target table (this works with both relation types)
-    return foreign.aggregate(
-      caller,
-      await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
-      aggregation,
-      limit,
-    );
+    return collection.dataSource
+      .getCollection(relation.foreignCollection)
+      .aggregate(
+        caller,
+        await FilterFactory.makeForeignFilter(collection, id, relationName, caller, foreignFilter),
+        aggregation,
+        limit,
+      );
   }
 
   static async getValue(

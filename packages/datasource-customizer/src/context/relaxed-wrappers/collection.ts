@@ -4,12 +4,14 @@ import {
   Aggregation,
   Caller,
   Collection,
+  CollectionSchema,
   ConditionTreeFactory,
   Filter,
   Page,
   PaginatedFilter,
   Projection,
   RecordData,
+  RecordValidator,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
@@ -23,7 +25,6 @@ import {
   TPartialSimpleRow,
   TRow,
   TSchema,
-  TSimpleRow,
 } from '../../templates';
 
 /** Collection wrapper which accepts plain objects in all methods */
@@ -33,6 +34,15 @@ export default class RelaxedCollection<
 > {
   private collection: Collection;
   private caller: Caller;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get nativeDriver(): any {
+    return this.collection.nativeDriver;
+  }
+
+  get schema(): CollectionSchema {
+    return this.collection.schema;
+  }
 
   constructor(collection: Collection, caller: Caller) {
     this.collection = collection;
@@ -78,8 +88,8 @@ export default class RelaxedCollection<
    *    { amountInEur: -100, description: 'Refund' },
    * ]);
    */
-  create(data: TSimpleRow<S, N>[]): Promise<TSimpleRow<S, N>[]> {
-    return this.collection.create(this.caller, data) as Promise<TSimpleRow<S, N>[]>;
+  create(data: TPartialSimpleRow<S, N>[]): Promise<TPartialSimpleRow<S, N>[]> {
+    return this.collection.create(this.caller, data) as Promise<TPartialSimpleRow<S, N>[]>;
   }
 
   /**
@@ -127,6 +137,8 @@ export default class RelaxedCollection<
    */
   update(filter: TFilter<S, N>, patch: TPartialSimpleRow<S, N>): Promise<void> {
     const filterInstance = this.buildFilter(filter);
+
+    RecordValidator.validate(this.collection, patch);
 
     return this.collection.update(this.caller, filterInstance, patch);
   }

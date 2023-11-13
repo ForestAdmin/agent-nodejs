@@ -1,5 +1,6 @@
 import {
   Caller,
+  CollectionDecorator,
   CollectionSchema,
   CollectionUtils,
   ColumnSchema,
@@ -8,8 +9,6 @@ import {
   PaginatedFilter,
   allOperators,
 } from '@forestadmin/datasource-toolkit';
-
-import CollectionDecorator from '../collection-decorator';
 
 /**
  * Replace unsupported operators in conditions trees by an equivalent subtree which is supported.

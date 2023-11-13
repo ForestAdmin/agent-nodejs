@@ -22,7 +22,7 @@ import RelationRoute from '../relation-route';
 export default class DissociateDeleteRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.delete(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}`,
       this.handleDissociateDeleteRelatedRoute.bind(this),
     );
   }

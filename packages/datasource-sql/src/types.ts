@@ -1,27 +1,46 @@
 import { Options } from 'sequelize/types';
+import { ConnectConfig } from 'ssh2';
 
-export type ConnectionOptionsObj =
-  | { uri?: string; sslMode?: SslMode } & Pick<
-      Options,
-      | 'database'
-      | 'dialect'
-      | 'dialectModule'
-      | 'dialectModulePath'
-      | 'dialectOptions'
-      | 'host'
-      | 'minifyAliases'
-      | 'native'
-      | 'password'
-      | 'pool'
-      | 'port'
-      | 'protocol'
-      | 'replication'
-      | 'schema'
-      | 'ssl'
-      | 'storage'
-      | 'username'
-    >;
+type SupportedSequelizeOptions = Pick<
+  Options,
+  | 'database'
+  | 'dialect'
+  | 'dialectModule'
+  | 'dialectModulePath'
+  | 'dialectOptions'
+  | 'host'
+  | 'minifyAliases'
+  | 'native'
+  | 'password'
+  | 'pool'
+  | 'port'
+  | 'protocol'
+  | 'replication'
+  | 'schema'
+  | 'ssl'
+  | 'storage'
+  | 'username'
+>;
 
-export type ConnectionOptions = ConnectionOptionsObj | string;
+export type ProxyOptions = {
+  userId?: string;
+  password?: string;
+  host: string;
+  port: number;
+  version?: 5;
+  command?: 'connect';
+};
+
+export type SshOptions = Omit<ConnectConfig, 'sock'>;
+
+export type PlainConnectionOptions = SupportedSequelizeOptions & {
+  uri?: string;
+  sslMode?: SslMode;
+  proxySocks?: ProxyOptions;
+  ssh?: SshOptions;
+  connectionTimeoutInMs?: number;
+};
+
+export type PlainConnectionOptionsOrUri = PlainConnectionOptions | string;
 
 export type SslMode = 'preferred' | 'disabled' | 'required' | 'verify' | 'manual';

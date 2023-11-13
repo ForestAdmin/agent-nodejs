@@ -1,27 +1,58 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-export default async (baseUri: string, database: string): Promise<Sequelize> => {
+export default async (baseUri: string, database: string, schema?: string): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
     sequelize = new Sequelize(baseUri, { logging: false });
-    await sequelize.getQueryInterface().dropDatabase(database);
-    await sequelize.getQueryInterface().createDatabase(database);
+    const queryInterface = sequelize.getQueryInterface();
+
+    await queryInterface.dropDatabase(database);
+    await queryInterface.createDatabase(database);
 
     await sequelize.close();
 
-    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false });
+    const optionalSchemaOption = schema ? { schema } : {};
+    sequelize = new Sequelize(`${baseUri}/${database}`, {
+      logging: false,
+      ...optionalSchemaOption,
+    });
+
+    if (schema) {
+      await sequelize.getQueryInterface().dropSchema(schema);
+      await sequelize.getQueryInterface().createSchema(schema);
+    }
 
     const member = sequelize.define(
       'member',
       { role: DataTypes.STRING },
-      { tableName: 'member', timestamps: false },
+      { tableName: 'member', ...optionalSchemaOption, timestamps: false },
     );
-    const group = sequelize.define('group', {}, { tableName: 'group', timestamps: false });
-    const product = sequelize.define('product', {}, { tableName: 'product', timestamps: false });
-    const order = sequelize.define('order', {}, { tableName: 'order', timestamps: false });
-    const account = sequelize.define('account', {}, { tableName: 'account', timestamps: false });
-    const customer = sequelize.define('customer', {}, { tableName: 'customer', timestamps: false });
+    const group = sequelize.define(
+      'group',
+      {},
+      { tableName: 'group', ...optionalSchemaOption, timestamps: false },
+    );
+    const product = sequelize.define(
+      'product',
+      {},
+      { tableName: 'product', ...optionalSchemaOption, timestamps: false },
+    );
+    const order = sequelize.define(
+      'order',
+      {},
+      { tableName: 'order', ...optionalSchemaOption, timestamps: false },
+    );
+    const account = sequelize.define(
+      'account',
+      {},
+      { tableName: 'account', ...optionalSchemaOption, timestamps: false },
+    );
+    const customer = sequelize.define(
+      'customer',
+      {},
+      { tableName: 'customer', ...optionalSchemaOption, timestamps: false },
+    );
 
     member.belongsTo(group);
     group.hasMany(member);
@@ -30,17 +61,25 @@ export default async (baseUri: string, database: string): Promise<Sequelize> => 
     customer.hasOne(account);
     account.belongsTo(customer);
 
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ force: true, ...optionalSchemaOption });
+
     await sequelize
       .getQueryInterface()
-      .addConstraint(account.name, { type: 'unique', fields: ['customerId'] });
+      .addConstraint(
+        { tableName: account.name, ...optionalSchemaOption },
+        { type: 'unique', fields: ['customerId'] },
+      );
     await sequelize
       .getQueryInterface()
-      .addConstraint(member.name, { type: 'unique', fields: ['groupId', 'role'] });
+      .addConstraint(
+        { tableName: member.name, ...optionalSchemaOption },
+        { type: 'unique', fields: ['groupId', 'role'] },
+      );
 
     return sequelize;
-  } catch (error) {
-    throw new Error(`Test initialization fail: ${error.message}`);
+  } catch (e) {
+    console.error('Error', e);
+    throw e;
   } finally {
     await sequelize?.close();
   }
@@ -48,41 +87,25 @@ export default async (baseUri: string, database: string): Promise<Sequelize> => 
 
 export const RELATION_MAPPING = {
   member: {
-    group: {
-      associationType: 'BelongsTo',
-    },
+    group: 'BelongsTo',
   },
   group: {
-    members: {
-      associationType: 'HasMany',
-    },
+    members: 'HasMany',
   },
   product: {
-    orders: {
-      associationType: 'BelongsToMany',
-    },
+    orders: 'BelongsToMany',
   },
   order: {
-    products: {
-      associationType: 'BelongsToMany',
-    },
+    products: 'BelongsToMany',
   },
   productOrder: {
-    product: {
-      associationType: 'BelongsTo',
-    },
-    order: {
-      associationType: 'BelongsTo',
-    },
+    product: 'BelongsTo',
+    order: 'BelongsTo',
   },
   customer: {
-    account: {
-      associationType: 'HasOne',
-    },
+    account: 'HasOne',
   },
   account: {
-    customer: {
-      associationType: 'BelongsTo',
-    },
+    customer: 'BelongsTo',
   },
 };

@@ -1,16 +1,18 @@
-import { Client } from 'openid-client';
-
-import AuthService from './auth';
-import { UserInfo } from './auth/types';
 import ChartHandler from './charts/chart-handler';
+import {
+  BaseEventsSubscriptionService,
+  RefreshEventsHandlerService,
+} from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { ModelCustomizationService } from './model-customizations/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
 import SchemaService from './schema';
 import { ForestSchema } from './schema/types';
 import {
+  ForestAdminAuthServiceInterface,
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
@@ -26,7 +28,10 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly chartHandler: ChartHandler,
     protected readonly ipWhitelistService: IpWhiteListService,
     protected readonly schemaService: SchemaService,
-    protected readonly authService: AuthService,
+    public readonly authService: ForestAdminAuthServiceInterface,
+    public readonly modelCustomizationService: ModelCustomizationService,
+    protected readonly eventsSubscription: BaseEventsSubscriptionService,
+    protected readonly eventsHandler: RefreshEventsHandlerService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
@@ -39,14 +44,6 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     return this.schemaService.postSchema(schema);
-  }
-
-  getOpenIdClient(): Promise<Client> {
-    return this.authService.getOpenIdClient();
-  }
-
-  getUserInfo(renderingId: number, accessToken: string): Promise<UserInfo> {
-    return this.authService.getUserInfo(renderingId, accessToken);
   }
 
   public async getScope({
@@ -66,6 +63,19 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
   }
 
   public markScopesAsUpdated(renderingId: number | string) {
-    this.renderingPermissionService.invalidateCache(renderingId);
+    if (!this.options.instantCacheRefresh)
+      this.renderingPermissionService.invalidateCache(renderingId);
+  }
+
+  public async subscribeToServerEvents() {
+    await this.eventsSubscription.subscribeEvents();
+  }
+
+  public close() {
+    this.eventsSubscription.close();
+  }
+
+  public onRefreshCustomizations(handler: () => void | Promise<void>) {
+    this.eventsHandler.onRefreshCustomizations(handler);
   }
 }
