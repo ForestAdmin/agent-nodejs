@@ -60,28 +60,30 @@ export const MSSQL_DETAILS: ConnectionDetails = {
   defaultSchema: 'dbo',
 };
 
+export const MYSQL_DETAILS: ConnectionDetails = {
+  name: 'MySQL',
+  dialect: 'mysql',
+  url: (dbName?: string) => `mysql://root:password@localhost:3307${dbName ? `/${dbName}` : ''}`,
+  options: (dbName?: string) => ({
+    dialect: 'mysql' as Dialect,
+    username: 'root',
+    password: 'password',
+    host: 'localhost',
+    port: 3307,
+    database: dbName,
+  }),
+  supports: {
+    schemas: false,
+    enums: true,
+    arrays: false,
+    booleans: false,
+  },
+  defaultSchema: undefined,
+};
+
 const CONNECTION_DETAILS: ConnectionDetails[] = [
   POSTGRESQL_DETAILS,
-  {
-    name: 'MySQL',
-    dialect: 'mysql',
-    url: (dbName?: string) => `mysql://root:password@localhost:3307${dbName ? `/${dbName}` : ''}`,
-    options: (dbName?: string) => ({
-      dialect: 'mysql' as Dialect,
-      username: 'root',
-      password: 'password',
-      host: 'localhost',
-      port: 3307,
-      database: dbName,
-    }),
-    supports: {
-      schemas: false,
-      enums: true,
-      arrays: false,
-      booleans: true,
-    },
-    defaultSchema: undefined,
-  },
+  MSSQL_DETAILS,
   MSSQL_DETAILS,
   {
     name: 'MariaDB',

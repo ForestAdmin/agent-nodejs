@@ -2,6 +2,8 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Dialect, QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
+import MsSQLDialect from './dialects/mssql-dialect';
+import MySQLDialect from './dialects/mysql-dialect';
 import PostgreSQLDialect from './dialects/postgresql-dialect';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import {
@@ -105,6 +107,10 @@ export default class Introspector {
     switch (sequelize.getDialect()) {
       case 'postgres':
         return new PostgreSQLDialect();
+      case 'mssql':
+        return new MsSQLDialect();
+      case 'mysql':
+        return new MySQLDialect();
       default:
         throw new Error(`Unsupported dialect: ${sequelize.getDialect()}`);
     }

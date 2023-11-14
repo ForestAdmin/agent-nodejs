@@ -1,10 +1,12 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import MsSQLDialect from '../../../src/introspection/dialects/mssql-dialect';
+import MySQLDialect from '../../../src/introspection/dialects/mysql-dialect';
 import PostgreSQLDialect from '../../../src/introspection/dialects/postgresql-dialect';
 import {
   ConnectionDetails,
   MSSQL_DETAILS,
+  MYSQL_DETAILS,
   POSTGRESQL_DETAILS,
 } from '../../_helpers/connection-details';
 
@@ -27,10 +29,10 @@ async function setupSchema(connectionDetails: ConnectionDetails, schema: string 
   }
 }
 
-async function setupDB(connectionDetails: ConnectionDetails, dbName: string) {
+async function setupDB(connectionDetails: ConnectionDetails, dbName: string, dropQuery: string) {
   const sequelize = new Sequelize({ ...connectionDetails.options(), logging: false });
 
-  await sequelize.query(`DROP DATABASE IF EXISTS "${dbName}"`, {
+  await sequelize.query(dropQuery, {
     logging: false,
   });
   await sequelize.getQueryInterface().createDatabase(dbName);
@@ -53,10 +55,15 @@ describe.each([
         isLiteralDefaultValue: true,
       }),
       now: 'now()',
+      nowDate: 'now()',
+      nowDateValue: 'now()',
+      textFunctionDefaultValue: 'now()',
       integer: 'INTEGER',
       text: 'TEXT',
       varchar: length => `CHARACTER VARYING(${length})`,
       date: 'TIMESTAMP WITH TIME ZONE',
+      dropDb: (dbName: string) => `DROP DATABASE IF EXISTS "${dbName}"`,
+      decimalValue: (value: number) => `${value}`,
     },
   },
   {
@@ -64,6 +71,9 @@ describe.each([
     dialectFactory: () => new MsSQLDialect(),
     dialectSql: {
       now: 'getdate()',
+      nowDate: 'getdate()',
+      nowDateValue: 'getdate()',
+      textFunctionDefaultValue: 'getdate()',
       autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
         defaultValue: null,
         isLiteralDefaultValue: false,
@@ -72,11 +82,33 @@ describe.each([
       text: 'NVARCHAR(MAX)',
       varchar: length => `NVARCHAR(${length})`,
       date: 'DATETIMEOFFSET',
+      dropDb: (dbName: string) => `DROP DATABASE IF EXISTS [${dbName}]`,
+      decimalValue: (value: number) => `${value}`,
+    },
+  },
+  {
+    connectionDetails: MYSQL_DETAILS,
+    dialectFactory: () => new MySQLDialect(),
+    dialectSql: {
+      now: 'CURRENT_TIMESTAMP',
+      nowDate: '(now())',
+      nowDateValue: 'now()',
+      textFunctionDefaultValue: 'now()',
+      autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
+        defaultValue: null,
+        isLiteralDefaultValue: false,
+      }),
+      integer: 'INT',
+      text: 'TEXT',
+      varchar: length => `VARCHAR(${length})`,
+      date: 'DATETIME',
+      dropDb: (dbName: string) => `DROP DATABASE IF EXISTS \`${dbName}\``,
+      decimalValue: (value: number) => value?.toFixed(2),
     },
   },
 ])('$connectionDetails.name dialect', ({ connectionDetails, dialectFactory, dialectSql }) => {
   beforeEach(async () => {
-    await setupDB(connectionDetails, DB_NAME);
+    await setupDB(connectionDetails, DB_NAME, dialectSql.dropDb(DB_NAME));
   });
 
   describe('describeTables', () => {
@@ -88,6 +120,8 @@ describe.each([
             let connection: Sequelize;
 
             beforeEach(async () => {
+              if (!connectionDetails.supports.schemas) return;
+
               await setupSchema(connectionDetails, schema);
 
               connection = new Sequelize({
@@ -98,10 +132,14 @@ describe.each([
             });
 
             afterEach(async () => {
+              if (!connectionDetails.supports.schemas) return;
+
               await connection.close();
             });
 
             it('returns the table', async () => {
+              if (!connectionDetails.supports.schemas) return;
+
               const dialect = dialectFactory();
 
               connection.define(
@@ -133,50 +171,11 @@ describe.each([
                 ],
               ]);
             });
-
-            it('returns the table even if it has dots in the name', async () => {
-              const dialect = dialectFactory();
-
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                },
-                {
-                  schema,
-                  paranoid: false,
-                  createdAt: false,
-                  updatedAt: false,
-                  tableName: 'nice.elements',
-                },
-              );
-              await connection.sync({ force: true });
-
-              const tableNames = [{ schema, tableName: 'nice.elements' }];
-              const tableColumns = await dialect.listColumns(tableNames, connection);
-              expect(tableColumns).toEqual([
-                [
-                  expect.objectContaining({
-                    allowNull: false,
-                    autoIncrement: true,
-                    comment: null,
-                    name: 'id',
-                    primaryKey: true,
-                    type: dialectSql.integer,
-                    ...dialectSql.autoIncrement(schema, 'nice.elements'),
-                  }),
-                ],
-              ]);
-            });
           },
         );
       });
 
-      describe(`on ${connectionDetails.defaultSchema}`, () => {
+      describe(`on default schema`, () => {
         let connection: Sequelize;
 
         beforeEach(async () => {
@@ -259,7 +258,7 @@ describe.each([
                     autoIncrement: true,
                   },
                   name: {
-                    type: DataTypes.TEXT,
+                    type: DataTypes.STRING(255),
                     defaultValue,
                   },
                 },
@@ -323,22 +322,32 @@ describe.each([
             });
 
             it('should return a literal default value if it is a function', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
+              if (connectionDetails.dialect === 'mysql') {
+                await connection.query(`DROP TABLE IF EXISTS elements;`);
+                await connection.query(`
+                CREATE TABLE elements (
+                    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                    name VARCHAR(255) DEFAULT (now())
+                  );
+                `);
+              } else {
+                connection.define(
+                  'elements',
+                  {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    name: {
+                      type: DataTypes.STRING(255),
+                      defaultValue: Sequelize.literal(dialectSql.textFunctionDefaultValue),
+                    },
                   },
-                  name: {
-                    type: DataTypes.TEXT,
-                    defaultValue: Sequelize.literal(dialectSql.now),
-                  },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                  { paranoid: false, createdAt: false, updatedAt: false },
+                );
+                await connection.sync({ force: true });
+              }
 
               const dialect = dialectFactory();
 
@@ -352,7 +361,7 @@ describe.each([
                 expect.arrayContaining([
                   expect.objectContaining({
                     name: 'name',
-                    defaultValue: dialectSql.now,
+                    defaultValue: dialectSql.textFunctionDefaultValue,
                     isLiteralDefaultValue: true,
                   }),
                 ]),
@@ -373,7 +382,7 @@ describe.each([
                       autoIncrement: true,
                     },
                     name: {
-                      type: DataTypes.DECIMAL,
+                      type: DataTypes.DECIMAL(10, 2),
                       defaultValue,
                     },
                   },
@@ -393,7 +402,7 @@ describe.each([
                   expect.arrayContaining([
                     expect.objectContaining({
                       name: 'name',
-                      defaultValue: defaultValue.toString(),
+                      defaultValue: dialectSql.decimalValue(defaultValue),
                       isLiteralDefaultValue: false,
                     }),
                   ]),
@@ -634,7 +643,7 @@ describe.each([
                   },
                   createdAt: {
                     type: DataTypes.DATEONLY,
-                    defaultValue: Sequelize.literal(dialectSql.now),
+                    defaultValue: Sequelize.literal(dialectSql.nowDate),
                   },
                 },
                 { paranoid: false, createdAt: false, updatedAt: false },
@@ -654,7 +663,7 @@ describe.each([
                 expect.arrayContaining([
                   expect.objectContaining({
                     name: 'createdAt',
-                    defaultValue: dialectSql.now,
+                    defaultValue: dialectSql.nowDateValue,
                     isLiteralDefaultValue: true,
                   }),
                 ]),
@@ -787,6 +796,49 @@ describe.each([
             ]);
           });
         });
+
+        it('returns the table even if it has dots in the name', async () => {
+          if (!connectionDetails.supports.schemas) return;
+
+          const dialect = dialectFactory();
+
+          connection.define(
+            'elements',
+            {
+              id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+            },
+            {
+              schema: connectionDetails.defaultSchema,
+              paranoid: false,
+              createdAt: false,
+              updatedAt: false,
+              tableName: 'nice.elements',
+            },
+          );
+          await connection.sync({ force: true });
+
+          const tableNames = [
+            { schema: connectionDetails.defaultSchema, tableName: 'nice.elements' },
+          ];
+          const tableColumns = await dialect.listColumns(tableNames, connection);
+          expect(tableColumns).toEqual([
+            [
+              expect.objectContaining({
+                allowNull: false,
+                autoIncrement: true,
+                comment: null,
+                name: 'id',
+                primaryKey: true,
+                type: dialectSql.integer,
+                ...dialectSql.autoIncrement(connectionDetails.defaultSchema, 'nice.elements'),
+              }),
+            ],
+          ]);
+        });
       });
     });
 
@@ -795,6 +847,8 @@ describe.each([
       let connectionOnCustomSchema: Sequelize;
 
       beforeEach(async () => {
+        if (!connectionDetails.supports.schemas) return;
+
         await setupSchema(connectionDetails, 'other');
 
         connectionOnDefaultSchema = new Sequelize({
@@ -811,11 +865,15 @@ describe.each([
       });
 
       afterEach(async () => {
+        if (!connectionDetails.supports.schemas) return;
+
         await connectionOnDefaultSchema.close();
         await connectionOnCustomSchema.close();
       });
 
       it('returns the tables', async () => {
+        if (!connectionDetails.supports.schemas) return;
+
         connectionOnDefaultSchema.define(
           'elements',
           {
@@ -876,6 +934,8 @@ describe.each([
       });
 
       it('should return only info from the table in the right schema', async () => {
+        if (!connectionDetails.supports.schemas) return;
+
         connectionOnDefaultSchema.define(
           'elements',
           {
@@ -927,8 +987,8 @@ describe.each([
       let connection2: Sequelize;
 
       beforeEach(async () => {
-        await setupDB(connectionDetails, DB_NAME);
-        await setupDB(connectionDetails, 'other-db');
+        await setupDB(connectionDetails, DB_NAME, dialectSql.dropDb(DB_NAME));
+        await setupDB(connectionDetails, 'other-db', dialectSql.dropDb('other-db'));
 
         connection1 = new Sequelize({
           ...connectionDetails.options(DB_NAME),

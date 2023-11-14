@@ -138,7 +138,7 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       return { defaultValue: 'false', isLiteralDefaultValue: false };
     }
 
-    if (description.defaultValue === null) {
+    if (description.defaultValue === null || description.defaultValue?.startsWith('NULL::')) {
       return { defaultValue: null, isLiteralDefaultValue: false };
     }
 
