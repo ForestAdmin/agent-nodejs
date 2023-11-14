@@ -43,13 +43,20 @@ describe.each([
     dialectFactory: () => new PostgreSQLDialect(),
     dialectSql: {
       autoIncrement: (schema: string | undefined, tableName: string, id = 'id') => ({
-        defaultValue: `nextval('${
-          schema && schema !== POSTGRESQL_DETAILS.defaultSchema ? `${schema}.` : ''
-        }${tableName}_${id}_seq'::regclass)`,
+        defaultValue: tableName.includes('.')
+          ? `nextval('${
+              schema && schema !== POSTGRESQL_DETAILS.defaultSchema ? `${schema}.` : ''
+            }"${tableName}_${id}_seq"'::regclass)`
+          : `nextval('${
+              schema && schema !== POSTGRESQL_DETAILS.defaultSchema ? `${schema}.` : ''
+            }${tableName}_${id}_seq'::regclass)`,
         isLiteralDefaultValue: true,
       }),
       now: 'now()',
       integer: 'INTEGER',
+      text: 'TEXT',
+      varchar: length => `CHARACTER VARYING(${length})`,
+      date: 'TIMESTAMP WITH TIME ZONE',
     },
   },
   {
@@ -62,9 +69,12 @@ describe.each([
         isLiteralDefaultValue: false,
       }),
       integer: 'INT',
+      text: 'NVARCHAR(MAX)',
+      varchar: length => `NVARCHAR(${length})`,
+      date: 'DATETIMEOFFSET',
     },
   },
-])('$name dialect', ({ connectionDetails, dialectFactory, dialectSql }) => {
+])('$connectionDetails.name dialect', ({ connectionDetails, dialectFactory, dialectSql }) => {
   beforeEach(async () => {
     await setupDB(connectionDetails, DB_NAME);
   });
@@ -119,6 +129,45 @@ describe.each([
                     primaryKey: true,
                     type: dialectSql.integer,
                     ...dialectSql.autoIncrement(schema, 'elements'),
+                  }),
+                ],
+              ]);
+            });
+
+            it('returns the table even if it has dots in the name', async () => {
+              const dialect = dialectFactory();
+
+              connection.define(
+                'elements',
+                {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
+                  },
+                },
+                {
+                  schema,
+                  paranoid: false,
+                  createdAt: false,
+                  updatedAt: false,
+                  tableName: 'nice.elements',
+                },
+              );
+              await connection.sync({ force: true });
+
+              const tableNames = [{ schema, tableName: 'nice.elements' }];
+              const tableColumns = await dialect.listColumns(tableNames, connection);
+              expect(tableColumns).toEqual([
+                [
+                  expect.objectContaining({
+                    allowNull: false,
+                    autoIncrement: true,
+                    comment: null,
+                    name: 'id',
+                    primaryKey: true,
+                    type: dialectSql.integer,
+                    ...dialectSql.autoIncrement(schema, 'nice.elements'),
                   }),
                 ],
               ]);
@@ -652,23 +701,39 @@ describe.each([
 
           describe('for enums', () => {
             it('should return the enum values as default value', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
+              // Bug in Sequelize that does not declare the default value
+              if (connectionDetails.dialect === 'mssql') {
+                await connection.query(
+                  `IF OBJECT_ID('[elements]', 'U') IS NOT NULL DROP TABLE [elements];`,
+                );
+                await connection.query(`
+                  CREATE TABLE [elements] (
+                    [id] INTEGER IDENTITY(1,1) ,
+                    [mood] VARCHAR(255) 
+                      CHECK ([mood] IN(N'sad', N'ok', N'happy'))
+                      DEFAULT N'happy',
+                    PRIMARY KEY ([id])
+                  );
+                `);
+              } else {
+                connection.define(
+                  'elements',
+                  {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    mood: {
+                      type: DataTypes.ENUM('sad', 'ok', 'happy'),
+                      defaultValue: 'happy',
+                    },
                   },
-                  mood: {
-                    type: DataTypes.ENUM('sad', 'ok', 'happy'),
-                    defaultValue: 'happy',
-                  },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
+                  { paranoid: false, createdAt: false, updatedAt: false },
+                );
 
-              await connection.sync({ force: true });
+                await connection.sync({ force: true });
+              }
 
               const dialect = dialectFactory();
 
@@ -688,6 +753,38 @@ describe.each([
                 ]),
               ]);
             });
+          });
+        });
+
+        describe('types', () => {
+          it.each([
+            [DataTypes.TEXT, dialectSql.text],
+            [DataTypes.STRING(12), dialectSql.varchar(12)],
+            [DataTypes.INTEGER, dialectSql.integer],
+            [DataTypes.DATE, dialectSql.date],
+          ])('should detect %s as %s', async (type, expected) => {
+            connection.define(
+              'elements',
+              { test: type },
+              { paranoid: false, createdAt: false, updatedAt: false },
+            );
+            await connection.sync({ force: true });
+
+            const dialect = dialectFactory();
+
+            const tableNames = [{ schema: connectionDetails.defaultSchema, tableName: 'elements' }];
+
+            const tableColumns = await dialect.listColumns(tableNames, connection);
+
+            expect(tableColumns).toEqual([
+              [
+                expect.objectContaining({ name: 'id' }),
+                expect.objectContaining({
+                  name: 'test',
+                  type: expected,
+                }),
+              ],
+            ]);
           });
         });
       });
