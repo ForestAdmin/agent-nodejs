@@ -347,6 +347,27 @@ describe('Builder > Collection', () => {
       );
     });
 
+    it('should log an error when no dependencies are provided', async () => {
+      const { customizer, dsc } = await setup();
+
+      const loggerMock = jest.fn();
+
+      const fieldDefinition: ComputedDefinition = {
+        columnType: 'String',
+        getValues: records => records.map(() => 'aaa'),
+      };
+
+      customizer.addField('no_dependency_field', fieldDefinition);
+
+      await expect(dsc.getDataSource(loggerMock)).resolves.not.toThrow();
+
+      expect(loggerMock).toHaveBeenCalledWith(
+        'Error',
+        // eslint-disable-next-line max-len
+        "Computed field 'authors.no_dependency_field' must have the 'dependencies' parameter defined",
+      );
+    });
+
     it('should add a field to early collection', async () => {
       const { dsc, customizer, stack } = await setup();
       const spy = jest.spyOn(stack.earlyComputed.getCollection('authors'), 'registerComputed');

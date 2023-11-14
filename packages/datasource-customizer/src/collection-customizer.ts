@@ -183,9 +183,21 @@ export default class CollectionCustomizer<
     name: string,
     definition: DeprecatedComputedDefinition<S, N> | ComputedDefinition<S, N>,
   ): this => {
-    return this.pushCustomization(async () => {
+    return this.pushCustomization(async (logger: Logger) => {
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
+
+      if (!definition.dependencies) {
+        logger(
+          'Error',
+          `Computed field '${
+            this.stack.validation.getCollection(this.name).name
+          }.${name}' must have the 'dependencies' parameter defined`,
+        );
+
+        return;
+      }
+
       const canBeComputedBeforeRelations = definition.dependencies.every(field => {
         try {
           return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
