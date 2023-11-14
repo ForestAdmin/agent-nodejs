@@ -2,6 +2,7 @@
 import { Factory } from 'fishery';
 
 import collectionSchemaFactory from './schema/collection-schema';
+import { PaginationType } from '../../src';
 import { ActionField } from '../../src/interfaces/action';
 import { Collection } from '../../src/interfaces/collection';
 import { ActionSchema } from '../../src/interfaces/schema';
@@ -19,7 +20,7 @@ export class CollectionFactory extends Factory<Collection> {
   }
 }
 
-export default CollectionFactory.define<Collection>(() => ({
+export default CollectionFactory.define(() => ({
   nativeDriver: null,
   dataSource: null,
   name: 'a collection',
@@ -32,5 +33,5 @@ export default CollectionFactory.define<Collection>(() => ({
   update: jest.fn(),
   delete: jest.fn(),
   aggregate: jest.fn(),
-  paginationType: 'page',
+  paginationType: 'page' as PaginationType,
 }));
