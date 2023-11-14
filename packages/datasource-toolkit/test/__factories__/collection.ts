@@ -19,7 +19,7 @@ export class CollectionFactory extends Factory<Collection> {
   }
 }
 
-export default CollectionFactory.define(() => ({
+export default CollectionFactory.define<Collection>(() => ({
   nativeDriver: null,
   dataSource: null,
   name: 'a collection',
@@ -32,4 +32,5 @@ export default CollectionFactory.define(() => ({
   update: jest.fn(),
   delete: jest.fn(),
   aggregate: jest.fn(),
+  paginationType: 'page',
 }));

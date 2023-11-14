@@ -1,4 +1,4 @@
-import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { PaginationType, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type ForestSchema = {
   collections: ForestServerCollection[];
@@ -26,7 +26,7 @@ export type ForestServerCollection = {
   isSearchable: boolean;
   isVirtual: false;
   onlyForRelationships: boolean;
-  paginationType: 'page';
+  paginationType: PaginationType;
   actions: Array<ForestServerAction>;
   fields: Array<ForestServerField>;
   segments: Array<ForestServerSegment>;

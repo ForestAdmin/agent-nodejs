@@ -3,7 +3,7 @@ import { Caller } from '../interfaces/caller';
 import { Chart } from '../interfaces/chart';
 import { Collection, DataSource } from '../interfaces/collection';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
-import PaginatedFilter from '../interfaces/query/filter/paginated';
+import PaginatedFilter, { PaginationType } from '../interfaces/query/filter/paginated';
 import Filter from '../interfaces/query/filter/unpaginated';
 import Projection from '../interfaces/query/projection';
 import { CompositeId, RecordData } from '../interfaces/record';
@@ -31,6 +31,10 @@ export default class CollectionDecorator implements Collection {
 
   get name(): string {
     return this.childCollection.name;
+  }
+
+  get paginationType(): PaginationType {
+    return this.childCollection.paginationType;
   }
 
   constructor(childCollection: Collection, dataSource: DataSource) {
