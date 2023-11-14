@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.37.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.2...@forestadmin/datasource-customizer@1.37.3) (2023-11-14)
+
+
+### Bug Fixes
+
+* **smart-field:** log error on missing parameter dependencies and avoid crash ([#873](https://github.com/ForestAdmin/agent-nodejs/issues/873)) ([e7f80e2](https://github.com/ForestAdmin/agent-nodejs/commit/e7f80e280ed10739b379df1ba8e8892e7061e04a))
+
 ## @forestadmin/datasource-customizer [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.1...@forestadmin/datasource-customizer@1.37.2) (2023-11-02)
 
 
