@@ -50,6 +50,7 @@ export default class TypeConverter {
       case 'double_range':
       case 'date_range':
       case 'ip_range':
+      case 'object':
         return 'Json';
 
       // return 'Uuid';

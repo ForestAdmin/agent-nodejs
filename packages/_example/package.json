@@ -7,6 +7,7 @@
     "@faker-js/faker": "^7.6.0",
     "@forestadmin/agent": "1.36.0",
     "@forestadmin/datasource-dummy": "1.0.81",
+    "@forestadmin/datasource-elasticsearch": "^0.0.1",
     "@forestadmin/datasource-mongoose": "1.5.30",
     "@forestadmin/datasource-sequelize": "1.5.25",
     "@forestadmin/datasource-sql": "1.7.41",

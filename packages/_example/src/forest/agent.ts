@@ -1,4 +1,5 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
+import { createElasticsearchDataSource } from '@forestadmin/datasource-elasticsearch';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
@@ -32,7 +33,29 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
+    .addDataSource(
+      createElasticsearchDataSource('http://localhost:9200', configuration =>
+        configuration.addCollectionFromTemplate({
+          name: 'ActivityLogs',
+          templateName: 'activity-logs-v1-template',
+          // Allow to properly generate index name for records creation based on custom logic
+          // activity-logs-v1-read-2023_05
+          generateIndexName: record => {
+            const { type, createdAt } = record as { type: string; createdAt: string };
 
+            const createdDate = new Date(createdAt).toISOString();
+            // NOTICE: getMonth() returns the month as a zero-based value
+            const month = new Date(createdDate).getUTCMonth() + 1;
+
+            const dateSuffix = `${new Date(createdDate).getUTCFullYear()}_${
+              month < 10 ? '0' : ''
+            }${month}`;
+
+            return `activity-logs-v1-${type}-${dateSuffix}`;
+          },
+        }),
+      ),
+    )
     .addDataSource(
       // Using an URI
       createSqlDataSource('mariadb://example:password@localhost:3808/example'),

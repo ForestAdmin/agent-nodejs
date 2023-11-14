@@ -57,7 +57,7 @@ export default class Introspector {
       );
     }
 
-    logger?.('Warn', 'Introspector - All templates loaded');
+    logger?.('Info', 'Introspector - All templates loaded');
 
     return results;
   }
