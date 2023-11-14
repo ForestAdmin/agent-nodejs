@@ -1,4 +1,5 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
+import { createGraphQLDataSource } from '@forestadmin/datasource-graph-ql';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
@@ -55,6 +56,16 @@ export default function makeAgent() {
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
     .addDataSource(
       createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+    )
+    .addDataSource(
+      createGraphQLDataSource({
+        serverApiUrl: 'http://localhost:4000/graphql',
+        scalarMapping: {
+          ISODateString: 'Date',
+          ExternalID: 'String',
+        },
+        scalarIdentifier: 'ExternalID',
+      }),
     )
 
     .addChart('numRentals', async (context, resultBuilder) => {

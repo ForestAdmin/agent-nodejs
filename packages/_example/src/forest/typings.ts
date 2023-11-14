@@ -113,6 +113,20 @@ export type AccountBillsItemsFilter = TPaginatedFilter<Schema, 'account_bills_it
 export type AccountBillsItemsSortClause = TSortClause<Schema, 'account_bills_items'>;
 export type AccountBillsItemsAggregation = TAggregation<Schema, 'account_bills_items'>;
 
+export type AuthorCustomizer = CollectionCustomizer<Schema, 'Author'>;
+export type AuthorRecord = TPartialRow<Schema, 'Author'>;
+export type AuthorConditionTree = TConditionTree<Schema, 'Author'>;
+export type AuthorFilter = TPaginatedFilter<Schema, 'Author'>;
+export type AuthorSortClause = TSortClause<Schema, 'Author'>;
+export type AuthorAggregation = TAggregation<Schema, 'Author'>;
+
+export type BookCustomizer = CollectionCustomizer<Schema, 'Book'>;
+export type BookRecord = TPartialRow<Schema, 'Book'>;
+export type BookConditionTree = TConditionTree<Schema, 'Book'>;
+export type BookFilter = TPaginatedFilter<Schema, 'Book'>;
+export type BookSortClause = TSortClause<Schema, 'Book'>;
+export type BookAggregation = TAggregation<Schema, 'Book'>;
+
 
 export type Schema = {
   'account': {
@@ -241,6 +255,46 @@ export type Schema = {
       'parent:parent:store:owner:firstName': string;
       'parent:parent:store:owner:lastName': string;
       'parent:parent:store:owner:fullName': string;
+    };
+  };
+  'Author': {
+    plain: {
+      'id': string;
+      'name': string;
+      'bio': string;
+      'photo': {path: string; url: string};
+      'createdAt': string;
+      'updatedAt': string;
+      'books': Array<{id: string; title: string; description: string; isFavourite: boolean; createdAt: string; updatedAt: string; reviewsCount: number; averageRating: number}>;
+    };
+    nested: {};
+    flat: {};
+  };
+  'Book': {
+    plain: {
+      'id': string;
+      'title': string;
+      'description': string;
+      'cover': {path: string; url: string};
+      'copies': Array<{id: string; borrowedAt: string; createdAt: string; updatedAt: string}>;
+      'isFavourite': boolean;
+      'createdAt': string;
+      'updatedAt': string;
+      'reviews': Array<{id: string; text: string; rating: number; createdAt: string; updatedAt: string}>;
+      'reviewsCount': number;
+      'averageRating': number;
+    };
+    nested: {
+      'author': Schema['Author']['plain'] & Schema['Author']['nested'];
+    };
+    flat: {
+      'author:id': string;
+      'author:name': string;
+      'author:bio': string;
+      'author:photo': {path: string; url: string};
+      'author:createdAt': string;
+      'author:updatedAt': string;
+      'author:books': Array<{id: string; title: string; description: string; isFavourite: boolean; createdAt: string; updatedAt: string; reviewsCount: number; averageRating: number}>;
     };
   };
   'card': {
