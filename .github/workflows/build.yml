@@ -80,7 +80,7 @@ jobs:
         with:
           node-version: 16.14.0
       - name: Start docker containers
-        if: ${{ [ -f "./packages/${{ matrix.package }}/docker-compose.yml" ]  }}
+        if: [ -f "./packages/${{ matrix.package }}/docker-compose.yml" ]
         run: docker-compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v3
