@@ -81,29 +81,32 @@ export const MYSQL_DETAILS: ConnectionDetails = {
   defaultSchema: undefined,
 };
 
+export const MARIADB_DETAILS: ConnectionDetails = {
+  name: 'MariaDB',
+  dialect: 'mariadb',
+  url: (dbName?: string) => `mariadb://root:password@localhost:3809${dbName ? `/${dbName}` : ''}`,
+  options: (dbName?: string) => ({
+    dialect: 'mariadb' as Dialect,
+    username: 'root',
+    password: 'password',
+    host: 'localhost',
+    port: 3809,
+    database: dbName,
+  }),
+  supports: {
+    schemas: false,
+    enums: true,
+    arrays: false,
+    booleans: false,
+  },
+  defaultSchema: undefined,
+};
+
 const CONNECTION_DETAILS: ConnectionDetails[] = [
   POSTGRESQL_DETAILS,
   MSSQL_DETAILS,
   MSSQL_DETAILS,
-  {
-    name: 'MariaDB',
-    dialect: 'mariadb',
-    url: (dbName?: string) => `mariadb://root:password@localhost:3809${dbName ? `/${dbName}` : ''}`,
-    options: (dbName?: string) => ({
-      dialect: 'mariadb' as Dialect,
-      username: 'root',
-      password: 'password',
-      host: 'localhost',
-      port: 3809,
-      database: dbName,
-    }),
-    supports: {
-      schemas: false,
-      enums: true,
-      arrays: false,
-    },
-    defaultSchema: undefined,
-  },
+  MARIADB_DETAILS,
 ];
 
 export default CONNECTION_DETAILS;

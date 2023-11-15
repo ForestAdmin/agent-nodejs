@@ -1,10 +1,12 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
+import MariadbDialect from '../../../src/introspection/dialects/mariadb-dialect';
 import MsSQLDialect from '../../../src/introspection/dialects/mssql-dialect';
 import MySQLDialect from '../../../src/introspection/dialects/mysql-dialect';
 import PostgreSQLDialect from '../../../src/introspection/dialects/postgresql-dialect';
 import {
   ConnectionDetails,
+  MARIADB_DETAILS,
   MSSQL_DETAILS,
   MYSQL_DETAILS,
   POSTGRESQL_DETAILS,
@@ -38,6 +40,23 @@ async function setupDB(connectionDetails: ConnectionDetails, dbName: string, dro
   await sequelize.getQueryInterface().createDatabase(dbName);
   await sequelize.close();
 }
+
+const mysqlSQLDialect = {
+  now: 'CURRENT_TIMESTAMP',
+  nowDate: '(now())',
+  nowDateValue: 'now()',
+  textFunctionDefaultValue: 'now()',
+  autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
+    defaultValue: null,
+    isLiteralDefaultValue: false,
+  }),
+  integer: 'INT',
+  text: 'TEXT',
+  varchar: length => `VARCHAR(${length})`,
+  date: 'DATETIME',
+  dropDb: (dbName: string) => `DROP DATABASE IF EXISTS \`${dbName}\``,
+  decimalValue: (value: number) => value?.toFixed(2),
+};
 
 describe.each([
   {
@@ -89,21 +108,18 @@ describe.each([
   {
     connectionDetails: MYSQL_DETAILS,
     dialectFactory: () => new MySQLDialect(),
+    dialectSql: mysqlSQLDialect,
+  },
+  {
+    connectionDetails: MARIADB_DETAILS,
+    dialectFactory: () => new MariadbDialect(),
     dialectSql: {
-      now: 'CURRENT_TIMESTAMP',
-      nowDate: '(now())',
-      nowDateValue: 'now()',
-      textFunctionDefaultValue: 'now()',
-      autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
-        defaultValue: null,
-        isLiteralDefaultValue: false,
-      }),
-      integer: 'INT',
-      text: 'TEXT',
-      varchar: length => `VARCHAR(${length})`,
-      date: 'DATETIME',
-      dropDb: (dbName: string) => `DROP DATABASE IF EXISTS \`${dbName}\``,
-      decimalValue: (value: number) => value?.toFixed(2),
+      ...mysqlSQLDialect,
+      now: 'current_timestamp()',
+      nowDate: 'current_timestamp()',
+      nowDateValue: 'current_timestamp()',
+      textFunctionDefaultValue: 'current_timestamp()',
+      integer: 'INT(11)',
     },
   },
 ])('$connectionDetails.name dialect', ({ connectionDetails, dialectFactory, dialectSql }) => {
@@ -247,7 +263,8 @@ describe.each([
               'null',
               'false',
               null,
-              'null',
+              'NULL',
+              'thisIsNotAFunction()',
             ])('should return %s as default value (not literal)', async defaultValue => {
               connection.define(
                 'elements',

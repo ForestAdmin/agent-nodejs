@@ -3,15 +3,15 @@ import { QueryTypes, Sequelize } from 'sequelize';
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
 import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 
-type DBColumn = {
+export type MySQLDBColumn = {
+  Table: string;
   Field: string;
-  Type: string;
-  Collation: string;
   Default: string;
   Null: 'YES' | 'NO';
-  Key: 'PRI' | '';
+  Type: string;
   Extra: string;
   Comment: string;
+  Key: string;
 };
 
 export default class MySQLDialect implements IntrospectionDialect {
@@ -21,28 +21,38 @@ export default class MySQLDialect implements IntrospectionDialect {
   ): Promise<ColumnDescription[][]> {
     if (!tableNames?.length) return Promise.resolve([]);
 
-    return Promise.all(
-      tableNames.map(async tableIdentifier => this.listColumnsForTable(tableIdentifier, sequelize)),
-    );
-  }
-
-  private async listColumnsForTable(
-    tableIdentifier: SequelizeTableIdentifier,
-    sequelize: Sequelize,
-  ): Promise<ColumnDescription[]> {
-    const columns = await sequelize.query<DBColumn>(
+    const columns = await sequelize.query<MySQLDBColumn>(
       `
-      SHOW FULL COLUMNS FROM \`${tableIdentifier.tableName.replace(/`/g, '')}\`    
-    `,
+      SELECT TABLE_NAME AS 'Table',
+        COLUMN_NAME AS 'Field',
+        COLUMN_DEFAULT AS 'Default',
+        IS_NULLABLE AS 'Null',
+        COLUMN_TYPE AS 'Type',
+        EXTRA AS 'Extra',
+        COLUMN_COMMENT AS 'Comment',
+        COLUMN_KEY AS 'Key'
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = :databaseName
+      AND TABLE_NAME IN (:tableNames)
+      ORDER BY TABLE_NAME, ORDINAL_POSITION
+      `,
       {
         type: QueryTypes.SELECT,
+        replacements: {
+          databaseName: sequelize.config.database,
+          tableNames: tableNames.map(t => t.tableName),
+        },
       },
     );
 
-    return columns.map(this.getColumnDescription.bind(this));
+    return tableNames.map(table => {
+      const tableColumns = columns.filter(c => c.Table === table.tableName);
+
+      return tableColumns.map(c => this.getColumnDescription(c));
+    });
   }
 
-  private getColumnDescription(dbColumn: DBColumn): ColumnDescription {
+  private getColumnDescription(dbColumn: MySQLDBColumn): ColumnDescription {
     const type = dbColumn.Type.startsWith('enum')
       ? dbColumn.Type.replace(/^enum/, 'ENUM')
       : dbColumn.Type.toUpperCase();
@@ -70,7 +80,7 @@ export default class MySQLDialect implements IntrospectionDialect {
    * Fixes the default behavior of Sequelize that does not allow us to
    * detect if a value is a function call or a constant value
    */
-  private mapDefaultValue(dbColumn: DBColumn): {
+  protected mapDefaultValue(dbColumn: MySQLDBColumn): {
     defaultValue: string;
     isLiteralDefaultValue: boolean;
   } {
