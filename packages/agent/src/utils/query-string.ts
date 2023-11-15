@@ -214,6 +214,7 @@ export default class QueryStringParser {
 
     if (!before && !after)
       throw new ValidationError(
+        // eslint-disable-next-line max-len
         'Invalid cursor pagination, you should have at least "starting_before" or "starting_after" cursor set.',
       );
 
