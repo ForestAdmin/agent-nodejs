@@ -22,7 +22,7 @@ export default class Introspector {
     // const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
     // const tables = await Promise.all(promises);
 
-    this.sanitizeInPlace(tables);
+    this.sanitizeInPlace(tables, logger);
 
     return tables;
   }
@@ -138,28 +138,21 @@ export default class Introspector {
       queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery),
     ]);
 
-    await this.detectBrokenRelationship(
-      tableIdentifierForQuery,
-      sequelize,
-      tableReferences,
-      logger,
+    const references = tableReferences.filter(
+      // There is a bug right now with sequelize on postgresql: returned association
+      // are not filtered on the schema. So we have to filter them manually.
+      // Should be fixed with Sequelize v7
+      r => r.tableName === tableIdentifier.tableName && r.tableSchema === tableIdentifier.schema,
     );
 
     const columns = await Promise.all(
       columnDescriptions.map(async columnDescription => {
-        const references = tableReferences.filter(
-          // There is a bug right now with sequelize on postgresql: returned association
-          // are not filtered on the schema. So we have to filter them manually.
-          // Should be fixed with Sequelize v7
-          r =>
-            r.columnName === columnDescription.name &&
-            r.tableName === tableIdentifier.tableName &&
-            r.tableSchema === tableIdentifier.schema,
-        );
+        const columnReferences = references.filter(r => r.columnName === columnDescription.name);
+
         const options = {
           name: columnDescription.name,
           description: columnDescription,
-          references,
+          references: columnReferences,
         };
 
         return this.getColumn(sequelize, logger, tableIdentifier, options);
@@ -214,7 +207,7 @@ export default class Introspector {
    * Remove references to entities that are not present in the schema
    * (happens when we skip entities because of errors)
    */
-  private static sanitizeInPlace(tables: Table[]): void {
+  private static sanitizeInPlace(tables: Table[], logger?: Logger): void {
     for (const table of tables) {
       // Remove unique indexes which depennd on columns that are not present in the table.
       table.unique = table.unique.filter(unique =>
@@ -222,89 +215,36 @@ export default class Introspector {
       );
 
       for (const column of table.columns) {
+        const references = column.constraints || [];
         // Remove references to tables that are not present in the schema.
-        column.constraints = column.constraints.filter(constraint => {
+        column.constraints = references.filter(constraint => {
           const refTable = tables.find(t => t.name === constraint.table);
           const refColumn = refTable?.columns.find(c => c.name === constraint.column);
 
           return refTable && refColumn;
         });
+
+        this.logBrokenRelationship(references, column.constraints, table.name, logger);
       }
     }
   }
 
-  private static async detectBrokenRelationship(
-    tableIdentifier: SequelizeTableIdentifier,
-    sequelize: Sequelize,
-    tableReferences: SequelizeReference[],
-    logger: Logger,
-  ) {
-    let constraintNamesForForeignKey: Array<{ constraint_name: string; table_name: string }> = [];
-    const dialect = sequelize.getDialect() as Dialect;
-
-    if (dialect === 'sqlite') {
-      constraintNamesForForeignKey = await sequelize.query<{
-        constraint_name: string;
-        table_name: string;
-      }>(
-        `SELECT "from" as constraint_name, :tableName as table_name
-        from pragma_foreign_key_list(:tableName);`,
-        {
-          replacements: { tableName: tableIdentifier.tableName },
-          type: QueryTypes.SELECT,
-        },
-      );
-    } else {
-      constraintNamesForForeignKey = await sequelize.query<{
-        constraint_name: string;
-        table_name: string;
-      }>(
-        `
-        SELECT constraint_name, table_name
-          FROM information_schema.table_constraints
-          WHERE table_name = :tableName 
-            AND constraint_type = 'FOREIGN KEY'
-            AND (:schema IS NULL OR table_schema = :schema);
-        `,
-        {
-          replacements: {
-            tableName: tableIdentifier.tableName,
-            schema: tableIdentifier.schema || null,
-          },
-          type: QueryTypes.SELECT,
-        },
-      );
-    }
-
-    this.logBrokenRelationship(constraintNamesForForeignKey, tableReferences, logger);
-  }
-
   private static logBrokenRelationship(
-    constraintNamesForForeignKey: unknown[],
-    tableReferences: SequelizeReference[],
+    allConstraints: Table['columns'][number]['constraints'],
+    sanitizedConstraints: Table['columns'][number]['constraints'],
+    tableName: string,
     logger: Logger,
   ) {
-    if (constraintNamesForForeignKey.length !== tableReferences.length) {
-      const constraintNames = new Set(
-        (constraintNamesForForeignKey as [{ constraint_name: string; table_name: string }]).map(
-          c => ({ constraint_name: c.constraint_name, table_name: c.table_name }),
-        ),
-      );
-      tableReferences.forEach(({ constraintName }) => {
-        constraintNames.forEach(obj => {
-          if (obj.constraint_name === constraintName) {
-            constraintNames.delete(obj);
-          }
-        });
-      });
+    const missingConstraints = allConstraints.filter(
+      constraint => !sanitizedConstraints.includes(constraint),
+    );
 
-      constraintNames.forEach(obj => {
-        logger?.(
-          'Error',
-          // eslint-disable-next-line max-len
-          `Failed to load constraints on relation '${obj.constraint_name}' on table '${obj.table_name}'. The relation will be ignored.`,
-        );
-      });
-    }
+    missingConstraints.forEach(constraint => {
+      logger?.(
+        'Error',
+        // eslint-disable-next-line max-len
+        `Failed to load constraints on relation on table '${tableName}' referencing '${constraint.table}.${constraint.column}'. The relation will be ignored.`,
+      );
+    });
   }
 }
