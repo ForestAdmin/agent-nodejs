@@ -22,6 +22,29 @@ describe('SchemaGeneratorFields > Column', () => {
     });
   });
 
+  describe('invalid enum values', () => {
+    const collection = factories.collection.build({
+      name: 'books',
+      schema: factories.collectionSchema.build({
+        fields: {
+          isbn: factories.columnSchema.build({
+            columnType: 'Enum',
+            enumValues: [['ArrayOfArray']] as unknown as string[],
+            filterOperators: new Set(['Equal']),
+          }),
+        },
+      }),
+    });
+
+    test('should throw if an invalid field is passed', () => {
+      const fn = () => SchemaGeneratorFields.buildSchema(collection, 'isbn');
+      expect(fn).toThrow(
+        "The enumValues of column 'isbn' must be an array of string " +
+          'instead of [["ArrayOfArray"]]',
+      );
+    });
+  });
+
   describe('required/filterable/readonly/pk/sortable', () => {
     const collection = factories.collection.build({
       name: 'books',
