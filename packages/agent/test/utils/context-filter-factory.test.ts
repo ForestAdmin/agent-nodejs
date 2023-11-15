@@ -94,7 +94,7 @@ describe('FilterFactory', () => {
   });
 
   describe('with pagination cursor', () => {
-    const setupContextWithAllFeatures = () => {
+    const setupContextWithAllFeatures = (backward = false) => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
@@ -108,7 +108,8 @@ describe('FilterFactory', () => {
         customProperties: {
           query: {
             'page[size]': 10,
-            starting_after: 1,
+            starting_after: backward ? null : 1,
+            starting_before: backward ? 1 : null,
           },
         },
       });
@@ -123,7 +124,16 @@ describe('FilterFactory', () => {
 
       const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
 
-      expect(filter.cursor).toEqual(new Cursor(10, { after: '1' }));
+      expect(filter.cursor).toEqual(new Cursor(10, '1'));
+      expect(filter.page).toBeUndefined();
+    });
+
+    test('should build a paginated filter from a given backward context', () => {
+      const { context, collection, scope } = setupContextWithAllFeatures(true);
+
+      const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
+
+      expect(filter.cursor).toEqual(new Cursor(10, '1', true));
       expect(filter.page).toBeUndefined();
     });
   });

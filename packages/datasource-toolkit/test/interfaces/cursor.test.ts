@@ -2,33 +2,33 @@ import Cursor from '../../src/interfaces/query/cursor';
 
 describe('Cursor', () => {
   describe('simple declaration', () => {
-    describe('whith all cursors defined', () => {
-      test('should throw an error', () => {
-        expect(() => new Cursor(10, { after: 'abc', before: 'abc' })).toThrow(
-          `Cursor can't have before and after at same time.`,
-        );
-      });
-    });
-
     describe('whith no cursors defined', () => {
-      test('should default to null', () => {
-        const cursor = new Cursor(10, {});
+      test('should default cursor to null', () => {
+        const cursor = new Cursor(10);
 
-        expect(cursor).toEqual(new Cursor(10, { after: null, before: null }));
+        expect(cursor.limit).toEqual(10);
+        expect(cursor.cursor).toEqual(null);
+        expect(cursor.backward).toEqual(false);
       });
     });
 
-    describe('whith one cursor not defined', () => {
-      test('should default to null after', () => {
-        const cursor = new Cursor(10, { before: 'abc' });
+    describe('when it is backward', () => {
+      test('should define right cursor', () => {
+        const cursor = new Cursor(10, 'abc', true);
 
-        expect(cursor).toEqual(new Cursor(10, { after: null, before: 'abc' }));
+        expect(cursor.limit).toEqual(10);
+        expect(cursor.cursor).toEqual('abc');
+        expect(cursor.backward).toEqual(true);
       });
+    });
 
+    describe('when it is forward', () => {
       test('should default to null before', () => {
-        const cursor = new Cursor(10, { after: 'abc' });
+        const cursor = new Cursor(10, 'abc');
 
-        expect(cursor).toEqual(new Cursor(10, { after: 'abc', before: null }));
+        expect(cursor.limit).toEqual(10);
+        expect(cursor.cursor).toEqual('abc');
+        expect(cursor.backward).toEqual(false);
       });
     });
   });

@@ -497,7 +497,8 @@ describe('QueryStringParser', () => {
       const cursor = QueryStringParser.parseCursor(context);
 
       expect(cursor.limit).toEqual(10);
-      expect(cursor.after).toEqual('3');
+      expect(cursor.cursor).toEqual('3');
+      expect(cursor.backward).toEqual(false);
     });
 
     describe('when context does not provide the limit parameters', () => {
@@ -509,7 +510,8 @@ describe('QueryStringParser', () => {
         const cursor = QueryStringParser.parseCursor(context);
 
         expect(cursor.limit).toEqual(15);
-        expect(cursor.before).toEqual('2');
+        expect(cursor.cursor).toEqual('2');
+        expect(cursor.backward).toEqual(true);
       });
     });
 

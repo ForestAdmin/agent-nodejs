@@ -206,12 +206,12 @@ export default class QueryStringParser {
     ).toString();
 
     const itemsPerPage = Number.parseInt(queryItemsPerPage, 10);
-    const before = query.starting_before;
-    const after = query.starting_after;
+    const cursor = query.starting_before || query.starting_after;
+    const backward = !!query.starting_before;
 
     if (Number.isNaN(itemsPerPage) || itemsPerPage <= 0)
       throw new ValidationError(`Invalid cursor pagination [limit: ${itemsPerPage}]`);
 
-    return new Cursor(itemsPerPage, { before, after });
+    return new Cursor(itemsPerPage, cursor, backward);
   }
 }

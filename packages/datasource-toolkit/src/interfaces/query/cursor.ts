@@ -1,16 +1,13 @@
 export type PlainCursor = { limit: number; cursor: { before?: string; after?: string } };
 
 export default class Cursor {
-  before: string;
-  after: string;
+  cursor: string;
+  backward: boolean;
   limit: number;
 
-  constructor(limit: number, cursor: { before?: string; after?: string }) {
-    this.after = cursor.after || null;
-    this.before = cursor.before || null;
+  constructor(limit: number, cursor?: string, backward?: boolean) {
     this.limit = limit;
-
-    if (this.after && this.before)
-      throw new Error(`Cursor can't have before and after at same time.`);
+    this.cursor = cursor || null;
+    this.backward = backward ?? false;
   }
 }
