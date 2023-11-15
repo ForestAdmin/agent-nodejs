@@ -1,3 +1,18 @@
+# example [1.7.0-beta-datasource-elasticsearch.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.59...example@1.7.0-beta-datasource-elasticsearch.1) (2023-11-15)
+
+
+### Features
+
+* initialize beta-datasource-elasticsearch ([#875](https://github.com/ForestAdmin/agent-nodejs/issues/875)) ([9f8aacd](https://github.com/ForestAdmin/agent-nodejs/commit/9f8aacdf8c3d940b4cb3b4688a3f10a79c783353)), closes [#860rwr0](https://github.com/ForestAdmin/agent-nodejs/issues/860rwr0)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-elasticsearch:** upgraded to 1.0.0-beta-datasource-elasticsearch.1
+
 ## example [1.6.59](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.58...example@1.6.59) (2023-11-09)
 
 
