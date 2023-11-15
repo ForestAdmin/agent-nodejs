@@ -127,6 +127,7 @@ jobs:
             ${{github.workspace}}/reports/agent/clover.xml:clover
             ${{github.workspace}}/reports/datasource-customizer/clover.xml:clover
             ${{github.workspace}}/reports/datasource-dummy/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-elasticsearch/clover.xml:clover
             ${{github.workspace}}/reports/datasource-mongoose/clover.xml:clover
             ${{github.workspace}}/reports/datasource-replica/clover.xml:clover
             ${{github.workspace}}/reports/datasource-sequelize/clover.xml:clover
