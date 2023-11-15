@@ -51,7 +51,7 @@ const mysqlSQLDialect = {
   nowDate: '(now())',
   nowDateValue: 'now()',
   textFunctionDefaultValue: 'now()',
-  autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
+  autoIncrement: () => ({
     defaultValue: null,
     isLiteralDefaultValue: false,
   }),
@@ -98,7 +98,7 @@ describe.each([
       nowDate: 'getdate()',
       nowDateValue: 'getdate()',
       textFunctionDefaultValue: 'getdate()',
-      autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
+      autoIncrement: () => ({
         defaultValue: null,
         isLiteralDefaultValue: false,
       }),
@@ -131,7 +131,7 @@ describe.each([
     connectionDetails: SQLITE_DETAILS,
     dialectFactory: () => new SQLiteDialect(),
     dialectSql: {
-      autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
+      autoIncrement: () => ({
         defaultValue: null,
         isLiteralDefaultValue: false,
       }),
@@ -143,7 +143,7 @@ describe.each([
       text: 'TEXT',
       varchar: length => `VARCHAR(${length})`,
       date: 'DATETIME',
-      dropDb: (dbName: string) => null,
+      dropDb: () => null,
       decimalValue: (value: number) => `${value}`,
     },
   },

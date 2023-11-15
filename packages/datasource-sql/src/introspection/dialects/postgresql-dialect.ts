@@ -1,7 +1,6 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import SqlTypeConverter from '../helpers/sql-type-converter';
 import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 
 type DBColumn = {
