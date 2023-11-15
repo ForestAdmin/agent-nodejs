@@ -9,9 +9,25 @@ export { default as ElasticsearchCollection } from './collection';
 export { default as ElasticsearchDataSource } from './datasource';
 export { default as TypeConverter } from './utils/type-converter';
 
+/**
+ * Allow to interact with elasticsearch datasource
+ * @param connection the connection to the elasticsearch instance
+ * @param handle a function that provide a
+ *   datasource configurations on the given datasource
+ * @example
+ * .createElasticsearchDataSourceWithExistingClient(existingClient, configurator =>
+ *   configurator.addCollectionFromIndex(
+ *    { name: 'Flights',indexPatterns: 'kibana_sample_data_flights' },
+ *   ),
+ * )
+ */
 export function createElasticsearchDataSourceWithExistingClient(client: Client): DataSourceFactory {
-  return async (logger: Logger) => {
-    const collectionModels = await Introspector.introspect(client, logger);
+  return async (logger: Logger, options?: ConfigurationOptions) => {
+    const collectionModels = options
+      ? await (
+          options(new ElasticsearchDatasourceBuilder(client)) as ElasticsearchDatasourceBuilder
+        ).createCollectionsFromConfiguration()
+      : await Introspector.introspect(client, logger);
 
     return new ElasticsearchDataSource(client, collectionModels, logger);
   };
@@ -23,7 +39,7 @@ export function createElasticsearchDataSourceWithExistingClient(client: Client):
  * @param handle a function that provide a
  *   datasource configurations on the given datasource
  * @example
- * .createElasticsearchDataSource('books', configurator =>
+ * .createElasticsearchDataSource('http://localhost:9200', configurator =>
  *   configurator.addCollectionFromIndex(
  *    { name: 'Flights',indexPatterns: 'kibana_sample_data_flights' },
  *   ),

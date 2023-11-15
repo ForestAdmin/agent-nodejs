@@ -23,7 +23,7 @@ export default class ElasticsearchCollection extends BaseCollection {
 
   private queryConverter: QueryConverter;
 
-  constructor(datasource: DataSource, model: ModelElasticsearch, logger?: Logger) {
+  constructor(datasource: DataSource, model: ModelElasticsearch, logger: Logger) {
     if (!model) throw new Error('Invalid (null) model instance.');
 
     super(model.name, datasource);
