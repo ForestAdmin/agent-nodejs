@@ -1,6 +1,7 @@
 import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  Cursor,
   Page,
   PaginatedFilter,
   Sort,
@@ -89,6 +90,41 @@ describe('FilterFactory', () => {
           segment: 'a-valid-segment',
         }),
       );
+    });
+  });
+
+  describe('with pagination cursor', () => {
+    const setupContextWithAllFeatures = () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+          },
+        }),
+        paginationType: 'cursor',
+      });
+
+      const context = createMockContext({
+        customProperties: {
+          query: {
+            'page[size]': 10,
+            starting_after: 1,
+          },
+        },
+      });
+
+      const scope = factories.conditionTreeLeaf.build();
+
+      return { context, collection, scope };
+    };
+
+    test('should build a paginated filter from a given context', () => {
+      const { context, collection, scope } = setupContextWithAllFeatures();
+
+      const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
+
+      expect(filter.cursor).toEqual(new Cursor(undefined, '1', 10));
+      expect(filter.page).toBeUndefined();
     });
   });
 });

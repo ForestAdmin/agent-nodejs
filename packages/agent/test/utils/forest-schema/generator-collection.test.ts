@@ -37,6 +37,10 @@ describe('SchemaGeneratorCollection', () => {
       }),
       getForm: jest.fn().mockReturnValue(Promise.resolve(null)),
     }),
+    factories.collection.build({
+      name: 'author',
+      paginationType: 'cursor',
+    }),
   ]);
 
   test('books should not be readonly and skip foreign keys', async () => {
@@ -85,5 +89,11 @@ describe('SchemaGeneratorCollection', () => {
       reference: 'persons.id',
       relationship: 'HasOne',
     });
+  });
+
+  test('author should have pagination type cursor', async () => {
+    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('author'));
+
+    expect(schema.paginationType).toEqual('cursor');
   });
 });
