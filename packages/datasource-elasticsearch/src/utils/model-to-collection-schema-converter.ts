@@ -47,6 +47,8 @@ export default class ModelToCollectionSchemaConverter {
         type: 'ManyToOne',
       };
     }
+
+    throw new Error('Undefined association.');
   }
 
   private static convertAssociations(
@@ -109,8 +111,7 @@ export default class ModelToCollectionSchemaConverter {
       }
     });
 
-    // TODO: Push _id
-    // Virtual field
+    // Virtual field _id
     const defaultPrimaryColumn: ColumnSchema = {
       columnType: 'String',
       type: 'Column',
