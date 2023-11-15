@@ -212,12 +212,6 @@ export default class QueryStringParser {
     if (Number.isNaN(itemsPerPage) || itemsPerPage <= 0)
       throw new ValidationError(`Invalid cursor pagination [limit: ${itemsPerPage}]`);
 
-    if (!before && !after)
-      throw new ValidationError(
-        // eslint-disable-next-line max-len
-        'Invalid cursor pagination, you should have at least "starting_before" or "starting_after" cursor set.',
-      );
-
-    return new Cursor(before, after, itemsPerPage);
+    return new Cursor(itemsPerPage, { before, after });
   }
 }

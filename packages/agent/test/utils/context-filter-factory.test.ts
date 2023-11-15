@@ -123,7 +123,7 @@ describe('FilterFactory', () => {
 
       const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
 
-      expect(filter.cursor).toEqual(new Cursor(undefined, '1', 10));
+      expect(filter.cursor).toEqual(new Cursor(10, { after: '1' }));
       expect(filter.page).toBeUndefined();
     });
   });

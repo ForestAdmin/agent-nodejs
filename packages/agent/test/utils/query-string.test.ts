@@ -514,7 +514,7 @@ describe('QueryStringParser', () => {
     });
 
     describe('when context provides invalid values', () => {
-      test('should return a ValidationError error on bad pageSize', () => {
+      test('should return a ValidationError', () => {
         const context = createMockContext({
           customProperties: { query: { 'page[size]': -5, starting_after: 1 } },
         });
@@ -522,19 +522,6 @@ describe('QueryStringParser', () => {
         const fn = () => QueryStringParser.parseCursor(context);
 
         expect(fn).toThrow('Invalid cursor pagination [limit: -5]');
-      });
-
-      test('should return a ValidationError error on no cursor present', () => {
-        const context = createMockContext({
-          customProperties: { query: { 'page[size]': 5 } },
-        });
-
-        const fn = () => QueryStringParser.parseCursor(context);
-
-        expect(fn).toThrow(
-          // eslint-disable-next-line max-len
-          'Invalid cursor pagination, you should have at least "starting_before" or "starting_after" cursor set.',
-        );
       });
     });
   });
