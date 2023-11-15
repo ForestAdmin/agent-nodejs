@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.36.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.1...@forestadmin/agent@1.36.2) (2023-11-15)
+
+
+### Bug Fixes
+
+* **schema:** throw an error when enum values are corrupted in the schema ([#877](https://github.com/ForestAdmin/agent-nodejs/issues/877)) ([d4488c9](https://github.com/ForestAdmin/agent-nodejs/commit/d4488c95fbbf8446e3dc673ba0e3a764340c900a))
+
 ## @forestadmin/agent [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.0...@forestadmin/agent@1.36.1) (2023-11-14)
 
 
