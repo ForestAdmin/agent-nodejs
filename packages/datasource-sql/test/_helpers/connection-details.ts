@@ -1,3 +1,5 @@
+import { tmpdir } from 'os';
+import path from 'path';
 import { Dialect, Options } from 'sequelize';
 
 export type ConnectionDetails = {
@@ -102,11 +104,30 @@ export const MARIADB_DETAILS: ConnectionDetails = {
   defaultSchema: undefined,
 };
 
+export const SQLITE_DETAILS: ConnectionDetails = {
+  name: 'SQLite',
+  dialect: 'sqlite',
+  url: (dbName?: string) => `sqlite://${path.join(tmpdir(), `${dbName}.db` || 'test.db')}}`,
+  options: (dbName?: string) => ({
+    dialect: 'sqlite' as Dialect,
+    storage: ':memory:',
+    database: dbName,
+  }),
+  supports: {
+    schemas: false,
+    enums: false,
+    arrays: false,
+    booleans: false,
+  },
+  defaultSchema: undefined,
+};
+
 const CONNECTION_DETAILS: ConnectionDetails[] = [
   POSTGRESQL_DETAILS,
   MSSQL_DETAILS,
   MSSQL_DETAILS,
   MARIADB_DETAILS,
+  SQLITE_DETAILS,
 ];
 
 export default CONNECTION_DETAILS;

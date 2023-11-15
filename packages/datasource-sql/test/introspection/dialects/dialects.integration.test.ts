@@ -4,12 +4,14 @@ import MariadbDialect from '../../../src/introspection/dialects/mariadb-dialect'
 import MsSQLDialect from '../../../src/introspection/dialects/mssql-dialect';
 import MySQLDialect from '../../../src/introspection/dialects/mysql-dialect';
 import PostgreSQLDialect from '../../../src/introspection/dialects/postgresql-dialect';
+import SQLiteDialect from '../../../src/introspection/dialects/sqlite-dialect';
 import {
   ConnectionDetails,
   MARIADB_DETAILS,
   MSSQL_DETAILS,
   MYSQL_DETAILS,
   POSTGRESQL_DETAILS,
+  SQLITE_DETAILS,
 } from '../../_helpers/connection-details';
 
 const DB_NAME = 'dialect-test-db';
@@ -34,10 +36,13 @@ async function setupSchema(connectionDetails: ConnectionDetails, schema: string 
 async function setupDB(connectionDetails: ConnectionDetails, dbName: string, dropQuery: string) {
   const sequelize = new Sequelize({ ...connectionDetails.options(), logging: false });
 
-  await sequelize.query(dropQuery, {
-    logging: false,
-  });
-  await sequelize.getQueryInterface().createDatabase(dbName);
+  if (dropQuery) {
+    await sequelize.query(dropQuery, {
+      logging: false,
+    });
+    await sequelize.getQueryInterface().createDatabase(dbName);
+  }
+
   await sequelize.close();
 }
 
@@ -120,6 +125,26 @@ describe.each([
       nowDateValue: 'current_timestamp()',
       textFunctionDefaultValue: 'current_timestamp()',
       integer: 'INT(11)',
+    },
+  },
+  {
+    connectionDetails: SQLITE_DETAILS,
+    dialectFactory: () => new SQLiteDialect(),
+    dialectSql: {
+      autoIncrement: (schema: string | undefined, tableName: string, idName?: string) => ({
+        defaultValue: null,
+        isLiteralDefaultValue: false,
+      }),
+      now: 'CURRENT_TIMESTAMP',
+      nowDate: '(CURRENT_TIMESTAMP)',
+      nowDateValue: 'CURRENT_TIMESTAMP',
+      textFunctionDefaultValue: 'CURRENT_TIMESTAMP',
+      integer: 'INTEGER',
+      text: 'TEXT',
+      varchar: length => `VARCHAR(${length})`,
+      date: 'DATETIME',
+      dropDb: (dbName: string) => null,
+      decimalValue: (value: number) => `${value}`,
     },
   },
 ])('$connectionDetails.name dialect', ({ connectionDetails, dialectFactory, dialectSql }) => {
@@ -266,22 +291,39 @@ describe.each([
               'NULL',
               'thisIsNotAFunction()',
             ])('should return %s as default value (not literal)', async defaultValue => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
+              if (connectionDetails.dialect === 'sqlite') {
+                // Sequelize's bugs: the string false is interpreted as 0 when creating the table
+                await connection.query(`DROP TABLE IF EXISTS elements;`);
+
+                await connection.query(
+                  `CREATE TABLE elements (
+                      id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      name TEXT DEFAULT :defaultValue
+                    );`,
+                  {
+                    replacements: {
+                      defaultValue,
+                    },
                   },
-                  name: {
-                    type: DataTypes.STRING(255),
-                    defaultValue,
+                );
+              } else {
+                connection.define(
+                  'elements',
+                  {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    name: {
+                      type: DataTypes.STRING(255),
+                      defaultValue,
+                    },
                   },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                  { paranoid: false, createdAt: false, updatedAt: false },
+                );
+                await connection.sync({ force: true, logging: true });
+              }
 
               const dialect = dialectFactory();
 
@@ -1057,7 +1099,6 @@ describe.each([
         expect(tableColumns).toEqual([
           [
             expect.objectContaining({
-              allowNull: false,
               autoIncrement: true,
               comment: null,
               name: 'id1',

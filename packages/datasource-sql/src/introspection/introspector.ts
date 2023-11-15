@@ -6,6 +6,7 @@ import MariadbDialect from './dialects/mariadb-dialect';
 import MsSQLDialect from './dialects/mssql-dialect';
 import MySQLDialect from './dialects/mysql-dialect';
 import PostgreSQLDialect from './dialects/postgresql-dialect';
+import SQLiteDialect from './dialects/sqlite-dialect';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import {
   QueryInterfaceExt,
@@ -114,6 +115,8 @@ export default class Introspector {
         return new MySQLDialect();
       case 'mariadb':
         return new MariadbDialect();
+      case 'sqlite':
+        return new SQLiteDialect();
       default:
         throw new Error(`Unsupported dialect: ${sequelize.getDialect()}`);
     }
