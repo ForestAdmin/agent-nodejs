@@ -199,7 +199,7 @@ export default class QueryConverter {
     });
   }
 
-  public getOrderFromSort(sort: Sort): SortCombinations[] {
+  public getOrderFromSort(sort?: Sort): SortCombinations[] {
     return (sort ?? []).map(
       ({ field, ascending }: { field: string; ascending: boolean }): SortCombinations => {
         const path = field.replace(/:/g, '.');
