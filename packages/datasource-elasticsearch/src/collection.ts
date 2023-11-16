@@ -38,7 +38,7 @@ export default class ElasticsearchCollection extends BaseCollection {
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
 
-    logger?.('Debug', `ElasticsearchCollection - ${this.name} added`);
+    logger('Debug', `ElasticsearchCollection - ${this.name} added`);
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {

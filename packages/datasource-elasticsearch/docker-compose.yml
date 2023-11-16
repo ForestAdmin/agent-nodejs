@@ -1,0 +1,17 @@
+version: '2'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.1
+    container_name: forest_elasticsearch_test
+    ports:
+      - 9201:9200
+    environment:
+      - discovery.type=single-node
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1

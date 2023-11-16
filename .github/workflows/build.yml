@@ -64,6 +64,7 @@ jobs:
           - agent
           - datasource-customizer
           - datasource-dummy
+          - datasource-elasticsearch
           - datasource-mongoose
           - datasource-replica
           - datasource-sequelize
@@ -79,7 +80,7 @@ jobs:
         with:
           node-version: 16.14.0
       - name: Start docker containers
-        if: ${{ matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' }}
+        if: ${{ matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' || matrix.package == 'datasource-elasticsearch' }}
         run: docker-compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v3
@@ -126,6 +127,7 @@ jobs:
             ${{github.workspace}}/reports/agent/clover.xml:clover
             ${{github.workspace}}/reports/datasource-customizer/clover.xml:clover
             ${{github.workspace}}/reports/datasource-dummy/clover.xml:clover
+            ${{github.workspace}}/reports/datasource-elasticsearch/clover.xml:clover
             ${{github.workspace}}/reports/datasource-mongoose/clover.xml:clover
             ${{github.workspace}}/reports/datasource-replica/clover.xml:clover
             ${{github.workspace}}/reports/datasource-sequelize/clover.xml:clover

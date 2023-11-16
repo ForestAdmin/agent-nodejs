@@ -22,7 +22,7 @@ describe('ElasticsearchDataSource > Collection', () => {
       properties: { name: { type: 'integer' } },
     });
 
-    const elasticsearchCollection = new ElasticsearchCollection(dataSource, model);
+    const elasticsearchCollection = new ElasticsearchCollection(dataSource, model, jest.fn());
 
     return {
       dataSource,
