@@ -1,9 +1,9 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
+import { ColumnDescription } from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import { SequelizeColumn } from '../../../src/introspection/type-overrides';
 
-const makeColumnDescription = (description: Partial<SequelizeColumn>) => {
+const makeColumnDescription = (description: Partial<ColumnDescription>) => {
   return {
     type: 'THIS-SHOULD-NEVER-MATCH',
     allowNull: false,
@@ -12,15 +12,18 @@ const makeColumnDescription = (description: Partial<SequelizeColumn>) => {
     autoIncrement: false,
     comment: null,
     ...description,
-  };
+  } as ColumnDescription;
 };
 
-const makeColumnDescriptionForType = (type: string): SequelizeColumn => {
+const makeColumnDescriptionForType = (type: string): ColumnDescription => {
   return makeColumnDescription({ type });
 };
 
-const makeColumnDescriptionForEnum = (enumValues: Array<string>): SequelizeColumn => {
-  return makeColumnDescription({ type: 'USER-DEFINED', special: enumValues });
+const makeColumnDescriptionForEnum = (
+  type: string,
+  enumValues: Array<string>,
+): ColumnDescription => {
+  return makeColumnDescription({ type, special: enumValues, enumValues });
 };
 
 describe('SqlTypeConverter', () => {
@@ -91,7 +94,7 @@ describe('SqlTypeConverter', () => {
           await sqlTypeConverter.convert(
             { tableName: 'test', schema: 'public' },
             'column-ENUM-a-b',
-            makeColumnDescriptionForType("ENUM('a','b')"),
+            makeColumnDescriptionForEnum("ENUM('a','b')", ['a', 'b']),
           ),
         ).toEqual({ type: 'enum', values: ['a', 'b'] });
       });
@@ -107,7 +110,7 @@ describe('SqlTypeConverter', () => {
             await sqlTypeConverter.convert(
               { tableName: 'test', schema: 'public' },
               'column-USER-DEFINED-ENUM',
-              makeColumnDescriptionForEnum(['valueA', 'valueB']),
+              makeColumnDescriptionForEnum('USER-DEFINED', ['valueA', 'valueB']),
             ),
           ).toEqual({ type: 'enum', values: ['valueA', 'valueB'] });
         });
@@ -122,7 +125,7 @@ describe('SqlTypeConverter', () => {
             await sqlTypeConverter.convert(
               { tableName: 'test', schema: 'public' },
               'column-USER-DEFINED-ENUM-WITH-NO-VALUES',
-              makeColumnDescriptionForEnum([]),
+              makeColumnDescriptionForEnum('USER-DEFINED', []),
             ),
           ).toEqual({ type: 'scalar', subType: 'STRING' });
         });

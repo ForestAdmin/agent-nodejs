@@ -32,7 +32,7 @@ export default class SqlTypeConverter {
 
   /** Get the type of an enum from sequelize column description */
   private getEnumType(columnInfo: ColumnDescription): ColumnType {
-    return columnInfo.enumValues.length > 0
+    return columnInfo.enumValues?.length > 0
       ? { type: 'enum', values: columnInfo.enumValues }
       : // User-defined enum with no values will default to string
         { type: 'scalar', subType: 'STRING' };
