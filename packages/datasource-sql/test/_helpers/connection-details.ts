@@ -10,6 +10,7 @@ export type ConnectionDetails = {
   supports: {
     schemas?: boolean;
     enums?: boolean;
+    enumsValueRetrieval: boolean;
     arrays?: boolean;
     booleans: boolean;
     json?: boolean;
@@ -34,6 +35,7 @@ export const POSTGRESQL_DETAILS: ConnectionDetails = {
   supports: {
     schemas: true,
     enums: true,
+    enumsValueRetrieval: true,
     arrays: true,
     booleans: true,
     json: true,
@@ -59,6 +61,7 @@ export const MSSQL_DETAILS: ConnectionDetails = {
   supports: {
     schemas: true,
     enums: true,
+    enumsValueRetrieval: false,
     arrays: false,
     booleans: false,
     json: false,
@@ -83,6 +86,7 @@ export const MYSQL_DETAILS: ConnectionDetails = {
   supports: {
     schemas: false,
     enums: true,
+    enumsValueRetrieval: true,
     arrays: false,
     booleans: false,
     multipleDatabases: true,
@@ -106,6 +110,7 @@ export const MARIADB_DETAILS: ConnectionDetails = {
   supports: {
     schemas: false,
     enums: true,
+    enumsValueRetrieval: true,
     arrays: false,
     booleans: false,
     multipleDatabases: true,
@@ -126,6 +131,7 @@ export const SQLITE_DETAILS: ConnectionDetails = {
   supports: {
     schemas: false,
     enums: false,
+    enumsValueRetrieval: false,
     arrays: false,
     booleans: false,
     multipleDatabases: false,

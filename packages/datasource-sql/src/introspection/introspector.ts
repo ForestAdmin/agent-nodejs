@@ -1,12 +1,8 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import { Dialect, Sequelize } from 'sequelize';
 
-import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
-import MariadbDialect from './dialects/mariadb-dialect';
-import MsSQLDialect from './dialects/mssql-dialect';
-import MySQLDialect from './dialects/mysql-dialect';
-import PostgreSQLDialect from './dialects/postgresql-dialect';
-import SQLiteDialect from './dialects/sqlite-dialect';
+import introspectionDialectFactory from './dialects/dialect-factory';
+import { ColumnDescription } from './dialects/dialect.interface';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import {
@@ -91,7 +87,7 @@ export default class Introspector {
     sequelize: Sequelize,
     logger: Logger,
   ): Promise<Table[]> {
-    const dialect = this.getDialect(sequelize);
+    const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
 
     const tablesColumns = await dialect.listColumns(tableNames, sequelize);
 
@@ -102,23 +98,6 @@ export default class Introspector {
         return this.getTable(sequelize, tableIdentifier, columnDescriptions, logger);
       }),
     );
-  }
-
-  private static getDialect(sequelize: Sequelize): IntrospectionDialect {
-    switch (sequelize.getDialect()) {
-      case 'postgres':
-        return new PostgreSQLDialect();
-      case 'mssql':
-        return new MsSQLDialect();
-      case 'mysql':
-        return new MySQLDialect();
-      case 'mariadb':
-        return new MariadbDialect();
-      case 'sqlite':
-        return new SQLiteDialect();
-      default:
-        throw new Error(`Unsupported dialect: ${sequelize.getDialect()}`);
-    }
   }
 
   /** Instrospect a single table */
