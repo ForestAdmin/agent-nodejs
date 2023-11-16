@@ -2,10 +2,11 @@ import { Sequelize } from 'sequelize';
 
 import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 
-export type ColumnDescription = SequelizeColumn & {
+export type ColumnDescription = Omit<SequelizeColumn, 'defaultValue'> & {
   name: string;
   isLiteralDefaultValue: boolean;
-  enumValues: string[];
+  enumValues: string[] | null;
+  defaultValue: string | null;
 };
 
 export default interface IntrospectionDialect {

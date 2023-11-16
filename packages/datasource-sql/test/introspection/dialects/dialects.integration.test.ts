@@ -825,6 +825,52 @@ describe.each([
               ]);
             });
           });
+
+          describe('for arrays', () => {
+            it('should return the array values as default value', async () => {
+              if (!connectionDetails.supports.arrays) return;
+
+              connection.define(
+                'elements',
+                {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
+                  },
+                  mood: {
+                    type: DataTypes.ARRAY(DataTypes.TEXT),
+                    defaultValue: ['happy', 'sad'],
+                  },
+                },
+                { paranoid: false, createdAt: false, updatedAt: false },
+              );
+
+              await connection.sync({ force: true });
+
+              const dialect = dialectFactory();
+
+              const tableNames = [
+                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+              ];
+
+              const tableColumns = await dialect.listColumns(tableNames, connection);
+
+              expect(tableColumns).toEqual([
+                expect.arrayContaining([
+                  expect.objectContaining({
+                    name: 'id',
+                  }),
+                  expect.objectContaining({
+                    name: 'mood',
+                    defaultValue: "ARRAY['happy'::text, 'sad'::text]",
+                    isLiteralDefaultValue: true,
+                    type: 'ARRAY',
+                  }),
+                ]),
+              ]);
+            });
+          });
         });
 
         describe('types', () => {

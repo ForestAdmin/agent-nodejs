@@ -4,13 +4,18 @@ import { ColumnDescription } from '../dialects/dialect.interface';
 import { ColumnType } from '../types';
 
 export default class DefaultValueParser {
-  static parse(column: ColumnDescription, type: ColumnType): unknown {
+  static parse(
+    column: Pick<ColumnDescription, 'defaultValue' | 'isLiteralDefaultValue' | 'enumValues'>,
+    columnType: ColumnType,
+  ): unknown {
     if (column.defaultValue === null || column.defaultValue === undefined) return undefined;
+
+    if (columnType.type === 'array') return undefined;
 
     if (column.isLiteralDefaultValue) return literal(column.defaultValue);
 
     try {
-      const result = this.parseGeneric(column, type);
+      const result = this.parseGeneric(column, columnType);
 
       return result !== undefined ? result : literal(column.defaultValue);
     } catch (e) {
@@ -18,7 +23,10 @@ export default class DefaultValueParser {
     }
   }
 
-  private static parseGeneric(column: ColumnDescription, columnType: ColumnType): unknown {
+  private static parseGeneric(
+    column: Pick<ColumnDescription, 'defaultValue' | 'isLiteralDefaultValue' | 'enumValues'>,
+    columnType: ColumnType,
+  ): unknown {
     if (columnType.type === 'enum') {
       return column.defaultValue;
     }
