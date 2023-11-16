@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.37.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.3...@forestadmin/datasource-customizer@1.37.4) (2023-11-16)
+
+
+### Bug Fixes
+
+* do not generate typing aliases with dashes ([#883](https://github.com/ForestAdmin/agent-nodejs/issues/883)) ([f971b68](https://github.com/ForestAdmin/agent-nodejs/commit/f971b68edb7b64bc5fc87dba83b6ef627fb23009))
+
 ## @forestadmin/datasource-customizer [1.37.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.2...@forestadmin/datasource-customizer@1.37.3) (2023-11-14)
 
 
