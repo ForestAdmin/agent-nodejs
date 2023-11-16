@@ -3,6 +3,10 @@ import {
   createElasticsearchIndex,
   deleteElasticsearchIndex,
 } from '../helpers/elastic-search-index-manager';
+import {
+  createElasticsearchTemplate,
+  deleteElasticsearchTemplate,
+} from '../helpers/elastic-search-template-manager';
 
 const dataset = [
   {
@@ -47,10 +51,12 @@ describe('introspection > builder', () => {
     it('should get the attributes with their types and constraints', async () => {
       const client = await createElasticsearchIndex('test-index', dataset);
       const elasticsearchDatasourceBuilder = new ElasticsearchDatasourceBuilder(client);
-      await elasticsearchDatasourceBuilder.addCollectionFromIndex({
+
+      elasticsearchDatasourceBuilder.addCollectionFromIndex({
         name: 'quotes',
         indexName: 'test-index',
       });
+
       const quotes = (await elasticsearchDatasourceBuilder.createCollectionsFromConfiguration())[0];
       expect(quotes.name).toStrictEqual('quotes');
       expect(quotes.getAttributes()).toStrictEqual({
@@ -92,7 +98,68 @@ describe('introspection > builder', () => {
           },
         },
       });
+
       await deleteElasticsearchIndex('test-index');
+    });
+  });
+
+  describe('addCollectionFromTemplate', () => {
+    it('should get the attributes with their types and constraints', async () => {
+      const client = await createElasticsearchTemplate(
+        'test-template',
+        {
+          indexPattern: 'test-template-*',
+          alias: 'test-template-alias',
+          mapping: {
+            dynamic: 'strict',
+            properties: {
+              id: { type: 'integer' },
+              text: { type: 'text' },
+              user: { type: 'keyword' },
+              date: { type: 'date' },
+              nestedField: {
+                properties: { type: { type: 'keyword' } },
+              },
+            },
+          },
+        },
+        dataset.map(data => ({ ...data, index: 'test-template-index' })),
+      );
+
+      const elasticsearchDatasourceBuilder = new ElasticsearchDatasourceBuilder(client);
+
+      elasticsearchDatasourceBuilder.addCollectionFromTemplate({
+        name: 'quotes',
+        templateName: 'test-template',
+      });
+
+      const quotesModel = (
+        await elasticsearchDatasourceBuilder.createCollectionsFromConfiguration()
+      )[0];
+      expect(quotesModel.name).toStrictEqual('quotes');
+      expect(quotesModel.getAttributes()).toStrictEqual({
+        date: {
+          type: 'date',
+        },
+        id: {
+          type: 'integer',
+        },
+        nestedField: {
+          properties: {
+            type: {
+              type: 'keyword',
+            },
+          },
+        },
+        text: {
+          type: 'text',
+        },
+        user: {
+          type: 'keyword',
+        },
+      });
+
+      await deleteElasticsearchTemplate('test-template', 'test-template-*');
     });
   });
 });
