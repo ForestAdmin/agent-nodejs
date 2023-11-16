@@ -2,6 +2,10 @@ import { MappingFieldType } from '@elastic/elasticsearch/api/types';
 import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export default class TypeConverter {
+  public static fromDataType(dataType: MappingFieldType): ColumnType {
+    return TypeConverter.getColumnTypeFromDataType(dataType);
+  }
+
   /**
    * https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping-types.html#mapping-types
    */
@@ -62,8 +66,8 @@ export default class TypeConverter {
     }
   }
 
-  public static fromDataType(dataType: MappingFieldType): ColumnType {
-    return TypeConverter.getColumnTypeFromDataType(dataType);
+  public static isSortable(dataType: MappingFieldType): boolean {
+    return dataType !== 'text';
   }
 
   public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {

@@ -4,6 +4,14 @@ import { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
 import TypeConverter from '../../src/utils/type-converter';
 
 describe('Utils > TypeConverter', () => {
+  describe('isSortable', () => {
+    it('should be sortable on a non text type', () => {
+      expect(TypeConverter.isSortable('binary')).toBe(true);
+    });
+    it('should not be sortable on a non text type', () => {
+      expect(TypeConverter.isSortable('text')).toBe(false);
+    });
+  });
   describe('fromDataType', () => {
     it('should throw with an unknown column type', () => {
       expect(() => TypeConverter.fromDataType('__unknown__' as MappingFieldType)).toThrow(
