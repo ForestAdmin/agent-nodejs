@@ -78,19 +78,20 @@ describe('TypingGenerator', () => {
     expectEqual(generated, expected);
   });
 
-  test('aliaes should work with a collection with underscores', () => {
+  it.each(['_underscores', '-dashes'])('aliases should work with a collection with %s', char => {
     const datasource = factories.dataSource.buildWithCollections([
-      factories.collection.build({ name: 'a_collection_name' }),
+      factories.collection.build({ name: `aCollectionNameWith${char}` }),
     ]);
+    const replaced = char.replace(/(_|-)/g, '')[0].toUpperCase() + char.slice(2);
 
     const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
-      export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'a_collection_name'>;
-      export type ACollectionNameRecord = TPartialRow<Schema, 'a_collection_name'>;
-      export type ACollectionNameConditionTree = TConditionTree<Schema, 'a_collection_name'>;
-      export type ACollectionNameFilter = TPaginatedFilter<Schema,'a_collection_name'>;
-      export type ACollectionNameSortClause = TSortClause<Schema,'a_collection_name'>;
-      export type ACollectionNameAggregation = TAggregation<Schema, 'a_collection_name'>;
+      export type ACollectionNameWith${replaced}Customizer = CollectionCustomizer<Schema, 'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}Record = TPartialRow<Schema, 'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}ConditionTree = TConditionTree<Schema, 'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}Filter = TPaginatedFilter<Schema,'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}SortClause = TSortClause<Schema,'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}Aggregation = TAggregation<Schema, 'aCollectionNameWith${char}'>;
     `;
 
     expectContains(generated, expected);
