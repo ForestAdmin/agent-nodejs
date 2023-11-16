@@ -1,7 +1,8 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
-import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
+import parseArray from './parse-array';
+import { SequelizeColumn, SequelizeTableIdentifier } from '../../type-overrides';
+import IntrospectionDialect, { ColumnDescription } from '../dialect.interface';
 
 type DBColumn = {
   Schema: string;
@@ -11,7 +12,7 @@ type DBColumn = {
   Default: string;
   Null: 'YES' | 'NO';
   Type: string;
-  Special: string[];
+  Special: string;
   Comment: string;
 };
 
@@ -109,10 +110,10 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       type,
       allowNull: dbColumn.Null === 'YES',
       comment: dbColumn.Comment,
-      special: dbColumn.Special || [],
+      special: parseArray(dbColumn.Special),
       primaryKey: dbColumn.Constraint === 'PRIMARY KEY',
       defaultValue: dbColumn.Default,
-      autoIncrement: dbColumn.Default?.startsWith('nextval('),
+      autoIncrement: Boolean(dbColumn.Default?.startsWith('nextval(')),
     };
 
     const { defaultValue, isLiteralDefaultValue } = this.mapDefaultValue(sequelizeColumn);
@@ -122,6 +123,7 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       name: dbColumn.Field,
       defaultValue,
       isLiteralDefaultValue,
+      enumValues: sequelizeColumn.special,
     };
   }
 

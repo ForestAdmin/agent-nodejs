@@ -1,7 +1,7 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import CONNECTION_DETAILS from '../../_helpers/connection-details';
+import CONNECTION_DETAILS, { ConnectionDetails } from '../../_helpers/connection-details';
 
 const SCALAR_TYPES: [string, string, string[]?][] = [
   // Testing a subset of types
@@ -15,29 +15,18 @@ const SCALAR_TYPES: [string, string, string[]?][] = [
   ['TEXT', 'STRING'],
 ];
 
-async function setupTestDB(connectionDetails, schema) {
-  const initSequelize = new Sequelize({
-    dialect: connectionDetails.dialect,
-    username: connectionDetails.username,
-    password: connectionDetails.password,
-    host: connectionDetails.host,
-    port: connectionDetails.port,
-    logging: false,
-  });
+async function setupTestDB(connectionDetails: ConnectionDetails, schema) {
+  const initSequelize = new Sequelize(connectionDetails.options());
 
-  await initSequelize.getQueryInterface().dropDatabase('datasource-sql-introspection-test');
-  await initSequelize.getQueryInterface().createDatabase('datasource-sql-introspection-test');
+  if (connectionDetails.supports.multipleDatabases) {
+    await initSequelize.getQueryInterface().dropDatabase('datasource-sql-introspection-test');
+    await initSequelize.getQueryInterface().createDatabase('datasource-sql-introspection-test');
+  }
 
   initSequelize.close();
 
   const sequelize = new Sequelize({
-    dialect: connectionDetails.dialect,
-    username: connectionDetails.username,
-    password: connectionDetails.password,
-    host: connectionDetails.host,
-    port: connectionDetails.port,
-    logging: false,
-    database: 'datasource-sql-introspection-test',
+    ...connectionDetails.options('datasource-sql-introspection-test'),
     schema,
   });
 
@@ -56,7 +45,7 @@ describe('Integration > SqlTypeConverter', () => {
         let sequelize: Sequelize;
 
         beforeEach(async () => {
-          sequelize = await setupTestDB(connectionDetails.options(), schema);
+          sequelize = await setupTestDB(connectionDetails, schema);
         });
 
         afterEach(async () => {
@@ -150,7 +139,7 @@ describe('Integration > SqlTypeConverter', () => {
           let sequelize: Sequelize;
 
           beforeEach(async () => {
-            sequelize = await setupTestDB(connectionDetails.options(), schema);
+            sequelize = await setupTestDB(connectionDetails, schema);
           });
 
           afterEach(async () => {

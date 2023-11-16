@@ -37,7 +37,7 @@ export type SequelizeReference = {
   constraintName: string;
   constraintSchema: string;
   constraintCatalog: string;
-  tableName: string;
+  tableName: string | SequelizeTableIdentifier;
   tableSchema: string;
   tableCatalog: string;
   columnName: string;

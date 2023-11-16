@@ -37,17 +37,22 @@ export default class SQLiteDialect implements IntrospectionDialect {
       }),
     ]);
 
-    return columns.map(column => ({
-      name: column.name,
-      type: column.type,
-      allowNull: !column.notnull,
-      primaryKey: Boolean(column.pk),
-      // Not bullet proof, but that's all we can do with SQLite
-      // without starting to parse SQL queries
-      autoIncrement: sql.includes(`AUTOINCREMENT`),
-      comment: null,
-      ...this.mapDefaultValue(column),
-    }));
+    return columns.map(column => {
+      const primaryKey = Boolean(column.pk);
+
+      return {
+        name: column.name,
+        type: column.type,
+        allowNull: !column.notnull && !primaryKey,
+        primaryKey,
+        // Not bullet proof, but that's all we can do with SQLite
+        // without starting to parse SQL queries
+        autoIncrement: primaryKey && sql.includes(`AUTOINCREMENT`),
+        comment: null,
+        ...this.mapDefaultValue(column),
+        enumValues: null,
+      };
+    });
   }
 
   private mapDefaultValue(column: DBColumn): {

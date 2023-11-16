@@ -1,7 +1,8 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
-import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
+import parseEnum from './parse-enum';
+import { SequelizeColumn, SequelizeTableIdentifier } from '../../type-overrides';
+import IntrospectionDialect, { ColumnDescription } from '../dialect.interface';
 
 export type MySQLDBColumn = {
   Table: string;
@@ -73,6 +74,7 @@ export default class MySQLDialect implements IntrospectionDialect {
       name: dbColumn.Field,
       defaultValue,
       isLiteralDefaultValue,
+      enumValues: parseEnum(type),
     };
   }
 

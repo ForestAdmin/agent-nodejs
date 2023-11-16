@@ -124,6 +124,7 @@ export default class MsSQLDialect implements IntrospectionDialect {
       name: dbColumn.Name,
       defaultValue,
       isLiteralDefaultValue,
+      enumValues: null,
     };
   }
 

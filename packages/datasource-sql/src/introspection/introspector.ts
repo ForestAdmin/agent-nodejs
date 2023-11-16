@@ -1,5 +1,5 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import { Dialect, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
 import MariadbDialect from './dialects/mariadb-dialect';
@@ -7,6 +7,7 @@ import MsSQLDialect from './dialects/mssql-dialect';
 import MySQLDialect from './dialects/mysql-dialect';
 import PostgreSQLDialect from './dialects/postgresql-dialect';
 import SQLiteDialect from './dialects/sqlite-dialect';
+import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import {
   QueryInterfaceExt,
@@ -20,8 +21,6 @@ export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
     const tableNames = await this.getTableNames(sequelize as SequelizeWithOptions);
     const tables = await this.getTables(tableNames, sequelize, logger);
-    // const promises = tableNames.map(name => this.getTable(sequelize, logger, name));
-    // const tables = await Promise.all(promises);
 
     this.sanitizeInPlace(tables, logger);
 
@@ -141,12 +140,21 @@ export default class Introspector {
       queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery),
     ]);
 
-    const references = tableReferences.filter(
-      // There is a bug right now with sequelize on postgresql: returned association
-      // are not filtered on the schema. So we have to filter them manually.
-      // Should be fixed with Sequelize v7
-      r => r.tableName === tableIdentifier.tableName && r.tableSchema === tableIdentifier.schema,
-    );
+    const references = tableReferences
+      .map(tableReference => ({
+        ...tableReference,
+        tableName:
+          typeof tableReference.tableName === 'string'
+            ? tableReference.tableName
+            : // On SQLite, the query interface returns an object with a tableName property
+              tableReference.tableName.tableName,
+      }))
+      .filter(
+        // There is a bug right now with sequelize on postgresql: returned association
+        // are not filtered on the schema. So we have to filter them manually.
+        // Should be fixed with Sequelize v7
+        r => r.tableName === tableIdentifier.tableName && r.tableSchema === tableIdentifier.schema,
+      );
 
     const columns = await Promise.all(
       columnDescriptions.map(async columnDescription => {
@@ -191,7 +199,9 @@ export default class Introspector {
       return {
         type,
         autoIncrement: description.autoIncrement,
-        defaultValue: description.autoIncrement ? null : description.defaultValue,
+        defaultValue: description.autoIncrement
+          ? null
+          : DefaultValueParser.parse(description, type),
         isLiteralDefaultValue: description.isLiteralDefaultValue,
         name,
         allowNull: description.allowNull,

@@ -61,6 +61,10 @@ const mysqlSQLDialect = {
   date: 'DATETIME',
   dropDb: (dbName: string) => `DROP DATABASE IF EXISTS \`${dbName}\``,
   decimalValue: (value: number) => value?.toFixed(2),
+  enumType: (values: string[]) => ({
+    type: `ENUM(${values.map(value => `'${value.replace(/'/g, "''")}'`).join(',')})`,
+    enumValues: values,
+  }),
 };
 
 describe.each([
@@ -88,6 +92,11 @@ describe.each([
       date: 'TIMESTAMP WITH TIME ZONE',
       dropDb: (dbName: string) => `DROP DATABASE IF EXISTS "${dbName}"`,
       decimalValue: (value: number) => `${value}`,
+      enumType: (values: string[]) => ({
+        type: 'USER-DEFINED',
+        special: values,
+        enumValues: values,
+      }),
     },
   },
   {
@@ -108,6 +117,9 @@ describe.each([
       date: 'DATETIMEOFFSET',
       dropDb: (dbName: string) => `DROP DATABASE IF EXISTS [${dbName}]`,
       decimalValue: (value: number) => `${value}`,
+      enumType: () => ({
+        type: `VARCHAR(255)`,
+      }),
     },
   },
   {
@@ -145,6 +157,7 @@ describe.each([
       date: 'DATETIME',
       dropDb: () => null,
       decimalValue: (value: number) => `${value}`,
+      enumType: () => ({}),
     },
   },
 ])('$connectionDetails.name dialect', ({ connectionDetails, dialectFactory, dialectSql }) => {
@@ -322,7 +335,7 @@ describe.each([
                   },
                   { paranoid: false, createdAt: false, updatedAt: false },
                 );
-                await connection.sync({ force: true, logging: true });
+                await connection.sync({ force: true });
               }
 
               const dialect = dialectFactory();
@@ -472,12 +485,7 @@ describe.each([
 
           describe('for booleans', () => {
             it('should return false if no default value is defined', async () => {
-              if (!connectionDetails.supports.booleans) {
-                // eslint-disable-next-line jest/no-conditional-expect
-                expect.assertions(0);
-
-                return;
-              }
+              if (!connectionDetails.supports.booleans) return;
 
               connection.define(
                 'elements',
@@ -517,12 +525,7 @@ describe.each([
             it.each([false, true])(
               'should return %s as default value (not literal)',
               async defaultValue => {
-                if (!connectionDetails.supports.booleans) {
-                  // eslint-disable-next-line jest/no-conditional-expect
-                  expect.assertions(0);
-
-                  return;
-                }
+                if (!connectionDetails.supports.booleans) return;
 
                 connection.define(
                   'elements',
@@ -825,6 +828,118 @@ describe.each([
         });
 
         describe('types', () => {
+          describe('integer', () => {
+            it('should correctly detect autoincrement', async () => {
+              connection.define(
+                'elements',
+                {
+                  id: {
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                  },
+                },
+                { paranoid: false, createdAt: false, updatedAt: false },
+              );
+
+              await connection.sync({ force: true });
+
+              const dialect = dialectFactory();
+
+              const tableNames = [
+                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+              ];
+
+              const tableColumns = await dialect.listColumns(tableNames, connection);
+
+              expect(tableColumns).toEqual([
+                [
+                  expect.objectContaining({
+                    name: 'id',
+                    type: dialectSql.integer,
+                    autoIncrement: true,
+                  }),
+                ],
+              ]);
+            });
+
+            it('should set autoincrement to false for other columns', async () => {
+              connection.define(
+                'elements',
+                {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
+                  },
+                  value: {
+                    type: DataTypes.INTEGER,
+                  },
+                },
+                { paranoid: false, createdAt: false, updatedAt: false },
+              );
+
+              await connection.sync({ force: true });
+
+              const dialect = dialectFactory();
+
+              const tableNames = [
+                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+              ];
+
+              const tableColumns = await dialect.listColumns(tableNames, connection);
+
+              expect(tableColumns).toEqual([
+                [
+                  expect.objectContaining({
+                    name: 'id',
+                    type: dialectSql.integer,
+                    autoIncrement: true,
+                  }),
+                  expect.objectContaining({
+                    name: 'value',
+                    type: dialectSql.integer,
+                    autoIncrement: false,
+                  }),
+                ],
+              ]);
+            });
+
+            it('should not set autoincrement if the id is not auto incremented', async () => {
+              connection.define(
+                'elements',
+                {
+                  id: {
+                    autoIncrement: false,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                  },
+                },
+                { paranoid: false, createdAt: false, updatedAt: false },
+              );
+
+              await connection.sync({ force: true });
+
+              const dialect = dialectFactory();
+
+              const tableNames = [
+                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+              ];
+
+              const tableColumns = await dialect.listColumns(tableNames, connection);
+
+              expect(tableColumns).toEqual([
+                [
+                  expect.objectContaining({
+                    name: 'id',
+                    type: dialectSql.integer,
+                    autoIncrement: false,
+                  }),
+                ],
+              ]);
+            });
+          });
+
           it.each([
             [DataTypes.TEXT, dialectSql.text],
             [DataTypes.STRING(12), dialectSql.varchar(12)],
@@ -850,9 +965,52 @@ describe.each([
                 expect.objectContaining({
                   name: 'test',
                   type: expected,
+                  autoIncrement: false,
+                  allowNull: true,
                 }),
               ],
             ]);
+          });
+
+          describe('enum', () => {
+            it('should correctly detect enums', async () => {
+              if (!connectionDetails.supports.enums) return;
+
+              connection.define(
+                'elements',
+                {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
+                  },
+                  mood: {
+                    type: DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                  },
+                },
+                { paranoid: false, createdAt: false, updatedAt: false },
+              );
+
+              await connection.sync({ force: true });
+
+              const dialect = dialectFactory();
+
+              const tableNames = [
+                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+              ];
+
+              const tableColumns = await dialect.listColumns(tableNames, connection);
+
+              expect(tableColumns).toEqual([
+                [
+                  expect.objectContaining({ name: 'id' }),
+                  expect.objectContaining({
+                    name: 'mood',
+                    ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
+                  }),
+                ],
+              ]);
+            });
           });
         });
 
@@ -1046,6 +1204,8 @@ describe.each([
       let connection2: Sequelize;
 
       beforeEach(async () => {
+        if (!connectionDetails.supports.multipleDatabases) return;
+
         await setupDB(connectionDetails, DB_NAME, dialectSql.dropDb(DB_NAME));
         await setupDB(connectionDetails, 'other-db', dialectSql.dropDb('other-db'));
 
@@ -1061,11 +1221,14 @@ describe.each([
       });
 
       afterEach(async () => {
+        if (!connectionDetails.supports.multipleDatabases) return;
         await connection1.close();
         await connection2.close();
       });
 
       it('should only return info from the table from the right database', async () => {
+        if (!connectionDetails.supports.multipleDatabases) return;
+
         connection1.define(
           'elements',
           {

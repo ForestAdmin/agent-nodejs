@@ -11,8 +11,9 @@ export type ConnectionDetails = {
     schemas?: boolean;
     enums?: boolean;
     arrays?: boolean;
-    booleans?: boolean;
+    booleans: boolean;
     json?: boolean;
+    multipleDatabases: boolean;
   };
   defaultSchema?: string;
 };
@@ -28,13 +29,15 @@ export const POSTGRESQL_DETAILS: ConnectionDetails = {
     host: 'localhost',
     port: 5443,
     database: dbName,
+    logging: false,
   }),
   supports: {
     schemas: true,
     enums: true,
     arrays: true,
-    booleans: false,
+    booleans: true,
     json: true,
+    multipleDatabases: true,
   },
   defaultSchema: 'public',
 };
@@ -51,13 +54,15 @@ export const MSSQL_DETAILS: ConnectionDetails = {
     host: 'localhost',
     port: 1434,
     database: dbName,
+    logging: false,
   }),
   supports: {
     schemas: true,
-    enums: false,
+    enums: true,
     arrays: false,
     booleans: false,
     json: false,
+    multipleDatabases: true,
   },
   defaultSchema: 'dbo',
 };
@@ -73,12 +78,14 @@ export const MYSQL_DETAILS: ConnectionDetails = {
     host: 'localhost',
     port: 3307,
     database: dbName,
+    logging: false,
   }),
   supports: {
     schemas: false,
     enums: true,
     arrays: false,
     booleans: false,
+    multipleDatabases: true,
   },
   defaultSchema: undefined,
 };
@@ -94,12 +101,14 @@ export const MARIADB_DETAILS: ConnectionDetails = {
     host: 'localhost',
     port: 3809,
     database: dbName,
+    logging: false,
   }),
   supports: {
     schemas: false,
     enums: true,
     arrays: false,
     booleans: false,
+    multipleDatabases: true,
   },
   defaultSchema: undefined,
 };
@@ -112,12 +121,14 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     dialect: 'sqlite' as Dialect,
     storage: ':memory:',
     database: dbName,
+    logging: false,
   }),
   supports: {
     schemas: false,
     enums: false,
     arrays: false,
     booleans: false,
+    multipleDatabases: false,
   },
   defaultSchema: undefined,
 };
@@ -125,7 +136,7 @@ export const SQLITE_DETAILS: ConnectionDetails = {
 const CONNECTION_DETAILS: ConnectionDetails[] = [
   POSTGRESQL_DETAILS,
   MSSQL_DETAILS,
-  MSSQL_DETAILS,
+  MYSQL_DETAILS,
   MARIADB_DETAILS,
   SQLITE_DETAILS,
 ];

@@ -1,19 +1,27 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-export default async (baseUri: string, database: string, schema?: string): Promise<Sequelize> => {
+import { ConnectionDetails } from './connection-details';
+
+export default async (
+  connectionDetails: ConnectionDetails,
+  database: string,
+  schema?: string,
+): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
-    sequelize = new Sequelize(baseUri, { logging: false });
-    const queryInterface = sequelize.getQueryInterface();
+    if (connectionDetails.supports.multipleDatabases) {
+      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
+      const queryInterface = sequelize.getQueryInterface();
 
-    await queryInterface.dropDatabase(database);
-    await queryInterface.createDatabase(database);
+      await queryInterface.dropDatabase(database);
+      await queryInterface.createDatabase(database);
 
-    await sequelize.close();
+      await sequelize.close();
+    }
 
     const optionalSchemaOption = schema ? { schema } : {};
-    sequelize = new Sequelize(`${baseUri}/${database}`, {
+    sequelize = new Sequelize(connectionDetails.url(database), {
       logging: false,
       ...optionalSchemaOption,
     });
@@ -26,7 +34,18 @@ export default async (baseUri: string, database: string, schema?: string): Promi
     const member = sequelize.define(
       'member',
       { role: DataTypes.STRING },
-      { tableName: 'member', ...optionalSchemaOption, timestamps: false },
+      {
+        tableName: 'member',
+        ...optionalSchemaOption,
+        timestamps: false,
+        indexes: [
+          {
+            name: 'member_groupId_role',
+            unique: true,
+            fields: ['groupId', 'role'],
+          },
+        ],
+      },
     );
     const group = sequelize.define(
       'group',
@@ -43,15 +62,20 @@ export default async (baseUri: string, database: string, schema?: string): Promi
       {},
       { tableName: 'order', ...optionalSchemaOption, timestamps: false },
     );
-    const account = sequelize.define(
-      'account',
-      {},
-      { tableName: 'account', ...optionalSchemaOption, timestamps: false },
-    );
     const customer = sequelize.define(
       'customer',
       {},
       { tableName: 'customer', ...optionalSchemaOption, timestamps: false },
+    );
+    const account = sequelize.define(
+      'account',
+      {
+        customerId: {
+          type: DataTypes.INTEGER,
+          unique: true,
+        },
+      },
+      { tableName: 'account', ...optionalSchemaOption, timestamps: false },
     );
 
     member.belongsTo(group);
@@ -63,25 +87,10 @@ export default async (baseUri: string, database: string, schema?: string): Promi
 
     await sequelize.sync({ force: true, ...optionalSchemaOption });
 
-    await sequelize
-      .getQueryInterface()
-      .addConstraint(
-        { tableName: account.name, ...optionalSchemaOption },
-        { type: 'unique', fields: ['customerId'] },
-      );
-    await sequelize
-      .getQueryInterface()
-      .addConstraint(
-        { tableName: member.name, ...optionalSchemaOption },
-        { type: 'unique', fields: ['groupId', 'role'] },
-      );
-
     return sequelize;
   } catch (e) {
     console.error('Error', e);
     throw e;
-  } finally {
-    await sequelize?.close();
   }
 };
 
