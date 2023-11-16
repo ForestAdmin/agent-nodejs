@@ -1,5 +1,3 @@
-import { buffer } from 'stream/consumers';
-
 export default function parseArray(value: string | null): string[] {
   if (!value?.length || !value.startsWith('{') || !value.endsWith('}')) return null;
 
@@ -15,26 +13,12 @@ export default function parseArray(value: string | null): string[] {
     if (currentChar === '\\') {
       buffer += values[i + 1];
       i += 1;
-      continue;
-    }
-
-    if (currentChar === "'" && values[i + 1] === "'") {
+    } else if (currentChar === "'" && values[i + 1] === "'") {
       buffer += "'";
       i += 1;
-      continue;
-    }
-
-    if (currentChar === '"') {
-      if (isInValue) {
-        isInValue = false;
-        continue;
-      } else {
-        isInValue = true;
-        continue;
-      }
-    }
-
-    if (currentChar === ',' && !isInValue) {
+    } else if (currentChar === '"') {
+      isInValue = !isInValue;
+    } else if (currentChar === ',' && !isInValue) {
       list.push(buffer);
       buffer = '';
     } else {
