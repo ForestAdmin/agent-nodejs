@@ -1,5 +1,5 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
 import MariadbDialect from './dialects/mariadb-dialect';

@@ -1,4 +1,4 @@
-import { Dialect, literal } from 'sequelize';
+import { literal } from 'sequelize';
 
 import { ColumnDescription } from '../dialects/dialect.interface';
 import { ColumnType } from '../types';
