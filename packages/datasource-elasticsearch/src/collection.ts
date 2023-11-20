@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+import { Client } from '@elastic/elasticsearch';
 import {
   AggregateResult,
   Aggregation,
@@ -23,10 +24,15 @@ export default class ElasticsearchCollection extends BaseCollection {
 
   private queryConverter: QueryConverter;
 
-  constructor(datasource: DataSource, model: ModelElasticsearch, logger: Logger) {
+  constructor(
+    datasource: DataSource,
+    model: ModelElasticsearch,
+    logger: Logger,
+    nativeDriver: Client,
+  ) {
     if (!model) throw new Error('Invalid (null) model instance.');
 
-    super(model.name, datasource);
+    super(model.name, datasource, nativeDriver);
 
     this.internalModel = model;
 

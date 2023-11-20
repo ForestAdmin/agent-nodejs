@@ -30,7 +30,12 @@ export default class ElasticsearchDataSource extends BaseDataSource<Elasticsearc
       // avoid schema reordering
       .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
       .forEach(model => {
-        const collection = new ElasticsearchCollection(this, model, logger);
+        const collection = new ElasticsearchCollection(
+          this,
+          model,
+          logger,
+          this.elasticsearchClient,
+        );
         this.addCollection(collection);
       });
   }
