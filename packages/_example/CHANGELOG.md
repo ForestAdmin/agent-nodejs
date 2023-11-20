@@ -1,3 +1,13 @@
+# example [1.7.0-beta-datasource-elasticsearch.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.0-beta-datasource-elasticsearch.1...example@1.7.0-beta-datasource-elasticsearch.2) (2023-11-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-elasticsearch:** upgraded to 1.0.0-beta-datasource-elasticsearch.2
+
 # example [1.7.0-beta-datasource-elasticsearch.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.59...example@1.7.0-beta-datasource-elasticsearch.1) (2023-11-15)
 
 
