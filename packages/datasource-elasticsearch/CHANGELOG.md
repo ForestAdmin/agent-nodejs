@@ -1,3 +1,10 @@
+# @forestadmin/datasource-elasticsearch [1.0.0-beta-datasource-elasticsearch.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-elasticsearch@1.0.0-beta-datasource-elasticsearch.2...@forestadmin/datasource-elasticsearch@1.0.0-beta-datasource-elasticsearch.3) (2023-11-20)
+
+
+### Features
+
+* **datasource-elasticsearch:** add native driver ([#885](https://github.com/ForestAdmin/agent-nodejs/issues/885)) ([dbf5777](https://github.com/ForestAdmin/agent-nodejs/commit/dbf57773a28296240251886f6ddd84934cfd3493))
+
 # @forestadmin/datasource-elasticsearch [1.0.0-beta-datasource-elasticsearch.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-elasticsearch@1.0.0-beta-datasource-elasticsearch.1...@forestadmin/datasource-elasticsearch@1.0.0-beta-datasource-elasticsearch.2) (2023-11-20)
 
 
