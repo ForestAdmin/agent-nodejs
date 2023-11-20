@@ -109,7 +109,7 @@ describe('FilterFactory', () => {
           query: {
             'page[size]': 10,
             starting_after: backward ? null : 1,
-            starting_before: backward ? 1 : null,
+            ending_before: backward ? 1 : null,
           },
         },
       });

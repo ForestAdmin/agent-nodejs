@@ -504,7 +504,7 @@ describe('QueryStringParser', () => {
     describe('when context does not provide the limit parameters', () => {
       test('should return the default limit 15', () => {
         const context = createMockContext({
-          customProperties: { query: { starting_before: 2 } },
+          customProperties: { query: { ending_before: 2 } },
         });
 
         const cursor = QueryStringParser.parseCursor(context);
