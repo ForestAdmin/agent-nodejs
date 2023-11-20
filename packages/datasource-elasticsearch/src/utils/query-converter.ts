@@ -8,7 +8,6 @@ import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
   Operator,
-  Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
@@ -149,54 +148,12 @@ export default class QueryConverter {
     throw new Error('Invalid ConditionTree.');
   }
 
-  /*
-   * Delete and update methods does not provide the include options.
-   * This method is developed to by pass this problem.
-   *
-   * Not sur that is needed after all
-   */
-  public async getQueryFromConditionTreeToByPassJoin(
-    conditionTree?: ConditionTree,
-  ): Promise<QueryDslBoolQuery | QueryDslQueryContainer> {
-    const joiningQueries = conditionTree
-      ? this.getJoinFromProjection(conditionTree.projection)
-      : undefined;
-    const boolQuery = this.getBoolQueryFromConditionTree(conditionTree);
-
-    if (!joiningQueries) {
-      return boolQuery;
-    }
-
-    // TODO merge joiningQueries into boolQuery from conditionTree
-    return boolQuery;
-  }
-
   public getBoolQueryFromConditionTree(
     conditionTree?: ConditionTree,
   ): QueryDslBoolQuery | QueryDslQueryContainer {
     if (!conditionTree) return { match_all: {} };
 
-    const rawDSLQuery = this.getQueryDslQueryContainersFromConditionTree(conditionTree);
-
-    return rawDSLQuery;
-  }
-
-  private getJoinFromProjection(projection: Projection): QueryDslQueryContainer[] {
-    // eslint-disable-next-line max-len
-    // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-has-child-query.html
-
-    // https://www.elastic.co/guide/en/elasticsearch/reference/master/joining-queries.html
-    return Object.entries(projection.relations).map(([relationName, relationProjection]) => {
-      if (this.getJoinFromProjection(relationProjection).length > 0)
-        throw new Error('Conditions must be an array.');
-
-      return {
-        parent_id: {
-          type: relationName,
-          id: '1', // Must look into this
-        },
-      };
-    });
+    return this.getQueryDslQueryContainersFromConditionTree(conditionTree);
   }
 
   public getOrderFromSort(sort?: Sort): SortCombinations[] {
