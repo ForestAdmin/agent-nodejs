@@ -22,7 +22,12 @@ describe('ElasticsearchDataSource > Collection', () => {
       properties: { name: { type: 'integer' } },
     });
 
-    const elasticsearchCollection = new ElasticsearchCollection(dataSource, model, jest.fn());
+    const elasticsearchCollection = new ElasticsearchCollection(
+      dataSource,
+      model,
+      jest.fn(),
+      client,
+    );
 
     return {
       dataSource,
@@ -42,6 +47,8 @@ describe('ElasticsearchDataSource > Collection', () => {
     expect(elasticsearchCollection.dataSource).toBe(dataSource);
     // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(elasticsearchCollection['internalModel']).toBe(model);
+
+    expect(elasticsearchCollection.nativeDriver).toBeDefined();
   });
 
   // describe('create', () => {
