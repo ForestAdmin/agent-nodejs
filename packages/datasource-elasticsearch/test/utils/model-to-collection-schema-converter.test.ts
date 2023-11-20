@@ -83,6 +83,9 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         myDate: {
           type: 'date',
         },
+        myText: {
+          type: 'text',
+        },
       });
 
       const schema: CollectionSchema = {
@@ -120,6 +123,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             filterOperators: TypeConverter.operatorsForColumnType('String'),
             isReadOnly: false,
             isSortable: true,
+            validation: [],
+            type: 'Column',
+          },
+          myText: {
+            columnType: 'String',
+            filterOperators: TypeConverter.operatorsForColumnType('String'),
+            isReadOnly: false,
+            isSortable: false,
             validation: [],
             type: 'Column',
           },

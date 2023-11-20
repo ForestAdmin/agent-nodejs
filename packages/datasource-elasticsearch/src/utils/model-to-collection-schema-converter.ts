@@ -73,10 +73,10 @@ export default class ModelToCollectionSchemaConverter {
   }
 
   private static convertAttribute(attribute: MappingProperty): FieldSchema {
-    const elasticsearchColumnType = attribute.type;
-
-    const columnType = TypeConverter.fromDataType(elasticsearchColumnType as MappingFieldType);
+    const elasticsearchColumnType = attribute.type as MappingFieldType;
+    const columnType = TypeConverter.fromDataType(elasticsearchColumnType);
     const filterOperators = TypeConverter.operatorsForColumnType(columnType);
+    const isSortable = TypeConverter.isSortable(elasticsearchColumnType);
 
     const column: ColumnSchema = {
       columnType,
@@ -84,7 +84,7 @@ export default class ModelToCollectionSchemaConverter {
       type: 'Column',
       validation: [],
       isReadOnly: attribute.type === 'alias',
-      isSortable: true,
+      isSortable,
     };
 
     return column;
