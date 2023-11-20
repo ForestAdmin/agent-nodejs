@@ -1,12 +1,12 @@
 The elastic search data source allows importing collections from an elastic search instance.
 
-To make everything work as expected, you need to install the package `@forestadmin-experimental/datasource-elasticsearch`.
+To make everything work as expected, you need to install the package `@forestadmin/datasource-elasticsearch`.
 
 Note that:
 
 - It has been developed with version 7 in mind. Support for elastic search v8 will come later.
 - Joins are not supported at the moment
-- Object (sub-model in models) are not supported at the moment
+- Object (sub-model in models) are not fully supported at the moment
 - Points are not supported at the moment
 - Arrays are not supported out of the box. See the section [`Specifying that a field is an array`](#Tips)
 
@@ -14,7 +14,7 @@ Note that:
 ```javascript
 const { createAgent } = require('@forestadmin/agent');
 
-const { createElasticsearchDataSource } = require('@forestadmin-experimental/datasource-elasticsearch');
+const { createElasticsearchDataSource } = require('@forestadmin/datasource-elasticsearch');
 
 // Create agent and import collections from elastic search
 const agent = createAgent(options).addDataSource(
