@@ -1,3 +1,10 @@
+# @forestadmin/datasource-elasticsearch [1.0.0-beta-datasource-elasticsearch.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-elasticsearch@1.0.0-beta-datasource-elasticsearch.1...@forestadmin/datasource-elasticsearch@1.0.0-beta-datasource-elasticsearch.2) (2023-11-20)
+
+
+### Bug Fixes
+
+* disable sort on text columns ([#882](https://github.com/ForestAdmin/agent-nodejs/issues/882)) ([a69a8fb](https://github.com/ForestAdmin/agent-nodejs/commit/a69a8fb0982254135436d0b3fe078eefa3af1f54))
+
 # @forestadmin/datasource-elasticsearch 1.0.0-beta-datasource-elasticsearch.1 (2023-11-15)
 
 

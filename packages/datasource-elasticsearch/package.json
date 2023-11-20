@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-elasticsearch",
-  "version": "1.0.0-beta-datasource-elasticsearch.1",
+  "version": "1.0.0-beta-datasource-elasticsearch.2",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
