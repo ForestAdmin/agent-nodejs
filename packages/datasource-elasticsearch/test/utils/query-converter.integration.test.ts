@@ -22,43 +22,31 @@ const dataset = [
     id: 1,
     text: "If I fall, don't bring me back",
     user: 'jon',
-    date: new Date(),
-    nestedField: { type: 'ruby' },
   },
   {
     id: 2,
     text: 'Winter is coming',
     user: 'ned',
-    date: new Date(),
-    nestedField: { type: 'laravel' },
   },
   {
     id: 3,
     text: 'A Lannister always pays his debts',
     user: 'tyrion',
-    date: new Date(),
-    nestedField: { type: 'php' },
   },
   {
     id: 4,
     text: 'I am the blood of the dragon',
     user: 'daenerys',
-    date: new Date(),
-    nestedField: { type: 'python' },
   },
   {
     id: 5,
     text: "A girl is Arya Stark of Winterfell. And I'm going home",
     user: 'arya',
-    date: new Date(),
-    nestedField: { type: 'javascript' },
   },
   {
     id: 6,
     text: null,
     user: 'ilyn',
-    date: new Date(),
-    nestedField: { type: 'rust' },
   },
 ];
 
