@@ -12,12 +12,18 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export default class QueryConverter {
   private makeQueryDslQueryContainer(
     field: string,
     operator: Operator,
     value?: unknown,
   ): QueryDslQueryContainer {
+    const values = Array.isArray(value) ? value : [value];
+
     switch (operator) {
       // Presence
       case 'Present':
@@ -51,9 +57,24 @@ export default class QueryConverter {
             },
           };
 
+        if (!values.find(val => Boolean(val))) {
+          // isBlank
+          return {
+            bool: {
+              must_not: [
+                {
+                  exists: {
+                    field,
+                  },
+                },
+              ],
+            },
+          };
+        }
+
         return {
           terms: {
-            [field]: Array.isArray(value) ? value : [value],
+            [field]: values,
           },
         };
       case 'NotEqual':
@@ -76,18 +97,13 @@ export default class QueryConverter {
 
       // Strings
       case 'Like':
-        // Use more_like_this or match or query_string?
-        return {
-          wildcard: {
-            [field]: { value: `${value}`.replace(/%/g, '*') },
-          },
-        };
       case 'ILike':
         return {
-          wildcard: {
+          regexp: {
             [field]: {
-              value: `${value}`.replace(/%/g, '*'),
-              case_insensitive: true,
+              value: escapeRegExp(`${value}`).replace(/^%/, '.*').replace(/%$/, '.*'),
+              flags: 'NONE',
+              case_insensitive: operator === 'ILike',
             },
           },
         };
