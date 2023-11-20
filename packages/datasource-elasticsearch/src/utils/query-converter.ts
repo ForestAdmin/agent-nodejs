@@ -83,7 +83,7 @@ export default class QueryConverter {
           bool: {
             must_not: {
               terms: {
-                [field]: Array.isArray(value) ? value : [value],
+                [field]: values,
               },
             },
           },
