@@ -1,3 +1,6 @@
+/**
+ * "ENUM('enum1','enum2')" returns ['enum1', 'enum2']]
+ */
 export default function parseEnum(type: string | null): string[] {
   if (!type?.startsWith('ENUM(')) return null;
 
