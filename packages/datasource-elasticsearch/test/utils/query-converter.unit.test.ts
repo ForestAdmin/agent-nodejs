@@ -146,10 +146,10 @@ describe('Utils > QueryConverter', () => {
 
         it.each([
           ['Equal', integerValue, { terms: { __field_1__: [integerValue] } }],
-          ['Equal', null, { terms: { __field_1__: [null] } }],
+          ['Equal', null, { bool: { must_not: [{ exists: { field: '__field_1__' } }] } }],
           ['LessThan', integerValue, { range: { __field_1__: { lt: integerValue } } }],
           ['GreaterThan', integerValue, { range: { __field_1__: { gt: integerValue } } }],
-          ['In', [null], { terms: { __field_1__: [null] } }],
+          ['In', [null], { bool: { must_not: [{ exists: { field: '__field_1__' } }] } }],
           ['In', [null, 2], { terms: { __field_1__: [null, 2] } }],
           ['In', simpleArrayValue, { terms: { __field_1__: simpleArrayValue } }],
           ['In', arrayValueWithNull, { terms: { __field_1__: arrayValueWithNull } }],
@@ -206,8 +206,8 @@ describe('Utils > QueryConverter', () => {
             'Like',
             stringValue,
             {
-              wildcard: {
-                __field_1__: { value: 'VaLuE' },
+              regexp: {
+                __field_1__: { value: 'VaLuE', case_insensitive: false, flags: 'NONE' },
               },
             },
           ],
@@ -215,8 +215,8 @@ describe('Utils > QueryConverter', () => {
             'Like',
             `${stringValue}%`,
             {
-              wildcard: {
-                __field_1__: { value: 'VaLuE*' },
+              regexp: {
+                __field_1__: { value: 'VaLuE.*', case_insensitive: false, flags: 'NONE' },
               },
             },
           ],
@@ -224,36 +224,26 @@ describe('Utils > QueryConverter', () => {
             'Like',
             integerValue,
             {
-              wildcard: {
-                __field_1__: { value: '42' },
+              regexp: {
+                __field_1__: { value: '42', case_insensitive: false, flags: 'NONE' },
               },
             },
           ],
-
           [
             'ILike',
             stringValue,
             {
-              wildcard: {
-                __field_1__: { value: 'VaLuE', case_insensitive: true },
+              regexp: {
+                __field_1__: { value: 'VaLuE', case_insensitive: true, flags: 'NONE' },
               },
             },
           ],
           [
             'ILike',
-            `${stringValue}%`,
+            'to%to.*',
             {
-              wildcard: {
-                __field_1__: { value: 'VaLuE*', case_insensitive: true },
-              },
-            },
-          ],
-          [
-            'ILike',
-            integerValue,
-            {
-              wildcard: {
-                __field_1__: { value: '42', case_insensitive: true },
+              regexp: {
+                __field_1__: { value: 'to%to\\.\\*', case_insensitive: true, flags: 'NONE' },
               },
             },
           ],
