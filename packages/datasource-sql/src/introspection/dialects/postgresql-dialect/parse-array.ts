@@ -1,3 +1,6 @@
+/**
+ * '{1,2,"cat", "dog"}' returns ['1', '2', 'cat', 'dog']
+ */
 export default function parseArray(value: string | null): string[] {
   if (!value?.length || !value.startsWith('{') || !value.endsWith('}')) return null;
 
