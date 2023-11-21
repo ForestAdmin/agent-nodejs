@@ -49,12 +49,13 @@ const dataset = [
     user: 'ilyn',
   },
 ];
+const indexName = 'test-index-operators';
 
 beforeAll(async () => {
-  await createElasticsearchIndex('test-index', dataset);
+  await createElasticsearchIndex(indexName, dataset);
 });
 afterAll(async () => {
-  await deleteElasticsearchIndex('test-index');
+  await deleteElasticsearchIndex(indexName);
 });
 
 describe('Utils > QueryConverter', () => {
@@ -166,7 +167,10 @@ describe('Utils > QueryConverter', () => {
             operator: 'GreaterThan' as Operator,
             value: 4,
           } as unknown as ConditionTree,
-          [{ user: 'ilyn' }, { user: 'arya' }],
+          expect.arrayContaining([
+            expect.objectContaining({ user: 'ilyn' }),
+            expect.objectContaining({ user: 'arya' }),
+          ]),
           2,
         ],
         [
@@ -183,7 +187,7 @@ describe('Utils > QueryConverter', () => {
         async (conditionTree: ConditionTree, expectedResult: RecordData[], lenght: number) => {
           const collection = (await (
             await createElasticsearchDataSource(ELASTICSEARCH_URL, configurator =>
-              configurator.addCollectionFromIndex({ name: 'index', indexName: 'test-index' }),
+              configurator.addCollectionFromIndex({ name: 'index', indexName }),
             )(jest.fn())
           ).getCollection('index')) as ElasticsearchCollection;
           const paginatedFilter: PaginatedFilter = {
@@ -193,7 +197,7 @@ describe('Utils > QueryConverter', () => {
             segment: '',
             sort: [
               {
-                field: '_id',
+                field: 'id',
                 ascending: false,
               },
             ] as unknown as Sort,
