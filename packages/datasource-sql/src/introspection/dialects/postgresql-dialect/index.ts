@@ -167,6 +167,7 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
    * Fixes the default behavior from Sequelize that does not support
    * default values containing "::"
    * And we don't want to make the same mistake with other characters
+   * ex: ''rabbit'::character varying' returns 'rabbit'
    */
   private extractConstantValue(value: string): string {
     let buffer = '';
