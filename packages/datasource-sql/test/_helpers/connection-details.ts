@@ -15,6 +15,7 @@ export type ConnectionDetails = {
     booleans: boolean;
     json?: boolean;
     multipleDatabases: boolean;
+    textDefaultValue: boolean;
   };
   defaultSchema?: string;
 };
@@ -40,6 +41,7 @@ export const POSTGRESQL_DETAILS: ConnectionDetails = {
     booleans: true,
     json: true,
     multipleDatabases: true,
+    textDefaultValue: true,
   },
   defaultSchema: 'public',
 };
@@ -66,6 +68,7 @@ export const MSSQL_DETAILS: ConnectionDetails = {
     booleans: false,
     json: false,
     multipleDatabases: true,
+    textDefaultValue: true,
   },
   defaultSchema: 'dbo',
 };
@@ -90,6 +93,7 @@ export const MYSQL_DETAILS: ConnectionDetails = {
     arrays: false,
     booleans: false,
     multipleDatabases: true,
+    textDefaultValue: false,
   },
   defaultSchema: undefined,
 };
@@ -114,6 +118,7 @@ export const MARIADB_DETAILS: ConnectionDetails = {
     arrays: false,
     booleans: false,
     multipleDatabases: true,
+    textDefaultValue: true,
   },
   defaultSchema: undefined,
 };
@@ -135,6 +140,7 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     arrays: false,
     booleans: false,
     multipleDatabases: false,
+    textDefaultValue: true,
   },
   defaultSchema: undefined,
 };

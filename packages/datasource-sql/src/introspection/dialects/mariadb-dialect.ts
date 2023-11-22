@@ -13,8 +13,15 @@ export default class MariadbDialect extends MySQLDialect {
     }
 
     if (dbColumn.Default?.startsWith("'") && dbColumn.Default?.endsWith("'")) {
+      if (dbColumn.Type === 'text') {
+        return {
+          defaultValue: dbColumn.Default.slice(1, -1).replace(/\\(.)/g, '$1'),
+          isLiteralDefaultValue: false,
+        };
+      }
+
       return {
-        defaultValue: dbColumn.Default.slice(1, -1).replace(/''/g, "'"),
+        defaultValue: dbColumn.Default.slice(1, -1).replace(/''/g, "'").replace(/\\\\/g, '\\'),
         isLiteralDefaultValue: false,
       };
     }

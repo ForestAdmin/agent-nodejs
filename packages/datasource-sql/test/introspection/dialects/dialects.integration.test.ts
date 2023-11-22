@@ -190,9 +190,9 @@ describe.each([
 
               it('returns the table', async () => {
                 const dialect = dialectFactory();
-
-                connection.define(
-                  'elements',
+                await connection.getQueryInterface().dropTable({ tableName: 'elements', schema });
+                await connection.getQueryInterface().createTable(
+                  { tableName: 'elements', schema },
                   {
                     id: {
                       type: DataTypes.INTEGER,
@@ -200,9 +200,7 @@ describe.each([
                       autoIncrement: true,
                     },
                   },
-                  { schema, paranoid: false, createdAt: false, updatedAt: false },
                 );
-                await connection.sync({ force: true });
 
                 const tableNames = [{ schema, tableName: 'elements' }];
                 const tableColumns = await dialect.listColumns(tableNames, connection);
@@ -242,31 +240,26 @@ describe.each([
         });
 
         it('should return columns in the order they were defined', async () => {
-          connection.define(
-            'elements',
-            {
-              id: {
-                type: DataTypes.INTEGER,
-                primaryKey: true,
-                autoIncrement: true,
-              },
-              name: {
-                type: DataTypes.TEXT,
-                allowNull: false,
-              },
-              zzzzName: {
-                type: DataTypes.TEXT,
-              },
-              aaaaName: {
-                type: DataTypes.TEXT,
-              },
-              age: {
-                type: DataTypes.INTEGER,
-              },
+          await connection.getQueryInterface().dropTable('elements');
+          await connection.getQueryInterface().createTable('elements', {
+            id: {
+              type: DataTypes.INTEGER,
+              primaryKey: true,
+              autoIncrement: true,
             },
-            { paranoid: false, createdAt: false, updatedAt: false },
-          );
-          await connection.sync({ force: true });
+            name: {
+              type: DataTypes.TEXT,
+            },
+            zzzzName: {
+              type: DataTypes.TEXT,
+            },
+            aaaaName: {
+              type: DataTypes.TEXT,
+            },
+            age: {
+              type: DataTypes.INTEGER,
+            },
+          });
 
           const dialect = dialectFactory();
 
@@ -286,177 +279,189 @@ describe.each([
         });
 
         describe('default values', () => {
-          describe('for texts', () => {
-            it.each([
-              'default value',
-              "default 'value'",
-              "default ''value''",
-              "default '''value'''",
-              'default "value"',
-              'value::foobar',
-              'null',
-              'false',
-              null,
-              'NULL',
-              'thisIsNotAFunction()',
-            ])('should return %s as default value (not literal)', async defaultValue => {
-              if (connectionDetails.dialect === 'sqlite') {
-                // Sequelize's bugs: the string false is interpreted as 0 when creating the table
-                await connection.query(`DROP TABLE IF EXISTS elements;`);
+          describe.each([DataTypes.TEXT, DataTypes.STRING(100), DataTypes.CHAR(100)])(
+            `for type %s`,
+            type => {
+              if (connectionDetails.supports.textDefaultValue || type !== DataTypes.TEXT) {
+                it.each([
+                  'default value',
+                  "default 'value'",
+                  "default ''value''",
+                  "default '''value'''",
+                  'default "value"',
+                  'default \\ value',
+                  'value::foobar',
+                  'null',
+                  'false',
+                  null,
+                  'NULL',
+                  'thisIsNotAFunction()',
+                ])('should return %s as default value (not literal)', async defaultValue => {
+                  if (connectionDetails.dialect === 'sqlite') {
+                    // Sequelize's bugs: the string false
+                    // is interpreted as 0 when creating the table
+                    await connection.query(`DROP TABLE IF EXISTS elements;`);
 
-                await connection.query(
-                  `CREATE TABLE elements (
+                    await connection.query(
+                      `CREATE TABLE elements (
                       id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      name TEXT DEFAULT :defaultValue
+                      name ${type} DEFAULT :defaultValue
                     );`,
-                  {
-                    replacements: {
-                      defaultValue,
-                    },
-                  },
-                );
-              } else {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    name: {
-                      type: DataTypes.STRING(255),
-                      defaultValue,
-                    },
-                  },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-                await connection.sync({ force: true });
+                      {
+                        replacements: {
+                          defaultValue,
+                        },
+                      },
+                    );
+                  } else {
+                    await connection.getQueryInterface().dropTable('elements');
+                    await connection.getQueryInterface().createTable('elements', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      name: {
+                        type,
+                        defaultValue,
+                      },
+                    });
+
+                    // MariaDB supports default values for texts
+                    // but Sequelize does not know about it
+                    if (connectionDetails.dialect === 'mariadb' && type === DataTypes.TEXT) {
+                      await connection.query(
+                        `ALTER TABLE elements ALTER name SET DEFAULT :defaultValue`,
+                        {
+                          replacements: {
+                            defaultValue,
+                          },
+                        },
+                      );
+                    }
+                  }
+
+                  const dialect = dialectFactory();
+
+                  const tableNames = [
+                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                  ];
+
+                  const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                  expect(tableColumns).toEqual([
+                    expect.arrayContaining([
+                      expect.objectContaining({
+                        name: 'name',
+                        defaultValue,
+                        isLiteralDefaultValue: false,
+                      }),
+                    ]),
+                  ]);
+                });
+
+                it('should return a literal default value if it is a function', async () => {
+                  if (connectionDetails.dialect === 'mysql') {
+                    await connection.query(`DROP TABLE IF EXISTS elements;`);
+                    await connection.query(`
+                      CREATE TABLE elements (
+                          id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                          name VARCHAR(255) DEFAULT (now())
+                        );
+                      `);
+                  } else {
+                    await connection.getQueryInterface().dropTable('elements');
+                    await connection.getQueryInterface().createTable('elements', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      name: {
+                        type,
+                        defaultValue: Sequelize.literal(dialectSql.textFunctionDefaultValue),
+                      },
+                    });
+
+                    // MariaDB supports default values for texts
+                    // but Sequelize does not know about it
+                    if (connectionDetails.dialect === 'mariadb') {
+                      await connection.query(
+                        `ALTER TABLE elements ALTER name SET DEFAULT (current_timestamp())`,
+                      );
+                    }
+                  }
+
+                  const dialect = dialectFactory();
+
+                  const tableNames = [
+                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                  ];
+
+                  const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                  expect(tableColumns).toEqual([
+                    expect.arrayContaining([
+                      expect.objectContaining({
+                        name: 'name',
+                        defaultValue: dialectSql.textFunctionDefaultValue,
+                        isLiteralDefaultValue: true,
+                      }),
+                    ]),
+                  ]);
+                });
               }
 
-              const dialect = dialectFactory();
-
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
-
-              const tableColumns = await dialect.listColumns(tableNames, connection);
-
-              expect(tableColumns).toEqual([
-                expect.arrayContaining([
-                  expect.objectContaining({
-                    name: 'name',
-                    defaultValue,
-                    isLiteralDefaultValue: false,
-                  }),
-                ]),
-              ]);
-            });
-
-            it('should return null as a default value if none is defined', async () => {
-              connection.define(
-                'elements',
-                {
+              it('should return null as a default value if none is defined', async () => {
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
                   id: {
                     type: DataTypes.INTEGER,
                     primaryKey: true,
                     autoIncrement: true,
                   },
                   name: {
-                    type: DataTypes.TEXT,
+                    type,
                   },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                });
 
-              const dialect = dialectFactory();
+                const dialect = dialectFactory();
 
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
+                const tableNames = [
+                  { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                ];
 
-              const tableColumns = await dialect.listColumns(tableNames, connection);
+                const tableColumns = await dialect.listColumns(tableNames, connection);
 
-              expect(tableColumns).toEqual([
-                expect.arrayContaining([
-                  expect.objectContaining({
-                    name: 'name',
-                    defaultValue: null,
-                    isLiteralDefaultValue: false,
-                  }),
-                ]),
-              ]);
-            });
-
-            it('should return a literal default value if it is a function', async () => {
-              if (connectionDetails.dialect === 'mysql') {
-                await connection.query(`DROP TABLE IF EXISTS elements;`);
-                await connection.query(`
-                CREATE TABLE elements (
-                    id INTEGER PRIMARY KEY AUTO_INCREMENT,
-                    name VARCHAR(255) DEFAULT (now())
-                  );
-                `);
-              } else {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    name: {
-                      type: DataTypes.STRING(255),
-                      defaultValue: Sequelize.literal(dialectSql.textFunctionDefaultValue),
-                    },
-                  },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-                await connection.sync({ force: true });
-              }
-
-              const dialect = dialectFactory();
-
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
-
-              const tableColumns = await dialect.listColumns(tableNames, connection);
-
-              expect(tableColumns).toEqual([
-                expect.arrayContaining([
-                  expect.objectContaining({
-                    name: 'name',
-                    defaultValue: dialectSql.textFunctionDefaultValue,
-                    isLiteralDefaultValue: true,
-                  }),
-                ]),
-              ]);
-            });
-          });
+                expect(tableColumns).toEqual([
+                  expect.arrayContaining([
+                    expect.objectContaining({
+                      name: 'name',
+                      defaultValue: null,
+                      isLiteralDefaultValue: false,
+                    }),
+                  ]),
+                ]);
+              });
+            },
+          );
 
           describe('for decimal numbers', () => {
             it.each([0, 1, -0.5, 42_000_000])(
               `should return %s as default value (not literal)`,
               async defaultValue => {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    name: {
-                      type: DataTypes.DECIMAL(10, 2),
-                      defaultValue,
-                    },
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
                   },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-                await connection.sync({ force: true });
+                  name: {
+                    type: DataTypes.DECIMAL(10, 2),
+                    defaultValue,
+                  },
+                });
 
                 const dialect = dialectFactory();
 
@@ -482,21 +487,17 @@ describe.each([
           if (connectionDetails.supports.booleans) {
             describe('for booleans', () => {
               it('should return false if no default value is defined', async () => {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    name: {
-                      type: DataTypes.BOOLEAN,
-                    },
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
                   },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-                await connection.sync({ force: true });
+                  name: {
+                    type: DataTypes.BOOLEAN,
+                  },
+                });
 
                 const dialect = dialectFactory();
 
@@ -520,22 +521,18 @@ describe.each([
               it.each([false, true])(
                 'should return %s as default value (not literal)',
                 async defaultValue => {
-                  connection.define(
-                    'elements',
-                    {
-                      id: {
-                        type: DataTypes.INTEGER,
-                        primaryKey: true,
-                        autoIncrement: true,
-                      },
-                      name: {
-                        type: DataTypes.BOOLEAN,
-                        defaultValue,
-                      },
+                  await connection.getQueryInterface().dropTable('elements');
+                  await connection.getQueryInterface().createTable('elements', {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
                     },
-                    { paranoid: false, createdAt: false, updatedAt: false },
-                  );
-                  await connection.sync({ force: true });
+                    name: {
+                      type: DataTypes.BOOLEAN,
+                      defaultValue,
+                    },
+                  });
 
                   const dialect = dialectFactory();
 
@@ -564,22 +561,18 @@ describe.each([
               it.each([{ value: 'bar' }, { value: "bar's" }])(
                 'should return %s as default value (not literal)',
                 async defaultValue => {
-                  connection.define(
-                    'elements',
-                    {
-                      id: {
-                        type: DataTypes.INTEGER,
-                        primaryKey: true,
-                        autoIncrement: true,
-                      },
-                      name: {
-                        type: DataTypes.JSON,
-                        defaultValue,
-                      },
+                  await connection.getQueryInterface().dropTable('elements');
+                  await connection.getQueryInterface().createTable('elements', {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
                     },
-                    { paranoid: false, createdAt: false, updatedAt: false },
-                  );
-                  await connection.sync({ force: true });
+                    name: {
+                      type: DataTypes.JSON,
+                      defaultValue,
+                    },
+                  });
 
                   const dialect = dialectFactory();
 
@@ -608,22 +601,18 @@ describe.each([
 
           describe('for date with time', () => {
             it('should return the default now as a literal', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                  createdAt: {
-                    type: DataTypes.DATE,
-                    defaultValue: Sequelize.literal(dialectSql.now),
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                createdAt: {
+                  type: DataTypes.DATE,
+                  defaultValue: Sequelize.literal(dialectSql.now),
+                },
+              });
 
               const dialect = dialectFactory();
 
@@ -645,22 +634,18 @@ describe.each([
             });
 
             it('should return the specific date as a non-literal', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                  createdAt: {
-                    type: DataTypes.DATE,
-                    defaultValue: new Date('2020-01-01T10:00:00+00:00'),
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                createdAt: {
+                  type: DataTypes.DATE,
+                  defaultValue: new Date('2020-01-01T10:00:00+00:00'),
+                },
+              });
 
               const dialect = dialectFactory();
 
@@ -684,23 +669,18 @@ describe.each([
 
           describe('for date', () => {
             it('should return the default now as a literal', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                  createdAt: {
-                    type: DataTypes.DATEONLY,
-                    defaultValue: Sequelize.literal(dialectSql.nowDate),
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-
-              await connection.sync({ force: true });
+                createdAt: {
+                  type: DataTypes.DATEONLY,
+                  defaultValue: Sequelize.literal(dialectSql.nowDate),
+                },
+              });
 
               const dialect = dialectFactory();
 
@@ -722,22 +702,18 @@ describe.each([
             });
 
             it('should return the specific date as a non-literal', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                  createdAt: {
-                    type: DataTypes.DATEONLY,
-                    defaultValue: '2020-01-01',
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                createdAt: {
+                  type: DataTypes.DATEONLY,
+                  defaultValue: '2020-01-01',
+                },
+              });
 
               const dialect = dialectFactory();
 
@@ -776,23 +752,18 @@ describe.each([
                   );
                 `);
               } else {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    mood: {
-                      type: DataTypes.ENUM('sad', 'ok', 'happy'),
-                      defaultValue: 'happy',
-                    },
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
                   },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-
-                await connection.sync({ force: true });
+                  mood: {
+                    type: DataTypes.ENUM('sad', 'ok', 'happy'),
+                    defaultValue: 'happy',
+                  },
+                });
               }
 
               const dialect = dialectFactory();
@@ -818,23 +789,18 @@ describe.each([
           if (connectionDetails.supports.arrays) {
             describe('for arrays', () => {
               it('should return the array values as default value', async () => {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    mood: {
-                      type: DataTypes.ARRAY(DataTypes.TEXT),
-                      defaultValue: ['happy', 'sad'],
-                    },
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
                   },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-
-                await connection.sync({ force: true });
+                  mood: {
+                    type: DataTypes.ARRAY(DataTypes.TEXT),
+                    defaultValue: ['happy', 'sad'],
+                  },
+                });
 
                 const dialect = dialectFactory();
 
@@ -865,19 +831,14 @@ describe.each([
         describe('types', () => {
           describe('integer', () => {
             it('should correctly detect autoincrement', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    autoIncrement: true,
-                    primaryKey: true,
-                    type: DataTypes.INTEGER,
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-
-              await connection.sync({ force: true });
+              });
 
               const dialect = dialectFactory();
 
@@ -899,22 +860,17 @@ describe.each([
             });
 
             it('should set autoincrement to false for other columns', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                  value: {
-                    type: DataTypes.INTEGER,
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-
-              await connection.sync({ force: true });
+                value: {
+                  type: DataTypes.INTEGER,
+                },
+              });
 
               const dialect = dialectFactory();
 
@@ -941,19 +897,14 @@ describe.each([
             });
 
             it('should not set autoincrement if the id is not auto incremented', async () => {
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    autoIncrement: false,
-                    primaryKey: true,
-                    type: DataTypes.INTEGER,
-                  },
+              await connection.getQueryInterface().dropTable('elements');
+              await connection.getQueryInterface().createTable('elements', {
+                id: {
+                  autoIncrement: false,
+                  primaryKey: true,
+                  type: DataTypes.INTEGER,
                 },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-
-              await connection.sync({ force: true });
+              });
 
               const dialect = dialectFactory();
 
@@ -981,12 +932,15 @@ describe.each([
             [DataTypes.INTEGER, dialectSql.integer],
             [DataTypes.DATE, dialectSql.date],
           ])('should detect %s as %s', async (type, expected) => {
-            connection.define(
-              'elements',
-              { test: type },
-              { paranoid: false, createdAt: false, updatedAt: false },
-            );
-            await connection.sync({ force: true });
+            await connection.getQueryInterface().dropTable('elements');
+            await connection.getQueryInterface().createTable('elements', {
+              id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+              test: type,
+            });
 
             const dialect = dialectFactory();
 
@@ -1010,22 +964,17 @@ describe.each([
           if (connectionDetails.supports.enums) {
             describe('enum', () => {
               it('should correctly detect enums', async () => {
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
-                    },
-                    mood: {
-                      type: DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
-                    },
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
                   },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-
-                await connection.sync({ force: true });
+                  mood: {
+                    type: DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                  },
+                });
 
                 const dialect = dialectFactory();
 
