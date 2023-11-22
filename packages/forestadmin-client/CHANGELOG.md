@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.25.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.0...@forestadmin/forestadmin-client@1.25.1) (2023-11-22)
+
+
+### Bug Fixes
+
+* user receives 403 on newly created segment query ([#889](https://github.com/ForestAdmin/agent-nodejs/issues/889)) ([b2eb86a](https://github.com/ForestAdmin/agent-nodejs/commit/b2eb86ad2c52fb32b05ee4702fc19229d2d5f153))
+
 # @forestadmin/forestadmin-client [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.24.6...@forestadmin/forestadmin-client@1.25.0) (2023-11-03)
 
 
