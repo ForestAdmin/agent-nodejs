@@ -20,6 +20,8 @@ export default class MySQLDialect implements IntrospectionDialect {
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,
   ): Promise<ColumnDescription[][]> {
+    if (!sequelize.getDatabaseName())
+      throw new Error('Database name is required. Please check your connection settings.');
     if (!tableNames?.length) return Promise.resolve([]);
 
     const columns = await sequelize.query<MySQLDBColumn>(
@@ -40,7 +42,7 @@ export default class MySQLDialect implements IntrospectionDialect {
       {
         type: QueryTypes.SELECT,
         replacements: {
-          databaseName: sequelize.config.database,
+          databaseName: sequelize.getDatabaseName(),
           tableNames: tableNames.map(t => t.tableName),
         },
       },

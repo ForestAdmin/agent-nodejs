@@ -167,67 +167,63 @@ describe.each([
 
   describe('describeTables', () => {
     describe('with one table', () => {
-      describe('with specific schemas', () => {
-        describe.each([connectionDetails.defaultSchema, 'other', undefined])(
-          'with schema %s',
-          schema => {
-            let connection: Sequelize;
+      if (connectionDetails.supports.schemas) {
+        describe('with specific schemas', () => {
+          describe.each([connectionDetails.defaultSchema, 'other', undefined])(
+            'with schema %s',
+            schema => {
+              let connection: Sequelize;
 
-            beforeEach(async () => {
-              if (!connectionDetails.supports.schemas) return;
+              beforeEach(async () => {
+                await setupSchema(connectionDetails, schema);
 
-              await setupSchema(connectionDetails, schema);
-
-              connection = new Sequelize({
-                ...connectionDetails.options(DB_NAME),
-                logging: false,
-                schema,
+                connection = new Sequelize({
+                  ...connectionDetails.options(DB_NAME),
+                  logging: false,
+                  schema,
+                });
               });
-            });
 
-            afterEach(async () => {
-              if (!connectionDetails.supports.schemas) return;
+              afterEach(async () => {
+                await connection.close();
+              });
 
-              await connection.close();
-            });
+              it('returns the table', async () => {
+                const dialect = dialectFactory();
 
-            it('returns the table', async () => {
-              if (!connectionDetails.supports.schemas) return;
-
-              const dialect = dialectFactory();
-
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
+                connection.define(
+                  'elements',
+                  {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
                   },
-                },
-                { schema, paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
+                  { schema, paranoid: false, createdAt: false, updatedAt: false },
+                );
+                await connection.sync({ force: true });
 
-              const tableNames = [{ schema, tableName: 'elements' }];
-              const tableColumns = await dialect.listColumns(tableNames, connection);
-              expect(tableColumns).toEqual([
-                [
-                  expect.objectContaining({
-                    allowNull: false,
-                    autoIncrement: true,
-                    comment: null,
-                    name: 'id',
-                    primaryKey: true,
-                    type: dialectSql.integer,
-                    ...dialectSql.autoIncrement(schema, 'elements'),
-                  }),
-                ],
-              ]);
-            });
-          },
-        );
-      });
+                const tableNames = [{ schema, tableName: 'elements' }];
+                const tableColumns = await dialect.listColumns(tableNames, connection);
+                expect(tableColumns).toEqual([
+                  [
+                    expect.objectContaining({
+                      allowNull: false,
+                      autoIncrement: true,
+                      comment: null,
+                      name: 'id',
+                      primaryKey: true,
+                      type: dialectSql.integer,
+                      ...dialectSql.autoIncrement(schema, 'elements'),
+                    }),
+                  ],
+                ]);
+              });
+            },
+          );
+        });
+      }
 
       describe(`on default schema`, () => {
         let connection: Sequelize;
@@ -483,50 +479,9 @@ describe.each([
             );
           });
 
-          describe('for booleans', () => {
-            it('should return false if no default value is defined', async () => {
-              if (!connectionDetails.supports.booleans) return;
-
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
-                  },
-                  name: {
-                    type: DataTypes.BOOLEAN,
-                  },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
-              await connection.sync({ force: true });
-
-              const dialect = dialectFactory();
-
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
-
-              const tableColumns = await dialect.listColumns(tableNames, connection);
-
-              expect(tableColumns).toEqual([
-                expect.arrayContaining([
-                  expect.objectContaining({
-                    name: 'name',
-                    defaultValue: 'false',
-                    isLiteralDefaultValue: false,
-                  }),
-                ]),
-              ]);
-            });
-
-            it.each([false, true])(
-              'should return %s as default value (not literal)',
-              async defaultValue => {
-                if (!connectionDetails.supports.booleans) return;
-
+          if (connectionDetails.supports.booleans) {
+            describe('for booleans', () => {
+              it('should return false if no default value is defined', async () => {
                 connection.define(
                   'elements',
                   {
@@ -537,7 +492,6 @@ describe.each([
                     },
                     name: {
                       type: DataTypes.BOOLEAN,
-                      defaultValue,
                     },
                   },
                   { paranoid: false, createdAt: false, updatedAt: false },
@@ -556,66 +510,101 @@ describe.each([
                   expect.arrayContaining([
                     expect.objectContaining({
                       name: 'name',
-                      defaultValue: defaultValue.toString(),
+                      defaultValue: 'false',
                       isLiteralDefaultValue: false,
                     }),
                   ]),
                 ]);
-              },
-            );
-          });
+              });
 
-          describe('for json', () => {
-            it.each([{ value: 'bar' }, { value: "bar's" }])(
-              'should return %s as default value (not literal)',
-              async defaultValue => {
-                if (!connectionDetails.supports.json) {
-                  // eslint-disable-next-line jest/no-conditional-expect
-                  expect.assertions(0);
-
-                  return;
-                }
-
-                connection.define(
-                  'elements',
-                  {
-                    id: {
-                      type: DataTypes.INTEGER,
-                      primaryKey: true,
-                      autoIncrement: true,
+              it.each([false, true])(
+                'should return %s as default value (not literal)',
+                async defaultValue => {
+                  connection.define(
+                    'elements',
+                    {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      name: {
+                        type: DataTypes.BOOLEAN,
+                        defaultValue,
+                      },
                     },
-                    name: {
-                      type: DataTypes.JSON,
-                      defaultValue,
+                    { paranoid: false, createdAt: false, updatedAt: false },
+                  );
+                  await connection.sync({ force: true });
+
+                  const dialect = dialectFactory();
+
+                  const tableNames = [
+                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                  ];
+
+                  const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                  expect(tableColumns).toEqual([
+                    expect.arrayContaining([
+                      expect.objectContaining({
+                        name: 'name',
+                        defaultValue: defaultValue.toString(),
+                        isLiteralDefaultValue: false,
+                      }),
+                    ]),
+                  ]);
+                },
+              );
+            });
+          }
+
+          if (connectionDetails.supports.json) {
+            describe('for json', () => {
+              it.each([{ value: 'bar' }, { value: "bar's" }])(
+                'should return %s as default value (not literal)',
+                async defaultValue => {
+                  connection.define(
+                    'elements',
+                    {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      name: {
+                        type: DataTypes.JSON,
+                        defaultValue,
+                      },
                     },
-                  },
-                  { paranoid: false, createdAt: false, updatedAt: false },
-                );
-                await connection.sync({ force: true });
+                    { paranoid: false, createdAt: false, updatedAt: false },
+                  );
+                  await connection.sync({ force: true });
 
-                const dialect = dialectFactory();
+                  const dialect = dialectFactory();
 
-                const tableNames = [
-                  { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-                ];
+                  const tableNames = [
+                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                  ];
 
-                const tableColumns = await dialect.listColumns(tableNames, connection);
+                  const tableColumns = await dialect.listColumns(tableNames, connection);
 
-                expect(tableColumns).toEqual([
-                  expect.arrayContaining([
-                    expect.objectContaining({
-                      name: 'id',
-                    }),
-                    expect.objectContaining({
-                      name: 'name',
-                      defaultValue: JSON.stringify(defaultValue),
-                      isLiteralDefaultValue: false,
-                    }),
-                  ]),
-                ]);
-              },
-            );
-          });
+                  expect(tableColumns).toEqual([
+                    expect.arrayContaining([
+                      expect.objectContaining({
+                        name: 'id',
+                      }),
+                      expect.objectContaining({
+                        name: 'name',
+                        defaultValue: JSON.stringify(defaultValue),
+                        isLiteralDefaultValue: false,
+                      }),
+                    ]),
+                  ]);
+                },
+              );
+            });
+          }
 
           describe('for date with time', () => {
             it('should return the default now as a literal', async () => {
@@ -826,51 +815,51 @@ describe.each([
             });
           });
 
-          describe('for arrays', () => {
-            it('should return the array values as default value', async () => {
-              if (!connectionDetails.supports.arrays) return;
-
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
+          if (connectionDetails.supports.arrays) {
+            describe('for arrays', () => {
+              it('should return the array values as default value', async () => {
+                connection.define(
+                  'elements',
+                  {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    mood: {
+                      type: DataTypes.ARRAY(DataTypes.TEXT),
+                      defaultValue: ['happy', 'sad'],
+                    },
                   },
-                  mood: {
-                    type: DataTypes.ARRAY(DataTypes.TEXT),
-                    defaultValue: ['happy', 'sad'],
-                  },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
+                  { paranoid: false, createdAt: false, updatedAt: false },
+                );
 
-              await connection.sync({ force: true });
+                await connection.sync({ force: true });
 
-              const dialect = dialectFactory();
+                const dialect = dialectFactory();
 
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
+                const tableNames = [
+                  { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                ];
 
-              const tableColumns = await dialect.listColumns(tableNames, connection);
+                const tableColumns = await dialect.listColumns(tableNames, connection);
 
-              expect(tableColumns).toEqual([
-                expect.arrayContaining([
-                  expect.objectContaining({
-                    name: 'id',
-                  }),
-                  expect.objectContaining({
-                    name: 'mood',
-                    defaultValue: "ARRAY['happy'::text, 'sad'::text]",
-                    isLiteralDefaultValue: true,
-                    type: 'ARRAY',
-                  }),
-                ]),
-              ]);
+                expect(tableColumns).toEqual([
+                  expect.arrayContaining([
+                    expect.objectContaining({
+                      name: 'id',
+                    }),
+                    expect.objectContaining({
+                      name: 'mood',
+                      defaultValue: "ARRAY['happy'::text, 'sad'::text]",
+                      isLiteralDefaultValue: true,
+                      type: 'ARRAY',
+                    }),
+                  ]),
+                ]);
+              });
             });
-          });
+          }
         });
 
         describe('types', () => {
@@ -1018,51 +1007,49 @@ describe.each([
             ]);
           });
 
-          describe('enum', () => {
-            it('should correctly detect enums', async () => {
-              if (!connectionDetails.supports.enums) return;
-
-              connection.define(
-                'elements',
-                {
-                  id: {
-                    type: DataTypes.INTEGER,
-                    primaryKey: true,
-                    autoIncrement: true,
+          if (connectionDetails.supports.enums) {
+            describe('enum', () => {
+              it('should correctly detect enums', async () => {
+                connection.define(
+                  'elements',
+                  {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    mood: {
+                      type: DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                    },
                   },
-                  mood: {
-                    type: DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
-                  },
-                },
-                { paranoid: false, createdAt: false, updatedAt: false },
-              );
+                  { paranoid: false, createdAt: false, updatedAt: false },
+                );
 
-              await connection.sync({ force: true });
+                await connection.sync({ force: true });
 
-              const dialect = dialectFactory();
+                const dialect = dialectFactory();
 
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
+                const tableNames = [
+                  { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                ];
 
-              const tableColumns = await dialect.listColumns(tableNames, connection);
+                const tableColumns = await dialect.listColumns(tableNames, connection);
 
-              expect(tableColumns).toEqual([
-                [
-                  expect.objectContaining({ name: 'id' }),
-                  expect.objectContaining({
-                    name: 'mood',
-                    ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
-                  }),
-                ],
-              ]);
+                expect(tableColumns).toEqual([
+                  [
+                    expect.objectContaining({ name: 'id' }),
+                    expect.objectContaining({
+                      name: 'mood',
+                      ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
+                    }),
+                  ],
+                ]);
+              });
             });
-          });
+          }
         });
 
         it('returns the table even if it has dots in the name', async () => {
-          if (!connectionDetails.supports.schemas) return;
-
           const dialect = dialectFactory();
 
           connection.define(
@@ -1105,219 +1092,226 @@ describe.each([
       });
     });
 
-    describe('with 2 tables in different schemas', () => {
-      let connectionOnDefaultSchema: Sequelize;
-      let connectionOnCustomSchema: Sequelize;
+    if (connectionDetails.supports.schemas) {
+      describe('with 2 tables in different schemas', () => {
+        let connectionOnDefaultSchema: Sequelize;
+        let connectionOnCustomSchema: Sequelize;
 
-      beforeEach(async () => {
-        if (!connectionDetails.supports.schemas) return;
+        beforeEach(async () => {
+          await setupSchema(connectionDetails, 'other');
 
-        await setupSchema(connectionDetails, 'other');
+          connectionOnDefaultSchema = new Sequelize({
+            ...connectionDetails.options(DB_NAME),
+            logging: false,
+            schema: connectionDetails.defaultSchema,
+          });
 
-        connectionOnDefaultSchema = new Sequelize({
-          ...connectionDetails.options(DB_NAME),
-          logging: false,
-          schema: connectionDetails.defaultSchema,
+          connectionOnCustomSchema = new Sequelize({
+            ...connectionDetails.options(DB_NAME),
+            logging: false,
+            schema: 'other',
+          });
         });
 
-        connectionOnCustomSchema = new Sequelize({
-          ...connectionDetails.options(DB_NAME),
-          logging: false,
-          schema: 'other',
-        });
-      });
-
-      afterEach(async () => {
-        if (!connectionDetails.supports.schemas) return;
-
-        await connectionOnDefaultSchema.close();
-        await connectionOnCustomSchema.close();
-      });
-
-      it('returns the tables', async () => {
-        if (!connectionDetails.supports.schemas) return;
-
-        connectionOnDefaultSchema.define(
-          'elements',
-          {
-            id1: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
-            },
-          },
-          { paranoid: false, createdAt: false, updatedAt: false },
-        );
-        connectionOnCustomSchema.define(
-          'things',
-          {
-            id2: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
-            },
-          },
-          { paranoid: false, createdAt: false, updatedAt: false },
-        );
-
-        await connectionOnDefaultSchema.sync({ force: true });
-        await connectionOnCustomSchema.sync({ force: false });
-
-        const dialect = dialectFactory();
-
-        const tableNames = [
-          { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-          { schema: 'other', tableName: 'things' },
-        ];
-        const tableColumns = await dialect.listColumns(tableNames, connectionOnDefaultSchema);
-        expect(tableColumns).toEqual([
-          [
-            expect.objectContaining({
-              allowNull: false,
-              autoIncrement: true,
-              comment: null,
-              name: 'id1',
-              primaryKey: true,
-              type: dialectSql.integer,
-              ...dialectSql.autoIncrement(undefined, 'elements', 'id1'),
-            }),
-          ],
-          [
-            expect.objectContaining({
-              allowNull: false,
-              autoIncrement: true,
-              comment: null,
-              name: 'id2',
-              primaryKey: true,
-              type: dialectSql.integer,
-              ...dialectSql.autoIncrement('other', 'things', 'id2'),
-            }),
-          ],
-        ]);
-      });
-
-      it('should return only info from the table in the right schema', async () => {
-        if (!connectionDetails.supports.schemas) return;
-
-        connectionOnDefaultSchema.define(
-          'elements',
-          {
-            id1: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
-            },
-          },
-          { paranoid: false, createdAt: false, updatedAt: false },
-        );
-        connectionOnCustomSchema.define(
-          'elements',
-          {
-            id2: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
-            },
-          },
-          { paranoid: false, createdAt: false, updatedAt: false },
-        );
-
-        await connectionOnDefaultSchema.sync({ force: true });
-        await connectionOnCustomSchema.sync({ force: false });
-
-        const dialect = dialectFactory();
-
-        const tableNames = [{ schema: 'other', tableName: 'elements' }];
-        const tableColumns = await dialect.listColumns(tableNames, connectionOnDefaultSchema);
-        expect(tableColumns).toEqual([
-          [
-            expect.objectContaining({
-              allowNull: false,
-              autoIncrement: true,
-              comment: null,
-              name: 'id2',
-              primaryKey: true,
-              type: dialectSql.integer,
-              ...dialectSql.autoIncrement('other', 'elements', 'id2'),
-            }),
-          ],
-        ]);
-      });
-    });
-
-    describe('with 2 tables on different databases', () => {
-      let connection1: Sequelize;
-      let connection2: Sequelize;
-
-      beforeEach(async () => {
-        if (!connectionDetails.supports.multipleDatabases) return;
-
-        await setupDB(connectionDetails, DB_NAME, dialectSql.dropDb(DB_NAME));
-        await setupDB(connectionDetails, 'other-db', dialectSql.dropDb('other-db'));
-
-        connection1 = new Sequelize({
-          ...connectionDetails.options(DB_NAME),
-          logging: false,
+        afterEach(async () => {
+          await connectionOnDefaultSchema.close();
+          await connectionOnCustomSchema.close();
         });
 
-        connection2 = new Sequelize({
-          ...connectionDetails.options('other-db'),
-          logging: false,
+        it('returns the tables', async () => {
+          connectionOnDefaultSchema.define(
+            'elements',
+            {
+              id1: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+            },
+            { paranoid: false, createdAt: false, updatedAt: false },
+          );
+          connectionOnCustomSchema.define(
+            'things',
+            {
+              id2: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+            },
+            { paranoid: false, createdAt: false, updatedAt: false },
+          );
+
+          await connectionOnDefaultSchema.sync({ force: true });
+          await connectionOnCustomSchema.sync({ force: false });
+
+          const dialect = dialectFactory();
+
+          const tableNames = [
+            { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+            { schema: 'other', tableName: 'things' },
+          ];
+          const tableColumns = await dialect.listColumns(tableNames, connectionOnDefaultSchema);
+          expect(tableColumns).toEqual([
+            [
+              expect.objectContaining({
+                allowNull: false,
+                autoIncrement: true,
+                comment: null,
+                name: 'id1',
+                primaryKey: true,
+                type: dialectSql.integer,
+                ...dialectSql.autoIncrement(undefined, 'elements', 'id1'),
+              }),
+            ],
+            [
+              expect.objectContaining({
+                allowNull: false,
+                autoIncrement: true,
+                comment: null,
+                name: 'id2',
+                primaryKey: true,
+                type: dialectSql.integer,
+                ...dialectSql.autoIncrement('other', 'things', 'id2'),
+              }),
+            ],
+          ]);
+        });
+
+        it('should return only info from the table in the right schema', async () => {
+          connectionOnDefaultSchema.define(
+            'elements',
+            {
+              id1: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+            },
+            { paranoid: false, createdAt: false, updatedAt: false },
+          );
+          connectionOnCustomSchema.define(
+            'elements',
+            {
+              id2: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+            },
+            { paranoid: false, createdAt: false, updatedAt: false },
+          );
+
+          await connectionOnDefaultSchema.sync({ force: true });
+          await connectionOnCustomSchema.sync({ force: false });
+
+          const dialect = dialectFactory();
+
+          const tableNames = [{ schema: 'other', tableName: 'elements' }];
+          const tableColumns = await dialect.listColumns(tableNames, connectionOnDefaultSchema);
+          expect(tableColumns).toEqual([
+            [
+              expect.objectContaining({
+                allowNull: false,
+                autoIncrement: true,
+                comment: null,
+                name: 'id2',
+                primaryKey: true,
+                type: dialectSql.integer,
+                ...dialectSql.autoIncrement('other', 'elements', 'id2'),
+              }),
+            ],
+          ]);
         });
       });
+    }
 
-      afterEach(async () => {
-        if (!connectionDetails.supports.multipleDatabases) return;
-        await connection1.close();
-        await connection2.close();
-      });
+    if (connectionDetails.supports.multipleDatabases) {
+      describe('with 2 tables on different databases', () => {
+        let connection1: Sequelize;
+        let connection2: Sequelize;
 
-      it('should only return info from the table from the right database', async () => {
-        if (!connectionDetails.supports.multipleDatabases) return;
+        beforeEach(async () => {
+          await setupDB(connectionDetails, DB_NAME, dialectSql.dropDb(DB_NAME));
+          await setupDB(connectionDetails, 'other-db', dialectSql.dropDb('other-db'));
 
-        connection1.define(
-          'elements',
-          {
-            id1: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
+          connection1 = new Sequelize({
+            ...connectionDetails.options(DB_NAME),
+            logging: false,
+          });
+
+          connection2 = new Sequelize({
+            ...connectionDetails.options('other-db'),
+            logging: false,
+          });
+        });
+
+        afterEach(async () => {
+          await connection1.close();
+          await connection2.close();
+        });
+
+        it('should only return info from the table from the right database', async () => {
+          connection1.define(
+            'elements',
+            {
+              id1: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
             },
-          },
-          { paranoid: false, createdAt: false, updatedAt: false },
-        );
-        connection2.define(
-          'elements',
-          {
-            id2: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
+            { paranoid: false, createdAt: false, updatedAt: false },
+          );
+          connection2.define(
+            'elements',
+            {
+              id2: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
             },
-          },
-          { paranoid: false, createdAt: false, updatedAt: false },
-        );
+            { paranoid: false, createdAt: false, updatedAt: false },
+          );
 
-        await connection1.sync({ force: true });
-        await connection2.sync({ force: false });
+          await connection1.sync({ force: true });
+          await connection2.sync({ force: false });
 
-        const dialect = dialectFactory();
+          const dialect = dialectFactory();
 
-        const tableNames = [{ schema: connectionDetails.defaultSchema, tableName: 'elements' }];
-        const tableColumns = await dialect.listColumns(tableNames, connection1);
-        expect(tableColumns).toEqual([
-          [
-            expect.objectContaining({
-              autoIncrement: true,
-              comment: null,
-              name: 'id1',
-              primaryKey: true,
-              type: dialectSql.integer,
-              ...dialectSql.autoIncrement(undefined, 'elements', 'id1'),
-            }),
-          ],
-        ]);
+          const tableNames = [{ schema: connectionDetails.defaultSchema, tableName: 'elements' }];
+          const tableColumns = await dialect.listColumns(tableNames, connection1);
+          expect(tableColumns).toEqual([
+            [
+              expect.objectContaining({
+                autoIncrement: true,
+                comment: null,
+                name: 'id1',
+                primaryKey: true,
+                type: dialectSql.integer,
+                ...dialectSql.autoIncrement(undefined, 'elements', 'id1'),
+              }),
+            ],
+          ]);
+        });
       });
-    });
+    }
+
+    if (connectionDetails.supports.multipleDatabases) {
+      describe('when the database name is not provided', () => {
+        it('should throw an error if the database name is not provided', async () => {
+          const sequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+          const dialect = dialectFactory();
+
+          const tableNames = [];
+
+          await expect(dialect.listColumns(tableNames, sequelize)).rejects.toThrow(
+            'Database name is required. Please check your connection settings.',
+          );
+        });
+      });
+    }
   });
 });
