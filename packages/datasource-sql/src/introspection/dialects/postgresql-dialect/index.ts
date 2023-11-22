@@ -14,6 +14,7 @@ type DBColumn = {
   Type: string;
   Special: string;
   Comment: string;
+  Identity: 'BY DEFAULT' | 'ALWAYS' | null;
 };
 
 export default class PostgreSQLDialect implements IntrospectionDialect {
@@ -44,6 +45,7 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       pk.constraint_type as "Constraint",
       c.column_default as "Default",
       c.is_nullable as "Null", 
+      c.identity_generation as "Identity",
       (CASE WHEN c.udt_name = 'hstore' THEN c.udt_name ELSE c.data_type END) 
         || (CASE WHEN c.character_maximum_length IS NOT NULL 
             THEN '(' || c.character_maximum_length || ')' 
@@ -115,7 +117,10 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       special: parseArray(dbColumn.Special),
       primaryKey: dbColumn.Constraint === 'PRIMARY KEY',
       defaultValue: dbColumn.Default,
-      autoIncrement: Boolean(dbColumn.Default?.startsWith('nextval(')),
+      // Supabase databases do not expose a default value for auto-increment columns
+      // but Identity is set to "BY DEFAULT" in this case
+      autoIncrement:
+        Boolean(dbColumn.Default?.startsWith('nextval(')) || dbColumn.Identity !== null,
     };
 
     const { defaultValue, isLiteralDefaultValue } = this.mapDefaultValue(sequelizeColumn);
