@@ -877,6 +877,7 @@ describe('RenderingPermissionService', () => {
         renderingId: 42,
         collectionName: 'actors',
         segmentQuery: 'SELECT * from actors',
+        userId: 21,
       });
 
       expect(result).toBe(true);
@@ -887,6 +888,46 @@ describe('RenderingPermissionService', () => {
       );
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
     });
+
+    it.each([PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor])(
+      'should return true if the user has permission level %s',
+      async permissionLevel => {
+        const { renderingPermission, getUserInfoMock, verifySQLQueryMock, serverInterface } =
+          setup();
+
+        const permissions = {
+          team: { id: 33 },
+          collections: {
+            actors: {},
+          },
+          stats: {},
+        };
+
+        verifySQLQueryMock.mockReturnValue(true);
+        serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
+
+        const userInfo = {
+          id: 42,
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@forest.com',
+          permissionLevel,
+        };
+
+        getUserInfoMock.mockResolvedValue(userInfo);
+
+        const result = await renderingPermission.canExecuteSegmentQuery({
+          renderingId: 42,
+          collectionName: 'actors',
+          segmentQuery: 'SELECT * from actors',
+          userId: 21,
+        });
+
+        expect(result).toBe(true);
+
+        expect(getUserInfoMock).toHaveBeenCalledWith(21);
+      },
+    );
 
     it('should return false if the collection does not have an entry in permissions', async () => {
       const { renderingPermission, serverInterface, isSegmentQueryAllowedMock, options } = setup();
@@ -903,6 +944,7 @@ describe('RenderingPermissionService', () => {
         renderingId: 42,
         collectionName: 'actors',
         segmentQuery: 'SELECT * from actors',
+        userId: 21,
       });
 
       expect(result).toBe(false);
@@ -941,6 +983,7 @@ describe('RenderingPermissionService', () => {
         renderingId: 42,
         collectionName: 'actors',
         segmentQuery: 'SELECT * from actors',
+        userId: 21,
       });
 
       expect(result).toBe(false);
@@ -998,6 +1041,7 @@ describe('RenderingPermissionService', () => {
         renderingId: 42,
         collectionName: 'actors',
         segmentQuery: 'SELECT * from actors',
+        userId: 21,
       });
 
       expect(result).toBe(true);

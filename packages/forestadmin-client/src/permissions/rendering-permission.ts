@@ -96,16 +96,19 @@ export default class RenderingPermissionService {
     renderingId,
     collectionName,
     segmentQuery,
+    userId,
   }: {
     renderingId: number | string;
     collectionName: string;
     segmentQuery: string;
+    userId: number;
   }): Promise<boolean> {
     return (
       (await this.canExecuteSegmentQueryOrRetry({
         renderingId,
         collectionName,
         segmentQuery,
+        userId,
         // Only allow retry when not using server events
         allowRetry: !this.options.instantCacheRefresh,
       })) && verifySQLQuery(segmentQuery)
@@ -117,13 +120,31 @@ export default class RenderingPermissionService {
     collectionName,
     segmentQuery,
     allowRetry,
+    userId,
   }: {
     renderingId: number | string;
     collectionName: string;
     segmentQuery: string;
     allowRetry: boolean;
+    userId: number;
   }): Promise<boolean> {
-    const permissions = await this.permissionsByRendering.fetch(`${renderingId}`);
+    const [userInfo, permissions] = await Promise.all([
+      this.userPermissions.getUserInfo(userId),
+      this.permissionsByRendering.fetch(`${renderingId}`),
+    ]);
+
+    if (
+      [PermissionLevel.Admin, PermissionLevel.Developer, PermissionLevel.Editor].includes(
+        userInfo?.permissionLevel,
+      )
+    ) {
+      this.options.logger(
+        'Debug',
+        `User ${userId} can retrieve SQL segment on rendering ${renderingId}`,
+      );
+
+      return true;
+    }
 
     const collectionPermissions = permissions?.collections?.[collectionName];
 
@@ -138,16 +159,23 @@ export default class RenderingPermissionService {
           renderingId,
           collectionName,
           segmentQuery,
+          userId,
           allowRetry: false,
         });
       }
 
-      this.options.logger('Debug', `User cannot retrieve SQL segment on rendering ${renderingId}`);
+      this.options.logger(
+        'Debug',
+        `User ${userId} cannot retrieve SQL segment on rendering ${renderingId}`,
+      );
 
       return false;
     }
 
-    this.options.logger('Debug', `User can retrieve SQL segment on rendering ${renderingId}`);
+    this.options.logger(
+      'Debug',
+      `User ${userId} can retrieve SQL segment on rendering ${renderingId}`,
+    );
 
     return true;
   }
