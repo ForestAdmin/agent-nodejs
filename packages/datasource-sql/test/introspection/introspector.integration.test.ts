@@ -106,11 +106,11 @@ describe('Introspector > Integration', () => {
     );
   });
 
-  describe('mssql', () => {
+  describe.each(MSSQL_DETAILS)('mssql $name', connectionDetails => {
     let sequelize: Sequelize;
 
     beforeEach(async () => {
-      const internalSequelize = new Sequelize(MSSQL_DETAILS.url(), { logging: false });
+      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
 
       try {
         const queryInterface = internalSequelize.getQueryInterface();
@@ -124,7 +124,7 @@ describe('Introspector > Integration', () => {
         internalSequelize.close();
       }
 
-      sequelize = new Sequelize(MSSQL_DETAILS.url(db), { logging: false });
+      sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
     });
 
     afterEach(async () => {

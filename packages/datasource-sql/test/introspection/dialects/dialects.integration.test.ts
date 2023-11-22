@@ -33,10 +33,14 @@ async function setupSchema(connectionDetails: ConnectionDetails, schema: string 
   }
 }
 
-async function setupDB(connectionDetails: ConnectionDetails, dbName: string, dropQuery: string) {
+async function setupDB(
+  connectionDetails: ConnectionDetails,
+  dbName: string | null,
+  dropQuery: string | null,
+) {
   const sequelize = new Sequelize({ ...connectionDetails.options(), logging: false });
 
-  if (dropQuery) {
+  if (dropQuery && dbName) {
     await sequelize.query(dropQuery, {
       logging: false,
     });
@@ -68,17 +72,17 @@ const mysqlSQLDialect = {
 };
 
 describe.each([
-  {
-    connectionDetails: POSTGRESQL_DETAILS,
+  ...POSTGRESQL_DETAILS.map(connectionDetails => ({
+    connectionDetails,
     dialectFactory: () => new PostgreSQLDialect(),
     dialectSql: {
       autoIncrement: (schema: string | undefined, tableName: string, id = 'id') => ({
         defaultValue: tableName.includes('.')
           ? `nextval('${
-              schema && schema !== POSTGRESQL_DETAILS.defaultSchema ? `${schema}.` : ''
+              schema && schema !== connectionDetails.defaultSchema ? `${schema}.` : ''
             }"${tableName}_${id}_seq"'::regclass)`
           : `nextval('${
-              schema && schema !== POSTGRESQL_DETAILS.defaultSchema ? `${schema}.` : ''
+              schema && schema !== connectionDetails.defaultSchema ? `${schema}.` : ''
             }${tableName}_${id}_seq'::regclass)`,
         isLiteralDefaultValue: true,
       }),
@@ -98,9 +102,9 @@ describe.each([
         enumValues: values,
       }),
     },
-  },
-  {
-    connectionDetails: MSSQL_DETAILS,
+  })),
+  ...MSSQL_DETAILS.map(connectionDetails => ({
+    connectionDetails,
     dialectFactory: () => new MsSQLDialect(),
     dialectSql: {
       now: 'getdate()',
@@ -121,24 +125,33 @@ describe.each([
         type: `VARCHAR(255)`,
       }),
     },
-  },
-  {
-    connectionDetails: MYSQL_DETAILS,
+  })),
+  ...MYSQL_DETAILS.map(connectionDetails => ({
+    connectionDetails,
     dialectFactory: () => new MySQLDialect(),
-    dialectSql: mysqlSQLDialect,
-  },
-  {
-    connectionDetails: MARIADB_DETAILS,
+    dialectSql:
+      connectionDetails.version >= 8
+        ? mysqlSQLDialect
+        : {
+            ...mysqlSQLDialect,
+            integer: 'INT(11)',
+          },
+  })),
+  ...MARIADB_DETAILS.map(connectionDetails => ({
+    connectionDetails,
     dialectFactory: () => new MariadbDialect(),
-    dialectSql: {
-      ...mysqlSQLDialect,
-      now: 'current_timestamp()',
-      nowDate: 'current_timestamp()',
-      nowDateValue: 'current_timestamp()',
-      textFunctionDefaultValue: 'current_timestamp()',
-      integer: 'INT(11)',
-    },
-  },
+    dialectSql:
+      connectionDetails.version < 10
+        ? mysqlSQLDialect
+        : {
+            ...mysqlSQLDialect,
+            now: 'current_timestamp()',
+            nowDate: 'current_timestamp()',
+            nowDateValue: 'current_timestamp()',
+            textFunctionDefaultValue: 'current_timestamp()',
+            integer: 'INT(11)',
+          },
+  })),
   {
     connectionDetails: SQLITE_DETAILS,
     dialectFactory: () => new SQLiteDialect(),
@@ -360,56 +373,58 @@ describe.each([
                   ]);
                 });
 
-                it('should return a literal default value if it is a function', async () => {
-                  if (connectionDetails.dialect === 'mysql') {
-                    await connection.query(`DROP TABLE IF EXISTS elements;`);
-                    await connection.query(`
+                if (connectionDetails.supports.functionDefaultValue) {
+                  it('should return a literal default value if it is a function', async () => {
+                    if (connectionDetails.dialect === 'mysql') {
+                      await connection.query(`DROP TABLE IF EXISTS elements;`);
+                      await connection.query(`
                       CREATE TABLE elements (
                           id INTEGER PRIMARY KEY AUTO_INCREMENT,
                           name VARCHAR(255) DEFAULT (now())
                         );
                       `);
-                  } else {
-                    await connection.getQueryInterface().dropTable('elements');
-                    await connection.getQueryInterface().createTable('elements', {
-                      id: {
-                        type: DataTypes.INTEGER,
-                        primaryKey: true,
-                        autoIncrement: true,
-                      },
-                      name: {
-                        type,
-                        defaultValue: Sequelize.literal(dialectSql.textFunctionDefaultValue),
-                      },
-                    });
+                    } else {
+                      await connection.getQueryInterface().dropTable('elements');
+                      await connection.getQueryInterface().createTable('elements', {
+                        id: {
+                          type: DataTypes.INTEGER,
+                          primaryKey: true,
+                          autoIncrement: true,
+                        },
+                        name: {
+                          type,
+                          defaultValue: Sequelize.literal(dialectSql.textFunctionDefaultValue),
+                        },
+                      });
 
-                    // MariaDB supports default values for texts
-                    // but Sequelize does not know about it
-                    if (connectionDetails.dialect === 'mariadb') {
-                      await connection.query(
-                        `ALTER TABLE elements ALTER name SET DEFAULT (current_timestamp())`,
-                      );
+                      // MariaDB supports default values for texts
+                      // but Sequelize does not know about it
+                      if (connectionDetails.dialect === 'mariadb') {
+                        await connection.query(
+                          `ALTER TABLE elements ALTER name SET DEFAULT (current_timestamp())`,
+                        );
+                      }
                     }
-                  }
 
-                  const dialect = dialectFactory();
+                    const dialect = dialectFactory();
 
-                  const tableNames = [
-                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-                  ];
+                    const tableNames = [
+                      { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                    ];
 
-                  const tableColumns = await dialect.listColumns(tableNames, connection);
+                    const tableColumns = await dialect.listColumns(tableNames, connection);
 
-                  expect(tableColumns).toEqual([
-                    expect.arrayContaining([
-                      expect.objectContaining({
-                        name: 'name',
-                        defaultValue: dialectSql.textFunctionDefaultValue,
-                        isLiteralDefaultValue: true,
-                      }),
-                    ]),
-                  ]);
-                });
+                    expect(tableColumns).toEqual([
+                      expect.arrayContaining([
+                        expect.objectContaining({
+                          name: 'name',
+                          defaultValue: dialectSql.textFunctionDefaultValue,
+                          isLiteralDefaultValue: true,
+                        }),
+                      ]),
+                    ]);
+                  });
+                }
               }
 
               it('should return null as a default value if none is defined', async () => {
@@ -668,38 +683,40 @@ describe.each([
           });
 
           describe('for date', () => {
-            it('should return the default now as a literal', async () => {
-              await connection.getQueryInterface().dropTable('elements');
-              await connection.getQueryInterface().createTable('elements', {
-                id: {
-                  type: DataTypes.INTEGER,
-                  primaryKey: true,
-                  autoIncrement: true,
-                },
-                createdAt: {
-                  type: DataTypes.DATEONLY,
-                  defaultValue: Sequelize.literal(dialectSql.nowDate),
-                },
+            if (connectionDetails.supports.dateDefault) {
+              it('should return the default now as a literal', async () => {
+                await connection.getQueryInterface().dropTable('elements');
+                await connection.getQueryInterface().createTable('elements', {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
+                  },
+                  createdAt: {
+                    type: DataTypes.DATEONLY,
+                    defaultValue: Sequelize.literal(dialectSql.nowDate),
+                  },
+                });
+
+                const dialect = dialectFactory();
+
+                const tableNames = [
+                  { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                ];
+
+                const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                expect(tableColumns).toEqual([
+                  expect.arrayContaining([
+                    expect.objectContaining({
+                      name: 'createdAt',
+                      defaultValue: dialectSql.nowDateValue,
+                      isLiteralDefaultValue: true,
+                    }),
+                  ]),
+                ]);
               });
-
-              const dialect = dialectFactory();
-
-              const tableNames = [
-                { schema: connectionDetails.defaultSchema, tableName: 'elements' },
-              ];
-
-              const tableColumns = await dialect.listColumns(tableNames, connection);
-
-              expect(tableColumns).toEqual([
-                expect.arrayContaining([
-                  expect.objectContaining({
-                    name: 'createdAt',
-                    defaultValue: dialectSql.nowDateValue,
-                    isLiteralDefaultValue: true,
-                  }),
-                ]),
-              ]);
-            });
+            }
 
             it('should return the specific date as a non-literal', async () => {
               await connection.getQueryInterface().dropTable('elements');

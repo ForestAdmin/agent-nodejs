@@ -104,6 +104,17 @@ export default class MySQLDialect implements IntrospectionDialect {
       };
     }
 
+    // For MySQL 5
+    if (
+      dbColumn.Type?.toLowerCase() === 'datetime' &&
+      dbColumn.Default?.toLowerCase() === 'current_timestamp'
+    ) {
+      return {
+        defaultValue: dbColumn.Default,
+        isLiteralDefaultValue: true,
+      };
+    }
+
     return {
       defaultValue: dbColumn.Default,
       isLiteralDefaultValue: false,

@@ -7,6 +7,7 @@ export type ConnectionDetails = {
   dialect: Dialect;
   url: (dbName?: string) => string;
   options: (dbName?: string) => Options;
+  version: number;
   supports: {
     schemas?: boolean;
     enums?: boolean;
@@ -16,23 +17,30 @@ export type ConnectionDetails = {
     json?: boolean;
     multipleDatabases: boolean;
     textDefaultValue: boolean;
+    functionDefaultValue: boolean;
+    dateDefault: boolean;
   };
   defaultSchema?: string;
 };
 
-export const POSTGRESQL_DETAILS: ConnectionDetails = {
-  name: 'PostgreSQL',
+export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
+  [9, 5439],
+  [15, 5445],
+].map(([version, port]) => ({
+  name: `PostgreSQL ${version}`,
   dialect: 'postgres',
-  url: (dbName?: string) => `postgres://test:password@localhost:5443${dbName ? `/${dbName}` : ''}`,
+  url: (dbName?: string) =>
+    `postgres://test:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'postgres' as Dialect,
     username: 'test',
     password: 'password',
     host: 'localhost',
-    port: 5443,
+    port,
     database: dbName,
     logging: false,
   }),
+  version,
   supports: {
     schemas: true,
     enums: true,
@@ -42,24 +50,30 @@ export const POSTGRESQL_DETAILS: ConnectionDetails = {
     json: true,
     multipleDatabases: true,
     textDefaultValue: true,
+    functionDefaultValue: true,
+    dateDefault: true,
   },
   defaultSchema: 'public',
-};
+}));
 
-export const MSSQL_DETAILS: ConnectionDetails = {
-  name: 'MS SQL Server',
+export const MSSQL_DETAILS: ConnectionDetails[] = [
+  [2017, 1417],
+  [2022, 1422],
+].map(([version, port]) => ({
+  name: `MS SQL Server ${version}`,
   dialect: 'mssql',
   url: (dbName?: string) =>
-    `mssql://sa:yourStrong(!)Password@localhost:1434${dbName ? `/${dbName}` : ''}`,
+    `mssql://sa:yourStrong(!)Password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'mssql' as Dialect,
     username: 'sa',
     password: 'yourStrong(!)Password',
     host: 'localhost',
-    port: 1434,
+    port,
     database: dbName,
     logging: false,
   }),
+  version,
   supports: {
     schemas: true,
     enums: true,
@@ -69,23 +83,29 @@ export const MSSQL_DETAILS: ConnectionDetails = {
     json: false,
     multipleDatabases: true,
     textDefaultValue: true,
+    functionDefaultValue: true,
+    dateDefault: true,
   },
   defaultSchema: 'dbo',
-};
+}));
 
-export const MYSQL_DETAILS: ConnectionDetails = {
-  name: 'MySQL',
+export const MYSQL_DETAILS: ConnectionDetails[] = [
+  [5, 3305],
+  [8, 3308],
+].map(([version, port]) => ({
+  name: `MySQL ${version}`,
   dialect: 'mysql',
-  url: (dbName?: string) => `mysql://root:password@localhost:3307${dbName ? `/${dbName}` : ''}`,
+  url: (dbName?: string) => `mysql://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'mysql' as Dialect,
     username: 'root',
     password: 'password',
     host: 'localhost',
-    port: 3307,
+    port,
     database: dbName,
     logging: false,
   }),
+  version,
   supports: {
     schemas: false,
     enums: true,
@@ -94,23 +114,30 @@ export const MYSQL_DETAILS: ConnectionDetails = {
     booleans: false,
     multipleDatabases: true,
     textDefaultValue: false,
+    functionDefaultValue: false,
+    dateDefault: version >= 8,
   },
   defaultSchema: undefined,
-};
+}));
 
-export const MARIADB_DETAILS: ConnectionDetails = {
-  name: 'MariaDB',
+export const MARIADB_DETAILS: ConnectionDetails[] = [
+  [10, 3810],
+  [11, 3811],
+].map(([version, port]) => ({
+  name: `MariaDB ${version}`,
   dialect: 'mariadb',
-  url: (dbName?: string) => `mariadb://root:password@localhost:3809${dbName ? `/${dbName}` : ''}`,
+  url: (dbName?: string) =>
+    `mariadb://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'mariadb' as Dialect,
     username: 'root',
     password: 'password',
     host: 'localhost',
-    port: 3809,
+    port,
     database: dbName,
     logging: false,
   }),
+  version,
   supports: {
     schemas: false,
     enums: true,
@@ -119,9 +146,11 @@ export const MARIADB_DETAILS: ConnectionDetails = {
     booleans: false,
     multipleDatabases: true,
     textDefaultValue: true,
+    functionDefaultValue: true,
+    dateDefault: true,
   },
   defaultSchema: undefined,
-};
+}));
 
 export const SQLITE_DETAILS: ConnectionDetails = {
   name: 'SQLite',
@@ -133,6 +162,7 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     database: dbName,
     logging: false,
   }),
+  version: 3,
   supports: {
     schemas: false,
     enums: false,
@@ -141,15 +171,17 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     booleans: false,
     multipleDatabases: false,
     textDefaultValue: true,
+    functionDefaultValue: true,
+    dateDefault: true,
   },
   defaultSchema: undefined,
 };
 
 const CONNECTION_DETAILS: ConnectionDetails[] = [
-  POSTGRESQL_DETAILS,
-  MSSQL_DETAILS,
-  MYSQL_DETAILS,
-  MARIADB_DETAILS,
+  ...POSTGRESQL_DETAILS,
+  ...MSSQL_DETAILS,
+  ...MYSQL_DETAILS,
+  ...MARIADB_DETAILS,
   SQLITE_DETAILS,
 ];
 
