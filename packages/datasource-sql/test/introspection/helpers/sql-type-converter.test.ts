@@ -2,6 +2,7 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import { ColumnDescription } from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
+import CONNECTION_DETAILS from '../../_helpers/connection-details';
 
 const makeColumnDescription = (description: Partial<ColumnDescription>) => {
   return {
@@ -132,88 +133,90 @@ describe('SqlTypeConverter', () => {
       });
     });
 
-    describe('from a table with arrays of integers, strings and enums', () => {
-      it('should detect the proper types', async () => {
-        const connectionUri = 'postgres://test:password@localhost:5443';
-        let sequelize: Sequelize | null = null;
+    describe.each(CONNECTION_DETAILS.filter(c => c.supports.arrays))(
+      'on $name from a table with arrays of integers, strings and enums',
+      connectionDetails => {
+        it('should detect the proper types', async () => {
+          let sequelize: Sequelize | null = null;
 
-        try {
-          const database = 'datasource-sql-array-type-getter-test';
-          sequelize = new Sequelize(connectionUri, { logging: false });
-          await sequelize.getQueryInterface().dropDatabase(database);
-          await sequelize.getQueryInterface().createDatabase(database);
-          await sequelize.close();
+          try {
+            const database = 'datasource-sql-array-type-getter-test';
+            sequelize = new Sequelize(connectionDetails.url(), { logging: false });
+            await sequelize.getQueryInterface().dropDatabase(database);
+            await sequelize.getQueryInterface().createDatabase(database);
+            await sequelize.close();
 
-          sequelize = new Sequelize(`${connectionUri}/${database}`, { logging: false });
-          sequelize.define(
-            'arrayTable',
-            {
-              arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
-              arrayString: DataTypes.ARRAY(DataTypes.STRING),
-              arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
-              arrayTimestamp: DataTypes.ARRAY(DataTypes.TIME),
-            },
-            { tableName: 'arrayTable', schema: 'public' },
-          );
-
-          await sequelize.sync({ force: true });
-
-          const converter = new SqlTypeConverter(sequelize);
-          const description = makeColumnDescriptionForType('ARRAY');
-
-          expect(
-            await converter.convert(
+            sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
+            sequelize.define(
+              'arrayTable',
+              {
+                arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
+                arrayString: DataTypes.ARRAY(DataTypes.STRING),
+                arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
+                arrayTimestamp: DataTypes.ARRAY(DataTypes.TIME),
+              },
               { tableName: 'arrayTable', schema: 'public' },
-              'arrayInt',
-              description,
-            ),
-          ).toStrictEqual({
-            type: 'array',
-            subType: { type: 'scalar', subType: 'NUMBER' },
-          });
+            );
 
-          expect(
-            await converter.convert(
-              { tableName: 'arrayTable', schema: 'public' },
-              'arrayString',
-              description,
-            ),
-          ).toStrictEqual({
-            type: 'array',
-            subType: { type: 'scalar', subType: 'STRING' },
-          });
+            await sequelize.sync({ force: true });
 
-          expect(
-            await converter.convert(
-              { tableName: 'arrayTable', schema: 'public' },
-              'arrayEnum',
-              description,
-            ),
-          ).toStrictEqual({
-            type: 'array',
-            subType: {
-              type: 'enum',
-              schema: 'public',
-              name: 'enum_arrayTable_arrayEnum',
-              values: ['enum1', 'enum2'],
-            },
-          });
+            const converter = new SqlTypeConverter(sequelize);
+            const description = makeColumnDescriptionForType('ARRAY');
 
-          expect(
-            await converter.convert(
-              { tableName: 'arrayTable', schema: 'public' },
-              'arrayTimestamp',
-              description,
-            ),
-          ).toStrictEqual({
-            type: 'array',
-            subType: { type: 'scalar', subType: 'TIME' },
-          });
-        } finally {
-          await sequelize?.close();
-        }
-      });
-    });
+            expect(
+              await converter.convert(
+                { tableName: 'arrayTable', schema: 'public' },
+                'arrayInt',
+                description,
+              ),
+            ).toStrictEqual({
+              type: 'array',
+              subType: { type: 'scalar', subType: 'NUMBER' },
+            });
+
+            expect(
+              await converter.convert(
+                { tableName: 'arrayTable', schema: 'public' },
+                'arrayString',
+                description,
+              ),
+            ).toStrictEqual({
+              type: 'array',
+              subType: { type: 'scalar', subType: 'STRING' },
+            });
+
+            expect(
+              await converter.convert(
+                { tableName: 'arrayTable', schema: 'public' },
+                'arrayEnum',
+                description,
+              ),
+            ).toStrictEqual({
+              type: 'array',
+              subType: {
+                type: 'enum',
+                schema: 'public',
+                name: 'enum_arrayTable_arrayEnum',
+                values: ['enum1', 'enum2'],
+              },
+            });
+
+            expect(
+              await converter.convert(
+                { tableName: 'arrayTable', schema: 'public' },
+                'arrayTimestamp',
+                description,
+              ),
+            ).toStrictEqual({
+              type: 'array',
+              subType: { type: 'scalar', subType: 'TIME' },
+            });
+          } finally {
+            await sequelize?.close();
+          }
+        });
+      },
+    );
 
     describe('from an unsupported type', () => {
       it('should ignore the column', async () => {

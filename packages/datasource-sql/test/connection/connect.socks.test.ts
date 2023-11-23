@@ -1,16 +1,14 @@
 import { DatabaseConnectError, ProxyConnectError } from '../../src';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
+import { POSTGRESQL_DETAILS } from '../_helpers/connection-details';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };
 
 describe('when proxy socks configuration is provided', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist(
-      'postgres://test:password@localhost:5443',
-      'test_connection_socks',
-    );
+    await createDatabaseIfNotExist(POSTGRESQL_DETAILS[0].url(), 'test_connection_socks');
   });
 
   describe('when the database password is wrong', () => {
@@ -39,7 +37,7 @@ describe('when proxy socks configuration is provided', () => {
   });
 
   describe('when the proxy is badly configured', () => {
-    const uri = 'postgres://test:password@localhost:5443/test_connection_socks';
+    const uri = POSTGRESQL_DETAILS[0].url('test_connection_socks');
 
     describe.each([
       ['port', { port: 10 }],

@@ -19,6 +19,7 @@ export type ConnectionDetails = {
     textDefaultValue: boolean;
     functionDefaultValue: boolean;
     dateDefault: boolean;
+    authentication: boolean;
   };
   defaultSchema?: string;
 };
@@ -52,6 +53,7 @@ export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
     textDefaultValue: true,
     functionDefaultValue: true,
     dateDefault: true,
+    authentication: true,
   },
   defaultSchema: 'public',
 }));
@@ -85,6 +87,7 @@ export const MSSQL_DETAILS: ConnectionDetails[] = [
     textDefaultValue: true,
     functionDefaultValue: true,
     dateDefault: true,
+    authentication: true,
   },
   defaultSchema: 'dbo',
 }));
@@ -116,6 +119,7 @@ export const MYSQL_DETAILS: ConnectionDetails[] = [
     textDefaultValue: false,
     functionDefaultValue: false,
     dateDefault: version >= 8,
+    authentication: true,
   },
   defaultSchema: undefined,
 }));
@@ -148,6 +152,7 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
     textDefaultValue: true,
     functionDefaultValue: true,
     dateDefault: true,
+    authentication: true,
   },
   defaultSchema: undefined,
 }));
@@ -173,6 +178,7 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     textDefaultValue: true,
     functionDefaultValue: true,
     dateDefault: true,
+    authentication: false,
   },
   defaultSchema: undefined,
 };

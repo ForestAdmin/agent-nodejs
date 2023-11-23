@@ -5,6 +5,7 @@ import { Sequelize } from 'sequelize';
 import { DatabaseConnectError, SshConnectError } from '../../src';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
+import { POSTGRESQL_DETAILS } from '../_helpers/connection-details';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 const ssh = {
@@ -18,10 +19,7 @@ const uri = 'postgres://test:password@postgres:5432/test_connection_ssh-socks';
 
 describe('when there is a ssh and proxy configuration', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist(
-      'postgres://test:password@localhost:5443',
-      'test_connection_ssh-socks',
-    );
+    await createDatabaseIfNotExist(POSTGRESQL_DETAILS[0].url(), 'test_connection_ssh-socks');
   });
 
   it('should be able to connect at the db', async () => {
