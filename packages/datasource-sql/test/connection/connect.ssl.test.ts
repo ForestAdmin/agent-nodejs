@@ -1,4 +1,4 @@
-import { Dialect, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
