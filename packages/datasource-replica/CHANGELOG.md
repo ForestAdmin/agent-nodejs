@@ -1,3 +1,13 @@
+## @forestadmin/datasource-replica [1.0.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.48...@forestadmin/datasource-replica@1.0.49) (2023-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.5
+
 ## @forestadmin/datasource-replica [1.0.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.47...@forestadmin/datasource-replica@1.0.48) (2023-11-24)
 
 
