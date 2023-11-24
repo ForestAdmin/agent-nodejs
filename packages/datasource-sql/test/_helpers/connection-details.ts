@@ -6,6 +6,7 @@ export type ConnectionDetails = {
   name: string;
   dialect: Dialect;
   url: (dbName?: string) => string;
+  urlDocker: (dbName?: string) => string;
   options: (dbName?: string) => Options;
   version: number;
   supports: {
@@ -26,12 +27,14 @@ export type ConnectionDetails = {
 
 export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
   [9, 5439],
-  [15, 5445],
+  [16, 5446],
 ].map(([version, port]) => ({
   name: `PostgreSQL ${version}`,
   dialect: 'postgres',
   url: (dbName?: string) =>
     `postgres://test:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
+  urlDocker: (dbName?: string) =>
+    `postgres://test:password@postgres${version}:5432${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'postgres' as Dialect,
     username: 'test',
@@ -66,6 +69,8 @@ export const MSSQL_DETAILS: ConnectionDetails[] = [
   dialect: 'mssql',
   url: (dbName?: string) =>
     `mssql://sa:yourStrong(!)Password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
+  urlDocker: (dbName?: string) =>
+    `mssql://sa:yourStrong(!)Password@mssql${version}:1433${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'mssql' as Dialect,
     username: 'sa',
@@ -99,6 +104,8 @@ export const MYSQL_DETAILS: ConnectionDetails[] = [
   name: `MySQL ${version}`,
   dialect: 'mysql',
   url: (dbName?: string) => `mysql://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
+  urlDocker: (dbName?: string) =>
+    `mysql://root:password@mysql${version}:3306${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'mysql' as Dialect,
     username: 'root',
@@ -132,6 +139,8 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
   dialect: 'mariadb',
   url: (dbName?: string) =>
     `mariadb://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
+  urlDocker: (dbName?: string) =>
+    `mariadb://root:password@mariadb${version}:3306${dbName ? `/${dbName}` : ''}`,
   options: (dbName?: string) => ({
     dialect: 'mariadb' as Dialect,
     username: 'root',
@@ -161,6 +170,7 @@ export const SQLITE_DETAILS: ConnectionDetails = {
   name: 'SQLite',
   dialect: 'sqlite',
   url: (dbName?: string) => `sqlite://${path.join(tmpdir(), `${dbName}.db` || 'test.db')}}`,
+  urlDocker: (dbName?: string) => `sqlite://${path.join('/tmp', `${dbName}.db` || 'test.db')}}`,
   options: (dbName?: string) => ({
     dialect: 'sqlite' as Dialect,
     storage: ':memory:',

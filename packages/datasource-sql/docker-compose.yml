@@ -9,11 +9,11 @@ services:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
 
-  postgres15:
-    image: postgres:15
-    container_name: forest_datasource_sql_test_postgres15
+  postgres16:
+    image: postgres:16
+    container_name: forest_datasource_sql_test_postgres16
     ports:
-      - '5445:5432'
+      - '5446:5432'
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password

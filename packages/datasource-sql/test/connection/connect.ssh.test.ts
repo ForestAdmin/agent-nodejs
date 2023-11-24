@@ -22,7 +22,7 @@ describe.each(MARIADB_DETAILS)('when there is only a ssh configuration', connect
 
   it('should be able to connect at the db', async () => {
     const options = new ConnectionOptions({
-      uri: connectionDetails.url('test_connection_ssh'),
+      uri: connectionDetails.urlDocker('test_connection_ssh'),
       ssh: sshConfig,
     });
     const seq = await connect(options);
@@ -33,7 +33,7 @@ describe.each(MARIADB_DETAILS)('when there is only a ssh configuration', connect
   describe('when the ssh has a wrong configuration', () => {
     it('should throw a ssh error', async () => {
       const options = new ConnectionOptions({
-        uri: connectionDetails.url('test_connection_ssh'),
+        uri: connectionDetails.urlDocker('test_connection_ssh'),
         ssh: { ...sshConfig, username: 'BADUSER' },
         connectionTimeoutInMs: 4000,
       });
@@ -43,8 +43,10 @@ describe.each(MARIADB_DETAILS)('when there is only a ssh configuration', connect
 
   describe('when the db has a wrong configuration', () => {
     it('should throw a database error', async () => {
+      const parsedUrl = new URL(connectionDetails.urlDocker('test_connection_ssh'));
+      parsedUrl.hostname = 'badhost';
       const options = new ConnectionOptions({
-        uri: connectionDetails.url('test_connection_ssh'),
+        uri: parsedUrl.toString(),
         ssh: sshConfig,
       });
       await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);

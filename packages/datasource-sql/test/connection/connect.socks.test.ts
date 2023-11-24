@@ -11,10 +11,25 @@ describe('when proxy socks configuration is provided', () => {
     await createDatabaseIfNotExist(POSTGRESQL_DETAILS[0].url(), 'test_connection_socks');
   });
 
+  it('should be able to connect at the db', async () => {
+    const options = new ConnectionOptions({
+      uri: POSTGRESQL_DETAILS[0].urlDocker('test_connection_socks'),
+      proxySocks,
+    });
+    const seq = await connect(options);
+    await seq.close();
+    // It should not throw
+    // In case of an error, using expect().toResolve() do not log the error
+    // which is not really helpful
+    expect.assertions(0);
+  });
+
   describe('when the database password is wrong', () => {
     it('should not block the promise and throw an error', async () => {
+      const parsedUrl = new URL(POSTGRESQL_DETAILS[0].urlDocker('test_connection_socks'));
+      parsedUrl.password = 'BADPASSWORD';
       const options = new ConnectionOptions({
-        uri: `postgres://BADUSER:password@postgres:5432/test_connection_socks`,
+        uri: parsedUrl.toString(),
         proxySocks: { host: 'localhost', port: 1083, password: 'password', userId: 'username' },
       });
 
@@ -25,7 +40,7 @@ describe('when proxy socks configuration is provided', () => {
   describe('when the proxy configuration is wrong', () => {
     it('should throw an error', async () => {
       const options = new ConnectionOptions({
-        uri: `postgres://test:password@postgres:5432/test_connection_socks`,
+        uri: POSTGRESQL_DETAILS[0].urlDocker(`test_connection_socks`),
         proxySocks: { host: 'BADHOST', port: 1083, password: 'password', userId: 'username' },
       });
 
