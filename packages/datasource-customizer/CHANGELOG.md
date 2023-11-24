@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.37.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.4...@forestadmin/datasource-customizer@1.37.5) (2023-11-24)
+
+
+### Bug Fixes
+
+* **typing:** avoid ordering issues that causes issue with typing ([#890](https://github.com/ForestAdmin/agent-nodejs/issues/890)) ([1c9628c](https://github.com/ForestAdmin/agent-nodejs/commit/1c9628cd183a827b3e1c60143163c1b5f7e337b7))
+
 ## @forestadmin/datasource-customizer [1.37.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.3...@forestadmin/datasource-customizer@1.37.4) (2023-11-16)
 
 
