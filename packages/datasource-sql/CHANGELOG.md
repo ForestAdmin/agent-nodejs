@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.7.42](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.41...@forestadmin/datasource-sql@1.7.42) (2023-11-24)
+
+
+### Bug Fixes
+
+* **datasource-sql:** don't return function names when default values are not constants ([#872](https://github.com/ForestAdmin/agent-nodejs/issues/872)) ([db5dba9](https://github.com/ForestAdmin/agent-nodejs/commit/db5dba9b97998b878d12b6ee055a2bad6ffd901c))
+
 ## @forestadmin/datasource-sql [1.7.41](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.40...@forestadmin/datasource-sql@1.7.41) (2023-11-09)
 
 
