@@ -72,7 +72,6 @@ describe('when there is a ssh and proxy configuration', () => {
       it('should throw a DatabaseConnectError error', async () => {
         const parsedUrl = new URL(uri);
         parsedUrl.protocol = 'mysql:';
-        console.log('parsedUrl.toString():', parsedUrl.toString());
         const options = new ConnectionOptions({
           uri: parsedUrl.toString(),
           proxySocks: proxySockValue,
