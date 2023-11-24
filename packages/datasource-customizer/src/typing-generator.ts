@@ -98,26 +98,32 @@ export default class TypingGenerator {
   }
 
   private getRow(collection: Collection): string {
-    const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
-      return field.type === 'Column' ? [...memo, `      '${name}': ${this.getType(field)};`] : memo;
-    }, []);
+    const content = Object.entries(collection.schema.fields)
+      .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+      .reduce((memo, [name, field]) => {
+        return field.type === 'Column'
+          ? [...memo, `      '${name}': ${this.getType(field)};`]
+          : memo;
+      }, []);
 
     return `    plain: {\n${content.join('\n')}\n    };`;
   }
 
   private getRelations(collection: Collection): string {
-    const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
-      if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
-        const relation = field.foreignCollection;
+    const content = Object.entries(collection.schema.fields)
+      .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+      .reduce((memo, [name, field]) => {
+        if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
+          const relation = field.foreignCollection;
 
-        return [
-          ...memo,
-          `      '${name}': Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
-        ];
-      }
+          return [
+            ...memo,
+            `      '${name}': Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
+          ];
+        }
 
-      return memo;
-    }, []);
+        return memo;
+      }, []);
 
     return content.length ? `    nested: {\n${content.join('\n')}\n    };` : `    nested: {};`;
   }
@@ -131,7 +137,7 @@ export default class TypingGenerator {
   }
 
   private getFieldsOnCollection(mainCollection: Collection, maxDepth: number): string[] {
-    const result = [];
+    const result: string[] = [];
 
     const queue = [{ collection: mainCollection, depth: 0, prefix: '', traversed: [] }];
 
@@ -141,6 +147,7 @@ export default class TypingGenerator {
       if (prefix) {
         result.push(
           ...Object.entries(collection.schema.fields)
+            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
             .filter(([, schema]) => schema.type === 'Column')
             .map(
               ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,

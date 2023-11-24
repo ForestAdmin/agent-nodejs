@@ -57,18 +57,18 @@ describe('TypingGenerator', () => {
       export type ACollectionNameFilter = TPaginatedFilter<Schema,'aCollectionName'>;
       export type ACollectionNameSortClause = TSortClause<Schema,'aCollectionName'>;
       export type ACollectionNameAggregation = TAggregation<Schema, 'aCollectionName'>;
-      
+
       export type Schema = {
         'aCollectionName': {
           plain: {
-            'id': number;
-            'boolean': boolean;
-            'string': string;
-            'point': [number, number];
-            'enumWithValues': 'a' | 'b' | 'c';
-            'enumWithoutValues': string;
-            'complex': { firstname: string; lastname: string };
             'array': Array<string>;
+            'boolean': boolean;
+            'complex': { firstname: string; lastname: string };
+            'enumWithoutValues': string;
+            'enumWithValues': 'a' | 'b' | 'c';
+            'id': number;
+            'point': [number, number];
+            'string': string;
           };
           nested: {};
           flat: {};
@@ -171,7 +171,7 @@ describe('TypingGenerator', () => {
     const expected = `
       export type Schema = {
         'col1': {
-          plain: { 
+          plain: {
             'id': number;
           };
           nested: {
@@ -277,7 +277,7 @@ describe('TypingGenerator', () => {
     const expected = `
       export type Schema = {
         'col1': {
-          plain: { 
+          plain: {
             'id': number;
           };
           nested: {
@@ -364,8 +364,8 @@ describe('TypingGenerator', () => {
     );
     const expected = `
       flat: {
-        'col1:id': number;
         'col1:field0': string;
+        'col1:field1': string;
       };
     `;
 
@@ -375,5 +375,58 @@ describe('TypingGenerator', () => {
       `Fields generation stopped on collection col1, ` +
         `try using a lower typingsMaxDepth (5) to avoid this issue.`,
     );
+  });
+
+  test('should sort alphabetically plain, nested and flat properties', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'col1',
+        schema: {
+          fields: {
+            zebra: factories.manyToOneSchema.build({
+              foreignCollection: 'col1',
+              foreignKey: 'id',
+            }),
+            marsAttack: factories.columnSchema.build({ columnType: 'String' }),
+            zebraCount: factories.columnSchema.build({ columnType: 'Number' }),
+            animalsCount: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'col1': {
+          plain: {
+            'animalsCount': number;
+            'marsAttack': string;
+            'zebraCount': number;
+          };
+          nested: {
+            'zebra': Schema['col1']['plain'] & Schema['col1']['nested'];
+          };
+          flat: {
+            'zebra:animalsCount': number;
+            'zebra:marsAttack': string;
+            'zebra:zebraCount': number;
+            'zebra:zebra:animalsCount': number;
+            'zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebra:zebra:zebraCount': number;
+          };
+        };
+      };`;
+
+    expectContains(generated, expected);
   });
 });
