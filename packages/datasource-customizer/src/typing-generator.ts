@@ -132,12 +132,14 @@ export default class TypingGenerator {
     const fields = this.getFieldsOnCollection(collection, maxDepth);
 
     return fields.length
-      ? `    flat: {\n      ${fields.join('\n      ')}\n    };`
+      ? `    flat: {\n      ${fields
+          .sort((nameA, nameB) => nameA.localeCompare(nameB))
+          .join('\n      ')}\n    };`
       : `    flat: {};`;
   }
 
   private getFieldsOnCollection(mainCollection: Collection, maxDepth: number): string[] {
-    const result = [];
+    const result: string[] = [];
 
     const queue = [{ collection: mainCollection, depth: 0, prefix: '', traversed: [] }];
 

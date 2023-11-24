@@ -57,18 +57,18 @@ describe('TypingGenerator', () => {
       export type ACollectionNameFilter = TPaginatedFilter<Schema,'aCollectionName'>;
       export type ACollectionNameSortClause = TSortClause<Schema,'aCollectionName'>;
       export type ACollectionNameAggregation = TAggregation<Schema, 'aCollectionName'>;
-      
+
       export type Schema = {
         'aCollectionName': {
           plain: {
-            'id': number;
-            'boolean': boolean;
-            'string': string;
-            'point': [number, number];
-            'enumWithValues': 'a' | 'b' | 'c';
-            'enumWithoutValues': string;
-            'complex': { firstname: string; lastname: string };
             'array': Array<string>;
+            'boolean': boolean;
+            'complex': { firstname: string; lastname: string };
+            'enumWithoutValues': string;
+            'enumWithValues': 'a' | 'b' | 'c';
+            'id': number;
+            'point': [number, number];
+            'string': string;
           };
           nested: {};
           flat: {};
@@ -171,18 +171,18 @@ describe('TypingGenerator', () => {
     const expected = `
       export type Schema = {
         'col1': {
-          plain: { 
+          plain: {
             'id': number;
           };
           nested: {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:id': number;
-            'col1:col1:id': number;
-            'col1:col1:col1:id': number;
-            'col1:col1:col1:col1:id': number;
             'col1:col1:col1:col1:col1:id': number;
+            'col1:col1:col1:col1:id': number;
+            'col1:col1:col1:id': number;
+            'col1:col1:id': number;
+            'col1:id': number;
           };
         };
       };`;
@@ -277,16 +277,16 @@ describe('TypingGenerator', () => {
     const expected = `
       export type Schema = {
         'col1': {
-          plain: { 
+          plain: {
             'id': number;
           };
           nested: {
             'col2': Schema['col2']['plain'] & Schema['col2']['nested'];
           };
           flat: {
-            'col2:id': number;
-            'col2:col3:id': number;
             'col2:col3:col1:id': number;
+            'col2:col3:id': number;
+            'col2:id': number;
           };
         };
         'col2': {
@@ -297,9 +297,9 @@ describe('TypingGenerator', () => {
             'col3': Schema['col3']['plain'] & Schema['col3']['nested'];
           };
           flat: {
-            'col3:id': number;
-            'col3:col1:id': number;
             'col3:col1:col2:id': number;
+            'col3:col1:id': number;
+            'col3:id': number;
           };
         };
         'col3': {
@@ -310,9 +310,9 @@ describe('TypingGenerator', () => {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:id': number;
-            'col1:col2:id': number;
             'col1:col2:col3:id': number;
+            'col1:col2:id': number;
+            'col1:id': number;
           };
         };
       };`;
@@ -364,8 +364,8 @@ describe('TypingGenerator', () => {
     );
     const expected = `
       flat: {
-        'col1:id': number;
         'col1:field0': string;
+        'col1:id': number;
       };
     `;
 
