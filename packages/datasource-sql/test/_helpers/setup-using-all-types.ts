@@ -1,6 +1,8 @@
 import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
+import { ConnectionDetails } from './connection-details';
+
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
   switch (dialect) {
     case 'mariadb':
@@ -8,6 +10,7 @@ function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
     case 'mssql':
       return literal('getdate()');
     case 'mysql':
+    case 'sqlite':
       return literal('CURRENT_TIMESTAMP');
     case 'postgres':
       return literal('now()');
@@ -154,23 +157,24 @@ export function getAttributeMapping(dialect: Dialect) {
 }
 
 export default async (
-  baseUri: string,
-  dialect: string,
+  connectionDetails: ConnectionDetails,
   database: string,
   schema,
 ): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
-    sequelize = new Sequelize(baseUri, { logging: false });
+    if (connectionDetails.supports.multipleDatabases) {
+      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
 
-    await sequelize.getQueryInterface().dropDatabase(database);
-    await sequelize.getQueryInterface().createDatabase(database);
-    await sequelize.close();
+      await sequelize.getQueryInterface().dropDatabase(database);
+      await sequelize.getQueryInterface().createDatabase(database);
+      await sequelize.close();
+    }
 
     const optionalSchemaOption = schema ? { schema } : {};
 
-    sequelize = new Sequelize(`${baseUri}/${database}`, {
+    sequelize = new Sequelize(connectionDetails.url(database), {
       logging: false,
       ...optionalSchemaOption,
     });
@@ -197,7 +201,7 @@ export default async (
         },
         date: {
           type: DataTypes.DATE,
-          defaultValue: Sequelize.fn(dialect === 'mssql' ? 'getdate' : 'now'),
+          defaultValue: getDefaultFunctionDateFromDialect(connectionDetails.dialect),
         },
         date_as_default: {
           type: DataTypes.DATEONLY,
@@ -229,7 +233,7 @@ export default async (
       },
     );
 
-    if (dialect !== 'mssql') {
+    if (!['sqlite', 'mssql'].includes(connectionDetails.dialect)) {
       sequelize.define(
         'enumT',
         {
@@ -242,7 +246,7 @@ export default async (
       );
     }
 
-    if (dialect === 'mysql') {
+    if (connectionDetails.dialect === 'mysql') {
       sequelize.define(
         'jsonT',
         {
@@ -257,7 +261,7 @@ export default async (
       );
     }
 
-    if (dialect === 'postgres') {
+    if (connectionDetails.dialect === 'postgres') {
       sequelize.define(
         'jsonBT',
         {
@@ -298,6 +302,9 @@ export default async (
     await sequelize.sync({ force: true });
 
     return sequelize;
+  } catch (e) {
+    console.error(e);
+    throw e;
   } finally {
     await sequelize?.close();
   }

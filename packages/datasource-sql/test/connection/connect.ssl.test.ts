@@ -1,8 +1,14 @@
-import { Dialect, Sequelize } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
 import { SslMode } from '../../src/types';
+import {
+  MARIADB_DETAILS,
+  MSSQL_DETAILS,
+  MYSQL_DETAILS,
+  POSTGRESQL_DETAILS,
+} from '../_helpers/connection-details';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 describe('Connect', () => {
@@ -29,19 +35,13 @@ describe('Connect', () => {
     });
   });
 
-  describe.each([
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
-  ])(
-    'on %s database (supports unencrypted)',
-    (dialect, username, password, host, containerPort) => {
-      const baseUri = `${dialect}://${username}:${password}@${host}:${containerPort}`;
-      const uri = `${baseUri}/test_connection_ssl`;
+  describe.each([...POSTGRESQL_DETAILS, ...MYSQL_DETAILS, ...MSSQL_DETAILS, ...MARIADB_DETAILS])(
+    'on $name database (supports unencrypted)',
+    connectionDetails => {
+      const uri = connectionDetails.url('test_connection_ssl');
 
       beforeAll(async () => {
-        await createDatabaseIfNotExist(baseUri, 'test_connection_ssl');
+        await createDatabaseIfNotExist(connectionDetails.url(), 'test_connection_ssl');
       });
 
       it('should work in manual mode with nothing specified', async () => {
@@ -60,46 +60,44 @@ describe('Connect', () => {
     },
   );
 
-  describe.each([
-    ['postgres' as Dialect, 'test', 'password', 'localhost', 5443],
-    ['mariadb' as Dialect, 'root', 'password', 'localhost', 3809],
-  ])('on %s database (no ssl support)', (dialect, username, password, host, port) => {
-    const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
-    const uri = `${baseUri}/test_connection_ssl_2`;
+  describe.each([...POSTGRESQL_DETAILS, ...MARIADB_DETAILS])(
+    'on $name database (no ssl support)',
+    connectionDetails => {
+      const uri = connectionDetails.url('test_connection_ssl_2');
 
-    beforeAll(async () => {
-      await createDatabaseIfNotExist(baseUri, 'test_connection_ssl_2');
-    });
+      beforeAll(async () => {
+        await createDatabaseIfNotExist(connectionDetails.url(), 'test_connection_ssl_2');
+      });
 
-    it.each([['required'], ['verify']])('should fail when using sslMode %s', async sslMode => {
-      const fn = () => connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
+      it.each([['required'], ['verify']])('should fail when using sslMode %s', async sslMode => {
+        const fn = () => connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
 
-      await expect(fn).rejects.toThrow(/ssl not enabled|does not support SSL connections/);
-    });
-  });
+        await expect(fn).rejects.toThrow(/ssl not enabled|does not support SSL connections/);
+      });
+    },
+  );
 
-  describe.each([
-    ['mysql' as Dialect, 'root', 'password', 'localhost', 3307],
-    ['mssql' as Dialect, 'sa', 'yourStrong(!)Password', 'localhost', 1434],
-  ])('on %s database (supports self-signed ssl)', (dialect, username, password, host, port) => {
-    const baseUri = `${dialect}://${username}:${password}@${host}:${port}`;
-    const uri = `${baseUri}/test_connection_ssl`;
+  describe.each([...MYSQL_DETAILS, ...MSSQL_DETAILS])(
+    'on $name database (supports self-signed ssl)',
+    connectionDetails => {
+      const uri = connectionDetails.url(`test_connection_ssl`);
 
-    beforeAll(async () => {
-      await createDatabaseIfNotExist(baseUri, 'test_connection_ssl');
-    });
+      beforeAll(async () => {
+        await createDatabaseIfNotExist(connectionDetails.url(), 'test_connection_ssl');
+      });
 
-    it.each([['preferred'], ['required']])('should work when using sslMode %s', async sslMode => {
-      const seq = await connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
-      await seq.close();
+      it.each([['preferred'], ['required']])('should work when using sslMode %s', async sslMode => {
+        const seq = await connect(new ConnectionOptions({ uri, sslMode: sslMode as SslMode }));
+        await seq.close();
 
-      expect(seq).toBeInstanceOf(Sequelize);
-    });
+        expect(seq).toBeInstanceOf(Sequelize);
+      });
 
-    it("should fail when using sslMode 'verify'", async () => {
-      const fn = () => connect(new ConnectionOptions({ uri, sslMode: 'verify' }));
+      it("should fail when using sslMode 'verify'", async () => {
+        const fn = () => connect(new ConnectionOptions({ uri, sslMode: 'verify' }));
 
-      await expect(fn).rejects.toThrow(/self[- ]signed certificate/);
-    });
-  });
+        await expect(fn).rejects.toThrow(/self[- ]signed certificate/);
+      });
+    },
+  );
 });

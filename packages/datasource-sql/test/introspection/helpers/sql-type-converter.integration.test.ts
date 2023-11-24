@@ -1,7 +1,11 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
+import introspectorDialectFactory from '../../../src/introspection/dialects/dialect-factory';
+import IntrospectionDialect, {
+  ColumnDescription,
+} from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import CONNECTION_DETAILS from '../../_helpers/connection-details';
+import CONNECTION_DETAILS, { ConnectionDetails } from '../../_helpers/connection-details';
 
 const SCALAR_TYPES: [string, string, string[]?][] = [
   // Testing a subset of types
@@ -15,29 +19,18 @@ const SCALAR_TYPES: [string, string, string[]?][] = [
   ['TEXT', 'STRING'],
 ];
 
-async function setupTestDB(connectionDetails, schema) {
-  const initSequelize = new Sequelize({
-    dialect: connectionDetails.dialect,
-    username: connectionDetails.username,
-    password: connectionDetails.password,
-    host: connectionDetails.host,
-    port: connectionDetails.port,
-    logging: false,
-  });
+async function setupTestDB(connectionDetails: ConnectionDetails, schema) {
+  const initSequelize = new Sequelize(connectionDetails.options());
 
-  await initSequelize.getQueryInterface().dropDatabase('datasource-sql-introspection-test');
-  await initSequelize.getQueryInterface().createDatabase('datasource-sql-introspection-test');
+  if (connectionDetails.supports.multipleDatabases) {
+    await initSequelize.getQueryInterface().dropDatabase('datasource-sql-introspection-test');
+    await initSequelize.getQueryInterface().createDatabase('datasource-sql-introspection-test');
+  }
 
   initSequelize.close();
 
   const sequelize = new Sequelize({
-    dialect: connectionDetails.dialect,
-    username: connectionDetails.username,
-    password: connectionDetails.password,
-    host: connectionDetails.host,
-    port: connectionDetails.port,
-    logging: false,
-    database: 'datasource-sql-introspection-test',
+    ...connectionDetails.options('datasource-sql-introspection-test'),
     schema,
   });
 
@@ -50,13 +43,19 @@ async function setupTestDB(connectionDetails, schema) {
 
 describe('Integration > SqlTypeConverter', () => {
   describe.each(CONNECTION_DETAILS)('On $dialect', connectionDetails => {
+    let dialect: IntrospectionDialect;
+
+    beforeEach(async () => {
+      dialect = introspectorDialectFactory(connectionDetails.dialect);
+    });
+
     describe.each([undefined, ...(connectionDetails.supports.schemas ? ['test_schema'] : [])])(
       'With schema=%s',
       schema => {
         let sequelize: Sequelize;
 
         beforeEach(async () => {
-          sequelize = await setupTestDB(connectionDetails.options(), schema);
+          sequelize = await setupTestDB(connectionDetails, schema);
         });
 
         afterEach(async () => {
@@ -84,12 +83,18 @@ describe('Integration > SqlTypeConverter', () => {
 
               const sqlTypeConverter = new SqlTypeConverter(sequelize);
 
-              const columnDescriptions = await sequelize.getQueryInterface().describeTable('test');
+              const [columnDescriptions] = await dialect.listColumns(
+                [{ tableName: 'test', schema }],
+                sequelize,
+              );
+              const description = columnDescriptions.find(
+                c => c.name === 'column',
+              ) as ColumnDescription;
 
               const result = await sqlTypeConverter.convert(
                 { tableName: 'test', schema },
                 'column',
-                columnDescriptions.column,
+                description,
               );
 
               expect(result).toEqual({ type: 'scalar', subType: expectedType });
@@ -119,15 +124,21 @@ describe('Integration > SqlTypeConverter', () => {
 
             const sqlTypeConverter = new SqlTypeConverter(sequelize);
 
-            const columnDescriptions = await sequelize.getQueryInterface().describeTable('test');
+            const [columnDescriptions] = await dialect.listColumns(
+              [{ tableName: 'test', schema }],
+              sequelize,
+            );
+            const description = columnDescriptions.find(
+              c => c.name === 'column',
+            ) as ColumnDescription;
 
             const result = await sqlTypeConverter.convert(
               { tableName: 'test', schema },
               'column',
-              columnDescriptions.column,
+              description,
             );
 
-            const expectedResult = connectionDetails.supports.enums
+            const expectedResult = connectionDetails.supports.enumsValueRetrieval
               ? {
                   type: 'enum',
                   values: ['value1', 'value2'],
@@ -148,9 +159,11 @@ describe('Integration > SqlTypeConverter', () => {
         `With schema=%S`,
         schema => {
           let sequelize: Sequelize;
+          let dialect: IntrospectionDialect;
 
           beforeEach(async () => {
-            sequelize = await setupTestDB(connectionDetails.options(), schema);
+            sequelize = await setupTestDB(connectionDetails, schema);
+            dialect = introspectorDialectFactory(connectionDetails.dialect);
           });
 
           afterEach(async () => {
@@ -172,13 +185,18 @@ describe('Integration > SqlTypeConverter', () => {
               await sequelize.sync();
 
               const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
-              const columnDescriptions = await sequelize.getQueryInterface().describeTable('test');
+              const [columnDescriptions] = await dialect.listColumns(
+                [{ tableName: 'test', schema }],
+                sequelize,
+              );
+              const description = columnDescriptions.find(
+                c => c.name === 'column',
+              ) as ColumnDescription;
 
               const result = await sqlTypeConverter.convert(
                 { tableName: 'test', schema },
                 'column',
-                columnDescriptions.column,
+                description,
               );
 
               expect(result).toEqual({
@@ -210,13 +228,18 @@ describe('Integration > SqlTypeConverter', () => {
               await sequelize.sync();
 
               const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
-              const columnDescriptions = await sequelize.getQueryInterface().describeTable('test');
+              const [columnDescriptions] = await dialect.listColumns(
+                [{ tableName: 'test', schema }],
+                sequelize,
+              );
+              const description = columnDescriptions.find(
+                c => c.name === 'column',
+              ) as ColumnDescription;
 
               const result = await sqlTypeConverter.convert(
                 { tableName: 'test', schema },
                 'column',
-                columnDescriptions.column,
+                description,
               );
 
               expect(result).toEqual({

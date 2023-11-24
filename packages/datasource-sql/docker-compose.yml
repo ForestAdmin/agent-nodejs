@@ -1,36 +1,74 @@
 version: '3.1'
 services:
-  postgres:
-    image: postgres:12.7
-    container_name: forest_datasource_sql_test_postgres
+  postgres9:
+    image: postgres:9
+    container_name: forest_datasource_sql_test_postgres9
     ports:
-      - '5443:5432'
+      - '5439:5432'
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
 
-  mysql:
-    image: mysql:oracle
-    container_name: forest_datasource_sql_test_mysql
+  postgres16:
+    image: postgres:16
+    container_name: forest_datasource_sql_test_postgres16
     ports:
-      - '3307:3306'
+      - '5446:5432'
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=password
+
+  mysql5:
+    image: mysql:5
+    container_name: forest_datasource_sql_test_mysql5
+    platform: linux/amd64
+    ports:
+      - '3305:3306'
     environment:
       - MYSQL_ROOT_PASSWORD=password
 
-  mssql:
-    image: mcr.microsoft.com/azure-sql-edge
-    container_name: forest_datasource_sql_test_mssql
+  mysql8:
+    image: mysql:8
+    container_name: forest_datasource_sql_test_mysql8
     ports:
-      - '1434:1433'
+      - '3308:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+
+  mssql2017:
+    image: mcr.microsoft.com/mssql/server:2017-latest
+    container_name: forest_datasource_sql_test_mssql2017
+    platform: linux/amd64
+    ports:
+      - '1417:1433'
     environment:
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
 
-  mariadb:
-    image: mariadb:latest
-    container_name: forest_datasource_sql_test_mariadb
+  mssql2022:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: forest_datasource_sql_test_mssql2022
+    platform: linux/amd64
     ports:
-      - '3809:3306'
+      - '1422:1433'
+    environment:
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - ACCEPT_EULA=Y
+
+  mariadb10:
+    image: mariadb:10
+    container_name: forest_datasource_sql_test_mariadb10
+    platform: linux/amd64
+    ports:
+      - '3810:3306'
+    environment:
+      - MARIADB_ROOT_PASSWORD=password
+
+  mariadb11:
+    image: mariadb:11
+    container_name: forest_datasource_sql_test_mariadb11
+    ports:
+      - '3811:3306'
     environment:
       - MARIADB_ROOT_PASSWORD=password
 

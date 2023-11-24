@@ -1,6 +1,7 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
-import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
+import { ColumnDescription } from '../dialects/dialect.interface';
+import { SequelizeTableIdentifier } from '../type-overrides';
 import { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
@@ -14,7 +15,7 @@ export default class SqlTypeConverter {
   async convert(
     tableIdentifier: SequelizeTableIdentifier,
     columnName: string,
-    columnInfo: SequelizeColumn,
+    columnInfo: ColumnDescription,
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
@@ -30,19 +31,11 @@ export default class SqlTypeConverter {
   }
 
   /** Get the type of an enum from sequelize column description */
-  private getEnumType(columnInfo: SequelizeColumn): ColumnType {
-    if (columnInfo.type === 'USER-DEFINED') {
-      // Postgres enum
-      return columnInfo?.special?.length > 0
-        ? { type: 'enum', values: columnInfo.special }
-        : // User-defined enum with no values will default to string
-          { type: 'scalar', subType: 'STRING' };
-    }
-
-    // Other SGDB
-    const enumOptions = SqlTypeConverter.enumRegex.exec(columnInfo.type)?.[1];
-
-    return { type: 'enum', values: enumOptions.replace(/'/g, '').split(',') };
+  private getEnumType(columnInfo: ColumnDescription): ColumnType {
+    return columnInfo.enumValues?.length > 0
+      ? { type: 'enum', values: columnInfo.enumValues }
+      : // User-defined enum with no values will default to string
+        { type: 'scalar', subType: 'STRING' };
   }
 
   /**

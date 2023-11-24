@@ -6,49 +6,34 @@ describe('DefaultValueParser', () => {
   describe('parse', () => {
     describe('when there is no expression', () => {
       it('should return undefined', () => {
-        const defaultValueParser = new DefaultValueParser('postgres');
-        const defaultValue = defaultValueParser.parse(null, { type: 'scalar', subType: 'STRING' });
+        const defaultValue = DefaultValueParser.parse(
+          {
+            defaultValue: null,
+            isLiteralDefaultValue: false,
+            enumValues: null,
+          },
+          { type: 'scalar', subType: 'STRING' },
+        );
 
         expect(defaultValue).toBeUndefined();
-      });
-    });
-
-    describe('when the expression is NULL', () => {
-      it('should return null', () => {
-        const defaultValueParser = new DefaultValueParser('postgres');
-        const defaultValue = defaultValueParser.parse('NULL', {
-          type: 'scalar',
-          subType: 'STRING',
-        });
-
-        expect(defaultValue).toBeNull();
       });
     });
 
     describe('when the data type is STRING', () => {
       describe('when the expression is a string', () => {
         it('should return the valid expression', () => {
-          const defaultValueParser = new DefaultValueParser('mssql');
-          const defaultValue = defaultValueParser.parse('default value test', {
-            type: 'scalar',
-            subType: 'STRING',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: 'default value test',
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'STRING',
+            },
+          );
 
-          expect(defaultValue).toBe('default value test');
-        });
-
-        it('should sanitize the expression', () => {
-          const defaultValueParser = new DefaultValueParser('mssql');
-          const quotedDefaultValue = defaultValueParser.parse("'default value test'", {
-            type: 'scalar',
-            subType: 'STRING',
-          });
-          const defaultValue = defaultValueParser.parse('(default value test)', {
-            type: 'scalar',
-            subType: 'STRING',
-          });
-
-          expect(quotedDefaultValue).toBe('default value test');
           expect(defaultValue).toBe('default value test');
         });
       });
@@ -56,11 +41,13 @@ describe('DefaultValueParser', () => {
 
     describe('when the data type is ARRAY', () => {
       it('should return undefined', () => {
-        const defaultValueParser = new DefaultValueParser('postgres');
-        const defaultValue = defaultValueParser.parse([1, 2], {
-          type: 'array',
-          subType: { type: 'scalar', subType: 'NUMBER' },
-        });
+        const defaultValue = DefaultValueParser.parse(
+          { defaultValue: "ARRAY['happy'::text]", isLiteralDefaultValue: true, enumValues: null },
+          {
+            type: 'array',
+            subType: { type: 'scalar', subType: 'NUMBER' },
+          },
+        );
 
         expect(defaultValue).toBeUndefined();
       });
@@ -68,12 +55,17 @@ describe('DefaultValueParser', () => {
 
     describe('when the data type is ENUM', () => {
       it('should return the default value', () => {
-        const defaultValueParser = new DefaultValueParser('postgres');
-
-        const defaultValue = defaultValueParser.parse('enum1', {
-          type: 'enum',
-          values: ['enum1', 'enum2'],
-        });
+        const defaultValue = DefaultValueParser.parse(
+          {
+            defaultValue: 'enum1',
+            isLiteralDefaultValue: false,
+            enumValues: ['enum1', 'enum2'],
+          },
+          {
+            type: 'enum',
+            values: ['enum1', 'enum2'],
+          },
+        );
 
         expect(defaultValue).toBe('enum1');
       });
@@ -82,16 +74,28 @@ describe('DefaultValueParser', () => {
     describe('when the data type is BOOLEAN', () => {
       describe('when the expression is a boolean', () => {
         it('should return the default value', () => {
-          const defaultValueParser = new DefaultValueParser('postgres');
-
-          const trueDefaultValue = defaultValueParser.parse(true, {
-            type: 'scalar',
-            subType: 'BOOLEAN',
-          });
-          const falseDefaultValue = defaultValueParser.parse(false, {
-            type: 'scalar',
-            subType: 'BOOLEAN',
-          });
+          const trueDefaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: 'true',
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'BOOLEAN',
+            },
+          );
+          const falseDefaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: 'false',
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'BOOLEAN',
+            },
+          );
 
           expect(trueDefaultValue).toBe(true);
           expect(falseDefaultValue).toBe(false);
@@ -109,12 +113,17 @@ describe('DefaultValueParser', () => {
           [false, "b'0'"],
           [false, '0'],
         ])('should return %s on %s expression value', (expectedDefaultValue, expression) => {
-          const defaultValueParser = new DefaultValueParser('postgres');
-
-          const defaultValue = defaultValueParser.parse(expression, {
-            type: 'scalar',
-            subType: 'BOOLEAN',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: expression,
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'BOOLEAN',
+            },
+          );
 
           expect(defaultValue).toBe(expectedDefaultValue);
         });
@@ -131,11 +140,17 @@ describe('DefaultValueParser', () => {
         ])(
           'should return the correct default value on data type %s',
           (subType, expression, expectedDefaultValue) => {
-            const defaultValueParser = new DefaultValueParser('postgres');
-            const defaultValue = defaultValueParser.parse(expression, {
-              type: 'scalar',
-              subType: subType as 'NUMBER',
-            });
+            const defaultValue = DefaultValueParser.parse(
+              {
+                defaultValue: expression,
+                isLiteralDefaultValue: false,
+                enumValues: null,
+              },
+              {
+                type: 'scalar',
+                subType: subType as 'NUMBER',
+              },
+            );
 
             expect(defaultValue).toBe(expectedDefaultValue);
           },
@@ -149,11 +164,17 @@ describe('DefaultValueParser', () => {
           ['FLOAT', 2.2445],
           ['DOUBLE', 2.24],
         ])('should return the correct default value on data type %s', (dataType, expression) => {
-          const defaultValueParser = new DefaultValueParser('postgres');
-          const defaultValue = defaultValueParser.parse(expression, {
-            type: 'scalar',
-            subType: dataType as 'NUMBER',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: `${expression}`,
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: dataType as 'NUMBER',
+            },
+          );
 
           expect(defaultValue).toBe(expression);
         });
@@ -161,12 +182,18 @@ describe('DefaultValueParser', () => {
 
       describe('when value is not a number', () => {
         it('should return default value as literal', () => {
-          const defaultValueParser = new DefaultValueParser('postgres');
           const expression = 'a NaN expression';
-          const defaultValue = defaultValueParser.parse(expression, {
-            type: 'scalar',
-            subType: 'NUMBER',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: expression,
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'NUMBER',
+            },
+          );
 
           expect(defaultValue).toStrictEqual(literal(expression));
         });
@@ -176,13 +203,19 @@ describe('DefaultValueParser', () => {
     describe('when the data type is DATE', () => {
       describe('when the expression is a date function', () => {
         it('should return default value as literal', () => {
-          const defaultValueParser = new DefaultValueParser('postgres');
           const expression = 'now()';
 
-          const defaultValue = defaultValueParser.parse(expression, {
-            type: 'scalar',
-            subType: 'DATE',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: expression,
+              isLiteralDefaultValue: true,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'DATE',
+            },
+          );
 
           expect(defaultValue).toStrictEqual(literal(expression));
         });
@@ -194,11 +227,17 @@ describe('DefaultValueParser', () => {
           ['DATEONLY', '2022-04-14'],
           ['DATEONLY', '22:04:14'],
         ])('on $s should return the correct default value %s', (dataType, expression) => {
-          const defaultValueParser = new DefaultValueParser('postgres');
-          const defaultValue = defaultValueParser.parse(expression, {
-            type: 'scalar',
-            subType: dataType as 'DATE',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: expression,
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: dataType as 'DATE',
+            },
+          );
 
           expect(defaultValue).toBe(expression);
         });
@@ -208,12 +247,18 @@ describe('DefaultValueParser', () => {
     describe('when the data type is JSON', () => {
       describe('when the expression is a invalid json', () => {
         it('should return the default value as literal', () => {
-          const defaultValueParser = new DefaultValueParser('postgres');
           const expression = 'not a valid JSON';
-          const defaultValue = defaultValueParser.parse(expression, {
-            type: 'scalar',
-            subType: 'JSONB',
-          });
+          const defaultValue = DefaultValueParser.parse(
+            {
+              defaultValue: expression,
+              isLiteralDefaultValue: false,
+              enumValues: null,
+            },
+            {
+              type: 'scalar',
+              subType: 'JSONB',
+            },
+          );
 
           expect(defaultValue).toStrictEqual(literal(expression));
         });
@@ -223,47 +268,23 @@ describe('DefaultValueParser', () => {
         it.each(['JSON', 'JSONB'])(
           'should return the correct default value on data type %s',
           dataType => {
-            const defaultValueParser = new DefaultValueParser('postgres');
             const expression = '{"testJson": "a valid property"}';
 
-            const defaultValue = defaultValueParser.parse(expression, {
-              type: 'scalar',
-              subType: dataType as 'JSON',
-            });
+            const defaultValue = DefaultValueParser.parse(
+              {
+                defaultValue: expression,
+                isLiteralDefaultValue: false,
+                enumValues: null,
+              },
+              {
+                type: 'scalar',
+                subType: dataType as 'JSON',
+              },
+            );
 
             expect(defaultValue).toStrictEqual({ testJson: 'a valid property' });
           },
         );
-      });
-    });
-  });
-
-  describe('isLiteral', () => {
-    describe('when the expression is not a literal', () => {
-      it('should return false', () => {
-        const defaultValueParser = new DefaultValueParser('postgres');
-        const expression = undefined;
-
-        const isLiteral = defaultValueParser.isLiteral(expression, {
-          type: 'scalar',
-          subType: 'UUIDV4' as 'UUID',
-        });
-
-        expect(isLiteral).toBe(false);
-      });
-    });
-
-    describe('when the expression is a literal', () => {
-      it('should return true', () => {
-        const defaultValueParser = new DefaultValueParser('postgres');
-        const expression = 'uuid_generate_v4()';
-
-        const isLiteral = defaultValueParser.isLiteral(expression, {
-          type: 'scalar',
-          subType: 'UUIDV4' as 'UUID',
-        });
-
-        expect(isLiteral).toBe(true);
       });
     });
   });

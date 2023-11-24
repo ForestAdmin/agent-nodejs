@@ -32,24 +32,6 @@ describe('SqlDataSourceFactory > Integration', () => {
     jest.restoreAllMocks();
   });
 
-  describe('when the table has an "id" without primary key constraint', () => {
-    it('the model should assume id is the pk', async () => {
-      const baseUri = 'postgres://test:password@localhost:5443';
-      const databaseName = 'datasource-sql-id-field-test';
-      const logger = jest.fn();
-
-      await setupDatabaseWithIdNotPrimary(baseUri, databaseName);
-
-      const sequelize = await buildSequelizeInstance(`${baseUri}/${databaseName}`, logger);
-
-      // We should have zero collections and a warning on the console
-      expect(sequelize).toBeInstanceOf(Sequelize);
-      expect(sequelize.models.person.getAttributes().id.primaryKey).toBe(true);
-
-      await sequelize.close();
-    });
-  });
-
   describe.each(
     CONNECTION_DETAILS.flatMap(connectionDetails => [
       { connectionDetails, schema: undefined },
@@ -62,10 +44,9 @@ describe('SqlDataSourceFactory > Integration', () => {
           ]
         : []),
     ]),
-  )('on "%s" database', ({ connectionDetails, schema }) => {
+  )('on $connectionDetails.name database', ({ connectionDetails, schema }) => {
     const queryParams = schema ? { schema } : {};
     const queryString = stringify(queryParams);
-    const baseUri = connectionDetails.url();
 
     describe(`when schema is ${schema}`, () => {
       describe('Connecting with different options', () => {
@@ -73,10 +54,10 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         it('using uri', async () => {
           const database = 'datasource-sql-connect-with-uri-test';
-          await setupDatabaseWithTypes(baseUri, connectionDetails.dialect, database, schema);
+          await setupDatabaseWithTypes(connectionDetails, database, schema);
 
           const sequelize = await buildSequelizeInstance(
-            `${baseUri}/${database}?${queryString}`,
+            `${connectionDetails.url(database)}?${queryString}`,
             logger,
           );
 
@@ -86,7 +67,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         it('using uri in options', async () => {
           const database = 'datasource-sql-connect-with-uri-in-options-test';
-          await setupDatabaseWithTypes(baseUri, connectionDetails.dialect, database, schema);
+          await setupDatabaseWithTypes(connectionDetails, database, schema);
 
           const sequelize = await buildSequelizeInstance(
             { uri: connectionDetails.url(database), schema },
@@ -99,8 +80,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
         it('using options', async () => {
           const database = 'datasource-sql-connect-with-options-test';
-          const url = connectionDetails.url();
-          await setupDatabaseWithTypes(url, connectionDetails.dialect, database, schema);
+          await setupDatabaseWithTypes(connectionDetails, database, schema);
 
           const sequelize = await buildSequelizeInstance(
             { ...connectionDetails.options(database), schema },
@@ -120,10 +100,10 @@ describe('SqlDataSourceFactory > Integration', () => {
           const databaseName = 'datasource-sql-tables-test';
           const logger = jest.fn();
 
-          await setupSimpleTable(baseUri, databaseName, schema);
+          await setupSimpleTable(connectionDetails, databaseName, schema);
 
           sequelize = await buildSequelizeInstance(
-            `${baseUri}/${databaseName}?${queryString}`,
+            `${connectionDetails.url(databaseName)}?${queryString}`,
             logger,
           );
 
@@ -176,8 +156,7 @@ describe('SqlDataSourceFactory > Integration', () => {
           const logger = jest.fn();
 
           const setupSequelize = await setupDatabaseWithTypes(
-            baseUri,
-            connectionDetails.dialect,
+            connectionDetails,
             databaseName,
             schema,
           );
@@ -185,24 +164,31 @@ describe('SqlDataSourceFactory > Integration', () => {
           const attributesMapping = getAttributeMapping(connectionDetails.dialect as Dialect);
 
           const sequelize = await buildSequelizeInstance(
-            `${baseUri}/${databaseName}?${queryString}`,
+            `${connectionDetails.url(databaseName)}?${queryString}`,
             logger,
           );
-          const dataSourceModels = sequelize.models;
 
-          Object.values(setupModels).forEach(setupModel => {
-            const model = dataSourceModels[setupModel.name];
+          try {
+            const dataSourceModels = sequelize.models;
 
-            expect(model).toBeDefined();
+            expect(Object.keys(dataSourceModels)).toEqual(
+              expect.arrayContaining(Object.keys(setupModels)),
+            );
 
-            Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
-              expect({ [fieldName]: attributeDefinition }).toStrictEqual({
-                [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
+            Object.values(setupModels).forEach(setupModel => {
+              const model = dataSourceModels[setupModel.name];
+
+              expect(model).toBeDefined();
+
+              Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
+                expect({ [fieldName]: attributeDefinition }).toStrictEqual({
+                  [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
+                });
               });
             });
-          });
-
-          await sequelize.close();
+          } finally {
+            await sequelize.close();
+          }
         });
       });
 
@@ -213,13 +199,17 @@ describe('SqlDataSourceFactory > Integration', () => {
         beforeEach(async () => {
           const databaseName = 'datasource-sql-relation-test';
 
-          setupSequelize = await setupDatabaseWithRelations(baseUri, databaseName, schema);
+          setupSequelize = await setupDatabaseWithRelations(
+            connectionDetails,
+            databaseName,
+            schema,
+          );
           await setupSequelize.close();
 
           const logger = jest.fn();
 
           modelSequelize = await buildSequelizeInstance(
-            `${baseUri}/${databaseName}${queryString && `?${queryString}`}`,
+            `${connectionDetails.url(databaseName)}${queryString && `?${queryString}`}`,
             logger,
           );
         });
@@ -239,237 +229,278 @@ describe('SqlDataSourceFactory > Integration', () => {
     });
   });
 
-  describe('introspect database before injecting the tables to the builder', () => {
-    it('should build the sequelize instance without introspected the db again', async () => {
-      const dialect = 'postgres';
-      const baseUri = 'postgres://test:password@localhost:5443';
-      const databaseName = 'datasource-sql-primitive-field-test';
-      const logger = jest.fn();
+  describe.each(CONNECTION_DETAILS)('on $name database', connectionDetails => {
+    describe('when the table has an "id" without primary key constraint', () => {
+      it('the model should assume id is the pk', async () => {
+        const databaseName = 'datasource-sql-id-field-test';
+        const logger = jest.fn();
 
-      const setupSequelize = await setupDatabaseWithTypes(
-        baseUri,
-        dialect,
-        databaseName,
-        undefined,
-      );
-      const setupModels = setupSequelize.models;
-      const attributesMapping = getAttributeMapping(dialect);
+        await setupDatabaseWithIdNotPrimary(connectionDetails, databaseName);
 
-      const tables = await introspect(`${baseUri}/${databaseName}`, logger);
-      jest.spyOn(Introspector, 'introspect').mockResolvedValue([]);
-      const sequelize = await buildSequelizeInstance(`${baseUri}/${databaseName}`, logger, tables);
+        const sequelize = await buildSequelizeInstance(connectionDetails.url(databaseName), logger);
 
-      expect(Introspector.introspect).not.toHaveBeenCalled();
+        // We should have zero collections and a warning on the console
+        expect(sequelize).toBeInstanceOf(Sequelize);
+        expect(sequelize.models.person.getAttributes().id.primaryKey).toBe(true);
 
-      const dataSourceModels = sequelize.models;
-      Object.values(setupModels).forEach(setupModel => {
-        const model = dataSourceModels[setupModel.name];
-        expect(model).toBeDefined();
-        Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
-          expect({ [fieldName]: attributeDefinition }).toStrictEqual({
-            [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
+        await sequelize.close();
+      });
+    });
+
+    describe('introspect database before injecting the tables to the builder', () => {
+      it('should build the sequelize instance without introspected the db again', async () => {
+        const databaseName = 'datasource-sql-primitive-field-test';
+        const logger = jest.fn();
+
+        const setupSequelize = await setupDatabaseWithTypes(
+          connectionDetails,
+          databaseName,
+          undefined,
+        );
+        const setupModels = setupSequelize.models;
+        const attributesMapping = getAttributeMapping(connectionDetails.dialect);
+
+        const tables = await introspect(connectionDetails.url(databaseName), logger);
+        jest.spyOn(Introspector, 'introspect').mockResolvedValue([]);
+        const sequelize = await buildSequelizeInstance(
+          connectionDetails.url(databaseName),
+          logger,
+          tables,
+        );
+
+        expect(Introspector.introspect).not.toHaveBeenCalled();
+
+        const dataSourceModels = sequelize.models;
+        Object.values(setupModels).forEach(setupModel => {
+          const model = dataSourceModels[setupModel.name];
+          expect(model).toBeDefined();
+          Object.entries(model.getAttributes()).forEach(([fieldName, attributeDefinition]) => {
+            expect({ [fieldName]: attributeDefinition }).toStrictEqual({
+              [fieldName]: expect.objectContaining(attributesMapping[model.name][fieldName]),
+            });
           });
         });
-      });
 
-      await sequelize.close();
-    });
-  });
-
-  describe('When tables are present in multiple schemas', () => {
-    describe.each(CONNECTION_DETAILS.filter(c => c.supports.schemas))('On $name', connection => {
-      const SCHEMA = 'test_schema_1';
-      let sequelize: Sequelize | undefined;
-
-      async function setupDatabaseOnSchema(
-        localSequelize: Sequelize,
-        {
-          schema,
-          createRelationships,
-        }: {
-          schema: string | undefined;
-          createRelationships: boolean;
-        },
-      ) {
-        const persons = localSequelize.define(
-          `person-${schema ? 'with-schema' : 'without-schema'}`,
-          {
-            id: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
-            },
-            name: {
-              type: DataTypes.STRING,
-            },
-          },
-          {
-            schema,
-            tableName: 'person',
-          },
-        );
-
-        const cars = localSequelize.define(
-          `car-${schema ? 'with-schema' : 'without-schema'}`,
-          {
-            id: {
-              type: DataTypes.INTEGER,
-              primaryKey: true,
-              autoIncrement: true,
-            },
-            name: {
-              type: DataTypes.STRING,
-            },
-          },
-          {
-            schema,
-            tableName: 'car',
-          },
-        );
-
-        if (createRelationships) {
-          persons.hasMany(cars);
-          cars.belongsTo(persons);
-        }
-      }
-
-      async function setupDB(databaseName: string) {
-        const localSequelize = new Sequelize({
-          ...connection.options(),
-          logging: false,
-        });
-
-        try {
-          await localSequelize.getQueryInterface().dropDatabase(databaseName);
-          await localSequelize.getQueryInterface().createDatabase(databaseName);
-        } finally {
-          await localSequelize.close();
-        }
-
-        const dbSequelize = new Sequelize({
-          ...connection.options(databaseName),
-          logging: false,
-        });
-
-        await dbSequelize.getQueryInterface().createSchema(SCHEMA);
-
-        return dbSequelize;
-      }
-
-      afterEach(async () => {
-        await sequelize?.close();
-        sequelize = undefined;
-      });
-
-      it('should only return tables from the given schema', async () => {
-        const DATABASE = 'datasource-sql-introspect-two-schemas-relationships-test';
-        sequelize = await setupDB(DATABASE);
-
-        await setupDatabaseOnSchema(sequelize, { schema: undefined, createRelationships: false });
-        await setupDatabaseOnSchema(sequelize, { schema: SCHEMA, createRelationships: true });
-
-        await sequelize.sync({ force: false });
-
-        const logger = jest.fn();
-        sequelize = await buildSequelizeInstance(
-          `${connection.url(DATABASE)}?schema=${SCHEMA}`,
-          logger,
-        );
-
-        const tablesAndRelations = extractTablesAndRelations(sequelize.models);
-
-        expect(tablesAndRelations).toMatchObject(
-          expect.objectContaining({
-            person: {
-              cars: 'HasMany',
-            },
-            car: {
-              personWithSchema: 'BelongsTo',
-            },
-          }),
-        );
-      });
-
-      it('should only return relationships from the given schema', async () => {
-        const DATABASE = 'datasource-sql-introspect-two-schemas-without-relationships-test';
-        sequelize = await setupDB(DATABASE);
-
-        await setupDatabaseOnSchema(sequelize, { schema: undefined, createRelationships: true });
-        await setupDatabaseOnSchema(sequelize, { schema: SCHEMA, createRelationships: false });
-
-        await sequelize.sync({ force: false });
-        const logger = jest.fn();
-
-        sequelize = await buildSequelizeInstance(
-          `${connection.url(DATABASE)}?schema=${SCHEMA}`,
-          logger,
-        );
-
-        const tablesAndRelations = extractTablesAndRelations(sequelize.models);
-
-        expect(tablesAndRelations).toMatchObject(
-          expect.objectContaining({
-            person: expect.not.objectContaining({
-              cars: 'HasMany',
-            }),
-            car: expect.not.objectContaining({
-              personWithoutSchema: 'BelongsTo',
-            }),
-          }),
-        );
-      });
-
-      it('should only return tables from the default schema', async () => {
-        const DATABASE = 'datasource-sql-introspect-two-schemas-relationships-default-test';
-        sequelize = await setupDB(DATABASE);
-
-        await setupDatabaseOnSchema(sequelize, { schema: undefined, createRelationships: true });
-        await setupDatabaseOnSchema(sequelize, { schema: SCHEMA, createRelationships: false });
-
-        await sequelize.sync({ force: false });
-
-        const logger = jest.fn();
-        sequelize = await buildSequelizeInstance(`${connection.url(DATABASE)}`, logger);
-
-        const tablesAndRelations = extractTablesAndRelations(sequelize.models);
-
-        expect(tablesAndRelations).toMatchObject(
-          expect.objectContaining({
-            person: {
-              cars: 'HasMany',
-            },
-            car: {
-              personWithoutSchema: 'BelongsTo',
-            },
-          }),
-        );
-      });
-
-      it('should only return relationships from the default schema', async () => {
-        const DATABASE = 'datasource-sql-introspect-two-schemas-without-relationships-default-test';
-        sequelize = await setupDB(DATABASE);
-
-        await setupDatabaseOnSchema(sequelize, { schema: undefined, createRelationships: false });
-        await setupDatabaseOnSchema(sequelize, { schema: SCHEMA, createRelationships: true });
-
-        await sequelize.sync({ force: false });
-        const logger = jest.fn();
-
-        sequelize = await buildSequelizeInstance(`${connection.url(DATABASE)}`, logger);
-
-        const tablesAndRelations = extractTablesAndRelations(sequelize.models);
-
-        expect(tablesAndRelations).toMatchObject(
-          expect.objectContaining({
-            person: expect.not.objectContaining({
-              cars: 'HasMany',
-            }),
-            car: expect.not.objectContaining({
-              personWithSchema: 'BelongsTo',
-            }),
-          }),
-        );
+        await sequelize.close();
       });
     });
+
+    if (connectionDetails.supports.schemas) {
+      describe('When tables are present in multiple schemas', () => {
+        const SCHEMA = 'test_schema_1';
+        let sequelize: Sequelize | undefined;
+
+        async function setupDatabaseOnSchema(
+          localSequelize: Sequelize,
+          {
+            schema,
+            createRelationships,
+          }: {
+            schema: string | undefined;
+            createRelationships: boolean;
+          },
+        ) {
+          const persons = localSequelize.define(
+            `person-${schema ? 'with-schema' : 'without-schema'}`,
+            {
+              id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+              name: {
+                type: DataTypes.STRING,
+              },
+            },
+            {
+              schema,
+              tableName: 'person',
+            },
+          );
+
+          const cars = localSequelize.define(
+            `car-${schema ? 'with-schema' : 'without-schema'}`,
+            {
+              id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true,
+              },
+              name: {
+                type: DataTypes.STRING,
+              },
+            },
+            {
+              schema,
+              tableName: 'car',
+            },
+          );
+
+          if (createRelationships) {
+            persons.hasMany(cars);
+            cars.belongsTo(persons);
+          }
+        }
+
+        async function setupDB(databaseName: string) {
+          if (connectionDetails.supports.multipleDatabases) {
+            const localSequelize = new Sequelize({
+              ...connectionDetails.options(),
+              logging: false,
+            });
+
+            try {
+              await localSequelize.getQueryInterface().dropDatabase(databaseName);
+              await localSequelize.getQueryInterface().createDatabase(databaseName);
+            } finally {
+              await localSequelize.close();
+            }
+          }
+
+          const dbSequelize = new Sequelize({
+            ...connectionDetails.options(databaseName),
+            logging: false,
+          });
+
+          await dbSequelize.getQueryInterface().createSchema(SCHEMA);
+
+          return dbSequelize;
+        }
+
+        afterEach(async () => {
+          await sequelize?.close();
+          sequelize = undefined;
+        });
+
+        it('should only return tables from the given schema', async () => {
+          const DATABASE = 'datasource-sql-introspect-two-schemas-relationships-test';
+          sequelize = await setupDB(DATABASE);
+
+          await setupDatabaseOnSchema(sequelize, {
+            schema: undefined,
+            createRelationships: false,
+          });
+          await setupDatabaseOnSchema(sequelize, { schema: SCHEMA, createRelationships: true });
+
+          await sequelize.sync({ force: false });
+
+          const logger = jest.fn();
+          sequelize = await buildSequelizeInstance(
+            `${connectionDetails.url(DATABASE)}?schema=${SCHEMA}`,
+            logger,
+          );
+
+          const tablesAndRelations = extractTablesAndRelations(sequelize.models);
+
+          expect(tablesAndRelations).toMatchObject(
+            expect.objectContaining({
+              person: {
+                cars: 'HasMany',
+              },
+              car: {
+                personWithSchema: 'BelongsTo',
+              },
+            }),
+          );
+        });
+
+        it('should only return relationships from the given schema', async () => {
+          const DATABASE = 'datasource-sql-introspect-two-schemas-without-relationships-test';
+          sequelize = await setupDB(DATABASE);
+
+          await setupDatabaseOnSchema(sequelize, {
+            schema: undefined,
+            createRelationships: true,
+          });
+          await setupDatabaseOnSchema(sequelize, {
+            schema: SCHEMA,
+            createRelationships: false,
+          });
+
+          await sequelize.sync({ force: false });
+          const logger = jest.fn();
+
+          sequelize = await buildSequelizeInstance(
+            `${connectionDetails.url(DATABASE)}?schema=${SCHEMA}`,
+            logger,
+          );
+
+          const tablesAndRelations = extractTablesAndRelations(sequelize.models);
+
+          expect(tablesAndRelations).toMatchObject(
+            expect.objectContaining({
+              person: expect.not.objectContaining({
+                cars: 'HasMany',
+              }),
+              car: expect.not.objectContaining({
+                personWithoutSchema: 'BelongsTo',
+              }),
+            }),
+          );
+        });
+
+        it('should only return tables from the default schema', async () => {
+          const DATABASE = 'datasource-sql-introspect-2-schemas-relationships-test';
+          sequelize = await setupDB(DATABASE);
+
+          await setupDatabaseOnSchema(sequelize, {
+            schema: undefined,
+            createRelationships: true,
+          });
+          await setupDatabaseOnSchema(sequelize, {
+            schema: SCHEMA,
+            createRelationships: false,
+          });
+
+          await sequelize.sync({ force: false });
+
+          const logger = jest.fn();
+          sequelize = await buildSequelizeInstance(connectionDetails.url(DATABASE), logger);
+
+          const tablesAndRelations = extractTablesAndRelations(sequelize.models);
+
+          expect(tablesAndRelations).toMatchObject(
+            expect.objectContaining({
+              person: {
+                cars: 'HasMany',
+              },
+              car: {
+                personWithoutSchema: 'BelongsTo',
+              },
+            }),
+          );
+        });
+
+        it('should only return relationships from the default schema', async () => {
+          const DATABASE =
+            'datasource-sql-introspect-two-schemas-without-relationships-default-test';
+          sequelize = await setupDB(DATABASE);
+
+          await setupDatabaseOnSchema(sequelize, {
+            schema: undefined,
+            createRelationships: false,
+          });
+          await setupDatabaseOnSchema(sequelize, { schema: SCHEMA, createRelationships: true });
+
+          await sequelize.sync({ force: false });
+          const logger = jest.fn();
+
+          sequelize = await buildSequelizeInstance(`${connectionDetails.url(DATABASE)}`, logger);
+
+          const tablesAndRelations = extractTablesAndRelations(sequelize.models);
+
+          expect(tablesAndRelations).toMatchObject(
+            expect.objectContaining({
+              person: expect.not.objectContaining({
+                cars: 'HasMany',
+              }),
+              car: expect.not.objectContaining({
+                personWithSchema: 'BelongsTo',
+              }),
+            }),
+          );
+        });
+      });
+    }
   });
 });

@@ -1,23 +1,27 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
+import { ConnectionDetails } from './connection-details';
+
 export default async function setupSimpleTable(
-  baseUri: string,
+  connectionDetails: ConnectionDetails,
   database: string,
   schema?: string,
 ): Promise<Sequelize> {
   let sequelize: Sequelize | null = null;
 
   try {
-    sequelize = new Sequelize(baseUri, { logging: false });
-    const queryInterface = sequelize.getQueryInterface();
+    if (connectionDetails.supports.multipleDatabases) {
+      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
+      const queryInterface = sequelize.getQueryInterface();
 
-    await queryInterface.dropDatabase(database);
-    await queryInterface.createDatabase(database);
+      await queryInterface.dropDatabase(database);
+      await queryInterface.createDatabase(database);
 
-    await sequelize.close();
+      await sequelize.close();
+    }
 
     const optionalSchemaOption = schema ? { schema } : {};
-    sequelize = new Sequelize(`${baseUri}/${database}`, {
+    sequelize = new Sequelize(connectionDetails.url(database), {
       logging: false,
       ...optionalSchemaOption,
     });
