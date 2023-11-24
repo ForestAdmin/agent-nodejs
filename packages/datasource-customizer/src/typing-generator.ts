@@ -132,9 +132,7 @@ export default class TypingGenerator {
     const fields = this.getFieldsOnCollection(collection, maxDepth);
 
     return fields.length
-      ? `    flat: {\n      ${fields
-          .sort((nameA, nameB) => nameA.localeCompare(nameB))
-          .join('\n      ')}\n    };`
+      ? `    flat: {\n      ${fields.join('\n      ')}\n    };`
       : `    flat: {};`;
   }
 
@@ -149,6 +147,7 @@ export default class TypingGenerator {
       if (prefix) {
         result.push(
           ...Object.entries(collection.schema.fields)
+            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
             .filter(([, schema]) => schema.type === 'Column')
             .map(
               ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,

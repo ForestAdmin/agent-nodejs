@@ -178,11 +178,11 @@ describe('TypingGenerator', () => {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:col1:col1:col1:col1:id': number;
-            'col1:col1:col1:col1:id': number;
-            'col1:col1:col1:id': number;
-            'col1:col1:id': number;
             'col1:id': number;
+            'col1:col1:id': number;
+            'col1:col1:col1:id': number;
+            'col1:col1:col1:col1:id': number;
+            'col1:col1:col1:col1:col1:id': number;
           };
         };
       };`;
@@ -284,9 +284,9 @@ describe('TypingGenerator', () => {
             'col2': Schema['col2']['plain'] & Schema['col2']['nested'];
           };
           flat: {
-            'col2:col3:col1:id': number;
-            'col2:col3:id': number;
             'col2:id': number;
+            'col2:col3:id': number;
+            'col2:col3:col1:id': number;
           };
         };
         'col2': {
@@ -297,9 +297,9 @@ describe('TypingGenerator', () => {
             'col3': Schema['col3']['plain'] & Schema['col3']['nested'];
           };
           flat: {
-            'col3:col1:col2:id': number;
-            'col3:col1:id': number;
             'col3:id': number;
+            'col3:col1:id': number;
+            'col3:col1:col2:id': number;
           };
         };
         'col3': {
@@ -310,9 +310,9 @@ describe('TypingGenerator', () => {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:col2:col3:id': number;
-            'col1:col2:id': number;
             'col1:id': number;
+            'col1:col2:id': number;
+            'col1:col2:col3:id': number;
           };
         };
       };`;
@@ -365,7 +365,7 @@ describe('TypingGenerator', () => {
     const expected = `
       flat: {
         'col1:field0': string;
-        'col1:id': number;
+        'col1:field1': string;
       };
     `;
 
@@ -375,5 +375,58 @@ describe('TypingGenerator', () => {
       `Fields generation stopped on collection col1, ` +
         `try using a lower typingsMaxDepth (5) to avoid this issue.`,
     );
+  });
+
+  test('should sort alphabetically plain, nested and flat properties', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'col1',
+        schema: {
+          fields: {
+            zebra: factories.manyToOneSchema.build({
+              foreignCollection: 'col1',
+              foreignKey: 'id',
+            }),
+            marsAttack: factories.columnSchema.build({ columnType: 'String' }),
+            zebraCount: factories.columnSchema.build({ columnType: 'Number' }),
+            animalsCount: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'col1': {
+          plain: {
+            'animalsCount': number;
+            'marsAttack': string;
+            'zebraCount': number;
+          };
+          nested: {
+            'zebra': Schema['col1']['plain'] & Schema['col1']['nested'];
+          };
+          flat: {
+            'zebra:animalsCount': number;
+            'zebra:marsAttack': string;
+            'zebra:zebraCount': number;
+            'zebra:zebra:animalsCount': number;
+            'zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebra:zebra:zebraCount': number;
+          };
+        };
+      };`;
+
+    expectContains(generated, expected);
   });
 });
