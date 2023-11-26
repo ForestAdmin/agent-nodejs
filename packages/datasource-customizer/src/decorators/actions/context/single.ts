@@ -1,7 +1,7 @@
 import { CompositeId } from '@forestadmin/datasource-toolkit';
 
 import ActionContext from './base';
-import { TCollectionName, TFieldName, TRow, TSchema } from '../../../templates';
+import { TCollectionName, TFieldName, TFieldType, TRow, TSchema } from '../../../templates';
 
 export default class ActionContextSingle<
   S extends TSchema = TSchema,
@@ -23,5 +23,15 @@ export default class ActionContextSingle<
     const records = await this.getRecords(fields);
 
     return records[0];
+  }
+
+  async getField<T extends TFieldName<S, N>>(field: T): Promise<TFieldType<S, N, T>> {
+    let value = await this.getRecord([field]);
+
+    for (const path of field.split(':')) {
+      value = value?.[path];
+    }
+
+    return value as TFieldType<S, N, T>;
   }
 }

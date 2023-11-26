@@ -93,4 +93,16 @@ describe('ActionContext', () => {
     await expect(promise1).rejects.toThrow('bad request');
     await expect(promise2).rejects.toThrow('bad request');
   });
+
+  test('should get individual fields', async () => {
+    const caller = factories.caller.build();
+
+    const context = new ActionContextSingle(books, caller, {}, {});
+    const [id, title] = await Promise.all([context.getField('id'), context.getField('title')]);
+
+    expect(books.list).toHaveBeenCalledTimes(1);
+    expect(books.list).toHaveBeenCalledWith(caller, new Filter({}), ['id', 'title']);
+    expect(id).toEqual(1);
+    expect(title).toEqual('Foundation');
+  });
 });
