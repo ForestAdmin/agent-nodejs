@@ -18,6 +18,12 @@ export default class TypingGenerator {
     this.options.maxFieldsCount = options.maxFieldsCount ?? this.options.maxFieldsCount;
   }
 
+  private getSortedEntries<T>(
+    ...args: Parameters<typeof Object.entries<T>>
+  ): ReturnType<typeof Object.entries<T>> {
+    return Object.entries(...args).sort(([name1], [name2]) => name1.localeCompare(name2));
+  }
+
   /**
    * Write types to disk at a given path.
    * This method read the file which is already there before overwriting so that customers
@@ -98,21 +104,21 @@ export default class TypingGenerator {
   }
 
   private getRow(collection: Collection): string {
-    const content = Object.entries(collection.schema.fields)
-      .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
-      .reduce((memo, [name, field]) => {
+    const content = this.getSortedEntries(collection.schema.fields).reduce(
+      (memo, [name, field]) => {
         return field.type === 'Column'
           ? [...memo, `      '${name}': ${this.getType(field)};`]
           : memo;
-      }, []);
+      },
+      [],
+    );
 
     return `    plain: {\n${content.join('\n')}\n    };`;
   }
 
   private getRelations(collection: Collection): string {
-    const content = Object.entries(collection.schema.fields)
-      .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
-      .reduce((memo, [name, field]) => {
+    const content = this.getSortedEntries(collection.schema.fields).reduce(
+      (memo, [name, field]) => {
         if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
           const relation = field.foreignCollection;
 
@@ -123,7 +129,9 @@ export default class TypingGenerator {
         }
 
         return memo;
-      }, []);
+      },
+      [],
+    );
 
     return content.length ? `    nested: {\n${content.join('\n')}\n    };` : `    nested: {};`;
   }
@@ -146,8 +154,7 @@ export default class TypingGenerator {
 
       if (prefix) {
         result.push(
-          ...Object.entries(collection.schema.fields)
-            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+          ...this.getSortedEntries(collection.schema.fields)
             .filter(([, schema]) => schema.type === 'Column')
             .map(
               ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,
@@ -157,8 +164,7 @@ export default class TypingGenerator {
 
       if (depth < maxDepth) {
         queue.push(
-          ...Object.entries(collection.schema.fields)
-            .sort(([f1Name], [f2Name]) => f1Name.localeCompare(f2Name))
+          ...this.getSortedEntries(collection.schema.fields)
             .filter(([, schema]) => schema.type === 'ManyToOne' || schema.type === 'OneToOne')
             .map(([name, schema]: [name: string, schema: OneToOneSchema | ManyToOneSchema]) => {
               return {
@@ -227,7 +233,7 @@ export default class TypingGenerator {
       }[field.columnType];
     }
 
-    return `{${Object.entries(field.columnType)
+    return `{${this.getSortedEntries(field.columnType)
       .map(([key, subType]) => `${key}: ${this.getType({ columnType: subType })}`)
       .join('; ')}}`;
   }
