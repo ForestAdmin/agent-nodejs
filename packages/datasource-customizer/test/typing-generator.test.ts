@@ -113,6 +113,71 @@ describe('TypingGenerator', () => {
     expectContains(generated, expected);
   });
 
+  test('should sort nested field names', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'z',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            b: factories.manyToOneSchema.build({ foreignCollection: 'b', foreignKey: 'id' }),
+            a: factories.manyToOneSchema.build({ foreignCollection: 'a', foreignKey: 'id' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'b',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'a',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'a': {
+          plain: {
+            'id': number;
+          };
+          nested: {};
+          flat: {};
+        };
+        'b': {
+          plain: {
+            'id': number;
+          };
+          nested: {};
+          flat: {};
+        };
+        'z': {
+          plain: {
+            'id': number;
+          };
+          nested: {
+            'a': Schema['a']['plain'] & Schema['a']['nested'];
+            'b': Schema['b']['plain'] & Schema['b']['nested'];
+          };
+          flat: {
+            'b:id': number;
+            'a:id': number;
+          };
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
   test('should sort enum values', () => {
     const datasource = factories.dataSource.buildWithCollections([
       factories.collection.build({
