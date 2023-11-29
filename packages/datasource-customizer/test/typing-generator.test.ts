@@ -78,6 +78,41 @@ describe('TypingGenerator', () => {
     expectEqual(generated, expected);
   });
 
+  test('should sort field names', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            b: factories.columnSchema.build({ columnType: 'String' }),
+            A: factories.columnSchema.build({ columnType: 'String' }),
+            z: factories.columnSchema.build({ columnType: 'String' }),
+            a: factories.columnSchema.build({ columnType: 'String' }),
+            0: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            '0': string;
+            'a': string;
+            'A': string;
+            'b': string;
+            'z': string;
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
   it.each(['_underscores', '-dashes'])('aliases should work with a collection with %s', char => {
     const datasource = factories.dataSource.buildWithCollections([
       factories.collection.build({ name: `aCollectionNameWith${char}` }),
