@@ -203,7 +203,12 @@ export default class TypingGenerator {
     }
 
     if (field.columnType === 'Enum') {
-      return field.enumValues?.map(v => `'${v.replace(/'/g, "\\'")}'`).join(' | ') ?? 'string';
+      return (
+        field.enumValues
+          ?.sort((v1, v2) => v1.localeCompare(v2))
+          .map(v => `'${v.replace(/'/g, "\\'")}'`)
+          .join(' | ') ?? 'string'
+      );
     }
 
     if (typeof field.columnType === 'string') {

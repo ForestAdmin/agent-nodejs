@@ -113,6 +113,36 @@ describe('TypingGenerator', () => {
     expectContains(generated, expected);
   });
 
+  test('should sort enum values', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            enum: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: ['b', '0', 'z', 'a', 'A'],
+            }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            'enum': '0' | 'a' | 'A' | 'b' | 'z';
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
   it.each(['_underscores', '-dashes'])('aliases should work with a collection with %s', char => {
     const datasource = factories.dataSource.buildWithCollections([
       factories.collection.build({ name: `aCollectionNameWith${char}` }),
