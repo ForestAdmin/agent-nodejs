@@ -169,8 +169,8 @@ describe('TypingGenerator', () => {
             'b': Schema['b']['plain'] & Schema['b']['nested'];
           };
           flat: {
-            'b:id': number;
             'a:id': number;
+            'b:id': number;
           };
         };
       };`;

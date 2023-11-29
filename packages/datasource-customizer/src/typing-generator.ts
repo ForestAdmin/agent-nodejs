@@ -158,6 +158,7 @@ export default class TypingGenerator {
       if (depth < maxDepth) {
         queue.push(
           ...Object.entries(collection.schema.fields)
+            .sort(([f1Name], [f2Name]) => f1Name.localeCompare(f2Name))
             .filter(([, schema]) => schema.type === 'ManyToOne' || schema.type === 'OneToOne')
             .map(([name, schema]: [name: string, schema: OneToOneSchema | ManyToOneSchema]) => {
               return {
