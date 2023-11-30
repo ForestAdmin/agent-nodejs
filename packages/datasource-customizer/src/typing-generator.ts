@@ -151,10 +151,11 @@ export default class TypingGenerator {
 
     while (queue.length > 0 && result.length < this.options.maxFieldsCount) {
       const { collection, depth, prefix, traversed } = queue.shift();
+      const sortedFields = TypingGenerator.sortedEntries(collection.schema.fields);
 
       if (prefix) {
         result.push(
-          ...TypingGenerator.sortedEntries(collection.schema.fields)
+          ...sortedFields
             .filter(([, schema]) => schema.type === 'Column')
             .map(
               ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,
@@ -164,7 +165,7 @@ export default class TypingGenerator {
 
       if (depth < maxDepth) {
         queue.push(
-          ...TypingGenerator.sortedEntries(collection.schema.fields)
+          ...sortedFields
             .filter(([, schema]) => schema.type === 'ManyToOne' || schema.type === 'OneToOne')
             .map(([name, schema]: [name: string, schema: OneToOneSchema | ManyToOneSchema]) => {
               return {
