@@ -78,6 +78,136 @@ describe('TypingGenerator', () => {
     expectEqual(generated, expected);
   });
 
+  test('should sort field names', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            b: factories.columnSchema.build({ columnType: 'String' }),
+            A: factories.columnSchema.build({ columnType: 'String' }),
+            z: factories.columnSchema.build({ columnType: 'String' }),
+            a: factories.columnSchema.build({ columnType: 'String' }),
+            0: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            '0': string;
+            'a': string;
+            'A': string;
+            'b': string;
+            'z': string;
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
+  test('should sort nested field names', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'z',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            b: factories.manyToOneSchema.build({ foreignCollection: 'b', foreignKey: 'id' }),
+            a: factories.manyToOneSchema.build({ foreignCollection: 'a', foreignKey: 'id' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'b',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'a',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'a': {
+          plain: {
+            'id': number;
+          };
+          nested: {};
+          flat: {};
+        };
+        'b': {
+          plain: {
+            'id': number;
+          };
+          nested: {};
+          flat: {};
+        };
+        'z': {
+          plain: {
+            'id': number;
+          };
+          nested: {
+            'a': Schema['a']['plain'] & Schema['a']['nested'];
+            'b': Schema['b']['plain'] & Schema['b']['nested'];
+          };
+          flat: {
+            'a:id': number;
+            'b:id': number;
+          };
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
+  test('should sort enum values', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            enum: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: ['b', '0', 'z', 'a', 'A'],
+            }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            'enum': '0' | 'a' | 'A' | 'b' | 'z';
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
   it.each(['_underscores', '-dashes'])('aliases should work with a collection with %s', char => {
     const datasource = factories.dataSource.buildWithCollections([
       factories.collection.build({ name: `aCollectionNameWith${char}` }),
