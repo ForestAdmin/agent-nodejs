@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.5...@forestadmin/datasource-customizer@1.38.0) (2023-11-30)
+
+
+### Features
+
+* **datasource-customizer:** sort enum values in typings file ([#892](https://github.com/ForestAdmin/agent-nodejs/issues/892)) ([564974d](https://github.com/ForestAdmin/agent-nodejs/commit/564974d077805794f3d2748fe2a77765f1247e51))
+
 ## @forestadmin/datasource-customizer [1.37.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.4...@forestadmin/datasource-customizer@1.37.5) (2023-11-24)
 
 
