@@ -210,9 +210,11 @@ export default class TypingGenerator {
     }
 
     if (field.columnType === 'Enum') {
+      if (field.enumValues === undefined) return 'string';
+
       return (
-        field.enumValues
-          ?.sort((v1, v2) => v1.localeCompare(v2))
+        [...field.enumValues]
+          .sort((v1, v2) => v1.localeCompare(v2))
           .map(v => `'${v.replace(/'/g, "\\'")}'`)
           .join(' | ') ?? 'string'
       );
