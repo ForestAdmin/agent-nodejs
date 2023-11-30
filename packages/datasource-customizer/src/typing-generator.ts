@@ -18,7 +18,7 @@ export default class TypingGenerator {
     this.options.maxFieldsCount = options.maxFieldsCount ?? this.options.maxFieldsCount;
   }
 
-  private getSortedEntries<T>(
+  private static sortedEntries<T>(
     ...args: Parameters<typeof Object.entries<T>>
   ): ReturnType<typeof Object.entries<T>> {
     return Object.entries(...args).sort(([name1], [name2]) => name1.localeCompare(name2));
@@ -104,7 +104,7 @@ export default class TypingGenerator {
   }
 
   private getRow(collection: Collection): string {
-    const content = this.getSortedEntries(collection.schema.fields).reduce(
+    const content = TypingGenerator.sortedEntries(collection.schema.fields).reduce(
       (memo, [name, field]) => {
         return field.type === 'Column'
           ? [...memo, `      '${name}': ${this.getType(field)};`]
@@ -117,7 +117,7 @@ export default class TypingGenerator {
   }
 
   private getRelations(collection: Collection): string {
-    const content = this.getSortedEntries(collection.schema.fields).reduce(
+    const content = TypingGenerator.sortedEntries(collection.schema.fields).reduce(
       (memo, [name, field]) => {
         if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
           const relation = field.foreignCollection;
@@ -154,7 +154,7 @@ export default class TypingGenerator {
 
       if (prefix) {
         result.push(
-          ...this.getSortedEntries(collection.schema.fields)
+          ...TypingGenerator.sortedEntries(collection.schema.fields)
             .filter(([, schema]) => schema.type === 'Column')
             .map(
               ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,
@@ -164,7 +164,7 @@ export default class TypingGenerator {
 
       if (depth < maxDepth) {
         queue.push(
-          ...this.getSortedEntries(collection.schema.fields)
+          ...TypingGenerator.sortedEntries(collection.schema.fields)
             .filter(([, schema]) => schema.type === 'ManyToOne' || schema.type === 'OneToOne')
             .map(([name, schema]: [name: string, schema: OneToOneSchema | ManyToOneSchema]) => {
               return {
@@ -233,7 +233,7 @@ export default class TypingGenerator {
       }[field.columnType];
     }
 
-    return `{${this.getSortedEntries(field.columnType)
+    return `{${TypingGenerator.sortedEntries(field.columnType)
       .map(([key, subType]) => `${key}: ${this.getType({ columnType: subType })}`)
       .join('; ')}}`;
   }
