@@ -12,6 +12,7 @@ import {
 
 import CollectionCustomizationContext from '../../../context/collection-context';
 import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
+import CustomActionRequiresApprovalError from '../errors/custom-action-requires-approval-error';
 
 export default class ActionContext<
   S extends TSchema = TSchema,
@@ -21,6 +22,7 @@ export default class ActionContext<
   readonly filter: TFilter<S, N>;
 
   private _changedField: string;
+  private _isApproval: boolean;
 
   /**
    * @deprecated use `hasFieldChange` instead. [linked issue](https://github.com/ForestAdmin/agent-nodejs/issues/815).
@@ -45,13 +47,21 @@ export default class ActionContext<
     caller: Caller,
     formValue: RecordData,
     filter: TFilter<S, N>,
-    used?: Set<string>,
-    changedField?: string,
+    {
+      used,
+      changedField,
+      isApproval,
+    }: {
+      used?: Set<string>;
+      changedField?: string;
+      isApproval?: boolean;
+    },
   ) {
     super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
     this._changedField = changedField;
+    this._isApproval = isApproval;
     this.reset();
 
     // Spy on which formValues are accessed to set-up change hooks
@@ -125,6 +135,18 @@ export default class ActionContext<
     const records = await this.getRecords(projection as TFieldName<S, N>[]);
 
     return records.map(r => RecordUtils.getPrimaryKey(this.realCollection.schema, r));
+  }
+
+  /**
+   * Request an approval from the code
+   * @example
+   * .requestApproval();
+   *
+   * It  will only request approval on trigger not when approving the action.
+   */
+  requestApproval(): void {
+    // Only requires approval in trigger context
+    if (!this._isApproval) throw new CustomActionRequiresApprovalError();
   }
 
   private async runQuery(): Promise<void> {

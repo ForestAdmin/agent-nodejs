@@ -100,8 +100,11 @@ export default class ActionRoute extends CollectionRoute {
       filterForCaller,
     );
 
-    // Now that we have the field list, we can parse the data again.
-    const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
+    const data = {
+      // Now that we have the field list, we can parse the data again.
+      fromData: ForestValueConverter.makeFormData(dataSource, rawData, fields),
+      isApproval: Boolean(requestBody?.data?.attributes?.requester_id),
+    };
     const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
 
     if (result?.type === 'Error') {
