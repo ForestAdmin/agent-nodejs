@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.38.0...@forestadmin/datasource-customizer@1.39.0) (2023-12-04)
+
+
+### Features
+
+* **datasource-customizer:** add helper to fetch values from selected record in single actions ([#891](https://github.com/ForestAdmin/agent-nodejs/issues/891)) ([24d3e50](https://github.com/ForestAdmin/agent-nodejs/commit/24d3e50b618f0ccf90bf26d2601628487c3e56ee))
+
 # @forestadmin/datasource-customizer [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.37.5...@forestadmin/datasource-customizer@1.38.0) (2023-11-30)
 
 
