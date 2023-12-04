@@ -8,17 +8,37 @@ describe('ActionContext', () => {
   let books: Collection;
 
   beforeEach(() => {
-    books = factories.collection.build({
-      dataSource: factories.dataSource.build(),
-      name: 'books',
-      schema: factories.collectionSchema.build({
-        fields: {
-          id: factories.columnSchema.build({ isPrimaryKey: true }),
-          title: factories.columnSchema.build(),
-        },
+    const dataSource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        dataSource: factories.dataSource.build(),
+        name: 'authors',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            firstname: factories.columnSchema.build(),
+            lastname: factories.columnSchema.build(),
+          },
+        }),
       }),
-      list: jest.fn().mockResolvedValue([{ id: 1, title: 'Foundation' }]),
-    });
+      factories.collection.build({
+        dataSource: factories.dataSource.build(),
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.build({ isPrimaryKey: true }),
+            title: factories.columnSchema.build(),
+            author: factories.manyToOneSchema.build({ foreignCollection: 'authors' }),
+          },
+        }),
+        list: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 1, title: 'Foundation', author: { firstname: 'Isaac', lastname: 'Asimov' } },
+          ]),
+      }),
+    ]);
+
+    books = dataSource.getCollection('books');
   });
 
   test('should factorize calls to list made at the same time', async () => {
@@ -92,5 +112,26 @@ describe('ActionContext', () => {
 
     await expect(promise1).rejects.toThrow('bad request');
     await expect(promise2).rejects.toThrow('bad request');
+  });
+
+  test('should get individual fields', async () => {
+    const caller = factories.caller.build();
+
+    const context = new ActionContextSingle(books, caller, {}, {});
+    const [id, title, authorFirstName] = await Promise.all([
+      context.getField('id'),
+      context.getField('title'),
+      context.getField('author:firstname'),
+    ]);
+
+    expect(books.list).toHaveBeenCalledTimes(1);
+    expect(books.list).toHaveBeenCalledWith(caller, new Filter({}), [
+      'id',
+      'title',
+      'author:firstname',
+    ]);
+    expect(id).toEqual(1);
+    expect(title).toEqual('Foundation');
+    expect(authorFirstName).toEqual('Isaac');
   });
 });
