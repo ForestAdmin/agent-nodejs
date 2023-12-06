@@ -76,6 +76,6 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
   }
 
   public onRefreshCustomizations(handler: () => void | Promise<void>) {
-    this.eventsHandler.onRefreshCustomizations(handler);
+    if (this.options.experimental) this.eventsHandler.onRefreshCustomizations(handler);
   }
 }

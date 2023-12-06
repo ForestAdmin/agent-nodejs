@@ -29,6 +29,7 @@ export type ForestAdminClientOptions = {
   logger?: Logger;
   permissionsCacheDurationInSeconds?: number;
   instantCacheRefresh?: boolean;
+  experimental?: unknown;
 };
 
 export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions>;
