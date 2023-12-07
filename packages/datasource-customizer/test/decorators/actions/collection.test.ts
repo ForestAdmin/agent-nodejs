@@ -466,7 +466,13 @@ describe('ActionDecorator', () => {
       });
 
       test('should be able to compute form', async () => {
-        const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
+        const fields = await newBooks.getForm(
+          factories.caller.build(),
+          'make photocopy',
+          undefined,
+          undefined,
+          { shouldDropIfs: true },
+        );
         expect(fields).toEqual([
           {
             label: 'lastname',
