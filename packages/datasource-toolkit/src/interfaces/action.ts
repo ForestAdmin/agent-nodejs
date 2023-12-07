@@ -22,6 +22,7 @@ export type File = {
 export type ActionFieldBase = {
   type: ActionFieldType;
   label: string;
+  name: string;
   description?: string;
   isRequired?: boolean;
   isReadOnly?: boolean;
