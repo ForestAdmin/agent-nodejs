@@ -6,6 +6,7 @@ import {
   CollectionSchema,
   DataSourceDecorator,
   Filter,
+  GetFormMetas,
   PlainFilter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -54,11 +55,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: {
-      changedField: string;
-      searchField?: string | null;
-      searchValues?: Record<string, string | null>;
-    },
+    metas?: GetFormMetas,
   ): Promise<ActionField[]> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
@@ -78,7 +75,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }
 
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
-    dynamicFields = await this.dropIfs(context, dynamicFields);
+    if (metas?.shouldDropIfs) dynamicFields = await this.dropIfs(context, dynamicFields);
 
     const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 
