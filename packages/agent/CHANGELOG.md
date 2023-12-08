@@ -1,3 +1,762 @@
+## @forestadmin/agent [1.36.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.6...@forestadmin/agent@1.36.7) (2023-12-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.39.0
+
+## @forestadmin/agent [1.36.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.5...@forestadmin/agent@1.36.6) (2023-11-30)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.38.0
+
+## @forestadmin/agent [1.36.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.4...@forestadmin/agent@1.36.5) (2023-11-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.5
+
+## @forestadmin/agent [1.36.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.3...@forestadmin/agent@1.36.4) (2023-11-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.1
+
+## @forestadmin/agent [1.36.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.2...@forestadmin/agent@1.36.3) (2023-11-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.4
+
+## @forestadmin/agent [1.36.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.1...@forestadmin/agent@1.36.2) (2023-11-15)
+
+
+### Bug Fixes
+
+* **schema:** throw an error when enum values are corrupted in the schema ([#877](https://github.com/ForestAdmin/agent-nodejs/issues/877)) ([d4488c9](https://github.com/ForestAdmin/agent-nodejs/commit/d4488c95fbbf8446e3dc673ba0e3a764340c900a))
+
+## @forestadmin/agent [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.0...@forestadmin/agent@1.36.1) (2023-11-14)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.3
+
+# @forestadmin/agent [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.17...@forestadmin/agent@1.36.0) (2023-11-03)
+
+
+### Features
+
+* **forestadmin-client:** add schema hash to startup logs ([#867](https://github.com/ForestAdmin/agent-nodejs/issues/867)) ([d13a671](https://github.com/ForestAdmin/agent-nodejs/commit/d13a671eaf44d60db0bd1415619fdf70d8351b61))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.0
+
+## @forestadmin/agent [1.35.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.16...@forestadmin/agent@1.35.17) (2023-11-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.2
+
+## @forestadmin/agent [1.35.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.15...@forestadmin/agent@1.35.16) (2023-10-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.1
+
+## @forestadmin/agent [1.35.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.14...@forestadmin/agent@1.35.15) (2023-10-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.6
+
+## @forestadmin/agent [1.35.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.13...@forestadmin/agent@1.35.14) (2023-10-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.37.0
+
+## @forestadmin/agent [1.35.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.12...@forestadmin/agent@1.35.13) (2023-10-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.5
+
+## @forestadmin/agent [1.35.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.11...@forestadmin/agent@1.35.12) (2023-10-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.4
+
+## @forestadmin/agent [1.35.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.10...@forestadmin/agent@1.35.11) (2023-10-25)
+
+
+### Bug Fixes
+
+* **authentication:** return errors details during authentication instead of generic 500s ([#857](https://github.com/ForestAdmin/agent-nodejs/issues/857)) ([3ec14e6](https://github.com/ForestAdmin/agent-nodejs/commit/3ec14e653a58feb3ae2ad4e15e6722227bbc5a6e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.3
+
+## @forestadmin/agent [1.35.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.9...@forestadmin/agent@1.35.10) (2023-10-16)
+
+
+### Bug Fixes
+
+* **agent:** add body parser options to allow increase body limits ([#854](https://github.com/ForestAdmin/agent-nodejs/issues/854)) ([a4de720](https://github.com/ForestAdmin/agent-nodejs/commit/a4de72094182a163846993d84d55670b1b452535))
+
+## @forestadmin/agent [1.35.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.8...@forestadmin/agent@1.35.9) (2023-10-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.36.1
+
+## @forestadmin/agent [1.35.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.7...@forestadmin/agent@1.35.8) (2023-10-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.36.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.2
+
+## @forestadmin/agent [1.35.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.6...@forestadmin/agent@1.35.7) (2023-10-11)
+
+
+### Bug Fixes
+
+* **charts:** 404 error when retrieving a chart with spaces in the name ([#851](https://github.com/ForestAdmin/agent-nodejs/issues/851)) ([29b47db](https://github.com/ForestAdmin/agent-nodejs/commit/29b47db8ee33b837df535101df584fb7eceb778e))
+
+## @forestadmin/agent [1.35.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.5...@forestadmin/agent@1.35.6) (2023-10-11)
+
+
+### Bug Fixes
+
+* error starting the server because of a too large string when generating typings ([#849](https://github.com/ForestAdmin/agent-nodejs/issues/849)) ([b2d4943](https://github.com/ForestAdmin/agent-nodejs/commit/b2d4943537211b867e0030f70b8ac271f2f85aa7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.5
+
+## @forestadmin/agent [1.35.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.4...@forestadmin/agent@1.35.5) (2023-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.4
+
+## @forestadmin/agent [1.35.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.3...@forestadmin/agent@1.35.4) (2023-10-05)
+
+
+### Bug Fixes
+
+* keep searched value in smart action form changes ([#840](https://github.com/ForestAdmin/agent-nodejs/issues/840)) ([83c0b31](https://github.com/ForestAdmin/agent-nodejs/commit/83c0b31422e622bed4867c4b882cba2f9571066d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.1
+
+## @forestadmin/agent [1.35.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.2...@forestadmin/agent@1.35.3) (2023-10-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.2
+
+## @forestadmin/agent [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.1...@forestadmin/agent@1.35.2) (2023-10-03)
+
+
+### Bug Fixes
+
+* fatal error with collection names containing some special characters ([#841](https://github.com/ForestAdmin/agent-nodejs/issues/841)) ([64bd49e](https://github.com/ForestAdmin/agent-nodejs/commit/64bd49e34e75d391d96634916fa48eb333968e26))
+
+## @forestadmin/agent [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.35.0...@forestadmin/agent@1.35.1) (2023-09-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.1
+
+# @forestadmin/agent [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.34.1...@forestadmin/agent@1.35.0) (2023-09-28)
+
+
+### Features
+
+* support file picker widget in smart action form fields ([#835](https://github.com/ForestAdmin/agent-nodejs/issues/835)) ([b895784](https://github.com/ForestAdmin/agent-nodejs/commit/b8957840458513c2127df5e62d76f5c26637ff0e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.35.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.24.0
+
+## @forestadmin/agent [1.34.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.34.0...@forestadmin/agent@1.34.1) (2023-09-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.34.1
+
+# @forestadmin/agent [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.33.0...@forestadmin/agent@1.34.0) (2023-09-26)
+
+
+### Features
+
+* **widgets:** add support for address picker in custom actions ([#832](https://github.com/ForestAdmin/agent-nodejs/issues/832)) ([6441d8e](https://github.com/ForestAdmin/agent-nodejs/commit/6441d8ee257ef6bef3e27f18f37377eecf0c0730))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.34.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.27.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.23.0
+
+# @forestadmin/agent [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.32.0...@forestadmin/agent@1.33.0) (2023-09-25)
+
+
+### Features
+
+* support user dropdown in smart action forms ([#831](https://github.com/ForestAdmin/agent-nodejs/issues/831)) ([e88e43a](https://github.com/ForestAdmin/agent-nodejs/commit/e88e43a30694f9b5f3e7ce2d627388f6576111c3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.33.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.26.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.22.0
+
+# @forestadmin/agent [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.31.1...@forestadmin/agent@1.32.0) (2023-09-25)
+
+
+### Features
+
+* support time picker widget ([#825](https://github.com/ForestAdmin/agent-nodejs/issues/825)) ([e6acd0a](https://github.com/ForestAdmin/agent-nodejs/commit/e6acd0a85c78725ffd5bd31580aef7ce4b90a665)), closes [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828) [#828](https://github.com/ForestAdmin/agent-nodejs/issues/828)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.32.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.25.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.21.0
+
+## @forestadmin/agent [1.31.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.31.0...@forestadmin/agent@1.31.1) (2023-09-22)
+
+
+### Bug Fixes
+
+* create records with a hasOne relationship and a notNull constraint without error ([#826](https://github.com/ForestAdmin/agent-nodejs/issues/826)) ([32457b7](https://github.com/ForestAdmin/agent-nodejs/commit/32457b77a43612ed3164a5e8b0498e09f1bad607))
+
+# @forestadmin/agent [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.30.0...@forestadmin/agent@1.31.0) (2023-09-22)
+
+
+### Features
+
+* **widgets:** add support for the json editor widget in actions ([#830](https://github.com/ForestAdmin/agent-nodejs/issues/830)) ([cbd2661](https://github.com/ForestAdmin/agent-nodejs/commit/cbd26616af62846d54a596ce14fe972b8df73bab))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.31.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.24.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.20.0
+
+# @forestadmin/agent [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.29.2...@forestadmin/agent@1.30.0) (2023-09-21)
+
+
+### Features
+
+* dynamic search support for dropdown widget in smart action forms ([#810](https://github.com/ForestAdmin/agent-nodejs/issues/810)) ([92460a8](https://github.com/ForestAdmin/agent-nodejs/commit/92460a86fb4504047d35203440cc9a5e96af599b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.30.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.23.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.19.0
+
+## @forestadmin/agent [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.29.1...@forestadmin/agent@1.29.2) (2023-09-20)
+
+
+### Bug Fixes
+
+* deprecate timeonly custom field type and map it to time ([#827](https://github.com/ForestAdmin/agent-nodejs/issues/827)) ([0311f7d](https://github.com/ForestAdmin/agent-nodejs/commit/0311f7d8367abc4cd9aed7f73c8bbe09dc203821))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.29.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.18.1
+
+## @forestadmin/agent [1.29.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.29.0...@forestadmin/agent@1.29.1) (2023-09-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.29.1
+
+# @forestadmin/agent [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.28.3...@forestadmin/agent@1.29.0) (2023-09-15)
+
+
+### Features
+
+* support date picker in action form widgets ([#819](https://github.com/ForestAdmin/agent-nodejs/issues/819)) ([f7ead87](https://github.com/ForestAdmin/agent-nodejs/commit/f7ead87f6c4bc3970f07ec7c965725a4c40b4ad6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.29.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.18.0
+
+## @forestadmin/agent [1.28.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.28.2...@forestadmin/agent@1.28.3) (2023-09-13)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.28.2
+
+## @forestadmin/agent [1.28.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.28.1...@forestadmin/agent@1.28.2) (2023-09-13)
+
+
+### Bug Fixes
+
+* **agent:** fix related data access permissions ([#823](https://github.com/ForestAdmin/agent-nodejs/issues/823)) ([14b4e3e](https://github.com/ForestAdmin/agent-nodejs/commit/14b4e3e111667465342f2606a909f61e29e59a8e))
+
+## @forestadmin/agent [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.28.0...@forestadmin/agent@1.28.1) (2023-09-13)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.28.1
+
+# @forestadmin/agent [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.27.1...@forestadmin/agent@1.28.0) (2023-09-12)
+
+
+### Features
+
+* **widgets:** add support for currency widget ([#812](https://github.com/ForestAdmin/agent-nodejs/issues/812)) ([2f263bb](https://github.com/ForestAdmin/agent-nodejs/commit/2f263bb2d263a6e942a349ec7744284837e01ad4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.28.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.17.0
+
+## @forestadmin/agent [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.27.0...@forestadmin/agent@1.27.1) (2023-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.27.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.16.1
+
+# @forestadmin/agent [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.26.0...@forestadmin/agent@1.27.0) (2023-09-07)
+
+
+### Features
+
+* **widgets:** add support for color picker in actions ([bae889c](https://github.com/ForestAdmin/agent-nodejs/commit/bae889c144e6d24d58a601f1ea4dea658889b321))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.27.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.16.0
+
+# @forestadmin/agent [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.25.0...@forestadmin/agent@1.26.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input lists with options in actions ([519d1b7](https://github.com/ForestAdmin/agent-nodejs/commit/519d1b7c344456cdcf26a8972cef619c4efb1a48))
+* **widgets:** add support for number input lists with options in actions ([#807](https://github.com/ForestAdmin/agent-nodejs/issues/807)) ([22d84bd](https://github.com/ForestAdmin/agent-nodejs/commit/22d84bd104dcc7893a9536365329db5ee2467c28))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.26.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.19.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.15.0
+
+# @forestadmin/agent [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.24.0...@forestadmin/agent@1.25.0) (2023-09-05)
+
+
+### Features
+
+* **widgets:** add support for number input in custom actions ([8f52fb3](https://github.com/ForestAdmin/agent-nodejs/commit/8f52fb3c90e5050873390a167fbb11df5fa34863))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.25.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.14.0
+
+# @forestadmin/agent [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.23.0...@forestadmin/agent@1.24.0) (2023-09-01)
+
+
+### Features
+
+* **widgets:** add support for the checkbox group widget in custom actions ([ee9ba13](https://github.com/ForestAdmin/agent-nodejs/commit/ee9ba13f90cce42d9f0a60ace483246cbaf3048f))
+* **widgets:** add support for the checkbox group widget in custom actions ([#804](https://github.com/ForestAdmin/agent-nodejs/issues/804)) ([e579850](https://github.com/ForestAdmin/agent-nodejs/commit/e57985009eed12362695c0dc029c25277900a626))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.24.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.17.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.13.0
+
+# @forestadmin/agent [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.22.0...@forestadmin/agent@1.23.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for the radio button group widget in custom actions ([dfba9dc](https://github.com/ForestAdmin/agent-nodejs/commit/dfba9dc84c7e2ddf06cfa7331df8b6c9840692c2))
+* **widgets:** add support for the radio button group widget in custom actions ([#803](https://github.com/ForestAdmin/agent-nodejs/issues/803)) ([e2e6a40](https://github.com/ForestAdmin/agent-nodejs/commit/e2e6a406515023d807bf36ec6e594c616f509ea1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.23.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.16.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.12.0
+
+# @forestadmin/agent [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.21.0...@forestadmin/agent@1.22.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** support rich text widget in custom actions ([4a30c7d](https://github.com/ForestAdmin/agent-nodejs/commit/4a30c7d4d4810f2875199f74e38ac8f5ecfa63ce))
+* **widgets:** support rich text widget in custom actions ([#802](https://github.com/ForestAdmin/agent-nodejs/issues/802)) ([e4ebbde](https://github.com/ForestAdmin/agent-nodejs/commit/e4ebbde7238abb797af42d16d47f2431c1d78db8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.22.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.15.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.11.0
+
+# @forestadmin/agent [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.20.1...@forestadmin/agent@1.21.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for textarea widget in custom actions ([a15ae51](https://github.com/ForestAdmin/agent-nodejs/commit/a15ae514467545f9db1ba8c6a9ece49d2e97c7ae))
+* **widgets:** add support for textarea widget in custom actions ([#801](https://github.com/ForestAdmin/agent-nodejs/issues/801)) ([9dfa02c](https://github.com/ForestAdmin/agent-nodejs/commit/9dfa02c4703d47dd6a0c77a68e71dec993ed246f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.21.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.14.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.10.0
+
+## @forestadmin/agent [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.20.0...@forestadmin/agent@1.20.1) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.20.0
+
+# @forestadmin/agent [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.19.1...@forestadmin/agent@1.20.0) (2023-08-31)
+
+
+### Features
+
+* **widgets:** add support for TextInputList in smart actions ([779c600](https://github.com/ForestAdmin/agent-nodejs/commit/779c600a8f0ca4b9fc96d39dd6368e43e74aa41f))
+* **widgets:** add support for TextInputList in smart actions ([#798](https://github.com/ForestAdmin/agent-nodejs/issues/798)) ([bab54a8](https://github.com/ForestAdmin/agent-nodejs/commit/bab54a8fb36dd31dbb9c25415248d84e3f9a32f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.19.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.13.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.9.0
+
+## @forestadmin/agent [1.19.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.19.0...@forestadmin/agent@1.19.1) (2023-08-30)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.18.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.8.1
+
+# @forestadmin/agent [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.18.0...@forestadmin/agent@1.19.0) (2023-08-29)
+
+
+### Features
+
+* **widgets:** add support for text input widget in smart actions ([70c517b](https://github.com/ForestAdmin/agent-nodejs/commit/70c517bdb1d763e62c69dd63c033f3e6c2bcafe8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.18.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.8.0
+
+# @forestadmin/agent [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0...@forestadmin/agent@1.18.0) (2023-08-29)
+
+
+### Features
+
+* add support for the checkbox widget for boolean fields in smart actions ([f6de833](https://github.com/ForestAdmin/agent-nodejs/commit/f6de8337497b8ef0b92b5cbd627fddf87d75f3d3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.17.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.11.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.7.0
+
+# @forestadmin/agent [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.16.2...@forestadmin/agent@1.17.0) (2023-08-28)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.16.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.6.0
+
+# @forestadmin/agent [1.17.0-alpha-widgets.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0-alpha-widgets.3...@forestadmin/agent@1.17.0-alpha-widgets.4) (2023-08-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.16.0-alpha-widgets.2
+
+# @forestadmin/agent [1.17.0-alpha-widgets.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0-alpha-widgets.2...@forestadmin/agent@1.17.0-alpha-widgets.3) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.16.0-alpha-widgets.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0-alpha-widgets.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.6.0-alpha-widgets.3
+
+## @forestadmin/agent [1.16.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.16.1...@forestadmin/agent@1.16.2) (2023-08-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.15.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.5.10
+
+# @forestadmin/agent [1.17.0-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.17.0-alpha-widgets.1...@forestadmin/agent@1.17.0-alpha-widgets.2) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.15.0-alpha-widgets.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.6.0-alpha-widgets.2
+
+# @forestadmin/agent [1.17.0-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.16.1...@forestadmin/agent@1.17.0-alpha-widgets.1) (2023-08-23)
+
+
+### Features
+
+* add dropdown to form field options ([#776](https://github.com/ForestAdmin/agent-nodejs/issues/776)) ([2b7a9a2](https://github.com/ForestAdmin/agent-nodejs/commit/2b7a9a29b573e95dd03374341e848578774f1975))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.15.0-alpha-widgets.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.6.0-alpha-widgets.1
+
 ## @forestadmin/agent [1.16.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.16.0...@forestadmin/agent@1.16.1) (2023-07-27)
 
 

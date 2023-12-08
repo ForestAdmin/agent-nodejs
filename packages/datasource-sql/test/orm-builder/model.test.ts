@@ -19,6 +19,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           { ...baseColumn, name: 'enumList', type: { type: 'invalid' } as unknown as ColumnType },
         ],
@@ -34,6 +35,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           {
             ...baseColumn,
@@ -53,6 +55,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           { ...baseColumn, name: 'enumList', type: { type: 'enum', values: ['a', 'b', 'c'] } },
         ],
@@ -71,6 +74,7 @@ describe('ModelBuilder', () => {
     const tables: Table[] = [
       {
         name: 'myTable',
+        schema: undefined,
         columns: [
           {
             name: 'enumList',
@@ -101,6 +105,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
           unique: [],
         },
@@ -117,6 +122,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [
             { ...baseColumn, name: 'uniqueTogether1', primaryKey: false },
             { ...baseColumn, name: 'uniqueTogether2', primaryKey: false },
@@ -137,6 +143,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [
             { ...baseColumn, name: 'nonUniqueField', primaryKey: false },
             { ...baseColumn, name: 'uniqueTogether1', primaryKey: false },
@@ -158,6 +165,7 @@ describe('ModelBuilder', () => {
       const tables: Table[] = [
         {
           name: 'myTable',
+          schema: undefined,
           columns: [
             {
               ...baseColumn,
@@ -184,7 +192,7 @@ describe('ModelBuilder', () => {
     });
 
     it('should skip the collection if sequelize throws at our definition', () => {
-      const tables: Table[] = [{ name: 'myTable', columns: [], unique: [] }];
+      const tables: Table[] = [{ name: 'myTable', schema: undefined, columns: [], unique: [] }];
       const logger = jest.fn();
       const sequelize = {
         getDialect: jest.fn().mockReturnValue('postgres'),
@@ -216,7 +224,9 @@ describe('ModelBuilder', () => {
         primaryKey: false,
         constraints: [],
       };
-      const tables = [{ columns: [column], name: 'aModel', unique: [] }] as Table[];
+      const tables = [
+        { columns: [column], name: 'aModel', schema: undefined, unique: [] },
+      ] as Table[];
 
       ModelBuilder.defineModels(sequelize, () => {}, tables);
 
@@ -240,12 +250,35 @@ describe('ModelBuilder', () => {
           primaryKey: false,
           constraints: [],
         };
-        const tables = [{ columns: [column], name: 'aModel', unique: [] }] as Table[];
+        const tables = [
+          { columns: [column], name: 'aModel', schema: undefined, unique: [] },
+        ] as Table[];
 
         ModelBuilder.defineModels(sequelize, () => {}, tables);
 
         expect(sequelize.models.aModel).toBeDefined();
         expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
+      });
+    });
+  });
+
+  describe('when there is a schema', () => {
+    it('should declare the model in the schema', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          schema: 'mySchema',
+          columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
+          unique: [],
+        },
+      ];
+
+      ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+      expect(sequelize.models.myTable.getTableName()).toMatchObject({
+        schema: 'mySchema',
+        tableName: 'myTable',
       });
     });
   });

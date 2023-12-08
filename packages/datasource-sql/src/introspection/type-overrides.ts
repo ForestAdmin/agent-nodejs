@@ -9,6 +9,7 @@ import {
   QueryInterface,
   QueryInterfaceOptions,
   QueryOptions,
+  Sequelize,
   TableName,
 } from 'sequelize/types';
 
@@ -25,13 +26,18 @@ export interface SequelizeColumn extends ColumnDescription {
   special?: string[];
 }
 
+export interface SequelizeTableIdentifier {
+  tableName: string;
+  schema?: string;
+}
+
 export type SequelizeColumnType = AbstractDataType | AbstractDataTypeConstructor;
 
 export type SequelizeReference = {
   constraintName: string;
   constraintSchema: string;
   constraintCatalog: string;
-  tableName: string;
+  tableName: string | SequelizeTableIdentifier;
   tableSchema: string;
   tableCatalog: string;
   columnName: string;
@@ -53,4 +59,10 @@ export interface QueryInterfaceExt extends QueryInterface {
     tableName: TableName,
     options?: string | ({ schema?: string; schemaDelimiter?: string } & Logging),
   ): Promise<Record<string, SequelizeColumn>>;
+}
+
+export interface SequelizeWithOptions extends Sequelize {
+  options: {
+    schema?: string;
+  };
 }

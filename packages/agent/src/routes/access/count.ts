@@ -8,7 +8,7 @@ import CollectionRoute from '../collection-route';
 
 export default class CountRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.get(`/${this.collection.name}/count`, this.handleCount.bind(this));
+    router.get(`/${this.collectionUrlSlug}/count`, this.handleCount.bind(this));
   }
 
   public async handleCount(context: Context): Promise<void> {

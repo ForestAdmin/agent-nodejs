@@ -11,6 +11,12 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   markScopesAsUpdated: jest.fn(),
   getIpWhitelistConfiguration: jest.fn(),
   postSchema: jest.fn(),
+  authService: {
+    init: jest.fn(),
+    getUserInfo: jest.fn(),
+    generateAuthorizationUrl: jest.fn(),
+    generateTokens: jest.fn(),
+  },
   permissionService: {
     canExecuteSegmentQuery: jest.fn(),
     canApproveCustomAction: jest.fn(),

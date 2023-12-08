@@ -16,6 +16,7 @@ import { Error, Model, PipelineStage } from 'mongoose';
 
 import MongooseSchema from './mongoose/schema';
 import { Stack } from './types';
+import addNullValues from './utils/add-null-values';
 import {
   buildSubdocumentPatch,
   compareIds,
@@ -25,6 +26,7 @@ import {
   splitId,
   unflattenRecord,
 } from './utils/helpers';
+import AsModelNotNullGenerator from './utils/pipeline/as-model-not-null';
 import FilterGenerator from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
 import LookupGenerator from './utils/pipeline/lookup';
@@ -55,17 +57,30 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
+    return this._list(
+      AsModelNotNullGenerator.asModelNotNull(this.model, this.stack),
+      filter,
+      projection,
+    );
+  }
+
+  private async _list(
+    pipelineBefore: PipelineStage[],
+    filter: PaginatedFilter,
+    projection: Projection,
+  ): Promise<RecordData[]> {
     const lookupProjection = projection.union(
       filter.conditionTree?.projection,
       filter.sort?.projection,
     );
 
     const records = await this.model.aggregate([
+      ...(pipelineBefore || []),
       ...this.buildBasePipeline(filter, lookupProjection),
       ...ProjectionGenerator.project(projection),
     ]);
 
-    return replaceMongoTypes(records);
+    return addNullValues(replaceMongoTypes(records), projection);
   }
 
   async aggregate(
@@ -113,15 +128,28 @@ export default class MongooseCollection extends BaseCollection {
 
     // Only array fields can create subdocuments (the others should use update)
     const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
-    if (!schema.isArray)
-      throw new ValidationError('Trying to create subrecords on a non-array field');
 
-    // Transform list of subrecords to a list of modifications that we'll apply to the root record.
+    if (schema.isArray) {
+      return this.createForArraySubfield(data, flatData, schema);
+    }
+
+    return this.createForObjectSubfield(data, flatData);
+  }
+
+  private computeSubFieldName() {
     const lastStackStep = this.stack[this.stack.length - 1];
-    const fieldName =
-      this.stack.length > 2
-        ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
-        : lastStackStep.prefix;
+
+    return this.stack.length > 2
+      ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
+      : lastStackStep.prefix;
+  }
+
+  private async createForArraySubfield(
+    data: RecordData[],
+    flatData: RecordData[],
+    schema: MongooseSchema,
+  ) {
+    const fieldName = this.computeSubFieldName();
 
     const updates: Record<string, { rootId: unknown; path: string; records: unknown[] }> = {};
     const results = [];
@@ -157,6 +185,23 @@ export default class MongooseCollection extends BaseCollection {
     return results;
   }
 
+  private async createForObjectSubfield(data: RecordData[], flatData: RecordData[]) {
+    if (data.length > 1) throw new ValidationError('Trying to create multiple subrecords at once');
+    if (data.length === 0) throw new ValidationError('Trying to create without data');
+
+    const fieldName = this.computeSubFieldName();
+
+    const { parentId, ...rest } = data[0];
+
+    if (!parentId) throw new ValidationError('Trying to create a subrecord with no parent');
+
+    const [rootId, path] = splitId(`${parentId}.${fieldName}`);
+
+    await this.model.updateOne({ _id: rootId }, { $set: { [path]: rest } });
+
+    return [{ _id: `${rootId}.${path}`, ...flatData[0] }];
+  }
+
   private async _update(caller: Caller, filter: Filter, flatPatch: RecordData): Promise<void> {
     const { asFields } = this.stack[this.stack.length - 1];
     const patch = unflattenRecord(flatPatch, asFields, true);
@@ -164,7 +209,7 @@ export default class MongooseCollection extends BaseCollection {
     // Fetch the ids of the documents OR subdocuments that will be updated.
     // We need to do that regardless of `this.prefix` because the filter may contain conditions on
     // relationships.
-    const records = await this.list(caller, filter, new Projection('_id'));
+    const records = await this._list([], filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {
@@ -212,7 +257,7 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   private async _delete(caller: Caller, filter: Filter): Promise<void> {
-    const records = await this.list(caller, filter, new Projection('_id'));
+    const records = await this._list([], filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {

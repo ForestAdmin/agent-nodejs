@@ -46,7 +46,7 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       /* eslint-disable */
       import { CollectionCustomizer, TAggregation, TConditionTree, TPaginatedFilter, TPartialRow, TSortClause } from '@forestadmin/agent';
@@ -57,18 +57,18 @@ describe('TypingGenerator', () => {
       export type ACollectionNameFilter = TPaginatedFilter<Schema,'aCollectionName'>;
       export type ACollectionNameSortClause = TSortClause<Schema,'aCollectionName'>;
       export type ACollectionNameAggregation = TAggregation<Schema, 'aCollectionName'>;
-      
+
       export type Schema = {
         'aCollectionName': {
           plain: {
-            'id': number;
-            'boolean': boolean;
-            'string': string;
-            'point': [number, number];
-            'enumWithValues': 'a' | 'b' | 'c';
-            'enumWithoutValues': string;
-            'complex': { firstname: string; lastname: string };
             'array': Array<string>;
+            'boolean': boolean;
+            'complex': { firstname: string; lastname: string };
+            'enumWithoutValues': string;
+            'enumWithValues': 'a' | 'b' | 'c';
+            'id': number;
+            'point': [number, number];
+            'string': string;
           };
           nested: {};
           flat: {};
@@ -78,19 +78,150 @@ describe('TypingGenerator', () => {
     expectEqual(generated, expected);
   });
 
-  test('aliaes should work with a collection with underscores', () => {
+  test('should sort field names', () => {
     const datasource = factories.dataSource.buildWithCollections([
-      factories.collection.build({ name: 'a_collection_name' }),
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            b: factories.columnSchema.build({ columnType: 'String' }),
+            A: factories.columnSchema.build({ columnType: 'String' }),
+            z: factories.columnSchema.build({ columnType: 'String' }),
+            a: factories.columnSchema.build({ columnType: 'String' }),
+            0: factories.columnSchema.build({ columnType: 'String' }),
+          },
+        },
+      }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
-      export type ACollectionNameCustomizer = CollectionCustomizer<Schema, 'a_collection_name'>;
-      export type ACollectionNameRecord = TPartialRow<Schema, 'a_collection_name'>;
-      export type ACollectionNameConditionTree = TConditionTree<Schema, 'a_collection_name'>;
-      export type ACollectionNameFilter = TPaginatedFilter<Schema,'a_collection_name'>;
-      export type ACollectionNameSortClause = TSortClause<Schema,'a_collection_name'>;
-      export type ACollectionNameAggregation = TAggregation<Schema, 'a_collection_name'>;
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            '0': string;
+            'a': string;
+            'A': string;
+            'b': string;
+            'z': string;
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
+  test('should sort nested field names', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'z',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            b: factories.manyToOneSchema.build({ foreignCollection: 'b', foreignKey: 'id' }),
+            a: factories.manyToOneSchema.build({ foreignCollection: 'a', foreignKey: 'id' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'b',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'a',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'a': {
+          plain: {
+            'id': number;
+          };
+          nested: {};
+          flat: {};
+        };
+        'b': {
+          plain: {
+            'id': number;
+          };
+          nested: {};
+          flat: {};
+        };
+        'z': {
+          plain: {
+            'id': number;
+          };
+          nested: {
+            'a': Schema['a']['plain'] & Schema['a']['nested'];
+            'b': Schema['b']['plain'] & Schema['b']['nested'];
+          };
+          flat: {
+            'a:id': number;
+            'b:id': number;
+          };
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
+  test('should sort enum values', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            enum: factories.columnSchema.build({
+              columnType: 'Enum',
+              enumValues: ['b', '0', 'z', 'a', 'A'],
+            }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            'enum': '0' | 'a' | 'A' | 'b' | 'z';
+          };
+          nested: {};
+          flat: {};
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
+  it.each(['_underscores', '-dashes'])('aliases should work with a collection with %s', char => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({ name: `aCollectionNameWith${char}` }),
+    ]);
+    const replaced = char.replace(/(_|-)/g, '')[0].toUpperCase() + char.slice(2);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type ACollectionNameWith${replaced}Customizer = CollectionCustomizer<Schema, 'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}Record = TPartialRow<Schema, 'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}ConditionTree = TConditionTree<Schema, 'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}Filter = TPaginatedFilter<Schema,'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}SortClause = TSortClause<Schema,'aCollectionNameWith${char}'>;
+      export type ACollectionNameWith${replaced}Aggregation = TAggregation<Schema, 'aCollectionNameWith${char}'>;
     `;
 
     expectContains(generated, expected);
@@ -114,7 +245,7 @@ describe('TypingGenerator', () => {
         }),
       ]);
 
-      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
       const expected = `
       export type Schema = {
         'aCollectionName': {
@@ -139,7 +270,7 @@ describe('TypingGenerator', () => {
         factories.collection.build({ name: collectionName }),
       ]);
 
-      const generated = TypingGenerator.generateTypes(datasource, 5);
+      const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
       const expected = `
       export type Schema = {
         ${expectedCollectionName}: {
@@ -166,11 +297,11 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       export type Schema = {
         'col1': {
-          plain: { 
+          plain: {
             'id': number;
           };
           nested: {
@@ -211,7 +342,7 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 5);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
     const expected = `
       export type Schema = {
         'col1': {
@@ -272,11 +403,11 @@ describe('TypingGenerator', () => {
       }),
     ]);
 
-    const generated = TypingGenerator.generateTypes(datasource, 3);
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 3);
     const expected = `
       export type Schema = {
         'col1': {
-          plain: { 
+          plain: {
             'id': number;
           };
           nested: {
@@ -312,6 +443,116 @@ describe('TypingGenerator', () => {
             'col1:id': number;
             'col1:col2:id': number;
             'col1:col2:col3:id': number;
+          };
+        };
+      };`;
+
+    expectContains(generated, expected);
+  });
+
+  test('it should stop generating fields where there are too many of them', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'col1',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            ...new Array(100).fill(0).reduce(
+              (acc, _, i) => ({
+                ...acc,
+                [`field${i}`]: factories.columnSchema.build({ columnType: 'String' }),
+              }),
+              {},
+            ),
+            col2: factories.manyToOneSchema.build({ foreignCollection: 'col2', foreignKey: 'id' }),
+          },
+        },
+      }),
+      factories.collection.build({
+        name: 'col2',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({ columnType: 'Number' }),
+            ...new Array(100).fill(0).reduce(
+              (acc, _, i) => ({
+                ...acc,
+                [`field${i}`]: factories.columnSchema.build({ columnType: 'String' }),
+              }),
+              {},
+            ),
+            col1: factories.oneToOneSchema.build({ foreignCollection: 'col1', originKey: 'id' }),
+          },
+        },
+      }),
+    ]);
+
+    const logger = jest.fn();
+
+    const generated = new TypingGenerator(logger, { maxFieldsCount: 2 }).generateTypes(
+      datasource,
+      5,
+    );
+    const expected = `
+      flat: {
+        'col1:field0': string;
+        'col1:field1': string;
+      };
+    `;
+
+    expectContains(generated, expected);
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      `Fields generation stopped on collection col1, ` +
+        `try using a lower typingsMaxDepth (5) to avoid this issue.`,
+    );
+  });
+
+  test('should sort alphabetically plain, nested and flat properties', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'col1',
+        schema: {
+          fields: {
+            zebra: factories.manyToOneSchema.build({
+              foreignCollection: 'col1',
+              foreignKey: 'id',
+            }),
+            marsAttack: factories.columnSchema.build({ columnType: 'String' }),
+            zebraCount: factories.columnSchema.build({ columnType: 'Number' }),
+            animalsCount: factories.columnSchema.build({ columnType: 'Number' }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'col1': {
+          plain: {
+            'animalsCount': number;
+            'marsAttack': string;
+            'zebraCount': number;
+          };
+          nested: {
+            'zebra': Schema['col1']['plain'] & Schema['col1']['nested'];
+          };
+          flat: {
+            'zebra:animalsCount': number;
+            'zebra:marsAttack': string;
+            'zebra:zebraCount': number;
+            'zebra:zebra:animalsCount': number;
+            'zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebra:zebraCount': number;
+            'zebra:zebra:zebra:zebra:zebra:animalsCount': number;
+            'zebra:zebra:zebra:zebra:zebra:marsAttack': string;
+            'zebra:zebra:zebra:zebra:zebra:zebraCount': number;
           };
         };
       };`;

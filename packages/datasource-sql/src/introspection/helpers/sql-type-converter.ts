@@ -1,6 +1,7 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
-import { SequelizeColumn } from '../type-overrides';
+import { ColumnDescription } from '../dialects/dialect.interface';
+import { SequelizeTableIdentifier } from '../type-overrides';
 import { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
@@ -12,13 +13,13 @@ export default class SqlTypeConverter {
   }
 
   async convert(
-    tableName: string,
+    tableIdentifier: SequelizeTableIdentifier,
     columnName: string,
-    columnInfo: SequelizeColumn,
+    columnInfo: ColumnDescription,
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
-        return this.getArrayType(tableName, columnName);
+        return this.getArrayType(tableIdentifier, columnName);
 
       case 'USER-DEFINED':
       case this.typeMatch(columnInfo.type, SqlTypeConverter.enumRegex):
@@ -30,19 +31,11 @@ export default class SqlTypeConverter {
   }
 
   /** Get the type of an enum from sequelize column description */
-  private getEnumType(columnInfo: SequelizeColumn): ColumnType {
-    if (columnInfo.type === 'USER-DEFINED') {
-      // Postgres enum
-      return columnInfo?.special?.length > 0
-        ? { type: 'enum', values: columnInfo.special }
-        : // User-defined enum with no values will default to string
-          { type: 'scalar', subType: 'STRING' };
-    }
-
-    // Other SGDB
-    const enumOptions = SqlTypeConverter.enumRegex.exec(columnInfo.type)?.[1];
-
-    return { type: 'enum', values: enumOptions.replace(/'/g, '').split(',') };
+  private getEnumType(columnInfo: ColumnDescription): ColumnType {
+    return columnInfo.enumValues?.length > 0
+      ? { type: 'enum', values: columnInfo.enumValues }
+      : // User-defined enum with no values will default to string
+        { type: 'scalar', subType: 'STRING' };
   }
 
   /**
@@ -50,7 +43,10 @@ export default class SqlTypeConverter {
    * Note that we don't need to write multiple SQL queries, because arrays are only supported by
    * Postgres
    */
-  private async getArrayType(tableName: string, columnName: string): Promise<ColumnType> {
+  private async getArrayType(
+    tableIdentifier: SequelizeTableIdentifier,
+    columnName: string,
+  ): Promise<ColumnType> {
     // Get the type of the elements in the array from the database
     const [{ udtName, dataType, charLength, schema, rawEnumValues }] = await this.sequelize.query<{
       udtName: string;
@@ -79,10 +75,18 @@ export default class SqlTypeConverter {
         c.table_schema = e.object_schema AND
         c.table_name = e.object_name AND
         'TABLE' = e.object_type AND
+        (:schema IS NULL OR c.table_schema = :schema) AND
         c.dtd_identifier = e.collection_type_identifier
       )
       WHERE table_name = :tableName AND c.column_name = :columnName;`.replace(/\s+/g, ' '),
-      { replacements: { tableName, columnName }, type: QueryTypes.SELECT },
+      {
+        replacements: {
+          tableName: tableIdentifier.tableName,
+          schema: tableIdentifier.schema || null,
+          columnName,
+        },
+        type: QueryTypes.SELECT,
+      },
     );
 
     let subType: ColumnType;

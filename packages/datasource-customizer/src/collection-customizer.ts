@@ -2,6 +2,7 @@ import {
   CollectionSchema,
   CollectionUtils,
   ColumnSchema,
+  Logger,
   Operator,
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
@@ -10,7 +11,8 @@ import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
 import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
-import { ComputedDefinition } from './decorators/computed/types';
+import { ComputedDefinition, DeprecatedComputedDefinition } from './decorators/computed/types';
+import mapDeprecated from './decorators/computed/utils/map-deprecated';
 import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
@@ -20,7 +22,14 @@ import { SegmentDefinition } from './decorators/segment/types';
 import { WriteDefinition } from './decorators/write/write-replace/types';
 import addExternalRelation from './plugins/add-external-relation';
 import importField from './plugins/import-field';
-import { TCollectionName, TColumnName, TFieldName, TSchema, TSortClause } from './templates';
+import {
+  TCollectionName,
+  TColumnName,
+  TColumnNameAndRelationName,
+  TFieldName,
+  TSchema,
+  TSortClause,
+} from './templates';
 import { OneToManyEmbeddedDefinition, Plugin } from './types';
 
 export default class CollectionCustomizer<
@@ -52,8 +61,8 @@ export default class CollectionCustomizer<
    * collection.use(createFileField, { fieldname: 'avatar' }),
    */
   use<Options>(plugin: Plugin<Options>, options?: Options): this {
-    return this.pushCustomization(async () => {
-      await plugin(this.dataSourceCustomizer, this, options);
+    return this.pushCustomization(async (logger: Logger) => {
+      await plugin(this.dataSourceCustomizer, this, options, logger);
     });
   }
 
@@ -83,27 +92,27 @@ export default class CollectionCustomizer<
   }
 
   /**
-   * Allow to rename a field of a given collection.
-   * @param oldName the current name of the field in a given collection
-   * @param newName the new name of the field
+   * Rename fields from the exported schema.
+   * @param currentName the current name of the field or the relation in a given collection
+   * @param newName the new name of the field or the relation
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
    * @example
-   * .renameField('theCurrentNameOfTheField', 'theNewNameOfTheField');
+   * .renameField('currentFieldOrRelationName', 'newFieldOrRelationName')
    */
-  renameField(oldName: TColumnName<S, N>, newName: string): this {
+  renameField(currentName: TColumnNameAndRelationName<S, N>, newName: string): this {
     return this.pushCustomization(async () => {
-      this.stack.renameField.getCollection(this.name).renameField(oldName, newName);
+      this.stack.renameField.getCollection(this.name).renameField(currentName, newName);
     });
   }
 
   /**
    * Remove fields from the exported schema (they will still be usable within the agent).
-   * @param names the fields to remove
+   * @param names the names of the field or the relation
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
    * @example
-   * .removeField('aFieldToRemove', 'anotherFieldToRemove');
+   * .removeField('fieldNameToRemove', 'relationNameToRemove');
    */
-  removeField(...names: TColumnName<S, N>[]): this {
+  removeField(...names: TColumnNameAndRelationName<S, N>[]): this {
     return this.pushCustomization(async () => {
       const collection = this.stack.publication.getCollection(this.name);
       for (const name of names) collection.changeFieldVisibility(name, false);
@@ -164,10 +173,31 @@ export default class CollectionCustomizer<
    *    getValues: (records) => records.map(record => \`${record.lastName} ${record.firstName}\`),
    * });
    */
-  addField(name: string, definition: ComputedDefinition<S, N>): this {
-    return this.pushCustomization(async () => {
+  addField: {
+    (name: string, definition: ComputedDefinition<S, N>): CollectionCustomizer<S, N>;
+    /** @deprecated
+     * Use 'Time' instead of 'Timeonly' as your columnType
+     * */
+    (name: string, definition: DeprecatedComputedDefinition<S, N>): CollectionCustomizer<S, N>;
+  } = (
+    name: string,
+    definition: DeprecatedComputedDefinition<S, N> | ComputedDefinition<S, N>,
+  ): this => {
+    return this.pushCustomization(async (logger: Logger) => {
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
+
+      if (!definition.dependencies) {
+        logger(
+          'Error',
+          `Computed field '${
+            this.stack.validation.getCollection(this.name).name
+          }.${name}' must have the 'dependencies' parameter defined`,
+        );
+
+        return;
+      }
+
       const canBeComputedBeforeRelations = definition.dependencies.every(field => {
         try {
           return !!CollectionUtils.getFieldSchema(collectionBeforeRelations, field);
@@ -180,9 +210,9 @@ export default class CollectionCustomizer<
         ? collectionBeforeRelations
         : collectionAfterRelations;
 
-      collection.registerComputed(name, definition as ComputedDefinition);
+      collection.registerComputed(name, mapDeprecated<S, N>(definition));
     });
-  }
+  };
 
   /**
    * Add a new validator to the edition form of a given field
@@ -541,7 +571,7 @@ export default class CollectionCustomizer<
     });
   }
 
-  private pushCustomization(customization: () => Promise<void>): this {
+  private pushCustomization(customization: (logger: Logger) => Promise<void>): this {
     this.stack.queueCustomization(customization);
 
     return this;

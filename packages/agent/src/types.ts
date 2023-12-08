@@ -23,6 +23,7 @@ export type AgentOptions = {
     webhookCustomActions?: boolean;
     updateRecordCustomActions?: boolean;
   };
+  maxBodySize?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

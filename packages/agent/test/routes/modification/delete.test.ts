@@ -430,4 +430,23 @@ describe('DeleteRoute', () => {
       });
     });
   });
+
+  describe('with special characters in names', () => {
+    it('should register a route with escaped characters', () => {
+      const bookCollection = factories.collection.build({
+        name: 'books+*?',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+          },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+      const deleteRoute = new DeleteRoute(services, options, dataSource, 'books+*?');
+
+      deleteRoute.setupRoutes(router);
+
+      expect(router.delete).toHaveBeenCalledWith('/books\\+\\*\\?/:id', expect.any(Function));
+    });
+  });
 });

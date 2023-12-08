@@ -97,58 +97,6 @@ describe('ForestAdminClientWithCache', () => {
     });
   });
 
-  describe('Auth', () => {
-    it('getUserInfo should delegate to the given service', async () => {
-      const authService = factories.auth.build({
-        getUserInfo: jest.fn().mockResolvedValue({ id: 1 }),
-      });
-
-      const forestAdminClient = new ForestAdminClient(
-        factories.forestAdminClientOptions.build(),
-        factories.permission.build(),
-        factories.renderingPermission.build(),
-        factories.contextVariablesInstantiator.build(),
-        factories.chartHandler.build(),
-        factories.ipWhiteList.build(),
-        factories.schema.build(),
-        authService,
-        factories.modelCustomization.build(),
-        factories.eventsSubscription.build(),
-        factories.eventsHandler.build(),
-      );
-
-      const result = await forestAdminClient.getUserInfo(1, 'token');
-      expect(result).toStrictEqual({ id: 1 });
-      expect(authService.getUserInfo).toHaveBeenCalledTimes(1);
-      expect(authService.getUserInfo).toHaveBeenCalledWith(1, 'token');
-    });
-
-    it('getOpenIdClient should delegate to the given service', async () => {
-      const authService = factories.auth.build({
-        getOpenIdClient: jest.fn().mockResolvedValue({ sign: true }),
-      });
-
-      const forestAdminClient = new ForestAdminClient(
-        factories.forestAdminClientOptions.build(),
-        factories.permission.build(),
-        factories.renderingPermission.build(),
-        factories.contextVariablesInstantiator.build(),
-        factories.chartHandler.build(),
-        factories.ipWhiteList.build(),
-        factories.schema.build(),
-        authService,
-        factories.modelCustomization.build(),
-        factories.eventsSubscription.build(),
-        factories.eventsHandler.build(),
-      );
-
-      const result = await forestAdminClient.getOpenIdClient();
-      expect(result).toStrictEqual({ sign: true });
-      expect(authService.getOpenIdClient).toHaveBeenCalledTimes(1);
-      expect(authService.getOpenIdClient).toHaveBeenCalledWith();
-    });
-  });
-
   describe('markScopesAsUpdated', () => {
     describe('when not using ServerEvents', () => {
       it('should invalidate the cache of scopes', async () => {

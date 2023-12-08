@@ -5,9 +5,10 @@ import { Sequelize } from 'sequelize';
 import { DatabaseConnectError, SshConnectError } from '../../src';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
+import { MARIADB_DETAILS } from '../_helpers/connection-details';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
-describe('when there is only a ssh configuration', () => {
+describe.each(MARIADB_DETAILS)('when there is only a ssh configuration', connectionDetails => {
   const sshConfig = {
     host: 'localhost',
     port: 2222,
@@ -16,12 +17,12 @@ describe('when there is only a ssh configuration', () => {
   };
 
   beforeAll(async () => {
-    await createDatabaseIfNotExist('mariadb://root:password@localhost:3809', 'test_connection_ssh');
+    await createDatabaseIfNotExist(connectionDetails.url(), 'test_connection_ssh');
   });
 
   it('should be able to connect at the db', async () => {
     const options = new ConnectionOptions({
-      uri: 'mariadb://root:password@mariadb:3306/test_connection_ssh',
+      uri: connectionDetails.urlDocker('test_connection_ssh'),
       ssh: sshConfig,
     });
     const seq = await connect(options);
@@ -32,7 +33,7 @@ describe('when there is only a ssh configuration', () => {
   describe('when the ssh has a wrong configuration', () => {
     it('should throw a ssh error', async () => {
       const options = new ConnectionOptions({
-        uri: 'mariadb://root:password@mariadb:3306/test_connection_ssh',
+        uri: connectionDetails.urlDocker('test_connection_ssh'),
         ssh: { ...sshConfig, username: 'BADUSER' },
         connectionTimeoutInMs: 4000,
       });
@@ -42,8 +43,10 @@ describe('when there is only a ssh configuration', () => {
 
   describe('when the db has a wrong configuration', () => {
     it('should throw a database error', async () => {
+      const parsedUrl = new URL(connectionDetails.urlDocker('test_connection_ssh'));
+      parsedUrl.hostname = 'badhost';
       const options = new ConnectionOptions({
-        uri: 'mariadb://root:password@localhost:3306/test_connection_ssh',
+        uri: parsedUrl.toString(),
         ssh: sshConfig,
       });
       await expect(() => connect(options)).rejects.toThrow(DatabaseConnectError);

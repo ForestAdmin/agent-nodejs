@@ -38,7 +38,7 @@ export default class ChartRoute extends CollectionRoute {
   };
 
   setupRoutes(router: Router): void {
-    router.post(`/stats/${this.collection.name}`, this.handleChart.bind(this));
+    router.post(`/stats/${this.collectionUrlSlug}`, this.handleChart.bind(this));
   }
 
   async handleChart(context: Context) {

@@ -27,7 +27,7 @@ export default class TypeGetter {
 
     if (dateTime.toISODate() === value) return 'Dateonly';
 
-    if (dateTime.toISOTime().match(value)) return 'Timeonly';
+    if (dateTime.toISOTime().match(value)) return 'Time';
 
     return 'Date';
   }

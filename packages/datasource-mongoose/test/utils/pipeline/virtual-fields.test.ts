@@ -63,7 +63,7 @@ describe('VirtualFieldsGenerator', () => {
   });
 
   it('should add nested dependencies besides for parentId (for server-side queries only)', () => {
-    const projection = new Projection('author:country:_id', 'author:country:name');
+    const projection = new Projection('author:country:_id');
     const stack = [{ prefix: null, asFields: [], asModels: ['author'] }];
     const pipeline = VirtualFieldsGenerator.addVirtual(model, stack, projection);
 
@@ -71,6 +71,20 @@ describe('VirtualFieldsGenerator', () => {
       {
         $addFields: {
           'author.country._id': { $concat: [{ $toString: '$_id' }, '.author.country'] },
+        },
+      },
+    ]);
+  });
+
+  it('should add nested dependencies', () => {
+    const projection = new Projection('author:country:name');
+    const stack = [{ prefix: null, asFields: [], asModels: ['author'] }];
+    const pipeline = VirtualFieldsGenerator.addVirtual(model, stack, projection);
+
+    expect(pipeline).toEqual([
+      {
+        $addFields: {
+          'author.country.name': '$author.country.name',
         },
       },
     ]);

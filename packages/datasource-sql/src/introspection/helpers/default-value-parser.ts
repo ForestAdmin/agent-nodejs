@@ -1,103 +1,61 @@
-import { Dialect, literal } from 'sequelize';
+import { literal } from 'sequelize';
 
+import { ColumnDescription } from '../dialects/dialect.interface';
 import { ColumnType } from '../types';
 
 export default class DefaultValueParser {
-  private readonly dialect: Dialect;
+  static parse(
+    column: Pick<ColumnDescription, 'defaultValue' | 'isLiteralDefaultValue' | 'enumValues'>,
+    columnType: ColumnType,
+  ): unknown {
+    if (column.defaultValue === null || column.defaultValue === undefined) return undefined;
 
-  constructor(dialect: Dialect) {
-    this.dialect = dialect;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parse(expression: any, columnType: ColumnType): unknown {
-    if (expression === null || expression === undefined) return undefined;
-
-    if (typeof expression === 'string' && expression.startsWith('NULL')) return null;
-
-    // FA backend not handle correctly
     if (columnType.type === 'array') return undefined;
 
+    if (column.isLiteralDefaultValue) return literal(column.defaultValue);
+
     try {
-      const result = this.parseGeneric(expression, columnType);
+      const result = this.parseGeneric(column, columnType);
 
-      return result !== undefined ? result : literal(expression);
+      return result !== undefined ? result : literal(column.defaultValue);
     } catch (e) {
-      return literal(expression);
+      return literal(column.defaultValue);
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  isLiteral(expression: any, columnType: ColumnType): boolean {
-    return this.parse(expression, columnType)?.constructor.name === 'Literal';
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private parseGeneric(expression: any, columnType: ColumnType): unknown {
-    let sanitizedExpression = expression;
-
-    // sanitize string
-    if (typeof expression === 'string') {
-      sanitizedExpression = this.sanitizeExpression(expression);
-    }
-
+  private static parseGeneric(
+    column: Pick<ColumnDescription, 'defaultValue' | 'isLiteralDefaultValue' | 'enumValues'>,
+    columnType: ColumnType,
+  ): unknown {
     if (columnType.type === 'enum') {
-      return sanitizedExpression;
+      return column.defaultValue;
     }
 
     switch (columnType.subType) {
       case 'BOOLEAN':
-        return [true, 'true', 'TRUE', "b'1'", '1'].includes(sanitizedExpression);
+        return [true, 'true', 'TRUE', "b'1'", '1'].includes(column.defaultValue);
 
       case 'NUMBER':
       case 'BIGINT':
       case 'FLOAT':
       case 'DOUBLE':
-        return this.parseNumber(sanitizedExpression);
+        return this.parseNumber(column.defaultValue);
 
       case 'DATE':
       case 'DATEONLY':
-        return this.literalUnlessMatch(
-          /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})|(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}:\d{2})$/,
-          sanitizedExpression,
-        );
-
       case 'STRING':
-        return sanitizedExpression;
+        return column.defaultValue;
 
       case 'JSON':
       case 'JSONB':
-        return JSON.parse(sanitizedExpression);
+        return JSON.parse(column.defaultValue);
 
       default:
         return undefined;
     }
   }
 
-  private sanitizeExpression(expression: string): string {
-    let sanitizedExpression = expression;
-
-    if (/^'.*'$/.test(sanitizedExpression)) {
-      sanitizedExpression = expression.substring(1, expression.length - 1);
-    }
-
-    if (this.dialect === 'mssql') {
-      // Sequelize send default values with weird char at the beginning (`(Ndefault value`)
-      sanitizedExpression = sanitizedExpression.replace(/\(N/, '');
-
-      while (/^\(.*\)$/.test(sanitizedExpression)) {
-        sanitizedExpression = sanitizedExpression.substring(1, sanitizedExpression.length - 1);
-      }
-    }
-
-    return sanitizedExpression;
-  }
-
-  private literalUnlessMatch(regexp: RegExp, expression: string) {
-    return regexp.test(expression) ? expression : literal(expression);
-  }
-
-  private parseNumber(expression: string) {
+  private static parseNumber(expression: string) {
     const result = Number.parseFloat(expression);
 
     return Number.isNaN(result) ? literal(expression) : result;

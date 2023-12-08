@@ -62,6 +62,11 @@ describe('SchemaService', () => {
           },
         }),
       );
+      expect(options.logger).toHaveBeenCalledTimes(1);
+      expect(options.logger).toHaveBeenCalledWith(
+        'Info',
+        'Schema was updated, sending new version (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
+      );
     });
   });
 
@@ -97,6 +102,11 @@ describe('SchemaService', () => {
         '/forest/apimaps/hashcheck',
         {},
         expect.objectContaining({}),
+      );
+      expect(options.logger).toHaveBeenCalledTimes(1);
+      expect(options.logger).toHaveBeenCalledWith(
+        'Info',
+        'Schema was not updated since last run (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
       );
     });
   });

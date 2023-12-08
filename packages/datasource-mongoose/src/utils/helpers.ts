@@ -136,6 +136,7 @@ export function replaceMongoTypes(data: any): any {
   if (data instanceof Uint8Array) return data;
   if (data instanceof Date) return data.toISOString();
   if (data instanceof Types.ObjectId) return data.toHexString();
+  if (data instanceof Types.Decimal128) return data.toString();
 
   // eslint-disable-next-line no-underscore-dangle
   if (data?._bsontype === 'Binary') return data.buffer;

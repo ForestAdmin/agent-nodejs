@@ -5,6 +5,7 @@ import { Sequelize } from 'sequelize';
 import { DatabaseConnectError, SshConnectError } from '../../src';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
+import { POSTGRESQL_DETAILS } from '../_helpers/connection-details';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 const ssh = {
@@ -14,14 +15,11 @@ const ssh = {
   privateKey: readFileSync(resolve(__dirname, '../ssh-config/id_rsa')),
 };
 const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };
-const uri = 'postgres://test:password@postgres:5432/test_connection_ssh-socks';
+const uri = POSTGRESQL_DETAILS[1].urlDocker('test_connection_ssh-socks');
 
 describe('when there is a ssh and proxy configuration', () => {
   beforeAll(async () => {
-    await createDatabaseIfNotExist(
-      'postgres://test:password@localhost:5443',
-      'test_connection_ssh-socks',
-    );
+    await createDatabaseIfNotExist(POSTGRESQL_DETAILS[1].url(), 'test_connection_ssh-socks');
   });
 
   it('should be able to connect at the db', async () => {
@@ -33,8 +31,10 @@ describe('when there is a ssh and proxy configuration', () => {
 
   describe('when the db has a wrong configuration', () => {
     it('should throw the DatabaseConnectError', async () => {
+      const parsedUrl = new URL(uri);
+      parsedUrl.hostname = 'badhost';
       const options = new ConnectionOptions({
-        uri: 'postgres://test:password@badhost:5432/test_connection_ssh-socks',
+        uri: parsedUrl.toString(),
         proxySocks,
         ssh,
         connectionTimeoutInMs: 1000,
@@ -67,11 +67,13 @@ describe('when there is a ssh and proxy configuration', () => {
   describe('when a wrong configuration raises a connection timeout', () => {
     describe.each([
       ['with the proxy socks and ssh configuration', proxySocks, ssh],
-      ['without the proxy socks configuration', undefined],
+      ['without the proxy socks configuration', undefined, undefined],
     ])('%s', (proxyText, proxySockValue, sshValue) => {
       it('should throw a DatabaseConnectError error', async () => {
+        const parsedUrl = new URL(uri);
+        parsedUrl.protocol = 'mysql:';
         const options = new ConnectionOptions({
-          uri: `mysql://test:password@postgres:5432/test_connection_ssh-socks`,
+          uri: parsedUrl.toString(),
           proxySocks: proxySockValue,
           ssh: sshValue,
         });
@@ -84,7 +86,7 @@ describe('when there is a ssh and proxy configuration', () => {
   describe('when there are too many connection', () => {
     describe.each([
       ['with the proxy socks and ssh configuration', proxySocks, ssh],
-      ['without the proxy socks configuration', undefined],
+      ['without the proxy socks configuration', undefined, undefined],
     ])('%s', (_, proxySockValue, sshValue) => {
       it('should throw a DatabaseConnectError error', async () => {
         expect.assertions(1);

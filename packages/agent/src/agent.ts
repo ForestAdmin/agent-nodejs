@@ -186,7 +186,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Build router
     const router = new Router();
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
-    router.use(bodyParser({ jsonLimit: '50mb' }));
+    router.use(bodyParser({ jsonLimit: this.options.maxBodySize }));
     routes.forEach(route => route.setupRoutes(router));
 
     return router;
@@ -205,7 +205,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
       !isProduction && typingsPath
-        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth)
+        ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger)
         : Promise.resolve(),
     ]);
 
@@ -249,11 +249,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
 
     // Send schema to forest servers
-    const updated = await this.options.forestAdminClient.postSchema(schema);
-    const message = updated
-      ? 'Schema was updated, sending new version'
-      : 'Schema was not updated since last run';
-
-    this.options.logger('Info', message);
+    await this.options.forestAdminClient.postSchema(schema);
   }
 }

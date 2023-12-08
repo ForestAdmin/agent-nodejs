@@ -23,6 +23,7 @@ export default class ModelBuilder {
         tableName: table.name,
         timestamps: hasTimestamps,
         paranoid: isParanoid,
+        schema: table.schema,
       });
 
       // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys

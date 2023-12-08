@@ -10,7 +10,7 @@ import CollectionRoute from '../collection-route';
 
 export default class CsvRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
-    router.get(`/${this.collection.name}.csv`, this.handleCsv.bind(this));
+    router.get(`/${this.collectionUrlSlug}.csv`, this.handleCsv.bind(this));
   }
 
   async handleCsv(context: Context): Promise<void> {

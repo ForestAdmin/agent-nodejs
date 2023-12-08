@@ -1,4 +1,3 @@
-import AuthService from './auth';
 import ChartHandler from './charts/chart-handler';
 import EventsSubscriptionService from './events-subscription';
 import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
@@ -12,6 +11,7 @@ import RenderingPermissionService from './permissions/rendering-permission';
 import UserPermissionService from './permissions/user-permission';
 import SchemaService from './schema';
 import {
+  ForestAdminAuthServiceInterface,
   ForestAdminClientOptions,
   ForestAdminClientOptionsWithDefaults,
   ForestAdminServerInterface,
@@ -30,7 +30,7 @@ export default function buildApplicationServices(
   ipWhitelist: IpWhiteListService;
   permission: PermissionService;
   chartHandler: ChartHandler;
-  auth: AuthService;
+  auth: ForestAdminAuthServiceInterface;
   modelCustomizationService: ModelCustomizationService;
   eventsSubscription: EventsSubscriptionService;
   eventsHandler: RefreshEventsHandlerService;
@@ -81,7 +81,7 @@ export default function buildApplicationServices(
     chartHandler: new ChartHandler(contextVariables),
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
-    auth: new AuthService(optionsWithDefaults),
+    auth: forestAdminServerInterface.makeAuthService(optionsWithDefaults),
     modelCustomizationService: new ModelCustomizationFromApiService(
       forestAdminServerInterface,
       optionsWithDefaults,

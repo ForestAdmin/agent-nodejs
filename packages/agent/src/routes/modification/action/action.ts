@@ -47,7 +47,7 @@ export default class ActionRoute extends CollectionRoute {
     // Generate url that matches the declaration in forest-schema/generator-actions.ts
     const actionIndex = Object.keys(this.collection.schema.actions).indexOf(this.actionName);
     const slug = SchemaGeneratorActions.getActionSlug(this.actionName);
-    const path = `/_actions/${this.collection.name}/${actionIndex}/${slug}`;
+    const path = `/_actions/${this.collectionUrlSlug}/${actionIndex}/${slug}`;
 
     router.post(
       `${path}`,
@@ -56,6 +56,7 @@ export default class ActionRoute extends CollectionRoute {
     );
     router.post(`${path}/hooks/load`, this.handleHook.bind(this));
     router.post(`${path}/hooks/change`, this.handleHook.bind(this));
+    router.post(`${path}/hooks/search`, this.handleHook.bind(this));
   }
 
   private async handleExecute(context: Context): Promise<void> {
@@ -142,11 +143,19 @@ export default class ActionRoute extends CollectionRoute {
     const data = forestFields
       ? ForestValueConverter.makeFormDataFromFields(dataSource, forestFields)
       : null;
+    const searchValues: Record<string, string | null> = {};
+
+    if (forestFields)
+      for (const field of forestFields) {
+        searchValues[field.field] = field.searchValue;
+      }
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
     const fields = await this.collection.getForm(caller, this.actionName, data, filter, {
       changedField: body.data.attributes.changed_field,
+      searchField: body.data.attributes.search_field,
+      searchValues,
     });
 
     context.response.body = {

@@ -11,9 +11,11 @@ import {
   PrimitiveTypes,
   RelationSchema,
   SchemaUtils,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { ForestServerColumnType, ForestServerField } from '@forestadmin/forestadmin-client';
 
+import ColumnSchemaValidation from './column-schema-validation';
 import FrontendFilterableUtils from './filterable';
 import FrontendValidationUtils from './validation';
 
@@ -43,7 +45,7 @@ export default class SchemaGeneratorFields {
         break;
 
       default:
-        throw new Error('Invalid field type');
+        throw new ValidationError('Invalid field type');
     }
 
     return Object.entries(schema)
@@ -57,6 +59,8 @@ export default class SchemaGeneratorFields {
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
     const column = collection.schema.fields[name] as ColumnSchema;
+    ColumnSchemaValidation.validate(column, name);
+
     const isForeignKey = SchemaUtils.isForeignKey(collection.schema, name);
 
     return {

@@ -127,7 +127,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * Remove collections from the exported schema (they will still be usable within the agent).
    * @param names the collections to remove
    * @example
-   * .removeField('aCollectionToRemove', 'anotherCollectionToRemove');
+   * .removeCollection('aCollectionToRemove', 'anotherCollectionToRemove');
    */
   removeCollection(...names: TCollectionName<S>[]): this {
     this.stack.queueCustomization(async () => {
@@ -164,7 +164,13 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     return async (logger: Logger) => this.getDataSource(logger);
   }
 
-  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
-    return TypingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
+  async updateTypesOnFileSystem(
+    typingsPath: string,
+    typingsMaxDepth: number,
+    logger?: Logger,
+  ): Promise<void> {
+    const typingGenerator = new TypingGenerator(logger);
+
+    return typingGenerator.updateTypesOnFileSystem(this.stack.hook, typingsPath, typingsMaxDepth);
   }
 }

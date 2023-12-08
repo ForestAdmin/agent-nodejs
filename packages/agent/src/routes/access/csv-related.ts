@@ -18,14 +18,14 @@ import RelationRoute from '../relation-route';
 export default class CsvRelatedRoute extends RelationRoute {
   setupRoutes(router: Router): void {
     router.get(
-      `/${this.collection.name}/:parentId/relationships/${this.relationName}.csv`,
+      `/${this.collectionUrlSlug}/:parentId/relationships/${this.relationUrlSlug}.csv`,
       this.handleRelatedCsv.bind(this),
     );
   }
 
   async handleRelatedCsv(context: Context): Promise<void> {
-    await this.services.authorization.assertCanBrowse(context, this.collection.name);
-    await this.services.authorization.assertCanExport(context, this.collection.name);
+    await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
+    await this.services.authorization.assertCanExport(context, this.foreignCollection.name);
 
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);

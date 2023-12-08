@@ -1,3 +1,5 @@
+import type { Logger, ManyToOneSchema, OneToOneSchema } from '@forestadmin/datasource-toolkit';
+
 import {
   Collection,
   CollectionUtils,
@@ -8,17 +10,31 @@ import {
 import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {
+  private readonly options = {
+    maxFieldsCount: 10_000,
+  };
+
+  constructor(private readonly logger: Logger, options: { maxFieldsCount?: number } = {}) {
+    this.options.maxFieldsCount = options.maxFieldsCount ?? this.options.maxFieldsCount;
+  }
+
+  private static sortedEntries<T>(
+    ...args: Parameters<typeof Object.entries<T>>
+  ): ReturnType<typeof Object.entries<T>> {
+    return Object.entries(...args).sort(([name1], [name2]) => name1.localeCompare(name2));
+  }
+
   /**
    * Write types to disk at a given path.
    * This method read the file which is already there before overwriting so that customers
    * using equivalents to nodemon to not enter restart loops.
    */
-  static async updateTypesOnFileSystem(
+  public async updateTypesOnFileSystem(
     dataSource: DataSource,
     typingsPath: string,
     typingsMaxDepth: number,
   ): Promise<void> {
-    const newTypes = TypingGenerator.generateTypes(dataSource, typingsMaxDepth);
+    const newTypes = this.generateTypes(dataSource, typingsMaxDepth);
     let olderTypes: string | null = null;
 
     try {
@@ -36,7 +52,7 @@ export default class TypingGenerator {
   /**
    * Generates types on a string.
    */
-  static generateTypes(dataSource: DataSource, maxDepth: number): string {
+  public generateTypes(dataSource: DataSource, maxDepth: number): string {
     const collections = [...dataSource.collections].sort((a, b) => a.name.localeCompare(b.name));
 
     return [
@@ -66,12 +82,12 @@ export default class TypingGenerator {
     ].join('\n');
   }
 
-  private static generateAliases(dataSource: DataSource): string {
+  private generateAliases(dataSource: DataSource): string {
     return dataSource.collections
       .flatMap(collection => {
         const name =
           collection.name.slice(0, 1).toUpperCase() +
-          collection.name.slice(1).replace(/_[a-z]/g, match => match.slice(1).toUpperCase());
+          collection.name.slice(1).replace(/(_|-)[a-z]/g, match => match.slice(1).toUpperCase());
 
         return [
           // eslint-disable-next-line max-len
@@ -87,77 +103,106 @@ export default class TypingGenerator {
       .join('\n');
   }
 
-  private static getRow(collection: Collection): string {
-    const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
-      return field.type === 'Column' ? [...memo, `      '${name}': ${this.getType(field)};`] : memo;
-    }, []);
+  private getRow(collection: Collection): string {
+    const content = TypingGenerator.sortedEntries(collection.schema.fields).reduce(
+      (memo, [name, field]) => {
+        return field.type === 'Column'
+          ? [...memo, `      '${name}': ${this.getType(field)};`]
+          : memo;
+      },
+      [],
+    );
 
     return `    plain: {\n${content.join('\n')}\n    };`;
   }
 
-  private static getRelations(collection: Collection): string {
-    const content = Object.entries(collection.schema.fields).reduce((memo, [name, field]) => {
-      if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
-        const relation = field.foreignCollection;
+  private getRelations(collection: Collection): string {
+    const content = TypingGenerator.sortedEntries(collection.schema.fields).reduce(
+      (memo, [name, field]) => {
+        if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
+          const relation = field.foreignCollection;
 
-        return [
-          ...memo,
-          `      '${name}': Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
-        ];
-      }
+          return [
+            ...memo,
+            `      '${name}': Schema['${relation}']['plain'] & Schema['${relation}']['nested'];`,
+          ];
+        }
 
-      return memo;
-    }, []);
+        return memo;
+      },
+      [],
+    );
 
     return content.length ? `    nested: {\n${content.join('\n')}\n    };` : `    nested: {};`;
   }
 
-  private static getFlatRelations(collection: Collection, maxDepth: number): string {
-    const fields = this.getFieldsRec(collection, maxDepth, []);
+  private getFlatRelations(collection: Collection, maxDepth: number): string {
+    const fields = this.getFieldsOnCollection(collection, maxDepth);
 
     return fields.length
       ? `    flat: {\n      ${fields.join('\n      ')}\n    };`
       : `    flat: {};`;
   }
 
-  private static getFieldsRec(
-    collection: Collection,
-    maxDepth: number,
-    traversed: { c: Collection; r: string }[],
-  ): string[] {
-    const columns =
-      traversed.length > 0
-        ? Object.entries(collection.schema.fields)
+  private getFieldsOnCollection(mainCollection: Collection, maxDepth: number): string[] {
+    const result: string[] = [];
+
+    const queue = [{ collection: mainCollection, depth: 0, prefix: '', traversed: [] }];
+
+    while (queue.length > 0 && result.length < this.options.maxFieldsCount) {
+      const { collection, depth, prefix, traversed } = queue.shift();
+      const sortedFields = TypingGenerator.sortedEntries(collection.schema.fields);
+
+      if (prefix) {
+        result.push(
+          ...sortedFields
             .filter(([, schema]) => schema.type === 'Column')
-            .map(([name, schema]) => `'${name}': ${this.getType(schema as ColumnSchema)};`)
-        : [];
+            .map(
+              ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,
+            ),
+        );
+      }
 
-    const relations = Object.entries(collection.schema.fields).reduce((memo, [name, schema]) => {
-      if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') return memo;
+      if (depth < maxDepth) {
+        queue.push(
+          ...sortedFields
+            .filter(([, schema]) => schema.type === 'ManyToOne' || schema.type === 'OneToOne')
+            .map(([name, schema]: [name: string, schema: OneToOneSchema | ManyToOneSchema]) => {
+              return {
+                subCollection: collection.dataSource.getCollection(schema.foreignCollection),
+                inverse: CollectionUtils.getInverseRelation(collection, name),
+                name,
+                schema,
+              };
+            })
+            .filter(({ subCollection, inverse }) => {
+              // Do not expand inverse relations, as those create useless cycles
+              return !traversed.find(({ c, r }) => c === subCollection && r === inverse);
+            })
+            .map(({ subCollection, name }) => {
+              return {
+                collection: subCollection,
+                depth: depth + 1,
+                prefix: prefix ? `${prefix}:${name}` : name,
+                traversed: [...traversed, { c: collection, r: name }],
+              };
+            }),
+        );
+      }
+    }
 
-      const subCollection = collection.dataSource.getCollection(schema.foreignCollection);
-      const inverse = CollectionUtils.getInverseRelation(collection, name);
+    if (queue.length || result.length >= this.options.maxFieldsCount) {
+      this.logger?.(
+        'Warn',
+        `Fields generation stopped on collection ${mainCollection.name}, ` +
+          `try using a lower typingsMaxDepth (${maxDepth}) to avoid this issue.`,
+      );
+    }
 
-      // Do not expand inverse relations, as those create useless cycles
-      const expand =
-        traversed.length < maxDepth &&
-        !traversed.find(({ c, r }) => c === subCollection && r === inverse);
-      if (!expand) return memo;
-
-      // Manually expand the field type (cycles are not allowed in template literal types)
-      return [
-        ...memo,
-        ...this.getFieldsRec(subCollection, maxDepth, [
-          ...traversed,
-          { c: collection, r: name },
-        ]).map(f => `'${name}:${f.slice(1)}`),
-      ];
-    }, []);
-
-    return [...columns, ...relations];
+    return result.slice(0, this.options.maxFieldsCount);
   }
 
-  private static getType(field: { columnType: ColumnType; enumValues?: string[] }): string {
+  private getType(field: { columnType: ColumnType; enumValues?: string[] }): string {
     if (Array.isArray(field.columnType)) {
       return `Array<${this.getType({
         columnType: field.columnType[0],
@@ -166,7 +211,14 @@ export default class TypingGenerator {
     }
 
     if (field.columnType === 'Enum') {
-      return field.enumValues?.map(v => `'${v.replace(/'/g, "\\'")}'`).join(' | ') ?? 'string';
+      if (field.enumValues === undefined) return 'string';
+
+      return (
+        [...field.enumValues]
+          .sort((v1, v2) => v1.localeCompare(v2))
+          .map(v => `'${v.replace(/'/g, "\\'")}'`)
+          .join(' | ') ?? 'string'
+      );
     }
 
     if (typeof field.columnType === 'string') {
@@ -179,12 +231,12 @@ export default class TypingGenerator {
         Number: 'number',
         Point: '[number, number]',
         String: 'string',
-        Timeonly: 'string',
+        Time: 'string',
         Uuid: 'string',
       }[field.columnType];
     }
 
-    return `{${Object.entries(field.columnType)
+    return `{${TypingGenerator.sortedEntries(field.columnType)
       .map(([key, subType]) => `${key}: ${this.getType({ columnType: subType })}`)
       .join('; ')}}`;
   }

@@ -13,6 +13,10 @@ export default abstract class RelationRoute extends CollectionRoute {
     return this.collection.dataSource.getCollection(schema.foreignCollection);
   }
 
+  protected get relationUrlSlug(): string {
+    return this.escapeUrlSlug(this.relationName);
+  }
+
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,

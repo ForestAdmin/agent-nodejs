@@ -40,7 +40,7 @@ export default class TypeConverter {
       case DataTypes.TEXT.key:
         return 'String';
       case DataTypes.TIME.key:
-        return 'Timeonly';
+        return 'Time';
       case DataTypes.UUID.key:
       case DataTypes.UUIDV1.key:
       case DataTypes.UUIDV4.key:

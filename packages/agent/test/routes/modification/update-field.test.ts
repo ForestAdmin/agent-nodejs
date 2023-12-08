@@ -27,6 +27,19 @@ describe('UpdateField', () => {
     );
   });
 
+  test('should the route with escaped characters', () => {
+    const bookCollection = factories.collection.build({ name: 'books+*?' });
+    const dataSource = factories.dataSource.buildWithCollections([bookCollection]);
+    const updateRoute = new UpdateField(services, options, dataSource, 'books+*?');
+
+    updateRoute.setupRoutes(router);
+
+    expect(router.put).toHaveBeenCalledWith(
+      '/books\\+\\*\\?/:id/relationships/:field/:index(\\d+)',
+      expect.any(Function),
+    );
+  });
+
   describe('handleUpdate', () => {
     let dataSource: DataSource;
 

@@ -1,31 +1,33 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-export default async (baseUri: string, database: string): Promise<Sequelize> => {
+import { ConnectionDetails } from './connection-details';
+
+export default async (
+  connectionDetails: ConnectionDetails,
+  database: string,
+): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
   try {
-    sequelize = new Sequelize(baseUri, { logging: false });
+    if (connectionDetails.supports.multipleDatabases) {
+      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
+      await sequelize.getQueryInterface().dropDatabase(database);
+      await sequelize.getQueryInterface().createDatabase(database);
+      await sequelize.close();
+      sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
+    } else {
+      sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
+      await sequelize.getQueryInterface().dropTable('person');
+    }
 
-    await sequelize.getQueryInterface().dropDatabase(database);
-    await sequelize.getQueryInterface().createDatabase(database);
-    await sequelize.close();
-
-    sequelize = new Sequelize(`${baseUri}/${database}`, { logging: false });
-
-    sequelize.define(
-      'person',
-      { anid: { type: DataTypes.STRING, defaultValue: 'default string', primaryKey: true } },
-      {
-        timestamps: false,
-        tableName: 'person',
-      },
-    );
-
-    await sequelize.sync({ force: true });
-    await sequelize.query('ALTER TABLE person ADD COLUMN id INTEGER');
-    await sequelize.query('ALTER TABLE person DROP COLUMN anid CASCADE');
+    await sequelize.getQueryInterface().createTable('person', {
+      id: { type: DataTypes.INTEGER, primaryKey: false },
+    });
 
     return sequelize;
+  } catch (e) {
+    console.error(e);
+    throw e;
   } finally {
     await sequelize?.close();
   }

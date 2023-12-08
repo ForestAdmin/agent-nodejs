@@ -1,3 +1,300 @@
+## @forestadmin/datasource-sequelize [1.5.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.24...@forestadmin/datasource-sequelize@1.5.25) (2023-11-07)
+
+
+### Bug Fixes
+
+* send details to frontend on unexpected sequelize errors ([#868](https://github.com/ForestAdmin/agent-nodejs/issues/868)) ([f6cb9a5](https://github.com/ForestAdmin/agent-nodejs/commit/f6cb9a50dbadd123fbb22a5cb4b470012742651a))
+
+## @forestadmin/datasource-sequelize [1.5.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.23...@forestadmin/datasource-sequelize@1.5.24) (2023-10-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.0
+
+## @forestadmin/datasource-sequelize [1.5.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.22...@forestadmin/datasource-sequelize@1.5.23) (2023-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.1
+
+## @forestadmin/datasource-sequelize [1.5.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.21...@forestadmin/datasource-sequelize@1.5.22) (2023-09-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.28.0
+
+## @forestadmin/datasource-sequelize [1.5.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.20...@forestadmin/datasource-sequelize@1.5.21) (2023-09-26)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.27.0
+
+## @forestadmin/datasource-sequelize [1.5.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.19...@forestadmin/datasource-sequelize@1.5.20) (2023-09-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.26.0
+
+## @forestadmin/datasource-sequelize [1.5.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.18...@forestadmin/datasource-sequelize@1.5.19) (2023-09-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.25.0
+
+## @forestadmin/datasource-sequelize [1.5.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.17...@forestadmin/datasource-sequelize@1.5.18) (2023-09-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.24.0
+
+## @forestadmin/datasource-sequelize [1.5.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.16...@forestadmin/datasource-sequelize@1.5.17) (2023-09-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.23.0
+
+## @forestadmin/datasource-sequelize [1.5.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.15...@forestadmin/datasource-sequelize@1.5.16) (2023-09-20)
+
+
+### Bug Fixes
+
+* deprecate timeonly custom field type and map it to time ([#827](https://github.com/ForestAdmin/agent-nodejs/issues/827)) ([0311f7d](https://github.com/ForestAdmin/agent-nodejs/commit/0311f7d8367abc4cd9aed7f73c8bbe09dc203821))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.1
+
+## @forestadmin/datasource-sequelize [1.5.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.14...@forestadmin/datasource-sequelize@1.5.15) (2023-09-15)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.22.0
+
+## @forestadmin/datasource-sequelize [1.5.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.13...@forestadmin/datasource-sequelize@1.5.14) (2023-09-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.21.0
+
+## @forestadmin/datasource-sequelize [1.5.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.12...@forestadmin/datasource-sequelize@1.5.13) (2023-09-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.1
+
+## @forestadmin/datasource-sequelize [1.5.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.11...@forestadmin/datasource-sequelize@1.5.12) (2023-09-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.20.0
+
+## @forestadmin/datasource-sequelize [1.5.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.10...@forestadmin/datasource-sequelize@1.5.11) (2023-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.19.0
+
+## @forestadmin/datasource-sequelize [1.5.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.9...@forestadmin/datasource-sequelize@1.5.10) (2023-09-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.18.0
+
+## @forestadmin/datasource-sequelize [1.5.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.8...@forestadmin/datasource-sequelize@1.5.9) (2023-09-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.17.0
+
+## @forestadmin/datasource-sequelize [1.5.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.7...@forestadmin/datasource-sequelize@1.5.8) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.16.0
+
+## @forestadmin/datasource-sequelize [1.5.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.6...@forestadmin/datasource-sequelize@1.5.7) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.15.0
+
+## @forestadmin/datasource-sequelize [1.5.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.5...@forestadmin/datasource-sequelize@1.5.6) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.14.0
+
+## @forestadmin/datasource-sequelize [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.4...@forestadmin/datasource-sequelize@1.5.5) (2023-08-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.13.0
+
+## @forestadmin/datasource-sequelize [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.3...@forestadmin/datasource-sequelize@1.5.4) (2023-08-30)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.1
+
+## @forestadmin/datasource-sequelize [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.2...@forestadmin/datasource-sequelize@1.5.3) (2023-08-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.12.0
+
+## @forestadmin/datasource-sequelize [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.1...@forestadmin/datasource-sequelize@1.5.2) (2023-08-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.11.0
+
+## @forestadmin/datasource-sequelize [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.0...@forestadmin/datasource-sequelize@1.5.1) (2023-08-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0
+
+## @forestadmin/datasource-sequelize [1.5.1-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.0...@forestadmin/datasource-sequelize@1.5.1-alpha-widgets.1) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.10.0-alpha-widgets.1
+
+# @forestadmin/datasource-sequelize [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.4.0...@forestadmin/datasource-sequelize@1.5.0) (2023-08-11)
+
+
+### Features
+
+* **datasource-replica:** add replica datasource ([#783](https://github.com/ForestAdmin/agent-nodejs/issues/783)) ([e57a444](https://github.com/ForestAdmin/agent-nodejs/commit/e57a4440eb0f2ef69b95e42e1c41fd81e1813bb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0
+
+## @forestadmin/datasource-sequelize [1.4.1-alpha-widgets.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.4.1-alpha-widgets.1...@forestadmin/datasource-sequelize@1.4.1-alpha-widgets.2) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.2
+
+## @forestadmin/datasource-sequelize [1.4.1-alpha-widgets.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.4.0...@forestadmin/datasource-sequelize@1.4.1-alpha-widgets.1) (2023-08-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.9.0-alpha-widgets.1
+
 # @forestadmin/datasource-sequelize [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.3.7...@forestadmin/datasource-sequelize@1.4.0) (2023-07-27)
 
 
