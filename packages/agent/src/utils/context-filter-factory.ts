@@ -18,7 +18,12 @@ export default class ContextFilterFactory {
   ): PaginatedFilter {
     return new PaginatedFilter({
       sort: QueryStringParser.parseSort(collection, context),
-      page: QueryStringParser.parsePagination(context),
+      page:
+        collection.paginationType === 'page'
+          ? QueryStringParser.parsePagination(context)
+          : undefined,
+      cursor:
+        collection.paginationType === 'cursor' ? QueryStringParser.parseCursor(context) : undefined,
       ...ContextFilterFactory.build(collection, context, scope),
       ...partialFilter,
     });

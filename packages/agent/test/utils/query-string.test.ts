@@ -488,6 +488,46 @@ describe('QueryStringParser', () => {
     });
   });
 
+  describe('parseCursor', () => {
+    test('should return the pagination parameters', () => {
+      const context = createMockContext({
+        customProperties: { query: { 'page[size]': 10, starting_after: 3 } },
+      });
+
+      const cursor = QueryStringParser.parseCursor(context);
+
+      expect(cursor.limit).toEqual(10);
+      expect(cursor.cursor).toEqual('3');
+      expect(cursor.backward).toEqual(false);
+    });
+
+    describe('when context does not provide the limit parameters', () => {
+      test('should return the default limit 15', () => {
+        const context = createMockContext({
+          customProperties: { query: { ending_before: 2 } },
+        });
+
+        const cursor = QueryStringParser.parseCursor(context);
+
+        expect(cursor.limit).toEqual(15);
+        expect(cursor.cursor).toEqual('2');
+        expect(cursor.backward).toEqual(true);
+      });
+    });
+
+    describe('when context provides invalid values', () => {
+      test('should return a ValidationError', () => {
+        const context = createMockContext({
+          customProperties: { query: { 'page[size]': -5, starting_after: 1 } },
+        });
+
+        const fn = () => QueryStringParser.parseCursor(context);
+
+        expect(fn).toThrow('Invalid cursor pagination [limit: -5]');
+      });
+    });
+  });
+
   describe('parseSort', () => {
     test('should sort by pk ascending when not sort is given', () => {
       const context = createMockContext({

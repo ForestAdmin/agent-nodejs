@@ -269,6 +269,17 @@ describe('CollectionDecorator', () => {
     });
   });
 
+  describe('paginationType', () => {
+    it('calls the child paginationType', async () => {
+      const decoratedCollection = new DecoratedCollection(
+        factories.collection.build({ name: 'a name', paginationType: 'cursor' }),
+        factories.dataSource.build(),
+      );
+
+      expect(decoratedCollection.paginationType).toStrictEqual('cursor');
+    });
+  });
+
   describe('refineFilter', () => {
     it('should be the identity function', async () => {
       const decoratedCollection = new DecoratedCollection(

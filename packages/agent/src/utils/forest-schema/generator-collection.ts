@@ -25,7 +25,7 @@ export default class SchemaGeneratorCollection {
       isVirtual: false,
       name: collection.name,
       onlyForRelationships: false,
-      paginationType: 'page',
+      paginationType: collection.paginationType,
       segments: this.buildSegments(collection),
     };
   }

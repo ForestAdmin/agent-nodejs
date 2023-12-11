@@ -1,6 +1,7 @@
 import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
+  Cursor,
   Page,
   PaginatedFilter,
   Sort,
@@ -89,6 +90,51 @@ describe('FilterFactory', () => {
           segment: 'a-valid-segment',
         }),
       );
+    });
+  });
+
+  describe('with pagination cursor', () => {
+    const setupContextWithAllFeatures = (backward = false) => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+          },
+        }),
+        paginationType: 'cursor',
+      });
+
+      const context = createMockContext({
+        customProperties: {
+          query: {
+            'page[size]': 10,
+            starting_after: backward ? null : 1,
+            ending_before: backward ? 1 : null,
+          },
+        },
+      });
+
+      const scope = factories.conditionTreeLeaf.build();
+
+      return { context, collection, scope };
+    };
+
+    test('should build a paginated filter from a given context', () => {
+      const { context, collection, scope } = setupContextWithAllFeatures();
+
+      const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
+
+      expect(filter.cursor).toEqual(new Cursor(10, '1'));
+      expect(filter.page).toBeUndefined();
+    });
+
+    test('should build a paginated filter from a given backward context', () => {
+      const { context, collection, scope } = setupContextWithAllFeatures(true);
+
+      const filter = ContextFilterFactory.buildPaginated(collection, context, scope);
+
+      expect(filter.cursor).toEqual(new Cursor(10, '1', true));
+      expect(filter.page).toBeUndefined();
     });
   });
 });

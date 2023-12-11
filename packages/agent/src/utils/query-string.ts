@@ -4,6 +4,7 @@ import {
   Collection,
   ConditionTree,
   ConditionTreeValidator,
+  Cursor,
   Page,
   Projection,
   ProjectionFactory,
@@ -193,5 +194,24 @@ export default class QueryStringParser {
     } catch {
       throw new ValidationError(`Invalid sort: ${sortString}`);
     }
+  }
+
+  static parseCursor(context: Context): Cursor {
+    const { query, body } = context.request as any;
+
+    const queryItemsPerPage = (
+      body?.data?.attributes?.all_records_subset_query?.['page[size]'] ??
+      query['page[size]'] ??
+      DEFAULT_ITEMS_PER_PAGE
+    ).toString();
+
+    const itemsPerPage = Number.parseInt(queryItemsPerPage, 10);
+    const cursor = query.ending_before || query.starting_after;
+    const backward = !!query.ending_before;
+
+    if (Number.isNaN(itemsPerPage) || itemsPerPage <= 0)
+      throw new ValidationError(`Invalid cursor pagination [limit: ${itemsPerPage}]`);
+
+    return new Cursor(itemsPerPage, cursor, backward);
   }
 }

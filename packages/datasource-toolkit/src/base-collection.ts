@@ -3,7 +3,7 @@ import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
 import { Collection, DataSource } from './interfaces/collection';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
-import PaginatedFilter from './interfaces/query/filter/paginated';
+import PaginatedFilter, { PaginationType } from './interfaces/query/filter/paginated';
 import Filter from './interfaces/query/filter/unpaginated';
 import Projection from './interfaces/query/projection';
 import { RecordData } from './interfaces/record';
@@ -14,6 +14,8 @@ export default abstract class BaseCollection implements Collection {
   readonly name: string;
   readonly schema: CollectionSchema;
   readonly nativeDriver: unknown;
+
+  paginationType: PaginationType = 'page';
 
   constructor(name: string, datasource: DataSource, nativeDriver: unknown = null) {
     this.dataSource = datasource;

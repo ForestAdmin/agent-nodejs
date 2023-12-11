@@ -2,7 +2,7 @@ import { ActionField, ActionResult } from './action';
 import { Caller } from './caller';
 import { Chart } from './chart';
 import Aggregation, { AggregateResult } from './query/aggregation';
-import PaginatedFilter from './query/filter/paginated';
+import PaginatedFilter, { PaginationType } from './query/filter/paginated';
 import Filter from './query/filter/unpaginated';
 import Projection from './query/projection';
 import { CompositeId, RecordData } from './record';
@@ -29,6 +29,8 @@ export interface Collection {
   get dataSource(): DataSource;
   get name(): string;
   get schema(): CollectionSchema;
+
+  paginationType: PaginationType;
 
   execute(
     caller: Caller,

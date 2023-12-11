@@ -16,6 +16,7 @@ export { default as ConditionTreeBranch } from './interfaces/query/condition-tre
 export { default as ConditionTreeLeaf } from './interfaces/query/condition-tree/nodes/leaf';
 export { default as Filter } from './interfaces/query/filter/unpaginated';
 export { default as Page } from './interfaces/query/page';
+export { default as Cursor } from './interfaces/query/cursor';
 export { default as PaginatedFilter } from './interfaces/query/filter/paginated';
 export { default as Projection } from './interfaces/query/projection';
 export { default as Sort } from './interfaces/query/sort';
