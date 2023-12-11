@@ -75,7 +75,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }
 
     dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
-    if (metas?.shouldDropIfs) dynamicFields = await this.dropIfs(context, dynamicFields);
+    if (!metas?.includeHiddenFields) dynamicFields = await this.dropIfs(context, dynamicFields);
 
     const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 

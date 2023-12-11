@@ -21,7 +21,7 @@ export type GetFormMetas = {
   changedField?: string;
   searchField?: string | null;
   searchValues?: Record<string, string | null>;
-  shouldDropIfs?: boolean;
+  includeHiddenFields?: boolean;
 };
 
 export interface Collection {

@@ -185,7 +185,7 @@ describe('ActionDecorator', () => {
         'make photocopy',
         undefined,
         undefined,
-        { shouldDropIfs: true },
+        { includeHiddenFields: false },
       );
 
       expect(fields).toEqual([
@@ -205,7 +205,7 @@ describe('ActionDecorator', () => {
         'make photocopy',
         undefined,
         undefined,
-        { shouldDropIfs: false },
+        { includeHiddenFields: true },
       );
 
       expect(fields).toEqual([
@@ -466,13 +466,7 @@ describe('ActionDecorator', () => {
       });
 
       test('should be able to compute form', async () => {
-        const fields = await newBooks.getForm(
-          factories.caller.build(),
-          'make photocopy',
-          undefined,
-          undefined,
-          { shouldDropIfs: true },
-        );
+        const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
         expect(fields).toEqual([
           {
             label: 'lastname',
