@@ -539,7 +539,12 @@ describe('ActionRoute', () => {
           searchExtended: false,
           segment: null,
         },
-        { changedField: undefined, searchField: undefined, searchValues: {} },
+        {
+          changedField: undefined,
+          searchField: undefined,
+          searchValues: {},
+          includeHiddenFields: false,
+        },
       );
 
       expect(context.response.body).toEqual({ fields: [{ field: 'firstname', type: 'String' }] });
@@ -585,6 +590,7 @@ describe('ActionRoute', () => {
           searchValues: {
             firstname: undefined,
           },
+          includeHiddenFields: false,
         },
       );
 
