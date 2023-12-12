@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.36.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.7...@forestadmin/agent@1.36.8) (2023-12-12)
+
+
+### Bug Fixes
+
+* field formValue is sometimes not correctly provided in execute context ([#894](https://github.com/ForestAdmin/agent-nodejs/issues/894)) ([a24aab1](https://github.com/ForestAdmin/agent-nodejs/commit/a24aab1b51c89df7ff72f7325dd3471a7e71a68a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.39.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.2
+
 ## @forestadmin/agent [1.36.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.6...@forestadmin/agent@1.36.7) (2023-12-04)
 
 
