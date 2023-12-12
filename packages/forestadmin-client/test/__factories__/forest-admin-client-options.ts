@@ -7,5 +7,6 @@ export default Factory.define<ForestAdminClientOptionsWithDefaults>(() => ({
   forestServerUrl: 'https://api.development.forestadmin.com',
   permissionsCacheDurationInSeconds: 15 * 60,
   instantCacheRefresh: true,
+  experimental: null,
   logger: jest.fn(),
 }));
