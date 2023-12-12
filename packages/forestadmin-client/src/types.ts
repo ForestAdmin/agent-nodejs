@@ -31,7 +31,9 @@ export type ForestAdminClientOptions = {
   instantCacheRefresh?: boolean;
 };
 
-export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions>;
+export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions> & {
+  experimental?: unknown;
+};
 
 export type ForestAdminAuthServiceInterface = {
   init: () => Promise<void>;

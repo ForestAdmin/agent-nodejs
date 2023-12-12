@@ -40,6 +40,7 @@ export default function buildApplicationServices(
     permissionsCacheDurationInSeconds: 15 * 60,
     logger: defaultLogger,
     instantCacheRefresh: true,
+    experimental: null,
     ...options,
   };
 

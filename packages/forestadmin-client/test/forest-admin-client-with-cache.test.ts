@@ -229,7 +229,7 @@ describe('ForestAdminClientWithCache', () => {
     it('should subscribes the handler to the eventsHandler service', async () => {
       const eventsHandlerService = factories.eventsHandler.mockAllMethods().build();
       const forestAdminClient = new ForestAdminClient(
-        factories.forestAdminClientOptions.build(),
+        factories.forestAdminClientOptions.build({ experimental: { fakeCustomization: true } }),
         factories.permission.build(),
         factories.renderingPermission.build(),
         factories.contextVariablesInstantiator.build(),
@@ -248,6 +248,31 @@ describe('ForestAdminClientWithCache', () => {
 
       expect(eventsHandlerService.onRefreshCustomizations).toHaveBeenCalled();
       expect(eventsHandlerService.onRefreshCustomizations).toHaveBeenCalledWith(handler);
+    });
+
+    describe('without any "experimental" option', () => {
+      it('should not subscribes the handler to the eventsHandler service', async () => {
+        const eventsHandlerService = factories.eventsHandler.mockAllMethods().build();
+        const forestAdminClient = new ForestAdminClient(
+          factories.forestAdminClientOptions.build(),
+          factories.permission.build(),
+          factories.renderingPermission.build(),
+          factories.contextVariablesInstantiator.build(),
+          factories.chartHandler.build(),
+          factories.ipWhiteList.build(),
+          factories.schema.build(),
+          factories.auth.build(),
+          factories.modelCustomization.build(),
+          factories.eventsSubscription.build(),
+          eventsHandlerService,
+        );
+
+        const handler = jest.fn();
+
+        forestAdminClient.onRefreshCustomizations(handler);
+
+        expect(eventsHandlerService.onRefreshCustomizations).not.toHaveBeenCalled();
+      });
     });
   });
 });
