@@ -1,3 +1,18 @@
+## @forestadmin/forestadmin-client [1.25.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.1...@forestadmin/forestadmin-client@1.25.2) (2023-12-12)
+
+
+### Bug Fixes
+
+* **restart:** the agent should only restart when at least one customisation is installed ([#893](https://github.com/ForestAdmin/agent-nodejs/issues/893)) ([d5e3c15](https://github.com/ForestAdmin/agent-nodejs/commit/d5e3c155d1186a4409a4593ac07e036b127eaef7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.1
+
 ## @forestadmin/forestadmin-client [1.25.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.0...@forestadmin/forestadmin-client@1.25.1) (2023-11-22)
 
 
