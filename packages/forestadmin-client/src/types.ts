@@ -33,7 +33,7 @@ export type ForestAdminClientOptions = {
 };
 
 export type ForestAdminClientOptionsWithDefaults = Required<
-  Exclude<ForestAdminClientOptions, 'experimental'>
+  Omit<ForestAdminClientOptions, 'experimental'>
 > &
   Pick<ForestAdminClientOptions, 'experimental'>;
 
