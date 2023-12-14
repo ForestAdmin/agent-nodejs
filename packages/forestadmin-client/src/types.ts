@@ -29,11 +29,13 @@ export type ForestAdminClientOptions = {
   logger?: Logger;
   permissionsCacheDurationInSeconds?: number;
   instantCacheRefresh?: boolean;
-};
-
-export type ForestAdminClientOptionsWithDefaults = Required<ForestAdminClientOptions> & {
   experimental?: unknown;
 };
+
+export type ForestAdminClientOptionsWithDefaults = Required<
+  Omit<ForestAdminClientOptions, 'experimental'>
+> &
+  Pick<ForestAdminClientOptions, 'experimental'>;
 
 export type ForestAdminAuthServiceInterface = {
   init: () => Promise<void>;
