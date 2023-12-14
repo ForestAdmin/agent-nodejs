@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.25.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.2...@forestadmin/forestadmin-client@1.25.3) (2023-12-14)
+
+
+### Bug Fixes
+
+* **restart:** the agent should only restart when at least one customisation is installed ([#898](https://github.com/ForestAdmin/agent-nodejs/issues/898)) ([8a09a3b](https://github.com/ForestAdmin/agent-nodejs/commit/8a09a3be99c4734b39632139cf46551cb98cd870))
+
 ## @forestadmin/forestadmin-client [1.25.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.1...@forestadmin/forestadmin-client@1.25.2) (2023-12-12)
 
 
