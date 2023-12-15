@@ -118,6 +118,23 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     }
   };
 
+  override enterAnd = () => {
+    this.parentStack.push([]);
+  };
+
+  override exitAnd = () => {
+    const rules = this.parentStack.pop();
+    if (!rules.length) return;
+
+    const parentRules = this.parentStack[this.parentStack.length - 1];
+
+    if (rules.length === 1) {
+      parentRules.push(...rules);
+    } else {
+      parentRules.push(ConditionTreeFactory.intersect(...rules));
+    }
+  };
+
   private buildDefaultCondition(searchString: string, isNegated: boolean): ConditionTree {
     const targetedFields =
       this.currentField &&

@@ -245,6 +245,41 @@ describe('generateConditionTree', () => {
         }),
       );
     });
+
+    it('should return a negated condition for multiple fields', () => {
+      expect(parseQueryAndGenerateCondition('-foo', [titleField, descriptionField])).toEqual(
+        ConditionTreeFactory.intersect(
+          ConditionTreeFactory.fromPlainObject({
+            aggregator: 'Or',
+            conditions: [
+              {
+                field: 'title',
+                operator: 'NotIContains',
+                value: 'foo',
+              },
+              {
+                field: 'title',
+                operator: 'Missing',
+              },
+            ],
+          }),
+          ConditionTreeFactory.fromPlainObject({
+            aggregator: 'Or',
+            conditions: [
+              {
+                field: 'description',
+                operator: 'NotIContains',
+                value: 'foo',
+              },
+              {
+                field: 'description',
+                operator: 'Missing',
+              },
+            ],
+          }),
+        ),
+      );
+    });
   });
 
   describe('quoted text', () => {
@@ -563,34 +598,19 @@ describe('generateConditionTree', () => {
     });
   });
 
-  describe('complex query', () => {
-    it('should generate a valid condition tree corresponding to a complex query', () => {
-      expect(
-        parseQueryAndGenerateCondition('foo title:bar OR title:baz -banana', [
-          titleField,
-          descriptionField,
-        ]),
-      ).toEqual(
+  describe('OR and AND combined', () => {
+    it('should generate conditions with the correct priority with A OR B AND C', () => {
+      expect(parseQueryAndGenerateCondition('foo OR bar AND baz', [titleField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
-          aggregator: 'And',
+          aggregator: 'Or',
           conditions: [
             {
-              aggregator: 'Or',
-              conditions: [
-                {
-                  field: 'title',
-                  operator: 'IContains',
-                  value: 'foo',
-                },
-                {
-                  field: 'description',
-                  operator: 'IContains',
-                  value: 'foo',
-                },
-              ],
+              field: 'title',
+              operator: 'IContains',
+              value: 'foo',
             },
             {
-              aggregator: 'Or',
+              aggregator: 'And',
               conditions: [
                 {
                   field: 'title',
@@ -604,36 +624,162 @@ describe('generateConditionTree', () => {
                 },
               ],
             },
+          ],
+        }),
+      );
+    });
+
+    it('should generate conditions with the correct priority with A OR B C', () => {
+      expect(parseQueryAndGenerateCondition('foo OR bar baz', [titleField])).toEqual(
+        ConditionTreeFactory.fromPlainObject({
+          aggregator: 'Or',
+          conditions: [
             {
-              aggregator: 'Or',
-              conditions: [
-                {
-                  field: 'title',
-                  operator: 'NotIContains',
-                  value: 'banana',
-                },
-                {
-                  field: 'title',
-                  operator: 'Missing',
-                },
-              ],
+              field: 'title',
+              operator: 'IContains',
+              value: 'foo',
             },
             {
-              aggregator: 'Or',
+              aggregator: 'And',
               conditions: [
                 {
-                  field: 'description',
-                  operator: 'NotIContains',
-                  value: 'banana',
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'bar',
                 },
                 {
-                  field: 'description',
-                  operator: 'Missing',
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'baz',
                 },
               ],
             },
           ],
         }),
+      );
+    });
+
+    it('should generate conditions with the correct priority with A AND B OR C', () => {
+      expect(parseQueryAndGenerateCondition('foo AND bar OR baz', [titleField])).toEqual(
+        ConditionTreeFactory.fromPlainObject({
+          aggregator: 'Or',
+          conditions: [
+            {
+              aggregator: 'And',
+              conditions: [
+                {
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'foo',
+                },
+                {
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'bar',
+                },
+              ],
+            },
+            {
+              field: 'title',
+              operator: 'IContains',
+              value: 'baz',
+            },
+          ],
+        }),
+      );
+    });
+
+    it('should generate conditions with the correct priority with A B OR C', () => {
+      expect(parseQueryAndGenerateCondition('foo bar OR baz', [titleField])).toEqual(
+        ConditionTreeFactory.fromPlainObject({
+          aggregator: 'Or',
+          conditions: [
+            {
+              aggregator: 'And',
+              conditions: [
+                {
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'foo',
+                },
+                {
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'bar',
+                },
+              ],
+            },
+            {
+              field: 'title',
+              operator: 'IContains',
+              value: 'baz',
+            },
+          ],
+        }),
+      );
+    });
+  });
+
+  describe('complex query', () => {
+    it('should generate a valid condition tree corresponding to a complex query', () => {
+      expect(
+        parseQueryAndGenerateCondition('foo title:bar OR title:baz -banana', [
+          titleField,
+          descriptionField,
+        ]),
+      ).toEqual(
+        ConditionTreeFactory.union(
+          ConditionTreeFactory.intersect(
+            ConditionTreeFactory.union(
+              ConditionTreeFactory.fromPlainObject({
+                field: 'title',
+                operator: 'IContains',
+                value: 'foo',
+              }),
+              ConditionTreeFactory.fromPlainObject({
+                field: 'description',
+                operator: 'IContains',
+                value: 'foo',
+              }),
+            ),
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'bar',
+            }),
+          ),
+          ConditionTreeFactory.intersect(
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'baz',
+            }),
+            ConditionTreeFactory.intersect(
+              ConditionTreeFactory.union(
+                ConditionTreeFactory.fromPlainObject({
+                  field: 'title',
+                  operator: 'NotIContains',
+                  value: 'banana',
+                }),
+                ConditionTreeFactory.fromPlainObject({
+                  field: 'title',
+                  operator: 'Missing',
+                }),
+              ),
+              ConditionTreeFactory.union(
+                ConditionTreeFactory.fromPlainObject({
+                  field: 'description',
+                  operator: 'NotIContains',
+                  value: 'banana',
+                }),
+                ConditionTreeFactory.fromPlainObject({
+                  field: 'description',
+                  operator: 'Missing',
+                }),
+              ),
+            ),
+          ),
+        ),
       );
     });
   });

@@ -4,7 +4,7 @@ import {ParseTreeListener} from "antlr4";
 
 
 import { QueryContext } from "./QueryParser";
-import { QueryPartContext } from "./QueryParser";
+import { ParenthesizedContext } from "./QueryParser";
 import { OrContext } from "./QueryParser";
 import { AndContext } from "./QueryParser";
 import { QueryTokenContext } from "./QueryParser";
@@ -32,15 +32,15 @@ export default class QueryListener extends ParseTreeListener {
 	 */
 	exitQuery?: (ctx: QueryContext) => void;
 	/**
-	 * Enter a parse tree produced by `QueryParser.queryPart`.
+	 * Enter a parse tree produced by `QueryParser.parenthesized`.
 	 * @param ctx the parse tree
 	 */
-	enterQueryPart?: (ctx: QueryPartContext) => void;
+	enterParenthesized?: (ctx: ParenthesizedContext) => void;
 	/**
-	 * Exit a parse tree produced by `QueryParser.queryPart`.
+	 * Exit a parse tree produced by `QueryParser.parenthesized`.
 	 * @param ctx the parse tree
 	 */
-	exitQueryPart?: (ctx: QueryPartContext) => void;
+	exitParenthesized?: (ctx: ParenthesizedContext) => void;
 	/**
 	 * Enter a parse tree produced by `QueryParser.or`.
 	 * @param ctx the parse tree

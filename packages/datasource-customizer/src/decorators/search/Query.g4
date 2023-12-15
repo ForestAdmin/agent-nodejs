@@ -1,14 +1,14 @@
 grammar Query;
 
-query: (queryPart SEPARATOR)* queryPart EOF;
-queryPart: or | and | queryToken;
+query: (and | or | queryToken) EOF;
+parenthesized: '(' (or | and) ')';
 
-or: queryToken (SEPARATOR OR SEPARATOR queryToken)+;
+// OR is a bit different because of operator precedence
+or: (and | queryToken | parenthesized) (SEPARATOR OR SEPARATOR (and | queryToken | parenthesized))+;
 OR: 'OR';
 
-and: queryToken (SEPARATOR AND SEPARATOR queryToken)+;
+and: (queryToken | parenthesized) (SEPARATOR (AND SEPARATOR)? (queryToken | parenthesized))+;
 AND: 'AND';
-
 
 queryToken: (quoted | negated | propertyMatching | word);
 
@@ -27,7 +27,7 @@ name: TOKEN;
 value: word | quoted;
 
 word: TOKEN;
-TOKEN: ~[\r\n :\-]~[\r\n :]*;
+TOKEN: ~[\r\n :\-()]~[\r\n :()]*;
     
 SEPARATOR: SPACING | EOF;
 SPACING: [\r\n ]+;
