@@ -63,7 +63,7 @@ describe('TypingGenerator', () => {
           plain: {
             'array': Array<string>;
             'boolean': boolean;
-            'complex': { firstname: string; lastname: string };
+            'complex': { 'firstname': string; 'lastname': string };
             'enumWithoutValues': string;
             'enumWithValues': 'a' | 'b' | 'c';
             'id': number;
