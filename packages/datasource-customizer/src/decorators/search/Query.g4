@@ -1,7 +1,10 @@
 grammar Query;
 
-query: (and | or | queryToken) EOF;
-parenthesized: '(' (or | and) ')';
+query: (and | or | queryToken | parenthesized) EOF;
+
+parenthesized: PARENS_OPEN (or | and) PARENS_CLOSE;
+PARENS_OPEN: '(' ' '*;
+PARENS_CLOSE:  ' '* ')';
 
 // OR is a bit different because of operator precedence
 or: (and | queryToken | parenthesized) (SEPARATOR OR SEPARATOR (and | queryToken | parenthesized))+;
@@ -29,6 +32,6 @@ value: word | quoted;
 word: TOKEN;
 TOKEN: ~[\r\n :\-()]~[\r\n :()]*;
     
-SEPARATOR: SPACING | EOF;
-SPACING: [\r\n ]+;
+SEPARATOR: SPACING+ | EOF;
+SPACING: [\r\n ];
 

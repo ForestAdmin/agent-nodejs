@@ -812,6 +812,57 @@ describe('generateConditionTree', () => {
           ),
         );
       });
+
+      it('should work with (A OR B)', () => {
+        expect(parseQueryAndGenerateCondition('(foo OR bar)', [titleField])).toEqual(
+          ConditionTreeFactory.union(
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'foo',
+            }),
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'bar',
+            }),
+          ),
+        );
+      });
+
+      it('should work if parenthesis are spaced', () => {
+        expect(parseQueryAndGenerateCondition('( foo OR bar )', [titleField])).toEqual(
+          ConditionTreeFactory.union(
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'foo',
+            }),
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'bar',
+            }),
+          ),
+        );
+      });
+
+      it('should work with trailing spaces', () => {
+        expect(parseQueryAndGenerateCondition(' (foo OR bar) ', [titleField])).toEqual(
+          ConditionTreeFactory.union(
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'foo',
+            }),
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'bar',
+            }),
+          ),
+        );
+      });
     });
   });
 

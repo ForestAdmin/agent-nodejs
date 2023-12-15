@@ -30,8 +30,8 @@ type int = number;
 
 export default class QueryParser extends Parser {
   public static readonly T__0 = 1;
-  public static readonly T__1 = 2;
-  public static readonly T__2 = 3;
+  public static readonly PARENS_OPEN = 2;
+  public static readonly PARENS_CLOSE = 3;
   public static readonly OR = 4;
   public static readonly AND = 5;
   public static readonly SINGLE_QUOTED = 6;
@@ -54,9 +54,9 @@ export default class QueryParser extends Parser {
   public static readonly RULE_word = 10;
   public static readonly literalNames: (string | null)[] = [
     null,
-    "'('",
-    "')'",
     "':'",
+    null,
+    null,
     "'OR'",
     "'AND'",
     null,
@@ -66,8 +66,8 @@ export default class QueryParser extends Parser {
   public static readonly symbolicNames: (string | null)[] = [
     null,
     null,
-    null,
-    null,
+    'PARENS_OPEN',
+    'PARENS_CLOSE',
     'OR',
     'AND',
     'SINGLE_QUOTED',
@@ -130,7 +130,7 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 25;
+        this.state = 26;
         this._errHandler.sync(this);
         switch (this._interp.adaptivePredict(this._input, 0, this._ctx)) {
           case 1:
@@ -151,8 +151,14 @@ export default class QueryParser extends Parser {
               this.queryToken();
             }
             break;
+          case 4:
+            {
+              this.state = 25;
+              this.parenthesized();
+            }
+            break;
         }
-        this.state = 27;
+        this.state = 28;
         this.match(QueryParser.EOF);
       }
     } catch (re) {
@@ -175,26 +181,26 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 29;
-        this.match(QueryParser.T__0);
-        this.state = 32;
+        this.state = 30;
+        this.match(QueryParser.PARENS_OPEN);
+        this.state = 33;
         this._errHandler.sync(this);
         switch (this._interp.adaptivePredict(this._input, 1, this._ctx)) {
           case 1:
             {
-              this.state = 30;
+              this.state = 31;
               this.or();
             }
             break;
           case 2:
             {
-              this.state = 31;
+              this.state = 32;
               this.and();
             }
             break;
         }
-        this.state = 34;
-        this.match(QueryParser.T__1);
+        this.state = 35;
+        this.match(QueryParser.PARENS_CLOSE);
       }
     } catch (re) {
       if (re instanceof RecognitionException) {
@@ -217,65 +223,65 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 39;
+        this.state = 40;
         this._errHandler.sync(this);
         switch (this._interp.adaptivePredict(this._input, 2, this._ctx)) {
           case 1:
             {
-              this.state = 36;
+              this.state = 37;
               this.and();
             }
             break;
           case 2:
             {
-              this.state = 37;
+              this.state = 38;
               this.queryToken();
             }
             break;
           case 3:
             {
-              this.state = 38;
+              this.state = 39;
               this.parenthesized();
             }
             break;
         }
-        this.state = 49;
+        this.state = 50;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
           {
             {
-              this.state = 41;
-              this.match(QueryParser.SEPARATOR);
               this.state = 42;
-              this.match(QueryParser.OR);
-              this.state = 43;
               this.match(QueryParser.SEPARATOR);
-              this.state = 47;
+              this.state = 43;
+              this.match(QueryParser.OR);
+              this.state = 44;
+              this.match(QueryParser.SEPARATOR);
+              this.state = 48;
               this._errHandler.sync(this);
               switch (this._interp.adaptivePredict(this._input, 3, this._ctx)) {
                 case 1:
                   {
-                    this.state = 44;
+                    this.state = 45;
                     this.and();
                   }
                   break;
                 case 2:
                   {
-                    this.state = 45;
+                    this.state = 46;
                     this.queryToken();
                   }
                   break;
                 case 3:
                   {
-                    this.state = 46;
+                    this.state = 47;
                     this.parenthesized();
                   }
                   break;
               }
             }
           }
-          this.state = 51;
+          this.state = 52;
           this._errHandler.sync(this);
           _la = this._input.LA(1);
         } while (_la === 10);
@@ -302,7 +308,7 @@ export default class QueryParser extends Parser {
       let _alt: number;
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 55;
+        this.state = 56;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
           case 6:
@@ -310,20 +316,20 @@ export default class QueryParser extends Parser {
           case 8:
           case 9:
             {
-              this.state = 53;
+              this.state = 54;
               this.queryToken();
             }
             break;
-          case 1:
+          case 2:
             {
-              this.state = 54;
+              this.state = 55;
               this.parenthesized();
             }
             break;
           default:
             throw new NoViableAltException(this);
         }
-        this.state = 66;
+        this.state = 67;
         this._errHandler.sync(this);
         _alt = 1;
         do {
@@ -331,21 +337,21 @@ export default class QueryParser extends Parser {
             case 1:
               {
                 {
-                  this.state = 57;
+                  this.state = 58;
                   this.match(QueryParser.SEPARATOR);
-                  this.state = 60;
+                  this.state = 61;
                   this._errHandler.sync(this);
                   _la = this._input.LA(1);
                   if (_la === 5) {
                     {
-                      this.state = 58;
-                      this.match(QueryParser.AND);
                       this.state = 59;
+                      this.match(QueryParser.AND);
+                      this.state = 60;
                       this.match(QueryParser.SEPARATOR);
                     }
                   }
 
-                  this.state = 64;
+                  this.state = 65;
                   this._errHandler.sync(this);
                   switch (this._input.LA(1)) {
                     case 6:
@@ -353,13 +359,13 @@ export default class QueryParser extends Parser {
                     case 8:
                     case 9:
                       {
-                        this.state = 62;
+                        this.state = 63;
                         this.queryToken();
                       }
                       break;
-                    case 1:
+                    case 2:
                       {
-                        this.state = 63;
+                        this.state = 64;
                         this.parenthesized();
                       }
                       break;
@@ -372,7 +378,7 @@ export default class QueryParser extends Parser {
             default:
               throw new NoViableAltException(this);
           }
-          this.state = 68;
+          this.state = 69;
           this._errHandler.sync(this);
           _alt = this._interp.adaptivePredict(this._input, 8, this._ctx);
         } while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER);
@@ -397,30 +403,30 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 74;
+        this.state = 75;
         this._errHandler.sync(this);
         switch (this._interp.adaptivePredict(this._input, 9, this._ctx)) {
           case 1:
             {
-              this.state = 70;
+              this.state = 71;
               this.quoted();
             }
             break;
           case 2:
             {
-              this.state = 71;
+              this.state = 72;
               this.negated();
             }
             break;
           case 3:
             {
-              this.state = 72;
+              this.state = 73;
               this.propertyMatching();
             }
             break;
           case 4:
             {
-              this.state = 73;
+              this.state = 74;
               this.word();
             }
             break;
@@ -447,7 +453,7 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 76;
+        this.state = 77;
         _la = this._input.LA(1);
         if (!(_la === 6 || _la === 7)) {
           this._errHandler.recoverInline(this);
@@ -476,26 +482,26 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 78;
+        this.state = 79;
         this.match(QueryParser.NEGATION);
-        this.state = 82;
+        this.state = 83;
         this._errHandler.sync(this);
         switch (this._interp.adaptivePredict(this._input, 10, this._ctx)) {
           case 1:
             {
-              this.state = 79;
+              this.state = 80;
               this.word();
             }
             break;
           case 2:
             {
-              this.state = 80;
+              this.state = 81;
               this.quoted();
             }
             break;
           case 3:
             {
-              this.state = 81;
+              this.state = 82;
               this.propertyMatching();
             }
             break;
@@ -525,11 +531,11 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 84;
-        this.name();
         this.state = 85;
-        this.match(QueryParser.T__2);
+        this.name();
         this.state = 86;
+        this.match(QueryParser.T__0);
+        this.state = 87;
         this.value();
       }
     } catch (re) {
@@ -552,7 +558,7 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 88;
+        this.state = 89;
         this.match(QueryParser.TOKEN);
       }
     } catch (re) {
@@ -573,13 +579,13 @@ export default class QueryParser extends Parser {
     let localctx: ValueContext = new ValueContext(this, this._ctx, this.state);
     this.enterRule(localctx, 18, QueryParser.RULE_value);
     try {
-      this.state = 92;
+      this.state = 93;
       this._errHandler.sync(this);
       switch (this._input.LA(1)) {
         case 9:
           this.enterOuterAlt(localctx, 1);
           {
-            this.state = 90;
+            this.state = 91;
             this.word();
           }
           break;
@@ -587,7 +593,7 @@ export default class QueryParser extends Parser {
         case 7:
           this.enterOuterAlt(localctx, 2);
           {
-            this.state = 91;
+            this.state = 92;
             this.quoted();
           }
           break;
@@ -614,7 +620,7 @@ export default class QueryParser extends Parser {
     try {
       this.enterOuterAlt(localctx, 1);
       {
-        this.state = 94;
+        this.state = 95;
         this.match(QueryParser.TOKEN);
       }
     } catch (re) {
@@ -632,36 +638,37 @@ export default class QueryParser extends Parser {
   }
 
   public static readonly _serializedATN: number[] = [
-    4, 1, 11, 97, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7, 4, 2, 5, 7, 5, 2, 6, 7,
-    6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2, 10, 7, 10, 1, 0, 1, 0, 1, 0, 3, 0, 26, 8, 0, 1, 0, 1,
-    0, 1, 1, 1, 1, 1, 1, 3, 1, 33, 8, 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 2, 3, 2, 40, 8, 2, 1, 2, 1, 2,
-    1, 2, 1, 2, 1, 2, 1, 2, 3, 2, 48, 8, 2, 4, 2, 50, 8, 2, 11, 2, 12, 2, 51, 1, 3, 1, 3, 3, 3, 56,
-    8, 3, 1, 3, 1, 3, 1, 3, 3, 3, 61, 8, 3, 1, 3, 1, 3, 3, 3, 65, 8, 3, 4, 3, 67, 8, 3, 11, 3, 12,
-    3, 68, 1, 4, 1, 4, 1, 4, 1, 4, 3, 4, 75, 8, 4, 1, 5, 1, 5, 1, 6, 1, 6, 1, 6, 1, 6, 3, 6, 83, 8,
-    6, 1, 7, 1, 7, 1, 7, 1, 7, 1, 8, 1, 8, 1, 9, 1, 9, 3, 9, 93, 8, 9, 1, 10, 1, 10, 1, 10, 0, 0,
-    11, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 0, 1, 1, 0, 6, 7, 103, 0, 25, 1, 0, 0, 0, 2, 29, 1,
-    0, 0, 0, 4, 39, 1, 0, 0, 0, 6, 55, 1, 0, 0, 0, 8, 74, 1, 0, 0, 0, 10, 76, 1, 0, 0, 0, 12, 78, 1,
-    0, 0, 0, 14, 84, 1, 0, 0, 0, 16, 88, 1, 0, 0, 0, 18, 92, 1, 0, 0, 0, 20, 94, 1, 0, 0, 0, 22, 26,
-    3, 6, 3, 0, 23, 26, 3, 4, 2, 0, 24, 26, 3, 8, 4, 0, 25, 22, 1, 0, 0, 0, 25, 23, 1, 0, 0, 0, 25,
-    24, 1, 0, 0, 0, 26, 27, 1, 0, 0, 0, 27, 28, 5, 0, 0, 1, 28, 1, 1, 0, 0, 0, 29, 32, 5, 1, 0, 0,
-    30, 33, 3, 4, 2, 0, 31, 33, 3, 6, 3, 0, 32, 30, 1, 0, 0, 0, 32, 31, 1, 0, 0, 0, 33, 34, 1, 0, 0,
-    0, 34, 35, 5, 2, 0, 0, 35, 3, 1, 0, 0, 0, 36, 40, 3, 6, 3, 0, 37, 40, 3, 8, 4, 0, 38, 40, 3, 2,
-    1, 0, 39, 36, 1, 0, 0, 0, 39, 37, 1, 0, 0, 0, 39, 38, 1, 0, 0, 0, 40, 49, 1, 0, 0, 0, 41, 42, 5,
-    10, 0, 0, 42, 43, 5, 4, 0, 0, 43, 47, 5, 10, 0, 0, 44, 48, 3, 6, 3, 0, 45, 48, 3, 8, 4, 0, 46,
-    48, 3, 2, 1, 0, 47, 44, 1, 0, 0, 0, 47, 45, 1, 0, 0, 0, 47, 46, 1, 0, 0, 0, 48, 50, 1, 0, 0, 0,
-    49, 41, 1, 0, 0, 0, 50, 51, 1, 0, 0, 0, 51, 49, 1, 0, 0, 0, 51, 52, 1, 0, 0, 0, 52, 5, 1, 0, 0,
-    0, 53, 56, 3, 8, 4, 0, 54, 56, 3, 2, 1, 0, 55, 53, 1, 0, 0, 0, 55, 54, 1, 0, 0, 0, 56, 66, 1, 0,
-    0, 0, 57, 60, 5, 10, 0, 0, 58, 59, 5, 5, 0, 0, 59, 61, 5, 10, 0, 0, 60, 58, 1, 0, 0, 0, 60, 61,
-    1, 0, 0, 0, 61, 64, 1, 0, 0, 0, 62, 65, 3, 8, 4, 0, 63, 65, 3, 2, 1, 0, 64, 62, 1, 0, 0, 0, 64,
-    63, 1, 0, 0, 0, 65, 67, 1, 0, 0, 0, 66, 57, 1, 0, 0, 0, 67, 68, 1, 0, 0, 0, 68, 66, 1, 0, 0, 0,
-    68, 69, 1, 0, 0, 0, 69, 7, 1, 0, 0, 0, 70, 75, 3, 10, 5, 0, 71, 75, 3, 12, 6, 0, 72, 75, 3, 14,
-    7, 0, 73, 75, 3, 20, 10, 0, 74, 70, 1, 0, 0, 0, 74, 71, 1, 0, 0, 0, 74, 72, 1, 0, 0, 0, 74, 73,
-    1, 0, 0, 0, 75, 9, 1, 0, 0, 0, 76, 77, 7, 0, 0, 0, 77, 11, 1, 0, 0, 0, 78, 82, 5, 8, 0, 0, 79,
-    83, 3, 20, 10, 0, 80, 83, 3, 10, 5, 0, 81, 83, 3, 14, 7, 0, 82, 79, 1, 0, 0, 0, 82, 80, 1, 0, 0,
-    0, 82, 81, 1, 0, 0, 0, 83, 13, 1, 0, 0, 0, 84, 85, 3, 16, 8, 0, 85, 86, 5, 3, 0, 0, 86, 87, 3,
-    18, 9, 0, 87, 15, 1, 0, 0, 0, 88, 89, 5, 9, 0, 0, 89, 17, 1, 0, 0, 0, 90, 93, 3, 20, 10, 0, 91,
-    93, 3, 10, 5, 0, 92, 90, 1, 0, 0, 0, 92, 91, 1, 0, 0, 0, 93, 19, 1, 0, 0, 0, 94, 95, 5, 9, 0, 0,
-    95, 21, 1, 0, 0, 0, 12, 25, 32, 39, 47, 51, 55, 60, 64, 68, 74, 82, 92,
+    4, 1, 11, 98, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7, 4, 2, 5, 7, 5, 2, 6, 7,
+    6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2, 10, 7, 10, 1, 0, 1, 0, 1, 0, 1, 0, 3, 0, 27, 8, 0, 1,
+    0, 1, 0, 1, 1, 1, 1, 1, 1, 3, 1, 34, 8, 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 2, 3, 2, 41, 8, 2, 1, 2,
+    1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 3, 2, 49, 8, 2, 4, 2, 51, 8, 2, 11, 2, 12, 2, 52, 1, 3, 1, 3, 3,
+    3, 57, 8, 3, 1, 3, 1, 3, 1, 3, 3, 3, 62, 8, 3, 1, 3, 1, 3, 3, 3, 66, 8, 3, 4, 3, 68, 8, 3, 11,
+    3, 12, 3, 69, 1, 4, 1, 4, 1, 4, 1, 4, 3, 4, 76, 8, 4, 1, 5, 1, 5, 1, 6, 1, 6, 1, 6, 1, 6, 3, 6,
+    84, 8, 6, 1, 7, 1, 7, 1, 7, 1, 7, 1, 8, 1, 8, 1, 9, 1, 9, 3, 9, 94, 8, 9, 1, 10, 1, 10, 1, 10,
+    0, 0, 11, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 0, 1, 1, 0, 6, 7, 105, 0, 26, 1, 0, 0, 0, 2,
+    30, 1, 0, 0, 0, 4, 40, 1, 0, 0, 0, 6, 56, 1, 0, 0, 0, 8, 75, 1, 0, 0, 0, 10, 77, 1, 0, 0, 0, 12,
+    79, 1, 0, 0, 0, 14, 85, 1, 0, 0, 0, 16, 89, 1, 0, 0, 0, 18, 93, 1, 0, 0, 0, 20, 95, 1, 0, 0, 0,
+    22, 27, 3, 6, 3, 0, 23, 27, 3, 4, 2, 0, 24, 27, 3, 8, 4, 0, 25, 27, 3, 2, 1, 0, 26, 22, 1, 0, 0,
+    0, 26, 23, 1, 0, 0, 0, 26, 24, 1, 0, 0, 0, 26, 25, 1, 0, 0, 0, 27, 28, 1, 0, 0, 0, 28, 29, 5, 0,
+    0, 1, 29, 1, 1, 0, 0, 0, 30, 33, 5, 2, 0, 0, 31, 34, 3, 4, 2, 0, 32, 34, 3, 6, 3, 0, 33, 31, 1,
+    0, 0, 0, 33, 32, 1, 0, 0, 0, 34, 35, 1, 0, 0, 0, 35, 36, 5, 3, 0, 0, 36, 3, 1, 0, 0, 0, 37, 41,
+    3, 6, 3, 0, 38, 41, 3, 8, 4, 0, 39, 41, 3, 2, 1, 0, 40, 37, 1, 0, 0, 0, 40, 38, 1, 0, 0, 0, 40,
+    39, 1, 0, 0, 0, 41, 50, 1, 0, 0, 0, 42, 43, 5, 10, 0, 0, 43, 44, 5, 4, 0, 0, 44, 48, 5, 10, 0,
+    0, 45, 49, 3, 6, 3, 0, 46, 49, 3, 8, 4, 0, 47, 49, 3, 2, 1, 0, 48, 45, 1, 0, 0, 0, 48, 46, 1, 0,
+    0, 0, 48, 47, 1, 0, 0, 0, 49, 51, 1, 0, 0, 0, 50, 42, 1, 0, 0, 0, 51, 52, 1, 0, 0, 0, 52, 50, 1,
+    0, 0, 0, 52, 53, 1, 0, 0, 0, 53, 5, 1, 0, 0, 0, 54, 57, 3, 8, 4, 0, 55, 57, 3, 2, 1, 0, 56, 54,
+    1, 0, 0, 0, 56, 55, 1, 0, 0, 0, 57, 67, 1, 0, 0, 0, 58, 61, 5, 10, 0, 0, 59, 60, 5, 5, 0, 0, 60,
+    62, 5, 10, 0, 0, 61, 59, 1, 0, 0, 0, 61, 62, 1, 0, 0, 0, 62, 65, 1, 0, 0, 0, 63, 66, 3, 8, 4, 0,
+    64, 66, 3, 2, 1, 0, 65, 63, 1, 0, 0, 0, 65, 64, 1, 0, 0, 0, 66, 68, 1, 0, 0, 0, 67, 58, 1, 0, 0,
+    0, 68, 69, 1, 0, 0, 0, 69, 67, 1, 0, 0, 0, 69, 70, 1, 0, 0, 0, 70, 7, 1, 0, 0, 0, 71, 76, 3, 10,
+    5, 0, 72, 76, 3, 12, 6, 0, 73, 76, 3, 14, 7, 0, 74, 76, 3, 20, 10, 0, 75, 71, 1, 0, 0, 0, 75,
+    72, 1, 0, 0, 0, 75, 73, 1, 0, 0, 0, 75, 74, 1, 0, 0, 0, 76, 9, 1, 0, 0, 0, 77, 78, 7, 0, 0, 0,
+    78, 11, 1, 0, 0, 0, 79, 83, 5, 8, 0, 0, 80, 84, 3, 20, 10, 0, 81, 84, 3, 10, 5, 0, 82, 84, 3,
+    14, 7, 0, 83, 80, 1, 0, 0, 0, 83, 81, 1, 0, 0, 0, 83, 82, 1, 0, 0, 0, 84, 13, 1, 0, 0, 0, 85,
+    86, 3, 16, 8, 0, 86, 87, 5, 1, 0, 0, 87, 88, 3, 18, 9, 0, 88, 15, 1, 0, 0, 0, 89, 90, 5, 9, 0,
+    0, 90, 17, 1, 0, 0, 0, 91, 94, 3, 20, 10, 0, 92, 94, 3, 10, 5, 0, 93, 91, 1, 0, 0, 0, 93, 92, 1,
+    0, 0, 0, 94, 19, 1, 0, 0, 0, 95, 96, 5, 9, 0, 0, 96, 21, 1, 0, 0, 0, 12, 26, 33, 40, 48, 52, 56,
+    61, 65, 69, 75, 83, 93,
   ];
 
   private static __ATN: ATN;
@@ -695,6 +702,9 @@ export class QueryContext extends ParserRuleContext {
   public queryToken(): QueryTokenContext {
     return this.getTypedRuleContext(QueryTokenContext, 0) as QueryTokenContext;
   }
+  public parenthesized(): ParenthesizedContext {
+    return this.getTypedRuleContext(ParenthesizedContext, 0) as ParenthesizedContext;
+  }
   public get ruleIndex(): number {
     return QueryParser.RULE_query;
   }
@@ -714,6 +724,12 @@ export class ParenthesizedContext extends ParserRuleContext {
   constructor(parser?: QueryParser, parent?: ParserRuleContext, invokingState?: number) {
     super(parent, invokingState);
     this.parser = parser;
+  }
+  public PARENS_OPEN(): TerminalNode {
+    return this.getToken(QueryParser.PARENS_OPEN, 0);
+  }
+  public PARENS_CLOSE(): TerminalNode {
+    return this.getToken(QueryParser.PARENS_CLOSE, 0);
   }
   public or(): OrContext {
     return this.getTypedRuleContext(OrContext, 0) as OrContext;

@@ -18,7 +18,7 @@ import QueryLexer from './generated-parser/QueryLexer';
 import { QueryContext } from './generated-parser/QueryParser';
 
 export function parseQuery(query: string): QueryContext {
-  const chars = new CharStream(query); // replace this with a FileStream as required
+  const chars = new CharStream(query?.trim()); // replace this with a FileStream as required
   const lexer = new QueryLexer(chars);
   const tokens = new CommonTokenStream(lexer);
   const parser = new CustomQueryParser(tokens);
