@@ -633,6 +633,30 @@ describe('Builder > Collection', () => {
       await dsc.getDataSource(logger);
 
       expect(spy).toHaveBeenCalledTimes(20);
+      [
+        'Equal',
+        'NotEqual',
+        'Present',
+        'Blank',
+        'In',
+        'NotIn',
+        'StartsWith',
+        'EndsWith',
+        'IStartsWith',
+        'IEndsWith',
+        'Contains',
+        'NotContains',
+        'IContains',
+        'NotIContains',
+        'Missing',
+        'Like',
+        'ILike',
+        'LongerThan',
+        'ShorterThan',
+        'IncludesAll',
+      ].forEach(operator => {
+        expect(spy).toHaveBeenCalledWith('lastName', operator);
+      });
       expect(self).toEqual(customizer);
     });
   });
