@@ -237,7 +237,7 @@ export default class TypingGenerator {
     }
 
     return `{${TypingGenerator.sortedEntries(field.columnType)
-      .map(([key, subType]) => `${key}: ${this.getType({ columnType: subType })}`)
+      .map(([key, subType]) => `'${key}': ${this.getType({ columnType: subType })}`)
       .join('; ')}}`;
   }
 }
