@@ -30,7 +30,9 @@ name: TOKEN;
 value: word | quoted;
 
 word: TOKEN;
-TOKEN: ~[\r\n :\-()]~[\r\n :()]*;
+TOKEN: ONE_CHAR_TOKEN | MULTIPLE_CHARS_TOKEN;
+fragment ONE_CHAR_TOKEN: ~[\r\n :\-()];
+fragment MULTIPLE_CHARS_TOKEN:~[\r\n :\-(]~[\r\n :]+ ~[\r\n :)];
     
 SEPARATOR: SPACING+ | EOF;
 SPACING: [\r\n ];

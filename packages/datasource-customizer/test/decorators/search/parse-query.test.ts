@@ -863,6 +863,16 @@ describe('generateConditionTree', () => {
           ),
         );
       });
+
+      it('should allow tokens to contain parenthesis if not at the end and beginning', () => {
+        expect(parseQueryAndGenerateCondition('foo(bar)baz', [titleField])).toEqual(
+          ConditionTreeFactory.fromPlainObject({
+            field: 'title',
+            operator: 'IContains',
+            value: 'foo(bar)baz',
+          }),
+        );
+      });
     });
   });
 
