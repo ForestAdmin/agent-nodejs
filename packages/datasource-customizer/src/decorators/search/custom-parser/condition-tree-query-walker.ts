@@ -10,7 +10,7 @@ import {
 import { ColumnSchema, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 import buildFieldFilter from '../filter-builder/build-field-filter';
 
-export default class QueryWalker extends QueryListener {
+export default class ConditionTreeQueryWalker extends QueryListener {
   private parentStack: ConditionTree[][] = [];
   private currentField: string = null;
   private isNegated: boolean = false;
@@ -91,7 +91,7 @@ export default class QueryWalker extends QueryListener {
   };
 
   override enterPropertyMatching = (ctx: PropertyMatchingContext) => {
-    this.currentField = ctx.getChild(0).getText();
+    this.currentField = ctx.getChild(0).getText().replace(/\./g, ':');
   };
 
   override exitPropertyMatching = (ctx: PropertyMatchingContext) => {
@@ -118,9 +118,7 @@ export default class QueryWalker extends QueryListener {
     const targetedFields =
       this.currentField &&
       this.fields.filter(
-        ([field]) =>
-          field.toLocaleLowerCase().replace(/:/g, '.') ===
-          this.currentField.trim().toLocaleLowerCase(),
+        ([field]) => field.toLocaleLowerCase() === this.currentField.trim().toLocaleLowerCase(),
       );
 
     let rules: ConditionTree[] = [];

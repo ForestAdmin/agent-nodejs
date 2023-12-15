@@ -12,18 +12,26 @@ import CustomQueryParser from './custom-parser/custom-query-parser';
  * And can be tested online here: http://lab.antlr.org/
  */
 import QueryLexer from './generated-parser/QueryLexer';
-import QueryWalker from './custom-parser/query-walker';
+import ConditionTreeQueryWalker from './custom-parser/condition-tree-query-walker';
+import { QueryContext } from './generated-parser/queryParser';
+import FieldsQueryWalker from './custom-parser/fields-query-walker';
 
-export default function parseQuery(query: string, fields: [string, ColumnSchema][]): ConditionTree {
+export function parseQuery(query: string): QueryContext {
   if (!query) return null;
 
   const chars = new CharStream(query); // replace this with a FileStream as required
   const lexer = new QueryLexer(chars);
   const tokens = new CommonTokenStream(lexer);
   const parser = new CustomQueryParser(tokens);
-  const tree = parser.query();
 
-  const walker = new QueryWalker(fields);
+  return parser.query();
+}
+
+export function generateConditionTree(
+  tree: QueryContext,
+  fields: [string, ColumnSchema][],
+): ConditionTree {
+  const walker = new ConditionTreeQueryWalker(fields);
   ParseTreeWalker.DEFAULT.walk(walker, tree);
 
   const result = walker.conditionTree;
@@ -33,5 +41,12 @@ export default function parseQuery(query: string, fields: [string, ColumnSchema]
   }
 
   // Parsing error, fallback
-  return walker.generateDefaultFilter(query);
+  return walker.generateDefaultFilter(tree.getText());
+}
+
+export function extractSpecifiedFields(tree: QueryContext) {
+  const walker = new FieldsQueryWalker();
+  ParseTreeWalker.DEFAULT.walk(walker, tree);
+
+  return walker.fields;
 }

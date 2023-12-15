@@ -11,8 +11,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import { SearchDefinition } from './types';
-import CollectionCustomizationContext from '../../context/collection-context';
-import parseQuery from './parse-query';
+import { parseQuery, extractSpecifiedFields, generateConditionTree } from './parse-query';
+import CollectionSearchContext, { SearchOptions } from './collection-search-context';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<SearchCollectionDecorator>;
@@ -34,8 +34,8 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     // Implement search ourselves
     if (this.replacer || !this.childCollection.schema.searchable) {
-      const ctx = new CollectionCustomizationContext(this, caller);
-      let tree = this.defaultReplacer(filter.search, filter.searchExtended);
+      const ctx = new CollectionSearchContext(this, caller, this.generateSearchFilter.bind(this));
+      let tree = this.generateSearchFilter(filter.search, { extended: filter.searchExtended });
 
       if (this.replacer) {
         const plainTree = await this.replacer(filter.search, filter.searchExtended, ctx);
@@ -55,12 +55,26 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return filter;
   }
 
-  private defaultReplacer(search: string, extended: boolean): ConditionTree {
-    const searchableFields = this.getFields(this.childCollection, extended);
+  private generateSearchFilter(searchText: string, options?: SearchOptions): ConditionTree {
+    const parsedQuery = parseQuery(searchText);
 
-    const filter = parseQuery(search, searchableFields);
+    const specifiedFields = options?.onlyFields ? [] : extractSpecifiedFields(parsedQuery);
 
-    return filter;
+    const defaultFields = options?.onlyFields
+      ? []
+      : this.getFields(this.childCollection, Boolean(options?.extended));
+
+    const searchableFields = [
+      ...defaultFields,
+      ...[...specifiedFields, ...(options?.onlyFields ?? []), ...(options?.includeFields ?? [])]
+        .map(name => this.lenientGetSchema(name))
+        .filter(Boolean)
+        .map(schema => [schema.field, schema.schema] as [string, ColumnSchema]),
+    ]
+      .filter(Boolean)
+      .filter(([field]) => !options?.excludeFields?.includes(field));
+
+    return generateConditionTree(parsedQuery, searchableFields);
   }
 
   private getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {
