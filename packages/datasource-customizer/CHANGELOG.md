@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.39.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.1...@forestadmin/datasource-customizer@1.39.2) (2023-12-15)
+
+
+### Bug Fixes
+
+* quote typing keys in the generated typing file ([#899](https://github.com/ForestAdmin/agent-nodejs/issues/899)) ([d522d03](https://github.com/ForestAdmin/agent-nodejs/commit/d522d03a5f7961aed57c9d34a9b74c09568af7ae))
+
 ## @forestadmin/datasource-customizer [1.39.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.0...@forestadmin/datasource-customizer@1.39.1) (2023-12-12)
 
 
