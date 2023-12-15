@@ -20,6 +20,10 @@ export default function buildFieldFilter(
 ): ConditionTree {
   const { columnType, filterOperators } = schema;
 
+  const defaultCondition = isNegated
+    ? ConditionTreeFactory.MatchAll
+    : ConditionTreeFactory.MatchNone;
+
   if (searchString === 'NULL') {
     if (!isNegated && filterOperators?.has('Missing')) {
       return new ConditionTreeLeaf(field, 'Missing');
@@ -29,7 +33,7 @@ export default function buildFieldFilter(
       return new ConditionTreeLeaf(field, 'Present');
     }
 
-    return null;
+    return defaultCondition;
   }
 
   switch (columnType) {
@@ -48,6 +52,6 @@ export default function buildFieldFilter(
     case 'Dateonly':
       return buildDateFieldFilter(field, filterOperators, searchString, isNegated);
     default:
-      return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
+      return defaultCondition;
   }
 }
