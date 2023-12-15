@@ -718,6 +718,101 @@ describe('generateConditionTree', () => {
         }),
       );
     });
+
+    describe('with parenthesis', () => {
+      it('should apply the right priority to (A OR B) AND C', () => {
+        expect(parseQueryAndGenerateCondition('(foo OR bar) AND baz', [titleField])).toEqual(
+          ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                aggregator: 'Or',
+                conditions: [
+                  {
+                    field: 'title',
+                    operator: 'IContains',
+                    value: 'foo',
+                  },
+                  {
+                    field: 'title',
+                    operator: 'IContains',
+                    value: 'bar',
+                  },
+                ],
+              },
+              {
+                field: 'title',
+                operator: 'IContains',
+                value: 'baz',
+              },
+            ],
+          }),
+        );
+      });
+
+      it('should apply the right priority to C AND (A OR B)', () => {
+        expect(parseQueryAndGenerateCondition('baz AND (foo OR bar)', [titleField])).toEqual(
+          ConditionTreeFactory.fromPlainObject({
+            aggregator: 'And',
+            conditions: [
+              {
+                field: 'title',
+                operator: 'IContains',
+                value: 'baz',
+              },
+              {
+                aggregator: 'Or',
+                conditions: [
+                  {
+                    field: 'title',
+                    operator: 'IContains',
+                    value: 'foo',
+                  },
+                  {
+                    field: 'title',
+                    operator: 'IContains',
+                    value: 'bar',
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+      });
+
+      it('should correctly interpret nested conditions', () => {
+        expect(
+          parseQueryAndGenerateCondition('foo AND (bar OR (baz AND foo))', [titleField]),
+        ).toEqual(
+          ConditionTreeFactory.intersect(
+            ConditionTreeFactory.fromPlainObject({
+              field: 'title',
+              operator: 'IContains',
+              value: 'foo',
+            }),
+            ConditionTreeFactory.union(
+              ConditionTreeFactory.fromPlainObject({
+                field: 'title',
+                operator: 'IContains',
+                value: 'bar',
+              }),
+              ConditionTreeFactory.intersect(
+                ConditionTreeFactory.fromPlainObject({
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'baz',
+                }),
+                ConditionTreeFactory.fromPlainObject({
+                  field: 'title',
+                  operator: 'IContains',
+                  value: 'foo',
+                }),
+              ),
+            ),
+          ),
+        );
+      });
+    });
   });
 
   describe('complex query', () => {
