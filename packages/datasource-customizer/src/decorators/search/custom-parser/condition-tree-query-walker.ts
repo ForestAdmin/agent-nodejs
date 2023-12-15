@@ -7,7 +7,7 @@ import {
   PropertyMatchingContext,
   QuotedContext,
   WordContext,
-} from '../generated-parser/queryParser';
+} from '../generated-parser/QueryParser';
 
 export default class ConditionTreeQueryWalker extends QueryListener {
   private parentStack: ConditionTree[][] = [];

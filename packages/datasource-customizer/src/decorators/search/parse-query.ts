@@ -15,7 +15,7 @@ import CustomQueryParser from './custom-parser/custom-query-parser';
  */
 import FieldsQueryWalker from './custom-parser/fields-query-walker';
 import QueryLexer from './generated-parser/QueryLexer';
-import { QueryContext } from './generated-parser/queryParser';
+import { QueryContext } from './generated-parser/QueryParser';
 
 export function parseQuery(query: string): QueryContext {
   if (!query) return null;
