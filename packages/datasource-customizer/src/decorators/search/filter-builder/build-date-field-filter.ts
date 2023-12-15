@@ -6,7 +6,9 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 function isYear(str: string): boolean {
-  return /^\d{4}$/.test(str) && Number(str) <= new Date().getFullYear() + 100;
+  return (
+    /^\d{4}$/.test(str) && Number(str) >= 1800 && Number(str) <= new Date().getFullYear() + 100
+  );
 }
 
 function isPlainDate(str: string): boolean {
