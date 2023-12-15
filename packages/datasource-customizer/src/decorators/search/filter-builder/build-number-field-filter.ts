@@ -38,5 +38,5 @@ export default function buildNumberFieldFilter(
     );
   }
 
-  return ConditionTreeFactory.MatchNone;
+  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
 }

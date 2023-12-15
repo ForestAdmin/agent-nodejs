@@ -121,7 +121,7 @@ export default function buildDateFieldFilter(
       );
     }
 
-    return ConditionTreeFactory.MatchNone;
+    return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
   }
 
   for (const [operatorPrefix, positiveOperations, negativeOperations] of supportedOperators) {

@@ -12,7 +12,8 @@ export default function buildUuidFieldFilter(
   searchString: string,
   isNegated: boolean,
 ): ConditionTree {
-  if (!uuidValidate(searchString)) return null;
+  if (!uuidValidate(searchString))
+    return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
 
   if (!isNegated && filterOperators?.has('Equal')) {
     return new ConditionTreeLeaf(field, 'Equal', searchString);
@@ -29,5 +30,5 @@ export default function buildUuidFieldFilter(
     return new ConditionTreeLeaf(field, 'NotEqual', searchString);
   }
 
-  return ConditionTreeFactory.MatchNone;
+  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
 }

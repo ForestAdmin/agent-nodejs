@@ -10,7 +10,7 @@ describe('generateConditionTree', () => {
       type: 'Column',
       filterOperators: new Set([
         'IContains',
-        'Blank',
+        'Missing',
         'NotIContains',
         'Present',
         'Equal',
@@ -26,7 +26,7 @@ describe('generateConditionTree', () => {
       type: 'Column',
       filterOperators: new Set([
         'IContains',
-        'Blank',
+        'Missing',
         'NotIContains',
         'Present',
         'Equal',
@@ -117,7 +117,10 @@ describe('generateConditionTree', () => {
       it.each(['foo', '', '42.43.44', '-42.43.44'])(
         'should return null if the value is not a number (%s)',
         value => {
-          expect(parseQueryAndGenerateCondition(value, [scoreField])).toEqual(null);
+          expect(parseQueryAndGenerateCondition(value, [scoreField])).toEqual({
+            aggregator: 'Or',
+            conditions: [],
+          });
         },
       );
 
@@ -215,7 +218,10 @@ describe('generateConditionTree', () => {
       );
 
       it('should not generate a condition tree if the value is not a boolean', () => {
-        expect(parseQueryAndGenerateCondition('foo', [isActive])).toEqual(null);
+        expect(parseQueryAndGenerateCondition('foo', [isActive])).toEqual({
+          aggregator: 'Or',
+          conditions: [],
+        });
       });
     });
   });
@@ -233,7 +239,7 @@ describe('generateConditionTree', () => {
             },
             {
               field: 'title',
-              operator: 'Blank',
+              operator: 'Missing',
             },
           ],
         }),
@@ -308,7 +314,7 @@ describe('generateConditionTree', () => {
         it('should generate a condition tree with the property and the value', () => {
           expect(parseQueryAndGenerateCondition('title:NULL', fields)).toEqual(
             ConditionTreeFactory.fromPlainObject({
-              operator: 'Blank',
+              operator: 'Missing',
               field: 'title',
             }),
           );
@@ -341,7 +347,7 @@ describe('generateConditionTree', () => {
               },
               {
                 field: 'title',
-                operator: 'Blank',
+                operator: 'Missing',
               },
             ],
           }),
@@ -608,7 +614,7 @@ describe('generateConditionTree', () => {
                 },
                 {
                   field: 'title',
-                  operator: 'Blank',
+                  operator: 'Missing',
                 },
               ],
             },
@@ -622,7 +628,7 @@ describe('generateConditionTree', () => {
                 },
                 {
                   field: 'description',
-                  operator: 'Blank',
+                  operator: 'Missing',
                 },
               ],
             },

@@ -20,8 +20,9 @@ export default function buildEnumFieldFilter(
 ): ConditionTree {
   const { enumValues, filterOperators } = schema;
   const searchValue = lenientFind(enumValues, searchString);
+  const defaultResult = isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
 
-  if (!searchValue) return ConditionTreeFactory.MatchNone;
+  if (!searchValue) return defaultResult;
 
   if (filterOperators?.has('Equal') && !isNegated) {
     return new ConditionTreeLeaf(field, 'Equal', searchValue);
@@ -39,5 +40,5 @@ export default function buildEnumFieldFilter(
     return new ConditionTreeLeaf(field, 'NotEqual', searchValue);
   }
 
-  return ConditionTreeFactory.MatchNone;
+  return defaultResult;
 }

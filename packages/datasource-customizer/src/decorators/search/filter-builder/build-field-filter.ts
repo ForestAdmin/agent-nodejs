@@ -48,6 +48,6 @@ export default function buildFieldFilter(
     case 'Dateonly':
       return buildDateFieldFilter(field, filterOperators, searchString, isNegated);
     default:
-      return ConditionTreeFactory.MatchNone;
+      return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
   }
 }

@@ -40,5 +40,5 @@ export default function buildStringFieldFilter(
     return new ConditionTreeLeaf(field, operator, searchString);
   }
 
-  return ConditionTreeFactory.MatchNone;
+  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
 }

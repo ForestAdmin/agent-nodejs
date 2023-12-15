@@ -37,5 +37,5 @@ export default function buildBooleanFieldFilter(
     }
   }
 
-  return ConditionTreeFactory.MatchNone;
+  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
 }
