@@ -39,6 +39,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
     'Like',
     'ILike',
     'IContains',
+    'NotIContains',
     'IEndsWith',
     'IStartsWith',
   ],

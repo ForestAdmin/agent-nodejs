@@ -13,7 +13,7 @@
   "eslint.workingDirectories": ["."],
   "eslint.format.enable": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
 
   // Easier debugging
@@ -53,5 +53,9 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
 
   // Debugging tests
-  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000"
+  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000",
+  "eslint.validate": [
+    "glimmer-ts",
+    "glimmer-js"
+  ]
 }
