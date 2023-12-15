@@ -30,7 +30,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
     // Search string is not significant
     if (!filter?.search?.trim().length) {
-      return filter?.override({ search: undefined });
+      return filter?.override({ search: null });
     }
 
     // Implement search ourselves
@@ -50,7 +50,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       // (this is the desired behavior).
       return filter.override({
         conditionTree: ConditionTreeFactory.intersect(filter.conditionTree, tree),
-        search: undefined,
+        search: null,
       });
     }
 

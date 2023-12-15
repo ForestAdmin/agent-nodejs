@@ -2,7 +2,7 @@ import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base'
 
 export type FilterComponents = {
   conditionTree?: ConditionTree;
-  search?: string;
+  search?: string | null;
   searchExtended?: boolean;
   segment?: string;
 };
