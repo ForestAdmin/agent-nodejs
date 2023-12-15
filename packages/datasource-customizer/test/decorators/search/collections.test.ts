@@ -4,6 +4,7 @@ import {
   ConditionTreeFactory,
   ConditionTreeLeaf,
   DataSourceDecorator,
+  PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
@@ -40,7 +41,7 @@ describe('SearchCollectionDecorator', () => {
     describe('when the search value is null', () => {
       test('should return the given filter to return all records', async () => {
         const decorator = buildCollection({});
-        const filter = factories.filter.build({ search: null as unknown as undefined });
+        const filter = factories.filter.build({ search: undefined as unknown as undefined });
 
         expect(await decorator.refineFilter(caller, filter)).toStrictEqual(filter);
       });
@@ -55,7 +56,7 @@ describe('SearchCollectionDecorator', () => {
         const filter = factories.filter.build({ search: 'a search value' });
 
         expect(await decorator.refineFilter(caller, filter)).toEqual({
-          search: null,
+          search: undefined,
           conditionTree: ConditionTreeFactory.MatchNone,
         });
       });
@@ -83,7 +84,7 @@ describe('SearchCollectionDecorator', () => {
         expect(await decorator.refineFilter(caller, filter)).toEqual({
           ...filter,
           conditionTree: new ConditionTreeLeaf('id', 'Equal', 'something'),
-          search: null,
+          search: undefined,
         });
       });
     });
@@ -94,7 +95,10 @@ describe('SearchCollectionDecorator', () => {
           const decorator = buildCollection(factories.collectionSchema.unsearchable().build());
           const filter = factories.filter.build({ search: '     ' });
 
-          expect(await decorator.refineFilter(caller, filter)).toEqual({ ...filter, search: null });
+          expect(await decorator.refineFilter(caller, filter)).toEqual({
+            ...filter,
+            search: undefined,
+          });
         });
       });
 
@@ -110,7 +114,7 @@ describe('SearchCollectionDecorator', () => {
           });
 
           const filter = factories.filter.build({
-            search: 'a text',
+            search: '"a text"',
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
               conditions: [
@@ -124,7 +128,7 @@ describe('SearchCollectionDecorator', () => {
           });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               aggregator: 'And',
               conditions: [
@@ -150,7 +154,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: 'noexist:atext' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: { field: 'fieldName', operator: 'IContains', value: 'noexist:atext' },
           });
         });
@@ -176,11 +180,11 @@ describe('SearchCollectionDecorator', () => {
           });
 
           const filter = factories.filter.build({
-            search: 'fieldname1:atext -fieldname3:something extra keywords',
+            search: 'fieldname1:atext -fieldname3:something "extra keywords"',
           });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               aggregator: 'And',
               conditions: [
@@ -214,14 +218,14 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: 'fieldName:atext' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: ConditionTreeFactory.MatchNone,
           });
         });
       });
 
       describe('when using boolean search', () => {
-        test('should return filter with "notcontains"', async () => {
+        test('should return filter with "Equal"', async () => {
           const decorator = buildCollection({
             fields: {
               fieldName: factories.columnSchema.build({
@@ -231,17 +235,17 @@ describe('SearchCollectionDecorator', () => {
             },
           });
 
-          const filter = factories.filter.build({ search: 'has:fieldname' });
+          const filter = factories.filter.build({ search: 'fieldname:true' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: { field: 'fieldName', operator: 'Equal', value: true },
           });
         });
       });
 
-      describe('when using has', () => {
-        test('should return filter with "notcontains"', async () => {
+      describe('when using negated equal to null', () => {
+        test('should return filter with "Present"', async () => {
           const decorator = buildCollection({
             fields: {
               fieldName: factories.columnSchema.build({
@@ -251,17 +255,17 @@ describe('SearchCollectionDecorator', () => {
             },
           });
 
-          const filter = factories.filter.build({ search: 'has:fielDnAme' });
+          const filter = factories.filter.build({ search: '-fielDnAme:NULL' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: { field: 'fieldName', operator: 'Present' },
           });
         });
       });
 
-      describe('when using negated has', () => {
-        test('should return filter with "notcontains"', async () => {
+      describe('when using "equal null"', () => {
+        test('should return filter with "Missing"', async () => {
           const decorator = buildCollection({
             fields: {
               fieldName: factories.columnSchema.build({
@@ -271,10 +275,10 @@ describe('SearchCollectionDecorator', () => {
             },
           });
 
-          const filter = factories.filter.build({ search: '-has:fielDnAme' });
+          const filter = factories.filter.build({ search: 'fielDnAme:NULL' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: { field: 'fieldName', operator: 'Missing' },
           });
         });
@@ -298,7 +302,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: '-atext' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               aggregator: 'And',
               conditions: [
@@ -322,9 +326,10 @@ describe('SearchCollectionDecorator', () => {
           });
 
           const filter = factories.filter.build({ search: '-fieldname:atext' });
+          const refined = await decorator.refineFilter(caller, filter);
 
-          expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+          expect(refined).toEqual({
+            search: undefined,
             conditionTree: { field: 'fieldName', operator: 'NotContains', value: 'atext' },
           });
         });
@@ -341,11 +346,11 @@ describe('SearchCollectionDecorator', () => {
             },
           });
 
-          const filter = factories.filter.build({ search: 'a text' });
+          const filter = factories.filter.build({ search: 'text' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
-            conditionTree: { field: 'fieldName', operator: 'IContains', value: 'a text' },
+            search: undefined,
+            conditionTree: { field: 'fieldName', operator: 'IContains', value: 'text' },
           });
         });
       });
@@ -361,11 +366,11 @@ describe('SearchCollectionDecorator', () => {
             },
           });
 
-          const filter = factories.filter.build({ search: 'a text' });
+          const filter = factories.filter.build({ search: 'text' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
-            conditionTree: { field: 'fieldName', operator: 'Equal', value: 'a text' },
+            search: undefined,
+            conditionTree: { field: 'fieldName', operator: 'Equal', value: 'text' },
           });
         });
       });
@@ -384,7 +389,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: '@#*$(@#*$(23423423' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               field: 'fieldName',
               operator: 'Contains',
@@ -408,7 +413,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: '2d162303-78bf-599e-b197-93590ac3d315' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               field: 'fieldName',
               operator: 'Equal',
@@ -436,7 +441,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: '1584' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               aggregator: 'Or',
               conditions: [
@@ -463,7 +468,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: 'anenumvalue' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: { field: 'fieldName', operator: 'Equal', value: 'AnEnUmVaLue' },
           });
         });
@@ -482,7 +487,7 @@ describe('SearchCollectionDecorator', () => {
             const filter = factories.filter.build({ search: 'NotExistEnum' });
 
             expect(await decorator.refineFilter(caller, filter)).toEqual({
-              search: null,
+              search: undefined,
               conditionTree: ConditionTreeFactory.MatchNone,
             });
           });
@@ -498,7 +503,7 @@ describe('SearchCollectionDecorator', () => {
             const filter = factories.filter.build({ search: 'NotExistEnum' });
 
             expect(await decorator.refineFilter(caller, filter)).toEqual({
-              search: null,
+              search: undefined,
               conditionTree: ConditionTreeFactory.MatchNone,
             });
           });
@@ -519,7 +524,7 @@ describe('SearchCollectionDecorator', () => {
             const filter = factories.filter.build({ search: '1584' });
 
             expect(await decorator.refineFilter(caller, filter)).toEqual({
-              search: null,
+              search: undefined,
               conditionTree: ConditionTreeFactory.MatchNone,
             });
           });
@@ -545,7 +550,7 @@ describe('SearchCollectionDecorator', () => {
           const filter = factories.filter.build({ search: '1584' });
 
           expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
+            search: undefined,
             conditionTree: {
               aggregator: 'Or',
               conditions: [
@@ -586,10 +591,10 @@ describe('SearchCollectionDecorator', () => {
               ],
             );
 
-            const filter = factories.filter.build({ search: 'relation:name:atext' });
+            const filter = factories.filter.build({ search: 'relation.name:atext' });
 
             expect(await decorator.refineFilter(caller, filter)).toEqual({
-              search: null,
+              search: undefined,
               conditionTree: { field: 'Rela_tioN:nAME', operator: 'IContains', value: 'atext' },
             });
           });
@@ -625,12 +630,17 @@ describe('SearchCollectionDecorator', () => {
               ],
             );
 
-            const filter = factories.filter.build({ search: 'relation:name:atext' });
+            const filter = factories.filter.build({ search: 'relation.name:atext' });
 
-            expect(await decorator.refineFilter(caller, filter)).toEqual({
-              search: null,
-              conditionTree: ConditionTreeFactory.MatchNone,
-            });
+            expect(await decorator.refineFilter(caller, filter)).toEqual(
+              new PaginatedFilter({
+                conditionTree: ConditionTreeFactory.fromPlainObject({
+                  field: 'Rela_tioN:nAME',
+                  operator: 'IContains',
+                  value: 'atext',
+                }),
+              }),
+            );
           });
         });
 
@@ -678,7 +688,7 @@ describe('SearchCollectionDecorator', () => {
 
             expect(await decorator.refineFilter(caller, filter)).toEqual({
               searchExtended: true,
-              search: null,
+              search: undefined,
               conditionTree: {
                 aggregator: 'Or',
                 conditions: [

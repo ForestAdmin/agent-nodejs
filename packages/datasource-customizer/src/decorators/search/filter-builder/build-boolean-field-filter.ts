@@ -15,10 +15,10 @@ export default function buildBooleanFieldFilter(
 
   if (filterOperators?.has(operator)) {
     if (['true', '1'].includes(searchString?.toLowerCase())) {
-      if (isNegated && filterOperators.has('Blank')) {
+      if (isNegated && filterOperators.has('Missing')) {
         return ConditionTreeFactory.union(
           new ConditionTreeLeaf(field, operator, true),
-          new ConditionTreeLeaf(field, 'Blank', null),
+          new ConditionTreeLeaf(field, 'Missing', null),
         );
       }
 
@@ -26,10 +26,10 @@ export default function buildBooleanFieldFilter(
     }
 
     if (['false', '0'].includes(searchString?.toLowerCase())) {
-      if (isNegated && filterOperators.has('Blank')) {
+      if (isNegated && filterOperators.has('Missing')) {
         return ConditionTreeFactory.union(
           new ConditionTreeLeaf(field, operator, false),
-          new ConditionTreeLeaf(field, 'Blank', null),
+          new ConditionTreeLeaf(field, 'Missing', null),
         );
       }
 
@@ -37,5 +37,5 @@ export default function buildBooleanFieldFilter(
     }
   }
 
-  return null;
+  return ConditionTreeFactory.MatchNone;
 }

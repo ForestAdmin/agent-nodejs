@@ -18,10 +18,10 @@ export default function buildUuidFieldFilter(
     return new ConditionTreeLeaf(field, 'Equal', searchString);
   }
 
-  if (isNegated && filterOperators?.has('NotEqual') && filterOperators?.has('Blank')) {
+  if (isNegated && filterOperators?.has('NotEqual') && filterOperators?.has('Missing')) {
     return ConditionTreeFactory.union(
       new ConditionTreeLeaf(field, 'NotEqual', searchString),
-      new ConditionTreeLeaf(field, 'Blank'),
+      new ConditionTreeLeaf(field, 'Missing'),
     );
   }
 
@@ -29,5 +29,5 @@ export default function buildUuidFieldFilter(
     return new ConditionTreeLeaf(field, 'NotEqual', searchString);
   }
 
-  return null;
+  return ConditionTreeFactory.MatchNone;
 }

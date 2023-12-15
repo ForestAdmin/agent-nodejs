@@ -7,11 +7,11 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 const supportedOperators: [string, Operator[], Operator[]][] = [
-  ['', ['Equal'], ['NotEqual', 'Blank']],
-  ['>', ['GreaterThan'], ['LessThan', 'Equal', 'Blank']],
-  ['>=', ['GreaterThan', 'Equal'], ['LessThan', 'Blank']],
-  ['<', ['LessThan'], ['GreaterThan', 'Equal', 'Blank']],
-  ['<=', ['LessThan', 'Equal'], ['GreaterThan', 'Blank']],
+  ['', ['Equal'], ['NotEqual', 'Missing']],
+  ['>', ['GreaterThan'], ['LessThan', 'Equal', 'Missing']],
+  ['>=', ['GreaterThan', 'Equal'], ['LessThan', 'Missing']],
+  ['<', ['LessThan'], ['GreaterThan', 'Equal', 'Missing']],
+  ['<=', ['LessThan', 'Equal'], ['GreaterThan', 'Missing']],
 ];
 
 export default function buildNumberFieldFilter(
@@ -27,8 +27,8 @@ export default function buildNumberFieldFilter(
     const value = Number(searchString.slice(operatorPrefix.length));
     const operators = isNegated ? negativeOperators : positiveOperators;
 
-    // If blank is not supported, we try to build a condition tree anyway
-    if (!operators.filter(op => op !== 'Blank').every(operator => filterOperators.has(operator)))
+    // If Missing is not supported, we try to build a condition tree anyway
+    if (!operators.filter(op => op !== 'Missing').every(operator => filterOperators.has(operator)))
       continue;
 
     return ConditionTreeFactory.union(
@@ -38,5 +38,5 @@ export default function buildNumberFieldFilter(
     );
   }
 
-  return null;
+  return ConditionTreeFactory.MatchNone;
 }

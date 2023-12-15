@@ -8,6 +8,7 @@ import {
   QuotedContext,
   WordContext,
 } from '../generated-parser/QueryParser';
+import normalizeName from '../normalize-name';
 
 export default class ConditionTreeQueryWalker extends QueryListener {
   private parentStack: ConditionTree[][] = [];
@@ -120,9 +121,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
   private buildDefaultCondition(searchString: string, isNegated: boolean): ConditionTree {
     const targetedFields =
       this.currentField &&
-      this.fields.filter(
-        ([field]) => field.toLocaleLowerCase() === this.currentField.trim().toLocaleLowerCase(),
-      );
+      this.fields.filter(([field]) => normalizeName(field) === normalizeName(this.currentField));
 
     let rules: ConditionTree[] = [];
 

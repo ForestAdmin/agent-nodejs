@@ -1,4 +1,9 @@
-import { ColumnSchema, ConditionTree, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import {
+  ColumnSchema,
+  ConditionTree,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
+} from '@forestadmin/datasource-toolkit';
 
 import buildBooleanFieldFilter from './build-boolean-field-filter';
 import buildDateFieldFilter from './build-date-field-filter';
@@ -16,8 +21,8 @@ export default function buildFieldFilter(
   const { columnType, filterOperators } = schema;
 
   if (searchString === 'NULL') {
-    if (!isNegated && filterOperators?.has('Blank')) {
-      return new ConditionTreeLeaf(field, 'Blank');
+    if (!isNegated && filterOperators?.has('Missing')) {
+      return new ConditionTreeLeaf(field, 'Missing');
     }
 
     if (isNegated && filterOperators?.has('Present')) {
@@ -43,6 +48,6 @@ export default function buildFieldFilter(
     case 'Dateonly':
       return buildDateFieldFilter(field, filterOperators, searchString, isNegated);
     default:
-      return null;
+      return ConditionTreeFactory.MatchNone;
   }
 }

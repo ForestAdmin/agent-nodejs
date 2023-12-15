@@ -56,7 +56,7 @@ const supportedOperators: [
     ],
     [
       ['Before', getPeriodStart],
-      ['Blank', () => undefined],
+      ['Missing', () => undefined],
     ],
   ],
   [
@@ -65,7 +65,7 @@ const supportedOperators: [
     [
       ['After', getPeriodStart],
       ['Equal', getPeriodStart],
-      ['Blank', () => undefined],
+      ['Missing', () => undefined],
     ],
   ],
   [
@@ -76,7 +76,7 @@ const supportedOperators: [
     ],
     [
       ['After', getPeriodStart],
-      ['Blank', () => undefined],
+      ['Missing', () => undefined],
     ],
   ],
 ];
@@ -111,17 +111,17 @@ export default function buildDateFieldFilter(
       filterOperators.has('Before') &&
       filterOperators.has('After') &&
       filterOperators.has('NotEqual') &&
-      filterOperators.has('Blank')
+      filterOperators.has('Missing')
     ) {
       return ConditionTreeFactory.union(
         new ConditionTreeLeaf(field, 'Before', start),
         new ConditionTreeLeaf(field, 'After', afterEnd),
         new ConditionTreeLeaf(field, 'Equal', afterEnd),
-        new ConditionTreeLeaf(field, 'Blank'),
+        new ConditionTreeLeaf(field, 'Missing'),
       );
     }
 
-    return null;
+    return ConditionTreeFactory.MatchNone;
   }
 
   for (const [operatorPrefix, positiveOperations, negativeOperations] of supportedOperators) {
@@ -134,10 +134,10 @@ export default function buildDateFieldFilter(
 
     const operations = isNegated ? negativeOperations : positiveOperations;
 
-    // If blank is not supported, we try to build a condition tree anyway
+    // If Missing is not supported, we try to build a condition tree anyway
     if (
       !operations
-        .filter(op => op[0] !== 'Blank')
+        .filter(op => op[0] !== 'Missing')
         .every(operation => filterOperators.has(operation[0]))
     ) {
       continue;

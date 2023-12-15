@@ -30,15 +30,15 @@ export default function buildStringFieldFilter(
   else if (supportsEqual) operator = equalOperator;
 
   if (operator) {
-    if (isNegated && filterOperators.has('Blank')) {
+    if (isNegated && filterOperators.has('Missing')) {
       return ConditionTreeFactory.union(
         new ConditionTreeLeaf(field, operator, searchString),
-        new ConditionTreeLeaf(field, 'Blank', undefined),
+        new ConditionTreeLeaf(field, 'Missing', undefined),
       );
     }
 
     return new ConditionTreeLeaf(field, operator, searchString);
   }
 
-  return null;
+  return ConditionTreeFactory.MatchNone;
 }

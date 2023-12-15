@@ -21,17 +21,17 @@ export default function buildEnumFieldFilter(
   const { enumValues, filterOperators } = schema;
   const searchValue = lenientFind(enumValues, searchString);
 
-  if (!searchValue) return null;
+  if (!searchValue) return ConditionTreeFactory.MatchNone;
 
   if (filterOperators?.has('Equal') && !isNegated) {
     return new ConditionTreeLeaf(field, 'Equal', searchValue);
   }
 
-  if (filterOperators?.has('NotEqual') && filterOperators?.has('Blank') && isNegated) {
+  if (filterOperators?.has('NotEqual') && filterOperators?.has('Missing') && isNegated) {
     // In DBs, NULL values are not equal to anything, including NULL.
     return ConditionTreeFactory.union(
       new ConditionTreeLeaf(field, 'NotEqual', searchValue),
-      new ConditionTreeLeaf(field, 'Blank'),
+      new ConditionTreeLeaf(field, 'Missing'),
     );
   }
 
@@ -39,5 +39,5 @@ export default function buildEnumFieldFilter(
     return new ConditionTreeLeaf(field, 'NotEqual', searchValue);
   }
 
-  return null;
+  return ConditionTreeFactory.MatchNone;
 }
