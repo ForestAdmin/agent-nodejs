@@ -1433,6 +1433,15 @@
     socks "^2.7.1"
     ssh2 "^1.14.0"
 
+"@forestadmin/datasource-toolkit@1.29.0":
+  version "1.29.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.29.0.tgz#2124ea562e15d20cd63bcb78e600ba397e98259a"
+  integrity sha512-GTapHcaqg4rlDlZwWfbfPYSiEYkTh1RB7NF4vK51pxlmunJbheHR4Jj4vus+YwMoCt8SoiAM5OO3D66lVBGSXA==
+  dependencies:
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "^9.0.0"
+
 "@forestadmin/forestadmin-client@1.24.6":
   version "1.24.6"
   resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.24.6.tgz#99d41b01ca80b4453e3b0a069caad29ec8e729ad"
@@ -1743,6 +1752,13 @@
   version "5.6.1"
   resolved "https://registry.yarnpkg.com/@js-joda/core/-/core-5.6.1.tgz#03e2453d877b61c3f593cf031fd18b375bd548b6"
   integrity sha512-Xla/d7ZMMR6+zRd6lTio0wRZECfcfFJP7GGe9A9L4tDOlD5CX4YcZ4YZle9w58bBYzssojVapI84RraKWDQZRg==
+
+"@koa/cors@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@koa/cors/-/cors-4.0.0.tgz#b2d300d7368d2e0ad6faa1d918eff6d0cde0859a"
+  integrity sha512-Y4RrbvGTlAaa04DBoPBWJqDR5gPj32OOz827ULXfgB1F7piD1MB/zwn8JR2LAnvdILhxUbXbkXGWuNVsFuVFCQ==
+  dependencies:
+    vary "^1.1.2"
 
 "@koa/cors@^5.0.0":
   version "5.0.0"
