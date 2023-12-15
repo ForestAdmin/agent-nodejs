@@ -1,3 +1,20 @@
+## @forestadmin/datasource-mongoose [1.5.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.31...@forestadmin/datasource-mongoose@1.5.32) (2023-12-15)
+
+
+### Bug Fixes
+
+* **mongoose:** export mongoose options type ([#900](https://github.com/ForestAdmin/agent-nodejs/issues/900)) ([f822279](https://github.com/ForestAdmin/agent-nodejs/commit/f8222799aeafa86415744f6e18b2b53de1b8b662))
+
+## @forestadmin/datasource-mongoose [1.5.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.30...@forestadmin/datasource-mongoose@1.5.31) (2023-12-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.1
+
 ## @forestadmin/datasource-mongoose [1.5.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.29...@forestadmin/datasource-mongoose@1.5.30) (2023-10-31)
 
 

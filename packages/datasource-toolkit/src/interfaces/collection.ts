@@ -17,6 +17,13 @@ export interface DataSource<C extends Collection = Collection> {
   renderChart(caller: Caller, name: string): Promise<Chart>;
 }
 
+export type GetFormMetas = {
+  changedField?: string;
+  searchField?: string | null;
+  searchValues?: Record<string, string | null>;
+  includeHiddenFields?: boolean;
+};
+
 export interface Collection {
   get nativeDriver(): unknown | null;
   get dataSource(): DataSource;
@@ -35,11 +42,7 @@ export interface Collection {
     name: string,
     formValues?: RecordData,
     filter?: Filter,
-    metas?: {
-      changedField?: string;
-      searchValues?: Record<string, string | null>;
-      searchField?: string;
-    },
+    metas?: GetFormMetas,
   ): Promise<ActionField[]>;
 
   create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;

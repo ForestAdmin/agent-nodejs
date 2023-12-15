@@ -1,7 +1,7 @@
 import { ActionField, ActionResult } from '../interfaces/action';
 import { Caller } from '../interfaces/caller';
 import { Chart } from '../interfaces/chart';
-import { Collection, DataSource } from '../interfaces/collection';
+import { Collection, DataSource, GetFormMetas } from '../interfaces/collection';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Filter from '../interfaces/query/filter/unpaginated';
@@ -69,11 +69,7 @@ export default class CollectionDecorator implements Collection {
     name: string,
     data?: RecordData,
     filter?: Filter,
-    metas?: {
-      changedField?: string;
-      searchValue?: Record<string, string | null>;
-      searchField?: string;
-    },
+    metas?: GetFormMetas,
   ): Promise<ActionField[]> {
     const refinedFilter = await this.refineFilter(caller, filter);
 

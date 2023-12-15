@@ -75,6 +75,7 @@ export default class OptionsValidator {
         logger: copyOptions.logger,
         permissionsCacheDurationInSeconds: copyOptions.permissionsCacheDurationInSeconds,
         instantCacheRefresh: copyOptions.instantCacheRefresh,
+        experimental: copyOptions.experimental,
       });
 
     return {

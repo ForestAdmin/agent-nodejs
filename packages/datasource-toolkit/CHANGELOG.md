@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.29.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.0...@forestadmin/datasource-toolkit@1.29.1) (2023-12-12)
+
+
+### Bug Fixes
+
+* field formValue is sometimes not correctly provided in execute context ([#894](https://github.com/ForestAdmin/agent-nodejs/issues/894)) ([a24aab1](https://github.com/ForestAdmin/agent-nodejs/commit/a24aab1b51c89df7ff72f7325dd3471a7e71a68a))
+
 # @forestadmin/datasource-toolkit [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.28.1...@forestadmin/datasource-toolkit@1.29.0) (2023-10-11)
 
 

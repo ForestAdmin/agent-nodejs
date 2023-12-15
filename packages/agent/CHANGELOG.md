@@ -1,3 +1,46 @@
+## @forestadmin/agent [1.36.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.9...@forestadmin/agent@1.36.10) (2023-12-15)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.39.2
+
+## @forestadmin/agent [1.36.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.8...@forestadmin/agent@1.36.9) (2023-12-14)
+
+
+### Bug Fixes
+
+* **restart:** the agent should only restart when at least one customisation is installed ([#898](https://github.com/ForestAdmin/agent-nodejs/issues/898)) ([8a09a3b](https://github.com/ForestAdmin/agent-nodejs/commit/8a09a3be99c4734b39632139cf46551cb98cd870))
+* **security:** upgrade koa/cors to version 5 ([#897](https://github.com/ForestAdmin/agent-nodejs/issues/897)) ([69e0221](https://github.com/ForestAdmin/agent-nodejs/commit/69e02212583eb211d39109a86014838164bd6589))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.3
+
+## @forestadmin/agent [1.36.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.7...@forestadmin/agent@1.36.8) (2023-12-12)
+
+
+### Bug Fixes
+
+* field formValue is sometimes not correctly provided in execute context ([#894](https://github.com/ForestAdmin/agent-nodejs/issues/894)) ([a24aab1](https://github.com/ForestAdmin/agent-nodejs/commit/a24aab1b51c89df7ff72f7325dd3471a7e71a68a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.39.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.2
+
 ## @forestadmin/agent [1.36.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.6...@forestadmin/agent@1.36.7) (2023-12-04)
 
 

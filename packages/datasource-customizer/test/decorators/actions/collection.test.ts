@@ -155,6 +155,75 @@ describe('ActionDecorator', () => {
       ]);
     });
   });
+  describe('with single action with ifs', () => {
+    beforeEach(() => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: () => {},
+        form: [
+          {
+            label: 'noIf',
+            type: 'String',
+          },
+          {
+            label: 'dynamicIfFalse',
+            type: 'String',
+            if: () => false,
+          },
+          {
+            label: 'dynamicIfTrue',
+            type: 'String',
+            if: () => true,
+          },
+        ],
+      });
+    });
+
+    test('should dropIfs which are false if required', async () => {
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        undefined,
+        undefined,
+        { includeHiddenFields: false },
+      );
+
+      expect(fields).toEqual([
+        expect.objectContaining({
+          label: 'noIf',
+          type: 'String',
+        }),
+        expect.objectContaining({
+          label: 'dynamicIfTrue',
+          type: 'String',
+        }),
+      ]);
+    });
+    test('should not dropIfs if required', async () => {
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        undefined,
+        undefined,
+        { includeHiddenFields: true },
+      );
+
+      expect(fields).toEqual([
+        expect.objectContaining({
+          label: 'noIf',
+          type: 'String',
+        }),
+        expect.objectContaining({
+          label: 'dynamicIfFalse',
+          type: 'String',
+        }),
+        expect.objectContaining({
+          label: 'dynamicIfTrue',
+          type: 'String',
+        }),
+      ]);
+    });
+  });
 
   describe('with single action with both load and change hooks', () => {
     beforeEach(() => {

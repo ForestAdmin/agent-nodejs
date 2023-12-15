@@ -98,6 +98,7 @@ export default class ActionRoute extends CollectionRoute {
       this.actionName,
       unsafeData,
       filterForCaller,
+      { includeHiddenFields: true }, // during execute, we need all possible fields
     );
 
     // Now that we have the field list, we can parse the data again.
@@ -156,6 +157,7 @@ export default class ActionRoute extends CollectionRoute {
       changedField: body.data.attributes.changed_field,
       searchField: body.data.attributes.search_field,
       searchValues,
+      includeHiddenFields: false,
     });
 
     context.response.body = {
