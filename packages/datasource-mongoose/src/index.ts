@@ -6,6 +6,7 @@ import { MongooseOptions } from './types';
 
 export { default as MongooseCollection } from './collection';
 export { default as MongooseDatasource } from './datasource';
+export type { MongooseOptions };
 
 export function createMongooseDataSource(
   connection: Connection,
