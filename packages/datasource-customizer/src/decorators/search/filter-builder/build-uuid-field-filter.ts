@@ -1,8 +1,8 @@
 import {
   ConditionTree,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
-  ConditionTreeFactory,
 } from '@forestadmin/datasource-toolkit';
 import { validate as uuidValidate } from 'uuid';
 

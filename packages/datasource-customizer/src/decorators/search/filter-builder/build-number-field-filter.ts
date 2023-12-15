@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 import {
   ConditionTree,
   ConditionTreeFactory,

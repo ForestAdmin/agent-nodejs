@@ -1,8 +1,8 @@
 import {
   ConditionTree,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
-  ConditionTreeFactory,
 } from '@forestadmin/datasource-toolkit';
 
 export default function buildStringFieldFilter(

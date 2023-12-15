@@ -1,19 +1,18 @@
+import { ColumnSchema, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+
+import buildFieldFilter from '../filter-builder/build-field-filter';
 import QueryListener from '../generated-parser/QueryListener';
 import {
   NegatedContext,
-  OrContext,
   PropertyMatchingContext,
-  QueryContext,
   QuotedContext,
   WordContext,
 } from '../generated-parser/queryParser';
-import { ColumnSchema, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
-import buildFieldFilter from '../filter-builder/build-field-filter';
 
 export default class ConditionTreeQueryWalker extends QueryListener {
   private parentStack: ConditionTree[][] = [];
   private currentField: string = null;
-  private isNegated: boolean = false;
+  private isNegated = false;
 
   get conditionTree(): ConditionTree {
     if (this.parentStack.length !== 1 && this.parentStack[0].length !== 1) {
@@ -31,14 +30,16 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     return this.buildDefaultCondition(searchQuery, this.isNegated);
   }
 
-  override enterQuery = (ctx: QueryContext) => {
+  override enterQuery = () => {
     this.parentStack.push([]);
   };
 
-  override exitQuery = (ctx: QueryContext) => {
+  override exitQuery = () => {
     const rules = this.parentStack.pop();
+
     if (!rules) {
       this.parentStack.push([null]);
+
       return;
     }
 
@@ -55,7 +56,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     current.push(this.buildDefaultCondition(ctx.getText().slice(1, -1), this.isNegated));
   };
 
-  override enterNegated = (ctx: NegatedContext) => {
+  override enterNegated = () => {
     this.parentStack.push([]);
     this.isNegated = true;
   };
@@ -75,6 +76,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     }
 
     const parentRules = this.parentStack[this.parentStack.length - 1];
+
     if (parentRules) {
       parentRules.push(result);
     } else {
@@ -94,19 +96,20 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     this.currentField = ctx.getChild(0).getText().replace(/\./g, ':');
   };
 
-  override exitPropertyMatching = (ctx: PropertyMatchingContext) => {
+  override exitPropertyMatching = () => {
     this.currentField = null;
   };
 
-  override enterOr = (ctx: OrContext) => {
+  override enterOr = () => {
     this.parentStack.push([]);
   };
 
-  override exitOr = (ctx: OrContext) => {
+  override exitOr = () => {
     const rules = this.parentStack.pop();
     if (!rules.length) return;
 
     const parentRules = this.parentStack[this.parentStack.length - 1];
+
     if (rules.length === 1) {
       parentRules.push(...rules);
     } else {

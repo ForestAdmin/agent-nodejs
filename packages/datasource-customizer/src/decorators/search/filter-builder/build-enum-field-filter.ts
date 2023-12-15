@@ -3,12 +3,7 @@ import {
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  Operator,
 } from '@forestadmin/datasource-toolkit';
-import { validate as uuidValidate } from 'uuid';
-import buildBooleanFieldFilter from './build-boolean-field-filter';
-import buildNumberFieldFilter from './build-number-field-filter';
-import buildStringFieldFilter from './build-string-field-filter';
 
 function lenientFind(haystack: string[], needle: string): string {
   return (

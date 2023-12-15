@@ -10,9 +10,9 @@ import {
   PaginatedFilter,
 } from '@forestadmin/datasource-toolkit';
 
-import { SearchDefinition } from './types';
-import { parseQuery, extractSpecifiedFields, generateConditionTree } from './parse-query';
 import CollectionSearchContext, { SearchOptions } from './collection-search-context';
+import { extractSpecifiedFields, generateConditionTree, parseQuery } from './parse-query';
+import { SearchDefinition } from './types';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<SearchCollectionDecorator>;

@@ -1,8 +1,9 @@
+/* eslint-disable no-continue */
 import {
   ConditionTree,
+  ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
-  ConditionTreeFactory,
 } from '@forestadmin/datasource-toolkit';
 
 function isYear(str: string): boolean {
@@ -30,6 +31,7 @@ function getAfterPeriodEnd(string): string {
 
   const date = new Date(string);
   date.setDate(date.getDate() + 1);
+
   return date.toISOString().split('T')[0];
 }
 
@@ -102,7 +104,9 @@ export default function buildDateFieldFilter(
         ),
         new ConditionTreeLeaf(field, 'Before', afterEnd),
       );
-    } else if (
+    }
+
+    if (
       isNegated &&
       filterOperators.has('Before') &&
       filterOperators.has('After') &&
@@ -115,9 +119,9 @@ export default function buildDateFieldFilter(
         new ConditionTreeLeaf(field, 'Equal', afterEnd),
         new ConditionTreeLeaf(field, 'Blank'),
       );
-    } else {
-      return null;
     }
+
+    return null;
   }
 
   for (const [operatorPrefix, positiveOperations, negativeOperations] of supportedOperators) {
@@ -129,6 +133,7 @@ export default function buildDateFieldFilter(
     if (!isValidDate(value)) continue;
 
     const operations = isNegated ? negativeOperations : positiveOperations;
+
     // If blank is not supported, we try to build a condition tree anyway
     if (
       !operations

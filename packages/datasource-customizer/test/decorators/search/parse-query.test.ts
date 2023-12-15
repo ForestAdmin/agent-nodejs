@@ -1,7 +1,8 @@
 import { ColumnSchema, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
-import parseQuery from '../../../src/decorators/search/parse-query';
 
-describe('search parser', () => {
+import { generateConditionTree, parseQuery } from '../../../src/decorators/search/parse-query';
+
+describe('generateConditionTree', () => {
   const titleField: [string, ColumnSchema] = [
     'title',
     {
@@ -20,12 +21,18 @@ describe('search parser', () => {
     },
   ];
 
+  function parseQueryAndGenerateCondition(search: string, fields: [string, ColumnSchema][]) {
+    const conditionTree = parseQuery(search);
+
+    return generateConditionTree(conditionTree, fields);
+  }
+
   describe('single word', () => {
     describe('String fields', () => {
       it.each(['foo', 'UNICODE_ÈÉÀÇÏŒÙØåΩÓ¥', '42.43.44'])(
         'should return a unique work with %s',
         word => {
-          expect(parseQuery(word, [titleField])).toEqual(
+          expect(parseQueryAndGenerateCondition(word, [titleField])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'IContains',
               field: 'title',
@@ -36,7 +43,7 @@ describe('search parser', () => {
       );
 
       it('should generate a condition tree with each field', () => {
-        expect(parseQuery('foo', [titleField, descriptionField])).toEqual(
+        expect(parseQueryAndGenerateCondition('foo', [titleField, descriptionField])).toEqual(
           ConditionTreeFactory.union(
             ConditionTreeFactory.fromPlainObject({
               operator: 'IContains',
@@ -66,11 +73,11 @@ describe('search parser', () => {
       it.each([42, 37.5, -199, 0])(
         'should return a valid condition tree if the value is a number (%s)',
         value => {
-          expect(parseQuery(`${value}`, [scoreField])).toEqual(
+          expect(parseQueryAndGenerateCondition(`${value}`, [scoreField])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'Equal',
               field: 'score',
-              value: value,
+              value,
             }),
           );
         },
@@ -79,13 +86,13 @@ describe('search parser', () => {
       it.each(['foo', '', '42.43.44', '-42.43.44'])(
         'should return null if the value is not a number (%s)',
         value => {
-          expect(parseQuery(value, [scoreField])).toEqual(null);
+          expect(parseQueryAndGenerateCondition(value, [scoreField])).toEqual(null);
         },
       );
 
       describe('with operators', () => {
         it('should correctly parse the operator >', () => {
-          expect(parseQuery('>42', [scoreField])).toEqual(
+          expect(parseQueryAndGenerateCondition('>42', [scoreField])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'GreaterThan',
               field: 'score',
@@ -95,7 +102,7 @@ describe('search parser', () => {
         });
 
         it('should correctly parse the operator >=', () => {
-          expect(parseQuery('>=42', [scoreField])).toEqual(
+          expect(parseQueryAndGenerateCondition('>=42', [scoreField])).toEqual(
             ConditionTreeFactory.union(
               ConditionTreeFactory.fromPlainObject({
                 operator: 'GreaterThan',
@@ -112,7 +119,7 @@ describe('search parser', () => {
         });
 
         it('should correctly parse the operator <', () => {
-          expect(parseQuery('<42', [scoreField])).toEqual(
+          expect(parseQueryAndGenerateCondition('<42', [scoreField])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'LessThan',
               field: 'score',
@@ -122,7 +129,7 @@ describe('search parser', () => {
         });
 
         it('should correctly parse the operator <=', () => {
-          expect(parseQuery('<=42', [scoreField])).toEqual(
+          expect(parseQueryAndGenerateCondition('<=42', [scoreField])).toEqual(
             ConditionTreeFactory.union(
               ConditionTreeFactory.fromPlainObject({
                 operator: 'LessThan',
@@ -153,7 +160,7 @@ describe('search parser', () => {
       it.each(['true', 'True', 'TRUE', '1'])(
         'should return a valid condition tree if the value is a boolean (%s)',
         value => {
-          expect(parseQuery(`${value}`, [isActive])).toEqual(
+          expect(parseQueryAndGenerateCondition(`${value}`, [isActive])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'Equal',
               field: 'isActive',
@@ -166,7 +173,7 @@ describe('search parser', () => {
       it.each(['false', 'False', 'FALSE', '0'])(
         'should return a valid condition tree if the value is a boolean (%s)',
         value => {
-          expect(parseQuery(`${value}`, [isActive])).toEqual(
+          expect(parseQueryAndGenerateCondition(`${value}`, [isActive])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'Equal',
               field: 'isActive',
@@ -177,14 +184,14 @@ describe('search parser', () => {
       );
 
       it('should not generate a condition tree if the value is not a boolean', () => {
-        expect(parseQuery('foo', [isActive])).toEqual(null);
+        expect(parseQueryAndGenerateCondition('foo', [isActive])).toEqual(null);
       });
     });
   });
 
   describe('negated word', () => {
     it.each(['-foo', '-42.43.44'])('should return a negated condition tree for value %s', value => {
-      expect(parseQuery(value, [titleField])).toEqual(
+      expect(parseQueryAndGenerateCondition(value, [titleField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
           operator: 'NotIContains',
           field: 'title',
@@ -198,7 +205,7 @@ describe('search parser', () => {
     describe('with spaces', () => {
       describe('double quotes', () => {
         it('should return a condition tree with the quoted text', () => {
-          expect(parseQuery('"foo bar"', [titleField])).toEqual(
+          expect(parseQueryAndGenerateCondition('"foo bar"', [titleField])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'IContains',
               field: 'title',
@@ -210,7 +217,7 @@ describe('search parser', () => {
 
       describe('simple quotes', () => {
         it('should return a condition tree with the quoted text', () => {
-          expect(parseQuery("'foo bar'", [titleField])).toEqual(
+          expect(parseQueryAndGenerateCondition("'foo bar'", [titleField])).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'IContains',
               field: 'title',
@@ -224,7 +231,7 @@ describe('search parser', () => {
 
   describe('multiple tokens', () => {
     it('should generate a AND aggregation with a condition for each token', () => {
-      expect(parseQuery('foo bar', [titleField])).toEqual(
+      expect(parseQueryAndGenerateCondition('foo bar', [titleField])).toEqual(
         ConditionTreeFactory.intersect(
           ConditionTreeFactory.fromPlainObject({
             operator: 'IContains',
@@ -246,7 +253,7 @@ describe('search parser', () => {
 
     describe('when the value is a word', () => {
       it('should generate a condition tree with the property and the value', () => {
-        expect(parseQuery('title:foo', fields)).toEqual(
+        expect(parseQueryAndGenerateCondition('title:foo', fields)).toEqual(
           ConditionTreeFactory.fromPlainObject({
             operator: 'IContains',
             field: 'title',
@@ -259,7 +266,7 @@ describe('search parser', () => {
     describe('special values', () => {
       describe('when the value is NULL', () => {
         it('should generate a condition tree with the property and the value', () => {
-          expect(parseQuery('title:NULL', fields)).toEqual(
+          expect(parseQueryAndGenerateCondition('title:NULL', fields)).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'Blank',
               field: 'title',
@@ -271,7 +278,7 @@ describe('search parser', () => {
 
     describe('when the value is quoted', () => {
       it('should generate a condition tree with the property and the value', () => {
-        expect(parseQuery('title:"foo bar"', fields)).toEqual(
+        expect(parseQueryAndGenerateCondition('title:"foo bar"', fields)).toEqual(
           ConditionTreeFactory.fromPlainObject({
             operator: 'IContains',
             field: 'title',
@@ -283,7 +290,7 @@ describe('search parser', () => {
 
     describe('when negated', () => {
       it('should generate a condition tree with the property and the value', () => {
-        expect(parseQuery('-title:foo', fields)).toEqual(
+        expect(parseQueryAndGenerateCondition('-title:foo', fields)).toEqual(
           ConditionTreeFactory.fromPlainObject({
             operator: 'NotIContains',
             field: 'title',
@@ -294,7 +301,7 @@ describe('search parser', () => {
 
       describe('when the value is NULL', () => {
         it('should generate a condition tree with the property and the value', () => {
-          expect(parseQuery('-title:NULL', fields)).toEqual(
+          expect(parseQueryAndGenerateCondition('-title:NULL', fields)).toEqual(
             ConditionTreeFactory.fromPlainObject({
               operator: 'Present',
               field: 'title',
@@ -306,7 +313,7 @@ describe('search parser', () => {
 
     describe('when the property does not exist', () => {
       it('should consider the search token as a whole', () => {
-        expect(parseQuery('foo:bar title:foo', fields)).toEqual(
+        expect(parseQueryAndGenerateCondition('foo:bar title:foo', fields)).toEqual(
           ConditionTreeFactory.intersect(
             ConditionTreeFactory.union(
               ConditionTreeFactory.fromPlainObject({
@@ -332,7 +339,7 @@ describe('search parser', () => {
 
     describe('when the value is an empty string', () => {
       it('should generate a condition with an empty string', () => {
-        expect(parseQuery('title:""', fields)).toEqual(
+        expect(parseQueryAndGenerateCondition('title:""', fields)).toEqual(
           ConditionTreeFactory.fromPlainObject({
             operator: 'Equal',
             field: 'title',
@@ -353,7 +360,9 @@ describe('search parser', () => {
           },
         ];
 
-        expect(parseQuery('comment.title:foo', [...fields, commentTitle])).toEqual(
+        expect(
+          parseQueryAndGenerateCondition('comment.title:foo', [...fields, commentTitle]),
+        ).toEqual(
           ConditionTreeFactory.fromPlainObject({
             operator: 'IContains',
             field: 'comment:title',
@@ -366,7 +375,9 @@ describe('search parser', () => {
 
   describe('when the syntax is incorrect', () => {
     it('should generate a single condition tree with the default field', () => {
-      expect(parseQuery('tit:le:foo bar', [titleField, descriptionField])).toEqual(
+      expect(
+        parseQueryAndGenerateCondition('tit:le:foo bar', [titleField, descriptionField]),
+      ).toEqual(
         ConditionTreeFactory.union(
           ConditionTreeFactory.fromPlainObject({
             operator: 'IContains',
@@ -385,7 +396,7 @@ describe('search parser', () => {
 
   describe('OR syntax', () => {
     it('should combine multiple conditions in a or statement', () => {
-      expect(parseQuery('foo OR bar', [titleField])).toEqual(
+      expect(parseQueryAndGenerateCondition('foo OR bar', [titleField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
           aggregator: 'Or',
           conditions: [
@@ -405,7 +416,7 @@ describe('search parser', () => {
     });
 
     it('should combine multiple conditions on multiple fields in a or statement', () => {
-      expect(parseQuery('foo OR bar', [titleField, descriptionField])).toEqual(
+      expect(parseQueryAndGenerateCondition('foo OR bar', [titleField, descriptionField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
           aggregator: 'Or',
           conditions: [
@@ -437,7 +448,7 @@ describe('search parser', () => {
 
   describe('AND syntax', () => {
     it('should combine multiple conditions in a and statement', () => {
-      expect(parseQuery('foo AND bar', [titleField])).toEqual(
+      expect(parseQueryAndGenerateCondition('foo AND bar', [titleField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
           aggregator: 'And',
           conditions: [
@@ -457,7 +468,7 @@ describe('search parser', () => {
     });
 
     it('should combine multiple conditions on multiple fields in a and statement', () => {
-      expect(parseQuery('foo AND bar', [titleField, descriptionField])).toEqual(
+      expect(parseQueryAndGenerateCondition('foo AND bar', [titleField, descriptionField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
           aggregator: 'And',
           conditions: [
@@ -500,7 +511,10 @@ describe('search parser', () => {
   describe('complex query', () => {
     it('should generate a valid condition tree corresponding to a complex query', () => {
       expect(
-        parseQuery('foo title:bar OR title:baz -banana', [titleField, descriptionField]),
+        parseQueryAndGenerateCondition('foo title:bar OR title:baz -banana', [
+          titleField,
+          descriptionField,
+        ]),
       ).toEqual(
         ConditionTreeFactory.fromPlainObject({
           aggregator: 'And',
