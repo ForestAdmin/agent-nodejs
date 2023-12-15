@@ -1,3 +1,3 @@
 module.exports = {
-  exclude: ['src/decorators/search/parser/**/*'],
+  ignorePatterns: ['src/decorators/search/generated-parser/**/*'],
 };
