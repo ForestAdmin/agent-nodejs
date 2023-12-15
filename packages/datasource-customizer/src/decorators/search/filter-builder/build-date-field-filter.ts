@@ -12,22 +12,34 @@ function isYear(str: string): boolean {
   );
 }
 
+function isYearMonth(str: string): boolean {
+  return /^(\d{4})-(\d{1,2})$/.test(str) && !Number.isNaN(Date.parse(`${str}-01`));
+}
+
 function isPlainDate(str: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(str) && !Number.isNaN(Date.parse(str));
 }
 
 function isValidDate(str: string): boolean {
-  return isYear(str) || isPlainDate(str);
+  return isYear(str) || isYearMonth(str) || isPlainDate(str);
 }
 
 function getPeriodStart(string): string {
   if (isYear(string)) return `${string}-01-01`;
+  if (isYearMonth(string)) return `${string}-01`;
 
   return string;
 }
 
 function getAfterPeriodEnd(string): string {
   if (isYear(string)) return `${Number(string) + 1}-01-01`;
+
+  if (isYearMonth(string)) {
+    const [year, month] = string.split('-').map(Number);
+    const date = new Date(Number(year), Number(month), 0);
+
+    return date.toISOString().split('T')[0];
+  }
 
   const date = new Date(string);
   date.setDate(date.getDate() + 1);
