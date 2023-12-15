@@ -15,8 +15,16 @@ export default function buildFieldFilter(
 ): ConditionTree {
   const { columnType, filterOperators } = schema;
 
-  if (searchString === 'NULL' && filterOperators?.has('Blank')) {
-    return new ConditionTreeLeaf(field, 'Blank');
+  if (searchString === 'NULL') {
+    if (!isNegated && filterOperators?.has('Blank')) {
+      return new ConditionTreeLeaf(field, 'Blank');
+    }
+
+    if (isNegated && filterOperators?.has('Present')) {
+      return new ConditionTreeLeaf(field, 'Present');
+    }
+
+    return null;
   }
 
   switch (columnType) {

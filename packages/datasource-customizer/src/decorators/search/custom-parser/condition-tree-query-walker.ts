@@ -131,6 +131,9 @@ export default class ConditionTreeQueryWalker extends QueryListener {
         buildFieldFilter(
           field,
           schema,
+          // If targetFields is empty, it means that the query is not targeting a specific field
+          // OR that the field is not found in the schema. If it's the case, we are re-constructing
+          // the original query by adding the field name in front of the search string.
           this.currentField ? `${this.currentField}:${searchString}` : searchString,
           isNegated,
         ),

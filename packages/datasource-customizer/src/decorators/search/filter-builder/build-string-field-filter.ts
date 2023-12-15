@@ -33,7 +33,7 @@ export default function buildStringFieldFilter(
     if (isNegated && filterOperators.has('Blank')) {
       return ConditionTreeFactory.union(
         new ConditionTreeLeaf(field, operator, searchString),
-        new ConditionTreeLeaf(field, 'Blank', null),
+        new ConditionTreeLeaf(field, 'Blank', undefined),
       );
     }
 

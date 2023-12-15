@@ -14,9 +14,9 @@ queryToken: (quoted | negated | propertyMatching | word);
 
 
 quoted: SINGLE_QUOTED | DOUBLE_QUOTED;
-SINGLE_QUOTED: '\'' SINGLE_QUOTED_CONTENT '\'';
+SINGLE_QUOTED: '\'' SINGLE_QUOTED_CONTENT '\'' | '\'' '\'';
 fragment SINGLE_QUOTED_CONTENT:~[']*; 
-DOUBLE_QUOTED: '"' DOUBLE_QUOTED_CONTENT '"';
+DOUBLE_QUOTED: '"' DOUBLE_QUOTED_CONTENT '"' | '"' '"';
 fragment DOUBLE_QUOTED_CONTENT: ~["]*; 
     
 negated: NEGATION (word | quoted | propertyMatching);

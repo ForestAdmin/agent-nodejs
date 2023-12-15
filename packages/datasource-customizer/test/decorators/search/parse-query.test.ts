@@ -8,7 +8,14 @@ describe('generateConditionTree', () => {
     {
       columnType: 'String',
       type: 'Column',
-      filterOperators: new Set(['IContains', 'Blank']),
+      filterOperators: new Set([
+        'IContains',
+        'Blank',
+        'NotIContains',
+        'Present',
+        'Equal',
+        'NotEqual',
+      ]),
     },
   ];
 
@@ -17,7 +24,14 @@ describe('generateConditionTree', () => {
     {
       columnType: 'String',
       type: 'Column',
-      filterOperators: new Set(['IContains']),
+      filterOperators: new Set([
+        'IContains',
+        'Blank',
+        'NotIContains',
+        'Present',
+        'Equal',
+        'NotEqual',
+      ]),
     },
   ];
 
@@ -54,6 +68,23 @@ describe('generateConditionTree', () => {
               operator: 'IContains',
               field: 'description',
               value: 'foo',
+            }),
+          ),
+        );
+      });
+
+      it('should generate a condition for each token', () => {
+        expect(parseQueryAndGenerateCondition('foo 52.53.54', [titleField])).toEqual(
+          ConditionTreeFactory.intersect(
+            ConditionTreeFactory.fromPlainObject({
+              operator: 'IContains',
+              field: 'title',
+              value: 'foo',
+            }),
+            ConditionTreeFactory.fromPlainObject({
+              operator: 'IContains',
+              field: 'title',
+              value: '52.53.54',
             }),
           ),
         );
@@ -193,9 +224,18 @@ describe('generateConditionTree', () => {
     it.each(['-foo', '-42.43.44'])('should return a negated condition tree for value %s', value => {
       expect(parseQueryAndGenerateCondition(value, [titleField])).toEqual(
         ConditionTreeFactory.fromPlainObject({
-          operator: 'NotIContains',
-          field: 'title',
-          value: value.slice(1),
+          aggregator: 'Or',
+          conditions: [
+            {
+              field: 'title',
+              operator: 'NotIContains',
+              value: value.slice(1),
+            },
+            {
+              field: 'title',
+              operator: 'Blank',
+            },
+          ],
         }),
       );
     });
@@ -292,9 +332,18 @@ describe('generateConditionTree', () => {
       it('should generate a condition tree with the property and the value', () => {
         expect(parseQueryAndGenerateCondition('-title:foo', fields)).toEqual(
           ConditionTreeFactory.fromPlainObject({
-            operator: 'NotIContains',
-            field: 'title',
-            value: 'foo',
+            aggregator: 'Or',
+            conditions: [
+              {
+                field: 'title',
+                operator: 'NotIContains',
+                value: 'foo',
+              },
+              {
+                field: 'title',
+                operator: 'Blank',
+              },
+            ],
           }),
         );
       });
@@ -550,14 +599,32 @@ describe('generateConditionTree', () => {
               ],
             },
             {
-              field: 'title',
-              operator: 'NotIContains',
-              value: 'banana',
+              aggregator: 'Or',
+              conditions: [
+                {
+                  field: 'title',
+                  operator: 'NotIContains',
+                  value: 'banana',
+                },
+                {
+                  field: 'title',
+                  operator: 'Blank',
+                },
+              ],
             },
             {
-              field: 'description',
-              operator: 'NotIContains',
-              value: 'banana',
+              aggregator: 'Or',
+              conditions: [
+                {
+                  field: 'description',
+                  operator: 'NotIContains',
+                  value: 'banana',
+                },
+                {
+                  field: 'description',
+                  operator: 'Blank',
+                },
+              ],
             },
           ],
         }),

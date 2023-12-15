@@ -18,8 +18,6 @@ import QueryLexer from './generated-parser/QueryLexer';
 import { QueryContext } from './generated-parser/QueryParser';
 
 export function parseQuery(query: string): QueryContext {
-  if (!query) return null;
-
   const chars = new CharStream(query); // replace this with a FileStream as required
   const lexer = new QueryLexer(chars);
   const tokens = new CommonTokenStream(lexer);
@@ -33,6 +31,7 @@ export function generateConditionTree(
   fields: [string, ColumnSchema][],
 ): ConditionTree {
   const walker = new ConditionTreeQueryWalker(fields);
+
   ParseTreeWalker.DEFAULT.walk(walker, tree);
 
   const result = walker.conditionTree;
