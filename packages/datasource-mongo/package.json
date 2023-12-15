@@ -12,8 +12,8 @@
     "directory": "packages/datasource-mongo"
   },
   "dependencies": {
-    "@forestadmin/datasource-mongoose": "1.4.4",
-    "@forestadmin/datasource-toolkit": "1.6.0",
+    "@forestadmin/datasource-mongoose": "1.5.31",
+    "@forestadmin/datasource-toolkit": "1.29.1",
     "json-stringify-pretty-compact": "^3.0.0",
     "mongoose": "^7.0.1"
   },
