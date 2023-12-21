@@ -3,16 +3,16 @@ import { ModelAttributes, Sequelize } from 'sequelize';
 import { ModelAttributeColumnOptions } from 'sequelize/types/model';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
-import { Table } from '../introspection/types';
+import { Introspection, Table } from '../introspection/types';
 
 export default class ModelBuilder {
-  static defineModels(sequelize: Sequelize, logger: Logger, tables: Table[]): void {
-    for (const table of tables) {
-      this.defineModel(sequelize, logger, table);
+  static defineModels(sequelize: Sequelize, logger: Logger, introspection: Introspection): void {
+    for (const table of [...introspection.tables, ...introspection.views]) {
+      this.defineModelFromTable(sequelize, logger, table);
     }
   }
 
-  private static defineModel(sequelize: Sequelize, logger: Logger, table: Table): void {
+  private static defineModelFromTable(sequelize: Sequelize, logger: Logger, table: Table): void {
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
     const dialect = sequelize.getDialect();

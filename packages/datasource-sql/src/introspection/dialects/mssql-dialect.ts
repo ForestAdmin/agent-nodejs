@@ -24,6 +24,10 @@ export default class MsSQLDialect implements IntrospectionDialect {
     return tableIdentifier;
   }
 
+  async listViews(): Promise<SequelizeTableIdentifier[]> {
+    return [];
+  }
+
   async listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,

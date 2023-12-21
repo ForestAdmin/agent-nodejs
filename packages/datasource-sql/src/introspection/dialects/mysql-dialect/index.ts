@@ -63,6 +63,10 @@ export default class MySQLDialect implements IntrospectionDialect {
     });
   }
 
+  async listViews(): Promise<SequelizeTableIdentifier[]> {
+    return [];
+  }
+
   private getColumnDescription(dbColumn: MySQLDBColumn): ColumnDescription {
     const type = dbColumn.Type.startsWith('enum')
       ? dbColumn.Type.replace(/^enum/, 'ENUM')

@@ -5,12 +5,12 @@ import { Sequelize } from 'sequelize';
 import RelationExtractor from './helpers/relation-extractor';
 import RelationNameGenerator from './helpers/relation-name-generator';
 import { Relation } from './types';
-import { Table } from '../introspection/types';
+import { Introspection, Table } from '../introspection/types';
 
 export default class RelationBuilder {
-  static defineRelations(sequelize: Sequelize, logger: Logger, tables: Table[]): void {
-    for (const table of tables) {
-      this.defineTableRelations(sequelize, logger, table, tables);
+  static defineRelations(sequelize: Sequelize, logger: Logger, introspection: Introspection): void {
+    for (const table of [...introspection.tables, ...introspection.views]) {
+      this.defineTableRelations(sequelize, logger, table, introspection.tables);
     }
   }
 

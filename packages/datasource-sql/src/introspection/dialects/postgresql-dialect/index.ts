@@ -1,7 +1,11 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import parseArray from './parse-array';
-import { SequelizeColumn, SequelizeTableIdentifier } from '../../type-overrides';
+import {
+  SequelizeColumn,
+  SequelizeTableIdentifier,
+  SequelizeWithOptions,
+} from '../../type-overrides';
 import IntrospectionDialect, { ColumnDescription } from '../dialect.interface';
 
 type DBColumn = {
@@ -113,6 +117,22 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
         )
         .map(column => this.getColumnDescription(column));
     });
+  }
+
+  async listViews(sequelize: SequelizeWithOptions): Promise<SequelizeTableIdentifier[]> {
+    const schema = sequelize.options.schema || this.getDefaultSchema();
+
+    return sequelize.query<{ tableName: string; schema }>(
+      `
+      SELECT table_name as "tableName", table_schema as "schema"
+      FROM information_schema.views
+      WHERE table_schema = :schema
+      `,
+      {
+        type: QueryTypes.SELECT,
+        replacements: { schema },
+      },
+    );
   }
 
   private getColumnDescription(dbColumn: DBColumn): ColumnDescription {

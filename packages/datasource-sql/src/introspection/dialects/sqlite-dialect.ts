@@ -21,6 +21,10 @@ export default class SQLiteDialect implements IntrospectionDialect {
     return tableIdentifier;
   }
 
+  async listViews(): Promise<SequelizeTableIdentifier[]> {
+    return [];
+  }
+
   listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,

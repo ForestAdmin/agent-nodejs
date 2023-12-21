@@ -11,10 +11,10 @@ import {
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from './type-overrides';
-import { Table } from './types';
+import { Introspection, Table } from './types';
 
 export default class Introspector {
-  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
+  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Introspection> {
     const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
 
     const tableNames = await this.getTableNames(dialect, sequelize as SequelizeWithOptions);
@@ -22,7 +22,9 @@ export default class Introspector {
 
     this.sanitizeInPlace(tables, logger);
 
-    return tables;
+    const views = await this.listViews(dialect, sequelize as SequelizeWithOptions, logger);
+
+    return { tables, views };
   }
 
   /** Get names of all tables in the public schema of the db */
@@ -86,26 +88,10 @@ export default class Introspector {
     // the table identifier is correct on our side
     const tableIdentifierForQuery = dialect.getTableIdentifier(tableIdentifier);
 
-    const [tableIndexes, tableReferences] = await Promise.all([
+    const [tableIndexes, references] = await Promise.all([
       queryInterface.showIndex(tableIdentifierForQuery),
-      queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery),
+      this.getTableReferences(tableIdentifier, tableIdentifierForQuery, queryInterface),
     ]);
-
-    const references = tableReferences
-      .map(tableReference => ({
-        ...tableReference,
-        tableName:
-          typeof tableReference.tableName === 'string'
-            ? tableReference.tableName
-            : // On SQLite, the query interface returns an object with a tableName property
-              tableReference.tableName.tableName,
-      }))
-      .filter(
-        // There is a bug right now with sequelize on postgresql: returned association
-        // are not filtered on the schema. So we have to filter them manually.
-        // Should be fixed with Sequelize v7
-        r => r.tableName === tableIdentifier.tableName && r.tableSchema === tableIdentifier.schema,
-      );
 
     const columns = await Promise.all(
       columnDescriptions.map(async columnDescription => {
@@ -129,6 +115,32 @@ export default class Introspector {
         .filter(i => i.unique || i.primary)
         .map(i => i.fields.map(f => f.attribute)),
     };
+  }
+
+  private static async getTableReferences(
+    tableIdentifier: SequelizeTableIdentifier,
+    tableIdentifierForQuery: SequelizeTableIdentifier,
+    queryInterface: QueryInterfaceExt,
+  ) {
+    const tableReferences = await queryInterface.getForeignKeyReferencesForTable(
+      tableIdentifierForQuery,
+    );
+
+    return tableReferences
+      .map(tableReference => ({
+        ...tableReference,
+        tableName:
+          typeof tableReference.tableName === 'string'
+            ? tableReference.tableName
+            : // On SQLite, the query interface returns an object with a tableName property
+              tableReference.tableName.tableName,
+      }))
+      .filter(
+        // There is a bug right now with sequelize on postgresql: returned association
+        // are not filtered on the schema. So we have to filter them manually.
+        // Should be fixed with Sequelize v7
+        r => r.tableName === tableIdentifier.tableName && r.tableSchema === tableIdentifier.schema,
+      );
   }
 
   private static async getColumn(
@@ -210,5 +222,39 @@ export default class Introspector {
         `Failed to load constraints on relation on table '${tableName}' referencing '${constraint.table}.${constraint.column}'. The relation will be ignored.`,
       );
     });
+  }
+
+  private static async listViews(
+    dialect: IntrospectionDialect,
+    sequelize: SequelizeWithOptions,
+    logger: Logger,
+  ): Promise<Table[]> {
+    const viewNames = await dialect.listViews(sequelize);
+    const allColumns = await dialect.listColumns(viewNames, sequelize);
+
+    return Promise.all(
+      viewNames.map(async (viewName, index) => {
+        const viewColumns = allColumns[index];
+
+        const columns = await Promise.all(
+          viewColumns.map(async columnDescription => {
+            const options = {
+              name: columnDescription.name,
+              description: columnDescription,
+              references: [],
+            };
+
+            return this.getColumn(sequelize, logger, viewName, options);
+          }),
+        );
+
+        return {
+          name: viewName.tableName,
+          schema: viewName.schema,
+          columns: columns.filter(Boolean),
+          unique: [],
+        };
+      }),
+    );
   }
 }

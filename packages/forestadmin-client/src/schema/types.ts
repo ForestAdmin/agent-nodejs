@@ -24,7 +24,7 @@ export type ForestServerCollection = {
   integration: null;
   isReadOnly: boolean;
   isSearchable: boolean;
-  isVirtual: false;
+  isVirtual: boolean;
   onlyForRelationships: boolean;
   paginationType: 'page';
   actions: Array<ForestServerAction>;
