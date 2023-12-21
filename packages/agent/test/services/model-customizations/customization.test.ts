@@ -59,8 +59,8 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
         };
 
         jest
-          .spyOn(customizer, 'collections', 'get')
-          .mockReturnValue([collection as unknown as CollectionCustomizer]);
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         await actionCustomization.addCustomizations(
           customizer,
@@ -92,8 +92,8 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
         };
 
         jest
-          .spyOn(customizer, 'collections', 'get')
-          .mockReturnValue([collection as unknown as CollectionCustomizer]);
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         await actionCustomization.addCustomizations(
           customizer,
@@ -130,8 +130,8 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
         };
 
         jest
-          .spyOn(customizer, 'collections', 'get')
-          .mockReturnValue([collection as unknown as CollectionCustomizer]);
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         await actionCustomization.addCustomizations(
           customizer,

@@ -22,7 +22,7 @@ export default class UpdateRecordActionsPlugin {
     );
 
     actions.forEach(action => {
-      const collection = datasourceCustomizer.collections.find(c => c.name === action.modelName);
+      const collection = datasourceCustomizer.findCollection(action.modelName);
       if (!collection) return;
 
       collection.addAction(action.name, {

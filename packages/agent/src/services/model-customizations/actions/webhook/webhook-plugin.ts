@@ -15,7 +15,7 @@ export default class WebhookActionsPlugin {
   ) => {
     const actions = getActions<WebhookActionConfiguration>('webhook', modelCustomizations);
     actions.forEach(action => {
-      const collection = datasourceCustomizer.collections.find(c => c.name === action.modelName);
+      const collection = datasourceCustomizer.findCollection(action.modelName);
       if (!collection) return;
 
       collection.addAction(action.name, {

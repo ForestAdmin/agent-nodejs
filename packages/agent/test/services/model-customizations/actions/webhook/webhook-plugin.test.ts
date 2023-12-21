@@ -46,8 +46,8 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
         };
 
         jest
-          .spyOn(customizer, 'collections', 'get')
-          .mockReturnValue([collection as unknown as CollectionCustomizer]);
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         WebhookActionsPlugin.addWebhookActions(
           customizer,
@@ -81,8 +81,8 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
       };
 
       jest
-        .spyOn(customizer, 'collections', 'get')
-        .mockReturnValue([collection as unknown as CollectionCustomizer]);
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,
@@ -115,9 +115,7 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
         addAction: jest.fn(),
         name: 'myModel',
       };
-      jest
-        .spyOn(customizer, 'collections', 'get')
-        .mockReturnValue([collection as unknown as CollectionCustomizer]);
+      jest.spyOn(customizer, 'findCollection').mockReturnValue(undefined);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,
@@ -136,8 +134,8 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
       };
 
       jest
-        .spyOn(customizer, 'collections', 'get')
-        .mockReturnValue([collection as unknown as CollectionCustomizer]);
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,
@@ -167,8 +165,8 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
       };
 
       jest
-        .spyOn(customizer, 'collections', 'get')
-        .mockReturnValue([collection as unknown as CollectionCustomizer]);
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,
