@@ -57,7 +57,7 @@ export function createSqlDataSource(
   return async (logger: Logger) => {
     let sequelize: Sequelize;
     let introspection: Introspection = Array.isArray(options?.introspection)
-      ? { tables: options.introspection }
+      ? { tables: options.introspection, views: [] }
       : options?.introspection;
 
     try {

@@ -56,5 +56,5 @@ export type Table = {
 
 export type Introspection = {
   tables: Table[];
-  views?: Table[];
+  views: Table[];
 };

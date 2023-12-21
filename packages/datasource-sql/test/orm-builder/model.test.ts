@@ -27,7 +27,7 @@ describe('ModelBuilder', () => {
       },
     ];
 
-    expect(() => ModelBuilder.defineModels(sequelize, () => {}, tables)).toThrow();
+    expect(() => ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] })).toThrow();
   });
 
   it('should throw when an invalid scalar type is provided', () => {
@@ -47,7 +47,7 @@ describe('ModelBuilder', () => {
       },
     ];
 
-    expect(() => ModelBuilder.defineModels(sequelize, () => {}, tables)).toThrow();
+    expect(() => ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] })).toThrow();
   });
 
   it('should use the default enum type when no enum list name is provided', () => {
@@ -63,7 +63,7 @@ describe('ModelBuilder', () => {
       },
     ];
 
-    ModelBuilder.defineModels(sequelize, () => {}, tables);
+    ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
     expect(sequelize.models.myTable).toBeDefined();
     expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe('ENUM');
@@ -91,7 +91,7 @@ describe('ModelBuilder', () => {
       },
     ];
 
-    ModelBuilder.defineModels(sequelize, () => {}, tables);
+    ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
     expect(sequelize.models.myTable).toBeDefined();
     expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe(
@@ -111,7 +111,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.id.primaryKey).toBe(true);
@@ -132,7 +132,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.uniqueField.primaryKey).toBe(true);
@@ -153,7 +153,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.uniqueTogether1.primaryKey).toBe(true);
@@ -184,7 +184,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.fk1.primaryKey).toBe(true);
@@ -201,7 +201,7 @@ describe('ModelBuilder', () => {
         }),
       } as unknown as Sequelize;
 
-      ModelBuilder.defineModels(sequelize, logger, tables);
+      ModelBuilder.defineModels(sequelize, logger, { tables, views: [] });
 
       expect(logger).toHaveBeenCalledWith(
         'Warn',
@@ -228,7 +228,7 @@ describe('ModelBuilder', () => {
         { columns: [column], name: 'aModel', schema: undefined, unique: [] },
       ] as Table[];
 
-      ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
       expect(sequelize.models.aModel).toBeDefined();
       expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toStrictEqual(
@@ -254,7 +254,7 @@ describe('ModelBuilder', () => {
           { columns: [column], name: 'aModel', schema: undefined, unique: [] },
         ] as Table[];
 
-        ModelBuilder.defineModels(sequelize, () => {}, tables);
+        ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
         expect(sequelize.models.aModel).toBeDefined();
         expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
@@ -274,7 +274,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, tables);
+      ModelBuilder.defineModels(sequelize, () => {}, { tables, views: [] });
 
       expect(sequelize.models.myTable.getTableName()).toMatchObject({
         schema: 'mySchema',
