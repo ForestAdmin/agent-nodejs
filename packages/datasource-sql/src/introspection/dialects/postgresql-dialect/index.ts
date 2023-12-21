@@ -18,6 +18,14 @@ type DBColumn = {
 };
 
 export default class PostgreSQLDialect implements IntrospectionDialect {
+  getDefaultSchema(): string {
+    return 'public';
+  }
+
+  getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier {
+    return tableIdentifier;
+  }
+
   async listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,

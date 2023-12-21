@@ -13,6 +13,14 @@ type DBColumn = {
 };
 
 export default class SQLiteDialect implements IntrospectionDialect {
+  getDefaultSchema(): string {
+    return undefined;
+  }
+
+  getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier {
+    return tableIdentifier;
+  }
+
   listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,

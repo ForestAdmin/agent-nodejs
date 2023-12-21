@@ -16,6 +16,14 @@ export type MySQLDBColumn = {
 };
 
 export default class MySQLDialect implements IntrospectionDialect {
+  getDefaultSchema(sequelize: Sequelize): string {
+    return sequelize.getDatabaseName();
+  }
+
+  getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier {
+    return { tableName: tableIdentifier.tableName };
+  }
+
   async listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,
