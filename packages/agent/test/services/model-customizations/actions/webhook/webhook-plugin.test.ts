@@ -42,8 +42,12 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
         const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
         const collection = {
           addAction: jest.fn(),
+          name: 'myModel',
         };
-        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+        jest
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         WebhookActionsPlugin.addWebhookActions(
           customizer,
@@ -55,7 +59,6 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
           scope,
           execute: expect.any(Function),
         });
-        expect(customizer.getCollection).toHaveBeenCalledWith('myModel');
       },
     );
 
@@ -74,8 +77,12 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
       const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
       const collection = {
         addAction: jest.fn(),
+        name: 'myModel',
       };
-      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+      jest
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,
@@ -91,13 +98,44 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
 
       expect(executeWebhookMock).toHaveBeenCalledWith(action, context);
     });
+    it('should do nothing if the collection is missing', async () => {
+      const action = {
+        name: 'myAction',
+        type: ModelCustomizationType.action,
+        modelName: 'myOtherModel',
+        configuration: {
+          type: 'webhook',
+          scope: 'Global',
+          configuration: { fields: [{ fieldName: 'field', value: 'value' }] },
+        },
+      };
+
+      const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+      const collection = {
+        addAction: jest.fn(),
+        name: 'myModel',
+      };
+      jest.spyOn(customizer, 'findCollection').mockReturnValue(undefined);
+
+      WebhookActionsPlugin.addWebhookActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        [action],
+      );
+
+      expect(collection.addAction).not.toHaveBeenCalled();
+    });
 
     it('should not use customizations that are not actions', async () => {
       const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
       const collection = {
         addAction: jest.fn(),
+        name: 'myModel',
       };
-      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+      jest
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,
@@ -123,8 +161,12 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
       const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
       const collection = {
         addAction: jest.fn(),
+        name: 'myModel',
       };
-      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+      jest
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       WebhookActionsPlugin.addWebhookActions(
         customizer,

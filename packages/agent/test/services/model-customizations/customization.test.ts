@@ -54,9 +54,13 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
 
         const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
         const collection = {
-          addAction: jest.fn().mockReturnThis(),
+          addAction: jest.fn(),
+          name: 'myModel',
         };
-        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+        jest
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         await actionCustomization.addCustomizations(
           customizer,
@@ -84,8 +88,12 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
         const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
         const collection = {
           addAction: jest.fn(),
+          name: 'myModel',
         };
-        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+        jest
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         await actionCustomization.addCustomizations(
           customizer,
@@ -118,8 +126,12 @@ describe('Services > ModelCustomizations > CustomizationPluginService', () => {
         const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
         const collection = {
           addAction: jest.fn(),
+          name: 'myModel',
         };
-        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+
+        jest
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         await actionCustomization.addCustomizations(
           customizer,

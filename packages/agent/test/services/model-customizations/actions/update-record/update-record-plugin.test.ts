@@ -39,11 +39,14 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
           },
         };
 
-        const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
         const collection = {
           addAction: jest.fn(),
+          name: 'myModel',
         };
-        (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+        const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+        jest
+          .spyOn(customizer, 'findCollection')
+          .mockReturnValue(collection as unknown as CollectionCustomizer);
 
         UpdateRecordActionsPlugin.addUpdateRecordActions(
           customizer,
@@ -55,9 +58,39 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
           scope,
           execute: expect.any(Function),
         });
-        expect(customizer.getCollection).toHaveBeenCalledWith('myModel');
+        expect(customizer.findCollection).toHaveBeenCalledWith('myModel');
       },
     );
+    it('should do nothing if the collection is missing', async () => {
+      const action = {
+        name: 'myAction',
+        type: ModelCustomizationType.action,
+        modelName: 'myOtherModel',
+        configuration: {
+          type: 'update-record',
+          scope: 'Global',
+          configuration: { fields: [{ fieldName: 'field', value: 'value' }] },
+        },
+      };
+
+      const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
+      const collection = {
+        addAction: jest.fn(),
+        name: 'myModel',
+      };
+      jest
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(undefined as unknown as CollectionCustomizer);
+
+      UpdateRecordActionsPlugin.addUpdateRecordActions(
+        customizer,
+        undefined as unknown as CollectionCustomizer,
+        [action],
+      );
+
+      expect(collection.addAction).not.toHaveBeenCalled();
+      expect(customizer.findCollection).toHaveBeenCalledWith('myOtherModel');
+    });
 
     it('should execute the action', async () => {
       const action = {
@@ -74,8 +107,11 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
       const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
       const collection = {
         addAction: jest.fn(),
+        name: 'myModel',
       };
-      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+      jest
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       UpdateRecordActionsPlugin.addUpdateRecordActions(
         customizer,
@@ -91,6 +127,7 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
 
       await execute(context);
 
+      expect(customizer.findCollection).toHaveBeenCalledWith('myModel');
       expect(executeWebhookMock).toHaveBeenCalledWith(action, context);
     });
 
@@ -98,8 +135,11 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
       const customizer = dataSourceCustomizerFactory.mockAllMethods().build();
       const collection = {
         addAction: jest.fn(),
+        name: 'myModel',
       };
-      (customizer.getCollection as jest.Mock).mockReturnValue(collection);
+      jest
+        .spyOn(customizer, 'findCollection')
+        .mockReturnValue(collection as unknown as CollectionCustomizer);
 
       UpdateRecordActionsPlugin.addUpdateRecordActions(
         customizer,
@@ -119,6 +159,7 @@ describe('Services > ModelCustomizations > Actions > UpdateRecordActionsPlugin',
       );
 
       expect(collection.addAction).not.toHaveBeenCalled();
+      expect(customizer.findCollection).not.toHaveBeenCalled();
     });
   });
 });
