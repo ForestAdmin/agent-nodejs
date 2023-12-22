@@ -1,0 +1,119 @@
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import {
+  Caller,
+  ConditionTreeFactory,
+  Filter,
+  PaginatedFilter,
+  Projection,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
+import { Sequelize } from 'sequelize';
+
+import { buildSequelizeInstance, introspect } from '../../src';
+import SqlDatasource from '../../src/decorators/sql-datasource';
+import CONNECTION_DETAILS from '../_helpers/connection-details';
+import setupSimpleTable from '../_helpers/setup-simple-table';
+
+describe('datasource with views', () => {
+  describe.each(CONNECTION_DETAILS)('on $name', connectionDetails => {
+    const db = 'test_datasource_views';
+
+    describe('on default schema', () => {
+      let datasource: SqlDatasource;
+      let sequelize;
+      let caller: Caller;
+
+      beforeAll(async () => {
+        await setupSimpleTable(connectionDetails, db);
+
+        const setupSequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+
+        try {
+          await setupSequelize.query(`
+            CREATE VIEW view_thing AS SELECT * FROM thing
+          `);
+        } catch (e) {
+          console.error('Error', e);
+          throw e;
+        } finally {
+          await setupSequelize.close();
+        }
+
+        const introspection = await introspect(connectionDetails.url(db));
+        const logger = jest.fn();
+
+        sequelize = await buildSequelizeInstance(
+          connectionDetails.url(db),
+          jest.fn(),
+          introspection,
+        );
+
+        datasource = new SqlDatasource(
+          new SequelizeDataSource(sequelize, logger),
+          introspection.views,
+        );
+
+        caller = {
+          email: 'alice@forestadmin.com',
+          firstName: 'Alice',
+          id: 1,
+          lastName: 'Liddell',
+          renderingId: 42,
+          requestId: 'requestId',
+          role: 'ADMIN',
+          tags: {},
+          team: 'FOO',
+          timezone: 'UTC',
+        };
+      });
+
+      afterAll(async () => {
+        await sequelize?.close();
+      });
+
+      it('should allow to list records', async () => {
+        await sequelize.models.thing.bulkCreate([{ name: 'foo' }, { name: 'bar' }]);
+
+        const groups = await datasource
+          .getCollection('view_thing')
+          .list(caller, new PaginatedFilter({}), new Projection('name'));
+
+        expect(groups).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ name: 'foo' }),
+            expect.objectContaining({ name: 'bar' }),
+          ]),
+        );
+      });
+
+      it('should not allow to create a record', async () => {
+        await expect(
+          datasource.getCollection('view_thing').create(caller, [{ name: 'foo' }]),
+        ).rejects.toThrow(new UnprocessableError('View is read-only'));
+      });
+
+      it('should not allow to update a record', async () => {
+        await expect(
+          datasource.getCollection('view_thing').update(
+            caller,
+            new Filter({
+              conditionTree: ConditionTreeFactory.MatchAll,
+            }),
+            { name: 'foo' },
+          ),
+        ).rejects.toThrow(new UnprocessableError('View is read-only'));
+      });
+
+      it('should not allow to delete a record', async () => {
+        await expect(
+          datasource.getCollection('view_thing').delete(
+            caller,
+            new Filter({
+              conditionTree: ConditionTreeFactory.MatchAll,
+            }),
+          ),
+        ).rejects.toThrow(new UnprocessableError('View is read-only'));
+      });
+    });
+  });
+});

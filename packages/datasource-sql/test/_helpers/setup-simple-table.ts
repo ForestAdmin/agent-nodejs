@@ -6,19 +6,11 @@ export default async function setupSimpleTable(
   connectionDetails: ConnectionDetails,
   database: string,
   schema?: string,
-): Promise<Sequelize> {
+): Promise<void> {
   let sequelize: Sequelize | null = null;
 
   try {
-    if (connectionDetails.supports.multipleDatabases) {
-      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-      const queryInterface = sequelize.getQueryInterface();
-
-      await queryInterface.dropDatabase(database);
-      await queryInterface.createDatabase(database);
-
-      await sequelize.close();
-    }
+    await connectionDetails.dropDb(database);
 
     const optionalSchemaOption = schema ? { schema } : {};
     sequelize = new Sequelize(connectionDetails.url(database), {
@@ -32,14 +24,12 @@ export default async function setupSimpleTable(
     }
 
     sequelize.define(
-      'group',
+      'thing',
       { name: DataTypes.STRING },
-      { tableName: 'group', ...optionalSchemaOption, timestamps: false },
+      { tableName: 'thing', ...optionalSchemaOption, timestamps: false },
     );
 
     await sequelize.sync({ force: true, ...optionalSchemaOption });
-
-    return sequelize;
   } catch (e) {
     console.error('Error', e);
     throw e;

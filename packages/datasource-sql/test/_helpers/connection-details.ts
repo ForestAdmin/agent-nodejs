@@ -1,6 +1,23 @@
+import fs from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
-import { Dialect, Options } from 'sequelize';
+import { Dialect, Options, Sequelize } from 'sequelize';
+
+async function dropDbWithSequelize(url: string, database: string): Promise<void> {
+  const sequelize = new Sequelize(url, { logging: false });
+
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+
+    await queryInterface.dropDatabase(database);
+    await queryInterface.createDatabase(database);
+  } catch (e) {
+    console.error('Error', e);
+    throw e;
+  } finally {
+    await sequelize.close();
+  }
+}
 
 export type ConnectionDetails = {
   name: string;
@@ -8,6 +25,7 @@ export type ConnectionDetails = {
   url: (dbName?: string) => string;
   urlDocker: (dbName?: string) => string;
   options: (dbName?: string) => Options;
+  dropDb: (dbName: string) => Promise<void>;
   version: number;
   supports: {
     schemas?: boolean;
@@ -35,6 +53,8 @@ export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
     `postgres://test:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `postgres://test:password@postgres${version}:5432${dbName ? `/${dbName}` : ''}`,
+  dropDb: (dbName: string) =>
+    dropDbWithSequelize(`postgres://test:password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'postgres' as Dialect,
     username: 'test',
@@ -71,6 +91,8 @@ export const MSSQL_DETAILS: ConnectionDetails[] = [
     `mssql://sa:yourStrong(!)Password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `mssql://sa:yourStrong(!)Password@mssql${version}:1433${dbName ? `/${dbName}` : ''}`,
+  dropDb: (dbName: string) =>
+    dropDbWithSequelize(`mssql://sa:yourStrong(!)Password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'mssql' as Dialect,
     username: 'sa',
@@ -106,6 +128,8 @@ export const MYSQL_DETAILS: ConnectionDetails[] = [
   url: (dbName?: string) => `mysql://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `mysql://root:password@mysql${version}:3306${dbName ? `/${dbName}` : ''}`,
+  dropDb: (dbName: string) =>
+    dropDbWithSequelize(`mysql://root:password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'mysql' as Dialect,
     username: 'root',
@@ -141,6 +165,8 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
     `mariadb://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `mariadb://root:password@mariadb${version}:3306${dbName ? `/${dbName}` : ''}`,
+  dropDb: (dbName: string) =>
+    dropDbWithSequelize(`mariadb://root:password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'mariadb' as Dialect,
     username: 'root',
@@ -166,17 +192,26 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
   defaultSchema: undefined,
 }));
 
+function generateDbPath(dbName?: string): string {
+  return path.join(tmpdir(), dbName ? `${dbName}.db` : 'test.db');
+}
+
+function sqliteUrl(dbName?: string): string {
+  return `sqlite://${generateDbPath(dbName)}`;
+}
+
 export const SQLITE_DETAILS: ConnectionDetails = {
   name: 'SQLite',
   dialect: 'sqlite',
-  url: (dbName?: string) => `sqlite://${path.join(tmpdir(), `${dbName}.db` || 'test.db')}}`,
-  urlDocker: (dbName?: string) => `sqlite://${path.join('/tmp', `${dbName}.db` || 'test.db')}}`,
+  url: sqliteUrl,
+  urlDocker: sqliteUrl,
   options: (dbName?: string) => ({
     dialect: 'sqlite' as Dialect,
-    storage: ':memory:',
+    storage: generateDbPath(dbName),
     database: dbName,
     logging: false,
   }),
+  dropDb: async (dbName: string) => fs.rm(generateDbPath(dbName), { force: true }),
   version: 3,
   supports: {
     schemas: false,
