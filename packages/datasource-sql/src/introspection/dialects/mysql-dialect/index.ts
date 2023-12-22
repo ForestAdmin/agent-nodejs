@@ -1,7 +1,11 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import parseEnum from './parse-enum';
-import { SequelizeColumn, SequelizeTableIdentifier } from '../../type-overrides';
+import {
+  SequelizeColumn,
+  SequelizeTableIdentifier,
+  SequelizeWithOptions,
+} from '../../type-overrides';
 import IntrospectionDialect, { ColumnDescription } from '../dialect.interface';
 
 export type MySQLDBColumn = {
@@ -63,8 +67,19 @@ export default class MySQLDialect implements IntrospectionDialect {
     });
   }
 
-  async listViews(): Promise<SequelizeTableIdentifier[]> {
-    return [];
+  async listViews(sequelize: SequelizeWithOptions): Promise<SequelizeTableIdentifier[]> {
+    const dbName = sequelize.getDatabaseName();
+
+    return sequelize.query<SequelizeTableIdentifier>(
+      `SELECT TABLE_NAME as "tableName" 
+      FROM information_schema.tables 
+      WHERE TABLE_TYPE LIKE 'VIEW'
+        AND TABLE_SCHEMA = :dbName;`,
+      {
+        type: QueryTypes.SELECT,
+        replacements: { dbName },
+      },
+    );
   }
 
   private getColumnDescription(dbColumn: MySQLDBColumn): ColumnDescription {

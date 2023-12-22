@@ -4,10 +4,10 @@ import { DataTypes, Sequelize } from 'sequelize';
 import Introspector from '../../src/introspection/introspector';
 import CONNECTION_DETAILS, { MSSQL_DETAILS } from '../_helpers/connection-details';
 
-const db = 'database_introspector';
-
 describe('Introspector > Integration', () => {
   describe('relations to different schemas', () => {
+    const db = 'database_introspector_relations_schema';
+
     describe.each(CONNECTION_DETAILS.filter(connection => connection.supports.schemas))(
       'on $name',
       connectionDetails => {
@@ -108,6 +108,7 @@ describe('Introspector > Integration', () => {
 
   describe.each(MSSQL_DETAILS)('mssql $name', connectionDetails => {
     let sequelize: Sequelize;
+    const db = 'database_introspector_mssql';
 
     beforeEach(async () => {
       const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
@@ -192,6 +193,199 @@ describe('Introspector > Integration', () => {
             ]),
           }),
         ]),
+      );
+    });
+  });
+
+  describe('views', () => {
+    describe.each(CONNECTION_DETAILS)('on $name', connectionDetails => {
+      let sequelize: Sequelize;
+      const db = 'database_introspector_views';
+
+      beforeEach(async () => {
+        if (connectionDetails.supports.multipleDatabases) {
+          const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+          try {
+            const queryInterface = internalSequelize.getQueryInterface();
+
+            await queryInterface.dropDatabase(db);
+            await queryInterface.createDatabase(db);
+          } finally {
+            internalSequelize.close();
+          }
+        } else {
+          const internalSequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+
+          try {
+            await internalSequelize.query(`DROP VIEW IF EXISTS the_view`);
+            await internalSequelize.getQueryInterface().dropAllTables();
+          } finally {
+            internalSequelize.close();
+          }
+        }
+
+        sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+      });
+
+      afterEach(async () => {
+        await sequelize?.close();
+      });
+
+      it('should return views', async () => {
+        const queryInterface = sequelize.getQueryInterface();
+
+        await queryInterface.createTable('things', {
+          id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+          },
+          name: {
+            type: DataTypes.STRING,
+          },
+          description: {
+            type: DataTypes.STRING,
+          },
+        });
+
+        try {
+          await sequelize.query(`
+              CREATE VIEW the_view AS
+              SELECT * FROM things
+            `);
+        } catch (e) {
+          console.error('error', e);
+          throw e;
+        }
+
+        const { views } = await Introspector.introspect(sequelize);
+
+        expect(views).toEqual([
+          expect.objectContaining({
+            name: 'the_view',
+            unique: [],
+            schema: connectionDetails.defaultSchema,
+            columns: [
+              expect.objectContaining({
+                name: 'id',
+                type: {
+                  subType: 'NUMBER',
+                  type: 'scalar',
+                },
+              }),
+              {
+                allowNull: true,
+                autoIncrement: false,
+                constraints: [],
+                defaultValue: undefined,
+                isLiteralDefaultValue: false,
+                name: 'name',
+                primaryKey: false,
+                type: {
+                  subType: 'STRING',
+                  type: 'scalar',
+                },
+              },
+              {
+                allowNull: true,
+                autoIncrement: false,
+                constraints: [],
+                defaultValue: undefined,
+                isLiteralDefaultValue: false,
+                name: 'description',
+                primaryKey: false,
+                type: {
+                  subType: 'STRING',
+                  type: 'scalar',
+                },
+              },
+            ],
+          }),
+        ]);
+      });
+    });
+
+    describe('with schemas', () => {
+      const db = 'database_introspector_views_schemas';
+
+      describe.each(CONNECTION_DETAILS.filter(c => c.supports.schemas))(
+        'on $name',
+        connectionDetails => {
+          let sequelize: Sequelize;
+
+          beforeEach(async () => {
+            const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+            try {
+              const queryInterface = internalSequelize.getQueryInterface();
+
+              if (connectionDetails.supports.multipleDatabases) {
+                await queryInterface.dropDatabase(db);
+                await queryInterface.createDatabase(db);
+              }
+            } finally {
+              internalSequelize.close();
+            }
+
+            sequelize = new Sequelize(connectionDetails.url(db), {
+              logging: false,
+              schema: 'schema1',
+            });
+
+            await sequelize.getQueryInterface().createSchema('schema1');
+          });
+
+          afterEach(async () => {
+            await sequelize?.close();
+          });
+
+          it('should return views', async () => {
+            sequelize.define(
+              'things',
+              {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
+                name: {
+                  type: DataTypes.STRING,
+                },
+                description: {
+                  type: DataTypes.STRING,
+                },
+              },
+              {
+                schema: 'schema1',
+              },
+            );
+
+            await sequelize.sync({ force: true });
+
+            try {
+              await sequelize.query(`
+              CREATE VIEW schema1.the_view AS
+              SELECT * FROM schema1.things
+            `);
+            } catch (e) {
+              console.error('error', e);
+              throw e;
+            }
+
+            const { tables, views } = await Introspector.introspect(sequelize);
+            expect(tables).toEqual([
+              expect.objectContaining({
+                name: 'things',
+              }),
+            ]);
+            expect(views).toEqual([
+              expect.objectContaining({
+                name: 'the_view',
+              }),
+            ]);
+          });
+        },
       );
     });
   });

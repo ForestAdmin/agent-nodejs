@@ -1,7 +1,7 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
+import { SequelizeColumn, SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
 
 type DBColumn = {
   Schema: string;
@@ -24,8 +24,23 @@ export default class MsSQLDialect implements IntrospectionDialect {
     return tableIdentifier;
   }
 
-  async listViews(): Promise<SequelizeTableIdentifier[]> {
-    return [];
+  async listViews(sequelize: SequelizeWithOptions): Promise<SequelizeTableIdentifier[]> {
+    return sequelize.query(
+      `
+      SELECT 
+        SCHEMA_NAME(schema_id) AS [schema],
+        Name as [tableName]
+      FROM sys.views
+        
+    `,
+      {
+        type: QueryTypes.SELECT,
+        replacements: {
+          databaseName: sequelize.getDatabaseName(),
+          schema: sequelize.options.schema || this.getDefaultSchema(),
+        },
+      },
+    );
   }
 
   async listColumns(

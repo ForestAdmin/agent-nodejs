@@ -127,10 +127,11 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       SELECT table_name as "tableName", table_schema as "schema"
       FROM information_schema.views
       WHERE table_schema = :schema
+        AND table_catalog = :database;
       `,
       {
         type: QueryTypes.SELECT,
-        replacements: { schema },
+        replacements: { schema, database: sequelize.getDatabaseName() },
       },
     );
   }
