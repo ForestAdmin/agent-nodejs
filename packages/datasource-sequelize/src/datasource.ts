@@ -32,4 +32,8 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
         this.addCollection(collection);
       });
   }
+
+  public async close() {
+    await this.sequelize.close();
+  }
 }

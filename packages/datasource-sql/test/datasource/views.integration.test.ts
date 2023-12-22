@@ -1,4 +1,3 @@
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import {
   Caller,
   ConditionTreeFactory,
@@ -9,7 +8,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { Sequelize } from 'sequelize';
 
-import { buildSequelizeInstance, introspect } from '../../src';
+import { buildSequelizeInstance, createSqlDataSource, introspect } from '../../src';
 import SqlDatasource from '../../src/decorators/sql-datasource';
 import CONNECTION_DETAILS from '../_helpers/connection-details';
 import setupSimpleTable from '../_helpers/setup-simple-table';
@@ -42,10 +41,7 @@ describe('datasource with views', () => {
 
       sequelize = await buildSequelizeInstance(connectionDetails.url(db), jest.fn(), introspection);
 
-      datasource = new SqlDatasource(
-        new SequelizeDataSource(sequelize, logger),
-        introspection.views,
-      );
+      datasource = (await createSqlDataSource(connectionDetails.url(db))(logger)) as SqlDatasource;
 
       caller = {
         email: 'alice@forestadmin.com',
@@ -63,6 +59,7 @@ describe('datasource with views', () => {
 
     afterAll(async () => {
       await sequelize?.close();
+      await datasource.close();
     });
 
     describe('queries', () => {

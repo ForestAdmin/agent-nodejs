@@ -1,4 +1,5 @@
-import { Collection, DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { Collection, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import ViewDecorator from './view-decorator';
 import { Table } from '../introspection/types';
@@ -6,7 +7,7 @@ import { Table } from '../introspection/types';
 export default class SqlDatasource extends DataSourceDecorator<Collection> {
   private readonly viewNames: Set<string> = new Set();
 
-  constructor(childDataSource: DataSource, views: Table[]) {
+  constructor(childDataSource: SequelizeDataSource, views: Table[]) {
     super(childDataSource, ViewDecorator);
 
     this.viewNames = new Set(views?.map(({ name }) => name));
@@ -18,5 +19,9 @@ export default class SqlDatasource extends DataSourceDecorator<Collection> {
     if (!this.viewNames.has(name)) return collection;
 
     return super.getCollection(name);
+  }
+
+  public async close() {
+    await (this.childDataSource as SequelizeDataSource).close();
   }
 }
