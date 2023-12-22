@@ -10,15 +10,7 @@ export default async (
   let sequelize: Sequelize | null = null;
 
   try {
-    if (connectionDetails.supports.multipleDatabases) {
-      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-      const queryInterface = sequelize.getQueryInterface();
-
-      await queryInterface.dropDatabase(database);
-      await queryInterface.createDatabase(database);
-
-      await sequelize.close();
-    }
+    await connectionDetails.reinitDb(database);
 
     const optionalSchemaOption = schema ? { schema } : {};
     sequelize = new Sequelize(connectionDetails.url(database), {

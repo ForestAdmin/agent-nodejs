@@ -8,17 +8,10 @@ export default async (
 ): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
+  await connectionDetails.reinitDb(database);
+
   try {
-    if (connectionDetails.supports.multipleDatabases) {
-      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-      await sequelize.getQueryInterface().dropDatabase(database);
-      await sequelize.getQueryInterface().createDatabase(database);
-      await sequelize.close();
-      sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
-    } else {
-      sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
-      await sequelize.getQueryInterface().dropTable('person');
-    }
+    sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
 
     await sequelize.getQueryInterface().createTable('person', {
       id: { type: DataTypes.INTEGER, primaryKey: false },

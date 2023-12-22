@@ -164,13 +164,7 @@ export default async (
   let sequelize: Sequelize | null = null;
 
   try {
-    if (connectionDetails.supports.multipleDatabases) {
-      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-      await sequelize.getQueryInterface().dropDatabase(database);
-      await sequelize.getQueryInterface().createDatabase(database);
-      await sequelize.close();
-    }
+    await connectionDetails.reinitDb(database);
 
     const optionalSchemaOption = schema ? { schema } : {};
 

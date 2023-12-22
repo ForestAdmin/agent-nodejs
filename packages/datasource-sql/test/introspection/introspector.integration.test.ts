@@ -15,15 +15,7 @@ describe('Introspector > Integration', () => {
         let sequelizeSchema1: Sequelize;
 
         beforeEach(async () => {
-          const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-          try {
-            const queryInterface = internalSequelize.getQueryInterface();
-            await queryInterface.dropDatabase(db);
-            await queryInterface.createDatabase(db);
-          } finally {
-            internalSequelize.close();
-          }
+          await connectionDetails.reinitDb(db);
 
           sequelize = new Sequelize(connectionDetails.url(db), {
             logging: false,
@@ -111,19 +103,7 @@ describe('Introspector > Integration', () => {
     const db = 'database_introspector_mssql';
 
     beforeEach(async () => {
-      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-      try {
-        const queryInterface = internalSequelize.getQueryInterface();
-        await queryInterface.createDatabase(db);
-        await queryInterface.dropDatabase(db);
-        await queryInterface.createDatabase(db);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      } finally {
-        internalSequelize.close();
-      }
+      await connectionDetails.reinitDb(db);
 
       sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
     });
@@ -203,27 +183,7 @@ describe('Introspector > Integration', () => {
       const db = 'database_introspector_views';
 
       beforeEach(async () => {
-        if (connectionDetails.supports.multipleDatabases) {
-          const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-          try {
-            const queryInterface = internalSequelize.getQueryInterface();
-
-            await queryInterface.dropDatabase(db);
-            await queryInterface.createDatabase(db);
-          } finally {
-            internalSequelize.close();
-          }
-        } else {
-          const internalSequelize = new Sequelize(connectionDetails.url(db), { logging: false });
-
-          try {
-            await internalSequelize.query(`DROP VIEW IF EXISTS the_view`);
-            await internalSequelize.getQueryInterface().dropAllTables();
-          } finally {
-            internalSequelize.close();
-          }
-        }
+        await connectionDetails.reinitDb(db);
 
         sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
       });
@@ -315,18 +275,7 @@ describe('Introspector > Integration', () => {
           let sequelize: Sequelize;
 
           beforeEach(async () => {
-            const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-            try {
-              const queryInterface = internalSequelize.getQueryInterface();
-
-              if (connectionDetails.supports.multipleDatabases) {
-                await queryInterface.dropDatabase(db);
-                await queryInterface.createDatabase(db);
-              }
-            } finally {
-              internalSequelize.close();
-            }
+            await connectionDetails.reinitDb(db);
 
             sequelize = new Sequelize(connectionDetails.url(db), {
               logging: false,

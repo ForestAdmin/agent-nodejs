@@ -10,7 +10,7 @@ export default async function setupSimpleTable(
   let sequelize: Sequelize | null = null;
 
   try {
-    await connectionDetails.dropDb(database);
+    await connectionDetails.reinitDb(database);
 
     const optionalSchemaOption = schema ? { schema } : {};
     sequelize = new Sequelize(connectionDetails.url(database), {

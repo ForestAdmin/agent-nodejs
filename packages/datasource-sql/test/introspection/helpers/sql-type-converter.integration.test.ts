@@ -20,14 +20,7 @@ const SCALAR_TYPES: [string, string, string[]?][] = [
 ];
 
 async function setupTestDB(connectionDetails: ConnectionDetails, schema) {
-  const initSequelize = new Sequelize(connectionDetails.options());
-
-  if (connectionDetails.supports.multipleDatabases) {
-    await initSequelize.getQueryInterface().dropDatabase('datasource-sql-introspection-test');
-    await initSequelize.getQueryInterface().createDatabase('datasource-sql-introspection-test');
-  }
-
-  initSequelize.close();
+  await connectionDetails.reinitDb('datasource-sql-introspection-test');
 
   const sequelize = new Sequelize({
     ...connectionDetails.options('datasource-sql-introspection-test'),

@@ -343,19 +343,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         }
 
         async function setupDB(databaseName: string) {
-          if (connectionDetails.supports.multipleDatabases) {
-            const localSequelize = new Sequelize({
-              ...connectionDetails.options(),
-              logging: false,
-            });
-
-            try {
-              await localSequelize.getQueryInterface().dropDatabase(databaseName);
-              await localSequelize.getQueryInterface().createDatabase(databaseName);
-            } finally {
-              await localSequelize.close();
-            }
-          }
+          await connectionDetails.reinitDb(databaseName);
 
           const dbSequelize = new Sequelize({
             ...connectionDetails.options(databaseName),

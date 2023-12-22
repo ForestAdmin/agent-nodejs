@@ -141,10 +141,7 @@ describe('SqlTypeConverter', () => {
 
           try {
             const database = 'datasource-sql-array-type-getter-test';
-            sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-            await sequelize.getQueryInterface().dropDatabase(database);
-            await sequelize.getQueryInterface().createDatabase(database);
-            await sequelize.close();
+            await connectionDetails.reinitDb(database);
 
             sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
             sequelize.define(
