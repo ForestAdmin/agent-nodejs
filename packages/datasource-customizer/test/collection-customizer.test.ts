@@ -572,6 +572,22 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('disableFieldSorting', () => {
+    it('should emulate sort on field', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const collection = stack.sortEmulate.getCollection('authors');
+
+      const spy = jest.spyOn(collection, 'disableFieldSorting');
+
+      const self = customizer.disableFieldSorting('firstName');
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName');
+      expect(self).toEqual(customizer);
+    });
+  });
+
   describe('emulateFieldSorting', () => {
     it('should emulate sort on field', async () => {
       const { dsc, customizer, stack } = await setup();

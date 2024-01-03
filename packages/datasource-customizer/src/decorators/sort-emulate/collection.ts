@@ -25,6 +25,12 @@ export default class SortEmulate extends CollectionDecorator {
     this.replaceFieldSorting(name, null);
   }
 
+  disableFieldSorting(name: string): void {
+    // This is not the best way to achieve the disable behavior
+    // but basically we replace sort with nothing to disable any sort
+    this.replaceFieldSorting(name, []);
+  }
+
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
     FieldValidator.validate(this, name);
 
@@ -75,8 +81,16 @@ export default class SortEmulate extends CollectionDecorator {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
+      const fieldSort = this.sorts.get(name);
+
       fields[name] =
-        this.sorts.has(name) && schema.type === 'Column' ? { ...schema, isSortable: true } : schema;
+        this.sorts.has(name) &&
+        schema.type === 'Column' &&
+        // In order to support disableFieldSorting with empty array (isSortable: false)
+        // and emulateFieldSorting with null value (isSortable: true)
+        (!fieldSort || (fieldSort && fieldSort?.length !== 0))
+          ? { ...schema, isSortable: true }
+          : schema;
     }
 
     return { ...childSchema, fields };
