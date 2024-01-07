@@ -16,6 +16,14 @@ type DBColumn = {
   Comment: string;
 };
 export default class MsSQLDialect implements IntrospectionDialect {
+  getDefaultSchema(): string {
+    return 'dbo';
+  }
+
+  getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier {
+    return tableIdentifier;
+  }
+
   async listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,

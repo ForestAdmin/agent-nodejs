@@ -1,3 +1,17 @@
+# @forestadmin/datasource-customizer [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.3...@forestadmin/datasource-customizer@1.40.0) (2024-01-03)
+
+
+### Features
+
+* **customizer:** allow users to disable sort properly on column ([#904](https://github.com/ForestAdmin/agent-nodejs/issues/904)) ([2dfaeac](https://github.com/ForestAdmin/agent-nodejs/commit/2dfaeac0aa84f6372f717b4fc4118ba187ecb08c))
+
+## @forestadmin/datasource-customizer [1.39.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.2...@forestadmin/datasource-customizer@1.39.3) (2023-12-21)
+
+
+### Bug Fixes
+
+* cloud sync error with customization applied to missing collections ([#901](https://github.com/ForestAdmin/agent-nodejs/issues/901)) ([60e8d1c](https://github.com/ForestAdmin/agent-nodejs/commit/60e8d1c55017d47f7ab296da4f88490328a6ce13))
+
 ## @forestadmin/datasource-customizer [1.39.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.1...@forestadmin/datasource-customizer@1.39.2) (2023-12-15)
 
 

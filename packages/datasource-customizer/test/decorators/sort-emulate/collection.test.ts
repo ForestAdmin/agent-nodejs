@@ -242,4 +242,29 @@ describe('SortEmulationDecoratorCollection', () => {
       ]);
     });
   });
+
+  describe('when disabling sort on book.title (no relations)', () => {
+    beforeEach(() => {
+      newBooks.disableFieldSorting('title');
+    });
+
+    test('schema should be updated', () => {
+      const schema = newBooks.schema.fields.title as ColumnSchema;
+      expect(schema.isSortable).toBeFalsy();
+    });
+
+    test('should not be concerned by sorting', async () => {
+      const records = await newBooks.list(
+        factories.caller.build(),
+        new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: true }) }),
+        new Projection('id', 'title'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 1, title: 'Foundation' },
+        { id: 2, title: 'Beat the dealer' },
+        { id: 3, title: 'Gomorrah' },
+      ]);
+    });
+  });
 });

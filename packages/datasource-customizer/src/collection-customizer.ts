@@ -391,6 +391,19 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Disable sorting on a specific field.
+   * @param name the name of the field with sorting to be disabled
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/sort#disabling-sort Documentation Link}
+   * @example
+   * .disableFieldSorting('fullName');
+   */
+  disableFieldSorting(name: TColumnName<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.sortEmulate.getCollection(this.name).disableFieldSorting(name);
+    });
+  }
+
+  /**
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
    * @param name the name of the field to enable emulation on

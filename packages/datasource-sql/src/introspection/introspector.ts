@@ -2,7 +2,7 @@ import { Logger } from '@forestadmin/datasource-toolkit';
 import { Dialect, Sequelize } from 'sequelize';
 
 import introspectionDialectFactory from './dialects/dialect-factory';
-import { ColumnDescription } from './dialects/dialect.interface';
+import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
 import DefaultValueParser from './helpers/default-value-parser';
 import SqlTypeConverter from './helpers/sql-type-converter';
 import {
@@ -15,8 +15,10 @@ import { Table } from './types';
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
-    const tableNames = await this.getTableNames(sequelize as SequelizeWithOptions);
-    const tables = await this.getTables(tableNames, sequelize, logger);
+    const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
+
+    const tableNames = await this.getTableNames(dialect, sequelize as SequelizeWithOptions);
+    const tables = await this.getTables(dialect, tableNames, sequelize, logger);
 
     this.sanitizeInPlace(tables, logger);
 
@@ -25,13 +27,14 @@ export default class Introspector {
 
   /** Get names of all tables in the public schema of the db */
   private static async getTableNames(
+    dialect: IntrospectionDialect,
     sequelize: SequelizeWithOptions,
   ): Promise<SequelizeTableIdentifier[]> {
     const tableIdentifiers: ({ tableName: string } | string)[] = await sequelize
       .getQueryInterface()
       .showAllTables();
 
-    const requestedSchema = sequelize.options.schema || this.getDefaultSchema(sequelize);
+    const requestedSchema = sequelize.options.schema || dialect.getDefaultSchema(sequelize);
 
     // Sometimes sequelize returns only strings,
     // and sometimes objects with a tableName and schema property.
@@ -51,57 +54,26 @@ export default class Introspector {
     );
   }
 
-  private static getDefaultSchema(sequelize: SequelizeWithOptions): string | undefined {
-    switch (sequelize.getDialect()) {
-      case 'postgres':
-        return 'public';
-      case 'mssql':
-        return 'dbo';
-      // MariaDB returns the database name as "schema" in table identifiers
-      case 'mariadb':
-      case 'mysql':
-        return sequelize.getDatabaseName();
-      default:
-        return undefined;
-    }
-  }
-
-  private static getTableIdentifier(
-    tableIdentifier: SequelizeTableIdentifier,
-    sequelize: Sequelize,
-  ): SequelizeTableIdentifier {
-    switch (sequelize.getDialect()) {
-      case 'postgres':
-      case 'mssql':
-      case 'sqlite':
-        return tableIdentifier;
-      case 'mariadb':
-      case 'mysql':
-      default:
-        return { tableName: tableIdentifier.tableName };
-    }
-  }
-
   private static async getTables(
+    dialect: IntrospectionDialect,
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,
     logger: Logger,
   ): Promise<Table[]> {
-    const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
-
     const tablesColumns = await dialect.listColumns(tableNames, sequelize);
 
     return Promise.all(
       tableNames.map((tableIdentifier, index) => {
         const columnDescriptions = tablesColumns[index];
 
-        return this.getTable(sequelize, tableIdentifier, columnDescriptions, logger);
+        return this.getTable(dialect, sequelize, tableIdentifier, columnDescriptions, logger);
       }),
     );
   }
 
   /** Instrospect a single table */
   private static async getTable(
+    dialect: IntrospectionDialect,
     sequelize: Sequelize,
     tableIdentifier: SequelizeTableIdentifier,
     columnDescriptions: ColumnDescription[],
@@ -112,7 +84,7 @@ export default class Introspector {
     // it, when it uses it internally, or when it is passed as an argument.
     // Plus it has some bugs with schema handling in postgresql that forces us to be sure that
     // the table identifier is correct on our side
-    const tableIdentifierForQuery = Introspector.getTableIdentifier(tableIdentifier, sequelize);
+    const tableIdentifierForQuery = dialect.getTableIdentifier(tableIdentifier);
 
     const [tableIndexes, tableReferences] = await Promise.all([
       queryInterface.showIndex(tableIdentifierForQuery),

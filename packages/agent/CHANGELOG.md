@@ -1,3 +1,28 @@
+## @forestadmin/agent [1.36.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.11...@forestadmin/agent@1.36.12) (2024-01-03)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.0
+
+## @forestadmin/agent [1.36.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.10...@forestadmin/agent@1.36.11) (2023-12-21)
+
+
+### Bug Fixes
+
+* cloud sync error with customization applied to missing collections ([#901](https://github.com/ForestAdmin/agent-nodejs/issues/901)) ([60e8d1c](https://github.com/ForestAdmin/agent-nodejs/commit/60e8d1c55017d47f7ab296da4f88490328a6ce13))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.39.3
+
 ## @forestadmin/agent [1.36.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.9...@forestadmin/agent@1.36.10) (2023-12-15)
 
 
