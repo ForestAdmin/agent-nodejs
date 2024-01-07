@@ -39,9 +39,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     const rules = this.parentStack.pop();
 
     if (!rules) {
-      this.parentStack.push([null]);
-
-      return;
+      throw new Error('Empty query');
     }
 
     if (rules.length === 1) {
