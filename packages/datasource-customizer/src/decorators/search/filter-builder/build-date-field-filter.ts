@@ -31,20 +31,28 @@ function getPeriodStart(string): string {
   return string;
 }
 
+function pad(month: number) {
+  if (month < 10) {
+    return `0${month}`;
+  }
+
+  return `${month}`;
+}
+
 function getAfterPeriodEnd(string): string {
   if (isYear(string)) return `${Number(string) + 1}-01-01`;
 
   if (isYearMonth(string)) {
     const [year, month] = string.split('-').map(Number);
-    const date = new Date(Number(year), Number(month), 0);
+    const endDate = new Date(year, month, 1);
 
-    return date.toISOString().split('T')[0];
+    return `${endDate.getFullYear()}-${pad(endDate.getMonth() + 1)}-01`;
   }
 
   const date = new Date(string);
   date.setDate(date.getDate() + 1);
 
-  return date.toISOString().split('T')[0];
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 const supportedOperators: [
@@ -58,10 +66,25 @@ const supportedOperators: [
       ['After', getAfterPeriodEnd],
       ['Equal', getAfterPeriodEnd],
     ],
-    [['Before', getAfterPeriodEnd]],
+    [
+      ['Before', getPeriodStart],
+      ['Equal', getPeriodStart],
+      ['Missing', () => undefined],
+    ],
   ],
   [
     '>=',
+    [
+      ['After', getPeriodStart],
+      ['Equal', getPeriodStart],
+    ],
+    [
+      ['Before', getPeriodStart],
+      ['Missing', () => undefined],
+    ],
+  ],
+  [
+    '≥',
     [
       ['After', getPeriodStart],
       ['Equal', getPeriodStart],
@@ -82,16 +105,27 @@ const supportedOperators: [
   ],
   [
     '<=',
+    [['Before', getAfterPeriodEnd]],
     [
-      ['Before', getPeriodStart],
-      ['Equal', getPeriodStart],
+      ['After', getAfterPeriodEnd],
+      ['Equal', getAfterPeriodEnd],
+      ['Missing', () => undefined],
     ],
+  ],
+  [
+    '≤',
+    [['Before', getAfterPeriodEnd]],
     [
-      ['After', getPeriodStart],
+      ['After', getAfterPeriodEnd],
+      ['Equal', getAfterPeriodEnd],
       ['Missing', () => undefined],
     ],
   ],
 ];
+
+function defaultResult(isNegated: boolean) {
+  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
+}
 
 export default function buildDateFieldFilter(
   field: string,
@@ -122,18 +156,25 @@ export default function buildDateFieldFilter(
       isNegated &&
       filterOperators.has('Before') &&
       filterOperators.has('After') &&
-      filterOperators.has('NotEqual') &&
-      filterOperators.has('Missing')
+      filterOperators.has('Equal')
     ) {
+      if (filterOperators.has('Missing')) {
+        return ConditionTreeFactory.union(
+          new ConditionTreeLeaf(field, 'Before', start),
+          new ConditionTreeLeaf(field, 'After', afterEnd),
+          new ConditionTreeLeaf(field, 'Equal', afterEnd),
+          new ConditionTreeLeaf(field, 'Missing'),
+        );
+      }
+
       return ConditionTreeFactory.union(
         new ConditionTreeLeaf(field, 'Before', start),
         new ConditionTreeLeaf(field, 'After', afterEnd),
         new ConditionTreeLeaf(field, 'Equal', afterEnd),
-        new ConditionTreeLeaf(field, 'Missing'),
       );
     }
 
-    return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
+    return defaultResult(isNegated);
   }
 
   for (const [operatorPrefix, positiveOperations, negativeOperations] of supportedOperators) {
@@ -162,5 +203,5 @@ export default function buildDateFieldFilter(
     );
   }
 
-  return null;
+  return defaultResult(isNegated);
 }
