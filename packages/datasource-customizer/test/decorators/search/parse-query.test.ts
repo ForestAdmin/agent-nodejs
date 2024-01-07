@@ -1,4 +1,4 @@
-import { ColumnSchema, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, ConditionTreeFactory, Operator } from '@forestadmin/datasource-toolkit';
 
 import { generateConditionTree, parseQuery } from '../../../src/decorators/search/parse-query';
 
@@ -8,7 +8,7 @@ describe('generateConditionTree', () => {
     {
       columnType: 'String',
       type: 'Column',
-      filterOperators: new Set([
+      filterOperators: new Set<Operator>([
         'IContains',
         'Missing',
         'NotIContains',

@@ -79,7 +79,8 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     if (parentRules) {
       parentRules.push(result);
     } else {
-      this.parentStack.push([result]);
+      // We should at least have an array for the root query
+      throw new Error('Empty stack');
     }
 
     this.isNegated = false;
@@ -109,11 +110,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
 
     const parentRules = this.parentStack[this.parentStack.length - 1];
 
-    if (rules.length === 1) {
-      parentRules.push(...rules);
-    } else {
-      parentRules.push(ConditionTreeFactory.union(...rules));
-    }
+    parentRules.push(ConditionTreeFactory.union(...rules));
   };
 
   override enterAnd = () => {
@@ -126,11 +123,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
 
     const parentRules = this.parentStack[this.parentStack.length - 1];
 
-    if (rules.length === 1) {
-      parentRules.push(...rules);
-    } else {
-      parentRules.push(ConditionTreeFactory.intersect(...rules));
-    }
+    parentRules.push(ConditionTreeFactory.intersect(...rules));
   };
 
   private buildDefaultCondition(searchString: string, isNegated: boolean): ConditionTree {
