@@ -9,7 +9,7 @@ import buildDefaultCondition from './utils/build-default-condition';
 export default function buildBasicArrayFieldFilter(
   field: string,
   filterOperators: Set<string> | undefined,
-  searchString: string,
+  searchString: unknown,
   isNegated: boolean,
 ): ConditionTree {
   if (!isNegated) {

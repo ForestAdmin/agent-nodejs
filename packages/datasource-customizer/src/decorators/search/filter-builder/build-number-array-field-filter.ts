@@ -11,5 +11,5 @@ export default function buildNumberArrayFieldFilter(
 ): ConditionTree {
   if (Number.isNaN(Number(searchString))) return buildDefaultCondition(isNegated);
 
-  return buildBasicArrayFieldFilter(field, filterOperators, searchString, isNegated);
+  return buildBasicArrayFieldFilter(field, filterOperators, Number(searchString), isNegated);
 }
