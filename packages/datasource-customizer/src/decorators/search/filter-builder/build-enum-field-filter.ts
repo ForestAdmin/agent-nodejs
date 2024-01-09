@@ -5,12 +5,8 @@ import {
   ConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
 
-function lenientFind(haystack: string[], needle: string): string {
-  return (
-    haystack?.find(v => v === needle.trim()) ??
-    haystack?.find(v => v.toLocaleLowerCase() === needle.toLocaleLowerCase().trim())
-  );
-}
+import buildDefaultCondition from './utils/build-default-condition';
+import findEnumValue from './utils/find-enum-value';
 
 export default function buildEnumFieldFilter(
   field: string,
@@ -18,11 +14,10 @@ export default function buildEnumFieldFilter(
   searchString: string,
   isNegated: boolean,
 ): ConditionTree {
-  const { enumValues, filterOperators } = schema;
-  const searchValue = lenientFind(enumValues, searchString);
-  const defaultResult = isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
+  const { filterOperators } = schema;
+  const searchValue = findEnumValue(searchString, schema);
 
-  if (!searchValue) return defaultResult;
+  if (!searchValue) return buildDefaultCondition(isNegated);
 
   if (filterOperators?.has('Equal') && !isNegated) {
     return new ConditionTreeLeaf(field, 'Equal', searchValue);
@@ -40,5 +35,5 @@ export default function buildEnumFieldFilter(
     return new ConditionTreeLeaf(field, 'NotEqual', searchValue);
   }
 
-  return defaultResult;
+  return buildDefaultCondition(isNegated);
 }

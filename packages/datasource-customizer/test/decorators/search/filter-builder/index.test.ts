@@ -6,11 +6,14 @@ import {
   allOperators,
 } from '@forestadmin/datasource-toolkit';
 
+import buildFieldFilter from '../../../../src/decorators/search/filter-builder';
 import buildBooleanFieldFilter from '../../../../src/decorators/search/filter-builder/build-boolean-field-filter';
 import buildDateFieldFilter from '../../../../src/decorators/search/filter-builder/build-date-field-filter';
+import buildEnumArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-enum-array-field-filter';
 import buildEnumFieldFilter from '../../../../src/decorators/search/filter-builder/build-enum-field-filter';
-import buildFieldFilter from '../../../../src/decorators/search/filter-builder/build-field-filter';
+import buildNumberArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-number-array-field-filter';
 import buildNumberFieldFilter from '../../../../src/decorators/search/filter-builder/build-number-field-filter';
+import buildStringArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-string-array-field-filter';
 import buildStringFieldFilter from '../../../../src/decorators/search/filter-builder/build-string-field-filter';
 import buildUuidFieldFilter from '../../../../src/decorators/search/filter-builder/build-uuid-field-filter';
 
@@ -20,20 +23,39 @@ jest.mock('../../../../src/decorators/search/filter-builder/build-enum-field-fil
 jest.mock('../../../../src/decorators/search/filter-builder/build-number-field-filter');
 jest.mock('../../../../src/decorators/search/filter-builder/build-string-field-filter');
 jest.mock('../../../../src/decorators/search/filter-builder/build-uuid-field-filter');
+jest.mock('../../../../src/decorators/search/filter-builder/build-number-array-field-filter');
+jest.mock('../../../../src/decorators/search/filter-builder/build-string-array-field-filter');
+jest.mock('../../../../src/decorators/search/filter-builder/build-enum-array-field-filter');
 
 const BUILDER_BY_TYPE: Record<
   PrimitiveTypes,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { builder: jest.MaybeMockedDeep<any>; callWithSchema?: true } | undefined
+  | {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      builder: jest.MaybeMockedDeep<any>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      arrayBuilder?: jest.MaybeMockedDeep<any>;
+      callWithSchema?: true;
+    }
+  | undefined
 > = {
   Boolean: { builder: jest.mocked(buildBooleanFieldFilter) },
   Date: { builder: jest.mocked(buildDateFieldFilter) },
   Dateonly: { builder: jest.mocked(buildDateFieldFilter) },
-  Enum: { builder: jest.mocked(buildEnumFieldFilter), callWithSchema: true },
-  Number: { builder: jest.mocked(buildNumberFieldFilter) },
-  String: { builder: jest.mocked(buildStringFieldFilter) },
+  Enum: {
+    builder: jest.mocked(buildEnumFieldFilter),
+    arrayBuilder: jest.mocked(buildEnumArrayFieldFilter),
+    callWithSchema: true,
+  },
+  Number: {
+    builder: jest.mocked(buildNumberFieldFilter),
+    arrayBuilder: jest.mocked(buildNumberArrayFieldFilter),
+  },
+  String: {
+    builder: jest.mocked(buildStringFieldFilter),
+    arrayBuilder: jest.mocked(buildStringArrayFieldFilter),
+  },
   Uuid: { builder: jest.mocked(buildUuidFieldFilter) },
-  Json: { builder: jest.mocked(buildStringFieldFilter) },
+  Json: undefined,
   Binary: undefined,
   Point: undefined,
   Time: undefined,
@@ -115,22 +137,6 @@ describe('buildFieldFilter', () => {
         );
       });
 
-      it('should also delegate if the type is an array of the expected type', () => {
-        const arraySchema: ColumnSchema = {
-          ...schema,
-          columnType: [type as PrimitiveTypes],
-        };
-
-        buildFieldFilter(field, arraySchema, 'searchString', false);
-
-        expect(expected.builder).toHaveBeenCalledWith(
-          field,
-          expected.callWithSchema ? arraySchema : schema.filterOperators,
-          'searchString',
-          false,
-        );
-      });
-
       it('should pass isNegated = true if negated', () => {
         buildFieldFilter(field, schema, 'searchString', true);
 
@@ -140,6 +146,33 @@ describe('buildFieldFilter', () => {
           'searchString',
           true,
         );
+      });
+
+      describe('for array types', () => {
+        const arraySchema: ColumnSchema = {
+          type: 'Column',
+          columnType: [type as PrimitiveTypes],
+          filterOperators: new Set(allOperators),
+        };
+
+        if (expected.arrayBuilder) {
+          it('should call the arrayBuilder with the right arguments', () => {
+            buildFieldFilter(field, arraySchema, 'searchString', true);
+
+            expect(expected.arrayBuilder).toHaveBeenCalledWith(
+              field,
+              expected.callWithSchema ? arraySchema : arraySchema.filterOperators,
+              'searchString',
+              true,
+            );
+          });
+        } else {
+          it('should have returned the default condition', () => {
+            const result = buildFieldFilter(field, arraySchema, 'searchString', false);
+
+            expect(result).toEqual(ConditionTreeFactory.MatchNone);
+          });
+        }
       });
     } else {
       describe('if not negated', () => {

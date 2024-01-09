@@ -6,6 +6,8 @@ import {
   Operator,
 } from '@forestadmin/datasource-toolkit';
 
+import buildDefaultCondition from './utils/build-default-condition';
+
 function isYear(str: string): boolean {
   return (
     /^\d{4}$/.test(str) && Number(str) >= 1800 && Number(str) <= new Date().getFullYear() + 100
@@ -123,10 +125,6 @@ const supportedOperators: [
   ],
 ];
 
-function defaultResult(isNegated: boolean) {
-  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
-}
-
 export default function buildDateFieldFilter(
   field: string,
   filterOperators: Set<Operator>,
@@ -174,7 +172,7 @@ export default function buildDateFieldFilter(
       );
     }
 
-    return defaultResult(isNegated);
+    return buildDefaultCondition(isNegated);
   }
 
   for (const [operatorPrefix, positiveOperations, negativeOperations] of supportedOperators) {
@@ -203,5 +201,5 @@ export default function buildDateFieldFilter(
     );
   }
 
-  return defaultResult(isNegated);
+  return buildDefaultCondition(isNegated);
 }

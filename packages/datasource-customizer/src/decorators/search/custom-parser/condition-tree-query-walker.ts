@@ -1,6 +1,6 @@
 import { ColumnSchema, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
-import buildFieldFilter from '../filter-builder/build-field-filter';
+import buildFieldFilter from '../filter-builder';
 import QueryListener from '../generated-parser/QueryListener';
 import {
   NegatedContext,

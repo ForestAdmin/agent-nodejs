@@ -6,17 +6,15 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { validate as uuidValidate } from 'uuid';
 
+import buildDefaultCondition from './utils/build-default-condition';
+
 export default function buildUuidFieldFilter(
   field: string,
   filterOperators: Set<Operator>,
   searchString: string,
   isNegated: boolean,
 ): ConditionTree {
-  const defaultCondition = isNegated
-    ? ConditionTreeFactory.MatchAll
-    : ConditionTreeFactory.MatchNone;
-
-  if (!uuidValidate(searchString)) return defaultCondition;
+  if (!uuidValidate(searchString)) return buildDefaultCondition(isNegated);
 
   if (!isNegated && filterOperators?.has('Equal')) {
     return new ConditionTreeLeaf(field, 'Equal', searchString);
@@ -33,5 +31,5 @@ export default function buildUuidFieldFilter(
     return new ConditionTreeLeaf(field, 'NotEqual', searchString);
   }
 
-  return defaultCondition;
+  return buildDefaultCondition(isNegated);
 }

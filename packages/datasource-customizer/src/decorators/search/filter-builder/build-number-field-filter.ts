@@ -6,6 +6,8 @@ import {
   Operator,
 } from '@forestadmin/datasource-toolkit';
 
+import buildDefaultCondition from './utils/build-default-condition';
+
 const supportedOperators: [string, Operator[], Operator[]][] = [
   ['', ['Equal'], ['NotEqual', 'Missing']],
   ['>', ['GreaterThan'], ['LessThan', 'Equal', 'Missing']],
@@ -38,5 +40,5 @@ export default function buildNumberFieldFilter(
     );
   }
 
-  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
+  return buildDefaultCondition(isNegated);
 }

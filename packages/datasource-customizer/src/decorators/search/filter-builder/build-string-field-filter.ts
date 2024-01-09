@@ -5,6 +5,8 @@ import {
   Operator,
 } from '@forestadmin/datasource-toolkit';
 
+import buildDefaultCondition from './utils/build-default-condition';
+
 export default function buildStringFieldFilter(
   field: string,
   filterOperators: Set<Operator>,
@@ -40,5 +42,5 @@ export default function buildStringFieldFilter(
     return new ConditionTreeLeaf(field, operator, searchString);
   }
 
-  return isNegated ? ConditionTreeFactory.MatchAll : ConditionTreeFactory.MatchNone;
+  return buildDefaultCondition(isNegated);
 }
