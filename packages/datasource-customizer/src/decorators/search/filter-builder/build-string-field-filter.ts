@@ -1,3 +1,5 @@
+/* eslint-disable no-continue */
+
 import {
   ConditionTree,
   ConditionTreeFactory,
@@ -7,39 +9,33 @@ import {
 
 import buildDefaultCondition from './utils/build-default-condition';
 
+const operatorsStack: [Operator[], Operator[]][] = [
+  [['IContains'], ['NotIContains', 'Missing']],
+  [['Contains'], ['NotContains', 'Missing']],
+  [['Equal'], ['NotEqual', 'Missing']],
+];
+
 export default function buildStringFieldFilter(
   field: string,
   filterOperators: Set<Operator>,
   searchString: string,
   isNegated: boolean,
 ): ConditionTree {
-  const isCaseSensitive = searchString.toLocaleLowerCase() !== searchString.toLocaleUpperCase();
+  for (const [positiveOperators, negativeOperators] of operatorsStack) {
+    const operators = isNegated ? negativeOperators : positiveOperators;
 
-  const iContainsOperator = isNegated ? 'NotIContains' : 'IContains';
-  const supportsIContains = filterOperators?.has(iContainsOperator);
+    const neededOperators = operators.filter(
+      operator => operator !== 'Missing' || filterOperators.has(operator),
+    );
 
-  const containsOperator = isNegated ? 'NotContains' : 'Contains';
-  const supportsContains = filterOperators?.has(containsOperator);
+    if (!neededOperators.every(operator => filterOperators.has(operator))) continue;
 
-  const equalOperator = isNegated ? 'NotEqual' : 'Equal';
-  const supportsEqual = filterOperators?.has('Equal');
-
-  // Perf: don't use case-insensitive operator when the search string is indifferent to case
-  let operator: Operator;
-  if (supportsIContains && (isCaseSensitive || !supportsContains) && searchString)
-    operator = iContainsOperator;
-  else if (supportsContains && searchString) operator = containsOperator;
-  else if (supportsEqual) operator = equalOperator;
-
-  if (operator) {
-    if (isNegated && filterOperators.has('Missing')) {
-      return ConditionTreeFactory.union(
-        new ConditionTreeLeaf(field, operator, searchString),
-        new ConditionTreeLeaf(field, 'Missing', undefined),
-      );
-    }
-
-    return new ConditionTreeLeaf(field, operator, searchString);
+    return ConditionTreeFactory.union(
+      ...neededOperators.map(
+        operator =>
+          new ConditionTreeLeaf(field, operator, operator !== 'Missing' ? searchString : undefined),
+      ),
+    );
   }
 
   return buildDefaultCondition(isNegated);
