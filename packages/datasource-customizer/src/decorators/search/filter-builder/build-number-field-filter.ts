@@ -10,10 +10,15 @@ import buildDefaultCondition from './utils/build-default-condition';
 
 const supportedOperators: [string, Operator[], Operator[]][] = [
   ['', ['Equal'], ['NotEqual', 'Missing']],
+  ['=', ['Equal'], ['NotEqual', 'Missing']],
+  ['!=', ['NotEqual'], ['Equal', 'Missing']],
+  ['<>', ['NotEqual'], ['Equal', 'Missing']],
   ['>', ['GreaterThan'], ['LessThan', 'Equal', 'Missing']],
   ['>=', ['GreaterThan', 'Equal'], ['LessThan', 'Missing']],
+  ['≥', ['GreaterThan', 'Equal'], ['LessThan', 'Missing']],
   ['<', ['LessThan'], ['GreaterThan', 'Equal', 'Missing']],
   ['<=', ['LessThan', 'Equal'], ['GreaterThan', 'Missing']],
+  ['≤', ['LessThan', 'Equal'], ['GreaterThan', 'Missing']],
 ];
 
 export default function buildNumberFieldFilter(
@@ -36,7 +41,10 @@ export default function buildNumberFieldFilter(
     return ConditionTreeFactory.union(
       ...operators
         .filter(operator => filterOperators.has(operator))
-        .map(operator => new ConditionTreeLeaf(field, operator, value)),
+        .map(
+          operator =>
+            new ConditionTreeLeaf(field, operator, operator !== 'Missing' ? value : undefined),
+        ),
     );
   }
 
