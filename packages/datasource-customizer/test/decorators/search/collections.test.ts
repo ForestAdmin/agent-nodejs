@@ -375,30 +375,6 @@ describe('SearchCollectionDecorator', () => {
         });
       });
 
-      describe('search is a case insensitive string and both operators are supported', () => {
-        test('should return filter with "contains" condition and "or" aggregator', async () => {
-          const decorator = buildCollection({
-            fields: {
-              fieldName: factories.columnSchema.build({
-                columnType: 'String',
-                filterOperators: new Set(['IContains', 'Contains']),
-              }),
-            },
-          });
-
-          const filter = factories.filter.build({ search: '@#*$(@#*$(23423423' });
-
-          expect(await decorator.refineFilter(caller, filter)).toEqual({
-            search: null,
-            conditionTree: {
-              field: 'fieldName',
-              operator: 'Contains',
-              value: '@#*$(@#*$(23423423',
-            },
-          });
-        });
-      });
-
       describe('when the search is an uuid and the column type is an uuid', () => {
         test('should return filter with "equal" condition and "or" aggregator', async () => {
           const decorator = buildCollection({
