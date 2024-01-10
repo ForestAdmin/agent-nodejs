@@ -182,6 +182,21 @@ describe('MongooseCollection', () => {
         [{ tags: ['A', 'B'] }],
       ],
       [
+        { value: ['C', 'D'], operator: 'IncludesNone', field: 'tags' },
+        new Projection('tags'),
+        [{ tags: ['A', 'B'] }],
+      ],
+      [
+        { value: ['A', 'D'], operator: 'IncludesNone', field: 'tags' },
+        new Projection('tags'),
+        [{ tags: ['B', 'C'] }],
+      ],
+      [
+        { value: ['A'], operator: 'IncludesNone', field: 'tags' },
+        new Projection('tags'),
+        [{ tags: ['B', 'C'] }],
+      ],
+      [
         { value: 'titl', operator: 'NotContains', field: 'title' },
         new Projection('title'),
         [{ title: null }],

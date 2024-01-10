@@ -670,6 +670,7 @@ describe('Builder > Collection', () => {
         'LongerThan',
         'ShorterThan',
         'IncludesAll',
+        'IncludesNone',
       ].forEach(operator => {
         expect(spy).toHaveBeenCalledWith('lastName', operator);
       });

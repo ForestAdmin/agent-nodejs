@@ -1,10 +1,10 @@
-import { ConditionTree } from '@forestadmin/datasource-toolkit';
+import { ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
 
 import buildBasicArrayFieldFilter from './build-basic-array-field-filter';
 
 export default function buildStringArrayFieldFilter(
   field: string,
-  filterOperators: Set<string> | undefined,
+  filterOperators: Set<Operator> | undefined,
   searchString: string,
   isNegated: boolean,
 ): ConditionTree {

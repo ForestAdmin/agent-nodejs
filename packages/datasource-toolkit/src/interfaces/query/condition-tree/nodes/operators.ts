@@ -15,6 +15,7 @@ export const uniqueOperators = [
 
   // Arrays
   'IncludesAll',
+  'IncludesNone',
 ] as const;
 
 export const intervalOperators = [

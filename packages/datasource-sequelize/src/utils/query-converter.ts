@@ -72,6 +72,12 @@ export default class QueryConverter {
       // Arrays
       case 'IncludesAll':
         return { [Op.contains]: Array.isArray(value) ? value : [value] };
+      case 'IncludesNone':
+        return Array.isArray(value)
+          ? {
+              [Op.and]: value.map(oneValue => ({ [Op.not]: { [Op.contains]: oneValue } })),
+            }
+          : { [Op.not]: { [Op.contains]: value } };
 
       default:
         throw new Error(`Unsupported operator: "${operator}".`);

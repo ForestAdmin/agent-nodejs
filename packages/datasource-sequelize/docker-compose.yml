@@ -1,0 +1,36 @@
+version: '3.1'
+services:
+  postgres16:
+    image: postgres:16-alpine
+    container_name: forest_datasource_sql_test_postgres16
+    ports:
+      - '5446:5432'
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=password
+
+  mysql8:
+    image: mysql:8-alpine
+    container_name: forest_datasource_sql_test_mysql8
+    ports:
+      - '3308:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+
+  mssql2022:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: forest_datasource_sql_test_mssql2022
+    platform: linux/amd64
+    ports:
+      - '1422:1433'
+    environment:
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - ACCEPT_EULA=Y
+
+  mariadb11:
+    image: mariadb:11-alpine
+    container_name: forest_datasource_sql_test_mariadb11
+    ports:
+      - '3811:3306'
+    environment:
+      - MARIADB_ROOT_PASSWORD=password
