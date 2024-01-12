@@ -4,16 +4,16 @@ services:
     image: postgres:16-alpine
     container_name: forest_datasource_sql_test_postgres16
     ports:
-      - '5446:5432'
+      - '5456:5432'
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
 
   mysql8:
-    image: mysql:8-alpine
+    image: mysql:8
     container_name: forest_datasource_sql_test_mysql8
     ports:
-      - '3308:3306'
+      - '3318:3306'
     environment:
       - MYSQL_ROOT_PASSWORD=password
 
@@ -22,15 +22,16 @@ services:
     container_name: forest_datasource_sql_test_mssql2022
     platform: linux/amd64
     ports:
-      - '1422:1433'
+      - '1432:1433'
     environment:
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
+      - MSSQL_COLLATION=SQL_Latin1_General_CP1_CS_AS
 
   mariadb11:
-    image: mariadb:11-alpine
+    image: mariadb:11
     container_name: forest_datasource_sql_test_mariadb11
     ports:
-      - '3811:3306'
+      - '3821:3306'
     environment:
       - MARIADB_ROOT_PASSWORD=password
