@@ -42,7 +42,7 @@ describe('Utils > TypeConverter', () => {
       ['Uuid', [...presence, ...equality]],
 
       // Array type
-      [['Boolean'], [...presence, ...equality, 'IncludesAll']],
+      [['Boolean'], [...presence, 'Equal', 'NotEqual', 'IncludesAll', 'IncludesNone']],
 
       // Composite and unsupported types
       ['Json', presence],
