@@ -342,6 +342,26 @@ describe('generateConditionTree', () => {
           }),
         );
       });
+
+      it('should correctly detect property names of 1 character', () => {
+        expect(parseQueryAndGenerateCondition('t:foo', [['t', titleField[1]]])).toEqual(
+          ConditionTreeFactory.fromPlainObject({
+            operator: 'IContains',
+            field: 't',
+            value: 'foo',
+          }),
+        );
+      });
+
+      it('should correctly detect property names of 2 character', () => {
+        expect(parseQueryAndGenerateCondition('ti:foo', [['ti', titleField[1]]])).toEqual(
+          ConditionTreeFactory.fromPlainObject({
+            operator: 'IContains',
+            field: 'ti',
+            value: 'foo',
+          }),
+        );
+      });
     });
 
     describe('special values', () => {
