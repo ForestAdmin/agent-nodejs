@@ -126,7 +126,7 @@ export default class QueryConverter {
 
     if (valueAsArray.includes(null)) {
       if (valueAsArray.length === 1) {
-        return { [Op.or]: [{ [colName]: { [Op.ne]: null } }] };
+        return { [colName]: { [Op.ne]: null } };
       }
 
       const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
@@ -134,7 +134,9 @@ export default class QueryConverter {
       return {
         [Op.and]: [
           { [colName]: { [Op.ne]: null } },
-          this.makeNotInWhereClause(colName, field, valueAsArrayWithoutNull),
+          ...valueAsArrayWithoutNull.map(v => ({
+            [colName]: { [Op.ne]: v },
+          })),
         ],
       };
     }
@@ -142,8 +144,10 @@ export default class QueryConverter {
     if (valueAsArray.length === 1) {
       return {
         [Op.or]: [
-          this.makeWhereClause(colName, field, 'NotEqual', valueAsArray[0]),
           { [colName]: { [Op.is]: null } },
+          ...valueAsArray.map(v => ({
+            [colName]: { [Op.ne]: v },
+          })),
         ],
       };
     }
