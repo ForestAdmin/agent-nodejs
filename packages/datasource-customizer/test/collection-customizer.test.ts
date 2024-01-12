@@ -648,7 +648,7 @@ describe('Builder > Collection', () => {
       const self = customizer.emulateFieldFiltering('lastName');
       await dsc.getDataSource(logger);
 
-      expect(spy).toHaveBeenCalledTimes(20);
+      expect(spy).toHaveBeenCalledTimes(21);
       [
         'Equal',
         'NotEqual',
