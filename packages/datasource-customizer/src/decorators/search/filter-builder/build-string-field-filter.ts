@@ -21,6 +21,25 @@ export default function buildStringFieldFilter(
   searchString: string,
   isNegated: boolean,
 ): ConditionTree {
+  if (!searchString) {
+    if (filterOperators.has('Equal') && !isNegated) {
+      return new ConditionTreeLeaf(field, 'Equal', '');
+    }
+
+    if (filterOperators.has('NotEqual') && isNegated) {
+      if (filterOperators.has('Missing')) {
+        return ConditionTreeFactory.union(
+          new ConditionTreeLeaf(field, 'NotEqual', ''),
+          new ConditionTreeLeaf(field, 'Missing'),
+        );
+      }
+
+      return new ConditionTreeLeaf(field, 'NotEqual', '');
+    }
+
+    return buildDefaultCondition(isNegated);
+  }
+
   for (const [positiveOperators, negativeOperators] of operatorsStack) {
     const operators = isNegated ? negativeOperators : positiveOperators;
 

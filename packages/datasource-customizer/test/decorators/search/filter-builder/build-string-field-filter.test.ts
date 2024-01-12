@@ -22,6 +22,12 @@ describe('buildStringFieldFilter', () => {
 
         expect(result).toEqual(new ConditionTreeLeaf('fieldName', 'IContains', 'Foo'));
       });
+
+      it('should generate a Equal condition tree when the search string is empty', () => {
+        const result = buildStringFieldFilter('fieldName', operators, '', isNegated);
+
+        expect(result).toEqual(new ConditionTreeLeaf('fieldName', 'Equal', ''));
+      });
     });
 
     describe('when negated', () => {
@@ -38,6 +44,17 @@ describe('buildStringFieldFilter', () => {
             ),
           );
         });
+
+        it('should generate a NotEqual condition tree when the search string is empty', () => {
+          const result = buildStringFieldFilter('fieldName', operators, '', isNegated);
+
+          expect(result).toEqual(
+            ConditionTreeFactory.union(
+              new ConditionTreeLeaf('fieldName', 'NotEqual', ''),
+              new ConditionTreeLeaf('fieldName', 'Missing'),
+            ),
+          );
+        });
       });
 
       describe('when Missing is not supported', () => {
@@ -50,6 +67,17 @@ describe('buildStringFieldFilter', () => {
           );
 
           expect(result).toEqual(new ConditionTreeLeaf('fieldName', 'NotIContains', 'Foo'));
+        });
+
+        it('should generate a NotEqual condition tree when the search string is empty', () => {
+          const result = buildStringFieldFilter(
+            'fieldName',
+            new Set(Array.from(operators).filter(o => o !== 'Missing')),
+            '',
+            isNegated,
+          );
+
+          expect(result).toEqual(new ConditionTreeLeaf('fieldName', 'NotEqual', ''));
         });
       });
     });
