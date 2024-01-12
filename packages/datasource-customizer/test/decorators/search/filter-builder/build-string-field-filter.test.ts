@@ -188,6 +188,12 @@ describe('buildStringFieldFilter', () => {
 
         expect(result).toEqual(ConditionTreeFactory.MatchNone);
       });
+
+      it('should generate a match-none when the search string is empty', () => {
+        const result = buildStringFieldFilter('fieldName', operators, '', isNegated);
+
+        expect(result).toEqual(ConditionTreeFactory.MatchNone);
+      });
     });
 
     describe('when negated', () => {
@@ -195,6 +201,12 @@ describe('buildStringFieldFilter', () => {
 
       it('should generate a match-all', () => {
         const result = buildStringFieldFilter('fieldName', operators, 'Foo', isNegated);
+
+        expect(result).toEqual(ConditionTreeFactory.MatchAll);
+      });
+
+      it('should generate a match-all when the search string is empty', () => {
+        const result = buildStringFieldFilter('fieldName', operators, '', isNegated);
 
         expect(result).toEqual(ConditionTreeFactory.MatchAll);
       });
