@@ -1,4 +1,4 @@
-import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
 
 import buildBasicArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-basic-array-field-filter';
 import buildNumberArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-number-array-field-filter';
@@ -6,7 +6,7 @@ import buildNumberArrayFieldFilter from '../../../../src/decorators/search/filte
 jest.mock('../../../../src/decorators/search/filter-builder/build-basic-array-field-filter');
 
 describe('buildNumberArrayFieldFilter', () => {
-  const operators = new Set(['In']);
+  const operators = new Set<Operator>(['In']);
 
   beforeEach(() => {
     jest.resetAllMocks();
