@@ -315,4 +315,43 @@ describe('OperatorsEmulateCollectionDecorator', () => {
       });
     });
   });
+
+  describe('disableFieldOperator', () => {
+    let decoratedBooks: OperatorsEmulateCollectionDecorator;
+
+    beforeEach(() => {
+      const books = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build({
+              // note that 'id' supports Equal and In
+              filterOperators: new Set(['In', 'Equal']),
+            }),
+          },
+        }),
+      });
+
+      const dataSource = factories.dataSource.buildWithCollections([books]);
+      const decoratedDataSource = new DataSourceDecorator(
+        dataSource,
+        OperatorsEmulateCollectionDecorator,
+      );
+      decoratedBooks = decoratedDataSource.getCollection('books');
+    });
+
+    test('should remove the supported filter in its schema', () => {
+      decoratedBooks.disableFieldOperator('id', 'Equal');
+
+      expect(decoratedBooks.schema.fields.id).toHaveProperty('filterOperators', new Set(['In']));
+    });
+
+    describe('when the field does not exist', () => {
+      it('should throw an error', () => {
+        expect(() => decoratedBooks.disableFieldOperator('unknown', 'Equal')).toThrow(
+          "Column not found: 'books.unknown'",
+        );
+      });
+    });
+  });
 });

@@ -732,4 +732,17 @@ describe('Builder > Collection', () => {
       expect(self).toEqual(customizer);
     });
   });
+
+  describe('disableFieldOperator', () => {
+    it('should disable the given operator on the given field', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.earlyOpEmulate.getCollection('authors'), 'disableFieldOperator');
+
+      customizer.disableFieldOperator('firstName', 'Equal');
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName', 'Equal');
+    });
+  });
 });

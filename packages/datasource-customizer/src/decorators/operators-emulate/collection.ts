@@ -22,9 +22,18 @@ import CollectionCustomizationContext from '../../context/collection-context';
 export default class OperatorsEmulateCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   private readonly fields: Map<string, Map<Operator, OperatorDefinition>> = new Map();
+  private readonly fieldsToDisable: Map<string, Operator[]> = new Map();
 
   emulateFieldOperator(name: string, operator: Operator): void {
+    // when operator is null, the operator is emulated
     this.replaceFieldOperator(name, operator, null);
+  }
+
+  disableFieldOperator(name: string, operator: Operator): void {
+    FieldValidator.validate(this, name);
+    if (!this.fieldsToDisable.has(name)) this.fieldsToDisable.set(name, []);
+    this.fieldsToDisable.get(name).push(operator);
+    this.markSchemaAsDirty();
   }
 
   replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorDefinition): void {
@@ -69,6 +78,11 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
       } else {
         fields[name] = schema;
       }
+
+      // Remove disabled operators
+      this.fieldsToDisable
+        .get(name)
+        ?.forEach(operator => (fields[name] as ColumnSchema).filterOperators.delete(operator));
     }
 
     return { ...childSchema, fields };

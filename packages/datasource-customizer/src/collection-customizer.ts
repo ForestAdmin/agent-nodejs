@@ -541,6 +541,25 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Disable a specific operator on a specific field.
+   * @param name the name of the field to filter on
+   * @param operator the operator to disable
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/filter#disabling-operators Documentation Link}
+   *
+   * @example
+   * .disableFieldOperator('fullName', 'Equal');
+   */
+  disableFieldOperator(name: TColumnName<S, N>, operator: Operator): this {
+    return this.pushCustomization(async () => {
+      const collection = this.stack.earlyOpEmulate.getCollection(this.name).schema.fields[name]
+        ? this.stack.earlyOpEmulate.getCollection(this.name)
+        : this.stack.lateOpEmulate.getCollection(this.name);
+
+      collection.disableFieldOperator(name, operator);
+    });
+  }
+
+  /**
    * Replace the write behavior of a field.
    * @param name the name of the field
    * @param definition the function or a value to represent the write behavior
