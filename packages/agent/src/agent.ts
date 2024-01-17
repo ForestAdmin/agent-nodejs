@@ -56,8 +56,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *  .addDataSource(new DataSource())
    *  .start();
    */
-  constructor(options: AgentOptions) {
-    const allOptions = OptionsValidator.validate(OptionsValidator.withDefaults(options));
+  constructor(options?: AgentOptions) {
+    const allOptions = options
+      ? OptionsValidator.validate(OptionsValidator.withDefaults(options))
+      : OptionsValidator.withDefaults();
     super(allOptions.prefix, allOptions.logger);
 
     this.options = allOptions;
@@ -107,6 +109,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.customizer.addDataSource(factory, options);
 
     return this;
+  }
+
+  /**
+   * Update the typings files generated from your datasources
+   * @param typingsPath the path at which to write the new file
+   * @param typingsMaxDepth the max depth of relation typings
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/install/autocompletion-and-typings Documentation Link}
+   */
+  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
+    const { logger } = this.options;
+    await this.customizer.getDataSource(logger);
+    this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth);
   }
 
   /**
