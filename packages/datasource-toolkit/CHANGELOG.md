@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.1...@forestadmin/datasource-toolkit@1.29.2) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
 ## @forestadmin/datasource-toolkit [1.29.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.0...@forestadmin/datasource-toolkit@1.29.1) (2023-12-12)
 
 
