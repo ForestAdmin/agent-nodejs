@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.0...@forestadmin/datasource-customizer@1.40.1) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
 # @forestadmin/datasource-customizer [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.3...@forestadmin/datasource-customizer@1.40.0) (2024-01-03)
 
 
