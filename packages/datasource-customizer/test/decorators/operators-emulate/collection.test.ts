@@ -157,6 +157,12 @@ describe('OperatorsEmulateCollectionDecorator', () => {
       });
     });
 
+    test('replaceFieldOperator() should throw if no handler is given', () => {
+      expect(() => newBooks.replaceFieldOperator('title', 'StartsWith', null)).toThrow(
+        'replaceBy handler is required',
+      );
+    });
+
     describe('when creating a cycle in the replacements graph', () => {
       beforeEach(() => {
         newBooks.replaceFieldOperator('title', 'StartsWith', async value => ({

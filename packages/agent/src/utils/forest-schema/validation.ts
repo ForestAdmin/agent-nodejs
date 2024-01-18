@@ -1,5 +1,6 @@
 import {
   ColumnSchema,
+  ColumnSchemaValidation,
   ColumnType,
   ConditionTreeBranch,
   ConditionTreeEquivalent,
@@ -9,7 +10,7 @@ import {
 import { ForestServerField } from '@forestadmin/forestadmin-client';
 
 type FrontendValidation = ForestServerField['validations'][number];
-type Validation = ColumnSchema['validation'][number];
+type Validation = ColumnSchemaValidation[number];
 
 export default class FrontendValidationUtils {
   /**

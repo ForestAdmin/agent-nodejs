@@ -15,7 +15,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { ForestServerColumnType, ForestServerField } from '@forestadmin/forestadmin-client';
 
-import ColumnSchemaValidation from './column-schema-validation';
+import ColumnSchemaValidator from './column-schema-validator';
 import FrontendFilterableUtils from './filterable';
 import FrontendValidationUtils from './validation';
 
@@ -59,7 +59,7 @@ export default class SchemaGeneratorFields {
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
     const column = collection.schema.fields[name] as ColumnSchema;
-    ColumnSchemaValidation.validate(column, name);
+    ColumnSchemaValidator.validate(column, name);
 
     const isForeignKey = SchemaUtils.isForeignKey(collection.schema, name);
 

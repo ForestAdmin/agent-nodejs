@@ -1,7 +1,7 @@
-import ColumnSchemaValidation from '../../../src/utils/forest-schema/column-schema-validation';
+import ColumnSchemaValidator from '../../../src/utils/forest-schema/column-schema-validator';
 import * as factories from '../../__factories__';
 
-describe('ColumnSchemaValidation', () => {
+describe('ColumnSchemaValidator', () => {
   describe('enumValues', () => {
     describe('when enumValues is empty', () => {
       it('should not throw', () => {
@@ -9,7 +9,7 @@ describe('ColumnSchemaValidation', () => {
           columnType: 'Enum',
           enumValues: [],
         });
-        expect(() => ColumnSchemaValidation.validate(column, 'isbn')).not.toThrow();
+        expect(() => ColumnSchemaValidator.validate(column, 'isbn')).not.toThrow();
       });
     });
 
@@ -19,7 +19,7 @@ describe('ColumnSchemaValidation', () => {
           columnType: 'Enum',
           enumValues: 'not an array' as unknown as string[],
         });
-        expect(() => ColumnSchemaValidation.validate(column, 'isbn')).toThrow(
+        expect(() => ColumnSchemaValidator.validate(column, 'isbn')).toThrow(
           'The enumValues of column \'isbn\' must be an array of string instead of "not an array"',
         );
       });
@@ -31,7 +31,7 @@ describe('ColumnSchemaValidation', () => {
           columnType: 'Enum',
           enumValues: [1, 2, 3] as unknown as string[],
         });
-        expect(() => ColumnSchemaValidation.validate(column, 'isbn')).toThrow(
+        expect(() => ColumnSchemaValidator.validate(column, 'isbn')).toThrow(
           "The enumValues of column 'isbn' must be an array of string instead of [1,2,3]",
         );
       });
@@ -43,7 +43,7 @@ describe('ColumnSchemaValidation', () => {
           columnType: 'Enum',
           enumValues: ['a', 'b', 'c'],
         });
-        expect(() => ColumnSchemaValidation.validate(column, 'isbn')).not.toThrow();
+        expect(() => ColumnSchemaValidator.validate(column, 'isbn')).not.toThrow();
       });
     });
   });

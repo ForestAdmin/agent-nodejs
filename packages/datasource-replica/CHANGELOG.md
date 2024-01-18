@@ -1,3 +1,31 @@
+## @forestadmin/datasource-replica [1.0.57](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.56...@forestadmin/datasource-replica@1.0.57) (2024-01-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.2
+
+## @forestadmin/datasource-replica [1.0.56](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.55...@forestadmin/datasource-replica@1.0.56) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.1
+* **@forestadmin/datasource-sequelize:** upgraded to 1.5.27
+* **@forestadmin/datasource-sql:** upgraded to 1.7.44
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
 ## @forestadmin/datasource-replica [1.0.55](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.54...@forestadmin/datasource-replica@1.0.55) (2024-01-03)
 
 
