@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.1...@forestadmin/datasource-customizer@1.40.2) (2024-01-18)
+
+
+### Bug Fixes
+
+* **replaceFieldOperator:** disallow to pass null because it will emulate instead to remove the operator ([#911](https://github.com/ForestAdmin/agent-nodejs/issues/911)) ([bf0c105](https://github.com/ForestAdmin/agent-nodejs/commit/bf0c105cfb5850ede7be223bfbe59044ff6fe9cb))
+
 ## @forestadmin/datasource-customizer [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.0...@forestadmin/datasource-customizer@1.40.1) (2024-01-17)
 
 
