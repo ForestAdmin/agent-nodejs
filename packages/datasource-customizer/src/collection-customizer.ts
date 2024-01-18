@@ -561,6 +561,22 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Disable the write behavior of a field.
+   * It makes the field read-only.
+   * The field will not be editable in the form view.
+   * It will still be possible to write on this field in the customizations code.
+   * @param name the name of the field
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/write#making-a-field-read-only Documentation Link}
+   * @example
+   * .disableFieldWriting('firstName');
+   */
+  disableFieldWriting(name: TColumnName<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.write.getCollection(this.name).disableFieldWriting(name);
+    });
+  }
+
+  /**
    * Replace the behavior of the search bar
    * @param definition handler to describe the new behavior
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/search Documentation Link}
