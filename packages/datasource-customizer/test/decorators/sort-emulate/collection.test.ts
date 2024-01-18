@@ -253,7 +253,11 @@ describe('SortEmulationDecoratorCollection', () => {
       expect(schema.isSortable).toBeFalsy();
     });
 
-    test('should not be concerned by sorting', async () => {
+    test('should set isSortable to false', async () => {
+      expect((newBooks.schema.fields.title as ColumnSchema).isSortable).toBeFalse();
+    });
+
+    test('should still sort normally when calling the method', async () => {
       const records = await newBooks.list(
         factories.caller.build(),
         new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: true }) }),
@@ -261,8 +265,8 @@ describe('SortEmulationDecoratorCollection', () => {
       );
 
       expect(records).toStrictEqual([
-        { id: 1, title: 'Foundation' },
         { id: 2, title: 'Beat the dealer' },
+        { id: 1, title: 'Foundation' },
         { id: 3, title: 'Gomorrah' },
       ]);
     });

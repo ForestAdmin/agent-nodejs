@@ -20,15 +20,25 @@ import {
 export default class SortEmulate extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<SortEmulate>;
   private readonly sorts: Map<string, Sort> = new Map();
+  private readonly disabledSorts: Set<string> = new Set();
 
   emulateFieldSorting(name: string): void {
     this.replaceFieldSorting(name, null);
   }
 
+  /**
+   * Disable sorting on this field. This only prevents the end-user to sort on this field.
+   * It will still be possible sort on this field in the customizations code.
+   * @param name name of the field
+   */
   disableFieldSorting(name: string): void {
-    // This is not the best way to achieve the disable behavior
-    // but basically we replace sort with nothing to disable any sort
-    this.replaceFieldSorting(name, []);
+    FieldValidator.validate(this, name);
+
+    const field = this.childCollection.schema.fields[name] as ColumnSchema;
+    if (!field) throw new Error('Cannot disable sort on relation');
+
+    this.disabledSorts.add(name);
+    this.markSchemaAsDirty();
   }
 
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
@@ -81,16 +91,21 @@ export default class SortEmulate extends CollectionDecorator {
     const fields: Record<string, FieldSchema> = {};
 
     for (const [name, schema] of Object.entries(childSchema.fields)) {
-      const fieldSort = this.sorts.get(name);
+      if (schema.type === 'Column') {
+        let sortable = schema.isSortable;
 
-      fields[name] =
-        this.sorts.has(name) &&
-        schema.type === 'Column' &&
-        // In order to support disableFieldSorting with empty array (isSortable: false)
-        // and emulateFieldSorting with null value (isSortable: true)
-        (!fieldSort || (fieldSort && fieldSort?.length !== 0))
-          ? { ...schema, isSortable: true }
-          : schema;
+        if (this.disabledSorts.has(name)) {
+          // disableFieldSorting
+          sortable = false;
+        } else if (this.sorts.has(name)) {
+          // replaceFieldSorting
+          sortable = true;
+        }
+
+        fields[name] = { ...schema, isSortable: sortable };
+      } else {
+        fields[name] = schema;
+      }
     }
 
     return { ...childSchema, fields };
