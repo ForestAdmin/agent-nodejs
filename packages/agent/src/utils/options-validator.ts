@@ -85,6 +85,10 @@ export default class OptionsValidator {
   }
 
   static validate(options: AgentOptions): AgentOptionsWithDefaults {
+    OptionsValidator.checkForestServerOptions(options);
+    OptionsValidator.checkAuthOptions(options);
+    OptionsValidator.checkOtherOptions(options);
+
     return options as AgentOptionsWithDefaults;
   }
 
