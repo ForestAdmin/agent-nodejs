@@ -16,7 +16,7 @@ export default class OptionsValidator {
     Error: '\x1b[31merror:\x1b[0m',
   };
 
-  static withDefaults(options?: AgentOptions): AgentOptionsWithDefaults {
+  static withDefaults(options?: AgentOptions | null): AgentOptionsWithDefaults {
     const copyOptions = { ...options };
 
     const defaultLogger = (level, data) => {
@@ -85,14 +85,6 @@ export default class OptionsValidator {
   }
 
   static validate(options: AgentOptions): AgentOptionsWithDefaults {
-    try {
-      OptionsValidator.checkForestServerOptions(options);
-      OptionsValidator.checkAuthOptions(options);
-      OptionsValidator.checkOtherOptions(options);
-    } catch (e) {
-      console.error('non blocking error', e);
-    }
-
     return options as AgentOptionsWithDefaults;
   }
 
