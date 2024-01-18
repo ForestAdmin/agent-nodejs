@@ -7,7 +7,7 @@ export function createAgent<S extends TSchema = TSchema>(options: AgentOptions):
   return new Agent<S>(options);
 }
 
-export function createEmptyAgent<S extends TSchema = TSchema>(): Agent<S> {
+export function createStandaloneAgent<S extends TSchema = TSchema>(): Agent<S> {
   return new Agent<S>();
 }
 
