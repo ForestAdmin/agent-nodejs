@@ -28,7 +28,7 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
   }
 
   replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorDefinition): void {
-    if (!replaceBy) throw new Error('replace handler is required');
+    if (!replaceBy) throw new Error('replaceBy handler is required');
     this.replaceOrEmulateFieldOperator(name, operator, replaceBy);
   }
 
