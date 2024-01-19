@@ -52,17 +52,4 @@ describe('WriteDecorator > When their are no relations', () => {
       'definition handler is required',
     );
   });
-
-  it('should mark fields as readonly when handler is null', () => {
-    const collection = dataSource.getCollection('books');
-    const decorator = new WriteDecorator(collection, dataSource);
-
-    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
-    expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
-
-    decorator.disableFieldWriting('name');
-
-    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
-    expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
-  });
 });

@@ -696,21 +696,6 @@ describe('Builder > Collection', () => {
     });
   });
 
-  describe('disableFieldWriting', () => {
-    it('should disable the field by calling disableFieldWriting', async () => {
-      const { dsc, stack, customizer } = await setup();
-      const collection = stack.write.getCollection('authors');
-
-      const spy = jest.spyOn(collection, 'disableFieldWriting');
-      const self = customizer.disableFieldWriting('firstName');
-      await dsc.getDataSource(logger);
-
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith('firstName');
-      expect(self).toEqual(customizer);
-    });
-  });
-
   describe('emulateFieldFiltering', () => {
     it('should emulate operator on field', async () => {
       const { dsc, customizer, stack } = await setup();

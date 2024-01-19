@@ -17,16 +17,8 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
   private handlers: Record<string, WriteDefinition> = {};
   override readonly dataSource: DataSourceDecorator<WriteReplacerCollectionDecorator>;
 
-  disableFieldWriting(fieldName: string): void {
-    this.replaceOrDisableFieldWriting(fieldName, null);
-  }
-
   replaceFieldWriting(fieldName: string, definition: WriteDefinition): void {
     if (!definition) throw new Error('definition handler is required');
-    this.replaceOrDisableFieldWriting(fieldName, definition);
-  }
-
-  replaceOrDisableFieldWriting(fieldName: string, definition: WriteDefinition): void {
     FieldValidator.validate(this, fieldName);
     this.handlers[fieldName] = definition;
     this.markSchemaAsDirty();
