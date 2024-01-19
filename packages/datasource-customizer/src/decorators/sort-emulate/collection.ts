@@ -22,13 +22,14 @@ export default class SortEmulate extends CollectionDecorator {
   private readonly disabledSorts: Set<string> = new Set();
 
   emulateFieldSorting(name: string): void {
-    this.replaceFieldSorting(name, null);
+    this.replaceOrEmulateFieldSorting(name, null);
   }
 
   /**
    * Disable sorting on this field. This only prevents the end-user to sort on this field.
    * It will still be possible to sort on this field in the customizations code.
    * @param name name of the field
+   * @deprecated this method will be removed soon.
    */
   disableFieldSorting(name: string): void {
     FieldValidator.validate(this, name);
@@ -38,6 +39,12 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
+    if (!equivalentSort)
+      throw new Error('A new sort method should be provided to replace field sorting');
+    this.replaceOrEmulateFieldSorting(name, equivalentSort);
+  }
+
+  private replaceOrEmulateFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
     FieldValidator.validate(this, name);
 
     this.sorts.set(name, equivalentSort ? new Sort(...equivalentSort) : null);
