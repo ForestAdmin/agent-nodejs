@@ -6,9 +6,9 @@ import * as datasourceSQL from '@forestadmin/datasource-sql';
 import generateOrUpdateTypings from '../../src/services/typings-updater';
 
 describe('generateOrUpdateTypings', () => {
-  it('should create a standalone agent object to generate the typings', () => {
+  it('should create an agent and to generate typings from introspection', () => {
     const updateTypesOnFileSystemMock = jest.fn();
-    const createStandaloneAgentMock = jest.spyOn(agent, 'createStandaloneAgent').mockReturnValue({
+    const createStandaloneAgentMock = jest.spyOn(agent, 'createAgent').mockReturnValue({
       addDataSource: jest.fn(),
       updateTypesOnFileSystem: updateTypesOnFileSystemMock,
     } as unknown as agent.Agent);
