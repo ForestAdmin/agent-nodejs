@@ -399,6 +399,21 @@ describe('QueryStringParser', () => {
       });
     });
 
+    test('should return the current visited url from user eg forestContextUrl', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+        url: 'https://app.forestadmin.com/aProject/anEnvironment/aRendering',
+      });
+
+      expect(QueryStringParser.parseCaller(context)).toEqual({
+        email: 'john.doe@domain.com',
+        requestId: expect.any(String),
+        timezone: 'America/Los_Angeles',
+        webAppURL: new URL('https://app.forestadmin.com/aProject/anEnvironment/aRendering'),
+      });
+    });
+
     test('should throw a ValidationError when the timezone is missing', () => {
       const context = createMockContext({
         customProperties: { query: {} },

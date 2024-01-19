@@ -16,6 +16,7 @@ export default class CacheDataSourceInterface {
     team: 'system',
     timezone: 'UTC',
     requestId: '',
+    webAppURL: new URL('https://app.forestadmin.com/aProject/anEnvironment/aRendering'),
   };
 
   constructor(dataSource: DataSource) {

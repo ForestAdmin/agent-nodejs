@@ -13,4 +13,5 @@ export default Factory.define<Caller>(() => ({
   tags: {},
   team: 'team',
   timezone: 'Europe/Paris',
+  webAppURL: new URL('https://app.forestadmin.com/aProject/anEnvironment/aRendering'),
 }));
