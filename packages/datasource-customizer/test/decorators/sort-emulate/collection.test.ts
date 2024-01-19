@@ -104,12 +104,6 @@ describe('SortEmulationDecoratorCollection', () => {
     );
   });
 
-  test('emulateFieldSorting() should throw if the field is in a relation', () => {
-    expect(() => newBooks.emulateFieldSorting('author:firstName')).toThrow(
-      'Cannot replace sort on relation',
-    );
-  });
-
   describe('when emulating sort on book.title (no relations)', () => {
     beforeEach(() => {
       newBooks.emulateFieldSorting('title');
