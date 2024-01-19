@@ -6,9 +6,8 @@ import * as fs from 'fs';
 
 export default async function generateOrUpdateTypings(fileName: string) {
   const agentOptions: AgentOptions = {
-    authSecret: 'abc123',
-    envSecret: '06e1ec6d25fd58917d5c2384e597294f340ca2029465c510a730f5519716e7a1',
-    forestServerUrl: 'https://maison.lamuseauplacard.fr:4430',
+    authSecret: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    envSecret: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
