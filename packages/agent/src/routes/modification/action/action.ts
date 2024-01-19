@@ -68,6 +68,7 @@ export default class ActionRoute extends CollectionRoute {
       this.getRecordSelection(context, false),
     ]);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
+    const contextUrl: string = context.request.url || context.request.originalUrl;
 
     const canPerformCustomActionParams = {
       caller,
@@ -103,7 +104,13 @@ export default class ActionRoute extends CollectionRoute {
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
+    const result = await this.collection.execute(
+      caller,
+      this.actionName,
+      data,
+      filterForCaller,
+      contextUrl,
+    );
 
     if (result?.type === 'Error') {
       context.response.status = HttpCode.BadRequest;
