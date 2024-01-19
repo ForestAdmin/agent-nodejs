@@ -28,14 +28,14 @@ export default class SortEmulate extends CollectionDecorator {
 
   /**
    * Disable sorting on this field. This only prevents the end-user to sort on this field.
-   * It will still be possible sort on this field in the customizations code.
+   * It will still be possible to sort on this field in the customizations code.
    * @param name name of the field
    */
   disableFieldSorting(name: string): void {
     FieldValidator.validate(this, name);
 
-    const field = this.childCollection.schema.fields[name] as ColumnSchema;
-    if (!field) throw new Error('Cannot disable sort on relation');
+    // const field = this.childCollection.schema.fields[name] as ColumnSchema;
+    // if (!field) throw new Error('Cannot disable sort on relation');
 
     this.disabledSorts.add(name);
     this.markSchemaAsDirty();
@@ -44,8 +44,8 @@ export default class SortEmulate extends CollectionDecorator {
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
     FieldValidator.validate(this, name);
 
-    const field = this.childCollection.schema.fields[name] as ColumnSchema;
-    if (!field) throw new Error('Cannot replace sort on relation');
+    // const field = this.childCollection.schema.fields[name] as ColumnSchema;
+    // if (!field) throw new Error('Cannot replace sort on relation');
 
     this.sorts.set(name, equivalentSort ? new Sort(...equivalentSort) : null);
     this.markSchemaAsDirty();
