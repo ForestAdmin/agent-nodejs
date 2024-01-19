@@ -57,9 +57,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *  .start();
    */
   constructor(options?: AgentOptions) {
-    const allOptions = options
-      ? OptionsValidator.validate(OptionsValidator.withDefaults(options))
-      : OptionsValidator.withDefaults();
+    const allOptions = OptionsValidator.validate(OptionsValidator.withDefaults(options));
     super(allOptions.prefix, allOptions.logger);
 
     this.options = allOptions;
