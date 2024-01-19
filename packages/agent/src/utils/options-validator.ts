@@ -16,11 +16,11 @@ export default class OptionsValidator {
     Error: '\x1b[31merror:\x1b[0m',
   };
 
-  static withDefaults(options?: AgentOptions | null): AgentOptionsWithDefaults {
+  static withDefaults(options: AgentOptions): AgentOptionsWithDefaults {
     const copyOptions = { ...options };
 
     const defaultLogger = (level, data) => {
-      const loggerLevel = options?.loggerLevel ?? 'Info';
+      const loggerLevel = options.loggerLevel ?? 'Info';
       const levels = Object.keys(this.loggerPrefix);
 
       if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
