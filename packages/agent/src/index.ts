@@ -7,10 +7,6 @@ export function createAgent<S extends TSchema = TSchema>(options: AgentOptions):
   return new Agent<S>(options);
 }
 
-export function createStandaloneAgent<S extends TSchema = TSchema>(): Agent<S> {
-  return new Agent<S>();
-}
-
 export { Agent };
 export { AgentOptions } from './types';
 export * from '@forestadmin/datasource-customizer';
