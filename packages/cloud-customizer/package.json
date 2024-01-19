@@ -52,16 +52,9 @@
   "repository": "ForestAdmin/cloud-customizer",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
-    "lint": "eslint . --ext .ts",
-    "postpack": "shx rm -f oclif.manifest.json",
-    "posttest": "yarn lint",
-    "prepack": "yarn build && oclif manifest && oclif readme",
     "prepare": "yarn build",
     "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage",
-    "version": "oclif readme && git add README.md",
-    "makelinks": "yarn link @forestadmin/agent && yarn link @forestadmin/datasource-customizer && yarn link @forestadmin/datasource-sql && yarn link @forestadmin/datasource-sequelize && yarn link @forestadmin/datasource-toolkit && yarn link @forestadmin/forestadmin-client",
-    "testrun": "yarn build && ./bin/run.js update-typings"
+    "update:typings": "yarn build && ./bin/run.js update-typings"
   },
   "version": "0.0.1",
   "bugs": "https://community.forestadmin.com/",
