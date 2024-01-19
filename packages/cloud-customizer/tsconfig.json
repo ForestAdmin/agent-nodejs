@@ -1,14 +1,19 @@
 {
+  "compilerOptions": {
+    "rootDir": "./src",
+    "experimentalDecorators": true,
+    "module": "Node16",
+    "outDir": "dist",
+    "strict": true,
+    "target": "es2022",
+    "esModuleInterop": true,
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSourceMap": true,
+    "stripInternal": true,
+    "skipLibCheck": true,
+  },
   "include": [
     "./src/**/*"
   ],
-  "compilerOptions": {
-    "outDir": "dist"
-  },
-  "exclude": [
-    "node_modules",
-    "./node_modules",
-    "./node_modules/*",
-    "./node_modules/@types/node/index.d.ts",
-  ]
 }
