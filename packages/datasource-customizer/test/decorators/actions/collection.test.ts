@@ -9,6 +9,9 @@ import {
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ActionCollection from '../../../src/decorators/actions/collection';
+import ActionContextSingle from '../../../src/decorators/actions/context/single';
+import { DynamicField } from '../../../src/decorators/actions/types/fields';
+import { TSchema } from '../../../src/templates';
 
 describe('ActionDecorator', () => {
   // State
@@ -332,6 +335,75 @@ describe('ActionDecorator', () => {
           { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
         ]);
       });
+    });
+  });
+
+  describe('with single action with dynamic form', () => {
+    beforeEach(() => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: async <Context extends ActionContextSingle<TSchema, string>>(
+          formContext: Context,
+        ): Promise<DynamicField<Context>[]> => {
+          return Object.entries(formContext.collection.schema.fields)
+            .map(([fieldName, field]) =>
+              field.type === 'Column'
+                ? {
+                    label: fieldName,
+                    type: field.columnType,
+                  }
+                : undefined,
+            )
+            .filter(field => field !== undefined) as DynamicField<Context>[];
+        },
+      });
+    });
+
+    test('should be flagged as dynamic form', () => {
+      expect(newBooks.schema.actions['make photocopy']).toEqual({
+        scope: 'Single',
+        generateFile: false,
+        staticForm: false,
+      });
+    });
+
+    test('should compute dynamic default value (no data == load hook)', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', undefined);
+
+      expect(fields).toHaveLength(2);
+      expect(fields).toEqual([
+        {
+          label: 'id',
+          type: 'String',
+          watchChanges: false,
+          value: undefined,
+        },
+        { label: 'title', type: 'String', watchChanges: false, value: undefined },
+      ]);
+    });
+
+    test('should compute dynamic default value on added field', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {
+        title: 'value',
+      });
+
+      expect(fields).toEqual([
+        {
+          label: 'id',
+          type: 'String',
+          watchChanges: false,
+          value: undefined,
+        },
+        {
+          label: 'title',
+          type: 'String',
+          value: 'value',
+          watchChanges: false,
+        },
+      ]);
     });
   });
 
