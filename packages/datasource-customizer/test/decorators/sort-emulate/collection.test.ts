@@ -104,6 +104,12 @@ describe('SortEmulationDecoratorCollection', () => {
     );
   });
 
+  test('replaceFieldSorting() should throw if no equivalentSort is provided', () => {
+    expect(() => newBooks.replaceFieldSorting('authorId', null)).toThrow(
+      'A new sort method should be provided to replace field sorting',
+    );
+  });
+
   describe('when emulating sort on book.title (no relations)', () => {
     beforeEach(() => {
       newBooks.emulateFieldSorting('title');
