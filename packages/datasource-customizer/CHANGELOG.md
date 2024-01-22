@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.40.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.2...@forestadmin/datasource-customizer@1.40.3) (2024-01-22)
+
+
+### Bug Fixes
+
+* disableFieldSorting is now only preventing frontend to sort the collection ([7f1481b](https://github.com/ForestAdmin/agent-nodejs/commit/7f1481bd56fc98da87fa4aa473cb7b806851c551))
+
 ## @forestadmin/datasource-customizer [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.1...@forestadmin/datasource-customizer@1.40.2) (2024-01-18)
 
 
