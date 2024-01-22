@@ -49,7 +49,7 @@ describe('WriteDecorator > When their are no relations', () => {
     expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
 
     expect(() => decorator.replaceFieldWriting('name', null)).toThrow(
-      'definition handler is required',
+      'A new writing method should be provided to replace field writing',
     );
   });
 });

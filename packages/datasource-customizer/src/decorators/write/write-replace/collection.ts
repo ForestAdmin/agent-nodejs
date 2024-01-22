@@ -18,7 +18,8 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
   override readonly dataSource: DataSourceDecorator<WriteReplacerCollectionDecorator>;
 
   replaceFieldWriting(fieldName: string, definition: WriteDefinition): void {
-    if (!definition) throw new Error('definition handler is required');
+    if (!definition)
+      throw new Error('A new writing method should be provided to replace field writing');
     FieldValidator.validate(this, fieldName);
     this.handlers[fieldName] = definition;
     this.markSchemaAsDirty();
