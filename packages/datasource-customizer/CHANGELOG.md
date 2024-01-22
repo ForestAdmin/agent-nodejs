@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.40.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.3...@forestadmin/datasource-customizer@1.40.4) (2024-01-22)
+
+
+### Bug Fixes
+
+* **replaceFieldWriting:** force customer to give a replaceFieldWriting definition to avoid emulation when null is given ([#913](https://github.com/ForestAdmin/agent-nodejs/issues/913)) ([b0b1862](https://github.com/ForestAdmin/agent-nodejs/commit/b0b1862dfba148acf61b0463f246dbc19a4b5afd))
+
 ## @forestadmin/datasource-customizer [1.40.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.2...@forestadmin/datasource-customizer@1.40.3) (2024-01-22)
 
 
