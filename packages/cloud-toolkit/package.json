@@ -22,6 +22,9 @@
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
     "directory": "packages/cloud-toolkit"
   },
+  "bin": {
+    "update-typings": "./dist/commands/update-typings.js"
+  },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
