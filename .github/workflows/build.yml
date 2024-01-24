@@ -62,6 +62,7 @@ jobs:
       matrix:
         package:
           - agent
+          - cloud-customizer
           - datasource-customizer
           - datasource-dummy
           - datasource-mongoose
