@@ -5,7 +5,7 @@ import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import * as fs from 'fs';
 import path from 'path';
 
-export default async function generateOrUpdateTypings(fileName: string) {
+export default async function generateOrUpdateTypings() {
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -19,5 +19,5 @@ export default async function generateOrUpdateTypings(fileName: string) {
   );
   agent.addDataSource(createSqlDataSource(`sqlite::memory:`, introspection));
 
-  await agent.updateTypesOnFileSystem(fileName, 5);
+  await agent.updateTypesOnFileSystem('typings.d.ts', 5);
 }

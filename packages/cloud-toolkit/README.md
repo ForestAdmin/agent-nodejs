@@ -1,9 +1,9 @@
-This package needs to be imported to bootstrap and publish your cloud customizations
+This package needs to be installed to bootstrap and publish your cloud customizations
 
-
-#Usage
+# Usage
 
 Use this command to generate or update your typings
+
 ```bash
-cloud-toolkit update-typings
+yarn update:typings
 ```

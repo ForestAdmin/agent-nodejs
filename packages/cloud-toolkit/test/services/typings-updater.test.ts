@@ -16,12 +16,12 @@ describe('generateOrUpdateTypings', () => {
       .spyOn(datasourceSQL, 'createSqlDataSource')
       .mockReturnValue(Symbol('datasource') as unknown as DataSourceFactory);
 
-    generateOrUpdateTypings('toto.d.ts');
+    generateOrUpdateTypings();
     expect(datasourceSQLMock).toHaveBeenCalledWith(
       `sqlite::memory:`,
       expect.objectContaining({ introspection: expect.any(Object) }),
     );
     expect(createStandaloneAgentMock).toHaveBeenCalled();
-    expect(updateTypesOnFileSystemMock).toHaveBeenCalledWith('toto.d.ts', 5);
+    expect(updateTypesOnFileSystemMock).toHaveBeenCalledWith('typings.d.ts', 5);
   });
 });

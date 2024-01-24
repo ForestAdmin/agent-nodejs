@@ -1,13 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "ES2020",
-    "moduleResolution": "node16",
-    "outDir": "dist",
-    "skipLibCheck": true
-  },
-  "ts-node": {
-    "esm": true
+    "outDir": "dist"
   },
   "include": ["src/**/*"]
 }

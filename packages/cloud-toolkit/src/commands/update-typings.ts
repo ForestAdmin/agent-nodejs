@@ -1,22 +1,12 @@
-import { Args, Command } from '@oclif/core';
+import generateOrUpdateTypings from '../services/typings-updater';
 
-import generateOrUpdateTypings from '../services/typings-updater.js';
+const run = async (): Promise<void> => {
+  await generateOrUpdateTypings();
+};
 
-export default class UpdateTypings extends Command {
-  static override args = {
-    name: Args.string({
-      default: 'typings.d.ts',
-      description: 'Destination file name',
-      required: false,
-    }),
-  };
-
-  static override description = 'Update the typings file if the schema has changed';
-
-  static override examples = [`$ cloud-toolkit update-typings 'typings.d.ts'`];
-
-  async run(): Promise<void> {
-    const { args } = await this.parse(UpdateTypings);
-    await generateOrUpdateTypings(args.name);
-  }
-}
+run()
+  .then(() => {
+    // eslint-disable-next-line no-console
+    console.log('Typings updated.');
+  })
+  .catch(e => console.error(e));

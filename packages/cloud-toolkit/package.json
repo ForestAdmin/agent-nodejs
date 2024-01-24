@@ -1,52 +1,33 @@
 {
   "name": "@forestadmin/cloud-toolkit",
   "version": "0.0.1",
-  "bin": {
-    "cloud-toolkit": "./bin/run.js"
-  },
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
     "@forestadmin/agent": "^1.36.13",
     "@forestadmin/datasource-customizer": "^1.40.0",
-    "@forestadmin/datasource-sql": "^1.7.43",
-    "@oclif/core": "^3"
-  },
-  "devDependencies": {
-    "@oclif/prettier-config": "^0.2.1",
-    "@oclif/test": "^3",
-    "oclif": "^4.3.6",
-    "shx": "^0.3.4"
+    "@forestadmin/datasource-sql": "^1.7.43"
   },
   "files": [
-    "/oclif.manifest.json",
-    "bin/**/*.js",
     "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
   "license": "GPL-3.0",
   "main": "dist/index.js",
-  "oclif": {
-    "bin": "cloud-toolkit",
-    "dirname": "cloud-toolkit",
-    "commands": "./dist/commands"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
     "directory": "packages/cloud-toolkit"
   },
   "scripts": {
-    "build": "shx rm -rf dist && tsc -b",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "test": "jest",
-    "update:typings": "./bin/run.js update-typings"
+    "update:typings": "node dist/commands/update-typings.js"
   },
   "keywords": [
     "forestadmin",
     "cloud",
     "customization"
-  ],
-  "type": "module",
-  "types": "dist/index.d.ts",
-  "exports": "./dist/index.js"
+  ]
 }
