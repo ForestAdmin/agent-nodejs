@@ -7,6 +7,9 @@
     "@forestadmin/datasource-customizer": "1.40.2",
     "@forestadmin/datasource-sql": "1.7.44"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts"
