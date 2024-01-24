@@ -1,0 +1,30 @@
+{
+  "name": "@forestadmin/cloud-customizer",
+  "version": "1.0.0",
+  "description": "A package to expose to our customers to customize their clouds.",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/cloud-toolkit"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "devDependencies": {
+  },
+  "dependencies": {
+  }
+}
