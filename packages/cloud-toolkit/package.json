@@ -22,6 +22,7 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "lint": "eslint src test",
     "test": "jest",
     "update:typings": "node dist/commands/update-typings.js"
   },
