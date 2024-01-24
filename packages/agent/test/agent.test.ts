@@ -300,6 +300,7 @@ describe('Agent', () => {
       expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
     });
   });
+
   describe('updateTypesOnFileSystem', () => {
     test('should write/update the typings file if apimap has changed', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
