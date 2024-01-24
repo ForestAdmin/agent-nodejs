@@ -1,3 +1,13 @@
+## example [1.6.75-beta-cloud-customizer.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.74...example@1.6.75-beta-cloud-customizer.1) (2024-01-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.37.0-beta-cloud-customizer.1
+
 ## example [1.6.74](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.73...example@1.6.74) (2024-01-18)
 
 
