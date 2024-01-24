@@ -13,7 +13,7 @@ export default class UpdateTypings extends Command {
 
   static override description = 'Update the typings file if the schema has changed';
 
-  static override examples = [`$ cloud-customizer update-typings 'typings.d.ts'`];
+  static override examples = [`$ cloud-toolkit update-typings 'typings.d.ts'`];
 
   async run(): Promise<void> {
     const { args } = await this.parse(UpdateTypings);

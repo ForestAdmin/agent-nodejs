@@ -1,7 +1,7 @@
 {
   "author": "Nicolas Moreau",
   "bin": {
-    "cloud-customizer": "./bin/run.js"
+    "cloud-toolkit": "./bin/run.js"
   },
   "dependencies": {
     "@forestadmin/agent": "^1.36.13",
@@ -30,13 +30,13 @@
     "/dist",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/ForestAdmin/cloud-customizer",
+  "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
   "license": "GPL-3.0",
   "main": "",
-  "name": "cloud-customizer",
+  "name": "cloud-toolkit",
   "oclif": {
-    "bin": "cloud-customizer",
-    "dirname": "cloud-customizer",
+    "bin": "cloud-toolkit",
+    "dirname": "cloud-toolkit",
     "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",
@@ -49,7 +49,7 @@
       }
     }
   },
-  "repository": "ForestAdmin/cloud-customizer",
+  "repository": "ForestAdmin/agent-nodejs/cloud-toolkit",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "prepare": "yarn build",
