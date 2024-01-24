@@ -1,19 +1,13 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "experimentalDecorators": true,
-    "module": "Node16",
+    "module": "ES2020",
+    "moduleResolution": "node16",
     "outDir": "dist",
-    "strict": true,
-    "target": "es2022",
-    "esModuleInterop": true,
-    "declaration": true,
-    "declarationMap": true,
-    "inlineSourceMap": true,
-    "stripInternal": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "include": [
-    "./src/**/*"
-  ],
+  "ts-node": {
+    "esm": true
+  },
+  "include": ["src/**/*"]
 }

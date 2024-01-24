@@ -17,6 +17,6 @@ export default class UpdateTypings extends Command {
 
   async run(): Promise<void> {
     const { args } = await this.parse(UpdateTypings);
-    generateOrUpdateTypings(args.name);
+    await generateOrUpdateTypings(args.name);
   }
 }

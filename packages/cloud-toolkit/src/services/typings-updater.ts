@@ -19,5 +19,5 @@ export default async function generateOrUpdateTypings(fileName: string) {
   );
   agent.addDataSource(createSqlDataSource(`sqlite::memory:`, introspection));
 
-  agent.updateTypesOnFileSystem(fileName, 5);
+  await agent.updateTypesOnFileSystem(fileName, 5);
 }
