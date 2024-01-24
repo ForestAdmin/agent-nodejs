@@ -25,6 +25,7 @@ const mockCustomizer = {
   addChart: jest.fn(),
   customizeCollection: jest.fn(),
   updateTypesOnFileSystem: jest.fn(),
+  getDataSource: jest.fn(),
   use: jest.fn(),
   getFactory: jest.fn(),
   removeCollection: jest.fn(),
@@ -297,6 +298,21 @@ describe('Agent', () => {
       await agent.stop();
 
       expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('updateTypesOnFileSystem', () => {
+    test('should write/update the typings file if apimap has changed', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      await agent.updateTypesOnFileSystem('the/path/to/typings.d.ts', 42);
+
+      expect(mockCustomizer.getDataSource).toHaveBeenCalledOnceWith(options.logger);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledOnceWith(
+        'the/path/to/typings.d.ts',
+        42,
+      );
     });
   });
 });
