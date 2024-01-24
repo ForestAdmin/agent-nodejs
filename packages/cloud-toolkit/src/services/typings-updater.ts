@@ -7,8 +7,8 @@ import path from 'path';
 
 export default async function generateOrUpdateTypings(fileName: string) {
   const agentOptions: AgentOptions = {
-    authSecret: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    envSecret: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    authSecret: 'a'.repeat(64),
+    envSecret: 'a'.repeat(64),
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
