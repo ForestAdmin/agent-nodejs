@@ -117,182 +117,182 @@ export type AccountBillsItemsAggregation = TAggregation<Schema, 'account_bills_i
 export type Schema = {
   'account': {
     plain: {
+      '_id': string;
+      'avatar': Buffer;
       'firstname': string;
       'lastname': string;
       'storeId': number;
-      'avatar': Buffer;
-      '_id': string;
     };
     nested: {
       'address': Schema['account_address']['plain'] & Schema['account_address']['nested'];
       'store': Schema['store']['plain'] & Schema['store']['nested'];
     };
     flat: {
-      'address:streetNumber': number;
-      'address:streetName': string;
+      'address:_id': string;
       'address:city': string;
       'address:country': string;
-      'address:_id': string;
       'address:parentId': string;
+      'address:streetName': string;
+      'address:streetNumber': number;
       'store:id': number;
       'store:name': string;
-      'store:ownerId': number;
       'store:ownerFullName': string;
-      'store:owner:id': number;
+      'store:ownerId': number;
       'store:owner:firstName': string;
-      'store:owner:lastName': string;
       'store:owner:fullName': string;
+      'store:owner:id': number;
+      'store:owner:lastName': string;
     };
   };
   'account_address': {
     plain: {
-      'streetNumber': number;
-      'streetName': string;
+      '_id': string;
       'city': string;
       'country': string;
-      '_id': string;
       'parentId': string;
+      'streetName': string;
+      'streetNumber': number;
     };
     nested: {
       'parent': Schema['account']['plain'] & Schema['account']['nested'];
     };
     flat: {
+      'parent:_id': string;
+      'parent:avatar': Buffer;
       'parent:firstname': string;
       'parent:lastname': string;
       'parent:storeId': number;
-      'parent:avatar': Buffer;
-      'parent:_id': string;
       'parent:store:id': number;
       'parent:store:name': string;
-      'parent:store:ownerId': number;
       'parent:store:ownerFullName': string;
-      'parent:store:owner:id': number;
+      'parent:store:ownerId': number;
       'parent:store:owner:firstName': string;
-      'parent:store:owner:lastName': string;
       'parent:store:owner:fullName': string;
+      'parent:store:owner:id': number;
+      'parent:store:owner:lastName': string;
     };
   };
   'account_bills': {
     plain: {
-      'title': string;
+      '_id': string;
       'amount': number;
       'issueDate': string;
-      '_id': string;
       'parentId': string;
+      'title': string;
     };
     nested: {
       'parent': Schema['account']['plain'] & Schema['account']['nested'];
     };
     flat: {
+      'parent:_id': string;
+      'parent:avatar': Buffer;
       'parent:firstname': string;
       'parent:lastname': string;
       'parent:storeId': number;
-      'parent:avatar': Buffer;
-      'parent:_id': string;
-      'parent:address:streetNumber': number;
-      'parent:address:streetName': string;
+      'parent:address:_id': string;
       'parent:address:city': string;
       'parent:address:country': string;
-      'parent:address:_id': string;
       'parent:address:parentId': string;
+      'parent:address:streetName': string;
+      'parent:address:streetNumber': number;
       'parent:store:id': number;
       'parent:store:name': string;
-      'parent:store:ownerId': number;
       'parent:store:ownerFullName': string;
-      'parent:store:owner:id': number;
+      'parent:store:ownerId': number;
       'parent:store:owner:firstName': string;
-      'parent:store:owner:lastName': string;
       'parent:store:owner:fullName': string;
+      'parent:store:owner:id': number;
+      'parent:store:owner:lastName': string;
     };
   };
   'account_bills_items': {
     plain: {
-      'importance': 'high' | 'medium' | 'low';
-      'title': string;
-      'amount': number;
       '_id': string;
+      'amount': number;
+      'importance': 'high' | 'low' | 'medium';
       'parentId': string;
+      'title': string;
     };
     nested: {
       'parent': Schema['account_bills']['plain'] & Schema['account_bills']['nested'];
     };
     flat: {
-      'parent:title': string;
+      'parent:_id': string;
       'parent:amount': number;
       'parent:issueDate': string;
-      'parent:_id': string;
       'parent:parentId': string;
+      'parent:title': string;
+      'parent:parent:_id': string;
+      'parent:parent:avatar': Buffer;
       'parent:parent:firstname': string;
       'parent:parent:lastname': string;
       'parent:parent:storeId': number;
-      'parent:parent:avatar': Buffer;
-      'parent:parent:_id': string;
-      'parent:parent:address:streetNumber': number;
-      'parent:parent:address:streetName': string;
+      'parent:parent:address:_id': string;
       'parent:parent:address:city': string;
       'parent:parent:address:country': string;
-      'parent:parent:address:_id': string;
       'parent:parent:address:parentId': string;
+      'parent:parent:address:streetName': string;
+      'parent:parent:address:streetNumber': number;
       'parent:parent:store:id': number;
       'parent:parent:store:name': string;
-      'parent:parent:store:ownerId': number;
       'parent:parent:store:ownerFullName': string;
-      'parent:parent:store:owner:id': number;
+      'parent:parent:store:ownerId': number;
       'parent:parent:store:owner:firstName': string;
-      'parent:parent:store:owner:lastName': string;
       'parent:parent:store:owner:fullName': string;
+      'parent:parent:store:owner:id': number;
+      'parent:parent:store:owner:lastName': string;
     };
   };
   'card': {
     plain: {
-      'id': number;
       'card_number': number;
-      'card_type': 'visa' | 'mastercard' | 'american express';
-      'is_active': boolean;
+      'card_type': 'american express' | 'mastercard' | 'visa';
       'customer_id': number;
+      'id': number;
+      'is_active': boolean;
     };
     nested: {
       'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
+      'customer:createdAt': string;
+      'customer:deletedAt': string;
+      'customer:firstName': string;
       'customer:id': number;
       'customer:name': string;
-      'customer:firstName': string;
-      'customer:createdAt': string;
       'customer:updatedAt': string;
-      'customer:deletedAt': string;
     };
   };
   'comment': {
     plain: {
-      'id': number;
-      'postId': number;
-      'name': string;
-      'email': string;
       'body': string;
+      'email': string;
+      'id': number;
+      'name': string;
+      'postId': number;
     };
     nested: {
       'post': Schema['post']['plain'] & Schema['post']['nested'];
     };
     flat: {
-      'post:id': number;
-      'post:userId': number;
-      'post:title': string;
       'post:body': string;
-      'post:owner:id': number;
+      'post:id': number;
+      'post:title': string;
+      'post:userId': number;
       'post:owner:firstName': string;
-      'post:owner:lastName': string;
       'post:owner:fullName': string;
+      'post:owner:id': number;
+      'post:owner:lastName': string;
     };
   };
   'customer': {
     plain: {
+      'createdAt': string;
+      'deletedAt': string;
+      'firstName': string;
       'id': number;
       'name': string;
-      'firstName': string;
-      'createdAt': string;
       'updatedAt': string;
-      'deletedAt': string;
     };
     nested: {};
     flat: {};
@@ -308,10 +308,10 @@ export type Schema = {
   'dvd': {
     plain: {
       'id': number;
-      'title': string;
+      'numberOfRentals': number;
       'rentalPrice': number;
       'storeId': number;
-      'numberOfRentals': number;
+      'title': string;
     };
     nested: {
       'store': Schema['store']['plain'] & Schema['store']['nested'];
@@ -319,12 +319,12 @@ export type Schema = {
     flat: {
       'store:id': number;
       'store:name': string;
-      'store:ownerId': number;
       'store:ownerFullName': string;
-      'store:owner:id': number;
+      'store:ownerId': number;
       'store:owner:firstName': string;
-      'store:owner:lastName': string;
       'store:owner:fullName': string;
+      'store:owner:id': number;
+      'store:owner:lastName': string;
     };
   };
   'dvd_rental': {
@@ -338,84 +338,84 @@ export type Schema = {
     };
     flat: {
       'dvd:id': number;
-      'dvd:title': string;
+      'dvd:numberOfRentals': number;
       'dvd:rentalPrice': number;
       'dvd:storeId': number;
-      'dvd:numberOfRentals': number;
+      'dvd:title': string;
+      'rental:customerId': number;
+      'rental:endDate': string;
+      'rental:id': number;
+      'rental:numberOfDays': number;
+      'rental:startDate': string;
       'dvd:store:id': number;
       'dvd:store:name': string;
-      'dvd:store:ownerId': number;
       'dvd:store:ownerFullName': string;
-      'dvd:store:owner:id': number;
-      'dvd:store:owner:firstName': string;
-      'dvd:store:owner:lastName': string;
-      'dvd:store:owner:fullName': string;
-      'rental:id': number;
-      'rental:startDate': string;
-      'rental:endDate': string;
-      'rental:customerId': number;
-      'rental:numberOfDays': number;
+      'dvd:store:ownerId': number;
+      'rental:customer:createdAt': string;
+      'rental:customer:deletedAt': string;
+      'rental:customer:firstName': string;
       'rental:customer:id': number;
       'rental:customer:name': string;
-      'rental:customer:firstName': string;
-      'rental:customer:createdAt': string;
       'rental:customer:updatedAt': string;
-      'rental:customer:deletedAt': string;
+      'dvd:store:owner:firstName': string;
+      'dvd:store:owner:fullName': string;
+      'dvd:store:owner:id': number;
+      'dvd:store:owner:lastName': string;
     };
   };
   'owner': {
     plain: {
-      'id': number;
       'firstName': string;
-      'lastName': string;
       'fullName': string;
+      'id': number;
+      'lastName': string;
     };
     nested: {};
     flat: {};
   };
   'post': {
     plain: {
-      'id': number;
-      'userId': number;
-      'title': string;
       'body': string;
+      'id': number;
+      'title': string;
+      'userId': number;
     };
     nested: {
       'owner': Schema['owner']['plain'] & Schema['owner']['nested'];
     };
     flat: {
-      'owner:id': number;
       'owner:firstName': string;
-      'owner:lastName': string;
       'owner:fullName': string;
+      'owner:id': number;
+      'owner:lastName': string;
     };
   };
   'rental': {
     plain: {
-      'id': number;
-      'startDate': string;
-      'endDate': string;
       'customerId': number;
+      'endDate': string;
+      'id': number;
       'numberOfDays': number;
+      'startDate': string;
     };
     nested: {
       'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
+      'customer:createdAt': string;
+      'customer:deletedAt': string;
+      'customer:firstName': string;
       'customer:id': number;
       'customer:name': string;
-      'customer:firstName': string;
-      'customer:createdAt': string;
       'customer:updatedAt': string;
-      'customer:deletedAt': string;
     };
   };
   'review': {
     plain: {
       'id': number;
-      'title': string;
       'message': string;
       'storeId': number;
+      'title': string;
     };
     nested: {
       'store': Schema['store']['plain'] & Schema['store']['nested'];
@@ -423,29 +423,29 @@ export type Schema = {
     flat: {
       'store:id': number;
       'store:name': string;
-      'store:ownerId': number;
       'store:ownerFullName': string;
-      'store:owner:id': number;
+      'store:ownerId': number;
       'store:owner:firstName': string;
-      'store:owner:lastName': string;
       'store:owner:fullName': string;
+      'store:owner:id': number;
+      'store:owner:lastName': string;
     };
   };
   'store': {
     plain: {
       'id': number;
       'name': string;
-      'ownerId': number;
       'ownerFullName': string;
+      'ownerId': number;
     };
     nested: {
       'owner': Schema['owner']['plain'] & Schema['owner']['nested'];
     };
     flat: {
-      'owner:id': number;
       'owner:firstName': string;
-      'owner:lastName': string;
       'owner:fullName': string;
+      'owner:id': number;
+      'owner:lastName': string;
     };
   };
 };
