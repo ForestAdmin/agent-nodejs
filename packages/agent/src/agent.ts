@@ -110,6 +110,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
+   * Update the typings files generated from your datasources
+   * @param typingsPath the path at which to write the new file
+   * @param typingsMaxDepth the max depth of relation typings
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/install/autocompletion-and-typings Documentation Link}
+   */
+  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
+    const { logger } = this.options;
+    await this.customizer.getDataSource(logger);
+    this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth);
+  }
+
+  /**
    * Create a new API chart
    * @param name name of the chart
    * @param definition definition of the chart
