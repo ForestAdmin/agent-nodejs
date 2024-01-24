@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.36.14",
+  "version": "1.37.0-beta-cloud-customizer.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
