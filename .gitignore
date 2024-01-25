@@ -4,6 +4,7 @@ coverage
 dist
 api-reference
 node_modules
+lerna-debug.log
 
 # IDE
 .idea
