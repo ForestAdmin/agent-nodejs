@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.4...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.5) (2024-01-25)
+
+
+### Features
+
+* **cloud-toolkit:** download customizer from main entry ([#928](https://github.com/ForestAdmin/agent-nodejs/issues/928)) ([097904a](https://github.com/ForestAdmin/agent-nodejs/commit/097904af7947882648acab1dc93177fcd059f3d3))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.3...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.4) (2024-01-25)
 
 
