@@ -61,14 +61,14 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'aCollectionName': {
           plain: {
-            'array': Array<string>;
-            'boolean': boolean;
-            'complex': { 'firstname': string; 'lastname': string };
-            'enumWithoutValues': string;
-            'enumWithValues': 'a' | 'b' | 'c';
-            'id': number;
-            'point': [number, number];
-            'string': string;
+            'array': Array<string> | null;
+            'boolean': boolean | null;
+            'complex': { 'firstname': string; 'lastname': string } | null;
+            'enumWithoutValues': string | null;
+            'enumWithValues': 'a' | 'b' | 'c' | null;
+            'id': number | null;
+            'point': [number, number] | null;
+            'string': string | null;
           };
           nested: {};
           flat: {};
