@@ -76,7 +76,9 @@ export default class SchemaGeneratorFields {
       // This may sound counter-intuitive: it is so that the user don't have two fields which
       // allow updating the same foreign key in the detail-view form (fk + many to one)
       isReadOnly: isForeignKey || Boolean(column.isReadOnly),
-      isRequired: column.validation?.some(v => v.operator === 'Present') ?? false,
+      isRequired:
+        (column.validation?.some(v => v.operator === 'Present') || column.allowNull === false) ??
+        false,
       isSortable: Boolean(column.isSortable),
       isVirtual: false,
       reference: null,
