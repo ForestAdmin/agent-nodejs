@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.2...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.3) (2024-01-25)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** add commander to execute any commands ([#925](https://github.com/ForestAdmin/agent-nodejs/issues/925)) ([b65fd44](https://github.com/ForestAdmin/agent-nodejs/commit/b65fd44e6a8cf346f94952d95b1600103585dff3))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.1...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.2) (2024-01-24)
 
 
