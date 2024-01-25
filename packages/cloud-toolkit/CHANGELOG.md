@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.5...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.6) (2024-01-25)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** fix bootstrap command ([#929](https://github.com/ForestAdmin/agent-nodejs/issues/929)) ([e1182ad](https://github.com/ForestAdmin/agent-nodejs/commit/e1182adfe71fd501060a0f8f1ed4f57f27bad1b0))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.4...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.5) (2024-01-25)
 
 
