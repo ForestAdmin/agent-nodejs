@@ -5,7 +5,8 @@
   "dependencies": {
     "@forestadmin/agent": "1.37.0-beta-cloud-customizer.1",
     "@forestadmin/datasource-customizer": "1.40.2",
-    "@forestadmin/datasource-sql": "1.7.44"
+    "@forestadmin/datasource-sql": "1.7.44",
+    "commander": "^11.1.0"
   },
   "publishConfig": {
     "access": "public"
@@ -23,14 +24,13 @@
     "directory": "packages/cloud-toolkit"
   },
   "bin": {
-    "update-typings": "./dist/commands/update-typings.js"
+    "cloud-toolkit": "node dist/commands/main.js"
   },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
     "lint": "eslint src test",
-    "test": "jest",
-    "update:typings": "node dist/commands/update-typings.js"
+    "test": "jest"
   },
   "keywords": [
     "forestadmin",
