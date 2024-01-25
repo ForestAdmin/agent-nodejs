@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.3...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.4) (2024-01-25)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** add node interpreter to be executed by the bin ([#926](https://github.com/ForestAdmin/agent-nodejs/issues/926)) ([78931a0](https://github.com/ForestAdmin/agent-nodejs/commit/78931a0077e181bd5eee5ae2eb7fe4a8a9105c62))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.2...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.3) (2024-01-25)
 
 
