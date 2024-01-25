@@ -36,6 +36,7 @@ describe('flattener', () => {
 
         expect(datasource.getCollection('contacts').schema.fields).toEqual({
           id: {
+            allowNull: true,
             columnType: 'Number',
             filterOperators: expect.any(Set),
             type: 'Column',
@@ -52,6 +53,7 @@ describe('flattener', () => {
 
         expect(datasource.getCollection('contacts_fieldArray').schema.fields).toEqual({
           value: {
+            allowNull: true,
             columnType: 'String',
             filterOperators: expect.any(Set),
 
@@ -59,6 +61,7 @@ describe('flattener', () => {
             isSortable: true,
           },
           _fid: {
+            allowNull: true,
             columnType: 'String',
             filterOperators: expect.any(Set),
 
@@ -67,6 +70,7 @@ describe('flattener', () => {
             isPrimaryKey: true,
           },
           _fpid: {
+            allowNull: true,
             columnType: 'Number',
             filterOperators: expect.any(Set),
 
@@ -106,6 +110,7 @@ describe('flattener', () => {
 
         expect(datasource.getCollection('contacts').schema.fields).toEqual({
           id: {
+            allowNull: true,
             columnType: 'Number',
             filterOperators: expect.any(Set),
             type: 'Column',
@@ -113,12 +118,14 @@ describe('flattener', () => {
             isPrimaryKey: true,
           },
           'fieldObject@@@fields.subObject.fieldString': {
+            allowNull: true,
             columnType: 'String',
             filterOperators: expect.any(Set),
             type: 'Column',
             isSortable: true,
           },
           'fieldObject@@@fields.subObject.fieldNumber': {
+            allowNull: true,
             columnType: 'Number',
             filterOperators: expect.any(Set),
             type: 'Column',
@@ -157,6 +164,7 @@ describe('flattener', () => {
 
         expect(datasource.getCollection('contacts').schema.fields).toEqual({
           id: {
+            allowNull: true,
             columnType: 'Number',
             filterOperators: expect.any(Set),
             type: 'Column',
@@ -167,6 +175,7 @@ describe('flattener', () => {
             validation: undefined,
           },
           fieldObject: {
+            allowNull: true,
             columnType: {
               fields: {
                 subObject: {
@@ -311,6 +320,7 @@ describe('flattener', () => {
           type: 'OneToMany',
         },
         editor: {
+          allowNull: true,
           columnType: {
             address: 'String',
             name: 'String',
@@ -335,6 +345,7 @@ describe('flattener', () => {
           type: 'OneToOne',
         },
         id: {
+          allowNull: true,
           columnType: 'Number',
           defaultValue: undefined,
           filterOperators: expect.any(Set),
@@ -345,6 +356,7 @@ describe('flattener', () => {
           validation: undefined,
         },
         title: {
+          allowNull: true,
           columnType: 'String',
           defaultValue: undefined,
           filterOperators: expect.any(Set),
