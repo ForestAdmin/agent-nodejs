@@ -19,7 +19,6 @@
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
   "license": "GPL-3.0",
-  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
