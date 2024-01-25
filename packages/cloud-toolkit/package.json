@@ -6,6 +6,8 @@
     "@forestadmin/agent": "1.37.0-beta-cloud-customizer.1",
     "@forestadmin/datasource-customizer": "1.40.2",
     "@forestadmin/datasource-sql": "1.7.44",
+    "adm-zip": "^0.5.10",
+    "axios": "^1.6.6",
     "commander": "^11.1.0"
   },
   "publishConfig": {
@@ -17,7 +19,7 @@
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
   "license": "GPL-3.0",
-  "main": "dist/index.js",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
