@@ -43,7 +43,6 @@ export * from './interfaces/query/sort';
 export * from './interfaces/query/page';
 export * from './interfaces/record';
 export * from './interfaces/schema';
-
 export {
   GenericTree,
   GenericTreeBranch,
