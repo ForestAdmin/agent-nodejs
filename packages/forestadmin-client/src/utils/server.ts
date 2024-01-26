@@ -38,7 +38,8 @@ export default class ServerUtils {
     if (/certificate/i.test(e.message))
       throw new Error(
         'ForestAdmin server TLS certificate cannot be verified. ' +
-          'Please check that your system time is set properly.',
+          'Please check that your system time is set properly. ' +
+          `Original error: ${e.message}`,
       );
 
     if ((e as ResponseError).response) {

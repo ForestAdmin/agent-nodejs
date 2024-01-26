@@ -4,6 +4,7 @@ import {
   CollectionSchema,
   ColumnSchema,
   DataSourceDecorator,
+  FieldValidator,
   Filter,
   RecordData,
   RecordValidator,
@@ -17,12 +18,9 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
   override readonly dataSource: DataSourceDecorator<WriteReplacerCollectionDecorator>;
 
   replaceFieldWriting(fieldName: string, definition: WriteDefinition): void {
-    if (!Object.keys(this.schema.fields).includes(fieldName)) {
-      throw new Error(
-        `The given field "${fieldName}" does not exist on the ${this.name} collection.`,
-      );
-    }
-
+    if (!definition)
+      throw new Error('A new writing method should be provided to replace field writing');
+    FieldValidator.validate(this, fieldName);
     this.handlers[fieldName] = definition;
     this.markSchemaAsDirty();
   }

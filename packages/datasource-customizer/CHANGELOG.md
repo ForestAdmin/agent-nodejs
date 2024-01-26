@@ -1,3 +1,39 @@
+## @forestadmin/datasource-customizer [1.40.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.3...@forestadmin/datasource-customizer@1.40.4) (2024-01-22)
+
+
+### Bug Fixes
+
+* **replaceFieldWriting:** force customer to give a replaceFieldWriting definition to avoid emulation when null is given ([#913](https://github.com/ForestAdmin/agent-nodejs/issues/913)) ([b0b1862](https://github.com/ForestAdmin/agent-nodejs/commit/b0b1862dfba148acf61b0463f246dbc19a4b5afd))
+
+## @forestadmin/datasource-customizer [1.40.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.2...@forestadmin/datasource-customizer@1.40.3) (2024-01-22)
+
+
+### Bug Fixes
+
+* disableFieldSorting is now only preventing frontend to sort the collection ([7f1481b](https://github.com/ForestAdmin/agent-nodejs/commit/7f1481bd56fc98da87fa4aa473cb7b806851c551))
+
+## @forestadmin/datasource-customizer [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.1...@forestadmin/datasource-customizer@1.40.2) (2024-01-18)
+
+
+### Bug Fixes
+
+* **replaceFieldOperator:** disallow to pass null because it will emulate instead to remove the operator ([#911](https://github.com/ForestAdmin/agent-nodejs/issues/911)) ([bf0c105](https://github.com/ForestAdmin/agent-nodejs/commit/bf0c105cfb5850ede7be223bfbe59044ff6fe9cb))
+
+## @forestadmin/datasource-customizer [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.0...@forestadmin/datasource-customizer@1.40.1) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
 # @forestadmin/datasource-customizer [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.3...@forestadmin/datasource-customizer@1.40.0) (2024-01-03)
 
 

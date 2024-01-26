@@ -61,7 +61,7 @@ type ForestServerActionFieldType = ForestServerColumnType | 'File' | ['File'];
 
 export type ForestServerActionFieldCommon<
   TType extends ForestServerActionFieldType = ForestServerActionFieldType,
-  TWidgetEdit extends WidgetEditConfiguration = null,
+  TWidgetEdit extends WidgetEditConfiguration | null = null,
 > = {
   type: TType;
   value: unknown;

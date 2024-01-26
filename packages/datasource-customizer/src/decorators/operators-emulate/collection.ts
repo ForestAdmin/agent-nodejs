@@ -21,13 +21,22 @@ import CollectionCustomizationContext from '../../context/collection-context';
 
 export default class OperatorsEmulateCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  private readonly fields: Map<string, Map<Operator, OperatorDefinition>> = new Map();
+  private readonly fields: Map<string, Map<Operator, OperatorDefinition | null>> = new Map();
 
   emulateFieldOperator(name: string, operator: Operator): void {
-    this.replaceFieldOperator(name, operator, null);
+    this.replaceOrEmulateFieldOperator(name, operator, null);
   }
 
   replaceFieldOperator(name: string, operator: Operator, replaceBy: OperatorDefinition): void {
+    if (!replaceBy) throw new Error('replaceBy handler is required');
+    this.replaceOrEmulateFieldOperator(name, operator, replaceBy);
+  }
+
+  private replaceOrEmulateFieldOperator(
+    name: string,
+    operator: Operator,
+    replaceBy: OperatorDefinition | null,
+  ): void {
     // Check that the collection can actually support our rewriting
     const pks = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
     pks.forEach(pk => {

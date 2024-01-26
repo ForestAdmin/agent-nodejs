@@ -265,7 +265,7 @@ describe('Builder > Collection', () => {
 
       expect(spy).toHaveBeenCalledWith('translatorName', expect.any(Function));
       const [[, definition]] = spy.mock.calls;
-      expect(definition('newNameValue', {} as never)).toEqual({
+      expect(definition?.('newNameValue', {} as never)).toEqual({
         translator: { name: 'newNameValue' },
       });
       expect(self).toEqual(customizer);
@@ -551,6 +551,64 @@ describe('Builder > Collection', () => {
       expect(self.schema.fields.myBooks).toBeDefined();
       expect(self).toEqual(customizer);
     });
+
+    it('should not allow disableFieldSorting', async () => {
+      const { dsc, customizer, stack } = await setup();
+
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
+
+      const self = customizer.addOneToOneRelation('myBookAuthor', 'book_author', {
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+
+      customizer.disableFieldSorting('myBookAuthor');
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        new Error(
+          "Unexpected field type: 'authors.myBookAuthor' (found 'OneToOne' expected 'Column')",
+        ),
+      );
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myBookAuthor', {
+        type: 'OneToOne',
+        foreignCollection: 'book_author',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+      expect(self.schema.fields.myBookAuthor).toBeDefined();
+      expect(self).toEqual(customizer);
+    });
+
+    it('should not allow replaceFieldSorting', async () => {
+      const { dsc, customizer, stack } = await setup();
+
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
+
+      const self = customizer.addOneToOneRelation('myBookAuthor', 'book_author', {
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+
+      customizer.replaceFieldSorting('myBookAuthor', []);
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        new Error(
+          "Unexpected field type: 'authors.myBookAuthor' (found 'OneToOne' expected 'Column')",
+        ),
+      );
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myBookAuthor', {
+        type: 'OneToOne',
+        foreignCollection: 'book_author',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+      expect(self.schema.fields.myBookAuthor).toBeDefined();
+      expect(self).toEqual(customizer);
+    });
   });
 
   describe('addSegment', () => {
@@ -573,7 +631,7 @@ describe('Builder > Collection', () => {
   });
 
   describe('disableFieldSorting', () => {
-    it('should emulate sort on field', async () => {
+    it('should disable sort on field', async () => {
       const { dsc, customizer, stack } = await setup();
       const collection = stack.sortEmulate.getCollection('authors');
 

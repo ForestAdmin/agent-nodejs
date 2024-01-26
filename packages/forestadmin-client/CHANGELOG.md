@@ -1,3 +1,25 @@
+## @forestadmin/forestadmin-client [1.25.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.4...@forestadmin/forestadmin-client@1.25.5) (2024-01-23)
+
+
+### Bug Fixes
+
+* return more details in errors due to certificate validation to help debugging ([#917](https://github.com/ForestAdmin/agent-nodejs/issues/917)) ([58aaaec](https://github.com/ForestAdmin/agent-nodejs/commit/58aaaec5f441505a568b18f1dfe21306191ff024))
+
+## @forestadmin/forestadmin-client [1.25.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.3...@forestadmin/forestadmin-client@1.25.4) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
 ## @forestadmin/forestadmin-client [1.25.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.2...@forestadmin/forestadmin-client@1.25.3) (2023-12-14)
 
 

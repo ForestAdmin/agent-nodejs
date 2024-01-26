@@ -1,3 +1,60 @@
+## @forestadmin/agent [1.36.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.16...@forestadmin/agent@1.36.17) (2024-01-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.5
+
+## @forestadmin/agent [1.36.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.15...@forestadmin/agent@1.36.16) (2024-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.4
+
+## @forestadmin/agent [1.36.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.14...@forestadmin/agent@1.36.15) (2024-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.3
+
+## @forestadmin/agent [1.36.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.13...@forestadmin/agent@1.36.14) (2024-01-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.2
+
+## @forestadmin/agent [1.36.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.12...@forestadmin/agent@1.36.13) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.4
+
 ## @forestadmin/agent [1.36.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.11...@forestadmin/agent@1.36.12) (2024-01-03)
 
 
