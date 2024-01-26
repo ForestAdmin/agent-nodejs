@@ -1,3 +1,18 @@
+# @forestadmin/datasource-mongoose [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.33...@forestadmin/datasource-mongoose@1.6.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+
 ## @forestadmin/datasource-mongoose [1.5.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.32...@forestadmin/datasource-mongoose@1.5.33) (2024-01-17)
 
 
