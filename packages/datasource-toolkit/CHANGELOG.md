@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.2...@forestadmin/datasource-toolkit@1.30.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
 ## @forestadmin/datasource-toolkit [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.1...@forestadmin/datasource-toolkit@1.29.2) (2024-01-17)
 
 
