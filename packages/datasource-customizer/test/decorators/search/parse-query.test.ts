@@ -1,8 +1,16 @@
-import { ColumnSchema, ConditionTreeFactory, Operator } from '@forestadmin/datasource-toolkit';
+import {
+  Caller,
+  ColumnSchema,
+  ConditionTreeFactory,
+  Operator,
+} from '@forestadmin/datasource-toolkit';
 
 import { generateConditionTree, parseQuery } from '../../../src/decorators/search/parse-query';
 
 describe('generateConditionTree', () => {
+  const caller: Caller = {
+    id: 42,
+  } as Caller;
   const titleField: [string, ColumnSchema] = [
     'title',
     {
@@ -38,7 +46,7 @@ describe('generateConditionTree', () => {
   function parseQueryAndGenerateCondition(search: string, fields: [string, ColumnSchema][]) {
     const conditionTree = parseQuery(search);
 
-    return generateConditionTree(conditionTree, fields);
+    return generateConditionTree(caller, conditionTree, fields);
   }
 
   describe('single word', () => {

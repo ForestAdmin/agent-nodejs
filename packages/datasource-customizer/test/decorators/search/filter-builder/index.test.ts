@@ -1,4 +1,5 @@
 import {
+  Caller,
   ColumnSchema,
   ConditionTreeFactory,
   ConditionTreeLeaf,
@@ -35,12 +36,13 @@ const BUILDER_BY_TYPE: Record<
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       arrayBuilder?: jest.MaybeMockedDeep<any>;
       callWithSchema?: true;
+      structuredCall?: true;
     }
   | undefined
 > = {
   Boolean: { builder: jest.mocked(buildBooleanFieldFilter) },
-  Date: { builder: jest.mocked(buildDateFieldFilter) },
-  Dateonly: { builder: jest.mocked(buildDateFieldFilter) },
+  Date: { builder: jest.mocked(buildDateFieldFilter), structuredCall: true },
+  Dateonly: { builder: jest.mocked(buildDateFieldFilter), structuredCall: true },
   Enum: {
     builder: jest.mocked(buildEnumFieldFilter),
     arrayBuilder: jest.mocked(buildEnumArrayFieldFilter),
@@ -63,6 +65,9 @@ const BUILDER_BY_TYPE: Record<
 
 describe('buildFieldFilter', () => {
   const field = 'fieldName';
+  const caller: Caller = {
+    id: 42,
+  } as Caller;
 
   describe('with a NULL search string', () => {
     const searchString = 'NULL';
@@ -76,7 +81,7 @@ describe('buildFieldFilter', () => {
           columnType: 'Number',
           filterOperators: new Set(['Missing']),
         };
-        const result = buildFieldFilter(field, schema, searchString, isNegated);
+        const result = buildFieldFilter(caller, field, schema, searchString, isNegated);
 
         expect(result).toEqual(new ConditionTreeLeaf(field, 'Missing'));
       });
@@ -87,7 +92,7 @@ describe('buildFieldFilter', () => {
           columnType: 'Number',
           filterOperators: new Set([]),
         };
-        const result = buildFieldFilter(field, schema, searchString, isNegated);
+        const result = buildFieldFilter(caller, field, schema, searchString, isNegated);
 
         expect(result).toEqual(ConditionTreeFactory.MatchNone);
       });
@@ -100,7 +105,7 @@ describe('buildFieldFilter', () => {
           columnType: 'Number',
           filterOperators: new Set(['Present']),
         };
-        const result = buildFieldFilter(field, schema, searchString, true);
+        const result = buildFieldFilter(caller, field, schema, searchString, true);
 
         expect(result).toEqual(new ConditionTreeLeaf(field, 'Present'));
       });
@@ -111,7 +116,7 @@ describe('buildFieldFilter', () => {
           columnType: 'Number',
           filterOperators: new Set([]),
         };
-        const result = buildFieldFilter(field, schema, searchString, true);
+        const result = buildFieldFilter(caller, field, schema, searchString, true);
 
         expect(result).toEqual(ConditionTreeFactory.MatchAll);
       });
@@ -127,25 +132,51 @@ describe('buildFieldFilter', () => {
 
     if (expected) {
       it('should call the builder with the right arguments', () => {
-        buildFieldFilter(field, schema, 'searchString', false);
+        buildFieldFilter(caller, field, schema, 'searchString', false);
 
-        expect(expected.builder).toHaveBeenCalledWith(
-          field,
-          expected.callWithSchema ? schema : schema.filterOperators,
-          'searchString',
-          false,
-        );
+        const expectedArguments = expected.structuredCall
+          ? [
+              {
+                field,
+                filterOperators: schema.filterOperators,
+                searchString: 'searchString',
+                isNegated: false,
+                columnType: schema.columnType,
+                timezone: caller.timezone,
+              },
+            ]
+          : [
+              field,
+              expected.callWithSchema ? schema : schema.filterOperators,
+              'searchString',
+              false,
+            ];
+
+        expect(expected.builder).toHaveBeenCalledWith(...expectedArguments);
       });
 
       it('should pass isNegated = true if negated', () => {
-        buildFieldFilter(field, schema, 'searchString', true);
+        buildFieldFilter(caller, field, schema, 'searchString', true);
 
-        expect(expected.builder).toHaveBeenCalledWith(
-          field,
-          expected.callWithSchema ? schema : schema.filterOperators,
-          'searchString',
-          true,
-        );
+        const expectedArguments = expected.structuredCall
+          ? [
+              {
+                field,
+                filterOperators: schema.filterOperators,
+                searchString: 'searchString',
+                isNegated: true,
+                columnType: schema.columnType,
+                timezone: caller.timezone,
+              },
+            ]
+          : [
+              field,
+              expected.callWithSchema ? schema : schema.filterOperators,
+              'searchString',
+              true,
+            ];
+
+        expect(expected.builder).toHaveBeenCalledWith(...expectedArguments);
       });
 
       describe('for array types', () => {
@@ -157,7 +188,7 @@ describe('buildFieldFilter', () => {
 
         if (expected.arrayBuilder) {
           it('should call the arrayBuilder with the right arguments', () => {
-            buildFieldFilter(field, arraySchema, 'searchString', true);
+            buildFieldFilter(caller, field, arraySchema, 'searchString', true);
 
             expect(expected.arrayBuilder).toHaveBeenCalledWith(
               field,
@@ -168,7 +199,7 @@ describe('buildFieldFilter', () => {
           });
         } else {
           it('should have returned the default condition', () => {
-            const result = buildFieldFilter(field, arraySchema, 'searchString', false);
+            const result = buildFieldFilter(caller, field, arraySchema, 'searchString', false);
 
             expect(result).toEqual(ConditionTreeFactory.MatchNone);
           });
@@ -177,7 +208,7 @@ describe('buildFieldFilter', () => {
     } else {
       describe('if not negated', () => {
         it('should return match-none', () => {
-          const result = buildFieldFilter(field, schema, 'searchString', false);
+          const result = buildFieldFilter(caller, field, schema, 'searchString', false);
 
           expect(result).toEqual(ConditionTreeFactory.MatchNone);
         });
@@ -185,7 +216,7 @@ describe('buildFieldFilter', () => {
 
       describe('if negated', () => {
         it('should return match-all', () => {
-          const result = buildFieldFilter(field, schema, 'searchString', true);
+          const result = buildFieldFilter(caller, field, schema, 'searchString', true);
 
           expect(result).toEqual(ConditionTreeFactory.MatchAll);
         });

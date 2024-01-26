@@ -1,4 +1,4 @@
-import { ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
+import { Caller, ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import { CharStream, CommonTokenStream, ParseTreeWalker } from 'antlr4';
 
 import ConditionTreeQueryWalker from './custom-parser/condition-tree-query-walker';
@@ -27,10 +27,11 @@ export function parseQuery(query: string): QueryContext {
 }
 
 export function generateConditionTree(
+  caller: Caller,
   tree: QueryContext,
   fields: [string, ColumnSchema][],
 ): ConditionTree {
-  const walker = new ConditionTreeQueryWalker(fields);
+  const walker = new ConditionTreeQueryWalker(caller, fields);
 
   ParseTreeWalker.DEFAULT.walk(walker, tree);
 

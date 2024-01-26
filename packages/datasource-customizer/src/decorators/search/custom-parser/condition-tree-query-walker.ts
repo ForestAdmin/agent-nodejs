@@ -1,4 +1,9 @@
-import { ColumnSchema, ConditionTree, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+import {
+  Caller,
+  ColumnSchema,
+  ConditionTree,
+  ConditionTreeFactory,
+} from '@forestadmin/datasource-toolkit';
 
 import buildFieldFilter from '../filter-builder/index';
 import QueryListener from '../generated-parser/QueryListener';
@@ -23,7 +28,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     return this.parentStack[0][0];
   }
 
-  constructor(private readonly fields: [string, ColumnSchema][]) {
+  constructor(private readonly caller: Caller, private readonly fields: [string, ColumnSchema][]) {
     super();
   }
 
@@ -136,6 +141,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
     if (!targetedFields?.length) {
       rules = this.fields.map(([field, schema]) =>
         buildFieldFilter(
+          this.caller,
           field,
           schema,
           // If targetFields is empty, it means that the query is not targeting a specific field
@@ -147,7 +153,7 @@ export default class ConditionTreeQueryWalker extends QueryListener {
       );
     } else {
       rules = targetedFields.map(([field, schema]) =>
-        buildFieldFilter(field, schema, searchString, isNegated),
+        buildFieldFilter(this.caller, field, schema, searchString, isNegated),
       );
     }
 

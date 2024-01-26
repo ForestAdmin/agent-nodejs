@@ -1,10 +1,12 @@
 /* eslint-disable no-continue */
 import {
+  ColumnType,
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Operator,
 } from '@forestadmin/datasource-toolkit';
+import { DateTime } from 'luxon';
 
 import buildDefaultCondition from './utils/build-default-condition';
 
@@ -26,7 +28,7 @@ function isValidDate(str: string): boolean {
   return isYear(str) || isYearMonth(str) || isPlainDate(str);
 }
 
-function getPeriodStart(string): string {
+function getPeriodStart(string: string): string {
   if (isYear(string)) return `${string}-01-01`;
   if (isYearMonth(string)) return `${string}-01`;
 
@@ -41,7 +43,7 @@ function pad(month: number) {
   return `${month}`;
 }
 
-function getAfterPeriodEnd(string): string {
+function getAfterPeriodEnd(string: string): string {
   if (isYear(string)) return `${Number(string) + 1}-01-01`;
 
   if (isYearMonth(string)) {
@@ -55,6 +57,15 @@ function getAfterPeriodEnd(string): string {
   date.setDate(date.getDate() + 1);
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function getTranslatedDateInTimezone(
+  value: string,
+  opts: { timezone: string; columnType: ColumnType },
+) {
+  if (opts.columnType !== 'Date') return value;
+
+  return DateTime.fromISO(value, { zone: opts.timezone }).toISO();
 }
 
 const supportedOperators: [
@@ -125,15 +136,30 @@ const supportedOperators: [
   ],
 ];
 
-export default function buildDateFieldFilter(
-  field: string,
-  filterOperators: Set<Operator>,
-  searchString: string,
-  isNegated: boolean,
-): ConditionTree {
+export default function buildDateFieldFilter({
+  field,
+  filterOperators,
+  searchString,
+  isNegated,
+  columnType,
+  timezone,
+}: {
+  field: string;
+  filterOperators: Set<Operator>;
+  searchString: string;
+  isNegated: boolean;
+  columnType: ColumnType;
+  timezone: string;
+}): ConditionTree {
   if (isValidDate(searchString)) {
-    const start = getPeriodStart(searchString);
-    const afterEnd = getAfterPeriodEnd(searchString);
+    const start = getTranslatedDateInTimezone(getPeriodStart(searchString), {
+      columnType,
+      timezone,
+    });
+    const afterEnd = getTranslatedDateInTimezone(getAfterPeriodEnd(searchString), {
+      columnType,
+      timezone,
+    });
 
     if (
       !isNegated &&
@@ -197,7 +223,14 @@ export default function buildDateFieldFilter(
     return ConditionTreeFactory.union(
       ...operations
         .filter(op => filterOperators.has(op[0]))
-        .map(([operator, getDate]) => new ConditionTreeLeaf(field, operator, getDate(value))),
+        .map(
+          ([operator, getDate]) =>
+            new ConditionTreeLeaf(
+              field,
+              operator,
+              getTranslatedDateInTimezone(getDate(value), { timezone, columnType }),
+            ),
+        ),
     );
   }
 

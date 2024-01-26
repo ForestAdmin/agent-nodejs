@@ -1,4 +1,5 @@
 import {
+  Caller,
   ColumnSchema,
   ColumnType,
   ConditionTree,
@@ -26,6 +27,7 @@ function isArrayOf(columnType: ColumnType, testedType: PrimitiveTypes): boolean 
 }
 
 export default function buildFieldFilter(
+  caller: Caller,
   field: string,
   schema: ColumnSchema,
   searchString: string,
@@ -64,7 +66,14 @@ export default function buildFieldFilter(
       return buildUuidFieldFilter(field, filterOperators, searchString, isNegated);
     case columnType === 'Date':
     case columnType === 'Dateonly':
-      return buildDateFieldFilter(field, filterOperators, searchString, isNegated);
+      return buildDateFieldFilter({
+        field,
+        filterOperators,
+        searchString,
+        isNegated,
+        columnType,
+        timezone: caller.timezone,
+      });
     default:
       return generateDefaultCondition(isNegated);
   }

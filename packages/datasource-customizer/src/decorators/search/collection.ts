@@ -42,7 +42,9 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         const plainTree = await this.replacer(filter.search, filter.searchExtended, ctx);
         tree = ConditionTreeFactory.fromPlainObject(plainTree);
       } else {
-        tree = this.generateSearchFilter(filter.search, { extended: filter.searchExtended });
+        tree = this.generateSearchFilter(caller, filter.search, {
+          extended: filter.searchExtended,
+        });
       }
 
       // Note that if no fields are searchable with the provided searchString, the conditions
@@ -58,7 +60,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return filter;
   }
 
-  private generateSearchFilter(searchText: string, options?: SearchOptions): ConditionTree {
+  private generateSearchFilter(
+    caller: Caller,
+    searchText: string,
+    options?: SearchOptions,
+  ): ConditionTree {
     const parsedQuery = parseQuery(searchText);
 
     const specifiedFields = options?.onlyFields ? [] : extractSpecifiedFields(parsedQuery);
@@ -79,7 +85,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         .filter(([field]) => !options?.excludeFields?.includes(field)),
     );
 
-    const conditionTree = generateConditionTree(parsedQuery, [...searchableFields]);
+    const conditionTree = generateConditionTree(caller, parsedQuery, [...searchableFields]);
 
     if (!conditionTree && searchText.trim().length) {
       return ConditionTreeFactory.MatchNone;
