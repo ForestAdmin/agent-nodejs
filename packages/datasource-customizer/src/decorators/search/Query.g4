@@ -1,3 +1,9 @@
+//
+// This file contains the description of the supported syntax for search queries.
+// It is used by the ANTLR parser generator to generate the parser.
+// To support additional syntax, this file must be updated and the parser regenerated.
+// It requires antlr4-tools to be installed on your machine
+// 
 grammar Query;
 
 query: (and | or | queryToken | parenthesized) EOF;

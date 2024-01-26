@@ -16,7 +16,7 @@
     "dist/**/*.d.ts"
   ],
   "scripts": {
-    "build:parser": "antlr -Xexact-output-dir -o src/decorators/search/generated-parser -Dlanguage=TypeScript  src/decorators/search/Query.g4",
+    "build:parser": "antlr4 -Xexact-output-dir -o src/decorators/search/generated-parser -Dlanguage=TypeScript  src/decorators/search/Query.g4",
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
