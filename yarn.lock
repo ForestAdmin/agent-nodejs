@@ -1362,17 +1362,17 @@
     path-to-regexp "^6.1.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent@1.35.15":
-  version "1.35.15"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.35.15.tgz#7cf2e83e280932955f52d26ae3ec0f126a40ec54"
-  integrity sha512-Jk0q0TBdoZ/OP6sqLuLLl/JVxOx3QnNLliYJVKqrZLBJrRMJMwYpjNQVGebIc7kw0Fi6E4ajtPSJCAmXxV6erw==
+"@forestadmin/agent@1.36.11":
+  version "1.36.11"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.36.11.tgz#17b830f901b17a47d183906f721c11232fcf10b5"
+  integrity sha512-WB1L5EpreVzjR2YhlxcRAP2TAUzwy79pdeffTHzueAkTUf0r0yRFUn+0eK6QMbkNqdmJbxNqZlCtxZo9wRrPTg==
   dependencies:
     "@fast-csv/format" "^4.3.5"
     "@fastify/express" "^1.1.0"
-    "@forestadmin/datasource-customizer" "1.37.0"
-    "@forestadmin/datasource-toolkit" "1.29.0"
-    "@forestadmin/forestadmin-client" "1.24.6"
-    "@koa/cors" "^4.0.0"
+    "@forestadmin/datasource-customizer" "1.39.3"
+    "@forestadmin/datasource-toolkit" "1.29.1"
+    "@forestadmin/forestadmin-client" "1.25.3"
+    "@koa/cors" "^5.0.0"
     "@koa/router" "^12.0.0"
     forest-ip-utils "^1.0.1"
     json-api-serializer "^2.6.6"
@@ -1386,66 +1386,77 @@
     superagent "^8.0.6"
     uuid "^9.0.0"
 
-"@forestadmin/datasource-customizer@1.37.0":
-  version "1.37.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.37.0.tgz#4c4b294c00de4fc3404ff82c21c86a797514efa3"
-  integrity sha512-+AJjWNh3pvqqkzI4vDfvGjmX0x6GFUvYYWQt5ZTuUOriJek9lsWz2GVTIhHzq+hIKA3XEWNUwKspRxq7oZMqGA==
+"@forestadmin/datasource-customizer@1.39.3":
+  version "1.39.3"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.39.3.tgz#10365e79d3100f5a2e347d8cc39e3b98f8bc2856"
+  integrity sha512-gjFMqCSWU8uPYSETsC22Dkk3kbk9VV7V1FSNjhipkPyjO+duoM9IafuOb5AwJa8rFhF6y853xngXL8WBr71ugw==
   dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.0"
+    "@forestadmin/datasource-toolkit" "1.29.1"
     file-type "^16.5.4"
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
 
-"@forestadmin/datasource-dummy@1.0.79":
-  version "1.0.79"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-dummy/-/datasource-dummy-1.0.79.tgz#9107746df8a0f5c019331f7ca60bbea6b430ff5b"
-  integrity sha512-fQ3RAnEdYlFI5c152mJhmqKD9CXS2/UV1nr7PnwSfVLI+duGRjg4YFs3Kz//GE+w8MUUmjmqMWe7amJhQ2Qvgw==
+"@forestadmin/datasource-customizer@1.40.0":
+  version "1.40.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.40.0.tgz#b7ab00c3fc13441567f1ff1924f9f147f6160517"
+  integrity sha512-WEKv6wIlYvmMq2CEQRiwxfPbLf99NAAZfpBFLct8Vjt3ofYydw+qEsjbRZqB9RruIdeF2I1tg6Xgr00pr27jYg==
   dependencies:
-    "@forestadmin/datasource-customizer" "1.37.0"
-    "@forestadmin/datasource-toolkit" "1.29.0"
+    "@forestadmin/datasource-toolkit" "1.29.1"
+    file-type "^16.5.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "^9.0.0"
 
-"@forestadmin/datasource-mongoose@1.5.29":
-  version "1.5.29"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.5.29.tgz#3425a0374d549f57eb50ac2ca2af06b0d9292a96"
-  integrity sha512-gpW0gm2LgDngeTCuoP0fp47IUMBpELjrb2ub7wG8p5/Sd19f4F079QnRPL2+58/PrkzVZz9zPK+0PGW5kN02Kw==
+"@forestadmin/datasource-dummy@1.0.90":
+  version "1.0.90"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-dummy/-/datasource-dummy-1.0.90.tgz#a4310f1417808a7f2c3d60452478cb54b352ac5e"
+  integrity sha512-n2/ls1/ms5qxTQst4HaCgh9Ol4po9oWQtdSxOPoFu0vOVywmy43GyP28OY4+Wir4oMmGXqXugd96R+XulUC3uA==
   dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.0"
+    "@forestadmin/datasource-customizer" "1.40.0"
+    "@forestadmin/datasource-toolkit" "1.29.1"
+
+"@forestadmin/datasource-mongoose@1.5.32":
+  version "1.5.32"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.5.32.tgz#dfdad4dd0d63f93ba256d1136f990c334e3b3007"
+  integrity sha512-qkgYlr9+wQc+O9gXrHaQ6gI29SOlFWvp1CsEZ/wkjeH0k5GRQXSnkRkiDL4lVH1xb6Lk6OeVKdQX9la6sHef/g==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.29.1"
     luxon "^3.2.1"
 
-"@forestadmin/datasource-sequelize@1.5.24":
-  version "1.5.24"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.5.24.tgz#7ea968eed67ee45b010e50e2682f8a8ec6b543ad"
-  integrity sha512-kHmhBHdIdJFblM0CHobWIvS/Wft9zwK1M1PuL2N6vStBOwXuD51kDfYpT5Ppy0wtV7EkLWal+otypycevPhKcQ==
+"@forestadmin/datasource-sequelize@1.5.26":
+  version "1.5.26"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.5.26.tgz#061b59d6c048c0642f8fd267d3f297a6abf8058d"
+  integrity sha512-wWaDi49NIJVxb2oglV/mIDK895Gi3A13o1ndt+9wuWMERlYQgOUEbySS5RntONzSsJ2OfdDsExIcKLmF6Btnrg==
   dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.0"
+    "@forestadmin/datasource-toolkit" "1.29.1"
 
-"@forestadmin/datasource-sql@1.7.39":
-  version "1.7.39"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.7.39.tgz#eaf8d1ea273a93ea497d57f751d2bf197940790f"
-  integrity sha512-j4Mdkjxl/cyABPZK448ZooegxOio9uS18RHMPvDxi0N/7tBevbApQL4xbYD8ssl78dJY7bRMZ92+I6S4xQ6Qkg==
+"@forestadmin/datasource-sql@1.7.43":
+  version "1.7.43"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.7.43.tgz#a6e2b7f90d2cb8a547888c48736a6322e8245772"
+  integrity sha512-Z0U5OTBtL6QWJgTLhzK9AurBhVqg/ZzRTMCLA/bOtV9zRuObz4WiqAT6O6L0og0KEtzYtmMioUfAhoOHYSIy0A==
   dependencies:
-    "@forestadmin/datasource-sequelize" "1.5.24"
-    "@forestadmin/datasource-toolkit" "1.29.0"
+    "@forestadmin/datasource-sequelize" "1.5.26"
+    "@forestadmin/datasource-toolkit" "1.29.1"
     "@types/ssh2" "^1.11.11"
     pluralize "^8.0.0"
     sequelize "^6.28.0"
     socks "^2.7.1"
     ssh2 "^1.14.0"
 
-"@forestadmin/datasource-toolkit@1.29.0":
-  version "1.29.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.29.0.tgz#2124ea562e15d20cd63bcb78e600ba397e98259a"
-  integrity sha512-GTapHcaqg4rlDlZwWfbfPYSiEYkTh1RB7NF4vK51pxlmunJbheHR4Jj4vus+YwMoCt8SoiAM5OO3D66lVBGSXA==
+"@forestadmin/datasource-toolkit@1.29.1":
+  version "1.29.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.29.1.tgz#bf1cda9d3684208509a891367b39ec7ff112618c"
+  integrity sha512-JJnxRJyvZUIemp+mU0sZwIieiJys2RAAMb8JPNqmSWDmkXgVV0t0mbdmegF3xwk8lQvYbRqcTNOrT9Q0wjLXoQ==
   dependencies:
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
 
-"@forestadmin/forestadmin-client@1.24.6":
-  version "1.24.6"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.24.6.tgz#99d41b01ca80b4453e3b0a069caad29ec8e729ad"
-  integrity sha512-QZSUfD3+11GXs3J9XhXUPGeFu67/lzBrPiu7cEawUhuaYeKuSX1VwNA01kmTgDOeOEDEcraKy1UIUe99vi3mWA==
+"@forestadmin/forestadmin-client@1.25.3":
+  version "1.25.3"
+  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.25.3.tgz#1924a8c3e52e18282d633c2aa92137519ca9ce30"
+  integrity sha512-c/0igkHStVem+7SVgQGmiPR3HR6WGjQBknFdBlHUypb7qADdBeMh81meMsaq5rT74czafdb5u4VWUDu29i7f5Q==
   dependencies:
     eventsource "2.0.2"
     json-api-serializer "^2.6.6"
@@ -1752,13 +1763,6 @@
   version "5.6.1"
   resolved "https://registry.yarnpkg.com/@js-joda/core/-/core-5.6.1.tgz#03e2453d877b61c3f593cf031fd18b375bd548b6"
   integrity sha512-Xla/d7ZMMR6+zRd6lTio0wRZECfcfFJP7GGe9A9L4tDOlD5CX4YcZ4YZle9w58bBYzssojVapI84RraKWDQZRg==
-
-"@koa/cors@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@koa/cors/-/cors-4.0.0.tgz#b2d300d7368d2e0ad6faa1d918eff6d0cde0859a"
-  integrity sha512-Y4RrbvGTlAaa04DBoPBWJqDR5gPj32OOz827ULXfgB1F7piD1MB/zwn8JR2LAnvdILhxUbXbkXGWuNVsFuVFCQ==
-  dependencies:
-    vary "^1.1.2"
 
 "@koa/cors@^5.0.0":
   version "5.0.0"
@@ -11023,7 +11027,7 @@ pg-types@^2.1.0:
     postgres-date "~1.0.4"
     postgres-interval "^1.1.0"
 
-pg@^8.11.3, pg@^8.8.0:
+pg@^8.8.0:
   version "8.11.3"
   resolved "https://registry.yarnpkg.com/pg/-/pg-8.11.3.tgz#d7db6e3fe268fcedd65b8e4599cda0b8b4bf76cb"
   integrity sha512-+9iuvG8QfaaUrrph+kpF24cXkH1YOOUeArRNYIxq1viYHZagBxrTno7cecY1Fa44tJeZvaoG+Djpkc3JwehN5g==
