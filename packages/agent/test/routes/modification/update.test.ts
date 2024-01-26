@@ -66,7 +66,12 @@ describe('UpdateRoute', () => {
       });
 
       expect(bookCollection.update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         expectedFilter,
         { name: 'foo name' },
       );
@@ -129,12 +134,22 @@ describe('UpdateRoute', () => {
       });
 
       expect(bookCollection.update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         expectedFilter,
         { name: 'foo name' },
       );
       expect(bookCollection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         expectedFilter,
         new Projection('id', 'name'),
       );

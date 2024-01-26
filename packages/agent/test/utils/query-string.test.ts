@@ -386,7 +386,7 @@ describe('QueryStringParser', () => {
   });
 
   describe('parseCaller', () => {
-    test('should return the timezone and the user', () => {
+    test('should return the timezone, the user and the current URL', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'America/Los_Angeles' } },
@@ -396,21 +396,7 @@ describe('QueryStringParser', () => {
         email: 'john.doe@domain.com',
         requestId: expect.any(String),
         timezone: 'America/Los_Angeles',
-      });
-    });
-
-    test('should return the current visited url from user eg forestContextUrl', () => {
-      const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
-        customProperties: { query: { timezone: 'America/Los_Angeles' } },
-        url: 'https://app.forestadmin.com/aProject/anEnvironment/aRendering',
-      });
-
-      expect(QueryStringParser.parseCaller(context)).toEqual({
-        email: 'john.doe@domain.com',
-        requestId: expect.any(String),
-        timezone: 'America/Los_Angeles',
-        webAppURL: new URL('https://app.forestadmin.com/aProject/anEnvironment/aRendering'),
+        webAppURL: 'http://test.com/',
       });
     });
 

@@ -73,7 +73,12 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -135,7 +140,12 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('bookPersons').delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            timezone: 'Europe/Paris',
+            webAppURL: 'http://test.com/',
+          },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -193,6 +203,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               email: 'john.doe@domain.com',
               requestId: expect.any(String),
               timezone: 'Europe/Paris',
+              webAppURL: 'http://test.com/',
             },
             new Filter({
               conditionTree: factories.conditionTreeLeaf.build({
@@ -310,7 +321,12 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
       await count.handleDissociateDeleteRelatedRoute(context);
 
       expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -413,7 +429,12 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
         await count.handleDissociateDeleteRelatedRoute(context);
 
         expect(dataSource.getCollection('librariesBooks').delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            timezone: 'Europe/Paris',
+            webAppURL: 'http://test.com/',
+          },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -511,6 +532,7 @@ describe('DissociateDeleteRelatedRoute > delete', () => {
               email: 'john.doe@domain.com',
               requestId: expect.any(String),
               timezone: 'Europe/Paris',
+              webAppURL: 'http://test.com/',
             },
             new Filter({
               conditionTree: factories.conditionTreeBranch.build({

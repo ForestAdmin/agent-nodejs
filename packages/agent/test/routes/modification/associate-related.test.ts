@@ -87,7 +87,12 @@ describe('AssociateRelatedRoute', () => {
 
       // then
       expect(dataSource.getCollection('bookPersons').update).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         new Filter({
           conditionTree: factories.conditionTreeBranch.build({
             aggregator: 'And',
@@ -207,7 +212,12 @@ describe('AssociateRelatedRoute', () => {
 
       // then
       expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         [
           {
             bookId: '123e4567-e89b-12d3-a456-111111111111',
