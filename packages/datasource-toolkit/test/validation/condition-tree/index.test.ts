@@ -32,10 +32,10 @@ describe('ConditionTreeValidation', () => {
     describe('Invalid conditions on branch', () => {
       it('should throw an error', () => {
         const collection = factories.collection.build();
-        const conditionTree = factories.conditionTreeBranch.build({ conditions: null });
+        const conditionTree = factories.conditionTreeBranch.build({ conditions: undefined });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          `The given conditions 'null' were expected to be an array`,
+          `The given conditions 'undefined' were expected to be an array`,
         );
       });
     });
@@ -215,7 +215,8 @@ describe('ConditionTreeValidation', () => {
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           "The given operator 'Contains' is not allowed with the columnType schema: 'Number'.\n" +
             'The allowed types are: ' +
-            '[Blank,Equal,Missing,NotEqual,Present,In,NotIn,IncludesAll,GreaterThan,LessThan]',
+            // eslint-disable-next-line max-len
+            '[Blank,Equal,Missing,NotEqual,Present,In,NotIn,IncludesAll,IncludesNone,GreaterThan,LessThan]',
         );
       });
     });
