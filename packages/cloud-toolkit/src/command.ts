@@ -15,7 +15,7 @@ configDotenv();
 const buildHttpForestServer = async () => {
   if (!process.env.FOREST_SERVER_URL || !process.env.FOREST_ENV_SECRET || !process.env.TOKEN_PATH) {
     throw new Error(
-      'Missing FOREST_SERVER_URL, FOREST_SECRET_KEY or TOKEN_PATH. Please check your .env file.',
+      'Missing FOREST_SERVER_URL, FOREST_ENV_SECRET or TOKEN_PATH. Please check your .env file.',
     );
   }
 
