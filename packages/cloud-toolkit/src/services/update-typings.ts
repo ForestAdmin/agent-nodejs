@@ -5,7 +5,8 @@ import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import * as fs from 'fs';
 import path from 'path';
 
-export default async function generateOrUpdateTypings() {
+export default async function updateTypings(serverUrl: string | undefined) {
+  const server = serverUrl || 'forestadmin.com';
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -13,7 +14,6 @@ export default async function generateOrUpdateTypings() {
   };
   const agent = createAgent(agentOptions);
 
-  // TODO actually get the introspection from api
   const introspection = JSON.parse(
     fs.readFileSync(path.join(path.resolve(), 'introspection-sample.json'), 'utf8'),
   );

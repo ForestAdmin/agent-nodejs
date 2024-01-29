@@ -26,7 +26,7 @@
     "directory": "packages/cloud-toolkit"
   },
   "bin": {
-    "cloud-toolkit": "dist/main.js"
+    "cloud-toolkit": "dist/command.js"
   },
   "scripts": {
     "build": "tsc",
