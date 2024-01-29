@@ -22,7 +22,7 @@ const buildHttpForestServer = async () => {
 
   return new HttpForestServer(
     process.env.FOREST_SERVER_URL,
-    process.env.FOREST_SECRET_KEY,
+    process.env.FOREST_ENV_SECRET,
     await readFile(process.env.TOKEN_PATH as string, 'utf8'),
   );
 };
