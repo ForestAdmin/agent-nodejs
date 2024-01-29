@@ -15,7 +15,7 @@
     "access": "public"
   },
   "files": [
-    "dist/**/*.js",
+    "dist/**/*.ts",
     "dist/**/*.d.ts"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
