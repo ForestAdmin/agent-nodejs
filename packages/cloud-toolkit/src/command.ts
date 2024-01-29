@@ -2,9 +2,9 @@
 
 import { program } from 'commander';
 
-import bootstrap from './bootstrap';
-import login from './login';
-import generateOrUpdateTypings from '../services/typings-updater';
+import bootstrap from './services/bootstrap';
+import login from './services/login';
+import generateOrUpdateTypings from './services/typings-updater';
 
 program
   .command('update-typings')
@@ -17,6 +17,7 @@ program
   .action(async () => {
     await bootstrap();
     await login();
+    await generateOrUpdateTypings();
   });
 
 program.command('login').description('Login to your project').action(login);
