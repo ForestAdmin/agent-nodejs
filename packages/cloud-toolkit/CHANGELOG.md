@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.7...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.8) (2024-01-29)
+
+
+### Features
+
+* **cloud-toolkit:** log to forest when bootstrap ([#932](https://github.com/ForestAdmin/agent-nodejs/issues/932)) ([7f1b56f](https://github.com/ForestAdmin/agent-nodejs/commit/7f1b56f490169d3ea481bd0349f48a5ca1b2fb8b))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.6...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.7) (2024-01-29)
 
 
