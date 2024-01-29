@@ -7,14 +7,9 @@ const savePath = './cloud-customizer-main.zip';
 
 export default async function bootstrap() {
   try {
-    // eslint-disable-next-line no-console
     console.log(`Bootstrap is starting...`);
 
-    const response = await axios({
-      url: downloadUrl,
-      method: 'get',
-      responseType: 'stream',
-    });
+    const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
     const stream: fs.WriteStream = fs.createWriteStream(savePath);
     response.data.pipe(stream);
@@ -24,7 +19,6 @@ export default async function bootstrap() {
       stream.on('error', reject);
     });
 
-    // eslint-disable-next-line no-console
     console.log(`Code is downloaded.`);
 
     const zip: AdmZip = new AdmZip(savePath);
@@ -39,7 +33,6 @@ export default async function bootstrap() {
     // remove zip file
     fs.unlinkSync(savePath);
 
-    // eslint-disable-next-line no-console
     console.log(`Bootstrap is done.`);
   } catch (error) {
     console.error('Bootstrap fails:', error.message);
