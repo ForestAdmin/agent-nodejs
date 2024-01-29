@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
