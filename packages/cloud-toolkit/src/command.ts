@@ -3,7 +3,6 @@
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
 import { readFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import path from 'path';
 
 import bootstrap from './services/bootstrap';
@@ -14,7 +13,7 @@ import updateTypings from './services/update-typings';
 configDotenv();
 
 const buildHttpForestServer = async () => {
-  if (!process.env.FOREST_SERVER_URL || !process.env.FOREST_SECRET_KEY || !process.env.TOKEN_PATH) {
+  if (!process.env.FOREST_SERVER_URL || !process.env.FOREST_ENV_SECRET || !process.env.TOKEN_PATH) {
     throw new Error(
       'Missing FOREST_SERVER_URL, FOREST_SECRET_KEY or TOKEN_PATH. Please check your .env file.',
     );
@@ -23,7 +22,7 @@ const buildHttpForestServer = async () => {
   return new HttpForestServer(
     process.env.FOREST_SERVER_URL,
     process.env.FOREST_ENV_SECRET,
-    await readFile(process.env.TOKEN_PATH as string, 'utf8'),
+    await readFile(path.join(process.env.TOKEN_PATH as string, '.forest.d', '.forestrc'), 'utf8'),
   );
 };
 
@@ -37,8 +36,12 @@ program
 program
   .command('bootstrap')
   .description('Bootstrap your project')
-  .action(async () => {
-    await bootstrap();
+  .argument(
+    '<Environment secret>',
+    'Environment secret, you can find it in your environment settings',
+  )
+  .action(async (envSecret: string) => {
+    await bootstrap(envSecret);
     await login();
     await updateTypings(await buildHttpForestServer());
   });

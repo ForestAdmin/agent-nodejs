@@ -1,13 +1,28 @@
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
+import { homedir } from 'node:os';
 
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
 const savePath = './cloud-customizer-main.zip';
 
-export default async function bootstrap() {
+export default async function bootstrap(envSecret: string): Promise<void> {
   try {
     console.log(`Bootstrap is starting...`);
+
+    console.log('create a .env file');
+
+    // check if file exists
+    if (fs.existsSync('.env')) {
+      console.log('.env file already exists');
+    } else {
+      fs.writeFileSync(
+        '.env.test',
+        `FOREST_ENV_SECRET=${envSecret}
+TOKEN_PATH=${homedir()}/.forest.d/.forestrc`,
+      );
+      console.log('File .env created');
+    }
 
     const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
