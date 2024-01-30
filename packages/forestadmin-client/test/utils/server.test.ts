@@ -80,7 +80,8 @@ describe('ServerUtils', () => {
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
       'ForestAdmin server TLS certificate cannot be verified. ' +
-        'Please check that your system time is set properly.',
+        'Please check that your system time is set properly. ' +
+        'Original error: Certificate is invalid',
     );
   });
 

@@ -1,4 +1,4 @@
-## example [1.6.75-beta-cloud-customizer.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.74...example@1.6.75-beta-cloud-customizer.1) (2024-01-24)
+## example [1.6.78](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.77...example@1.6.78) (2024-01-26)
 
 
 
@@ -6,7 +6,44 @@
 
 ### Dependencies
 
-* **@forestadmin/agent:** upgraded to 1.37.0-beta-cloud-customizer.1
+* **@forestadmin/agent:** upgraded to 1.36.18
+* **@forestadmin/datasource-dummy:** upgraded to 1.1.0
+* **@forestadmin/datasource-mongoose:** upgraded to 1.6.0
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.0
+* **@forestadmin/datasource-sql:** upgraded to 1.7.45
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+
+## example [1.6.77](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.76...example@1.6.77) (2024-01-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.36.17
+
+## example [1.6.76](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.75...example@1.6.76) (2024-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.36.16
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.94
+
+## example [1.6.75](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.74...example@1.6.75) (2024-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.36.15
+* **@forestadmin/datasource-dummy:** upgraded to 1.0.93
 
 ## example [1.6.74](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.73...example@1.6.74) (2024-01-18)
 

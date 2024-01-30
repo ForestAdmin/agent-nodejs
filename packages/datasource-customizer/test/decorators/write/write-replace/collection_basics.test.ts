@@ -24,7 +24,7 @@ describe('WriteDecorator > When their are no relations', () => {
     const decorator = new WriteDecorator(collection, dataSource);
 
     expect(() => decorator.replaceFieldWriting('inexistant', () => ({}))).toThrow(
-      'The given field "inexistant" does not exist on the books collection.',
+      "Column not found: 'books.inexistant'",
     );
   });
 
@@ -41,16 +41,15 @@ describe('WriteDecorator > When their are no relations', () => {
     expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(false);
   });
 
-  it('should mark fields as readonly when handler is null', () => {
+  it('should throw an error when definition is null', () => {
     const collection = dataSource.getCollection('books');
     const decorator = new WriteDecorator(collection, dataSource);
 
     expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
     expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
 
-    decorator.replaceFieldWriting('name', null);
-
-    expect((collection.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
-    expect((decorator.schema.fields.name as ColumnSchema).isReadOnly).toEqual(true);
+    expect(() => decorator.replaceFieldWriting('name', null)).toThrow(
+      'A new writing method should be provided to replace field writing',
+    );
   });
 });
