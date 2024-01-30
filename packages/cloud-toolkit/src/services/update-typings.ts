@@ -2,7 +2,6 @@ import type { AgentOptions } from '@forestadmin/agent';
 
 import { createAgent } from '@forestadmin/agent';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
-import path from 'path';
 
 import HttpForestServer from './http-forest-server';
 
