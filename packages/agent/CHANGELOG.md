@@ -1,9 +1,44 @@
-# @forestadmin/agent [1.37.0-beta-cloud-customizer.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.14...@forestadmin/agent@1.37.0-beta-cloud-customizer.1) (2024-01-24)
+## @forestadmin/agent [1.36.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.17...@forestadmin/agent@1.36.18) (2024-01-26)
 
 
-### Features
 
-* add utility to generate typings from introspection ([#910](https://github.com/ForestAdmin/agent-nodejs/issues/910)) ([8a89b63](https://github.com/ForestAdmin/agent-nodejs/commit/8a89b63f0ab46a99be86859ec6bb7196df9a6801))
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.41.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.6
+
+## @forestadmin/agent [1.36.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.16...@forestadmin/agent@1.36.17) (2024-01-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.5
+
+## @forestadmin/agent [1.36.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.15...@forestadmin/agent@1.36.16) (2024-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.4
+
+## @forestadmin/agent [1.36.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.14...@forestadmin/agent@1.36.15) (2024-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.40.3
 
 ## @forestadmin/agent [1.36.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.13...@forestadmin/agent@1.36.14) (2024-01-18)
 

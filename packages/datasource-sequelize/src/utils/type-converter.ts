@@ -63,11 +63,10 @@ export default class TypeConverter {
   public static operatorsForColumnType(columnType: ColumnType): Set<Operator> {
     const result: Operator[] = ['Present', 'Missing'];
     const equality: Operator[] = ['Equal', 'NotEqual', 'In', 'NotIn'];
+    const orderables: Operator[] = ['LessThan', 'GreaterThan'];
+    const strings: Operator[] = ['Like', 'ILike', 'NotContains', 'NotIContains'];
 
     if (typeof columnType === 'string') {
-      const orderables: Operator[] = ['LessThan', 'GreaterThan'];
-      const strings: Operator[] = ['Like', 'ILike', 'NotContains'];
-
       if (['Boolean', 'Binary', 'Enum', 'Uuid'].includes(columnType)) {
         result.push(...equality);
       }
@@ -82,7 +81,7 @@ export default class TypeConverter {
     }
 
     if (Array.isArray(columnType)) {
-      result.push(...equality, 'IncludesAll');
+      result.push('Equal', 'NotEqual', 'IncludesAll', 'IncludesNone');
     }
 
     return new Set(result);

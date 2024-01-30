@@ -1,3 +1,32 @@
+# @forestadmin/datasource-customizer [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.4...@forestadmin/datasource-customizer@1.41.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+
+## @forestadmin/datasource-customizer [1.40.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.3...@forestadmin/datasource-customizer@1.40.4) (2024-01-22)
+
+
+### Bug Fixes
+
+* **replaceFieldWriting:** force customer to give a replaceFieldWriting definition to avoid emulation when null is given ([#913](https://github.com/ForestAdmin/agent-nodejs/issues/913)) ([b0b1862](https://github.com/ForestAdmin/agent-nodejs/commit/b0b1862dfba148acf61b0463f246dbc19a4b5afd))
+
+## @forestadmin/datasource-customizer [1.40.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.2...@forestadmin/datasource-customizer@1.40.3) (2024-01-22)
+
+
+### Bug Fixes
+
+* disableFieldSorting is now only preventing frontend to sort the collection ([7f1481b](https://github.com/ForestAdmin/agent-nodejs/commit/7f1481bd56fc98da87fa4aa473cb7b806851c551))
+
 ## @forestadmin/datasource-customizer [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.1...@forestadmin/datasource-customizer@1.40.2) (2024-01-18)
 
 

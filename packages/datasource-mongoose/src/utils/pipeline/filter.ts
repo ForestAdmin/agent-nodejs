@@ -123,8 +123,14 @@ export default class FilterGenerator {
         return { $in: formattedLeafValue };
       case 'IncludesAll':
         return { $all: formattedLeafValue };
+      case 'IncludesNone':
+        return Array.isArray(formattedLeafValue)
+          ? { $nin: formattedLeafValue }
+          : { $ne: formattedLeafValue };
       case 'NotContains':
         return { $not: new RegExp(`.*${formattedLeafValue}.*`) };
+      case 'NotIContains':
+        return { $not: new RegExp(`.*${formattedLeafValue}.*`, 'i') };
       case 'Match':
         return formattedLeafValue;
       case 'Present':
