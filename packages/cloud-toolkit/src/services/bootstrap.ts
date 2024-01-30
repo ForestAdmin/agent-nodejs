@@ -7,6 +7,7 @@ import path from 'path';
 
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
 const zipPath = path.join(os.tmpdir(), 'cloud-customizer.zip');
+const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
 
 export default async function bootstrap(envSecret: string): Promise<void> {
   try {
@@ -22,11 +23,11 @@ export default async function bootstrap(envSecret: string): Promise<void> {
 
     const zip: AdmZip = new AdmZip(zipPath);
     zip.extractAllTo(os.tmpdir(), false);
-    const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
     fs.renameSync(path.join(extractedPath), path.join('.', 'cloud-customizer'));
-
     fs.unlinkSync(zipPath);
 
+    // create the .env file if it does not exist
+    // we do not override it because it may contain sensitive data
     if (!fs.existsSync(path.join('.', 'cloud-customizer', '.env'))) {
       fs.writeFileSync(
         './cloud-customizer/.env',
@@ -35,6 +36,8 @@ TOKEN_PATH=${homedir()}`,
       );
     }
   } catch (error) {
-    console.error('Bootstrap failed:', error.message);
+    // remove the extracted folder if it exists because it may be corrupted
+    if (!fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
+    console.error('❌ Bootstrap failed:', error.message);
   }
 }
