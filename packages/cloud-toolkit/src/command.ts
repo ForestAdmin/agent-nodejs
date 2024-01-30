@@ -15,7 +15,7 @@ import login from './services/login';
 import updateTypings from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
-configDotenv();
+configDotenv({ path: path.join(__dirname, '..', 'cloud-customizer', '.env') });
 
 const buildHttpForestServer = async (envs: EnvironmentVariables) => {
   validateEnvironmentVariables(envs);
