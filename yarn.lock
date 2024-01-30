@@ -1864,108 +1864,37 @@
     path-to-regexp "^6.1.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent@1.36.11":
-  version "1.36.11"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.36.11.tgz#17b830f901b17a47d183906f721c11232fcf10b5"
-  integrity sha512-WB1L5EpreVzjR2YhlxcRAP2TAUzwy79pdeffTHzueAkTUf0r0yRFUn+0eK6QMbkNqdmJbxNqZlCtxZo9wRrPTg==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@fastify/express" "^1.1.0"
-    "@forestadmin/datasource-customizer" "1.39.3"
-    "@forestadmin/datasource-toolkit" "1.29.1"
-    "@forestadmin/forestadmin-client" "1.25.3"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^12.0.0"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.0"
-    koa "^2.14.1"
-    koa-bodyparser "^4.3.0"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^8.0.6"
-    uuid "^9.0.0"
+"@forestadmin/context@1.37.1":
+  version "1.37.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
+  integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
 
-"@forestadmin/datasource-customizer@1.39.3":
-  version "1.39.3"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.39.3.tgz#10365e79d3100f5a2e347d8cc39e3b98f8bc2856"
-  integrity sha512-gjFMqCSWU8uPYSETsC22Dkk3kbk9VV7V1FSNjhipkPyjO+duoM9IafuOb5AwJa8rFhF6y853xngXL8WBr71ugw==
+"@forestadmin/datasource-sequelize@1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.3.1.tgz#4a9018e88d2c52bf06581fdcb8161910241029ef"
+  integrity sha512-J3sQEtUgAw5jtuoa4VXXn5j8Bz8ywHpkdIO3HXysK+CDkdUiXmNkD63iq45qr6dWtBp8pVbGF4Be+PtXsgePNQ==
   dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.1"
-    file-type "^16.5.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "^9.0.0"
+    "@forestadmin/datasource-toolkit" "1.5.0"
 
-"@forestadmin/datasource-customizer@1.40.0":
-  version "1.40.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.40.0.tgz#b7ab00c3fc13441567f1ff1924f9f147f6160517"
-  integrity sha512-WEKv6wIlYvmMq2CEQRiwxfPbLf99NAAZfpBFLct8Vjt3ofYydw+qEsjbRZqB9RruIdeF2I1tg6Xgr00pr27jYg==
+"@forestadmin/datasource-sql@1.6.4":
+  version "1.6.4"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.6.4.tgz#b11d6606163a15a8bc4aeb5c6cc9d5148a63bbeb"
+  integrity sha512-VhfoaNTprVMW6t6j0HaIFoolABg8eb1BbzTgcsw0ZCZ+PoJJuL2RmIgLRntVIYEci/KSitpju/OylhKon1XRbg==
   dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.1"
-    file-type "^16.5.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "^9.0.0"
-
-"@forestadmin/datasource-dummy@1.0.90":
-  version "1.0.90"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-dummy/-/datasource-dummy-1.0.90.tgz#a4310f1417808a7f2c3d60452478cb54b352ac5e"
-  integrity sha512-n2/ls1/ms5qxTQst4HaCgh9Ol4po9oWQtdSxOPoFu0vOVywmy43GyP28OY4+Wir4oMmGXqXugd96R+XulUC3uA==
-  dependencies:
-    "@forestadmin/datasource-customizer" "1.40.0"
-    "@forestadmin/datasource-toolkit" "1.29.1"
-
-"@forestadmin/datasource-mongoose@1.5.32":
-  version "1.5.32"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.5.32.tgz#dfdad4dd0d63f93ba256d1136f990c334e3b3007"
-  integrity sha512-qkgYlr9+wQc+O9gXrHaQ6gI29SOlFWvp1CsEZ/wkjeH0k5GRQXSnkRkiDL4lVH1xb6Lk6OeVKdQX9la6sHef/g==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.1"
-    luxon "^3.2.1"
-
-"@forestadmin/datasource-sequelize@1.5.26":
-  version "1.5.26"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.5.26.tgz#061b59d6c048c0642f8fd267d3f297a6abf8058d"
-  integrity sha512-wWaDi49NIJVxb2oglV/mIDK895Gi3A13o1ndt+9wuWMERlYQgOUEbySS5RntONzSsJ2OfdDsExIcKLmF6Btnrg==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.29.1"
-
-"@forestadmin/datasource-sql@1.7.43":
-  version "1.7.43"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.7.43.tgz#a6e2b7f90d2cb8a547888c48736a6322e8245772"
-  integrity sha512-Z0U5OTBtL6QWJgTLhzK9AurBhVqg/ZzRTMCLA/bOtV9zRuObz4WiqAT6O6L0og0KEtzYtmMioUfAhoOHYSIy0A==
-  dependencies:
-    "@forestadmin/datasource-sequelize" "1.5.26"
-    "@forestadmin/datasource-toolkit" "1.29.1"
-    "@types/ssh2" "^1.11.11"
+    "@forestadmin/datasource-sequelize" "1.3.1"
+    "@forestadmin/datasource-toolkit" "1.5.0"
     pluralize "^8.0.0"
     sequelize "^6.28.0"
     socks "^2.7.1"
-    ssh2 "^1.14.0"
 
-"@forestadmin/datasource-toolkit@1.29.1":
-  version "1.29.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.29.1.tgz#bf1cda9d3684208509a891367b39ec7ff112618c"
-  integrity sha512-JJnxRJyvZUIemp+mU0sZwIieiJys2RAAMb8JPNqmSWDmkXgVV0t0mbdmegF3xwk8lQvYbRqcTNOrT9Q0wjLXoQ==
+"@forestadmin/datasource-toolkit@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.5.0.tgz#d585b41dd9645a86344f7a63d826d64245be86a5"
+  integrity sha512-CljPPN25dyF85XDUgyrPh0u/fRM6Z0iMrD//XcYNsdgM29AfzjHci8yjcuZjlMVOZai2U1nTmmCB1uon8PGYug==
   dependencies:
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
-
-"@forestadmin/forestadmin-client@1.25.3":
-  version "1.25.3"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.25.3.tgz#1924a8c3e52e18282d633c2aa92137519ca9ce30"
-  integrity sha512-c/0igkHStVem+7SVgQGmiPR3HR6WGjQBknFdBlHUypb7qADdBeMh81meMsaq5rT74czafdb5u4VWUDu29i7f5Q==
-  dependencies:
-    eventsource "2.0.2"
-    json-api-serializer "^2.6.6"
-    jsonwebtoken "^9.0.0"
-    object-hash "^3.0.0"
-    openid-client "^5.3.1"
-    superagent "^8.0.6"
 
 "@gar/promisify@^1.0.1", "@gar/promisify@^1.1.3":
   version "1.1.3"
@@ -5548,6 +5477,13 @@ binary-extensions@^2.0.0, binary-extensions@^2.2.0:
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
 
+bindings@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/bindings/-/bindings-1.5.0.tgz#10353c9e945334bc0511a6d90b38fbc7c9c504df"
+  integrity sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==
+  dependencies:
+    file-uri-to-path "1.0.0"
+
 bl@^4.0.3, bl@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/bl/-/bl-4.1.0.tgz#451535264182bec2fbbc83a62ab98cf11d9f7b3a"
@@ -5920,7 +5856,7 @@ chalk@^1.1.3:
     strip-ansi "^3.0.0"
     supports-color "^2.0.0"
 
-chalk@^2.0.0, chalk@^2.3.2, chalk@^2.4.1, chalk@^2.4.2:
+chalk@^2.0.0, chalk@^2.0.1, chalk@^2.3.2, chalk@^2.4.1, chalk@^2.4.2:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
   integrity sha512-Mti+f9lpJNcwF4tWV8/OrTTtF1gZi+f8FqlyAdouralcFWFQWF2+NgCHShjkCb+IFBLq9buZwE1xckQU4peSuQ==
@@ -6100,6 +6036,11 @@ cli-spinners@2.6.1:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/cli-spinners/-/cli-spinners-2.6.1.tgz#adc954ebe281c37a6319bfa401e6dd2488ffb70d"
   integrity sha512-x/5fWmGMnbKQAaNwN+UZlV79qBLM9JFnJuJ03gIi5whrob0xV0ofNVHy9DhwGdsMJQc2OKv0oGmLzvaqvAVv+g==
+
+cli-spinners@^2.0.0:
+  version "2.9.2"
+  resolved "https://registry.yarnpkg.com/cli-spinners/-/cli-spinners-2.9.2.tgz#1773a8f4b9c4d6ac31563df53b3fc1d79462fe41"
+  integrity sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==
 
 cli-spinners@^2.5.0:
   version "2.9.1"
@@ -7891,6 +7832,11 @@ file-type@^16.5.4:
     readable-web-to-node-stream "^3.0.0"
     strtok3 "^6.2.4"
     token-types "^4.1.1"
+
+file-uri-to-path@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/file-uri-to-path/-/file-uri-to-path-1.0.0.tgz#553a7b8446ff6f684359c445f1e37a05dacc33dd"
+  integrity sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==
 
 file-url@3.0.0:
   version "3.0.0"
@@ -10807,6 +10753,13 @@ lodash@4.17.21, lodash@^4.16.3, lodash@^4.17.10, lodash@^4.17.11, lodash@^4.17.1
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
 
+log-symbols@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/log-symbols/-/log-symbols-2.2.0.tgz#5740e1c5d6f0dfda4ad9323b5332107ef6b4c40a"
+  integrity sha512-VeIAFslyIerEJLXHziedo2basKbMKtTw3vfn5IzG0XTjhAVEJyNHnL2p7vc+wBDSdQuUpNw3M2u6xb9QsAY5Eg==
+  dependencies:
+    chalk "^2.0.1"
+
 log-symbols@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/log-symbols/-/log-symbols-4.1.0.tgz#3fbdbb95b4683ac9fc785111e792e558d4abd503"
@@ -11814,6 +11767,11 @@ node-addon-api@^4.2.0, node-addon-api@^4.3.0:
   resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-4.3.0.tgz#52a1a0b475193e0928e98e0426a0d1254782b77f"
   integrity sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==
 
+node-addon-api@^7.0.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-7.1.0.tgz#71f609369379c08e251c558527a107107b5e0fdb"
+  integrity sha512-mNcltoe1R8o7STTegSOHdnJNN7s5EUvhoS7ShnTHDyOSd+8H+UdWODq6qSv67PjC8Zc5JRT8+oLAMCr0SIXw7g==
+
 node-emoji@^1.11.0:
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/node-emoji/-/node-emoji-1.11.0.tgz#69a0150e6946e2f115e9d7ea4df7971e2628301c"
@@ -12557,6 +12515,18 @@ optionator@^0.9.3:
     prelude-ls "^1.2.1"
     type-check "^0.4.0"
 
+ora@^3.2.0:
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/ora/-/ora-3.4.0.tgz#bf0752491059a3ef3ed4c85097531de9fdbcd318"
+  integrity sha512-eNwHudNbO1folBP3JsZ19v9azXWtQZjICdr3Q0TDPIaeBQ3mXLrh54wM+er0+hSp+dWKf+Z8KM58CYzEyIYxYg==
+  dependencies:
+    chalk "^2.4.2"
+    cli-cursor "^2.1.0"
+    cli-spinners "^2.0.0"
+    log-symbols "^2.2.0"
+    strip-ansi "^5.2.0"
+    wcwidth "^1.0.1"
+
 ora@^5.4.1:
   version "5.4.1"
   resolved "https://registry.yarnpkg.com/ora/-/ora-5.4.1.tgz#1b2678426af4ac4a509008e5e4ac9e9959db9e18"
@@ -13218,7 +13188,7 @@ postgres-interval@^1.1.0:
   dependencies:
     xtend "^4.0.0"
 
-prebuild-install@^7.0.1:
+prebuild-install@^7.0.1, prebuild-install@^7.1.1:
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/prebuild-install/-/prebuild-install-7.1.1.tgz#de97d5b34a70a0c81334fd24641f2a1702352e45"
   integrity sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==
@@ -14504,10 +14474,17 @@ sqlite3@^5.1.4:
   optionalDependencies:
     node-gyp "8.x"
 
-sqlite@^5.1.1:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/sqlite/-/sqlite-5.1.1.tgz#26a6a200fdac490643880af2b6cb3940ada59274"
-  integrity sha512-oBkezXa2hnkfuJwUo44Hl9hS3er+YFtueifoajrgidvqsJRQFpc5fKoAkAor1O5ZnLoa28GBScfHXs8j0K358Q==
+sqlite3@^5.1.7:
+  version "5.1.7"
+  resolved "https://registry.yarnpkg.com/sqlite3/-/sqlite3-5.1.7.tgz#59ca1053c1ab38647396586edad019b1551041b7"
+  integrity sha512-GGIyOiFaG+TUra3JIfkI/zGP8yZYLPQ0pl1bH+ODjiX57sPhrLU5sQJn1y9bDKZUFYkX1crlrPfSYt0BKKdkog==
+  dependencies:
+    bindings "^1.5.0"
+    node-addon-api "^7.0.0"
+    prebuild-install "^7.1.1"
+    tar "^6.1.11"
+  optionalDependencies:
+    node-gyp "8.x"
 
 sqlstring@^2.3.2:
   version "2.3.3"
