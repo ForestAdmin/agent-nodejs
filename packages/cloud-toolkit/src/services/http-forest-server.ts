@@ -2,15 +2,11 @@ import { Table } from '@forestadmin/datasource-sql';
 import axios from 'axios';
 
 export default class HttpForestServer {
-  private readonly serverUrl: string | undefined;
-  private readonly secretKey: string | undefined;
-  private readonly bearerToken: string | undefined;
-  constructor(
-    serverUrl: string | undefined,
-    secretKey: string | undefined,
-    bearerToken: string | undefined,
-  ) {
-    this.serverUrl = serverUrl || 'https://api.forestadmin.com';
+  private readonly serverUrl: string;
+  private readonly secretKey: string;
+  private readonly bearerToken: string;
+  constructor(serverUrl: string, secretKey: string, bearerToken: string) {
+    this.serverUrl = serverUrl;
     this.secretKey = secretKey;
     this.bearerToken = bearerToken;
   }

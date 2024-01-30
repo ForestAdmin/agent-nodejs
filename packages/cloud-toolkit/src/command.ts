@@ -2,10 +2,12 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
-import { readFile } from 'node:fs/promises';
-import path from 'path';
 
 import bootstrap from './services/bootstrap';
+import {
+  getEnvironmentVariables,
+  validateEnvironmentVariables,
+} from './services/environment-variables';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
 import updateTypings from './services/update-typings';
@@ -13,23 +15,24 @@ import updateTypings from './services/update-typings';
 configDotenv();
 
 const buildHttpForestServer = async () => {
-  if (!process.env.FOREST_SERVER_URL || !process.env.FOREST_ENV_SECRET || !process.env.TOKEN_PATH) {
-    throw new Error(
-      'Missing FOREST_SERVER_URL, FOREST_ENV_SECRET or TOKEN_PATH. Please check your .env file.',
-    );
-  }
+  const vars = await getEnvironmentVariables();
+  validateEnvironmentVariables(vars);
 
   return new HttpForestServer(
-    process.env.FOREST_SERVER_URL,
-    process.env.FOREST_ENV_SECRET,
-    await readFile(path.join(process.env.TOKEN_PATH as string, '.forest.d', '.forestrc'), 'utf8'),
+    vars.FOREST_SERVER_URL,
+    vars.FOREST_ENV_SECRET,
+    vars.FOREST_AUTH_TOKEN,
   );
 };
 
 program
   .command('update-typings')
-  .description('Update your typings file to synchronize with your datasource')
+  .description(
+    'Update your typings file to synchronize code autocompletion with your datasource ' +
+      '(whenever its schema changes)',
+  )
   .action(async () => {
+    if (!(await getEnvironmentVariables()).FOREST_AUTH_TOKEN) await login();
     await updateTypings(await buildHttpForestServer());
   });
 
@@ -42,7 +45,7 @@ program
   )
   .action(async (envSecret: string) => {
     await bootstrap(envSecret);
-    await login();
+    if (!(await getEnvironmentVariables()).FOREST_AUTH_TOKEN) await login();
     await updateTypings(await buildHttpForestServer());
   });
 
