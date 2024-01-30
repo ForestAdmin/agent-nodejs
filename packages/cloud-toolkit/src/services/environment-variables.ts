@@ -50,7 +50,7 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
     throw new Error('Missing FOREST_ENV_SECRET. Please check your .env file.');
   }
 
-  if (typeof !env.FOREST_ENV_SECRET !== 'string' || !/^[0-9a-f]{64}$/.test(env.FOREST_ENV_SECRET)) {
+  if (typeof env.FOREST_ENV_SECRET !== 'string' || !/^[0-9a-f]{64}$/.test(env.FOREST_ENV_SECRET)) {
     throw new Error(
       'FOREST_ENV_SECRET is invalid. Please check your .env file.' +
         ' You can retrieve its value from environment settings on Forest Admin.',

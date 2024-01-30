@@ -12,17 +12,17 @@ import {
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
 import updateTypings from './services/update-typings';
+import { EnvironmentVariables } from './types';
 
 configDotenv();
 
-const buildHttpForestServer = async () => {
-  const vars = await getEnvironmentVariables();
-  validateEnvironmentVariables(vars);
+const buildHttpForestServer = async (envs: EnvironmentVariables) => {
+  validateEnvironmentVariables(envs);
 
   return new HttpForestServer(
-    vars.FOREST_SERVER_URL,
-    vars.FOREST_ENV_SECRET,
-    vars.FOREST_AUTH_TOKEN,
+    envs.FOREST_SERVER_URL,
+    envs.FOREST_ENV_SECRET,
+    envs.FOREST_AUTH_TOKEN,
   );
 };
 
@@ -33,8 +33,9 @@ program
       '(whenever its schema changes)',
   )
   .action(async () => {
-    if (!(await getEnvironmentVariables()).FOREST_AUTH_TOKEN) await login();
-    await updateTypings(await buildHttpForestServer());
+    const vars = await getEnvironmentVariables();
+    if (!vars.FOREST_AUTH_TOKEN) await login();
+    await updateTypings(await buildHttpForestServer(vars));
   });
 
 program
@@ -45,9 +46,11 @@ program
     'Environment secret, you can find it in your environment settings',
   )
   .action(async (envSecret: string) => {
-    await bootstrap(envSecret);
-    if (!(await getEnvironmentVariables()).FOREST_AUTH_TOKEN) await login();
-    await updateTypings(await buildHttpForestServer());
+    const vars = await getEnvironmentVariables();
+    if (!vars.FOREST_AUTH_TOKEN) await login();
+    const secret = envSecret || vars.FOREST_ENV_SECRET;
+    await bootstrap(secret);
+    await updateTypings(await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }));
   });
 
 program
