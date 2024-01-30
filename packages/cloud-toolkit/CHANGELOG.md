@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.11...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.12) (2024-01-30)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** change agent dependency to fix the build ([#940](https://github.com/ForestAdmin/agent-nodejs/issues/940)) ([58ab5ab](https://github.com/ForestAdmin/agent-nodejs/commit/58ab5ab4b7501a6adca6e80c55d3659a4e103bb0))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.10...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.11) (2024-01-30)
 
 
