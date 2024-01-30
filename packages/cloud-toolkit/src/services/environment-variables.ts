@@ -22,9 +22,39 @@ export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   };
 }
 
+export function validateServerUrl(serverUrl: string): void {
+  if (!serverUrl) {
+    throw new Error('Missing FOREST_SERVER_URL. Please check your .env file.');
+  }
+
+  let givenUrl;
+
+  try {
+    givenUrl = new URL(serverUrl);
+  } catch (err) {
+    throw new Error(
+      `FOREST_SERVER_URL is invalid. Please check your .env file.' +
+        ' You can probably remove it from your .env file.: ${err.message}`,
+    );
+  }
+
+  if (!['http:', 'https:'].includes(givenUrl.protocol)) {
+    throw new Error(
+      'FOREST_SERVER_URL is invalid, it must start with http:// or https://. Please check your .env file.',
+    );
+  }
+}
+
 export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   if (!env.FOREST_ENV_SECRET) {
     throw new Error('Missing FOREST_ENV_SECRET. Please check your .env file.');
+  }
+
+  if (typeof !env.FOREST_ENV_SECRET !== 'string' || !/^[0-9a-f]{64}$/.test(env.FOREST_ENV_SECRET)) {
+    throw new Error(
+      'FOREST_ENV_SECRET is invalid. Please check your .env file.' +
+        ' You can retrieve its value from environment settings on Forest Admin.',
+    );
   }
 
   if (!env.FOREST_AUTH_TOKEN) {
@@ -33,7 +63,5 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
     );
   }
 
-  if (!env.FOREST_SERVER_URL) {
-    throw new Error('Missing FOREST_SERVER_URL. Please check your .env file.');
-  }
+  validateServerUrl(env.FOREST_SERVER_URL);
 }

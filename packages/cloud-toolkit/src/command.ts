@@ -7,6 +7,7 @@ import bootstrap from './services/bootstrap';
 import {
   getEnvironmentVariables,
   validateEnvironmentVariables,
+  validateServerUrl,
 } from './services/environment-variables';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
@@ -49,6 +50,13 @@ program
     await updateTypings(await buildHttpForestServer());
   });
 
-program.command('login').description('Login to your project').action(login);
+program
+  .command('login')
+  .description('Login to your project')
+  .action(async () => {
+    const vars = await getEnvironmentVariables();
+    validateServerUrl(vars.FOREST_SERVER_URL);
+    await login();
+  });
 
 program.parse();
