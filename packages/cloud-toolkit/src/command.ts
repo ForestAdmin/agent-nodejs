@@ -50,6 +50,15 @@ program
     const vars = await getEnvironmentVariables();
     if (!vars.FOREST_AUTH_TOKEN) await login();
     const secret = envSecret || vars.FOREST_ENV_SECRET;
+
+    if (!secret) {
+      throw new Error(
+        'Your forest env secret is missing.' +
+          ' Please provide it with the `bootstrap --env-secret <your-secret-key>` command or' +
+          ' add it to your .env file or in environment variables.',
+      );
+    }
+
     await bootstrap(secret);
     await updateTypings(
       await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
