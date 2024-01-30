@@ -2,6 +2,7 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
+import path from 'path';
 
 import bootstrap from './services/bootstrap';
 import {
@@ -35,22 +36,28 @@ program
   .action(async () => {
     const vars = await getEnvironmentVariables();
     if (!vars.FOREST_AUTH_TOKEN) await login();
-    await updateTypings(await buildHttpForestServer(vars));
+    await updateTypings(
+      await buildHttpForestServer(vars),
+      path.join('cloud-customizer', 'typings.d.ts'),
+    );
   });
 
 program
   .command('bootstrap')
   .description('Bootstrap your project')
-  .argument(
-    '<Environment secret>',
+  .option(
+    '-e, --env-secret <string>',
     'Environment secret, you can find it in your environment settings',
   )
-  .action(async (envSecret: string) => {
+  .action(async ({ envSecret }) => {
     const vars = await getEnvironmentVariables();
     if (!vars.FOREST_AUTH_TOKEN) await login();
     const secret = envSecret || vars.FOREST_ENV_SECRET;
     await bootstrap(secret);
-    await updateTypings(await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }));
+    await updateTypings(
+      await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
+      path.join('cloud-customizer', 'typings.d.ts'),
+    );
   });
 
 program
