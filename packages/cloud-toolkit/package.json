@@ -10,7 +10,8 @@
     "axios": "^1.6.6",
     "commander": "^11.1.0",
     "forest-cli": "^4.3.2",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "sqlite": "^5.1.1"
   },
   "publishConfig": {
     "access": "public"
