@@ -3,7 +3,7 @@
   "version": "1.0.0-beta-cloud-customizer.12",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
-    "@forestadmin/agent": "1.37.0-beta-cloud-customizer.1",
+    "@forestadmin/agent": "1.36.18",
     "@forestadmin/datasource-customizer": "1.41.0",
     "@forestadmin/datasource-sql": "1.7.45",
     "adm-zip": "^0.5.10",
