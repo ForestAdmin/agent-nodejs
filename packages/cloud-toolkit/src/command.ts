@@ -15,7 +15,7 @@ import login from './services/login';
 import updateTypings from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
-configDotenv({ path: path.join(__dirname, '..', 'cloud-customizer', '.env') });
+configDotenv();
 
 const buildHttpForestServer = async (envs: EnvironmentVariables) => {
   validateEnvironmentVariables(envs);
@@ -36,10 +36,7 @@ program
   .action(async () => {
     const vars = await getEnvironmentVariables();
     if (!vars.FOREST_AUTH_TOKEN) await login();
-    await updateTypings(
-      await buildHttpForestServer(vars),
-      path.join('cloud-customizer', 'typings.d.ts'),
-    );
+    await updateTypings(await buildHttpForestServer(vars), 'typings.d.ts');
   });
 
 program
