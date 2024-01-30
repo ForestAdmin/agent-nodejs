@@ -9,13 +9,14 @@
     "adm-zip": "^0.5.10",
     "axios": "^1.6.6",
     "commander": "^11.1.0",
-    "forest-cli": "^4.3.2"
+    "forest-cli": "^4.3.2",
+    "dotenv": "^16.4.1"
   },
   "publishConfig": {
     "access": "public"
   },
   "files": [
-    "dist/**/*.ts",
+    "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
@@ -26,7 +27,7 @@
     "directory": "packages/cloud-toolkit"
   },
   "bin": {
-    "cloud-toolkit": "dist/commands/main.js"
+    "cloud-toolkit": "dist/command.js"
   },
   "scripts": {
     "build": "tsc",
