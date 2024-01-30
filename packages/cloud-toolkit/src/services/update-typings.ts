@@ -9,10 +9,10 @@ export default async function updateTypings(
   httpForestServer: HttpForestServer,
   typingsPath: string,
 ) {
-  console.log('Update typings is starting...');
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
+    loggerLevel: 'Error',
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
@@ -22,5 +22,4 @@ export default async function updateTypings(
     }),
   );
   await agent.updateTypesOnFileSystem(typingsPath, 3);
-  console.log(`Update typings is done. The file typings.d.ts has been updated.`);
 }

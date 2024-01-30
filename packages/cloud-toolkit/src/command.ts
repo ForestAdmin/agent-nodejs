@@ -2,6 +2,7 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
+import ora from 'ora';
 import path from 'path';
 
 import bootstrap from './services/bootstrap';
@@ -36,7 +37,10 @@ program
   .action(async () => {
     const vars = await getEnvironmentVariables();
     if (!vars.FOREST_AUTH_TOKEN) await login();
+    const spinner = ora('Updating typings\n').start();
     await updateTypings(await buildHttpForestServer(vars), 'typings.d.ts');
+    spinner.stop();
+    console.log('✅ Your typings have been updated.\n');
   });
 
 program
@@ -47,6 +51,7 @@ program
     'Environment secret, you can find it in your environment settings',
   )
   .action(async ({ envSecret }) => {
+    const spinner = ora('Boostrapping project\n').start();
     const vars = await getEnvironmentVariables();
     if (!vars.FOREST_AUTH_TOKEN) await login();
     const secret = envSecret || vars.FOREST_ENV_SECRET;
@@ -63,6 +68,10 @@ program
     await updateTypings(
       await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
       path.join('cloud-customizer', 'typings.d.ts'),
+    );
+    spinner.stop();
+    console.log(
+      '✅ Project successfully bootstrapped. You can start creating your customizations! \n',
     );
   });
 
