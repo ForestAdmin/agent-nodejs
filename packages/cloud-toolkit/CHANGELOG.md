@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.8...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.9) (2024-01-30)
+
+
+### Features
+
+* **cloud-toolkit:** update typings by fetching introspection on forestadmin server ([#933](https://github.com/ForestAdmin/agent-nodejs/issues/933)) ([d0b6a6f](https://github.com/ForestAdmin/agent-nodejs/commit/d0b6a6f0c0a74014dd51d1a628870bad7a58168e))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.7...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.8) (2024-01-29)
 
 
