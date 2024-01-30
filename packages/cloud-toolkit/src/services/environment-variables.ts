@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'path';
@@ -5,13 +6,12 @@ import path from 'path';
 import { EnvironmentVariables } from '../types';
 
 const getToken = async (): Promise<string | null> => {
-  const tokenPath = process.env.TOKEN_PATH || homedir();
+  const baseTokenPath = process.env.TOKEN_PATH || homedir();
+  const tokenPath = path.join(baseTokenPath, '.forest.d', '.forestrc');
 
-  try {
-    return await readFile(path.join(tokenPath, '.forest.d', '.forestrc'), 'utf8');
-  } catch (error) {
-    return null;
-  }
+  if (fs.existsSync(tokenPath)) return readFile(tokenPath, 'utf8');
+
+  return null;
 };
 
 export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
