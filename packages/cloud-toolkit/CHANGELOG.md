@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.9...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.10) (2024-01-30)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** add sqlite as dependency ([#936](https://github.com/ForestAdmin/agent-nodejs/issues/936)) ([abe99ad](https://github.com/ForestAdmin/agent-nodejs/commit/abe99ad8163f97e58536cc45a3ae3bba05c22aa8))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.8...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.9) (2024-01-30)
 
 
