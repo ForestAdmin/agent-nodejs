@@ -61,7 +61,7 @@ program
       const vars = await getEnvironmentVariables();
       if (!vars.FOREST_AUTH_TOKEN) await login();
       await updateTypings(await buildHttpForestServer(vars), 'typings.d.ts');
-      console.log('✅ Your typings have been updated. \n');
+      spinner.succeed('Your typings have been updated.');
     }),
   );
 
@@ -93,8 +93,8 @@ program
         await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
         path.join('cloud-customizer', 'typings.d.ts'),
       );
-      console.log(
-        '✅ Project successfully bootstrapped. You can start creating your customizations! \n',
+      spinner.succeed(
+        'Project successfully bootstrapped. You can start creating your customizations!',
       );
     }),
   );
@@ -108,7 +108,7 @@ program
       const vars = await getEnvironmentVariables();
       validateServerUrl(vars.FOREST_SERVER_URL);
       await login();
-      console.log('✅ You are logged in. \n');
+      spinner.succeed('You are now logged in');
     }),
   );
 
