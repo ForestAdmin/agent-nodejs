@@ -36,14 +36,15 @@ function actionRunner(fn: (...args) => Promise<any>) {
     try {
       await fn(spinner, ...args);
     } catch (e) {
-      spinner.stop();
       const error: Error = e;
 
       if (error instanceof BusinessError) {
-        console.error(`❌ ${error.message}`);
+        spinner.fail(error.message);
       } else {
         throw error;
       }
+    } finally {
+      spinner.stop();
     }
   };
 }
@@ -60,7 +61,6 @@ program
       const vars = await getEnvironmentVariables();
       if (!vars.FOREST_AUTH_TOKEN) await login();
       await updateTypings(await buildHttpForestServer(vars), 'typings.d.ts');
-      spinner.stop();
       console.log('✅ Your typings have been updated. \n');
     }),
   );
@@ -93,7 +93,6 @@ program
         await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
         path.join('cloud-customizer', 'typings.d.ts'),
       );
-      spinner.stop();
       console.log(
         '✅ Project successfully bootstrapped. You can start creating your customizations! \n',
       );
@@ -109,7 +108,6 @@ program
       const vars = await getEnvironmentVariables();
       validateServerUrl(vars.FOREST_SERVER_URL);
       await login();
-      spinner.stop();
       console.log('✅ You are logged in. \n');
     }),
   );
