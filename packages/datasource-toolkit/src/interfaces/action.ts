@@ -283,9 +283,12 @@ export type RedirectResult = {
   path: string;
 };
 
-export type ActionResult =
+export type ActionHeaders = { [headerName: string]: string };
+
+export type ActionResult = { responseheaders?: ActionHeaders } & (
   | SuccessResult
   | ErrorResult
   | WebHookResult
   | FileResult
-  | RedirectResult;
+  | RedirectResult
+);

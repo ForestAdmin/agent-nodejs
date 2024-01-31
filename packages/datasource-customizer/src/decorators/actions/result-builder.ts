@@ -1,7 +1,15 @@
-import { ActionResult } from '@forestadmin/datasource-toolkit';
+import { ActionHeaders, ActionResult } from '@forestadmin/datasource-toolkit';
 import { Readable } from 'stream';
 
 export default class ResultBuilder {
+  private responseHeaders: ActionHeaders = {};
+
+  setHeader(name: string, value: string) {
+    this.responseHeaders[name] = value;
+
+    return this;
+  }
+
   /**
    * Returns a success response from the action
    * @param message the success message to return
@@ -15,6 +23,7 @@ export default class ResultBuilder {
       message: message ?? 'Success',
       invalidated: new Set(options?.invalidated ?? []),
       html: options?.html,
+      responseheaders: this.responseHeaders,
     };
   }
 
@@ -30,6 +39,7 @@ export default class ResultBuilder {
       type: 'Error',
       message: message ?? 'Error',
       html: options?.html,
+      responseheaders: this.responseHeaders,
     };
   }
 
@@ -54,6 +64,7 @@ export default class ResultBuilder {
       method,
       headers,
       body,
+      responseheaders: this.responseHeaders,
     };
   }
 
@@ -78,6 +89,7 @@ export default class ResultBuilder {
         streamOrBufferOrString instanceof Readable
           ? streamOrBufferOrString
           : Readable.from([streamOrBufferOrString]),
+      responseheaders: this.responseHeaders,
     };
   }
 
@@ -88,6 +100,6 @@ export default class ResultBuilder {
    * .redirectTo('https://www.google.com');
    */
   redirectTo(path: string): ActionResult {
-    return { type: 'Redirect', path };
+    return { type: 'Redirect', path, responseheaders: this.responseHeaders };
   }
 }
