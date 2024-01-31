@@ -4,6 +4,13 @@ import { Readable } from 'stream';
 export default class ResultBuilder {
   private responseHeaders: ActionHeaders = {};
 
+  /**
+   * Add header to the action response
+   * @param name the header name
+   * @param value the header value
+   * @example
+   * .setHeader('myHeaderName', 'my header value');
+   */
   setHeader(name: string, value: string) {
     this.responseHeaders[name] = value;
 
