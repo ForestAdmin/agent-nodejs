@@ -6,7 +6,7 @@ import path from 'path';
 
 import { BusinessError } from './errors';
 import actionRunner from './services/action-runner';
-import bootstrap from './services/bootstrap';
+import { bootstrap, cleanBootstrap } from './services/bootstrap';
 import {
   getEnvironmentVariables,
   validateEnvironmentVariables,
@@ -77,10 +77,17 @@ program
       }
 
       await bootstrap(secret);
-      await updateTypings(
-        await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
-        path.join('cloud-customizer', 'typings.d.ts'),
-      );
+
+      try {
+        await updateTypings(
+          await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
+          path.join('cloud-customizer', 'typings.d.ts'),
+        );
+      } catch (e) {
+        cleanBootstrap();
+        throw e;
+      }
+
       spinner.succeed(
         'Project successfully bootstrapped. You can start creating your customizations!',
       );

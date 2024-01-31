@@ -9,7 +9,13 @@ const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/mai
 const zipPath = path.join(os.tmpdir(), 'cloud-customizer.zip');
 const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
 
-export default async function bootstrap(envSecret: string): Promise<void> {
+export function cleanBootstrap(): void {
+  if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+  // remove the extracted folder if it exists because it may be corrupted
+  if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
+}
+
+export async function bootstrap(envSecret: string): Promise<void> {
   try {
     const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
@@ -36,9 +42,7 @@ TOKEN_PATH=${homedir()}`,
       );
     }
   } catch (error) {
-    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
-    // remove the extracted folder if it exists because it may be corrupted
-    if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
+    cleanBootstrap();
     throw new Error(`❌ Bootstrap failed: ${error.message}`);
   }
 }
