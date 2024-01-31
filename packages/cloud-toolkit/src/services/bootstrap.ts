@@ -1,14 +1,45 @@
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
+import * as fsP from 'fs/promises';
 import { homedir } from 'node:os';
 import * as os from 'os';
 import path from 'path';
 
+import HttpForestServer from './http-forest-server';
+import updateTypings from './update-typings';
+import { BusinessError } from '../errors';
+
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
 const zipPath = path.join(os.tmpdir(), 'cloud-customizer.zip');
+const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
+const cloudCustomizerPath = path.join('.', 'cloud-customizer');
 
-export default async function bootstrap(envSecret: string): Promise<void> {
+async function tryToClearBootstrap(): Promise<void> {
+  const removeCloudCustomizer = async () => {
+    try {
+      // we want to throw if the folder is not removed
+      await fsP.rm(cloudCustomizerPath, { force: false, recursive: true });
+    } catch (e) {
+      console.log(`Please remove cloud-customizer folder and re-run bootstrap command.`);
+    }
+  };
+
+  await Promise.all([
+    fsP.rm(zipPath, { force: true }),
+    fsP.rm(extractedPath, { force: true, recursive: true }),
+    removeCloudCustomizer(),
+  ]);
+}
+
+export default async function bootstrap(
+  envSecret: string,
+  httpForestServer: HttpForestServer,
+): Promise<void> {
+  if (fs.existsSync(cloudCustomizerPath)) {
+    throw new BusinessError('You have already a cloud-customizer folder.');
+  }
+
   try {
     const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
@@ -22,19 +53,26 @@ export default async function bootstrap(envSecret: string): Promise<void> {
 
     const zip: AdmZip = new AdmZip(zipPath);
     zip.extractAllTo(os.tmpdir(), false);
-    const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
-    fs.renameSync(path.join(extractedPath), path.join('.', 'cloud-customizer'));
+    await Promise.all([
+      fsP.rename(extractedPath, cloudCustomizerPath),
+      fsP.rm(zipPath, { force: true }),
+    ]);
 
-    fs.unlinkSync(zipPath);
+    // create the .env file if it does not exist
+    // we do not overwrite it because it may contain sensitive data
+    const envPath = path.join(cloudCustomizerPath, '.env');
 
-    if (!fs.existsSync(path.join('.', 'cloud-customizer', '.env'))) {
-      fs.writeFileSync(
-        './cloud-customizer/.env',
+    if (!fs.existsSync(envPath)) {
+      await fsP.writeFile(
+        envPath,
         `FOREST_ENV_SECRET=${envSecret}
 TOKEN_PATH=${homedir()}`,
       );
     }
+
+    await updateTypings(httpForestServer, path.join(cloudCustomizerPath, 'typings.d.ts'));
   } catch (error) {
-    console.error('Bootstrap failed:', error.message);
+    await tryToClearBootstrap();
+    throw new BusinessError(`Bootstrap failed: ${error.message}`);
   }
 }

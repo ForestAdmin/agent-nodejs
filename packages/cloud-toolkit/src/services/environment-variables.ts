@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'path';
 
+import login from './login';
 import { BusinessError } from '../errors';
 import { EnvironmentVariables } from '../types';
 
@@ -66,3 +67,14 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
 
   validateServerUrl(env.FOREST_SERVER_URL);
 }
+
+export const getOrRefreshEnvironmentVariables = async (): Promise<EnvironmentVariables> => {
+  let vars = await getEnvironmentVariables();
+
+  if (!vars.FOREST_AUTH_TOKEN) {
+    await login();
+    vars = await getEnvironmentVariables();
+  }
+
+  return vars;
+};
