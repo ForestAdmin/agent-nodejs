@@ -5,7 +5,7 @@ import { configDotenv } from 'dotenv';
 import ora from 'ora';
 import path from 'path';
 
-import { CommandError } from './errors';
+import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
 import {
   getEnvironmentVariables,
@@ -39,7 +39,7 @@ function actionRunner(fn: (...args) => Promise<any>) {
       spinner.stop();
       const error: Error = e;
 
-      if (error instanceof CommandError) {
+      if (error instanceof BusinessError) {
         console.error(`❌ ${error.message}`);
       } else {
         throw error;
@@ -81,7 +81,7 @@ program
       const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
       if (!secret) {
-        throw new CommandError(
+        throw new BusinessError(
           'Your forest env secret is missing.' +
             ' Please provide it with the `bootstrap --env-secret <your-secret-key>` command or' +
             ' add it to your .env file or in environment variables.',

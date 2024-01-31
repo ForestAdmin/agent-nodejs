@@ -1,7 +1,7 @@
 import { Table } from '@forestadmin/datasource-sql';
 import axios, { AxiosError } from 'axios';
 
-import { CommandError } from '../errors';
+import { BusinessError } from '../errors';
 
 export default class HttpForestServer {
   private readonly serverUrl: string;
@@ -26,7 +26,7 @@ export default class HttpForestServer {
       });
 
       if (response.status !== 200) {
-        throw new CommandError(
+        throw new BusinessError(
           `Expected 200 OK, received ${response.status} ${response.statusText}`,
         );
       }
@@ -42,7 +42,7 @@ export default class HttpForestServer {
         details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
       }
 
-      throw new CommandError(
+      throw new BusinessError(
         `Failed to retrieve database schema from Forest Admin server: ${error.message}.${details}`,
       );
     }

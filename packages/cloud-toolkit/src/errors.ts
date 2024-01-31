@@ -1,2 +1,2 @@
 // eslint-disable-next-line import/prefer-default-export
-export class CommandError extends Error {}
+export class BusinessError extends Error {}
