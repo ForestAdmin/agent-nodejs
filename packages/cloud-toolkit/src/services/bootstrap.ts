@@ -5,17 +5,18 @@ import { homedir } from 'node:os';
 import * as os from 'os';
 import path from 'path';
 
+import HttpForestServer from './http-forest-server';
+import updateTypings from './update-typings';
+import { BusinessError } from '../errors';
+
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
 const zipPath = path.join(os.tmpdir(), 'cloud-customizer.zip');
 const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
 
-export function cleanBootstrap(): void {
-  if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
-  // remove the extracted folder if it exists because it may be corrupted
-  if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
-}
-
-export async function bootstrap(envSecret: string): Promise<void> {
+export default async function bootstrap(
+  envSecret: string,
+  httpForestServer: HttpForestServer,
+): Promise<void> {
   try {
     const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
@@ -41,8 +42,12 @@ export async function bootstrap(envSecret: string): Promise<void> {
 TOKEN_PATH=${homedir()}`,
       );
     }
+
+    await updateTypings(httpForestServer, path.join('cloud-customizer', 'typings.d.ts'));
   } catch (error) {
-    cleanBootstrap();
-    throw new Error(`❌ Bootstrap failed: ${error.message}`);
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+    // remove the extracted folder if it exists because it may be corrupted
+    if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
+    throw new BusinessError(`❌ Bootstrap failed: ${error.message}`);
   }
 }

@@ -2,13 +2,13 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
-import path from 'path';
 
 import { BusinessError } from './errors';
 import actionRunner from './services/action-runner';
-import { bootstrap, cleanBootstrap } from './services/bootstrap';
+import bootstrap from './services/bootstrap';
 import {
   getEnvironmentVariables,
+  getOrRefreshEnvironmentVariables,
   validateEnvironmentVariables,
   validateServerUrl,
 } from './services/environment-variables';
@@ -19,7 +19,7 @@ import { EnvironmentVariables } from './types';
 
 configDotenv();
 
-const buildHttpForestServer = async (envs: EnvironmentVariables) => {
+const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => {
   validateEnvironmentVariables(envs);
 
   return new HttpForestServer(
@@ -27,17 +27,6 @@ const buildHttpForestServer = async (envs: EnvironmentVariables) => {
     envs.FOREST_ENV_SECRET,
     envs.FOREST_AUTH_TOKEN,
   );
-};
-
-const getOrRefreshEnvironmentVariables = async (): Promise<EnvironmentVariables> => {
-  let vars = await getEnvironmentVariables();
-
-  if (!vars.FOREST_AUTH_TOKEN) {
-    await login();
-    vars = await getEnvironmentVariables();
-  }
-
-  return vars;
 };
 
 program
@@ -76,17 +65,7 @@ program
         );
       }
 
-      await bootstrap(secret);
-
-      try {
-        await updateTypings(
-          await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }),
-          path.join('cloud-customizer', 'typings.d.ts'),
-        );
-      } catch (e) {
-        cleanBootstrap();
-        throw e;
-      }
+      await bootstrap(secret, buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }));
 
       spinner.succeed(
         'Project successfully bootstrapped. You can start creating your customizations!',
