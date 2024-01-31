@@ -39,7 +39,7 @@ program
     actionRunner(async spinner => {
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
-      await updateTypings(await buildHttpForestServer(vars), 'typings.d.ts');
+      await updateTypings(buildHttpForestServer(vars), 'typings.d.ts');
       spinner.succeed('Your typings have been updated.');
     }),
   );

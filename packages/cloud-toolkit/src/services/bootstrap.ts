@@ -60,15 +60,17 @@ export default async function bootstrap(
 
     // create the .env file if it does not exist
     // we do not overwrite it because it may contain sensitive data
-    if (!fs.existsSync(path.join('.', 'cloud-customizer', '.env'))) {
+    const envPath = path.join(cloudCustomizerPath, '.env');
+
+    if (!fs.existsSync(envPath)) {
       await fsP.writeFile(
-        './cloud-customizer/.env',
+        envPath,
         `FOREST_ENV_SECRET=${envSecret}
 TOKEN_PATH=${homedir()}`,
       );
     }
 
-    await updateTypings(httpForestServer, path.join('cloud-customizer', 'typings.d.ts'));
+    await updateTypings(httpForestServer, path.join(cloudCustomizerPath, 'typings.d.ts'));
   } catch (error) {
     await tryToClearBootstrap();
     throw new BusinessError(`Bootstrap failed: ${error.message}`);
