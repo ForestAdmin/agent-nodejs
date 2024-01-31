@@ -37,6 +37,10 @@ export default async function bootstrap(
   httpForestServer: HttpForestServer,
 ): Promise<void> {
   try {
+    if (fs.existsSync(cloudCustomizerPath)) {
+      throw new BusinessError('You have already a cloud-customizer folder.');
+    }
+
     const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
     const stream: fs.WriteStream = fs.createWriteStream(zipPath);
