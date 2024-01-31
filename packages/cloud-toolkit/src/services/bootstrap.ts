@@ -36,11 +36,11 @@ export default async function bootstrap(
   envSecret: string,
   httpForestServer: HttpForestServer,
 ): Promise<void> {
-  try {
-    if (fs.existsSync(cloudCustomizerPath)) {
-      throw new BusinessError('You have already a cloud-customizer folder.');
-    }
+  if (fs.existsSync(cloudCustomizerPath)) {
+    throw new BusinessError('You have already a cloud-customizer folder.');
+  }
 
+  try {
     const response = await axios({ url: downloadUrl, method: 'get', responseType: 'stream' });
 
     const stream: fs.WriteStream = fs.createWriteStream(zipPath);
