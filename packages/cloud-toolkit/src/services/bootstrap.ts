@@ -27,7 +27,7 @@ export default async function bootstrap(envSecret: string): Promise<void> {
     fs.unlinkSync(zipPath);
 
     // create the .env file if it does not exist
-    // we do not override it because it may contain sensitive data
+    // we do not overwrite it because it may contain sensitive data
     if (!fs.existsSync(path.join('.', 'cloud-customizer', '.env'))) {
       fs.writeFileSync(
         './cloud-customizer/.env',
@@ -36,8 +36,9 @@ TOKEN_PATH=${homedir()}`,
       );
     }
   } catch (error) {
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
     // remove the extracted folder if it exists because it may be corrupted
-    if (!fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
-    console.error('❌ Bootstrap failed:', error.message);
+    if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
+    throw new Error(`❌ Bootstrap failed: ${error.message}`);
   }
 }
