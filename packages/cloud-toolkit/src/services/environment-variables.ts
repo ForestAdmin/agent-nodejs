@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'path';
 
+import { BusinessError } from '../errors';
 import { EnvironmentVariables } from '../types';
 
 const getToken = async (): Promise<string | null> => {
@@ -24,7 +25,7 @@ export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
 
 export function validateServerUrl(serverUrl: string): void {
   if (!serverUrl) {
-    throw new Error('Missing FOREST_SERVER_URL. Please check your .env file.');
+    throw new BusinessError('Missing FOREST_SERVER_URL. Please check your .env file.');
   }
 
   let givenUrl;
@@ -32,14 +33,14 @@ export function validateServerUrl(serverUrl: string): void {
   try {
     givenUrl = new URL(serverUrl);
   } catch (err) {
-    throw new Error(
+    throw new BusinessError(
       `FOREST_SERVER_URL is invalid. Please check your .env file.' +
         ' You can probably remove it from your .env file.: ${err.message}`,
     );
   }
 
   if (!['http:', 'https:'].includes(givenUrl.protocol)) {
-    throw new Error(
+    throw new BusinessError(
       'FOREST_SERVER_URL is invalid, it must start with http:// or https://. Please check your .env file.',
     );
   }
@@ -47,18 +48,18 @@ export function validateServerUrl(serverUrl: string): void {
 
 export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   if (!env.FOREST_ENV_SECRET) {
-    throw new Error('Missing FOREST_ENV_SECRET. Please check your .env file.');
+    throw new BusinessError('Missing FOREST_ENV_SECRET. Please check your .env file.');
   }
 
   if (typeof env.FOREST_ENV_SECRET !== 'string' || !/^[0-9a-f]{64}$/.test(env.FOREST_ENV_SECRET)) {
-    throw new Error(
+    throw new BusinessError(
       'FOREST_ENV_SECRET is invalid. Please check your .env file.' +
         ' You can retrieve its value from environment settings on Forest Admin.',
     );
   }
 
   if (!env.FOREST_AUTH_TOKEN) {
-    throw new Error(
+    throw new BusinessError(
       'Missing authentication token. Your TOKEN_PATH is probably wrong on .env file.',
     );
   }
