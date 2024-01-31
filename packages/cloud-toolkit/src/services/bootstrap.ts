@@ -1,6 +1,7 @@
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
+import * as fsP from 'fs/promises';
 import { homedir } from 'node:os';
 import * as os from 'os';
 import path from 'path';
@@ -12,6 +13,24 @@ import { BusinessError } from '../errors';
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
 const zipPath = path.join(os.tmpdir(), 'cloud-customizer.zip');
 const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
+const cloudCustomizerPath = path.join('.', 'cloud-customizer');
+
+async function tryToClearBootstrap(): Promise<void> {
+  const removeCloudCustomizer = async () => {
+    try {
+      // we want to throw if the folder is not removed
+      await fsP.rm(cloudCustomizerPath, { force: false, recursive: true });
+    } catch (e) {
+      console.log(`Please remove cloud-customizer folder and re-run bootstrap command.`);
+    }
+  };
+
+  await Promise.all([
+    fsP.rm(zipPath, { force: true }),
+    fsP.rm(extractedPath, { force: true, recursive: true }),
+    removeCloudCustomizer(),
+  ]);
+}
 
 export default async function bootstrap(
   envSecret: string,
@@ -30,13 +49,15 @@ export default async function bootstrap(
 
     const zip: AdmZip = new AdmZip(zipPath);
     zip.extractAllTo(os.tmpdir(), false);
-    fs.renameSync(path.join(extractedPath), path.join('.', 'cloud-customizer'));
-    fs.unlinkSync(zipPath);
+    await Promise.all([
+      fsP.rename(extractedPath, cloudCustomizerPath),
+      fsP.rm(zipPath, { force: true }),
+    ]);
 
     // create the .env file if it does not exist
     // we do not overwrite it because it may contain sensitive data
     if (!fs.existsSync(path.join('.', 'cloud-customizer', '.env'))) {
-      fs.writeFileSync(
+      await fsP.writeFile(
         './cloud-customizer/.env',
         `FOREST_ENV_SECRET=${envSecret}
 TOKEN_PATH=${homedir()}`,
@@ -45,9 +66,7 @@ TOKEN_PATH=${homedir()}`,
 
     await updateTypings(httpForestServer, path.join('cloud-customizer', 'typings.d.ts'));
   } catch (error) {
-    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
-    // remove the extracted folder if it exists because it may be corrupted
-    if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
+    await tryToClearBootstrap();
     throw new BusinessError(`Bootstrap failed: ${error.message}`);
   }
 }

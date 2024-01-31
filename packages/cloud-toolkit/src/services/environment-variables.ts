@@ -16,7 +16,7 @@ const getToken = async (): Promise<string | null> => {
   return null;
 };
 
-async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
+export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   return {
     FOREST_ENV_SECRET: process.env.FOREST_ENV_SECRET,
     FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
