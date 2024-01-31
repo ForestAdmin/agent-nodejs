@@ -2,10 +2,10 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
-import ora from 'ora';
 import path from 'path';
 
 import { BusinessError } from './errors';
+import actionRunner from './services/action-runner';
 import bootstrap from './services/bootstrap';
 import {
   getEnvironmentVariables,
@@ -29,25 +29,16 @@ const buildHttpForestServer = async (envs: EnvironmentVariables) => {
   );
 };
 
-function actionRunner(fn: (...args) => Promise<any>) {
-  return async (...args) => {
-    const spinner = ora().start();
+const getOrRefreshEnvironmentVariables = async (): Promise<EnvironmentVariables> => {
+  let vars = await getEnvironmentVariables();
 
-    try {
-      await fn(spinner, ...args);
-    } catch (e) {
-      const error: Error = e;
+  if (!vars.FOREST_AUTH_TOKEN) {
+    await login();
+    vars = await getEnvironmentVariables();
+  }
 
-      if (error instanceof BusinessError) {
-        spinner.fail(error.message);
-      } else {
-        throw error;
-      }
-    } finally {
-      spinner.stop();
-    }
-  };
-}
+  return vars;
+};
 
 program
   .command('update-typings')
@@ -58,8 +49,7 @@ program
   .action(
     actionRunner(async spinner => {
       spinner.text = 'Updating typings\n';
-      const vars = await getEnvironmentVariables();
-      if (!vars.FOREST_AUTH_TOKEN) await login();
+      const vars = await getOrRefreshEnvironmentVariables();
       await updateTypings(await buildHttpForestServer(vars), 'typings.d.ts');
       spinner.succeed('Your typings have been updated.');
     }),
@@ -72,12 +62,10 @@ program
     '-e, --env-secret <string>',
     'Environment secret, you can find it in your environment settings',
   )
-
   .action(
     actionRunner(async (spinner, options) => {
       spinner.text = 'Boostrapping project\n';
-      const vars = await getEnvironmentVariables();
-      if (!vars.FOREST_AUTH_TOKEN) await login();
+      const vars = await getOrRefreshEnvironmentVariables();
       const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
       if (!secret) {
