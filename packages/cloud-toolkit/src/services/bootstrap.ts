@@ -48,6 +48,6 @@ TOKEN_PATH=${homedir()}`,
     if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
     // remove the extracted folder if it exists because it may be corrupted
     if (fs.existsSync(extractedPath)) fs.unlinkSync(extractedPath);
-    throw new BusinessError(`❌ Bootstrap failed: ${error.message}`);
+    throw new BusinessError(`Bootstrap failed: ${error.message}`);
   }
 }
