@@ -285,7 +285,7 @@ export type RedirectResult = {
 
 export type ActionHeaders = { [headerName: string]: string };
 
-export type ActionResult = { responseheaders?: ActionHeaders } & (
+export type ActionResult = { responseHeaders?: ActionHeaders } & (
   | SuccessResult
   | ErrorResult
   | WebHookResult

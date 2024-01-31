@@ -23,7 +23,7 @@ export default class ResultBuilder {
       message: message ?? 'Success',
       invalidated: new Set(options?.invalidated ?? []),
       html: options?.html,
-      responseheaders: this.responseHeaders,
+      responseHeaders: this.responseHeaders,
     };
   }
 
@@ -39,7 +39,7 @@ export default class ResultBuilder {
       type: 'Error',
       message: message ?? 'Error',
       html: options?.html,
-      responseheaders: this.responseHeaders,
+      responseHeaders: this.responseHeaders,
     };
   }
 
@@ -64,7 +64,7 @@ export default class ResultBuilder {
       method,
       headers,
       body,
-      responseheaders: this.responseHeaders,
+      responseHeaders: this.responseHeaders,
     };
   }
 
@@ -89,7 +89,7 @@ export default class ResultBuilder {
         streamOrBufferOrString instanceof Readable
           ? streamOrBufferOrString
           : Readable.from([streamOrBufferOrString]),
-      responseheaders: this.responseHeaders,
+      responseHeaders: this.responseHeaders,
     };
   }
 
@@ -100,6 +100,6 @@ export default class ResultBuilder {
    * .redirectTo('https://www.google.com');
    */
   redirectTo(path: string): ActionResult {
-    return { type: 'Redirect', path, responseheaders: this.responseHeaders };
+    return { type: 'Redirect', path, responseHeaders: this.responseHeaders };
   }
 }
