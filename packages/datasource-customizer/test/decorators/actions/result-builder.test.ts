@@ -1,7 +1,11 @@
 import ResultBuilder from '../../../src/decorators/actions/result-builder';
 
 describe('ResultBuilder', () => {
-  const builder = new ResultBuilder();
+  let builder: ResultBuilder;
+
+  beforeEach(() => {
+    builder = new ResultBuilder();
+  });
 
   test('success', () => {
     expect(builder.success('Great!')).toEqual({
