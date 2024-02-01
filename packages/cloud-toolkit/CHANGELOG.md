@@ -1,3 +1,40 @@
+# @forestadmin/cloud-toolkit 1.0.0-beta-cloud-toolkit.1 (2024-02-01)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** add commander to execute any commands ([#925](https://github.com/ForestAdmin/agent-nodejs/issues/925)) ([b65fd44](https://github.com/ForestAdmin/agent-nodejs/commit/b65fd44e6a8cf346f94952d95b1600103585dff3))
+* **cloud-toolkit:** add node interpreter to be executed by the bin ([#926](https://github.com/ForestAdmin/agent-nodejs/issues/926)) ([78931a0](https://github.com/ForestAdmin/agent-nodejs/commit/78931a0077e181bd5eee5ae2eb7fe4a8a9105c62))
+* **cloud-toolkit:** add sqlite as dependency ([#936](https://github.com/ForestAdmin/agent-nodejs/issues/936)) ([abe99ad](https://github.com/ForestAdmin/agent-nodejs/commit/abe99ad8163f97e58536cc45a3ae3bba05c22aa8))
+* **cloud-toolkit:** bump agent again to fix the build ([#941](https://github.com/ForestAdmin/agent-nodejs/issues/941)) ([fbe730c](https://github.com/ForestAdmin/agent-nodejs/commit/fbe730cfdd8953ce48ed2c0e0f26635c94f1106a))
+* **cloud-toolkit:** change agent dependency to fix the build ([#940](https://github.com/ForestAdmin/agent-nodejs/issues/940)) ([58ab5ab](https://github.com/ForestAdmin/agent-nodejs/commit/58ab5ab4b7501a6adca6e80c55d3659a4e103bb0))
+* **cloud-toolkit:** fix bootstrap command ([#929](https://github.com/ForestAdmin/agent-nodejs/issues/929)) ([e1182ad](https://github.com/ForestAdmin/agent-nodejs/commit/e1182adfe71fd501060a0f8f1ed4f57f27bad1b0))
+* **cloud-toolkit:** make it public ([#923](https://github.com/ForestAdmin/agent-nodejs/issues/923)) ([0b91b19](https://github.com/ForestAdmin/agent-nodejs/commit/0b91b1989842f60af30d390e91a452dffd492393))
+* **cloud-toolkit:** reload env variable when auth token is re-fetched. ([#943](https://github.com/ForestAdmin/agent-nodejs/issues/943)) ([1da2ac8](https://github.com/ForestAdmin/agent-nodejs/commit/1da2ac855c40117c2e8b474d39288000d9795692))
+* **cloud-toolkit:** replace sqlite to sqlite3 ([#938](https://github.com/ForestAdmin/agent-nodejs/issues/938)) ([e337630](https://github.com/ForestAdmin/agent-nodejs/commit/e337630c7f9feda177b6cd9cc6c38a077795b845))
+* release ([56f5770](https://github.com/ForestAdmin/agent-nodejs/commit/56f5770f5254fec8416a91bcbf39b094e2c5bbac))
+* version ([d878279](https://github.com/ForestAdmin/agent-nodejs/commit/d8782799b3cc477a55fbf6314a0818cda38cebe7))
+
+
+### Features
+
+* add README ([#946](https://github.com/ForestAdmin/agent-nodejs/issues/946)) ([49b8218](https://github.com/ForestAdmin/agent-nodejs/commit/49b82188f1985cb49d0330f82f8a23de4b7d61b2))
+* add utility to generate typings from introspection ([#910](https://github.com/ForestAdmin/agent-nodejs/issues/910)) ([8a89b63](https://github.com/ForestAdmin/agent-nodejs/commit/8a89b63f0ab46a99be86859ec6bb7196df9a6801))
+* **cloud-toolkit:** download customizer from main entry ([#928](https://github.com/ForestAdmin/agent-nodejs/issues/928)) ([097904a](https://github.com/ForestAdmin/agent-nodejs/commit/097904af7947882648acab1dc93177fcd059f3d3))
+* **cloud-toolkit:** log to forest when bootstrap ([#932](https://github.com/ForestAdmin/agent-nodejs/issues/932)) ([7f1b56f](https://github.com/ForestAdmin/agent-nodejs/commit/7f1b56f490169d3ea481bd0349f48a5ca1b2fb8b))
+* **cloud-toolkit:** update typings by fetching introspection on forestadmin server ([#933](https://github.com/ForestAdmin/agent-nodejs/issues/933)) ([d0b6a6f](https://github.com/ForestAdmin/agent-nodejs/commit/d0b6a6f0c0a74014dd51d1a628870bad7a58168e))
+* expose cloud specific agent interface in cloud toolkit ([#931](https://github.com/ForestAdmin/agent-nodejs/issues/931)) ([d59c2dc](https://github.com/ForestAdmin/agent-nodejs/commit/d59c2dc6fc2266d168104e34ee041a919e6a7e92))
+* improve console feedback ([#939](https://github.com/ForestAdmin/agent-nodejs/issues/939)) ([da16064](https://github.com/ForestAdmin/agent-nodejs/commit/da1606469ceaa58fc07647237e3d8eff62b31205))
+* improve error management ([#944](https://github.com/ForestAdmin/agent-nodejs/issues/944)) ([d82fd29](https://github.com/ForestAdmin/agent-nodejs/commit/d82fd2998cc27eac97a09fcfc0e4532f0db1f8d2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.37.0-beta-cloud-toolkit.1
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-customizer.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.11...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-customizer.12) (2024-01-30)
 
 
