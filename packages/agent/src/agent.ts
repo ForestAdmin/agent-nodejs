@@ -229,7 +229,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
 
     // Either load the schema from the file system or build it
-    let schema: ForestSchema;
+    let schema: Pick<ForestSchema, 'collections'>;
+
+    const { meta } = SchemaGenerator.buildMetadata(this.customizationService.buildFeatures());
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {
@@ -239,16 +241,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(
-        dataSource,
-        this.customizationService.buildFeatures(),
-      );
+      schema = await SchemaGenerator.buildSchema(dataSource);
 
-      const pretty = stringify(schema, { maxLength: 100 });
+      const pretty = stringify({ ...schema, meta }, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     // Send schema to forest servers
-    await this.options.forestAdminClient.postSchema(schema);
+    await this.options.forestAdminClient.postSchema({ ...schema, meta });
   }
 }
