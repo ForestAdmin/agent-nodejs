@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.1...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.2) (2024-02-01)
+
+
+### Features
+
+* define a new command to publish ([#953](https://github.com/ForestAdmin/agent-nodejs/issues/953)) ([b7b53df](https://github.com/ForestAdmin/agent-nodejs/commit/b7b53df525044ab84b281970ac7700faa35e3ed9))
+
 # @forestadmin/cloud-toolkit 1.0.0-beta-cloud-toolkit.1 (2024-02-01)
 
 
