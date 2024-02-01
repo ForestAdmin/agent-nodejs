@@ -1,1 +1,9 @@
-{"collections": []}
+{
+  "collections": [],
+  "metadata": {
+    "liana": "forest-nodejs-agent",
+    "liana_version": "2.0.0",
+    "liana_features": null,
+    "stack": "agent-nodejs"
+  }
+}

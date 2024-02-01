@@ -261,7 +261,7 @@ describe('Agent', () => {
       );
     });
 
-    test('start should read existing definition and upload apimap', async () => {
+    test('start should read existing definition and upload apimap with current meta', async () => {
       const agent = new Agent(options);
       await agent.start();
 
