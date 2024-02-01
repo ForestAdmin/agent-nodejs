@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.2...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.3) (2024-02-01)
+
+
+### Features
+
+* **cloud-toolkit:** allow cloud toolkit to login using application token for CI usages ([#955](https://github.com/ForestAdmin/agent-nodejs/issues/955)) ([47e6687](https://github.com/ForestAdmin/agent-nodejs/commit/47e6687bd8c731329b581005d192e8c362852aaf))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.1...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.2) (2024-02-01)
 
 
