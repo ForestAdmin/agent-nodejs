@@ -1,7 +1,36 @@
 import { Table } from '@forestadmin/datasource-sql';
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 
 import { BusinessError } from '../errors';
+
+async function handledAxios<T>(
+  axiosRequestConfig: AxiosRequestConfig,
+  { errorMessage }: { errorMessage: string },
+): Promise<T> {
+  try {
+    const response = await axios(axiosRequestConfig);
+
+    if (response.status !== 200) {
+      throw new BusinessError(
+        `Expected 200 OK, received ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return response.data;
+  } catch (e) {
+    const error: Error = e;
+
+    let details;
+
+    if (error instanceof AxiosError) {
+      const errors: { detail: string; status: number }[] = error.response?.data?.errors;
+      details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
+    }
+
+    const detailsOrEmpty = details ? `. ${details}` : '';
+    throw new BusinessError(`${errorMessage}: ${error.message}${detailsOrEmpty}`);
+  }
+}
 
 export default class HttpForestServer {
   private readonly serverUrl: string;
@@ -14,8 +43,8 @@ export default class HttpForestServer {
   }
 
   async getIntrospection(): Promise<Table[]> {
-    try {
-      const response = await axios({
+    return handledAxios(
+      {
         url: `${this.serverUrl}/api/full-hosted-agent/introspection`,
         method: 'GET',
         headers: {
@@ -23,28 +52,50 @@ export default class HttpForestServer {
           Authorization: `Bearer ${this.bearerToken}`,
           'Content-Type': 'application/json',
         },
-      });
+      },
+      {
+        errorMessage: 'Failed to retrieve database schema from Forest Admin server',
+      },
+    );
+  }
 
-      if (response.status !== 200) {
-        throw new BusinessError(
-          `Expected 200 OK, received ${response.status} ${response.statusText}`,
-        );
-      }
+  async postUploadRequest(contentLength: number) {
+    return handledAxios<{
+      url: string;
+      fields: Record<string, string>;
+    }>(
+      {
+        url: `${this.serverUrl}/api/full-hosted-agent/upload-request`,
+        method: 'POST',
+        headers: {
+          'forest-secret-key': this.secretKey,
+          Authorization: `Bearer ${this.bearerToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          contentLength,
+        },
+      },
+      {
+        errorMessage: 'Failed to request upload url from Forest Admin server',
+      },
+    );
+  }
 
-      return response.data;
-    } catch (e) {
-      const error: Error = e;
-
-      let details;
-
-      if (error instanceof AxiosError) {
-        const errors: { detail: string; status: number }[] = error.response?.data?.errors;
-        details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
-      }
-
-      throw new BusinessError(
-        `Failed to retrieve database schema from Forest Admin server: ${error.message}.${details}`,
-      );
-    }
+  async postPublish() {
+    return handledAxios<{ subscriptionId: string }>(
+      {
+        url: `${this.serverUrl}/api/full-hosted-agent/publish`,
+        method: 'POST',
+        headers: {
+          'forest-secret-key': this.secretKey,
+          Authorization: `Bearer ${this.bearerToken}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      {
+        errorMessage: 'Failed to request publication of code customization',
+      },
+    );
   }
 }

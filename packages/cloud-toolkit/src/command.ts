@@ -14,6 +14,7 @@ import {
 } from './services/environment-variables';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
+import publish from './services/publish';
 import updateTypings from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
@@ -39,6 +40,7 @@ program
     actionRunner(async spinner => {
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
+      validateEnvironmentVariables(vars);
       await updateTypings(buildHttpForestServer(vars), 'typings.d.ts');
       spinner.succeed('Your typings have been updated.');
     }),
@@ -83,6 +85,19 @@ program
       validateServerUrl(vars.FOREST_SERVER_URL);
       await login();
       spinner.succeed('You are now logged in');
+    }),
+  );
+
+program
+  .command('publish')
+  .description('Publish your code customizations')
+  .action(
+    actionRunner(async spinner => {
+      spinner.text = 'Publishing code customizations\n';
+      const vars = await getOrRefreshEnvironmentVariables();
+      validateEnvironmentVariables(vars);
+      await publish(await buildHttpForestServer(vars));
+      spinner.succeed('Code customizations published');
     }),
   );
 
