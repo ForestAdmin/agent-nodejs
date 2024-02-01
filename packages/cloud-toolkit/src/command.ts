@@ -14,6 +14,7 @@ import {
 } from './services/environment-variables';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
+import packageCustomizations from './services/packager';
 import updateTypings from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
@@ -70,6 +71,17 @@ program
       spinner.succeed(
         'Project successfully bootstrapped. You can start creating your customizations!',
       );
+    }),
+  );
+
+program
+  .command('package')
+  .description('Package your customizations, ready for publishing.')
+  .action(
+    actionRunner(async spinner => {
+      spinner.text = 'Packaging your customizations\n';
+      await packageCustomizations();
+      spinner.succeed('Done packaging');
     }),
   );
 
