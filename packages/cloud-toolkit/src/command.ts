@@ -14,6 +14,7 @@ import {
 } from './services/environment-variables';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
+import publish from './services/publish';
 import updateTypings from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
@@ -83,6 +84,19 @@ program
       validateServerUrl(vars.FOREST_SERVER_URL);
       await login();
       spinner.succeed('You are now logged in');
+    }),
+  );
+
+program
+  .command('publish')
+  .description('Publish your code customizations')
+  .action(
+    actionRunner(async spinner => {
+      spinner.text = 'Publishing code customizations\n';
+      const vars = await getOrRefreshEnvironmentVariables();
+      validateServerUrl(vars.FOREST_SERVER_URL);
+      await publish(await buildHttpForestServer(vars));
+      spinner.succeed('Code customizations published');
     }),
   );
 
