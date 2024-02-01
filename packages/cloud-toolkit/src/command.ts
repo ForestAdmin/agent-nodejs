@@ -6,6 +6,7 @@ import { configDotenv } from 'dotenv';
 import { BusinessError } from './errors';
 import actionRunner from './services/action-runner';
 import bootstrap from './services/bootstrap';
+import checkCodeAlreadyDeployed from './services/check-code-already-deployed';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
@@ -55,7 +56,7 @@ program
   )
   .action(
     actionRunner(async (spinner, options) => {
-      spinner.text = 'Boostrapping project\n';
+      spinner.stop();
       const vars = await getOrRefreshEnvironmentVariables();
       const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
@@ -67,8 +68,20 @@ program
         );
       }
 
-      await bootstrap(secret, buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }));
+      const forestServer = await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
 
+      const { keepGoing } = await checkCodeAlreadyDeployed(forestServer);
+
+      if (keepGoing === false) {
+        console.log('Operation aborted.');
+
+        return;
+      }
+
+      spinner.text = 'Boostrapping project\n';
+      spinner.start();
+
+      await bootstrap(secret, forestServer);
       spinner.succeed(
         'Project successfully bootstrapped. You can start creating your customizations!',
       );
