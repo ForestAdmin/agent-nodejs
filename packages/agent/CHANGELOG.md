@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.37.0-beta-cloud-toolkit.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.18...@forestadmin/agent@1.37.0-beta-cloud-toolkit.1) (2024-02-01)
+
+
+### Features
+
+* add utility to generate typings from introspection ([#910](https://github.com/ForestAdmin/agent-nodejs/issues/910)) ([8a89b63](https://github.com/ForestAdmin/agent-nodejs/commit/8a89b63f0ab46a99be86859ec6bb7196df9a6801))
+
 ## @forestadmin/agent [1.36.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.17...@forestadmin/agent@1.36.18) (2024-01-26)
 
 
