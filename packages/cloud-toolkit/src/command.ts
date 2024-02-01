@@ -40,6 +40,7 @@ program
     actionRunner(async spinner => {
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
+      validateEnvironmentVariables(vars);
       await updateTypings(buildHttpForestServer(vars), 'typings.d.ts');
       spinner.succeed('Your typings have been updated.');
     }),
@@ -94,7 +95,7 @@ program
     actionRunner(async spinner => {
       spinner.text = 'Publishing code customizations\n';
       const vars = await getOrRefreshEnvironmentVariables();
-      validateServerUrl(vars.FOREST_SERVER_URL);
+      validateEnvironmentVariables(vars);
       await publish(await buildHttpForestServer(vars));
       spinner.succeed('Code customizations published');
     }),
