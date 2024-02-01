@@ -27,7 +27,8 @@ async function handledAxios<T>(
       details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
     }
 
-    throw new BusinessError(`${errorMessage}: ${error.message}.${details}`);
+    const detailsOrEmpty = details ? `. ${details}` : '';
+    throw new BusinessError(`${errorMessage}: ${error.message}${detailsOrEmpty}`);
   }
 }
 
