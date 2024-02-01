@@ -7,7 +7,7 @@ import login from './login';
 import { BusinessError } from '../errors';
 import { EnvironmentVariables } from '../types';
 
-const getToken = async (): Promise<string | null> => {
+const getTokenFromToolbelt = async (): Promise<string | null> => {
   const baseTokenPath = process.env.TOKEN_PATH || homedir();
   const tokenPath = path.join(baseTokenPath, '.forest.d', '.forestrc');
 
@@ -20,7 +20,7 @@ export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   return {
     FOREST_ENV_SECRET: process.env.FOREST_ENV_SECRET,
     FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
-    FOREST_AUTH_TOKEN: await getToken(),
+    FOREST_AUTH_TOKEN: process.env.FOREST_AUTH_TOKEN || (await getTokenFromToolbelt()),
   };
 }
 
