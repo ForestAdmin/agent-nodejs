@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.30.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.30.0...@forestadmin/datasource-toolkit@1.30.1) (2024-02-01)
+
+
+### Bug Fixes
+
+* **typings:** support strict null checking in typescript ([#927](https://github.com/ForestAdmin/agent-nodejs/issues/927)) ([80fa64d](https://github.com/ForestAdmin/agent-nodejs/commit/80fa64d0bf85ee36ab330a8f983b8bf593ae34f1))
+
 # @forestadmin/datasource-toolkit [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.2...@forestadmin/datasource-toolkit@1.30.0) (2024-01-26)
 
 
