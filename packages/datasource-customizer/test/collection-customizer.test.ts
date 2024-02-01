@@ -706,7 +706,32 @@ describe('Builder > Collection', () => {
       const self = customizer.emulateFieldFiltering('lastName');
       await dsc.getDataSource(logger);
 
-      expect(spy).toHaveBeenCalledTimes(19);
+      expect(spy).toHaveBeenCalledTimes(21);
+      [
+        'Equal',
+        'NotEqual',
+        'Present',
+        'Blank',
+        'In',
+        'NotIn',
+        'StartsWith',
+        'EndsWith',
+        'IStartsWith',
+        'IEndsWith',
+        'Contains',
+        'NotContains',
+        'IContains',
+        'NotIContains',
+        'Missing',
+        'Like',
+        'ILike',
+        'LongerThan',
+        'ShorterThan',
+        'IncludesAll',
+        'IncludesNone',
+      ].forEach(operator => {
+        expect(spy).toHaveBeenCalledWith('lastName', operator);
+      });
       expect(self).toEqual(customizer);
     });
   });

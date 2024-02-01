@@ -182,9 +182,44 @@ describe('MongooseCollection', () => {
         [{ tags: ['A', 'B'] }],
       ],
       [
-        { value: ['A'], operator: 'NotContains', field: 'tags' },
+        { value: ['C', 'D'], operator: 'IncludesNone', field: 'tags' },
+        new Projection('tags'),
+        [{ tags: ['A', 'B'] }],
+      ],
+      [
+        { value: ['A', 'D'], operator: 'IncludesNone', field: 'tags' },
         new Projection('tags'),
         [{ tags: ['B', 'C'] }],
+      ],
+      [
+        { value: ['A'], operator: 'IncludesNone', field: 'tags' },
+        new Projection('tags'),
+        [{ tags: ['B', 'C'] }],
+      ],
+      [
+        { value: 'titl', operator: 'NotContains', field: 'title' },
+        new Projection('title'),
+        [{ title: null }],
+      ],
+      [
+        { value: 'TiTlE', operator: 'NotContains', field: 'title' },
+        new Projection('title'),
+        [{ title: 'a title' }, { title: null }],
+      ],
+      [
+        { value: 'a TiTlE', operator: 'NotIContains', field: 'title' },
+        new Projection('title'),
+        [{ title: null }],
+      ],
+      [
+        { value: 'no matches', operator: 'NotContains', field: 'title' },
+        new Projection('title'),
+        [{ title: 'a title' }, { title: null }],
+      ],
+      [
+        { value: 'no matches', operator: 'NotIContains', field: 'title' },
+        new Projection('title'),
+        [{ title: 'a title' }, { title: null }],
       ],
       [
         { value: /.*message.*/, operator: 'Match', field: 'message' },

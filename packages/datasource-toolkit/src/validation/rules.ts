@@ -3,7 +3,7 @@ import { PrimitiveTypes } from '../interfaces/schema';
 
 const BASE_OPERATORS: Operator[] = ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present'];
 
-const ARRAY_OPERATORS: Operator[] = ['In', 'NotIn', 'IncludesAll'];
+const ARRAY_OPERATORS: Operator[] = ['In', 'NotIn', 'IncludesAll', 'IncludesNone'];
 
 const BASE_DATEONLY_OPERATORS: Operator[] = [
   'Today',
@@ -39,6 +39,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
     'Like',
     'ILike',
     'IContains',
+    'NotIContains',
     'IEndsWith',
     'IStartsWith',
   ],
@@ -94,6 +95,7 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_CONDITION_TREE: Readonly<
   In: [...defaultsOperators.In, null],
   NotIn: [...defaultsOperators.NotIn, null],
   IncludesAll: [...defaultsOperators.IncludesAll, null],
+  IncludesNone: [...defaultsOperators.IncludesNone, null],
 
   Blank: NO_TYPES_ALLOWED,
   Missing: NO_TYPES_ALLOWED,
