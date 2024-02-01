@@ -138,7 +138,7 @@ describe('Agent', () => {
       expect(mockNocodeCustomizer.addDataSource).toHaveBeenCalledWith('factory');
     });
 
-    test('start should create new schema definition and  upload apimap', async () => {
+    test('start should create new schema definition/meta and upload apimap', async () => {
       const agent = new Agent(options);
       await agent.start();
 
