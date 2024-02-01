@@ -1,3 +1,21 @@
+## @forestadmin/datasource-replica [1.0.61](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.60...@forestadmin/datasource-replica@1.0.61) (2024-02-01)
+
+
+### Bug Fixes
+
+* **typings:** support strict null checking in typescript ([#927](https://github.com/ForestAdmin/agent-nodejs/issues/927)) ([80fa64d](https://github.com/ForestAdmin/agent-nodejs/commit/80fa64d0bf85ee36ab330a8f983b8bf593ae34f1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.41.1
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.1
+* **@forestadmin/datasource-sql:** upgraded to 1.7.46
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+
 ## @forestadmin/datasource-replica [1.0.60](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.59...@forestadmin/datasource-replica@1.0.60) (2024-01-26)
 
 
