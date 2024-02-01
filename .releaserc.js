@@ -10,11 +10,11 @@ module.exports = {
       prerelease: true,
     },
     {
-      name: 'beta-.*',
+      name: 'beta-[-a-zA-Z0-9_]+', // the .* is not supported
       prerelease: true,
     },
     {
-      name: 'alpha-.*',
+      name: 'alpha-[-a-zA-Z0-9_]+', // the .* is not supported
       prerelease: true,
     },
   ],
