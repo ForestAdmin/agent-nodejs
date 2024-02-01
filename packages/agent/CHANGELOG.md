@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.36.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.19...@forestadmin/agent@1.36.20) (2024-02-01)
+
+
+### Bug Fixes
+
+* **schema:** force schema metadata update even in production ([#947](https://github.com/ForestAdmin/agent-nodejs/issues/947)) ([3ce68e0](https://github.com/ForestAdmin/agent-nodejs/commit/3ce68e0a59ca0321926d24893a0e9bedecc5d01f))
+
 ## @forestadmin/agent [1.36.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.18...@forestadmin/agent@1.36.19) (2024-02-01)
 
 
