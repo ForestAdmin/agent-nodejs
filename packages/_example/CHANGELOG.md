@@ -1,3 +1,13 @@
+## example [1.6.79-beta-cloud-toolkit.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.78...example@1.6.79-beta-cloud-toolkit.1) (2024-02-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.37.0-beta-cloud-toolkit.1
+
 ## example [1.6.78](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.77...example@1.6.78) (2024-01-26)
 
 
