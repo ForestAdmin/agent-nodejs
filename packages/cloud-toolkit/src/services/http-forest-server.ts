@@ -101,6 +101,7 @@ export default class HttpForestServer {
 
   async getLastPublishedCodeDetails(): Promise<{
     date: Date;
+    relativeDate: string;
     user: { name: string; email: string };
   } | null> {
     try {

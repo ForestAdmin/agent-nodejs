@@ -11,21 +11,13 @@ export default async function checkCodeAlreadyDeployed(
 
   if (lastPublishedCodeDetails === null) return { keepGoing: true };
 
-  const days = Math.floor(
-    (Date.now() - new Date(lastPublishedCodeDetails.date).getTime()) / (1000 * 3600 * 24),
-  );
-  let dayString = `${days} days ago`;
-
-  if (days === 0) {
-    dayString = 'today';
-  } else if (days === 1) {
-    dayString = 'yesterday';
-  }
-
-  const { name, email } = lastPublishedCodeDetails.user;
+  const {
+    relativeDate,
+    user: { name, email },
+  } = lastPublishedCodeDetails;
 
   console.warn('\n/!\\ There is already deployed customization code on your project:');
-  console.log(`\n  - Last code pushed ${dayString}, by ${name} (${email}).\n`);
+  console.log(`\n  - Last code pushed ${relativeDate}, by ${name} (${email}).\n`);
 
   return new Promise(resolve => {
     const rl = readline.createInterface({
