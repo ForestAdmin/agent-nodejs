@@ -16,7 +16,9 @@ export interface BaseAction<
 > {
   generateFile?: boolean;
   scope: Scope;
-  form?: DynamicField<Context>[];
+  form?:
+    | DynamicField<Context>[]
+    | ((context: Context) => Promise<DynamicField<Context>[]> | DynamicField<Context>[]);
   execute(
     context: Context,
     resultBuilder: ResultBuilder,
