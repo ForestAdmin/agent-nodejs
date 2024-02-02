@@ -21,11 +21,11 @@ export default async function updateTypings(introspection: Table[], typingsPath:
 
   try {
     await fs.access(builtCustomizationPath);
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires
-    const customizer = require(builtCustomizationPath).default;
 
     try {
+      // eslint-disable-next-line max-len
+      // eslint-disable-next-line import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires
+      const customizer = require(builtCustomizationPath).default;
       customizer(agent);
     } catch (customizationError) {
       const error: Error = customizationError;
