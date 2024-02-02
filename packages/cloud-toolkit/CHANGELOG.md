@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.5...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.6) (2024-02-02)
+
+
+### Features
+
+* check code already deployed ([#956](https://github.com/ForestAdmin/agent-nodejs/issues/956)) ([d07661b](https://github.com/ForestAdmin/agent-nodejs/commit/d07661b0c0ef7ee65d7bfc8670a75c71960dfb6c))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.4...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.5) (2024-02-02)
 
 
