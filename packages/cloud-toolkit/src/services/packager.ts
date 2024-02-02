@@ -13,10 +13,10 @@ export default async function packageCustomizations() {
   } catch (e) {
     throw new BusinessError(
       // eslint-disable-next-line max-len
-      'Failed to find ./dist/code-customizations directory containing built code. Please run the build command first.',
+      `Failed to find directory ${distPath} containing built code. Please run the build command first.`,
     );
   }
 
   zip.addLocalFolder(distPath, 'nodejs/customization');
-  await zip.writeZipPromise(path.join('dist', 'code-customizations.zip'));
+  await zip.writeZipPromise(path.join('dist', 'code-customizations.zip'), { overwrite: true });
 }
