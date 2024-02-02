@@ -12,8 +12,9 @@ export default async function packageCustomizations() {
     await fs.access(distPath);
   } catch (e) {
     throw new BusinessError(
-      // eslint-disable-next-line max-len
-      `Failed to find directory ${distPath} containing built code. Please run the build command first.`,
+      `Failed to access directory ${distPath} containing built code:
+      ${e.message}
+      Please build your code first.`,
     );
   }
 
