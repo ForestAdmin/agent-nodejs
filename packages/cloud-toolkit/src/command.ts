@@ -14,6 +14,7 @@ import {
 } from './services/environment-variables';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
+import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import updateTypings from './services/update-typings';
 import { EnvironmentVariables } from './types';
@@ -98,6 +99,17 @@ program
       validateEnvironmentVariables(vars);
       await publish(await buildHttpForestServer(vars));
       spinner.succeed('Code customizations published');
+    }),
+  );
+
+program
+  .command('package')
+  .description('Publish your code customizations')
+  .action(
+    actionRunner(async spinner => {
+      spinner.text = 'Packaging code\n';
+      await packageCustomizations();
+      spinner.succeed('Code customizations packaged and ready for publish');
     }),
   );
 

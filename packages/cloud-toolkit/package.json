@@ -43,5 +43,8 @@
     "forestadmin",
     "cloud",
     "customization"
-  ]
+  ],
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.5"
+  }
 }
