@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.3...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.4) (2024-02-02)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** make the export type work ([#957](https://github.com/ForestAdmin/agent-nodejs/issues/957)) ([49365b5](https://github.com/ForestAdmin/agent-nodejs/commit/49365b57096f68e25c3db1666549e2c80f546cb1))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.2...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.3) (2024-02-01)
 
 
