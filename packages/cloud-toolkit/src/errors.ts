@@ -1,2 +1,3 @@
-// eslint-disable-next-line import/prefer-default-export
+/* eslint-disable max-classes-per-file */
 export class BusinessError extends Error {}
+export class CustomizationError extends BusinessError {}
