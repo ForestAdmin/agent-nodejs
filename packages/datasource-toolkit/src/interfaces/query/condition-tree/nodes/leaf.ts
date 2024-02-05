@@ -142,4 +142,12 @@ export default class ConditionTreeLeaf extends ConditionTree {
   override unnest(): ConditionTreeLeaf {
     return super.unnest() as ConditionTreeLeaf;
   }
+
+  toPlainObject(): PlainConditionTree {
+    return {
+      field: this.field,
+      operator: this.operator,
+      value: this.value,
+    };
+  }
 }

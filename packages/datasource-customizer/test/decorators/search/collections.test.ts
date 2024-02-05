@@ -87,6 +87,28 @@ describe('SearchCollectionDecorator', () => {
           search: null,
         });
       });
+
+      test('it should allow to use the default search with options', async () => {
+        const decorator = buildCollection({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            name: factories.columnSchema.text().build(),
+            description: factories.columnSchema.text().build(),
+          },
+        });
+
+        decorator.replaceSearch((value, _extended, ctx) => {
+          return ctx.generateSearchFilter(value, { excludeFields: ['name'] });
+        });
+
+        const filter = factories.filter.build({ search: 'something', searchExtended: true });
+
+        expect(await decorator.refineFilter(caller, filter)).toEqual({
+          ...filter,
+          conditionTree: new ConditionTreeLeaf('description', 'IContains', 'something'),
+          search: null,
+        });
+      });
     });
 
     describe('when the search is defined and the collection schema is not searchable', () => {

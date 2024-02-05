@@ -1,7 +1,7 @@
-import { Caller, Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
+import { Caller, Collection } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TColumnName, TSchema } from '../../templates';
+import { TCollectionName, TColumnName, TConditionTree, TSchema } from '../../templates';
 
 export type SearchOptions<
   S extends TSchema = TSchema,
@@ -35,7 +35,7 @@ export default class CollectionSearchContext<
     public readonly generateSearchFilter: (
       searchText: string,
       options?: SearchOptions<S, N>,
-    ) => ConditionTree,
+    ) => TConditionTree<S, N>,
   ) {
     super(collection, caller);
   }
