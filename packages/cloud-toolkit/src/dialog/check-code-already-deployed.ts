@@ -1,6 +1,6 @@
 import readline from 'readline';
 
-import HttpForestServer from './http-forest-server';
+import HttpForestServer from '../services/http-forest-server';
 
 export default async function checkCodeAlreadyDeployed(
   httpForestServer: HttpForestServer,

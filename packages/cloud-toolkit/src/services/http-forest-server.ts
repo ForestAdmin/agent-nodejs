@@ -1,7 +1,9 @@
 import { Table } from '@forestadmin/datasource-sql';
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 
+import { validateEnvironmentVariables } from './environment-variables';
 import { BusinessError } from '../errors';
+import { EnvironmentVariables } from '../types';
 
 async function handledAxios<T>(
   axiosRequestConfig: AxiosRequestConfig,
@@ -142,3 +144,13 @@ export default class HttpForestServer {
     }
   }
 }
+
+export const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => {
+  validateEnvironmentVariables(envs);
+
+  return new HttpForestServer(
+    envs.FOREST_SERVER_URL,
+    envs.FOREST_ENV_SECRET,
+    envs.FOREST_AUTH_TOKEN,
+  );
+};

@@ -2,35 +2,28 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
+import ora from 'ora';
 
+import checkCodeAlreadyDeployed from './dialog/check-code-already-deployed';
 import { BusinessError } from './errors';
-import actionRunner from './services/action-runner';
+import actionRunner, {
+  actionRunnerWithSpinner,
+  multiStepsActionRunner,
+} from './services/action-runner';
 import bootstrap from './services/bootstrap';
-import checkCodeAlreadyDeployed from './services/check-code-already-deployed';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
   validateEnvironmentVariables,
   validateServerUrl,
 } from './services/environment-variables';
-import HttpForestServer from './services/http-forest-server';
+import HttpForestServer, { buildHttpForestServer } from './services/http-forest-server';
 import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import updateTypings from './services/update-typings';
-import { EnvironmentVariables } from './types';
 
 configDotenv();
-
-const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => {
-  validateEnvironmentVariables(envs);
-
-  return new HttpForestServer(
-    envs.FOREST_SERVER_URL,
-    envs.FOREST_ENV_SECRET,
-    envs.FOREST_AUTH_TOKEN,
-  );
-};
 
 program
   .command('update-typings')
@@ -39,7 +32,7 @@ program
       '(whenever its schema changes)',
   )
   .action(
-    actionRunner(async spinner => {
+    actionRunnerWithSpinner(async spinner => {
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
@@ -56,43 +49,50 @@ program
     'Environment secret, you can find it in your environment settings',
   )
   .action(
-    actionRunner(async (spinner, options) => {
-      const vars = await getOrRefreshEnvironmentVariables();
-      const secret = options.envSecret || vars.FOREST_ENV_SECRET;
+    multiStepsActionRunner([
+      async (context, options) => {
+        const vars = await getOrRefreshEnvironmentVariables();
+        const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
-      if (!secret) {
-        throw new BusinessError(
-          'Your forest env secret is missing.' +
-            ' Please provide it with the `bootstrap --env-secret <your-secret-key>` command or' +
-            ' add it to your .env file or in environment variables.',
+        if (!secret) {
+          throw new BusinessError(
+            'Your forest env secret is missing.' +
+              ' Please provide it with the `bootstrap --env-secret <your-secret-key>` command or' +
+              ' add it to your .env file or in environment variables.',
+          );
+        }
+
+        context.forestServer = await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
+        context.secret = secret;
+      },
+      async ({ forestServer }: { forestServer: HttpForestServer }) => {
+        return checkCodeAlreadyDeployed(forestServer);
+      },
+      async ({
+        secret,
+        forestServer,
+        spinner,
+      }: {
+        secret: string;
+        forestServer: HttpForestServer;
+        spinner: ora.Ora;
+      }) => {
+        spinner.text = 'Boostrapping project\n';
+        spinner.start();
+
+        await bootstrap(secret, forestServer);
+        spinner.succeed(
+          'Project successfully bootstrapped. You can start creating your customizations!',
         );
-      }
-
-      const forestServer = await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
-      spinner.stop();
-      const { keepGoing } = await checkCodeAlreadyDeployed(forestServer);
-
-      if (keepGoing === false) {
-        console.log('Operation aborted.');
-
-        return;
-      }
-
-      spinner.text = 'Boostrapping project\n';
-      spinner.start();
-
-      await bootstrap(secret, forestServer);
-      spinner.succeed(
-        'Project successfully bootstrapped. You can start creating your customizations!',
-      );
-    }),
+      },
+    ]),
   );
 
 program
   .command('login')
   .description('Login to your project')
   .action(
-    actionRunner(async spinner => {
+    actionRunnerWithSpinner(async spinner => {
       spinner.text = 'Logging in\n';
       const vars = await getEnvironmentVariables();
       validateServerUrl(vars.FOREST_SERVER_URL);
@@ -105,25 +105,22 @@ program
   .command('publish')
   .description('Publish your code customizations')
   .action(
-    actionRunner(async spinner => {
-      const vars = await getOrRefreshEnvironmentVariables();
-      validateEnvironmentVariables(vars);
-      const forestServer = await buildHttpForestServer(vars);
-      spinner.stop();
-
-      const { keepGoing } = await checkCodeAlreadyDeployed(forestServer);
-
-      if (keepGoing === false) {
-        console.log('Operation aborted.');
-
-        return;
-      }
-
-      spinner.text = 'Publishing code customizations\n';
-      spinner.start();
-      await publish(forestServer);
-      spinner.succeed('Code customizations published');
-    }),
+    multiStepsActionRunner([
+      async context => {
+        const vars = await getOrRefreshEnvironmentVariables();
+        validateEnvironmentVariables(vars);
+        context.forestServer = await buildHttpForestServer(vars);
+      },
+      async ({ forestServer }: { forestServer: HttpForestServer }) => {
+        return checkCodeAlreadyDeployed(forestServer);
+      },
+      async ({ forestServer, spinner }: { forestServer: HttpForestServer; spinner: ora.Ora }) => {
+        spinner.text = 'Publishing code customizations\n';
+        spinner.start();
+        await publish(forestServer);
+        spinner.succeed('Code customizations published');
+      },
+    ]),
   );
 
 program
