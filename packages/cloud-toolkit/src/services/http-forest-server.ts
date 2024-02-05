@@ -10,8 +10,7 @@ async function handledAxios<T>(
   try {
     const response = await axios(axiosRequestConfig);
 
-    // 2xx http codes = no error
-    if (Math.floor(response.status / 100) !== 2) {
+    if (response.status < 400) {
       throw new BusinessError(
         `Expected 200 OK, received ${response.status} ${response.statusText}`,
       );
