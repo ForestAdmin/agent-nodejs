@@ -57,7 +57,6 @@ program
   )
   .action(
     actionRunner(async (spinner, options) => {
-      spinner.stop();
       const vars = await getOrRefreshEnvironmentVariables();
       const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
@@ -70,7 +69,7 @@ program
       }
 
       const forestServer = await buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
-
+      spinner.stop();
       const { keepGoing } = await checkCodeAlreadyDeployed(forestServer);
 
       if (keepGoing === false) {
@@ -107,10 +106,22 @@ program
   .description('Publish your code customizations')
   .action(
     actionRunner(async spinner => {
-      spinner.text = 'Publishing code customizations\n';
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
-      await publish(await buildHttpForestServer(vars));
+      const forestServer = await buildHttpForestServer(vars);
+      spinner.stop();
+
+      const { keepGoing } = await checkCodeAlreadyDeployed(forestServer);
+
+      if (keepGoing === false) {
+        console.log('Operation aborted.');
+
+        return;
+      }
+
+      spinner.text = 'Publishing code customizations\n';
+      spinner.start();
+      await publish(forestServer);
       spinner.succeed('Code customizations published');
     }),
   );
