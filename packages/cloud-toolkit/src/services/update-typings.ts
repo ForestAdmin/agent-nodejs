@@ -1,14 +1,9 @@
 import type { AgentOptions } from '@forestadmin/agent';
 
 import { createAgent } from '@forestadmin/agent';
-import { createSqlDataSource } from '@forestadmin/datasource-sql';
+import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
 
-import HttpForestServer from './http-forest-server';
-
-export default async function updateTypings(
-  httpForestServer: HttpForestServer,
-  typingsPath: string,
-) {
+export default async function updateTypings(typingsPath: string, introspection: Table[]) {
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -16,10 +11,6 @@ export default async function updateTypings(
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
-  agent.addDataSource(
-    createSqlDataSource(`sqlite::memory:`, {
-      introspection: await httpForestServer.getIntrospection(),
-    }),
-  );
+  agent.addDataSource(createSqlDataSource(`sqlite::memory:`, { introspection }));
   await agent.updateTypesOnFileSystem(typingsPath, 3);
 }
