@@ -37,13 +37,12 @@ program
     'Update your typings file to synchronize code autocompletion with your datasource ' +
       '(whenever its schema changes)',
   )
-  .argument('[rootPath]', '.')
   .action(
-    actionRunner(async (spinner, rootPath) => {
+    actionRunner(async spinner => {
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
-      await updateTypings(buildHttpForestServer(vars), 'typings.d.ts', rootPath);
+      await updateTypings(buildHttpForestServer(vars), 'typings.d.ts');
       spinner.succeed('Your typings have been updated.');
     }),
   );
