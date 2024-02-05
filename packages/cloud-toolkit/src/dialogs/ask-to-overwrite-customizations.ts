@@ -2,14 +2,12 @@ import readline from 'readline';
 
 import HttpForestServer from '../services/http-forest-server';
 
-export default async function checkCodeAlreadyDeployed(
+export default async function askToOverwriteCustomizations(
   httpForestServer: HttpForestServer,
-): Promise<{
-  keepGoing: boolean;
-}> {
+): Promise<boolean> {
   const lastPublishedCodeDetails = await httpForestServer.getLastPublishedCodeDetails();
 
-  if (lastPublishedCodeDetails === null) return { keepGoing: true };
+  if (lastPublishedCodeDetails === null) return true;
 
   const {
     relativeDate,
@@ -27,11 +25,11 @@ export default async function checkCodeAlreadyDeployed(
 
     rl.question(`Do you really want to overwrite these customizations? (yes/no) `, answer => {
       if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
-        resolve({ keepGoing: false });
+        resolve(false);
       }
 
       rl.close();
-      resolve({ keepGoing: true });
+      resolve(true);
     });
   });
 }
