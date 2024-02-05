@@ -10,7 +10,8 @@ async function handledAxios<T>(
   try {
     const response = await axios(axiosRequestConfig);
 
-    if (response.status !== 200) {
+    // 2xx http codes = no error
+    if (Math.floor(response.status / 100) !== 2) {
       throw new BusinessError(
         `Expected 200 OK, received ${response.status} ${response.statusText}`,
       );
@@ -99,13 +100,13 @@ export default class HttpForestServer {
     );
   }
 
-  async getLastPublishedCodeDetails(): Promise<{
-    date: Date;
-    relativeDate: string;
-    user: { name: string; email: string };
-  } | null> {
-    try {
-      const response = await axios({
+  async getLastPublishedCodeDetails() {
+    return handledAxios<{
+      date: Date;
+      relativeDate: string;
+      user: { name: string; email: string };
+    } | null>(
+      {
         url: `${this.serverUrl}/api/full-hosted-agent/last-published-code-details`,
         method: 'GET',
         headers: {
@@ -113,32 +114,8 @@ export default class HttpForestServer {
           Authorization: `Bearer ${this.bearerToken}`,
           'Content-Type': 'application/json',
         },
-      });
-
-      if (response.status === 204) {
-        return null;
-      }
-
-      if (response.status !== 200) {
-        throw new BusinessError(
-          `Expected 200 OK, received ${response.status} ${response.statusText}`,
-        );
-      }
-
-      return response.data;
-    } catch (e) {
-      const error: Error = e;
-
-      let details;
-
-      if (error instanceof AxiosError) {
-        const errors: { detail: string; status: number }[] = error.response?.data?.errors;
-        details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
-      }
-
-      throw new BusinessError(
-        `Failed to retrieve last published code details: ${error.message}.${details}`,
-      );
-    }
+      },
+      { errorMessage: `Failed to retrieve last published code details.` },
+    );
   }
 }
