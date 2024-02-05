@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.7...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.8) (2024-02-05)
+
+
+### Features
+
+* use axios handler for error handling when getting last published code details ([#962](https://github.com/ForestAdmin/agent-nodejs/issues/962)) ([d552fe9](https://github.com/ForestAdmin/agent-nodejs/commit/d552fe9a61beae87a0b6fe959d7b0294861e8eb6))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.6...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.7) (2024-02-05)
 
 
