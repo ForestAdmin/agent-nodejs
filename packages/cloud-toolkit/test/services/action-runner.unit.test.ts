@@ -30,6 +30,7 @@ describe('actionRunner', () => {
       expect(action).toHaveBeenCalled();
       expect(action).toHaveBeenCalledWith(spinner, args);
       expect(spinner.fail).not.toHaveBeenCalled();
+      expect(spinner.stop).toHaveBeenCalled();
     });
   });
 
@@ -44,16 +45,18 @@ describe('actionRunner', () => {
 
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
+        expect(spinner.stop).toHaveBeenCalled();
       });
     });
 
-    describe('when an uncaught Error is thrown', () => {
+    describe('when a non BusinessError is thrown', () => {
       it('should let it throw', async () => {
         const { action, args, spinner } = setup();
         action.mockRejectedValue(new Error('some error occured'));
 
         await expect(actionRunner(action)(args)).rejects.toEqual(new Error('some error occured'));
 
+        expect(spinner.stop).toHaveBeenCalled();
         expect(spinner.fail).not.toHaveBeenCalled();
       });
     });
