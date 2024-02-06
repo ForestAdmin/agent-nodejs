@@ -21,7 +21,8 @@
   "main": "dist/index.js",
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "dist/**/*.txt"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
   "license": "GPL-3.0",
@@ -34,8 +35,8 @@
     "cloud-toolkit": "dist/command.js"
   },
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
+    "build": "tsc && cp -r src/templates ./dist",
+    "build:watch": "tsc --watch & nodemon --watch 'src/templates/*' --ext txt --exec cp -r src/templates ./dist",
     "lint": "eslint src test",
     "test": "jest"
   },
@@ -45,6 +46,7 @@
     "customization"
   ],
   "devDependencies": {
-    "@types/adm-zip": "^0.5.5"
+    "@types/adm-zip": "^0.5.5",
+    "nodemon": "^3.0.3"
   }
 }

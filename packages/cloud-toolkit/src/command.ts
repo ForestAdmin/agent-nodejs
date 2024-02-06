@@ -6,7 +6,7 @@ import { configDotenv } from 'dotenv';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import actionRunner from './services/action-runner';
-import bootstrap from './services/bootstrap';
+import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
@@ -43,7 +43,8 @@ program
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
-      await updateTypings(buildHttpForestServer(vars), 'typings.d.ts');
+      const introspection = await buildHttpForestServer(vars).getIntrospection();
+      await updateTypings(typingsPathAfterBootstrapped, introspection);
       spinner.succeed('Your typings have been updated.');
     }),
   );
