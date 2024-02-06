@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.31.0...@forestadmin/datasource-toolkit@1.32.0) (2024-02-06)
+
+
+### Features
+
+* add access to the default search in replaceSearch on a collection ([#966](https://github.com/ForestAdmin/agent-nodejs/issues/966)) ([8e3c0ce](https://github.com/ForestAdmin/agent-nodejs/commit/8e3c0cef623ee6e1fc683e7d9728dd0a979774d5))
+
 # @forestadmin/datasource-toolkit [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.30.1...@forestadmin/datasource-toolkit@1.31.0) (2024-02-02)
 
 
