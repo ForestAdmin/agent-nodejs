@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.10...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.11) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** remove a condition in error handler to make the bootstrap work again ([#972](https://github.com/ForestAdmin/agent-nodejs/issues/972)) ([51668fd](https://github.com/ForestAdmin/agent-nodejs/commit/51668fd64be687ccca0d3c55125841817b102805))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.9...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.10) (2024-02-06)
 
 
