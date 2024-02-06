@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.15...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.16) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolikit:** avoid console error in bootstrap ([#977](https://github.com/ForestAdmin/agent-nodejs/issues/977)) ([6e1c8da](https://github.com/ForestAdmin/agent-nodejs/commit/6e1c8da00d922ae8c85b588177d9c7f27488ceb9))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.14...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.15) (2024-02-06)
 
 
