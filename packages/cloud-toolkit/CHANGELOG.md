@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.9...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.10) (2024-02-06)
+
+
+### Features
+
+* add hello world example when running bootstrap ([#965](https://github.com/ForestAdmin/agent-nodejs/issues/965)) ([0422b18](https://github.com/ForestAdmin/agent-nodejs/commit/0422b1808f5d9f4955314fe6375a00bc3a4b19ab))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.8...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.9) (2024-02-06)
 
 
