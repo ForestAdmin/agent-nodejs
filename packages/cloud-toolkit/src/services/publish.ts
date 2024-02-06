@@ -17,7 +17,7 @@ function getKeyFromPolicy(policy: string) {
   return keyCondition[2];
 }
 
-export default async function publish(httpForestServer: HttpForestServer): Promise<void> {
+export default async function publish(httpForestServer: HttpForestServer): Promise<string> {
   try {
     let buffer: Buffer;
 
@@ -49,7 +49,8 @@ export default async function publish(httpForestServer: HttpForestServer): Promi
     const { subscriptionId } = await httpForestServer.postPublish();
 
     console.log('Received subscription id', subscriptionId);
-    // TODO subscribe with graphql to monitor job progress
+
+    return subscriptionId;
   } catch (error) {
     throw new BusinessError(`Publish failed: ${error.message}`);
   }

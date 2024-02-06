@@ -65,5 +65,6 @@ export type Agent<S extends TSchema = TSchema> = {
 export type EnvironmentVariables = {
   FOREST_ENV_SECRET: string;
   FOREST_SERVER_URL: string;
+  FOREST_SUBSCRIPTION_URL: string;
   FOREST_AUTH_TOKEN: string;
 };

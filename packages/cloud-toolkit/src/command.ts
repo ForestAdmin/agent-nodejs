@@ -13,6 +13,7 @@ import {
   validateEnvironmentVariables,
   validateServerUrl,
 } from './services/environment-variables';
+import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
 import packageCustomizations from './services/packager';
@@ -30,6 +31,12 @@ const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => 
     envs.FOREST_ENV_SECRET,
     envs.FOREST_AUTH_TOKEN,
   );
+};
+
+const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
+  validateEnvironmentVariables(envs);
+
+  return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
 };
 
 program
@@ -106,19 +113,26 @@ program
   .description('Publish your code customizations')
   .action(
     actionRunner(async spinner => {
+      spinner.text = 'Checking previous publication\n';
       const vars = await getOrRefreshEnvironmentVariables();
-      validateEnvironmentVariables(vars);
       const forestServer = buildHttpForestServer(vars);
-      spinner.stop();
+      const subscriber = buildEventSubscriber(vars);
 
       if (!(await askToOverwriteCustomizations(forestServer))) {
         throw new BusinessError('Operation aborted.');
       }
 
       spinner.text = 'Publishing code customizations\n';
-      spinner.start();
-      await publish(forestServer);
-      spinner.succeed('Code customizations published');
+      const subscriptionId = await publish(forestServer);
+      const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);
+
+      if (error) {
+        spinner.fail(`Something went wrong: ${error}`);
+      } else {
+        spinner.succeed('Code customizations published');
+      }
+
+      subscriber.destroy();
     }),
   );
 
