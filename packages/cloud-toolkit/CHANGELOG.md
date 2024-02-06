@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.11...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.12) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** bump forest-cli to fix oclif warning during installation  ([#973](https://github.com/ForestAdmin/agent-nodejs/issues/973)) ([7749034](https://github.com/ForestAdmin/agent-nodejs/commit/77490348830f7a74664d64565f4c67ec18000bf6))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.10...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.11) (2024-02-06)
 
 
