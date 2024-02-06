@@ -1,3 +1,11 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.12...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.13) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** exit with code 1 when a business error is triggered to cancel commands ([#974](https://github.com/ForestAdmin/agent-nodejs/issues/974)) ([fac1b3d](https://github.com/ForestAdmin/agent-nodejs/commit/fac1b3d5b58755467afb5e10f810c9ac50188b7d))
+* **cloud-toolkit:** fix packager path to be cross platform ([#975](https://github.com/ForestAdmin/agent-nodejs/issues/975)) ([42b8f4f](https://github.com/ForestAdmin/agent-nodejs/commit/42b8f4f71fa2c76539577743ef642eeea50d56f5))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.11...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.12) (2024-02-06)
 
 
