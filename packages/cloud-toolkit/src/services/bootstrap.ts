@@ -22,21 +22,16 @@ const helloWorldTemplatePath = path.join(__dirname, '..', 'templates', 'hello-wo
 
 export const typingsPathAfterBootstrapped = path.join('typings.d.ts');
 
-async function tryToClearBootstrap(): Promise<void> {
-  const removeCloudCustomizer = async () => {
-    try {
-      // we want to throw if the folder is not removed
-      await fsP.rm(cloudCustomizerPath, { force: false, recursive: true });
-    } catch (e) {
-      console.log(`Please remove cloud-customizer folder and re-run bootstrap command.`);
-    }
-  };
-
-  await Promise.all([
-    fsP.rm(zipPath, { force: true }),
-    fsP.rm(extractedPath, { force: true, recursive: true }),
-    removeCloudCustomizer(),
-  ]);
+async function tryToClearBootstrap(): Promise<string | null> {
+  try {
+    await Promise.all([
+      fsP.rm(zipPath, { force: true }),
+      fsP.rm(extractedPath, { force: true, recursive: true }),
+      fsP.rm(cloudCustomizerPath, { force: false, recursive: true }),
+    ]);
+  } catch (e) {
+    return ` \nPlease remove cloud-customizer folder and re-run bootstrap command.`;
+  }
 }
 
 async function generateDotEnv(envSecret: string) {
@@ -88,7 +83,7 @@ export default async function bootstrap(
 
     await updateTypings(typingsPath, introspection);
   } catch (error) {
-    await tryToClearBootstrap();
-    throw new BusinessError(`Bootstrap failed: ${error.message}`);
+    const potentialErrorMessage = await tryToClearBootstrap();
+    throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage}`);
   }
 }
