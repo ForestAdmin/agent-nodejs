@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.8...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.9) (2024-02-06)
+
+
+### Bug Fixes
+
+* throw errors when bootstrap or deploy is aborted ([#970](https://github.com/ForestAdmin/agent-nodejs/issues/970)) ([43f0889](https://github.com/ForestAdmin/agent-nodejs/commit/43f08892bbff294d7bfd762f0b9bf4887c1f94a8))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.7...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.8) (2024-02-05)
 
 
