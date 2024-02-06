@@ -1,11 +1,9 @@
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
-import path from 'path';
 
 import HttpForestServer from './http-forest-server';
+import { zipPath } from './packager';
 import { BusinessError } from '../errors';
-
-const zipPath = path.join('dist', 'code-customizations.zip');
 
 function getKeyFromPolicy(policy: string) {
   const decoded = JSON.parse(Buffer.from(policy.split('.')[0], 'base64').toString());
