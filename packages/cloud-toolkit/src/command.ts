@@ -116,7 +116,6 @@ program
       spinner.text = 'Checking previous publication\n';
       const vars = await getOrRefreshEnvironmentVariables();
       const forestServer = buildHttpForestServer(vars);
-      const subscriber = buildEventSubscriber(vars);
 
       if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
         throw new BusinessError('Operation aborted.');
@@ -124,15 +123,21 @@ program
 
       const subscriptionId = await publish(forestServer);
       spinner.start('Publishing code customizations (operation cannot be cancelled)');
-      const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);
+      const subscriber = buildEventSubscriber(vars);
 
-      if (error) {
-        spinner.fail(`Something went wrong: ${error}`);
-      } else {
-        spinner.succeed('Code customizations published');
+      try {
+        const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);
+
+        if (error) {
+          spinner.fail(`Something went wrong: ${error}`);
+        } else {
+          spinner.succeed('Code customizations published');
+        }
+      } catch (error) {
+        throw new BusinessError(error.message);
+      } finally {
+        subscriber.destroy();
       }
-
-      subscriber.destroy();
     }),
   );
 
