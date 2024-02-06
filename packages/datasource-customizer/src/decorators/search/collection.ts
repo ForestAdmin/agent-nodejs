@@ -39,7 +39,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       const ctx = new CollectionSearchContext(
         this,
         caller,
-        this.generatePlainSearchFilter.bind(this),
+        this.generatePlainSearchFilter.bind(this, caller),
       );
       let tree: ConditionTree;
 
@@ -100,10 +100,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   }
 
   private generatePlainSearchFilter(
+    caller: Caller,
     searchText: string,
     options?: SearchOptions,
   ): PlainConditionTree {
-    const conditionTree = this.generateSearchFilter(null, searchText, options);
+    const conditionTree = this.generateSearchFilter(caller, searchText, options);
 
     return conditionTree?.toPlainObject();
   }
