@@ -3,6 +3,7 @@
   "version": "1.0.0-beta-cloud-toolkit.8",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
+    "@commander-js/extra-typings": "^12.0.0",
     "@forestadmin/agent": "1.37.0-beta-cloud-toolkit.1",
     "@forestadmin/datasource-customizer": "1.41.0",
     "@forestadmin/datasource-sql": "1.7.45",
@@ -31,7 +32,7 @@
     "directory": "packages/cloud-toolkit"
   },
   "bin": {
-    "cloud-toolkit": "dist/command.js"
+    "cloud-toolkit": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",

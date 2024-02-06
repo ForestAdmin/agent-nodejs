@@ -12,7 +12,7 @@ async function handledAxios<T>(
   try {
     const response = await axios(axiosRequestConfig);
 
-    if (response.status < 400) {
+    if (response.status >= 400) {
       throw new BusinessError(
         `Expected 200 OK, received ${response.status} ${response.statusText}`,
       );
