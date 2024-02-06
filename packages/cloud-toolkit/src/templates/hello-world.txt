@@ -15,7 +15,7 @@ Run with npm or yarn this command to deploy the hello world custom field.
 =======================================================================
 */
 export default function customizeAgent(agent: Agent<Schema>) {
-  agent.customizeCollection('COLLECTION_NAME_TO_REPLACE', collection => {
+  agent.customizeCollection('<COLLECTION_NAME_TO_REPLACE>', collection => {
     collection.addField('HelloWorld', {
       columnType: 'String',
       defaultValue: 'Hello World',

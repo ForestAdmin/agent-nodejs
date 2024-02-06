@@ -36,7 +36,7 @@
   },
   "scripts": {
     "build": "tsc && cp -r src/templates ./dist",
-    "build:watch": "tsc --watch",
+    "build:watch": "tsc --watch & nodemon --watch 'src/templates/*' --ext txt --exec cp -r src/templates ./dist",
     "lint": "eslint src test",
     "test": "jest"
   },
@@ -46,6 +46,7 @@
     "customization"
   ],
   "devDependencies": {
-    "@types/adm-zip": "^0.5.5"
+    "@types/adm-zip": "^0.5.5",
+    "nodemon": "^3.0.3"
   }
 }

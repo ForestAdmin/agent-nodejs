@@ -17,7 +17,7 @@ const cloudCustomizerPath = path.join('.', 'cloud-customizer');
 const typingsPath = path.join(cloudCustomizerPath, 'typings.d.ts');
 const indexPath = path.join(cloudCustomizerPath, 'src', 'index.ts');
 const envPath = path.join(cloudCustomizerPath, '.env');
-const dotEnvTemplatePath = path.join(__dirname, '..', 'templates', '.env.txt');
+const dotEnvTemplatePath = path.join(__dirname, '..', 'templates', 'env.txt');
 const helloWorldTemplatePath = path.join(__dirname, '..', 'templates', 'hello-world.txt');
 
 export const typingsPathAfterBootstrapped = path.join('typings.d.ts');
@@ -41,14 +41,14 @@ async function tryToClearBootstrap(): Promise<void> {
 
 async function generateDotEnv(envSecret: string) {
   const envTemplate = await fsP.readFile(dotEnvTemplatePath, 'utf-8');
-  let replaced = envTemplate.replace('FOREST_ENV_SECRET_TO_REPLACE', envSecret);
-  replaced = replaced.replace('TOKEN_PATH_TO_REPLACE', homedir());
+  let replaced = envTemplate.replace('<FOREST_ENV_SECRET_TO_REPLACE>', envSecret);
+  replaced = replaced.replace('<TOKEN_PATH_TO_REPLACE>', homedir());
   await fsP.writeFile(envPath, replaced);
 }
 
 async function generateHelloWorldExample(collectionName: string) {
   const template = await fsP.readFile(helloWorldTemplatePath, 'utf-8');
-  const replaced = template.replace('COLLECTION_NAME_TO_REPLACE', collectionName);
+  const replaced = template.replace('<COLLECTION_NAME_TO_REPLACE>', collectionName);
   await fsP.writeFile(indexPath, replaced);
 }
 
