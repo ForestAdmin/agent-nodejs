@@ -57,6 +57,13 @@ export function createSqlDataSource(
       ? { tables: options.introspection, version: 1 }
       : options?.introspection;
 
+    if (introspection.version > 1) {
+      throw new Error(
+        'This version of introspection is newer than this package version. ' +
+          'Please update @forestadmin/datasource-sql',
+      );
+    }
+
     const sequelize = await buildSequelizeInstance(uriOrOptions, logger, introspection);
 
     return new SequelizeDataSource(sequelize, logger);

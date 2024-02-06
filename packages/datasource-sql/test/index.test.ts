@@ -25,6 +25,20 @@ describe('index', () => {
         expect(factory).toBeInstanceOf(Function);
       });
     });
+
+    describe('when the introspection version is not handled', () => {
+      test('should throw an error', async () => {
+        const factory = createSqlDataSource('postgres://', {
+          introspection: { tables: [], version: 2255345234 },
+        });
+        const logger = jest.fn();
+
+        await expect(() => factory(logger)).rejects.toThrow(
+          `This version of introspection is newer than this package version. ` +
+            'Please update @forestadmin/datasource-sql',
+        );
+      });
+    });
   });
 
   describe('buildSequelizeInstance', () => {
