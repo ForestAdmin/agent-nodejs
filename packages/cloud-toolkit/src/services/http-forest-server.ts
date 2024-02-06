@@ -10,15 +10,7 @@ async function handledAxios<T>(
   { errorMessage }: { errorMessage: string },
 ): Promise<T> {
   try {
-    const response = await axios(axiosRequestConfig);
-
-    if (response.status < 400) {
-      throw new BusinessError(
-        `Expected 200 OK, received ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return response.data;
+    return (await axios(axiosRequestConfig)).data;
   } catch (e) {
     const error: Error = e;
 
@@ -116,7 +108,7 @@ export default class HttpForestServer {
           'Content-Type': 'application/json',
         },
       },
-      { errorMessage: `Failed to retrieve last published code details.` },
+      { errorMessage: `Failed to retrieve last published code details` },
     );
   }
 }
