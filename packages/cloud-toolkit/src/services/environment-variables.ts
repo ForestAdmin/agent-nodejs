@@ -20,6 +20,8 @@ export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   return {
     FOREST_ENV_SECRET: process.env.FOREST_ENV_SECRET,
     FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
+    FOREST_SUBSCRIPTION_URL:
+      process.env.FOREST_SUBSCRIPTION_URL || 'wss://api.forestadmin.com/subscriptions',
     FOREST_AUTH_TOKEN: process.env.FOREST_AUTH_TOKEN || (await getTokenFromToolbelt()),
   };
 }
@@ -47,6 +49,29 @@ export function validateServerUrl(serverUrl: string): void {
   }
 }
 
+export function validateSubscriptionUrl(subscriptionUrl: string): void {
+  if (!subscriptionUrl) {
+    throw new BusinessError('Missing FOREST_SUBSCRIPTION_URL. Please check your .env file.');
+  }
+
+  let givenUrl;
+
+  try {
+    givenUrl = new URL(subscriptionUrl);
+  } catch (err) {
+    throw new BusinessError(
+      `FOREST_SUBSCRIPTION_URL is invalid. Please check your .env file.' +
+        ' You can probably remove it from your .env file.: ${err.message}`,
+    );
+  }
+
+  if (givenUrl.protocol !== 'wss:') {
+    throw new BusinessError(
+      "FOREST_SUBSCRIPTION_URL is invalid, it must start with 'wss://'. Please check your .env file.",
+    );
+  }
+}
+
 export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   if (!env.FOREST_ENV_SECRET) {
     throw new BusinessError('Missing FOREST_ENV_SECRET. Please check your .env file.');
@@ -66,6 +91,7 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   }
 
   validateServerUrl(env.FOREST_SERVER_URL);
+  validateSubscriptionUrl(env.FOREST_SUBSCRIPTION_URL);
 }
 
 export const getOrRefreshEnvironmentVariables = async (): Promise<EnvironmentVariables> => {

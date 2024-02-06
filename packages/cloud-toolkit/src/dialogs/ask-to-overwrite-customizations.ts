@@ -1,8 +1,10 @@
+import { Ora } from 'ora';
 import readline from 'readline';
 
 import HttpForestServer from '../services/http-forest-server';
 
 export default async function askToOverwriteCustomizations(
+  spinner: Ora,
   httpForestServer: HttpForestServer,
 ): Promise<boolean> {
   const lastPublishedCodeDetails = await httpForestServer.getLastPublishedCodeDetails();
@@ -14,8 +16,8 @@ export default async function askToOverwriteCustomizations(
     user: { name, email },
   } = lastPublishedCodeDetails;
 
-  console.warn('\n/!\\ There is already deployed customization code on your project:');
-  console.log(`\n  - Last code pushed ${relativeDate}, by ${name} (${email}).\n`);
+  spinner.warn('There is already deployed customization code on your project');
+  spinner.info(`Last code pushed ${relativeDate}, by ${name} (${email})`);
 
   return new Promise(resolve => {
     const rl = readline.createInterface({
