@@ -1,9 +1,14 @@
+import { beforeEach } from 'node:test';
 import ora from 'ora';
 
 import { BusinessError } from '../../src/errors';
 import actionRunner from '../../src/services/action-runner';
 
 jest.mock('ora');
+const processExit = jest.spyOn(process, 'exit').mockImplementation();
+beforeEach(() => {
+  processExit.mockClear();
+});
 
 describe('actionRunner', () => {
   const setup = () => {
@@ -36,7 +41,7 @@ describe('actionRunner', () => {
 
   describe('when the action fails', () => {
     describe('when BusinessError is thrown', () => {
-      it('should call fail on the spinner', async () => {
+      it('should call fail on the spinner and process.exit(1)', async () => {
         const { action, args, spinner } = setup();
         const message = 'some business error occured';
         action.mockRejectedValue(new BusinessError(message));
@@ -46,6 +51,7 @@ describe('actionRunner', () => {
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
         expect(spinner.stop).toHaveBeenCalled();
+        expect(processExit).toHaveBeenCalledWith(1);
       });
     });
 
