@@ -7,17 +7,12 @@ export default async function askToOverwriteCustomizations(
   spinner: Ora,
   httpForestServer: HttpForestServer,
 ): Promise<boolean> {
-  const lastPublishedCodeDetails = await httpForestServer.getLastPublishedCodeDetails();
+  const { relativeDate, user } = await httpForestServer.getLastPublishedCodeDetails();
 
-  if (lastPublishedCodeDetails === null) return true;
-
-  const {
-    relativeDate,
-    user: { name, email },
-  } = lastPublishedCodeDetails;
+  if (!relativeDate || !user) return true;
 
   spinner.warn('There is already deployed customization code on your project');
-  spinner.info(`Last code pushed ${relativeDate}, by ${name} (${email})`);
+  spinner.info(`Last code pushed ${relativeDate}, by ${user.name} (${user.email})`);
 
   return new Promise(resolve => {
     const rl = readline.createInterface({
