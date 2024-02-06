@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.13...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.14) (2024-02-06)
+
+
+### Features
+
+* **publis:** listen to code customization events ([#971](https://github.com/ForestAdmin/agent-nodejs/issues/971)) ([32b4211](https://github.com/ForestAdmin/agent-nodejs/commit/32b42117a1af4dec339931358bae65f1835c76e4))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.12...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.13) (2024-02-06)
 
 
