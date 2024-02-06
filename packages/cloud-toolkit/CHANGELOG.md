@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.14...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.15) (2024-02-06)
+
+
+### Bug Fixes
+
+* handle empty response on last publish details ([#979](https://github.com/ForestAdmin/agent-nodejs/issues/979)) ([235bd59](https://github.com/ForestAdmin/agent-nodejs/commit/235bd59ecd2e7831c23cf0090ec0365b9d327e45))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.13...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.14) (2024-02-06)
 
 
