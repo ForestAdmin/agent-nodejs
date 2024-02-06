@@ -48,7 +48,7 @@ export default class EventSubscriber {
     });
   }
 
-  async subscribeToCodeCustomization(subscriptionId): Promise<{ error?: string }> {
+  async subscribeToCodeCustomization(subscriptionId: string): Promise<{ error?: string }> {
     return new Promise((resolve, reject) => {
       this.failureSubscription = this.client
         .subscribe({

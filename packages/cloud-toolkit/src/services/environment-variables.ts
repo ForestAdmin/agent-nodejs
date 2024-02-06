@@ -91,6 +91,7 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   }
 
   validateServerUrl(env.FOREST_SERVER_URL);
+  validateSubscriptionUrl(env.FOREST_SUBSCRIPTION_URL);
 }
 
 export const getOrRefreshEnvironmentVariables = async (): Promise<EnvironmentVariables> => {
