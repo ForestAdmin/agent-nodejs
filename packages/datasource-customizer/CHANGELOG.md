@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.42.0...@forestadmin/datasource-customizer@1.43.0) (2024-02-06)
+
+
+### Features
+
+* add access to the default search in replaceSearch on a collection ([#966](https://github.com/ForestAdmin/agent-nodejs/issues/966)) ([8e3c0ce](https://github.com/ForestAdmin/agent-nodejs/commit/8e3c0cef623ee6e1fc683e7d9728dd0a979774d5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+
 # @forestadmin/datasource-customizer [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.41.1...@forestadmin/datasource-customizer@1.42.0) (2024-02-02)
 
 
