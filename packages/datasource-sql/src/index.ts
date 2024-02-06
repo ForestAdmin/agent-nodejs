@@ -7,7 +7,7 @@ import { Sequelize } from 'sequelize';
 
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';
-import Introspector from './introspection/introspector';
+import Introspector, { INTROSPECTION_FORMAT_VERSION } from './introspection/introspector';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
@@ -54,10 +54,10 @@ export function createSqlDataSource(
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const introspection: Introspection = Array.isArray(options?.introspection)
-      ? { tables: options.introspection, version: 1 }
+      ? { tables: options.introspection, version: INTROSPECTION_FORMAT_VERSION }
       : options?.introspection;
 
-    if (introspection.version > 1) {
+    if (introspection.version > INTROSPECTION_FORMAT_VERSION) {
       throw new Error(
         'This version of introspection is newer than this package version. ' +
           'Please update @forestadmin/datasource-sql',

@@ -13,6 +13,8 @@ import {
 } from './type-overrides';
 import { Introspection, Table } from './types';
 
+export const INTROSPECTION_FORMAT_VERSION = 1;
+
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Introspection> {
     const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
@@ -22,7 +24,7 @@ export default class Introspector {
 
     this.sanitizeInPlace(tables, logger);
 
-    return { tables, version: 1 };
+    return { tables, version: INTROSPECTION_FORMAT_VERSION };
   }
 
   /** Get names of all tables in the public schema of the db */
