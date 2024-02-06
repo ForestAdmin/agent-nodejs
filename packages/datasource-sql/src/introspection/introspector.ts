@@ -11,10 +11,10 @@ import {
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from './type-overrides';
-import { Table } from './types';
+import { Introspection, Table } from './types';
 
 export default class Introspector {
-  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
+  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Introspection> {
     const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
 
     const tableNames = await this.getTableNames(dialect, sequelize as SequelizeWithOptions);
@@ -22,7 +22,7 @@ export default class Introspector {
 
     this.sanitizeInPlace(tables, logger);
 
-    return tables;
+    return { tables, version: 1 };
   }
 
   /** Get names of all tables in the public schema of the db */
