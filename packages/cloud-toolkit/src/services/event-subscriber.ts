@@ -25,22 +25,22 @@ const CUSTOMIZATION_DEPLOYED_SUBSCRIPTION = gql`
 
 export default class EventSubscriber {
   private readonly client: ApolloClient<NormalizedCacheObject>;
+  private readonly subscriptionClient: SubscriptionClient;
 
   private failureSubscription: ZenObservable.Subscription;
   private deployedSubscription: ZenObservable.Subscription;
 
   constructor(subscriptionUrl: string, bearerToken: string) {
-    const wsLink = new WebSocketLink(
-      new SubscriptionClient(
-        subscriptionUrl,
-        {
-          connectionParams: {
-            authToken: bearerToken,
-          },
+    this.subscriptionClient = new SubscriptionClient(
+      subscriptionUrl,
+      {
+        connectionParams: {
+          authToken: bearerToken,
         },
-        WebSocket,
-      ),
+      },
+      WebSocket,
     );
+    const wsLink = new WebSocketLink(this.subscriptionClient);
 
     this.client = new ApolloClient({
       link: wsLink,
@@ -79,5 +79,7 @@ export default class EventSubscriber {
   destroy() {
     this.failureSubscription.unsubscribe();
     this.deployedSubscription.unsubscribe();
+    this.client.stop();
+    this.subscriptionClient.close();
   }
 }

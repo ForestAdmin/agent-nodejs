@@ -48,8 +48,6 @@ export default async function publish(httpForestServer: HttpForestServer): Promi
 
     const { subscriptionId } = await httpForestServer.postPublish();
 
-    console.log('Received subscription id', subscriptionId);
-
     return subscriptionId;
   } catch (error) {
     throw new BusinessError(`Publish failed: ${error.message}`);

@@ -82,7 +82,7 @@ program
       spinner.succeed('Environment found.');
       spinner.stop();
 
-      if (!(await askToOverwriteCustomizations(forestServer))) {
+      if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
         throw new BusinessError('Operation aborted.');
       }
 
@@ -118,12 +118,12 @@ program
       const forestServer = buildHttpForestServer(vars);
       const subscriber = buildEventSubscriber(vars);
 
-      if (!(await askToOverwriteCustomizations(forestServer))) {
+      if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
         throw new BusinessError('Operation aborted.');
       }
 
-      spinner.text = 'Publishing code customizations\n';
       const subscriptionId = await publish(forestServer);
+      spinner.start('Publishing code customizations (operation cannot be cancelled)');
       const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);
 
       if (error) {
