@@ -4,6 +4,8 @@ import path from 'path';
 
 import { BusinessError } from '../errors';
 
+export const zipPath = path.join('dist', 'code-customizations.zip');
+
 export default async function packageCustomizations() {
   const zip: AdmZip = new AdmZip();
   const distPath = path.join('dist', 'code-customizations');
@@ -18,6 +20,6 @@ export default async function packageCustomizations() {
     );
   }
 
-  zip.addLocalFolder(distPath, 'nodejs/customization');
-  await zip.writeZipPromise(path.join('dist', 'code-customizations.zip'), { overwrite: true });
+  zip.addLocalFolder(distPath, path.join('nodejs', 'customization'));
+  await zip.writeZipPromise(zipPath, { overwrite: true });
 }
