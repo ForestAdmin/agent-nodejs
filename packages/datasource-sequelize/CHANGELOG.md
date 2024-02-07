@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.6.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.3...@forestadmin/datasource-sequelize@1.6.4) (2024-02-07)
+
+
+### Bug Fixes
+
+* searching into text[] columns in postgresql leads to error due to invalid introspection ([#983](https://github.com/ForestAdmin/agent-nodejs/issues/983)) ([f9ee1a6](https://github.com/ForestAdmin/agent-nodejs/commit/f9ee1a60998157071010e45a3e30fcbed34aa43a))
+
 ## @forestadmin/datasource-sequelize [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.2...@forestadmin/datasource-sequelize@1.6.3) (2024-02-06)
 
 
