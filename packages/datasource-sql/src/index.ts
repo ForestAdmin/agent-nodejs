@@ -57,7 +57,7 @@ export function createSqlDataSource(
       ? { tables: options.introspection, version: INTROSPECTION_FORMAT_VERSION }
       : options?.introspection;
 
-    if (introspection.version > INTROSPECTION_FORMAT_VERSION) {
+    if (introspection && introspection.version > INTROSPECTION_FORMAT_VERSION) {
       throw new Error(
         'This version of introspection is newer than this package version. ' +
           'Please update @forestadmin/datasource-sql',
