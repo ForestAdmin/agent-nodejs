@@ -143,7 +143,7 @@ program
 
 program
   .command('package')
-  .description('Publish your code customizations')
+  .description('Package your code customizations')
   .action(
     actionRunner(async spinner => {
       spinner.text = 'Packaging code\n';
