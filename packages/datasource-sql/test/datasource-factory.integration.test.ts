@@ -236,6 +236,9 @@ describe('SqlDataSourceFactory > Integration', () => {
                 });
 
                 it('should correctly create records', async () => {
+                  expect.assertions(0);
+
+                  // It should not throw
                   await sequelize.models.things.create({ tags: ['tag1', 'tag2'] });
                 });
 
@@ -253,7 +256,7 @@ describe('SqlDataSourceFactory > Integration', () => {
                       },
                     });
                   } catch (e) {
-                    console.log(e);
+                    console.error(e);
                     throw e;
                   }
 
@@ -289,7 +292,7 @@ describe('SqlDataSourceFactory > Integration', () => {
                     },
                   });
                 } catch (e) {
-                  console.log(e);
+                  console.error(e);
                   throw e;
                 } finally {
                   await setupSequelize?.close();
@@ -306,6 +309,9 @@ describe('SqlDataSourceFactory > Integration', () => {
               });
 
               it('should correctly create records', async () => {
+                expect.assertions(0);
+
+                // It should not throw
                 await sequelize.models.things.create({ values: [1, 2] });
               });
 
@@ -324,7 +330,7 @@ describe('SqlDataSourceFactory > Integration', () => {
                     },
                   });
                 } catch (e) {
-                  console.log(e);
+                  console.error(e);
                   throw e;
                 }
 
@@ -387,7 +393,7 @@ describe('SqlDataSourceFactory > Integration', () => {
                       },
                     });
                   } catch (e) {
-                    console.log(e);
+                    console.error(e);
                     throw e;
                   }
 
