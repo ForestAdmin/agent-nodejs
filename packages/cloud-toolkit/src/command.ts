@@ -64,7 +64,7 @@ program
     'Environment secret, you can find it in your environment settings',
   )
   .action(
-    actionRunner(async (spinner, options) => {
+    actionRunner(async (spinner, options: { envSecret: string }) => {
       spinner.text = 'Checking environment\n';
       spinner.start();
       const vars = await getOrRefreshEnvironmentVariables();
@@ -111,13 +111,13 @@ program
 program
   .command('publish')
   .description('Publish your code customizations')
+  .option('-f, --force', 'Force the publication without asking for confirmation')
   .action(
-    actionRunner(async spinner => {
-      spinner.text = 'Checking previous publication\n';
+    actionRunner(async (spinner, options: { force: boolean }) => {
       const vars = await getOrRefreshEnvironmentVariables();
       const forestServer = buildHttpForestServer(vars);
 
-      if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
+      if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
         throw new BusinessError('Operation aborted.');
       }
 

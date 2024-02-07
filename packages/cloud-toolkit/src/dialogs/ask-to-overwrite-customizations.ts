@@ -7,6 +7,7 @@ export default async function askToOverwriteCustomizations(
   spinner: Ora,
   httpForestServer: HttpForestServer,
 ): Promise<boolean> {
+  spinner.text = 'Checking previous publication\n';
   const { relativeDate, user } = await httpForestServer.getLastPublishedCodeDetails();
 
   if (!relativeDate || !user) return true;
