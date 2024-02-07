@@ -114,7 +114,6 @@ program
   .option('-f, --force', 'Force the publication without asking for confirmation')
   .action(
     actionRunner(async (spinner, options: { force: boolean }) => {
-      spinner.text = 'Checking previous publication\n';
       const vars = await getOrRefreshEnvironmentVariables();
       const forestServer = buildHttpForestServer(vars);
 
