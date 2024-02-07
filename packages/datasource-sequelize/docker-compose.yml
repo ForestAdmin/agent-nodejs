@@ -2,7 +2,7 @@ version: '3.1'
 services:
   postgres16:
     image: postgres:16-alpine
-    container_name: forest_datasource_sql_test_postgres16
+    container_name: forest_datasource_sequelize_test_postgres16
     ports:
       - '5456:5432'
     environment:
@@ -11,7 +11,7 @@ services:
 
   mysql8:
     image: mysql:8
-    container_name: forest_datasource_sql_test_mysql8
+    container_name: forest_datasource_sequelize_test_mysql8
     ports:
       - '3318:3306'
     environment:
@@ -19,7 +19,7 @@ services:
 
   mssql2022:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: forest_datasource_sql_test_mssql2022
+    container_name: forest_datasource_sequelize_test_mssql2022
     platform: linux/amd64
     ports:
       - '1432:1433'
@@ -30,7 +30,7 @@ services:
 
   mariadb11:
     image: mariadb:11
-    container_name: forest_datasource_sql_test_mariadb11
+    container_name: forest_datasource_sequelize_test_mariadb11
     ports:
       - '3821:3306'
     environment:

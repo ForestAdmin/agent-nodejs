@@ -1,7 +1,8 @@
 import { stringify } from 'querystring';
-import { DataTypes, Dialect, Model, ModelStatic, Sequelize } from 'sequelize';
+import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 
 import CONNECTION_DETAILS from './_helpers/connection-details';
+import setupEmptyDatabase from './_helpers/setup-empty-database';
 import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
 import setupSimpleTable from './_helpers/setup-simple-table';
 import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
@@ -190,6 +191,212 @@ describe('SqlDataSourceFactory > Integration', () => {
             await sequelize.close();
           }
         });
+
+        if (connectionDetails.supports.arrays) {
+          describe('with array types', () => {
+            describe.each([DataTypes.TEXT, DataTypes.STRING(255), DataTypes.STRING])(
+              `with %s`,
+              type => {
+                let sequelize;
+
+                beforeEach(async () => {
+                  const setupSequelize = await setupEmptyDatabase(
+                    connectionDetails,
+                    'datasource-sql-array-test',
+                  );
+
+                  try {
+                    await setupSequelize?.getQueryInterface().createTable('things', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      tags: {
+                        type: DataTypes.ARRAY(type),
+                      },
+                    });
+                  } finally {
+                    await setupSequelize?.close();
+                  }
+
+                  try {
+                    sequelize = await buildSequelizeInstance(
+                      `${connectionDetails.url('datasource-sql-array-test')}`,
+                      jest.fn(),
+                    );
+                  } catch (e) {
+                    console.error('error', e);
+                    throw e;
+                  }
+                });
+
+                afterEach(async () => {
+                  await sequelize?.close();
+                });
+
+                it('should correctly create records', async () => {
+                  await sequelize.models.things.create({ tags: ['tag1', 'tag2'] });
+                });
+
+                it('should correctly find records with some values in the array', async () => {
+                  await sequelize.models.things.create({ tags: ['tag1', 'tag2'] });
+
+                  let things;
+
+                  try {
+                    things = await sequelize.models.things.findAll({
+                      where: {
+                        tags: {
+                          [Op.contains]: ['tag1'],
+                        },
+                      },
+                    });
+                  } catch (e) {
+                    console.log(e);
+                    throw e;
+                  }
+
+                  expect(things).toHaveLength(1);
+                });
+              },
+            );
+
+            describe.each([
+              DataTypes.INTEGER,
+              DataTypes.BIGINT,
+              DataTypes.REAL,
+              DataTypes.FLOAT,
+              DataTypes.DECIMAL(10, 2),
+            ])(`with %s`, type => {
+              let sequelize;
+
+              beforeEach(async () => {
+                const setupSequelize = await setupEmptyDatabase(
+                  connectionDetails,
+                  'datasource-sql-array-test',
+                );
+
+                try {
+                  await setupSequelize?.getQueryInterface().createTable('things', {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    values: {
+                      type: DataTypes.ARRAY(type),
+                    },
+                  });
+                } catch (e) {
+                  console.log(e);
+                  throw e;
+                } finally {
+                  await setupSequelize?.close();
+                }
+
+                sequelize = await buildSequelizeInstance(
+                  `${connectionDetails.url('datasource-sql-array-test')}`,
+                  jest.fn(),
+                );
+              });
+
+              afterEach(async () => {
+                await sequelize?.close();
+              });
+
+              it('should correctly create records', async () => {
+                await sequelize.models.things.create({ values: [1, 2] });
+              });
+
+              it('should correctly find records with some values in the array', async () => {
+                await sequelize.models.things.create({ values: [1, 2] });
+                await sequelize.models.things.create({ values: [2] });
+
+                let things;
+
+                try {
+                  things = await sequelize.models.things.findAll({
+                    where: {
+                      values: {
+                        [Op.contains]: [1],
+                      },
+                    },
+                  });
+                } catch (e) {
+                  console.log(e);
+                  throw e;
+                }
+
+                expect(things).toHaveLength(1);
+              });
+            });
+
+            if (connectionDetails.supports.enums) {
+              describe('with arrays of enums', () => {
+                let sequelize;
+
+                beforeEach(async () => {
+                  const setupSequelize = await setupEmptyDatabase(
+                    connectionDetails,
+                    'datasource-sql-array-test',
+                  );
+
+                  try {
+                    await setupSequelize?.getQueryInterface().createTable('things', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      values: {
+                        type: DataTypes.ARRAY(DataTypes.ENUM('foo', 'bar', 'baz')),
+                      },
+                    });
+                  } finally {
+                    await setupSequelize?.close();
+                  }
+
+                  sequelize = await buildSequelizeInstance(
+                    `${connectionDetails.url('datasource-sql-array-test')}`,
+                    jest.fn(),
+                  );
+                });
+
+                afterEach(async () => {
+                  await sequelize?.close();
+                });
+
+                it('should correctly create records', async () => {
+                  expect.assertions(0);
+                  await sequelize.models.things.create({ values: ['foo', 'bar'] });
+                });
+
+                it('should correctly find records with some values in the array', async () => {
+                  await sequelize.models.things.create({ values: ['foo', 'bar'] });
+                  await sequelize.models.things.create({ values: ['bar'] });
+
+                  let things;
+
+                  try {
+                    things = await sequelize.models.things.findAll({
+                      where: {
+                        values: {
+                          [Op.contains]: ['foo'],
+                        },
+                      },
+                    });
+                  } catch (e) {
+                    console.log(e);
+                    throw e;
+                  }
+
+                  expect(things).toHaveLength(1);
+                });
+              });
+            }
+          });
+        }
       });
 
       describe('with relations', () => {
@@ -271,6 +478,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         expect(Introspector.introspect).not.toHaveBeenCalled();
 
         const dataSourceModels = sequelize.models;
+
         Object.values(setupModels).forEach(setupModel => {
           const model = dataSourceModels[setupModel.name];
           expect(model).toBeDefined();

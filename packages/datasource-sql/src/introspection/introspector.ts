@@ -142,10 +142,9 @@ export default class Introspector {
     },
   ): Promise<Table['columns'][number]> {
     const { name, description, references } = options;
-    const typeConverter = new SqlTypeConverter(sequelize);
 
     try {
-      const type = await typeConverter.convert(tableIdentifier, name, description);
+      const type = await SqlTypeConverter.convert(tableIdentifier, description);
 
       return {
         type,

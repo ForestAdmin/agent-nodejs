@@ -39,11 +39,15 @@ export default class DefaultValueParser {
       case 'BIGINT':
       case 'FLOAT':
       case 'DOUBLE':
+      case 'INTEGER':
+      case 'DECIMAL':
+      case 'REAL':
         return this.parseNumber(column.defaultValue);
 
       case 'DATE':
       case 'DATEONLY':
       case 'STRING':
+      case 'TEXT':
         return column.defaultValue;
 
       case 'JSON':
