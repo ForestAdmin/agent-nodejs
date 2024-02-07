@@ -1,13 +1,34 @@
-import type { AgentOptions } from '@forestadmin/agent';
-
-import { createAgent } from '@forestadmin/agent';
+import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 
-import { CustomizationError } from '../errors';
+import { distPath } from './packager';
+import { BusinessError, CustomizationError } from '../errors';
+import { Agent } from '../types';
 
-export default async function updateTypings(introspection: Table[], typingsPath: string) {
+const customizationPath = path.resolve(distPath, 'index.js');
+
+function loadCustomization(agent: Agent): void {
+  // eslint-disable-next-line
+  const customization = require(customizationPath);
+  const entryPoint = customization?.default || customization;
+
+  if (typeof entryPoint !== 'function') {
+    throw new CustomizationError('Customization file must export a function');
+  }
+
+  try {
+    entryPoint(agent);
+  } catch (error) {
+    throw new CustomizationError(
+      `Issue with customizations: ${error.name}\n${error.message}`,
+      error.stack,
+    );
+  }
+}
+
+function buildAgent(introspection: Table[]) {
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -17,27 +38,27 @@ export default async function updateTypings(introspection: Table[], typingsPath:
   const agent = createAgent(agentOptions);
   agent.addDataSource(createSqlDataSource(`sqlite::memory:`, { introspection }));
 
-  const builtCustomizationPath = `${path.resolve(rootPath)}/dist/code-customizations/index.js`;
+  return agent;
+}
 
-  try {
-    await fs.access(builtCustomizationPath);
+export async function updateTypings(typingsPath: string, introspection: Table[]): Promise<void> {
+  const agent = buildAgent(introspection);
+  await agent.updateTypesOnFileSystem(typingsPath, 3);
+}
 
-    try {
-      // eslint-disable-next-line max-len
-      // eslint-disable-next-line import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires
-      const customizer = require(builtCustomizationPath).default;
-      customizer(agent);
-    } catch (customizationError) {
-      const error: Error = customizationError;
-      throw new CustomizationError(
-        `Issue with customizations: ${error.name}\n${error.message}, ${error.stack}`,
-      );
-    }
-  } catch (e) {
-    if (e instanceof CustomizationError) throw e;
-    console.warn(
-      // eslint-disable-next-line max-len
-      `No built customization found at ${builtCustomizationPath}. Generating typings from database schema only`,
+export async function updateTypingsWithCustomizations(
+  typingsPath: string,
+  introspection: Table[],
+): Promise<void> {
+  const agent = buildAgent(introspection);
+
+  if (fs.existsSync(customizationPath)) {
+    loadCustomization(agent);
+  } else {
+    throw new BusinessError(
+      `No built customization found at ${customizationPath}. ` +
+        'Generating typings from database schema only.\n' +
+        'Please run `yarn build` to build the customization.',
     );
   }
 

@@ -18,7 +18,7 @@ import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
-import updateTypings from './services/update-typings';
+import { updateTypingsWithCustomizations } from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
 configDotenv();
@@ -51,7 +51,7 @@ program
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
       const introspection = await buildHttpForestServer(vars).getIntrospection();
-      await updateTypings(typingsPathAfterBootstrapped, introspection);
+      await updateTypingsWithCustomizations(typingsPathAfterBootstrapped, introspection);
       spinner.succeed('Your typings have been updated.');
     }),
   );
@@ -86,7 +86,7 @@ program
         throw new BusinessError('Operation aborted.');
       }
 
-      spinner.text = 'Boostrapping project\n';
+      spinner.text = 'Bootstrapping project\n';
       spinner.start();
       await bootstrap(secret, forestServer);
       spinner.succeed(

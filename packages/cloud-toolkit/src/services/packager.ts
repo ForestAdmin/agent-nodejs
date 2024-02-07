@@ -5,10 +5,10 @@ import path from 'path';
 import { BusinessError } from '../errors';
 
 export const zipPath = path.join('dist', 'code-customizations.zip');
+export const distPath = path.join('dist', 'code-customizations');
 
 export default async function packageCustomizations() {
   const zip: AdmZip = new AdmZip();
-  const distPath = path.join('dist', 'code-customizations');
 
   try {
     await fs.access(distPath);

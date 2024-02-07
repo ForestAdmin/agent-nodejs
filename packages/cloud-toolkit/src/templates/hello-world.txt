@@ -19,6 +19,7 @@ export default function customizeAgent(agent: Agent<Schema>) {
     collection.addField('HelloWorld', {
       columnType: 'String',
       defaultValue: 'Hello World',
+      dependencies: ['<DEPENDENCY_TO_REPLACE>'],
       getValues(records) {
         return records.map(() => 'Hello World');
       },
