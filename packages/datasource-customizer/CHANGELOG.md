@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.43.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.0...@forestadmin/datasource-customizer@1.43.1) (2024-02-07)
+
+
+### Bug Fixes
+
+* **types:** allow to use relationships in generateSearchFilter ([#985](https://github.com/ForestAdmin/agent-nodejs/issues/985)) ([3219b6c](https://github.com/ForestAdmin/agent-nodejs/commit/3219b6cb1641120be002255ee49f6cb00184c47c))
+
 # @forestadmin/datasource-customizer [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.42.0...@forestadmin/datasource-customizer@1.43.0) (2024-02-06)
 
 
