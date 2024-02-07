@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.16...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.17) (2024-02-07)
+
+
+### Features
+
+* **cloud-toolkit:** add an option to force to publish  ([#981](https://github.com/ForestAdmin/agent-nodejs/issues/981)) ([d16e32d](https://github.com/ForestAdmin/agent-nodejs/commit/d16e32dec4ea8f96a5d912bb0e4b46f3c7206485))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.15...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.16) (2024-02-06)
 
 
