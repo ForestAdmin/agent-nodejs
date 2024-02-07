@@ -1,7 +1,7 @@
 import { Caller, Collection } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TColumnName, TConditionTree, TSchema } from '../../templates';
+import { TCollectionName, TConditionTree, TFieldName, TSchema } from '../../templates';
 
 export type SearchOptions<
   S extends TSchema = TSchema,
@@ -14,15 +14,15 @@ export type SearchOptions<
   /**
    * Remove these fields from the default search fields
    */
-  excludeFields?: Array<TColumnName<S, N>>;
+  excludeFields?: Array<TFieldName<S, N>>;
   /**
    * Add these fields to the default search fields
    */
-  includeFields?: Array<TColumnName<S, N>>;
+  includeFields?: Array<TFieldName<S, N>>;
   /**
    * Replace the list of default searched field by these fields
    */
-  onlyFields?: Array<TColumnName<S, N>>;
+  onlyFields?: Array<TFieldName<S, N>>;
 };
 
 export default class CollectionSearchContext<
