@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.18...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19) (2024-02-07)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** rename cloud-toolkit to forest-cloud ([#984](https://github.com/ForestAdmin/agent-nodejs/issues/984)) ([1ef7e6e](https://github.com/ForestAdmin/agent-nodejs/commit/1ef7e6e2215149d4bfcc673fd4798b1f2cae6360))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.17...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.18) (2024-02-07)
 
 
