@@ -1,6 +1,7 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import { ConnectionDetails } from './connection-details';
+import setupEmptyDatabase from './setup-empty-database';
 
 export default async (
   connectionDetails: ConnectionDetails,
@@ -9,14 +10,9 @@ export default async (
   let sequelize: Sequelize | null = null;
 
   try {
-    if (connectionDetails.supports.multipleDatabases) {
-      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-      await sequelize.getQueryInterface().dropDatabase(database);
-      await sequelize.getQueryInterface().createDatabase(database);
-      await sequelize.close();
-      sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
-    } else {
-      sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
+    sequelize = await setupEmptyDatabase(connectionDetails, database);
+
+    if (!connectionDetails.supports.multipleDatabases) {
       await sequelize.getQueryInterface().dropTable('person');
     }
 

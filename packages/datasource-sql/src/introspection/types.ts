@@ -4,13 +4,17 @@ export type ScalarSubType =
   | 'BOOLEAN'
   | 'DATE'
   | 'DATEONLY'
+  | 'DECIMAL'
   | 'DOUBLE'
   | 'FLOAT'
   | 'INET'
+  | 'INTEGER'
   | 'JSON'
   | 'JSONB'
   | 'NUMBER'
+  | 'REAL'
   | 'STRING'
+  | 'TEXT'
   | 'TIME'
   | 'UUID';
 
