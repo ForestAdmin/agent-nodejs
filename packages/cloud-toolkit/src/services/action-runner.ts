@@ -1,6 +1,6 @@
 import ora from 'ora';
 
-import { BusinessError, CustomizationError } from '../errors';
+import { BusinessError } from '../errors';
 
 export default function actionRunner(fn: (...args) => Promise<any>) {
   return async (...args) => {
@@ -11,7 +11,7 @@ export default function actionRunner(fn: (...args) => Promise<any>) {
     } catch (e) {
       const error: Error = e;
 
-      if (error instanceof BusinessError || error instanceof CustomizationError) {
+      if (error instanceof BusinessError) {
         spinner.fail(error.message);
         // we must exit the process with a non-zero code to indicate an error
         // it useful to avoid running the next command if the current one failed
