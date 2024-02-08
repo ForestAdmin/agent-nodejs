@@ -13,7 +13,7 @@ import {
 } from './type-overrides';
 import { Introspection, Table } from './types';
 
-export const INTROSPECTION_FORMAT_VERSION = 1;
+const INTROSPECTION_FORMAT_VERSION = 1;
 
 export default class Introspector {
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Introspection> {
@@ -27,10 +27,27 @@ export default class Introspector {
     return { tables, version: INTROSPECTION_FORMAT_VERSION };
   }
 
-  static getIntrospectionInLatestFormat(introspection?: Table[] | Introspection): Introspection {
-    return Array.isArray(introspection)
+  static getIntrospectionInLatestFormat(
+    introspection?: Table[] | Introspection,
+  ): Introspection | null {
+    const formattedIntrospection = Array.isArray(introspection)
       ? { tables: introspection, version: INTROSPECTION_FORMAT_VERSION }
       : introspection;
+
+    if (formattedIntrospection && formattedIntrospection.version > INTROSPECTION_FORMAT_VERSION) {
+      /* This can only occur in CLOUD version, either:
+        - cloud-toolkit does not have the same version of datasource-sql 
+          as cloud-agent-manager & forestadmin-server (We need to fix)
+        - datasource-sql should be updated in the local repository
+          of the client. He should be prompted to update cloud-toolkit.
+      */
+      throw new Error(
+        'This version of introspection is newer than this package version. ' +
+          'Please update @forestadmin/datasource-sql',
+      );
+    }
+
+    return formattedIntrospection;
   }
 
   /** Get names of all tables in the public schema of the db */

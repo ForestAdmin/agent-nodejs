@@ -7,7 +7,7 @@ import { Sequelize } from 'sequelize';
 
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';
-import Introspector, { INTROSPECTION_FORMAT_VERSION } from './introspection/introspector';
+import Introspector from './introspection/introspector';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
@@ -55,25 +55,7 @@ export function createSqlDataSource(
   options?: { introspection: Table[] | Introspection },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const introspection: Introspection = Introspector.getIntrospectionInLatestFormat(
-      options?.introspection,
-    );
-
-    if (introspection && introspection.version > INTROSPECTION_FORMAT_VERSION) {
-      /* This can occur either:
-        - cloud-toolkit does not have the same version of datasource-sql 
-          as cloud-agent-manager & forestadmin-server (We need to fix)
-        - on CLOUD version, datasource-sql should be updated in the local repository
-          of the client. He should be prompted to update cloud-toolkit.
-        - on SELF-HOSTED, client agent has the newer version of datasource-sql, but server still has
-          the old version. Client should downgrade datasource-sql.
-      */
-      throw new Error(
-        'This version of introspection is newer than this package version. ' +
-          'Please update @forestadmin/datasource-sql',
-      );
-    }
-
+    const introspection = Introspector.getIntrospectionInLatestFormat(options?.introspection);
     const sequelize = await buildSequelizeInstance(uriOrOptions, logger, introspection);
 
     return new SequelizeDataSource(sequelize, logger);
