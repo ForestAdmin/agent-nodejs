@@ -1,19 +1,26 @@
 {
   "name": "@forestadmin/cloud-toolkit",
-  "version": "1.0.0-beta-cloud-toolkit.4",
+  "version": "1.0.0-beta-cloud-toolkit.20",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
     "@forestadmin/agent": "1.37.0-beta-cloud-toolkit.1",
     "@forestadmin/datasource-customizer": "1.41.0",
     "@forestadmin/datasource-sql": "1.7.45",
     "adm-zip": "^0.5.10",
+    "apollo-cache-inmemory": "^1.6.6",
+    "apollo-client": "^2.6.10",
+    "apollo-link-ws": "^1.0.20",
     "axios": "^1.6.6",
     "commander": "^11.1.0",
     "dotenv": "^16.4.1",
-    "forest-cli": "^4.3.2",
+    "forest-cli": "^5.0.0",
     "form-data": "^4.0.0",
+    "graphql": "14.5.7",
+    "graphql-tag": "^2.12.6",
     "ora": "^3.2.0",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "subscriptions-transport-ws": "^0.11.0",
+    "ws": "^8.16.0"
   },
   "publishConfig": {
     "access": "public"
@@ -21,7 +28,8 @@
   "main": "dist/index.js",
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "dist/**/*.txt"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
   "license": "GPL-3.0",
@@ -31,11 +39,11 @@
     "directory": "packages/cloud-toolkit"
   },
   "bin": {
-    "cloud-toolkit": "dist/command.js"
+    "forest-cloud": "dist/command.js"
   },
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
+    "build": "tsc && cp -r src/templates ./dist",
+    "build:watch": "tsc --watch & nodemon --watch 'src/templates/*' --ext txt --exec cp -r src/templates ./dist",
     "lint": "eslint src test",
     "test": "jest"
   },
@@ -45,6 +53,7 @@
     "customization"
   ],
   "devDependencies": {
-    "@types/adm-zip": "^0.5.5"
+    "@types/adm-zip": "^0.5.5",
+    "nodemon": "^3.0.3"
   }
 }

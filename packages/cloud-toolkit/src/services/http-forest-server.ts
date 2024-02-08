@@ -8,15 +8,7 @@ async function handledAxios<T>(
   { errorMessage }: { errorMessage: string },
 ): Promise<T> {
   try {
-    const response = await axios(axiosRequestConfig);
-
-    if (response.status !== 200) {
-      throw new BusinessError(
-        `Expected 200 OK, received ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return response.data;
+    return (await axios(axiosRequestConfig)).data;
   } catch (e) {
     const error: Error = e;
 
@@ -96,6 +88,25 @@ export default class HttpForestServer {
       {
         errorMessage: 'Failed to request publication of code customization',
       },
+    );
+  }
+
+  async getLastPublishedCodeDetails() {
+    return handledAxios<{
+      date: Date;
+      relativeDate: string;
+      user: { name: string; email: string };
+    } | null>(
+      {
+        url: `${this.serverUrl}/api/full-hosted-agent/last-published-code-details`,
+        method: 'GET',
+        headers: {
+          'forest-secret-key': this.secretKey,
+          Authorization: `Bearer ${this.bearerToken}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      { errorMessage: `Failed to retrieve last published code details` },
     );
   }
 }

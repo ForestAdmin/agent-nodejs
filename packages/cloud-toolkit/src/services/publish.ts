@@ -1,11 +1,9 @@
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
-import path from 'path';
 
 import HttpForestServer from './http-forest-server';
+import { zipPath } from './packager';
 import { BusinessError } from '../errors';
-
-const zipPath = path.join('dist', 'code-customizations.zip');
 
 function getKeyFromPolicy(policy: string) {
   const decoded = JSON.parse(Buffer.from(policy.split('.')[0], 'base64').toString());
@@ -17,7 +15,7 @@ function getKeyFromPolicy(policy: string) {
   return keyCondition[2];
 }
 
-export default async function publish(httpForestServer: HttpForestServer): Promise<void> {
+export default async function publish(httpForestServer: HttpForestServer): Promise<string> {
   try {
     let buffer: Buffer;
 
@@ -48,8 +46,7 @@ export default async function publish(httpForestServer: HttpForestServer): Promi
 
     const { subscriptionId } = await httpForestServer.postPublish();
 
-    console.log('Received subscription id', subscriptionId);
-    // TODO subscribe with graphql to monitor job progress
+    return subscriptionId;
   } catch (error) {
     throw new BusinessError(`Publish failed: ${error.message}`);
   }

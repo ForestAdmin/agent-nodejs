@@ -1,3 +1,4 @@
+import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -7,29 +8,57 @@ import * as os from 'os';
 import path from 'path';
 
 import HttpForestServer from './http-forest-server';
-import updateTypings from './update-typings';
+import { updateTypings } from './update-typings';
 import { BusinessError } from '../errors';
 
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
 const zipPath = path.join(os.tmpdir(), 'cloud-customizer.zip');
 const extractedPath = path.join(os.tmpdir(), 'cloud-customizer-main');
 const cloudCustomizerPath = path.join('.', 'cloud-customizer');
+const typingsPath = path.join(cloudCustomizerPath, 'typings.d.ts');
+const indexPath = path.join(cloudCustomizerPath, 'src', 'index.ts');
+const envPath = path.join(cloudCustomizerPath, '.env');
+const dotEnvTemplatePath = path.join(__dirname, '..', 'templates', 'env.txt');
+const helloWorldTemplatePath = path.join(__dirname, '..', 'templates', 'hello-world.txt');
 
-async function tryToClearBootstrap(): Promise<void> {
-  const removeCloudCustomizer = async () => {
-    try {
-      // we want to throw if the folder is not removed
-      await fsP.rm(cloudCustomizerPath, { force: false, recursive: true });
-    } catch (e) {
-      console.log(`Please remove cloud-customizer folder and re-run bootstrap command.`);
-    }
-  };
+export const typingsPathAfterBootstrapped = path.join('typings.d.ts');
 
-  await Promise.all([
-    fsP.rm(zipPath, { force: true }),
-    fsP.rm(extractedPath, { force: true, recursive: true }),
-    removeCloudCustomizer(),
-  ]);
+async function tryToClearBootstrap(): Promise<string | null> {
+  try {
+    await Promise.all([
+      fsP.rm(zipPath, { force: true }),
+      fsP.rm(extractedPath, { force: true, recursive: true }),
+      fsP.rm(cloudCustomizerPath, { force: false, recursive: true }),
+    ]);
+  } catch (e) {
+    return ` \nPlease remove cloud-customizer folder and re-run bootstrap command.`;
+  }
+}
+
+async function generateDotEnv(envSecret: string) {
+  const envTemplate = await fsP.readFile(dotEnvTemplatePath, 'utf-8');
+  let replaced = envTemplate.replace('<FOREST_ENV_SECRET_TO_REPLACE>', envSecret);
+  replaced = replaced.replace('<TOKEN_PATH_TO_REPLACE>', homedir());
+  await fsP.writeFile(envPath, replaced);
+}
+
+async function generateHelloWorldExample(collectionName: string, dependency: string) {
+  const template = await fsP.readFile(helloWorldTemplatePath, 'utf-8');
+  let replaced = template.replace('<COLLECTION_NAME_TO_REPLACE>', collectionName);
+  replaced = replaced.replace('<DEPENDENCY_TO_REPLACE>', dependency);
+  await fsP.writeFile(indexPath, replaced);
+}
+
+function findPrimaryKeyAndCollectionName(introspection: Table[]): {
+  collectionName: string;
+  primaryKey: string;
+} | null {
+  for (const collection of introspection) {
+    const pk = collection.columns.find(column => column.primaryKey);
+    if (pk) return { collectionName: collection.name, primaryKey: pk.name };
+  }
+
+  return null;
 }
 
 export default async function bootstrap(
@@ -60,19 +89,15 @@ export default async function bootstrap(
 
     // create the .env file if it does not exist
     // we do not overwrite it because it may contain sensitive data
-    const envPath = path.join(cloudCustomizerPath, '.env');
+    if (!fs.existsSync(envPath)) await generateDotEnv(envSecret);
 
-    if (!fs.existsSync(envPath)) {
-      await fsP.writeFile(
-        envPath,
-        `FOREST_ENV_SECRET=${envSecret}
-TOKEN_PATH=${homedir()}`,
-      );
-    }
+    const introspection = await httpForestServer.getIntrospection();
+    const data = findPrimaryKeyAndCollectionName(introspection);
+    if (data) await generateHelloWorldExample(data.collectionName, data.primaryKey);
 
-    await updateTypings(httpForestServer, path.join(cloudCustomizerPath, 'typings.d.ts'));
+    await updateTypings(typingsPath, introspection);
   } catch (error) {
-    await tryToClearBootstrap();
-    throw new BusinessError(`Bootstrap failed: ${error.message}`);
+    const potentialErrorMessage = await tryToClearBootstrap();
+    throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage || ''}`);
   }
 }

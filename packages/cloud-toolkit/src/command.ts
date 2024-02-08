@@ -3,20 +3,22 @@
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
 
+import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import actionRunner from './services/action-runner';
-import bootstrap from './services/bootstrap';
+import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
   validateEnvironmentVariables,
   validateServerUrl,
 } from './services/environment-variables';
+import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
-import updateTypings from './services/update-typings';
+import { updateTypingsWithCustomizations } from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
 configDotenv();
@@ -31,6 +33,12 @@ const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => 
   );
 };
 
+const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
+  validateEnvironmentVariables(envs);
+
+  return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
+};
+
 program
   .command('update-typings')
   .description(
@@ -42,7 +50,8 @@ program
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
-      await updateTypings(buildHttpForestServer(vars), 'typings.d.ts');
+      const introspection = await buildHttpForestServer(vars).getIntrospection();
+      await updateTypingsWithCustomizations(typingsPathAfterBootstrapped, introspection);
       spinner.succeed('Your typings have been updated.');
     }),
   );
@@ -55,8 +64,9 @@ program
     'Environment secret, you can find it in your environment settings',
   )
   .action(
-    actionRunner(async (spinner, options) => {
-      spinner.text = 'Boostrapping project\n';
+    actionRunner(async (spinner, options: { envSecret: string }) => {
+      spinner.text = 'Checking environment\n';
+      spinner.start();
       const vars = await getOrRefreshEnvironmentVariables();
       const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
@@ -68,8 +78,17 @@ program
         );
       }
 
-      await bootstrap(secret, buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret }));
+      const forestServer = buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
+      spinner.succeed('Environment found.');
+      spinner.stop();
 
+      if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
+        throw new BusinessError('Operation aborted.');
+      }
+
+      spinner.text = 'Bootstrapping project\n';
+      spinner.start();
+      await bootstrap(secret, forestServer);
       spinner.succeed(
         'Project successfully bootstrapped. You can start creating your customizations!',
       );
@@ -92,19 +111,39 @@ program
 program
   .command('publish')
   .description('Publish your code customizations')
+  .option('-f, --force', 'Force the publication without asking for confirmation')
   .action(
-    actionRunner(async spinner => {
-      spinner.text = 'Publishing code customizations\n';
+    actionRunner(async (spinner, options: { force: boolean }) => {
       const vars = await getOrRefreshEnvironmentVariables();
-      validateEnvironmentVariables(vars);
-      await publish(await buildHttpForestServer(vars));
-      spinner.succeed('Code customizations published');
+      const forestServer = buildHttpForestServer(vars);
+
+      if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
+        throw new BusinessError('Operation aborted.');
+      }
+
+      const subscriptionId = await publish(forestServer);
+      spinner.start('Publishing code customizations (operation cannot be cancelled)');
+      const subscriber = buildEventSubscriber(vars);
+
+      try {
+        const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);
+
+        if (error) {
+          spinner.fail(`Something went wrong: ${error}`);
+        } else {
+          spinner.succeed('Code customizations published');
+        }
+      } catch (error) {
+        throw new BusinessError(error.message);
+      } finally {
+        subscriber.destroy();
+      }
     }),
   );
 
 program
   .command('package')
-  .description('Publish your code customizations')
+  .description('Package your code customizations')
   .action(
     actionRunner(async spinner => {
       spinner.text = 'Packaging code\n';

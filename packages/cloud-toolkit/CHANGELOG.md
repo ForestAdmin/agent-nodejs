@@ -1,3 +1,116 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20) (2024-02-08)
+
+
+### Features
+
+* use customization to deduce typings ([#960](https://github.com/ForestAdmin/agent-nodejs/issues/960)) ([b1c8ff5](https://github.com/ForestAdmin/agent-nodejs/commit/b1c8ff5c0feedc54013d97baca0851537251d817))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.18...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19) (2024-02-07)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** rename cloud-toolkit to forest-cloud ([#984](https://github.com/ForestAdmin/agent-nodejs/issues/984)) ([1ef7e6e](https://github.com/ForestAdmin/agent-nodejs/commit/1ef7e6e2215149d4bfcc673fd4798b1f2cae6360))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.17...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.18) (2024-02-07)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** rename publish to package ([#982](https://github.com/ForestAdmin/agent-nodejs/issues/982)) ([cc7c13c](https://github.com/ForestAdmin/agent-nodejs/commit/cc7c13ca8ff5de2734c25d3c32aec873f1b5bb2f))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.16...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.17) (2024-02-07)
+
+
+### Features
+
+* **cloud-toolkit:** add an option to force to publish  ([#981](https://github.com/ForestAdmin/agent-nodejs/issues/981)) ([d16e32d](https://github.com/ForestAdmin/agent-nodejs/commit/d16e32dec4ea8f96a5d912bb0e4b46f3c7206485))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.15...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.16) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolikit:** avoid console error in bootstrap ([#977](https://github.com/ForestAdmin/agent-nodejs/issues/977)) ([6e1c8da](https://github.com/ForestAdmin/agent-nodejs/commit/6e1c8da00d922ae8c85b588177d9c7f27488ceb9))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.14...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.15) (2024-02-06)
+
+
+### Bug Fixes
+
+* handle empty response on last publish details ([#979](https://github.com/ForestAdmin/agent-nodejs/issues/979)) ([235bd59](https://github.com/ForestAdmin/agent-nodejs/commit/235bd59ecd2e7831c23cf0090ec0365b9d327e45))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.13...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.14) (2024-02-06)
+
+
+### Features
+
+* **publis:** listen to code customization events ([#971](https://github.com/ForestAdmin/agent-nodejs/issues/971)) ([32b4211](https://github.com/ForestAdmin/agent-nodejs/commit/32b42117a1af4dec339931358bae65f1835c76e4))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.12...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.13) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** exit with code 1 when a business error is triggered to cancel commands ([#974](https://github.com/ForestAdmin/agent-nodejs/issues/974)) ([fac1b3d](https://github.com/ForestAdmin/agent-nodejs/commit/fac1b3d5b58755467afb5e10f810c9ac50188b7d))
+* **cloud-toolkit:** fix packager path to be cross platform ([#975](https://github.com/ForestAdmin/agent-nodejs/issues/975)) ([42b8f4f](https://github.com/ForestAdmin/agent-nodejs/commit/42b8f4f71fa2c76539577743ef642eeea50d56f5))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.11...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.12) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** bump forest-cli to fix oclif warning during installation  ([#973](https://github.com/ForestAdmin/agent-nodejs/issues/973)) ([7749034](https://github.com/ForestAdmin/agent-nodejs/commit/77490348830f7a74664d64565f4c67ec18000bf6))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.10...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.11) (2024-02-06)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** remove a condition in error handler to make the bootstrap work again ([#972](https://github.com/ForestAdmin/agent-nodejs/issues/972)) ([51668fd](https://github.com/ForestAdmin/agent-nodejs/commit/51668fd64be687ccca0d3c55125841817b102805))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.9...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.10) (2024-02-06)
+
+
+### Features
+
+* add hello world example when running bootstrap ([#965](https://github.com/ForestAdmin/agent-nodejs/issues/965)) ([0422b18](https://github.com/ForestAdmin/agent-nodejs/commit/0422b1808f5d9f4955314fe6375a00bc3a4b19ab))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.8...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.9) (2024-02-06)
+
+
+### Bug Fixes
+
+* throw errors when bootstrap or deploy is aborted ([#970](https://github.com/ForestAdmin/agent-nodejs/issues/970)) ([43f0889](https://github.com/ForestAdmin/agent-nodejs/commit/43f08892bbff294d7bfd762f0b9bf4887c1f94a8))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.7...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.8) (2024-02-05)
+
+
+### Features
+
+* use axios handler for error handling when getting last published code details ([#962](https://github.com/ForestAdmin/agent-nodejs/issues/962)) ([d552fe9](https://github.com/ForestAdmin/agent-nodejs/commit/d552fe9a61beae87a0b6fe959d7b0294861e8eb6))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.6...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.7) (2024-02-05)
+
+
+### Features
+
+* add check for deployed code before publishing ([#961](https://github.com/ForestAdmin/agent-nodejs/issues/961)) ([3e5c3ca](https://github.com/ForestAdmin/agent-nodejs/commit/3e5c3caf5aec70e8f6506c9d472601bbf94b6655))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.5...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.6) (2024-02-02)
+
+
+### Features
+
+* check code already deployed ([#956](https://github.com/ForestAdmin/agent-nodejs/issues/956)) ([d07661b](https://github.com/ForestAdmin/agent-nodejs/commit/d07661b0c0ef7ee65d7bfc8670a75c71960dfb6c))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.4...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.5) (2024-02-02)
+
+
+### Features
+
+* provide code package command ([#959](https://github.com/ForestAdmin/agent-nodejs/issues/959)) ([ceb9a81](https://github.com/ForestAdmin/agent-nodejs/commit/ceb9a81353f56004cbb095c7fba8d457ce088a34))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.3...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.4) (2024-02-02)
 
 
