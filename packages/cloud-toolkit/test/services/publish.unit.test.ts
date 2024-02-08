@@ -1,5 +1,3 @@
-import type { ClientRequest } from 'http';
-
 import FormData from 'form-data';
 import { afterEach } from 'node:test';
 
