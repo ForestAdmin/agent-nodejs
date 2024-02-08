@@ -3,9 +3,9 @@
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
 
+import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
-import actionRunner from './dialogs/action-runner';
 import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
 import {
   getEnvironmentVariables,
@@ -15,7 +15,7 @@ import {
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
-import login from './dialogs/login';
+import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
