@@ -1,3 +1,4 @@
+import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -48,6 +49,18 @@ async function generateHelloWorldExample(collectionName: string, dependency: str
   await fsP.writeFile(indexPath, replaced);
 }
 
+function findPrimaryKeyAndCollectionName(introspection: Table[]): {
+  collectionName: string;
+  primaryKey: string;
+} | null {
+  for (const collection of introspection) {
+    const pk = collection.columns.find(column => column.primaryKey);
+    if (pk) return { collectionName: collection.name, primaryKey: pk.name };
+  }
+
+  return null;
+}
+
 export default async function bootstrap(
   envSecret: string,
   httpForestServer: HttpForestServer,
@@ -79,18 +92,8 @@ export default async function bootstrap(
     if (!fs.existsSync(envPath)) await generateDotEnv(envSecret);
 
     const introspection = await httpForestServer.getIntrospection();
-
-    if (introspection.length !== 0) {
-      for (const collection of introspection) {
-        const pk = collection.columns.find(column => column.primaryKey);
-
-        if (pk) {
-          // eslint-disable-next-line no-await-in-loop
-          await generateHelloWorldExample(collection.name, pk.name);
-          break;
-        }
-      }
-    }
+    const data = findPrimaryKeyAndCollectionName(introspection);
+    if (data) await generateHelloWorldExample(data.collectionName, data.primaryKey);
 
     await updateTypings(typingsPath, introspection);
   } catch (error) {
