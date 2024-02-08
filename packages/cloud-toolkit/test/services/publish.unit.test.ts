@@ -87,7 +87,8 @@ describe('publish', () => {
       });
 
       await expect(publish(httpForestServer)).rejects.toThrow(
-        'Publish failed: Cannot read code-customization zip file - At path: dist/code-customizations.zip',
+        'Publish failed: Cannot read code-customization zip file ' +
+          '- At path: dist/code-customizations.zip',
       );
     });
   });
