@@ -56,9 +56,8 @@ export async function updateTypingsWithCustomizations(
     loadCustomization(agent);
   } else {
     throw new BusinessError(
-      `No built customization found at ${indexPath}. ` +
-        'Generating typings from database schema only.\n' +
-        'Please run `yarn build` to build the customization.',
+      `No built customization found at ${indexPath}.\n` +
+        'Please run `yarn build` to build your customizations.',
     );
   }
 
