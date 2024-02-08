@@ -51,10 +51,14 @@ describe('publish', () => {
     const { httpForestServer, presignedPost } = setup();
 
     mockToBuffer.mockReturnValue({ byteLength: 101 });
-    jest.mocked(FormData.prototype.submit).mockImplementation((url, callback: any) => {
-      callback(null);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      callback();
 
-      return null as unknown as ClientRequest;
+      return null;
     });
 
     const result = await publish(httpForestServer);
