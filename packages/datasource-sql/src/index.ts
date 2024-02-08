@@ -30,14 +30,16 @@ export async function introspect(
 export async function buildSequelizeInstance(
   uriOrOptions: PlainConnectionOptionsOrUri,
   logger: Logger,
-  introspection?: Introspection,
+  introspection?: Table[] | Introspection,
 ): Promise<Sequelize> {
   const options = new ConnectionOptions(uriOrOptions, logger);
   let sequelize: Sequelize;
 
   try {
     sequelize = await connect(options);
-    const { tables } = introspection ?? (await Introspector.introspect(sequelize, logger));
+    const { tables } =
+      Introspector.getIntrospectionInLatestFormat(introspection) ??
+      (await Introspector.introspect(sequelize, logger));
     ModelBuilder.defineModels(sequelize, logger, tables);
     RelationBuilder.defineRelations(sequelize, logger, tables);
   } catch (error) {
@@ -53,16 +55,19 @@ export function createSqlDataSource(
   options?: { introspection: Table[] | Introspection },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const introspection: Introspection = Array.isArray(options?.introspection)
-      ? { tables: options.introspection, version: INTROSPECTION_FORMAT_VERSION }
-      : options?.introspection;
+    const introspection: Introspection = Introspector.getIntrospectionInLatestFormat(
+      options?.introspection,
+    );
 
     if (introspection && introspection.version > INTROSPECTION_FORMAT_VERSION) {
-      // This can only occur in CLOUD version, meaning that @forestadmin/datasource-sql should
-      // be updated in the local repository of the client. He should be prompted to update
-      // cloud-toolkit.
-      // It may also occur if cloud-toolkit does not have the right version of
-      // @forestadmin/datasource-sql
+      /* This can occur either:
+        - cloud-toolkit does not have the same version of datasource-sql 
+          as cloud-agent-manager & forestadmin-server (We need to fix)
+        - on CLOUD version, datasource-sql should be updated in the local repository
+          of the client. He should be prompted to update cloud-toolkit.
+        - on SELF-HOSTED, client agent has the newer version of datasource-sql, but server still has
+          the old version. Client should downgrade datasource-sql.
+      */
       throw new Error(
         'This version of introspection is newer than this package version. ' +
           'Please update @forestadmin/datasource-sql',

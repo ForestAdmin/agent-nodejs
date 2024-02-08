@@ -27,6 +27,12 @@ export default class Introspector {
     return { tables, version: INTROSPECTION_FORMAT_VERSION };
   }
 
+  static getIntrospectionInLatestFormat(introspection?: Table[] | Introspection): Introspection {
+    return Array.isArray(introspection)
+      ? { tables: introspection, version: INTROSPECTION_FORMAT_VERSION }
+      : introspection;
+  }
+
   /** Get names of all tables in the public schema of the db */
   private static async getTableNames(
     dialect: IntrospectionDialect,
