@@ -3,15 +3,15 @@ import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
 import fs from 'fs';
 import path from 'path';
 
-import { distPath } from './packager';
+import { distCodeCustomizationsPath } from './packager';
 import { BusinessError, CustomizationError } from '../errors';
 import { Agent } from '../types';
 
-const customizationPath = path.resolve(distPath, 'index.js');
+const indexPath = path.resolve(distCodeCustomizationsPath, 'index.js');
 
 function loadCustomization(agent: Agent): void {
   // eslint-disable-next-line
-  const customization = require(customizationPath);
+  const customization = require(indexPath);
   const entryPoint = customization?.default || customization;
 
   if (typeof entryPoint !== 'function') {
@@ -52,11 +52,11 @@ export async function updateTypingsWithCustomizations(
 ): Promise<void> {
   const agent = buildAgent(introspection);
 
-  if (fs.existsSync(customizationPath)) {
+  if (fs.existsSync(indexPath)) {
     loadCustomization(agent);
   } else {
     throw new BusinessError(
-      `No built customization found at ${customizationPath}. ` +
+      `No built customization found at ${indexPath}. ` +
         'Generating typings from database schema only.\n' +
         'Please run `yarn build` to build the customization.',
     );
