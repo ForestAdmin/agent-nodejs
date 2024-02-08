@@ -5,8 +5,11 @@ import { configDotenv } from 'dotenv';
 
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
+import checkLatestVersion from './dialogs/check-latest-version';
+import login from './dialogs/login';
 import { BusinessError } from './errors';
 import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
+import getCustomerVersion from './services/customer-version';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
@@ -15,7 +18,6 @@ import {
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
-import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
@@ -47,6 +49,8 @@ program
   )
   .action(
     actionRunner(async spinner => {
+      await checkLatestVersion(spinner, await getCustomerVersion());
+
       spinner.text = 'Updating typings\n';
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
@@ -65,6 +69,8 @@ program
   )
   .action(
     actionRunner(async (spinner, options: { envSecret: string }) => {
+      await checkLatestVersion(spinner, await getCustomerVersion());
+
       spinner.text = 'Checking environment\n';
       spinner.start();
       const vars = await getOrRefreshEnvironmentVariables();
@@ -100,6 +106,8 @@ program
   .description('Login to your project')
   .action(
     actionRunner(async spinner => {
+      await checkLatestVersion(spinner, await getCustomerVersion());
+
       spinner.text = 'Logging in\n';
       const vars = await getEnvironmentVariables();
       validateServerUrl(vars.FOREST_SERVER_URL);
@@ -114,6 +122,8 @@ program
   .option('-f, --force', 'Force the publication without asking for confirmation')
   .action(
     actionRunner(async (spinner, options: { force: boolean }) => {
+      await checkLatestVersion(spinner, await getCustomerVersion());
+
       const vars = await getOrRefreshEnvironmentVariables();
       const forestServer = buildHttpForestServer(vars);
 
@@ -146,6 +156,8 @@ program
   .description('Package your code customizations')
   .action(
     actionRunner(async spinner => {
+      await checkLatestVersion(spinner, await getCustomerVersion());
+
       spinner.text = 'Packaging code\n';
       await packageCustomizations();
       spinner.succeed('Code customizations packaged and ready for publish');
