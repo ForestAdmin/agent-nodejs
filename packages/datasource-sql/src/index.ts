@@ -58,6 +58,11 @@ export function createSqlDataSource(
       : options?.introspection;
 
     if (introspection && introspection.version > INTROSPECTION_FORMAT_VERSION) {
+      // This can only occur in CLOUD version, meaning that @forestadmin/datasource-sql should
+      // be updated in the local repository of the client. He should be prompted to update
+      // cloud-toolkit.
+      // It may also occur if cloud-toolkit does not have the right version of
+      // @forestadmin/datasource-sql
       throw new Error(
         'This version of introspection is newer than this package version. ' +
           'Please update @forestadmin/datasource-sql',
