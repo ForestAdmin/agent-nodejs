@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'path';
 
-import login from './login';
+import login from '../dialogs/login';
 import { BusinessError } from '../errors';
 import { EnvironmentVariables } from '../types';
 
