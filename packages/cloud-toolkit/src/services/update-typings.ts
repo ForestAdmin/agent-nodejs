@@ -57,7 +57,7 @@ export async function updateTypingsWithCustomizations(
   } else {
     throw new BusinessError(
       `No built customization found at ${indexPath}.\n` +
-        'Please run `yarn build` to build your customizations.',
+        'Please run the `build` command to build your customizations.',
     );
   }
 
