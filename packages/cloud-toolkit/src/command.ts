@@ -6,7 +6,6 @@ import { configDotenv } from 'dotenv';
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import checkLatestVersion from './dialogs/check-latest-version';
-import login from './dialogs/login';
 import { BusinessError } from './errors';
 import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
 import getCustomerVersion from './services/customer-version';
@@ -18,6 +17,7 @@ import {
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
+import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
