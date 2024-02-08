@@ -1,3 +1,4 @@
+import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -7,7 +8,7 @@ import * as os from 'os';
 import path from 'path';
 
 import HttpForestServer from './http-forest-server';
-import updateTypings from './update-typings';
+import { updateTypings } from './update-typings';
 import { BusinessError } from '../errors';
 
 const downloadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
@@ -41,10 +42,23 @@ async function generateDotEnv(envSecret: string) {
   await fsP.writeFile(envPath, replaced);
 }
 
-async function generateHelloWorldExample(collectionName: string) {
+async function generateHelloWorldExample(collectionName: string, dependency: string) {
   const template = await fsP.readFile(helloWorldTemplatePath, 'utf-8');
-  const replaced = template.replace('<COLLECTION_NAME_TO_REPLACE>', collectionName);
+  let replaced = template.replace('<COLLECTION_NAME_TO_REPLACE>', collectionName);
+  replaced = replaced.replace('<DEPENDENCY_TO_REPLACE>', dependency);
   await fsP.writeFile(indexPath, replaced);
+}
+
+function findPrimaryKeyAndCollectionName(introspection: Table[]): {
+  collectionName: string;
+  primaryKey: string;
+} | null {
+  for (const collection of introspection) {
+    const pk = collection.columns.find(column => column.primaryKey);
+    if (pk) return { collectionName: collection.name, primaryKey: pk.name };
+  }
+
+  return null;
 }
 
 export default async function bootstrap(
@@ -78,12 +92,12 @@ export default async function bootstrap(
     if (!fs.existsSync(envPath)) await generateDotEnv(envSecret);
 
     const introspection = await httpForestServer.getIntrospection();
-
-    if (introspection.length !== 0) await generateHelloWorldExample(introspection[0].name);
+    const data = findPrimaryKeyAndCollectionName(introspection);
+    if (data) await generateHelloWorldExample(data.collectionName, data.primaryKey);
 
     await updateTypings(typingsPath, introspection);
   } catch (error) {
     const potentialErrorMessage = await tryToClearBootstrap();
-    throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage}`);
+    throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage || ''}`);
   }
 }
