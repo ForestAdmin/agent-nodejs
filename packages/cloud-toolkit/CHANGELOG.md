@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20) (2024-02-08)
+
+
+### Features
+
+* use customization to deduce typings ([#960](https://github.com/ForestAdmin/agent-nodejs/issues/960)) ([b1c8ff5](https://github.com/ForestAdmin/agent-nodejs/commit/b1c8ff5c0feedc54013d97baca0851537251d817))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.18...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19) (2024-02-07)
 
 
