@@ -1,0 +1,32 @@
+{
+  "license": "MIT",
+  "name": "cloud-customizer",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=18.x.x"
+  },
+  "entryPoints": [
+    "dist/index.js"
+  ],
+  "scripts": {
+    "build": "npm-run-all build:node forestadmin:update-typings",
+    "build:node": "node esbuild.mjs",
+    "build:watch": "nodemon --watch './src' -e ts,js esbuild.mjs",
+    "forestadmin:login": "forest-cloud login",
+    "forestadmin:update-typings": "forest-cloud update-typings",
+    "forestadmin:package": "forest-cloud package",
+    "forestadmin:publish": "forest-cloud publish",
+    "forestadmin:build:package:publish": "npm-run-all build forestadmin:package forestadmin:publish",
+    "forestadmin:help": "forest-cloud --help"
+  },
+  "devDependencies": {
+    "@forestadmin/cloud-toolkit": "^1.0.0-beta-cloud-toolkit.19",
+    "@types/node": "^20.10.6",
+    "dotenv": "^16.3.1",
+    "esbuild": "^0.20.0",
+    "nodemon": "^3.0.3",
+    "npm-run-all2": "^6.1.2",
+    "typescript": "^5.3.2"
+  }
+}
