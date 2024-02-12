@@ -1,8 +1,8 @@
 import { beforeEach } from 'node:test';
 import ora from 'ora';
 
+import actionRunner from '../../src/dialogs/action-runner';
 import { BusinessError } from '../../src/errors';
-import actionRunner from '../../src/services/action-runner';
 
 jest.mock('ora');
 const processExit = jest.spyOn(process, 'exit').mockImplementation();

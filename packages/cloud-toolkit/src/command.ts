@@ -4,9 +4,9 @@ import { program } from 'commander';
 import { configDotenv } from 'dotenv';
 import os from 'os';
 
+import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
-import actionRunner from './services/action-runner';
 import bootstrap from './services/bootstrap';
 import {
   getEnvironmentVariables,

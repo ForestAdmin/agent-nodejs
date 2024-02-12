@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.21) (2024-02-12)
+
+
+### Bug Fixes
+
+* dont specify yarn ([#989](https://github.com/ForestAdmin/agent-nodejs/issues/989)) ([eb31716](https://github.com/ForestAdmin/agent-nodejs/commit/eb317167a5fc228b3db680d7399e4812aaa65fc8))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20) (2024-02-08)
 
 
