@@ -4,7 +4,7 @@ import { BusinessError } from '../errors';
 
 export default function actionRunner(fn: (...args) => Promise<any>) {
   return async (...args) => {
-    const spinner = ora().start();
+    const spinner = ora();
 
     try {
       await fn(spinner, ...args);

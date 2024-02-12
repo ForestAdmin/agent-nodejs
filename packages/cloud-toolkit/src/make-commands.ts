@@ -1,4 +1,4 @@
-import { program } from 'commander';
+import { Command, program } from 'commander';
 
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
@@ -16,7 +16,7 @@ export default function makeCommands({
   getEnvironmentVariables,
   buildHttpForestServer,
   buildEventSubscriber,
-}: MakeCommands): void {
+}: MakeCommands): Command {
   program
     .command('update-typings')
     .description(
@@ -43,8 +43,7 @@ export default function makeCommands({
     )
     .action(
       actionRunner(async (spinner, options: { envSecret: string }) => {
-        spinner.text = 'Checking environment\n';
-        spinner.start();
+        spinner.start('Bootstrapping project');
         const vars = await getOrRefreshEnvironmentVariables();
         const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
@@ -57,14 +56,13 @@ export default function makeCommands({
         }
 
         const forestServer = buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
-        spinner.succeed('Environment found.');
+        spinner.succeed('Environment found');
         spinner.stop();
 
         if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
-          throw new BusinessError('Operation aborted.');
+          throw new BusinessError('Operation aborted');
         }
 
-        spinner.text = 'Bootstrapping project\n';
         spinner.start();
         await bootstrap(secret, forestServer);
         spinner.succeed(
@@ -78,7 +76,7 @@ export default function makeCommands({
     .description('Login to your project')
     .action(
       actionRunner(async spinner => {
-        spinner.text = 'Logging in\n';
+        spinner.start('Logging in');
         const vars = await getEnvironmentVariables();
         validateServerUrl(vars.FOREST_SERVER_URL);
         await login();
@@ -96,7 +94,7 @@ export default function makeCommands({
         const forestServer = buildHttpForestServer(vars);
 
         if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
-          throw new BusinessError('Operation aborted.');
+          throw new BusinessError('Operation aborted');
         }
 
         const subscriptionId = await publish(forestServer);
@@ -124,11 +122,11 @@ export default function makeCommands({
     .description('Package your code customizations')
     .action(
       actionRunner(async spinner => {
-        spinner.text = 'Packaging code\n';
+        spinner.start('Packaging code');
         await packageCustomizations();
         spinner.succeed('Code customizations packaged and ready for publish');
       }),
     );
 
-  program.parse();
+  return program;
 }

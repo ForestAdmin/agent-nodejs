@@ -30,9 +30,11 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
   return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
 };
 
-makeCommands({
+const command = makeCommands({
   getOrRefreshEnvironmentVariables,
   getEnvironmentVariables,
   buildHttpForestServer,
   buildEventSubscriber,
 });
+
+command.parse();
