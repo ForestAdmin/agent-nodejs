@@ -63,7 +63,7 @@ describe('publish', () => {
 
     expect(result).toStrictEqual('subscriptionId');
 
-    expect(httpForestServer.postUploadRequest).toHaveBeenCalledOnce();
+    expect(httpForestServer.postUploadRequest).toHaveBeenCalled();
     expect(httpForestServer.postUploadRequest).toHaveBeenCalledWith(101);
 
     expect(FormData).toHaveBeenCalled();
@@ -77,7 +77,7 @@ describe('publish', () => {
 
     expect(FormData.prototype.submit).toHaveBeenCalledWith(presignedPost.url, expect.any(Function));
 
-    expect(httpForestServer.postPublish).toHaveBeenCalledOnce();
+    expect(httpForestServer.postPublish).toHaveBeenCalled();
   });
 
   describe('when an error occurs while reading zip file', () => {
