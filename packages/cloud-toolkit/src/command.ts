@@ -37,4 +37,4 @@ const command = makeCommands({
   buildEventSubscriber,
 });
 
-command.parse();
+command.parseAsync();

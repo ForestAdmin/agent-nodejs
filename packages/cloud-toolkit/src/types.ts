@@ -75,6 +75,6 @@ export type EnvironmentVariables = {
 export type MakeCommands = {
   getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  buildHttpForestServer: (envs: EnvironmentVariables) => HttpForestServer;
-  buildEventSubscriber: (envs: EnvironmentVariables) => EventSubscriber;
+  buildHttpForestServer: (vars: EnvironmentVariables) => HttpForestServer;
+  buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
 };

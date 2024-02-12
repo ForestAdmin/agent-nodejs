@@ -25,7 +25,7 @@ export default function makeCommands({
     )
     .action(
       actionRunner(async spinner => {
-        spinner.text = 'Updating typings\n';
+        spinner.start('Updating typings');
         const vars = await getOrRefreshEnvironmentVariables();
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpForestServer(vars).getIntrospection();
@@ -55,9 +55,10 @@ export default function makeCommands({
           );
         }
 
-        const forestServer = buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
         spinner.succeed('Environment found');
         spinner.stop();
+
+        const forestServer = buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
 
         if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
           throw new BusinessError('Operation aborted');
