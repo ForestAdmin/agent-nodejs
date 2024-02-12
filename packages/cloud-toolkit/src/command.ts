@@ -2,11 +2,12 @@
 
 import { program } from 'commander';
 import { configDotenv } from 'dotenv';
+import os from 'os';
 
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import actionRunner from './services/action-runner';
-import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
+import bootstrap from './services/bootstrap';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
@@ -17,6 +18,7 @@ import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
 import login from './services/login';
 import packageCustomizations from './services/packager';
+import PathManager from './services/path-manager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
 import { EnvironmentVariables } from './types';
@@ -51,7 +53,8 @@ program
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
       const introspection = await buildHttpForestServer(vars).getIntrospection();
-      await updateTypingsWithCustomizations(typingsPathAfterBootstrapped, introspection);
+      const paths = new PathManager(os.tmpdir());
+      await updateTypingsWithCustomizations(paths.typingsAfterBootstrapped, introspection);
       spinner.succeed('Your typings have been updated.');
     }),
   );
