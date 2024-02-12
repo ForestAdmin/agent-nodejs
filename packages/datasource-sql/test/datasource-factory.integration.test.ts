@@ -473,12 +473,12 @@ describe('SqlDataSourceFactory > Integration', () => {
         const setupModels = setupSequelize.models;
         const attributesMapping = getAttributeMapping(connectionDetails.dialect);
 
-        const tables = await introspect(connectionDetails.url(databaseName), logger);
-        jest.spyOn(Introspector, 'introspect').mockResolvedValue([]);
+        const introspection = await introspect(connectionDetails.url(databaseName), logger);
+        jest.spyOn(Introspector, 'introspect').mockResolvedValue({ tables: [], version: 1 });
         const sequelize = await buildSequelizeInstance(
           connectionDetails.url(databaseName),
           logger,
-          tables,
+          introspection,
         );
 
         expect(Introspector.introspect).not.toHaveBeenCalled();
