@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.49...@forestadmin/datasource-sql@1.8.0) (2024-02-12)
+
+
+### Features
+
+* add version in introspection ([#978](https://github.com/ForestAdmin/agent-nodejs/issues/978)) ([3e7e791](https://github.com/ForestAdmin/agent-nodejs/commit/3e7e791b51af83e720e54a2994b064871ed922cd))
+
 ## @forestadmin/datasource-sql [1.7.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.48...@forestadmin/datasource-sql@1.7.49) (2024-02-07)
 
 
