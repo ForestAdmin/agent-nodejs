@@ -1,7 +1,6 @@
 import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
 import axios from 'axios';
-import exp from 'constants';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
 import * as os from 'os';
