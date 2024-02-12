@@ -1,0 +1,354 @@
+{
+  "introspection": [
+    {
+      "name": "posts",
+      "schema": "public",
+      "columns": [
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": true,
+          "defaultValue": null,
+          "isLiteralDefaultValue": true,
+          "name": "id",
+          "allowNull": false,
+          "primaryKey": true,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "user_id",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": [{ "table": "users", "column": "id" }]
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "title",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        }
+      ],
+      "unique": [["id"], ["title"]]
+    },
+    {
+      "name": "users",
+      "schema": "public",
+      "columns": [
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": true,
+          "defaultValue": null,
+          "isLiteralDefaultValue": true,
+          "name": "id",
+          "allowNull": false,
+          "primaryKey": true,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "email",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "name",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "surname",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        }
+      ],
+      "unique": [["email"], ["id"]]
+    },
+    {
+      "name": "uuid",
+      "schema": "public",
+      "columns": [
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": { "val": "uuid_generate_v1()" },
+          "isLiteralDefaultValue": true,
+          "name": "id",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "data",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": "toto",
+          "isLiteralDefaultValue": false,
+          "name": "defaut_string",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        }
+      ],
+      "unique": []
+    },
+    {
+      "name": "comments",
+      "schema": "public",
+      "columns": [
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": true,
+          "defaultValue": null,
+          "isLiteralDefaultValue": true,
+          "name": "id",
+          "allowNull": false,
+          "primaryKey": true,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "user_id",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": [{ "table": "users", "column": "id" }]
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "post_id",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": [{ "table": "posts", "column": "id" }]
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "body",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        }
+      ],
+      "unique": [["id"]]
+    },
+    {
+      "name": "Category",
+      "schema": "public",
+      "columns": [
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": true,
+          "defaultValue": null,
+          "isLiteralDefaultValue": true,
+          "name": "id",
+          "allowNull": false,
+          "primaryKey": true,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "name",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "position",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "slug",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "iconUrl",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": 1,
+          "isLiteralDefaultValue": false,
+          "name": "minimumNumberOfPictures",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "pictureRequirementMessage",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "BOOLEAN" },
+          "autoIncrement": false,
+          "defaultValue": false,
+          "isLiteralDefaultValue": false,
+          "name": "isMainCategory",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "array", "subType": { "type": "scalar", "subType": "STRING" } },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "list_of_keywords",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        }
+      ],
+      "unique": [["id"], ["slug"]]
+    },
+    {
+      "name": "CategoryDeliveryMethod",
+      "schema": "public",
+      "columns": [
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": true,
+          "defaultValue": null,
+          "isLiteralDefaultValue": true,
+          "name": "id",
+          "allowNull": false,
+          "primaryKey": true,
+          "constraints": []
+        },
+        {
+          "type": { "type": "enum", "values": ["L", "M"] },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "size",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "weight",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "STRING" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "volume",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "categoryId",
+          "allowNull": false,
+          "primaryKey": false,
+          "constraints": [{ "table": "Category", "column": "id" }]
+        },
+        {
+          "type": {
+            "type": "array",
+            "subType": {
+              "type": "enum",
+              "schema": "public",
+              "name": "DeliveryMethodEnum",
+              "values": ["DL 1", "DL 2"]
+            }
+          },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "deliveryMethods",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        },
+        {
+          "type": { "type": "scalar", "subType": "NUMBER" },
+          "autoIncrement": false,
+          "defaultValue": null,
+          "isLiteralDefaultValue": false,
+          "name": "message",
+          "allowNull": true,
+          "primaryKey": false,
+          "constraints": []
+        }
+      ],
+      "unique": [["categoryId"], ["id"]]
+    }
+  ]
+}
