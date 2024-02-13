@@ -2,7 +2,6 @@ import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
-import * as os from 'os';
 
 import BootstrapPathManager from './bootstrap-path-manager';
 import HttpServer from './http-server';

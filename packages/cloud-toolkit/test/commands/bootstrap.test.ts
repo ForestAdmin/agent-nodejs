@@ -52,8 +52,8 @@ describe('bootstrap command', () => {
 
   describe('when forest env secret is missing', () => {
     it('should throw an error', async () => {
-      const getOrRefreshEnvironmentVariables = jest.fn().mockResolvedValue({});
-      const setup = setupCommandArguments({ getOrRefreshEnvironmentVariables });
+      const getEnvironmentVariables = jest.fn().mockResolvedValue({});
+      const setup = setupCommandArguments({ getEnvironmentVariables });
 
       const cmd = new CommandTester(setup, ['bootstrap']);
       await cmd.run();
@@ -70,8 +70,8 @@ describe('bootstrap command', () => {
 
   describe('when there is already a cloud customizer folder', () => {
     it('should throw an error', async () => {
-      const getOrRefreshEnvironmentVariables = jest.fn().mockResolvedValue({});
-      const setup = setupCommandArguments({ getOrRefreshEnvironmentVariables });
+      const getEnvironmentVariables = jest.fn().mockResolvedValue({});
+      const setup = setupCommandArguments({ getEnvironmentVariables });
       const cloudCustomizerPath = setup.buildBootstrapPathManager().cloudCustomizer;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
       await fs.mkdir(cloudCustomizerPath);

@@ -4,7 +4,11 @@ import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
-import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
+import {
+  getOrRefreshEnvironmentVariables,
+  validateEnvironmentVariables,
+  validateServerUrl,
+} from './services/environment-variables';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
@@ -16,7 +20,6 @@ export default function makeCommands({
   buildHttpServer,
   buildSpinner,
   getEnvironmentVariables,
-  getOrRefreshEnvironmentVariables,
   login,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
@@ -30,7 +33,7 @@ export default function makeCommands({
     .action(
       actionRunner(buildSpinner, async spinner => {
         spinner.start('Updating typings');
-        const vars = await getOrRefreshEnvironmentVariables();
+        const vars = await getOrRefreshEnvironmentVariables(login);
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpServer(vars).getIntrospection();
         await updateTypingsWithCustomizations(
@@ -51,7 +54,7 @@ export default function makeCommands({
     .action(
       actionRunner(buildSpinner, async (spinner, options: { envSecret: string }) => {
         spinner.start('Bootstrapping project');
-        const vars = await getOrRefreshEnvironmentVariables();
+        const vars = await getOrRefreshEnvironmentVariables(login);
         const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
         if (!secret) {
@@ -98,7 +101,7 @@ export default function makeCommands({
     .option('-f, --force', 'Force the publication without asking for confirmation')
     .action(
       actionRunner(buildSpinner, async (spinner, options: { force: boolean }) => {
-        const vars = await getOrRefreshEnvironmentVariables();
+        const vars = await getOrRefreshEnvironmentVariables(login);
         const forestServer = buildHttpServer(vars);
 
         if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {

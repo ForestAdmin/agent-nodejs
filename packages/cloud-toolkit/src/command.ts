@@ -4,16 +4,15 @@ import { configDotenv } from 'dotenv';
 import ora from 'ora';
 import os from 'os';
 
+import login from './login';
 import makeCommands from './make-commands';
 import BootstrapPathManager from './services/bootstrap-path-manager';
 import {
   getEnvironmentVariables,
-  getOrRefreshEnvironmentVariables,
   validateEnvironmentVariables,
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
-import login from './services/login';
 import { EnvironmentVariables } from './types';
 
 configDotenv();
@@ -31,7 +30,6 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
 };
 
 const command = makeCommands({
-  getOrRefreshEnvironmentVariables,
   getEnvironmentVariables,
   buildHttpServer,
   buildEventSubscriber,

@@ -79,7 +79,6 @@ export type MakeCommands = {
   buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
   buildSpinner: () => Spinner;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
   login: () => Promise<void>;
 };
 

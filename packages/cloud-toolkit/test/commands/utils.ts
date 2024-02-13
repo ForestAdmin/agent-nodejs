@@ -10,13 +10,11 @@ export type MakeCommandsForTests = Omit<MakeCommands, 'buildSpinner'>;
 export const setupCommandArguments = (
   options?: Partial<{
     getLastPublishedCodeDetails: jest.Mock;
-    getOrRefreshEnvironmentVariables: jest.Mock;
     getEnvironmentVariables: jest.Mock;
     login: jest.Mock;
     getIntrospection: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
-  const getOrRefreshEnvironmentVariables = options?.getOrRefreshEnvironmentVariables || jest.fn();
   const getEnvironmentVariables = options?.getEnvironmentVariables || jest.fn();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,7 +31,6 @@ export const setupCommandArguments = (
   const login = options?.login || jest.fn();
 
   return {
-    getOrRefreshEnvironmentVariables,
     getEnvironmentVariables,
     buildHttpServer,
     buildEventSubscriber,

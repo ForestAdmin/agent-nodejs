@@ -3,7 +3,7 @@ import path from 'path';
 
 export default async function login() {
   return new Promise<void>((resolve, reject) => {
-    const pathForest = path.join(__dirname, '..', '..', 'node_modules', '.bin', 'forest');
+    const pathForest = path.join(__dirname, '..', 'node_modules', '.bin', 'forest');
     const process = exec(`node ${pathForest} login`);
     // eslint-disable-next-line no-console
     process.stdout.on('data', console.log);
