@@ -61,8 +61,6 @@ export default class CommandTester {
     jest.clearAllMocks();
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     this.rl.question = jest.fn().mockImplementation((question, callback) => {
-      // we want to display the question in the stdout to display it in the test output
-      process.stdout.write(`${question}\n`);
       this.saveOutput(question);
       const answer = this.answers[question.trim()];
       if (answer) callback(answer);
