@@ -2,9 +2,19 @@ import path from 'path';
 
 export default class PathManager {
   public readonly downLoadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
-  private tmp;
-  constructor(tmp) {
-    this.tmp = tmp;
+  private _tmp;
+  private _home;
+  constructor(tmp, home) {
+    this._tmp = tmp;
+    this._home = home;
+  }
+
+  public get home() {
+    return this._home;
+  }
+
+  public get tmp() {
+    return this._tmp;
   }
 
   public get zip() {
@@ -16,9 +26,7 @@ export default class PathManager {
   }
 
   public get cloudCustomizer() {
-    const cc = path.join('.', 'cloud-customizer');
-
-    return cc;
+    return path.join('.', 'cloud-customizer');
   }
 
   public get typings() {

@@ -37,6 +37,7 @@ describe('bootstrap', () => {
       expect(fs.existsSync).toHaveBeenCalled();
     });
   });
+
   describe('If the target directory does not exists', () => {
     describe('If some process fails', () => {
       it('should throw a BusinessError', async () => {

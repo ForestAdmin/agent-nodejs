@@ -25,7 +25,7 @@ async function tryToClearBootstrap(paths: PathManager): Promise<string | null> {
 async function generateDotEnv(envSecret: string, paths: PathManager) {
   const envTemplate = await fsP.readFile(paths.dotEnvTemplate, 'utf-8');
   let replaced = envTemplate.replace('<FOREST_ENV_SECRET_TO_REPLACE>', envSecret);
-  replaced = replaced.replace('<TOKEN_PATH_TO_REPLACE>', os.homedir());
+  replaced = replaced.replace('<TOKEN_PATH_TO_REPLACE>', paths.home);
   await fsP.writeFile(paths.env, replaced);
 }
 
@@ -56,7 +56,7 @@ export default async function bootstrap(
   envSecret: string,
   httpForestServer: HttpForestServer,
 ): Promise<void> {
-  const paths = new PathManager(os.tmpdir());
+  const paths = new PathManager(os.tmpdir(), os.homedir());
 
   if (fs.existsSync(paths.cloudCustomizer)) {
     throw new BusinessError('You have already a cloud-customizer folder.');
@@ -74,7 +74,7 @@ export default async function bootstrap(
     });
 
     const zip: AdmZip = new AdmZip(paths.zip);
-    zip.extractAllTo(os.tmpdir(), false);
+    zip.extractAllTo(paths.tmp, false);
     await Promise.all([
       fsP.rename(paths.extracted, paths.cloudCustomizer),
       fsP.rm(paths.zip, { force: true }),
