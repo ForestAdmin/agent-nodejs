@@ -66,7 +66,7 @@ export default async function bootstrap(
   httpForestServer: HttpForestServer,
 ): Promise<void> {
   if (fs.existsSync(cloudCustomizerPath)) {
-    throw new BusinessError('You have already a cloud-customizer folder.');
+    throw new BusinessError('You have already a cloud-customizer folder');
   }
 
   try {
