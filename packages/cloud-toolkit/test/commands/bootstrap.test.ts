@@ -43,8 +43,7 @@ describe('bootstrap command', () => {
       expect(cmd.outputs).toEqual([
         cmd.text('Bootstrapping project'),
         cmd.success('Environment found'),
-        cmd.text('Checking previous publication'),
-        cmd.text('Checking previous publication'), // don't know why it's called twice
+        cmd.text('Bootstrapping project'),
         cmd.error('You have already a cloud-customizer folder'),
       ]);
     });
@@ -70,7 +69,6 @@ describe('bootstrap command', () => {
       expect(cmd.outputs).toEqual([
         cmd.text('Bootstrapping project'),
         cmd.success('Environment found'),
-        cmd.text('Checking previous publication'),
         cmd.warning('There is already deployed customization code on your project'),
         cmd.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
         'Do you really want to overwrite these customizations? (yes/no)',

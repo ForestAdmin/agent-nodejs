@@ -100,8 +100,8 @@ export default function makeCommands({
           throw new BusinessError('Operation aborted');
         }
 
-        const subscriptionId = await publish(forestServer);
         spinner.start('Publishing code customizations (operation cannot be cancelled)');
+        const subscriptionId = await publish(forestServer);
         const subscriber = buildEventSubscriber(vars);
 
         try {
