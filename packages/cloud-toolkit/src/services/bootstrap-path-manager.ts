@@ -1,6 +1,6 @@
 import path from 'path';
 
-export default class PathManager {
+export default class BootstrapPathManager {
   private _tmp: string;
   private _home: string;
   constructor(tmp: string, home: string) {

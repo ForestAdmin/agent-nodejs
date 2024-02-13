@@ -5,9 +5,9 @@ import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
+import BootstrapPathManager from './services/bootstrap-path-manager';
 import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
 import packageCustomizations from './services/packager';
-import PathManager from './services/path-manager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
 import { MakeCommands } from './types';
@@ -34,7 +34,7 @@ export default function makeCommands({
         const vars = await getOrRefreshEnvironmentVariables();
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpServer(vars).getIntrospection();
-        const paths = new PathManager(os.tmpdir(), os.homedir());
+        const paths = new BootstrapPathManager(os.tmpdir(), os.homedir());
         await updateTypingsWithCustomizations(paths.typingsAfterBootstrapped, introspection);
         spinner.succeed('Your typings have been updated');
       }),

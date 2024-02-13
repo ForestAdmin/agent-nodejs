@@ -4,12 +4,12 @@ import * as fs from 'fs';
 import * as fsP from 'fs/promises';
 import * as os from 'os';
 
+import BootstrapPathManager from './bootstrap-path-manager';
 import HttpServer from './http-server';
-import PathManager from './path-manager';
 import { updateTypings } from './update-typings';
 import { BusinessError } from '../errors';
 
-async function tryToClearBootstrap(paths: PathManager): Promise<string | null> {
+async function tryToClearBootstrap(paths: BootstrapPathManager): Promise<string | null> {
   try {
     await Promise.all([
       fsP.rm(paths.zip, { force: true }),
@@ -21,7 +21,7 @@ async function tryToClearBootstrap(paths: PathManager): Promise<string | null> {
   }
 }
 
-async function generateDotEnv(envSecret: string, paths: PathManager) {
+async function generateDotEnv(envSecret: string, paths: BootstrapPathManager) {
   const envTemplate = await fsP.readFile(paths.dotEnvTemplate, 'utf-8');
   let replaced = envTemplate.replace('<FOREST_ENV_SECRET_TO_REPLACE>', envSecret);
   replaced = replaced.replace('<TOKEN_PATH_TO_REPLACE>', paths.home);
@@ -31,7 +31,7 @@ async function generateDotEnv(envSecret: string, paths: PathManager) {
 async function generateHelloWorldExample(
   collectionName: string,
   dependency: string,
-  paths: PathManager,
+  paths: BootstrapPathManager,
 ) {
   const template = await fsP.readFile(paths.helloWorldTemplate, 'utf-8');
   let replaced = template.replace('<COLLECTION_NAME_TO_REPLACE>', collectionName);
@@ -52,7 +52,7 @@ function findPrimaryKeyAndCollectionName(introspection: Table[]): {
 }
 
 export default async function bootstrap(envSecret: string, httpServer: HttpServer): Promise<void> {
-  const paths = new PathManager(os.tmpdir(), os.homedir());
+  const paths = new BootstrapPathManager(os.tmpdir(), os.homedir());
 
   if (fs.existsSync(paths.cloudCustomizer)) {
     throw new BusinessError('You have already a cloud-customizer folder');
