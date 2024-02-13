@@ -12,7 +12,7 @@ export const setupCommandArguments = (
   const getEnvironmentVariables = jest.fn();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const buildHttpForestServer = (vars: EnvironmentVariables) => {
+  const buildHttpServer = (vars: EnvironmentVariables) => {
     return {
       getIntrospection: jest.fn(),
       postUploadRequest: jest.fn(),
@@ -27,7 +27,7 @@ export const setupCommandArguments = (
   return {
     getOrRefreshEnvironmentVariables,
     getEnvironmentVariables,
-    buildHttpForestServer,
+    buildHttpServer,
     buildEventSubscriber,
     login,
   };

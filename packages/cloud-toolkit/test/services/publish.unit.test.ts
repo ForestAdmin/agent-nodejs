@@ -32,12 +32,12 @@ const setup = () => {
       'X-Amz-Signature': 'c5...84',
     },
   };
-  const httpForestServer = {
+  const httpServer = {
     postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
     postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'subscriptionId' }),
   } as unknown as HttpServer;
 
-  return { httpForestServer, presignedPost };
+  return { httpServer, presignedPost };
 };
 
 describe('publish', () => {
@@ -46,7 +46,7 @@ describe('publish', () => {
   });
 
   it('should upload the zip to S3 then ask for publication', async () => {
-    const { httpForestServer, presignedPost } = setup();
+    const { httpServer, presignedPost } = setup();
 
     mockToBuffer.mockReturnValue({ byteLength: 101 });
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -59,12 +59,12 @@ describe('publish', () => {
       return null;
     });
 
-    const result = await publish(httpForestServer);
+    const result = await publish(httpServer);
 
     expect(result).toStrictEqual('subscriptionId');
 
-    expect(httpForestServer.postUploadRequest).toHaveBeenCalled();
-    expect(httpForestServer.postUploadRequest).toHaveBeenCalledWith(101);
+    expect(httpServer.postUploadRequest).toHaveBeenCalled();
+    expect(httpServer.postUploadRequest).toHaveBeenCalledWith(101);
 
     expect(FormData).toHaveBeenCalled();
     expect(FormData.prototype.append).toHaveBeenCalledTimes(8);
@@ -77,18 +77,18 @@ describe('publish', () => {
 
     expect(FormData.prototype.submit).toHaveBeenCalledWith(presignedPost.url, expect.any(Function));
 
-    expect(httpForestServer.postPublish).toHaveBeenCalled();
+    expect(httpServer.postPublish).toHaveBeenCalled();
   });
 
   describe('when an error occurs while reading zip file', () => {
     it('should throw a business error', async () => {
-      const { httpForestServer } = setup();
+      const { httpServer } = setup();
 
       mockToBuffer.mockImplementation(() => {
         throw new Error('Cannot read file');
       });
 
-      await expect(publish(httpForestServer)).rejects.toThrow(
+      await expect(publish(httpServer)).rejects.toThrow(
         'Publish failed: Cannot read code-customization zip file ' +
           '- At path: dist/code-customizations.zip',
       );

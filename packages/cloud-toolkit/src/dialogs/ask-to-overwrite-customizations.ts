@@ -5,9 +5,9 @@ import HttpServer from '../services/http-server';
 
 export default async function askToOverwriteCustomizations(
   spinner: Ora,
-  httpForestServer: HttpServer,
+  httpServer: HttpServer,
 ): Promise<boolean> {
-  const details = await httpForestServer.getLastPublishedCodeDetails();
+  const details = await httpServer.getLastPublishedCodeDetails();
 
   if (!details) return true;
 

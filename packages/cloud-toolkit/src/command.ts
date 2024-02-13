@@ -15,7 +15,7 @@ import { EnvironmentVariables } from './types';
 
 configDotenv();
 
-const buildHttpForestServer = (envs: EnvironmentVariables): HttpServer => {
+const buildHttpServer = (envs: EnvironmentVariables): HttpServer => {
   validateEnvironmentVariables(envs);
 
   return new HttpServer(envs.FOREST_SERVER_URL, envs.FOREST_ENV_SECRET, envs.FOREST_AUTH_TOKEN);
@@ -30,7 +30,7 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
 const command = makeCommands({
   getOrRefreshEnvironmentVariables,
   getEnvironmentVariables,
-  buildHttpForestServer,
+  buildHttpServer,
   buildEventSubscriber,
   login,
 });

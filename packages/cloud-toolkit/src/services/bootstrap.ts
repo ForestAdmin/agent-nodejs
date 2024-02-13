@@ -51,14 +51,11 @@ function findPrimaryKeyAndCollectionName(introspection: Table[]): {
   return null;
 }
 
-export default async function bootstrap(
-  envSecret: string,
-  httpForestServer: HttpServer,
-): Promise<void> {
+export default async function bootstrap(envSecret: string, httpServer: HttpServer): Promise<void> {
   const paths = new PathManager(os.tmpdir(), os.homedir());
 
   if (fs.existsSync(paths.cloudCustomizer)) {
-    throw new BusinessError('You have already a cloud-customizer folder.');
+    throw new BusinessError('You have already a cloud-customizer folder');
   }
 
   try {
@@ -75,7 +72,7 @@ export default async function bootstrap(
     // we do not overwrite it because it may contain sensitive data
     if (!fs.existsSync(paths.env)) await generateDotEnv(envSecret, paths);
 
-    const introspection = await httpForestServer.getIntrospection();
+    const introspection = await httpServer.getIntrospection();
     const data = findPrimaryKeyAndCollectionName(introspection);
     if (data) await generateHelloWorldExample(data.collectionName, data.primaryKey, paths);
 

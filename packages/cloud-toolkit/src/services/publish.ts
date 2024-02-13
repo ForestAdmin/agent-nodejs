@@ -15,7 +15,7 @@ function getKeyFromPolicy(policy: string) {
   return keyCondition[2];
 }
 
-export default async function publish(httpForestServer: HttpServer): Promise<string> {
+export default async function publish(httpServer: HttpServer): Promise<string> {
   try {
     let buffer: Buffer;
 
@@ -28,7 +28,7 @@ export default async function publish(httpForestServer: HttpServer): Promise<str
       );
     }
 
-    const { url, fields } = await httpForestServer.postUploadRequest(buffer.byteLength);
+    const { url, fields } = await httpServer.postUploadRequest(buffer.byteLength);
 
     const form = new FormData();
     form.append('key', getKeyFromPolicy(fields.Policy));
@@ -44,7 +44,7 @@ export default async function publish(httpForestServer: HttpServer): Promise<str
       });
     });
 
-    const { subscriptionId } = await httpForestServer.postPublish();
+    const { subscriptionId } = await httpServer.postPublish();
 
     return subscriptionId;
   } catch (error) {

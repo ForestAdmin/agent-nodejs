@@ -26,9 +26,9 @@ describe('bootstrap', () => {
   describe('If the target directory exists', () => {
     it('should throw a business error', async () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      const httpForestServer = new HttpServer('', '', '');
-      await expect(bootstrap('abc', httpForestServer)).rejects.toEqual(
-        new BusinessError('You have already a cloud-customizer folder.'),
+      const httpServer = new HttpServer('', '', '');
+      await expect(bootstrap('abc', httpServer)).rejects.toEqual(
+        new BusinessError('You have already a cloud-customizer folder'),
       );
       expect(fs.existsSync).toHaveBeenCalled();
     });
@@ -39,12 +39,12 @@ describe('bootstrap', () => {
       it('should throw a BusinessError', async () => {
         jest.spyOn(fs, 'existsSync').mockReturnValue(false);
         jest.spyOn(os, 'homedir').mockReturnValue('/my/home/directory');
-        const httpForestServer = new HttpServer('', '', '');
+        const httpServer = new HttpServer('', '', '');
         HttpServer.downloadCloudCustomizerTemplate = jest
           .fn()
           .mockRejectedValue(new Error('Failed'));
 
-        await expect(bootstrap('abc', httpForestServer)).rejects.toEqual(
+        await expect(bootstrap('abc', httpServer)).rejects.toEqual(
           new BusinessError('Bootstrap failed: Failed.'),
         );
       });
@@ -67,7 +67,7 @@ describe('bootstrap', () => {
             callback();
           },
         } as unknown as fs.WriteStream);
-        const httpForestServer = new HttpServer('', '', '');
+        const httpServer = new HttpServer('', '', '');
         const introspection: Table[] = [
           {
             name: 'towns',
@@ -103,7 +103,7 @@ describe('bootstrap', () => {
             ],
           },
         ];
-        jest.spyOn(httpForestServer, 'getIntrospection').mockResolvedValue(introspection);
+        jest.spyOn(httpServer, 'getIntrospection').mockResolvedValue(introspection);
         HttpServer.downloadCloudCustomizerTemplate = jest.fn();
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
@@ -111,7 +111,7 @@ describe('bootstrap', () => {
         const renameSpy = jest.spyOn(fsP, 'rename').mockResolvedValue();
         const rmSpy = jest.spyOn(fsP, 'rm').mockResolvedValue();
 
-        await bootstrap('abc', httpForestServer);
+        await bootstrap('abc', httpServer);
 
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalled();
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalledWith(

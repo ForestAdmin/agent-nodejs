@@ -15,7 +15,7 @@ import { MakeCommands } from './types';
 export default function makeCommands({
   getOrRefreshEnvironmentVariables,
   getEnvironmentVariables,
-  buildHttpForestServer,
+  buildHttpServer,
   buildEventSubscriber,
   login,
 }: MakeCommands): Command {
@@ -32,7 +32,7 @@ export default function makeCommands({
         spinner.start('Updating typings');
         const vars = await getOrRefreshEnvironmentVariables();
         validateEnvironmentVariables(vars);
-        const introspection = await buildHttpForestServer(vars).getIntrospection();
+        const introspection = await buildHttpServer(vars).getIntrospection();
         const paths = new PathManager(os.tmpdir(), os.homedir());
         await updateTypingsWithCustomizations(paths.typingsAfterBootstrapped, introspection);
         spinner.succeed('Your typings have been updated');
@@ -63,7 +63,7 @@ export default function makeCommands({
         spinner.succeed('Environment found');
         spinner.stop();
 
-        const forestServer = buildHttpForestServer({ ...vars, FOREST_ENV_SECRET: secret });
+        const forestServer = buildHttpServer({ ...vars, FOREST_ENV_SECRET: secret });
 
         if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
           throw new BusinessError('Operation aborted');
@@ -97,7 +97,7 @@ export default function makeCommands({
     .action(
       actionRunner(async (spinner, options: { force: boolean }) => {
         const vars = await getOrRefreshEnvironmentVariables();
-        const forestServer = buildHttpForestServer(vars);
+        const forestServer = buildHttpServer(vars);
 
         if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
           throw new BusinessError('Operation aborted');
