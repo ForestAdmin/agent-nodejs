@@ -35,10 +35,6 @@ export default class HttpServer {
     this.bearerToken = bearerToken;
   }
 
-  /**
-   * download the cloud customizer from github into destination file
-   * @param paths
-   */
   public static async downloadCloudCustomizerTemplate(destination: string) {
     const response = await axios({
       url: 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip',
