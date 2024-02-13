@@ -15,7 +15,7 @@ import {
   validateServerUrl,
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
-import HttpForestServer from './services/http-forest-server';
+import HttpServer from './services/http-server';
 import login from './services/login';
 import packageCustomizations from './services/packager';
 import PathManager from './services/path-manager';
@@ -25,14 +25,10 @@ import { EnvironmentVariables } from './types';
 
 configDotenv();
 
-const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => {
+const buildHttpForestServer = (envs: EnvironmentVariables): HttpServer => {
   validateEnvironmentVariables(envs);
 
-  return new HttpForestServer(
-    envs.FOREST_SERVER_URL,
-    envs.FOREST_ENV_SECRET,
-    envs.FOREST_AUTH_TOKEN,
-  );
+  return new HttpServer(envs.FOREST_SERVER_URL, envs.FOREST_ENV_SECRET, envs.FOREST_AUTH_TOKEN);
 };
 
 const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {

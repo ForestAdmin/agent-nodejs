@@ -1,11 +1,10 @@
 import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
-import axios from 'axios';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
 import * as os from 'os';
 
-import HttpForestServer from './http-forest-server';
+import HttpServer from './http-server';
 import PathManager from './path-manager';
 import { updateTypings } from './update-typings';
 import { BusinessError } from '../errors';
@@ -54,7 +53,7 @@ function findPrimaryKeyAndCollectionName(introspection: Table[]): {
 
 export default async function bootstrap(
   envSecret: string,
-  httpForestServer: HttpForestServer,
+  httpForestServer: HttpServer,
 ): Promise<void> {
   const paths = new PathManager(os.tmpdir(), os.homedir());
 
@@ -63,15 +62,7 @@ export default async function bootstrap(
   }
 
   try {
-    const response = await axios({ url: paths.downLoadUrl, method: 'get', responseType: 'stream' });
-
-    const stream: fs.WriteStream = fs.createWriteStream(paths.zip);
-    response.data.pipe(stream);
-
-    await new Promise<void>((resolve, reject) => {
-      stream.on('finish', resolve);
-      stream.on('error', reject);
-    });
+    await HttpServer.downloadCloudCustomizerTemplate(paths.zip);
 
     const zip: AdmZip = new AdmZip(paths.zip);
     zip.extractAllTo(paths.tmp, false);

@@ -1,7 +1,7 @@
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
 
-import HttpForestServer from './http-forest-server';
+import HttpServer from './http-server';
 import { zipPath } from './packager';
 import { BusinessError } from '../errors';
 
@@ -15,7 +15,7 @@ function getKeyFromPolicy(policy: string) {
   return keyCondition[2];
 }
 
-export default async function publish(httpForestServer: HttpForestServer): Promise<string> {
+export default async function publish(httpForestServer: HttpServer): Promise<string> {
   try {
     let buffer: Buffer;
 

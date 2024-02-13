@@ -1,7 +1,6 @@
 import path from 'path';
 
 export default class PathManager {
-  public readonly downLoadUrl = 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip';
   private _tmp;
   private _home;
   constructor(tmp, home) {

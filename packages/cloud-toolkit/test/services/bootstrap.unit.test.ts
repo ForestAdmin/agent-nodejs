@@ -1,24 +1,20 @@
 import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
-import axios from 'axios';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
 import * as os from 'os';
-import stream from 'stream';
 
 import { BusinessError } from '../../src/errors';
 import bootstrap from '../../src/services/bootstrap';
-import HttpForestServer from '../../src/services/http-forest-server';
+import HttpServer from '../../src/services/http-server';
 import { updateTypings } from '../../src/services/update-typings';
 
-jest.spyOn(os, 'tmpdir').mockReturnValue('/tmp');
-
 jest.mock('adm-zip');
-jest.mock('axios');
 jest.mock('fs');
-jest.mock('fs/promises');
 jest.mock('os');
+jest.mock('fs/promises');
 
+jest.spyOn(os, 'tmpdir').mockReturnValue('/tmp');
 jest.mock('../../src/services/update-typings', () => {
   return {
     default: jest.fn(() => {}),
@@ -30,7 +26,7 @@ describe('bootstrap', () => {
   describe('If the target directory exists', () => {
     it('should throw a business error', async () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      const httpForestServer = new HttpForestServer('', '', '');
+      const httpForestServer = new HttpServer('', '', '');
       await expect(bootstrap('abc', httpForestServer)).rejects.toEqual(
         new BusinessError('You have already a cloud-customizer folder.'),
       );
@@ -43,9 +39,10 @@ describe('bootstrap', () => {
       it('should throw a BusinessError', async () => {
         jest.spyOn(fs, 'existsSync').mockReturnValue(false);
         jest.spyOn(os, 'homedir').mockReturnValue('/my/home/directory');
-        const axiosMock = axios as unknown as jest.Mock;
-        axiosMock.mockRejectedValue(new Error('Failed'));
-        const httpForestServer = new HttpForestServer('', '', '');
+        const httpForestServer = new HttpServer('', '', '');
+        HttpServer.downloadCloudCustomizerTemplate = jest
+          .fn()
+          .mockRejectedValue(new Error('Failed'));
 
         await expect(bootstrap('abc', httpForestServer)).rejects.toEqual(
           new BusinessError('Bootstrap failed: Failed.'),
@@ -70,11 +67,7 @@ describe('bootstrap', () => {
             callback();
           },
         } as unknown as fs.WriteStream);
-        const axiosMock = axios as unknown as jest.Mock;
-        const response = { data: new stream.PassThrough() };
-        axiosMock.mockResolvedValue(response);
-        response.data.pipe = jest.fn().mockImplementation(() => ({}));
-        const httpForestServer = new HttpForestServer('', '', '');
+        const httpForestServer = new HttpServer('', '', '');
         const introspection: Table[] = [
           {
             name: 'towns',
@@ -111,19 +104,19 @@ describe('bootstrap', () => {
           },
         ];
         jest.spyOn(httpForestServer, 'getIntrospection').mockResolvedValue(introspection);
-        (AdmZip as unknown as jest.Mock).mockReturnValue({ extractAllTo: () => {} });
+        HttpServer.downloadCloudCustomizerTemplate = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        jest.mocked(AdmZip).mockReturnValue({ extractAllTo: () => {} });
         const renameSpy = jest.spyOn(fsP, 'rename').mockResolvedValue();
         const rmSpy = jest.spyOn(fsP, 'rm').mockResolvedValue();
 
         await bootstrap('abc', httpForestServer);
 
-        expect(axiosMock).toHaveBeenCalled();
-        expect(axiosMock).toHaveBeenLastCalledWith({
-          url: 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip',
-          method: 'get',
-          responseType: 'stream',
-        });
-        expect(fs.createWriteStream).toHaveBeenCalledWith('/tmp/cloud-customizer.zip');
+        expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalled();
+        expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalledWith(
+          '/tmp/cloud-customizer.zip',
+        );
         expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'cloud-customizer');
         expect(rmSpy).toHaveBeenCalledWith('/tmp/cloud-customizer.zip', { force: true });
 

@@ -1,11 +1,11 @@
 import { Ora } from 'ora';
 import readline from 'readline';
 
-import HttpForestServer from '../services/http-forest-server';
+import HttpServer from '../services/http-server';
 
 export default async function askToOverwriteCustomizations(
   spinner: Ora,
-  httpForestServer: HttpForestServer,
+  httpForestServer: HttpServer,
 ): Promise<boolean> {
   spinner.text = 'Checking previous publication\n';
   const { relativeDate, user } = await httpForestServer.getLastPublishedCodeDetails();
