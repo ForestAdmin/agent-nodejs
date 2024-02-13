@@ -78,4 +78,14 @@ export type MakeCommands = {
   buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
   buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
   login: () => Promise<void>;
+  buildSpinner: () => Spinner;
+};
+
+export type Spinner = {
+  start: (text: string) => void;
+  succeed: (text: string) => void;
+  warn: (text: string) => void;
+  info: (text: string) => void;
+  fail: (text: string) => void;
+  stop: () => void;
 };

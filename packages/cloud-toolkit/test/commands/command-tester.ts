@@ -3,8 +3,9 @@ import logSymbols from 'log-symbols';
 import * as process from 'process';
 import readline from 'readline';
 
+import { MakeCommandsForTests } from './utils';
 import makeCommands from '../../src/make-commands';
-import { MakeCommands } from '../../src/types';
+import { Spinner } from '../../src/types';
 
 export default class CommandTester {
   private readonly command: Command;
@@ -12,12 +13,14 @@ export default class CommandTester {
   private readonly answers: Record<string, string> = {};
   private rl?: readline.Interface;
   public outputs: string[] = [];
-  constructor(mocks: MakeCommands, argv: string[]) {
-    this.command = makeCommands(mocks);
+  private lastSpinnerText: string;
+
+  constructor(mocks: MakeCommandsForTests, argv: string[]) {
+    const spinner = this.buildSpinner();
+    this.command = makeCommands({ ...mocks, buildSpinner: () => spinner });
     this.argv = argv;
 
     this.catchQuestionTraces();
-    this.catchSpinnerTraces();
   }
 
   answerToQuestion(question: string, answer: string): void {
@@ -34,15 +37,15 @@ export default class CommandTester {
     }
   }
 
-  text(message: string): string {
+  start(message: string): string {
     return `- ${message}`;
   }
 
-  success(message: string): string {
+  succeed(message: string): string {
     return `${logSymbols.success} ${message}`;
   }
 
-  warning(message: string): string {
+  warn(message: string): string {
     return `${logSymbols.warning} ${message}`;
   }
 
@@ -50,7 +53,7 @@ export default class CommandTester {
     return `${logSymbols.info} ${message}`;
   }
 
-  error(message: string): string {
+  fail(message: string): string {
     return `${logSymbols.error} ${message}`;
   }
 
@@ -68,15 +71,32 @@ export default class CommandTester {
     jest.spyOn(readline, 'createInterface').mockReturnValue(this.rl as any);
   }
 
-  private catchSpinnerTraces() {
-    // ora uses process.stderr.write to display the spinner
-    jest.spyOn(process.stderr, 'write').mockImplementation(output => {
-      this.saveOutput(output);
-      // we want to display the spinner in the stdout to display it in the test output
-      process.stdout.write(output);
+  private buildSpinner(): Spinner {
+    return {
+      start: (text: string) => {
+        if (!text) {
+          this.saveOutput(this.start(this.lastSpinnerText));
 
-      return true;
-    });
+          return;
+        }
+
+        this.lastSpinnerText = text;
+        this.saveOutput(this.start(text));
+      },
+      succeed: (text: string) => {
+        this.saveOutput(this.succeed(text));
+      },
+      warn: (text: string) => {
+        this.saveOutput(this.warn(text));
+      },
+      info: (text: string) => {
+        this.saveOutput(this.info(text));
+      },
+      fail: (text: string) => {
+        this.saveOutput(this.fail(text));
+      },
+      stop: jest.fn(),
+    };
   }
 
   private saveOutput(output: string | Uint8Array): void {
