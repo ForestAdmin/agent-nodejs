@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { configDotenv } from 'dotenv';
-import os from 'os';
 
 import makeCommands from './make-commands';
 import {
@@ -12,10 +11,6 @@ import {
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
 import login from './services/login';
-import packageCustomizations from './services/packager';
-import PathManager from './services/path-manager';
-import publish from './services/publish';
-import { updateTypingsWithCustomizations } from './services/update-typings';
 import { EnvironmentVariables } from './types';
 
 configDotenv();
