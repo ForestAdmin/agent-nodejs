@@ -1,7 +1,7 @@
 import FormData from 'form-data';
 import { afterEach } from 'node:test';
 
-import HttpForestServer from '../../src/services/http-forest-server';
+import HttpServer from '../../src/services/http-server';
 import publish from '../../src/services/publish';
 
 const mockToBuffer = jest.fn();
@@ -35,7 +35,7 @@ const setup = () => {
   const httpForestServer = {
     postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
     postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'subscriptionId' }),
-  } as unknown as HttpForestServer;
+  } as unknown as HttpServer;
 
   return { httpForestServer, presignedPost };
 };

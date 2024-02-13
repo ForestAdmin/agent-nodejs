@@ -1,4 +1,4 @@
-import HttpForestServer from '../../src/services/http-forest-server';
+import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -18,7 +18,7 @@ export const setupCommandArguments = (
       postUploadRequest: jest.fn(),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn(),
-    } as unknown as HttpForestServer;
+    } as unknown as HttpServer;
   };
 
   const buildEventSubscriber = jest.fn();
