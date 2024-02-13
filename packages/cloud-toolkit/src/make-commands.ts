@@ -16,6 +16,7 @@ export default function makeCommands({
   buildHttpForestServer,
   buildEventSubscriber,
   login,
+  buildSpinner,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();
@@ -26,7 +27,7 @@ export default function makeCommands({
         '(whenever its schema changes)',
     )
     .action(
-      actionRunner(async spinner => {
+      actionRunner(buildSpinner, async spinner => {
         spinner.start('Updating typings');
         const vars = await getOrRefreshEnvironmentVariables();
         validateEnvironmentVariables(vars);
@@ -44,7 +45,7 @@ export default function makeCommands({
       'Environment secret, you can find it in your environment settings',
     )
     .action(
-      actionRunner(async (spinner, options: { envSecret: string }) => {
+      actionRunner(buildSpinner, async (spinner, options: { envSecret: string }) => {
         spinner.start('Bootstrapping project');
         const vars = await getOrRefreshEnvironmentVariables();
         const secret = options.envSecret || vars.FOREST_ENV_SECRET;
@@ -78,7 +79,7 @@ export default function makeCommands({
     .command('login')
     .description('Login to your project')
     .action(
-      actionRunner(async spinner => {
+      actionRunner(buildSpinner, async spinner => {
         spinner.start('Logging in');
         const vars = await getEnvironmentVariables();
         validateServerUrl(vars.FOREST_SERVER_URL);
@@ -92,7 +93,7 @@ export default function makeCommands({
     .description('Publish your code customizations')
     .option('-f, --force', 'Force the publication without asking for confirmation')
     .action(
-      actionRunner(async (spinner, options: { force: boolean }) => {
+      actionRunner(buildSpinner, async (spinner, options: { force: boolean }) => {
         const vars = await getOrRefreshEnvironmentVariables();
         const forestServer = buildHttpForestServer(vars);
 
@@ -124,7 +125,7 @@ export default function makeCommands({
     .command('package')
     .description('Package your code customizations')
     .action(
-      actionRunner(async spinner => {
+      actionRunner(buildSpinner, async spinner => {
         spinner.start('Packaging code');
         await packageCustomizations();
         spinner.succeed('Code customizations packaged and ready for publish');

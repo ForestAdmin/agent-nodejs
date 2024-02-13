@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { configDotenv } from 'dotenv';
+import ora from 'ora';
 
 import makeCommands from './make-commands';
 import {
@@ -37,6 +38,7 @@ const command = makeCommands({
   buildHttpForestServer,
   buildEventSubscriber,
   login,
+  buildSpinner: () => ora(),
 });
 
 command.parseAsync();
