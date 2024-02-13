@@ -36,7 +36,7 @@ export default class HttpServer {
   }
 
   /**
-   * download the cloud customizer from github into paths.zip file
+   * download the cloud customizer from github into destination file
    * @param paths
    */
   public static async downloadCloudCustomizerTemplate(destination: string) {

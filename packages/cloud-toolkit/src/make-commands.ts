@@ -1,11 +1,13 @@
 import { Command } from 'commander';
+import os from 'os';
 
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
-import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
+import bootstrap from './services/bootstrap';
 import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
 import packageCustomizations from './services/packager';
+import PathManager from './services/path-manager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
 import { MakeCommands } from './types';
@@ -31,7 +33,8 @@ export default function makeCommands({
         const vars = await getOrRefreshEnvironmentVariables();
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpForestServer(vars).getIntrospection();
-        await updateTypingsWithCustomizations(typingsPathAfterBootstrapped, introspection);
+        const paths = new PathManager(os.tmpdir(), os.homedir());
+        await updateTypingsWithCustomizations(paths.typingsAfterBootstrapped, introspection);
         spinner.succeed('Your typings have been updated');
       }),
     );
