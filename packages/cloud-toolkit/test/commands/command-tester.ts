@@ -100,8 +100,6 @@ export default class CommandTester {
   }
 
   private saveOutput(output: string | Uint8Array): void {
-    // if (output.toString().trim().length < 10) return;
-    console.log(output.toString().trim().length, output);
     this.outputs.push(output.toString().trim());
   }
 }
