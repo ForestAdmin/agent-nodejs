@@ -41,6 +41,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when operators NotEqual and Missing are present', () => {
           const operators = new Set<Operator>(['NotEqual', 'Missing']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -55,6 +56,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when only the operator NotEqual is present', () => {
           const operators = new Set<Operator>(['NotEqual']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -106,6 +108,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when operators GreaterThan, Equal and Missing are present', () => {
           const operators = new Set<Operator>(['GreaterThan', 'Equal', 'Missing']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -121,6 +124,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when only the operator GreaterThan and Equal are present', () => {
           const operators = new Set<Operator>(['GreaterThan', 'Equal']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -189,6 +193,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when operators LessThan, Equal and Missing are present', () => {
           const operators = new Set<Operator>(['LessThan', 'Equal', 'Missing']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -204,6 +209,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when only the operator LessThan and Equal are present', () => {
           const operators = new Set<Operator>(['LessThan', 'Equal']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -277,6 +283,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when operators GreaterThan and Missing are present', () => {
           const operators = new Set<Operator>(['GreaterThan', 'Missing']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -291,6 +298,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when only the operator GreaterThan is present', () => {
           const operators = new Set<Operator>(['GreaterThan']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -357,6 +365,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when operators LessThan and Missing are present', () => {
           const operators = new Set<Operator>(['LessThan', 'Missing']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
@@ -371,6 +380,7 @@ describe('buildNumberFieldFilter', () => {
 
         describe('when only the operator LessThan is present', () => {
           const operators = new Set<Operator>(['LessThan']);
+
           it('should return a valid condition tree', () => {
             const result = buildNumberFieldFilter('fieldName', operators, searchString, isNegated);
 
