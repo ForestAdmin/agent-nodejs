@@ -7,11 +7,13 @@ import { distCodeCustomizationsPath } from './packager';
 import { BusinessError, CustomizationError } from '../errors';
 import { Agent } from '../types';
 
-const indexPath = path.resolve(distCodeCustomizationsPath, 'index.js');
+function indexPath() {
+  return path.resolve(distCodeCustomizationsPath, 'index.js');
+}
 
 function loadCustomization(agent: Agent): void {
   // eslint-disable-next-line
-  const customization = require(indexPath);
+  const customization = require(indexPath());
   const entryPoint = customization?.default || customization;
 
   if (typeof entryPoint !== 'function') {
@@ -52,12 +54,12 @@ export async function updateTypingsWithCustomizations(
 ): Promise<void> {
   const agent = buildAgent(introspection);
 
-  if (fs.existsSync(indexPath)) {
+  if (fs.existsSync(indexPath())) {
     loadCustomization(agent);
   } else {
     throw new BusinessError(
-      `No built customization found at ${indexPath}.\n` +
-        'Please run the `build` command to build your customizations.',
+      `No built customization found at ${indexPath()}.\n` +
+        'Please run `yarn build` to build your customizations.',
     );
   }
 
