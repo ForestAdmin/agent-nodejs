@@ -1,5 +1,4 @@
 import * as agent from '@forestadmin/agent';
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import * as datasourceSQL from '@forestadmin/datasource-sql';
 import { Table } from '@forestadmin/datasource-sql';
 import fs from 'fs';
@@ -17,7 +16,7 @@ describe('update-typings', () => {
 
   function setup() {
     const introspection = Symbol('introspection') as unknown as Table[];
-    const datasource = Symbol('datasource') as unknown as () => Promise<SequelizeDataSource>;
+    const datasource = Symbol('datasource') as unknown as () => any;
     const agentMock = {
       addDataSource: jest.fn(),
       addChart: jest.fn(),
