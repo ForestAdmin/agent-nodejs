@@ -1,10 +1,9 @@
-import ora from 'ora';
-
 import { BusinessError } from '../errors';
+import { Spinner } from '../types';
 
-export default function actionRunner(fn: (...args) => Promise<any>) {
+export default function actionRunner(buildSpinner: () => Spinner, fn: (...args) => Promise<any>) {
   return async (...args) => {
-    const spinner = ora().start();
+    const spinner = buildSpinner();
 
     try {
       await fn(spinner, ...args);
@@ -13,9 +12,6 @@ export default function actionRunner(fn: (...args) => Promise<any>) {
 
       if (error instanceof BusinessError) {
         spinner.fail(error.message);
-        // we must exit the process with a non-zero code to indicate an error
-        // it useful to avoid running the next command if the current one failed
-        process.exit(1);
       } else {
         throw error;
       }

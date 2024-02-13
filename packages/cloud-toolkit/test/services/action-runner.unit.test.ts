@@ -3,6 +3,7 @@ import ora from 'ora';
 
 import actionRunner from '../../src/dialogs/action-runner';
 import { BusinessError } from '../../src/errors';
+import { Spinner } from '../../src/types';
 
 jest.mock('ora');
 const processExit = jest.spyOn(process, 'exit').mockImplementation();
@@ -17,11 +18,9 @@ describe('actionRunner', () => {
     const spinner = {
       fail: jest.fn(),
       stop: jest.fn(),
-    };
-    const oraLib = {
-      start: () => spinner,
-    };
-    (ora as unknown as jest.Mock).mockReturnValue(oraLib);
+    } as unknown as Spinner;
+
+    (ora as unknown as jest.Mock).mockReturnValue(spinner);
 
     return { action, args, spinner };
   };
@@ -30,7 +29,7 @@ describe('actionRunner', () => {
     it('should return a function starting the spinner', async () => {
       const { action, args, spinner } = setup();
 
-      await actionRunner(action)(args);
+      await actionRunner(() => spinner, action)(args);
 
       expect(action).toHaveBeenCalled();
       expect(action).toHaveBeenCalledWith(spinner, args);
@@ -46,12 +45,11 @@ describe('actionRunner', () => {
         const message = 'some business error occured';
         action.mockRejectedValue(new BusinessError(message));
 
-        await actionRunner(action)(args);
+        await actionRunner(() => spinner, action)(args);
 
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
         expect(spinner.stop).toHaveBeenCalled();
-        expect(processExit).toHaveBeenCalledWith(1);
       });
     });
 
@@ -60,7 +58,9 @@ describe('actionRunner', () => {
         const { action, args, spinner } = setup();
         action.mockRejectedValue(new Error('some error occured'));
 
-        await expect(actionRunner(action)(args)).rejects.toEqual(new Error('some error occured'));
+        await expect(actionRunner(() => spinner, action)(args)).rejects.toEqual(
+          new Error('some error occured'),
+        );
 
         expect(spinner.stop).toHaveBeenCalled();
         expect(spinner.fail).not.toHaveBeenCalled();
