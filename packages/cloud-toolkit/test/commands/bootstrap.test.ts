@@ -17,8 +17,8 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.text('Bootstrapping project'),
-        cmd.error(
+        cmd.start('Bootstrapping project'),
+        cmd.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `bootstrap --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
@@ -41,10 +41,10 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.text('Bootstrapping project'),
-        cmd.success('Environment found'),
-        cmd.text('Bootstrapping project'),
-        cmd.error('You have already a cloud-customizer folder'),
+        cmd.start('Bootstrapping project'),
+        cmd.succeed('Environment found'),
+        cmd.start('Bootstrapping project'),
+        cmd.fail('You have already a cloud-customizer folder'),
       ]);
     });
   });
@@ -67,12 +67,12 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.text('Bootstrapping project'),
-        cmd.success('Environment found'),
-        cmd.warning('There is already deployed customization code on your project'),
+        cmd.start('Bootstrapping project'),
+        cmd.succeed('Environment found'),
+        cmd.warn('There is already deployed customization code on your project'),
         cmd.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
         'Do you really want to overwrite these customizations? (yes/no)',
-        cmd.error('Operation aborted'),
+        cmd.fail('Operation aborted'),
       ]);
     });
   });

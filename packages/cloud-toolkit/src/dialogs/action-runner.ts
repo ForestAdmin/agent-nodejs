@@ -1,10 +1,9 @@
-import ora from 'ora';
-
 import { BusinessError } from '../errors';
+import { Spinner } from '../types';
 
-export default function actionRunner(fn: (...args) => Promise<any>) {
+export default function actionRunner(buildSpinner: () => Spinner, fn: (...args) => Promise<any>) {
   return async (...args) => {
-    const spinner = ora();
+    const spinner = buildSpinner();
 
     try {
       await fn(spinner, ...args);
