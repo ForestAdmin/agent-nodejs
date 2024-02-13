@@ -15,11 +15,12 @@ export const setupCommandArguments = (
   options?: Partial<{
     getLastPublishedCodeDetails: jest.Mock;
     getOrRefreshEnvironmentVariables: jest.Mock;
+    getEnvironmentVariables: jest.Mock;
     login: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
   const getOrRefreshEnvironmentVariables = options?.getOrRefreshEnvironmentVariables || jest.fn();
-  const getEnvironmentVariables = jest.fn();
+  const getEnvironmentVariables = options?.getEnvironmentVariables || jest.fn();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {
