@@ -9,13 +9,14 @@ export default class CommandTester {
   private readonly command: Command;
   private readonly argv: string[];
   private readonly answers: Record<string, string> = {};
+  private rl?: readline.Interface;
   public outputs: string[] = [];
-  constructor(setup: MakeCommands, argv: string[]) {
-    this.command = makeCommands(setup);
+  constructor(mocks: MakeCommands, argv: string[]) {
+    this.command = makeCommands(mocks);
     this.argv = argv;
 
-    this.mockReadline();
-    this.mockOutput();
+    this.catchQuestionTraces();
+    this.catchSpinnerTraces();
   }
 
   answerToQuestion(question: string, answer: string): void {
@@ -23,7 +24,13 @@ export default class CommandTester {
   }
 
   async run(): Promise<void> {
-    await this.command.parseAsync(this.argv, { from: 'user' });
+    try {
+      await this.command.parseAsync(this.argv, { from: 'user' });
+    } catch (e) {
+      /* empty */
+    } finally {
+      this.rl?.close();
+    }
   }
 
   text(message: string): string {
@@ -54,9 +61,10 @@ export default class CommandTester {
     return `${errorIcon} ${message}`;
   }
 
-  private mockReadline() {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question = jest.fn().mockImplementation((question, callback) => {
+  private catchQuestionTraces() {
+    jest.clearAllMocks();
+    this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    this.rl.question = jest.fn().mockImplementation((question, callback) => {
       // we want to display the question in the stdout to display it in the test output
       process.stdout.write(`${question}\n`);
       this.saveOutput(question);
@@ -64,10 +72,10 @@ export default class CommandTester {
       if (answer) callback(answer);
       else throw new Error(`Unexpected question: ${question}`);
     });
-    jest.spyOn(readline, 'createInterface').mockReturnValue(rl as any);
+    jest.spyOn(readline, 'createInterface').mockReturnValue(this.rl as any);
   }
 
-  private mockOutput() {
+  private catchSpinnerTraces() {
     // ora uses process.stderr.write to display the spinner
     jest.spyOn(process.stderr, 'write').mockImplementation(output => {
       this.saveOutput(output);

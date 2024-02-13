@@ -1,4 +1,4 @@
-import { Command, program } from 'commander';
+import { Command } from 'commander';
 
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
@@ -17,6 +17,8 @@ export default function makeCommands({
   buildHttpForestServer,
   buildEventSubscriber,
 }: MakeCommands): Command {
+  // it's very important to use a new instance of Command each time for testing purposes
+  const program = new Command();
   program
     .command('update-typings')
     .description(
@@ -30,7 +32,7 @@ export default function makeCommands({
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpForestServer(vars).getIntrospection();
         await updateTypingsWithCustomizations(typingsPathAfterBootstrapped, introspection);
-        spinner.succeed('Your typings have been updated.');
+        spinner.succeed('Your typings have been updated');
       }),
     );
 

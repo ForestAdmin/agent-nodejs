@@ -24,12 +24,12 @@ export default async function askToOverwriteCustomizations(
     });
 
     rl.question(`Do you really want to overwrite these customizations? (yes/no) `, answer => {
-      if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
-        resolve(false);
+      if (answer.toLowerCase() === 'yes' && answer.toLowerCase() === 'y') {
+        resolve(true);
       }
 
       rl.close();
-      resolve(true);
+      resolve(false);
     });
   });
 }

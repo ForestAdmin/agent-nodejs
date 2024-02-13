@@ -1,33 +1,9 @@
 import fs from 'fs/promises';
 
 import CommandTester from './command-tester';
-import { MakeCommands } from '../../src/types';
+import { setupCommandArguments } from './utils';
 
 describe('bootstrap command', () => {
-  const setupCommandArguments = (
-    options: Partial<{
-      getLastPublishedCodeDetails: jest.Mock;
-      getOrRefreshEnvironmentVariables: jest.Mock;
-    }> = {},
-  ): jest.Mocked<MakeCommands> => {
-    const getOrRefreshEnvironmentVariables = options.getOrRefreshEnvironmentVariables || jest.fn();
-    const getEnvironmentVariables = jest.fn();
-    const buildHttpForestServer = jest.fn().mockReturnValue({
-      getIntrospection: jest.fn(),
-      postUploadRequest: jest.fn(),
-      getLastPublishedCodeDetails: options.getLastPublishedCodeDetails || jest.fn(),
-      postPublish: jest.fn(),
-    });
-    const buildEventSubscriber = jest.fn();
-
-    return {
-      getOrRefreshEnvironmentVariables,
-      getEnvironmentVariables,
-      buildHttpForestServer,
-      buildEventSubscriber,
-    };
-  };
-
   beforeEach(async () => {
     await fs.rm('cloud-customizer', { force: true, recursive: true });
   });
@@ -52,9 +28,12 @@ describe('bootstrap command', () => {
 
   describe('when there is already a cloud customizer folder', () => {
     it('should throw an error', async () => {
+      const getOrRefreshEnvironmentVariables = jest.fn().mockResolvedValue({});
+      const setup = setupCommandArguments({ getOrRefreshEnvironmentVariables });
+
       await fs.mkdir('cloud-customizer');
 
-      const cmd = new CommandTester(setupCommandArguments(), [
+      const cmd = new CommandTester(setup, [
         'bootstrap',
         '--env-secret',
         'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
