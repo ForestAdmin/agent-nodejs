@@ -53,7 +53,7 @@ program
       const vars = await getOrRefreshEnvironmentVariables();
       validateEnvironmentVariables(vars);
       const introspection = await buildHttpForestServer(vars).getIntrospection();
-      const paths = new PathManager(os.tmpdir());
+      const paths = new PathManager(os.tmpdir(), os.homedir());
       await updateTypingsWithCustomizations(paths.typingsAfterBootstrapped, introspection);
       spinner.succeed('Your typings have been updated.');
     }),
