@@ -3,14 +3,12 @@ import path from 'path';
 export default class BootstrapPathManager {
   private readonly _tmp: string;
   private readonly _home: string;
-  private readonly dirname: string;
   private readonly cloudCustomizerPath: string;
 
   constructor(tmp: string, home: string, cloudCustomizerPath?: string) {
     this._tmp = tmp;
     this._home = home;
     this.cloudCustomizerPath = cloudCustomizerPath ?? '.';
-    this.dirname = __dirname;
   }
 
   public get home(): string {
@@ -46,11 +44,11 @@ export default class BootstrapPathManager {
   }
 
   public get dotEnvTemplate(): string {
-    return path.join(this.dirname, '..', 'templates', 'env.txt');
+    return path.join(__dirname, '..', 'templates', 'env.txt');
   }
 
   public get helloWorldTemplate(): string {
-    return path.join(this.dirname, '..', 'templates', 'hello-world.txt');
+    return path.join(__dirname, '..', 'templates', 'hello-world.txt');
   }
 
   public get typingsAfterBootstrapped(): string {

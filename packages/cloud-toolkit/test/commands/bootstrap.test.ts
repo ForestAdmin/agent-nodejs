@@ -27,7 +27,7 @@ describe('bootstrap command', () => {
       ]);
 
       const setup = setupCommandArguments({ getIntrospection });
-      const cloudCustomizerPath = setup.buildBootstrapPathManager().cloudCustomizer;
+      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
 
       const cmd = new CommandTester(setup, [
@@ -46,6 +46,7 @@ describe('bootstrap command', () => {
         ),
       ]);
 
+      expect(setup.login).toHaveBeenCalled();
       expect(await fs.stat(cloudCustomizerPath)).toBeTruthy();
     });
   });
@@ -72,7 +73,7 @@ describe('bootstrap command', () => {
     it('should throw an error', async () => {
       const getEnvironmentVariables = jest.fn().mockResolvedValue({});
       const setup = setupCommandArguments({ getEnvironmentVariables });
-      const cloudCustomizerPath = setup.buildBootstrapPathManager().cloudCustomizer;
+      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
       await fs.mkdir(cloudCustomizerPath);
 

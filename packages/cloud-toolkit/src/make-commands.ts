@@ -4,21 +4,32 @@ import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
-import {
-  getOrRefreshEnvironmentVariables,
-  validateEnvironmentVariables,
-  validateServerUrl,
-} from './services/environment-variables';
+import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
-import { MakeCommands } from './types';
+import { EnvironmentVariables, Login, MakeCommands, Spinner } from './types';
+
+export const getOrRefreshEnvironmentVariables = async (
+  login: Login,
+  spinner: Spinner,
+  getEnvironmentVariables: () => Promise<EnvironmentVariables>,
+): Promise<EnvironmentVariables> => {
+  let vars = await getEnvironmentVariables();
+
+  if (!vars.FOREST_AUTH_TOKEN) {
+    await login(spinner);
+    vars = await getEnvironmentVariables();
+  }
+
+  return vars;
+};
 
 export default function makeCommands({
-  buildBootstrapPathManager,
+  bootstrapPathManager,
   buildEventSubscriber,
   buildHttpServer,
-  buildSpinner,
+  spinner,
   getEnvironmentVariables,
   login,
 }: MakeCommands): Command {
@@ -31,13 +42,17 @@ export default function makeCommands({
         '(whenever its schema changes)',
     )
     .action(
-      actionRunner(buildSpinner, async spinner => {
+      actionRunner(spinner, async () => {
         spinner.start('Updating typings');
-        const vars = await getOrRefreshEnvironmentVariables(login);
+        const vars = await getOrRefreshEnvironmentVariables(
+          login,
+          spinner,
+          getEnvironmentVariables,
+        );
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpServer(vars).getIntrospection();
         await updateTypingsWithCustomizations(
-          buildBootstrapPathManager().typingsAfterBootstrapped,
+          bootstrapPathManager.typingsAfterBootstrapped,
           introspection,
         );
         spinner.succeed('Your typings have been updated');
@@ -52,9 +67,13 @@ export default function makeCommands({
       'Environment secret, you can find it in your environment settings',
     )
     .action(
-      actionRunner(buildSpinner, async (spinner, options: { envSecret: string }) => {
+      actionRunner(spinner, async (options: { envSecret: string }) => {
         spinner.start('Bootstrapping project');
-        const vars = await getOrRefreshEnvironmentVariables(login);
+        const vars = await getOrRefreshEnvironmentVariables(
+          login,
+          spinner,
+          getEnvironmentVariables,
+        );
         const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
         if (!secret) {
@@ -75,7 +94,7 @@ export default function makeCommands({
         }
 
         spinner.start();
-        await bootstrap(secret, forestServer, buildBootstrapPathManager());
+        await bootstrap(secret, forestServer, bootstrapPathManager);
         spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         );
@@ -86,11 +105,11 @@ export default function makeCommands({
     .command('login')
     .description('Login to your project')
     .action(
-      actionRunner(buildSpinner, async spinner => {
+      actionRunner(spinner, async () => {
         spinner.start('Logging in');
         const vars = await getEnvironmentVariables();
         validateServerUrl(vars.FOREST_SERVER_URL);
-        await login();
+        await login(spinner);
         spinner.succeed('You are now logged in');
       }),
     );
@@ -100,8 +119,12 @@ export default function makeCommands({
     .description('Publish your code customizations')
     .option('-f, --force', 'Force the publication without asking for confirmation')
     .action(
-      actionRunner(buildSpinner, async (spinner, options: { force: boolean }) => {
-        const vars = await getOrRefreshEnvironmentVariables(login);
+      actionRunner(spinner, async (options: { force: boolean }) => {
+        const vars = await getOrRefreshEnvironmentVariables(
+          login,
+          spinner,
+          getEnvironmentVariables,
+        );
         const forestServer = buildHttpServer(vars);
 
         if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
@@ -132,7 +155,7 @@ export default function makeCommands({
     .command('package')
     .description('Package your code customizations')
     .action(
-      actionRunner(buildSpinner, async spinner => {
+      actionRunner(spinner, async () => {
         spinner.start('Packaging code');
         await packageCustomizations();
         spinner.succeed('Code customizations packaged and ready for publish');

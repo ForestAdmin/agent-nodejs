@@ -74,19 +74,21 @@ export type EnvironmentVariables = {
 };
 
 export type MakeCommands = {
-  buildBootstrapPathManager: () => BootstrapPathManager;
   buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
   buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
-  buildSpinner: () => Spinner;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  login: () => Promise<void>;
+  bootstrapPathManager: BootstrapPathManager;
+  spinner: Spinner;
+  login: Login;
 };
 
 export type Spinner = {
-  start: (text: string) => void;
-  succeed: (text: string) => void;
-  warn: (text: string) => void;
-  info: (text: string) => void;
-  fail: (text: string) => void;
+  start: (text?: string) => void;
+  succeed: (text?: string) => void;
+  warn: (text?: string) => void;
+  info: (text?: string) => void;
+  fail: (text?: string) => void;
   stop: () => void;
 };
+
+export type Login = (spinner: Spinner) => Promise<void>;

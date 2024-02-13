@@ -16,8 +16,7 @@ export default class CommandTester {
   private lastSpinnerText: string;
 
   constructor(mocks: MakeCommandsForTests, argv: string[]) {
-    const spinner = this.buildSpinner();
-    this.command = makeCommands({ ...mocks, buildSpinner: () => spinner });
+    this.command = makeCommands({ ...mocks, spinner: this.buildSpinner() });
     this.argv = argv;
 
     this.catchQuestionTraces();

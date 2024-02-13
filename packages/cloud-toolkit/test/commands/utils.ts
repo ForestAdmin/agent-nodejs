@@ -4,7 +4,7 @@ import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
-export type MakeCommandsForTests = Omit<MakeCommands, 'buildSpinner'>;
+export type MakeCommandsForTests = Omit<MakeCommands, 'spinner'>;
 
 // eslint-disable-next-line import/prefer-default-export
 export const setupCommandArguments = (
@@ -15,7 +15,8 @@ export const setupCommandArguments = (
     getIntrospection: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
-  const getEnvironmentVariables = options?.getEnvironmentVariables || jest.fn();
+  const getEnvironmentVariables =
+    options?.getEnvironmentVariables || jest.fn().mockResolvedValue({});
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {
@@ -35,7 +36,6 @@ export const setupCommandArguments = (
     buildHttpServer,
     buildEventSubscriber,
     login,
-    buildBootstrapPathManager: () =>
-      new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
+    bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
   };
 };

@@ -29,13 +29,14 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
   return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
 };
 
+const spinner = ora();
 const command = makeCommands({
   getEnvironmentVariables,
   buildHttpServer,
   buildEventSubscriber,
   login,
-  buildSpinner: () => ora(),
-  buildBootstrapPathManager: () => new BootstrapPathManager(os.tmpdir(), os.homedir()),
+  spinner,
+  bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
 });
 
 command.parseAsync();

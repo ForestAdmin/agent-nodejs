@@ -67,7 +67,7 @@ describe('bootstrap', () => {
           },
         } as unknown as fs.WriteStream);
         const httpServer = new HttpServer('', '', '');
-        const path = new BootstrapPathManager('tmp', '/my/home/directory');
+        const path = new BootstrapPathManager('/tmp', '/my/home/directory');
         const introspection: Table[] = [
           {
             name: 'towns',
@@ -115,10 +115,10 @@ describe('bootstrap', () => {
 
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalled();
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalledWith(
-          'tmp/cloud-customizer.zip',
+          '/tmp/cloud-customizer.zip',
         );
-        expect(renameSpy).toHaveBeenCalledWith('tmp/cloud-customizer-main', 'cloud-customizer');
-        expect(rmSpy).toHaveBeenCalledWith('tmp/cloud-customizer.zip', { force: true });
+        expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'cloud-customizer');
+        expect(rmSpy).toHaveBeenCalledWith('/tmp/cloud-customizer.zip', { force: true });
 
         expect(writeFileSpy).toHaveBeenCalledTimes(2);
         const firstCallArgs = writeFileSpy.mock.calls[0];

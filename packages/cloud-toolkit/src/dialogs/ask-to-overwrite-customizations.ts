@@ -1,10 +1,10 @@
-import { Ora } from 'ora';
 import readline from 'readline';
 
 import HttpServer from '../services/http-server';
+import { Spinner } from '../types';
 
 export default async function askToOverwriteCustomizations(
-  spinner: Ora,
+  spinner: Spinner,
   httpServer: HttpServer,
 ): Promise<boolean> {
   const details = await httpServer.getLastPublishedCodeDetails();

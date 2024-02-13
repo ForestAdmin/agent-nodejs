@@ -92,16 +92,3 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   validateServerUrl(env.FOREST_SERVER_URL);
   validateSubscriptionUrl(env.FOREST_SUBSCRIPTION_URL);
 }
-
-export const getOrRefreshEnvironmentVariables = async (
-  login: () => Promise<void>,
-): Promise<EnvironmentVariables> => {
-  let vars = await getEnvironmentVariables();
-
-  if (!vars.FOREST_AUTH_TOKEN) {
-    await login();
-    vars = await getEnvironmentVariables();
-  }
-
-  return vars;
-};
