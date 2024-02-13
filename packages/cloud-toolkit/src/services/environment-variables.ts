@@ -37,8 +37,8 @@ export function validateServerUrl(serverUrl: string): void {
     givenUrl = new URL(serverUrl);
   } catch (err) {
     throw new BusinessError(
-      `FOREST_SERVER_URL is invalid. Please check your .env file.' +
-        ' You can probably remove it from your .env file.: ${err.message}`,
+      `FOREST_SERVER_URL is invalid. Please check your .env file. ` +
+        `You can probably remove it from your .env file.: ${err.message}`,
     );
   }
 
