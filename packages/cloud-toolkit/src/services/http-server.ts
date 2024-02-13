@@ -1,5 +1,6 @@
 import { Table } from '@forestadmin/datasource-sql';
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import * as fs from 'fs';
 
 import { BusinessError } from '../errors';
 
@@ -24,7 +25,7 @@ async function handledAxios<T>(
   }
 }
 
-export default class HttpForestServer {
+export default class HttpServer {
   private readonly serverUrl: string;
   private readonly secretKey: string;
   private readonly bearerToken: string;
@@ -32,6 +33,22 @@ export default class HttpForestServer {
     this.serverUrl = serverUrl;
     this.secretKey = secretKey;
     this.bearerToken = bearerToken;
+  }
+
+  public static async downloadCloudCustomizerTemplate(destination: string) {
+    const response = await axios({
+      url: 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip',
+      method: 'get',
+      responseType: 'stream',
+    });
+
+    const stream: fs.WriteStream = fs.createWriteStream(destination);
+    response.data.pipe(stream);
+
+    await new Promise<void>((resolve, reject) => {
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
   }
 
   async getIntrospection(): Promise<Table[]> {

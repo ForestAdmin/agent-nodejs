@@ -1,11 +1,11 @@
-import HttpForestServer from '../../src/services/http-forest-server';
+import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
 export type MakeCommandsForTests = Pick<
   MakeCommands,
   | 'getOrRefreshEnvironmentVariables'
   | 'getEnvironmentVariables'
-  | 'buildHttpForestServer'
+  | 'buildHttpServer'
   | 'buildEventSubscriber'
   | 'login'
 >;
@@ -22,13 +22,13 @@ export const setupCommandArguments = (
   const getEnvironmentVariables = jest.fn();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const buildHttpForestServer = (vars: EnvironmentVariables) => {
+  const buildHttpServer = (vars: EnvironmentVariables) => {
     return {
       getIntrospection: jest.fn(),
       postUploadRequest: jest.fn(),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn(),
-    } as unknown as HttpForestServer;
+    } as unknown as HttpServer;
   };
 
   const buildEventSubscriber = jest.fn();
@@ -37,7 +37,7 @@ export const setupCommandArguments = (
   return {
     getOrRefreshEnvironmentVariables,
     getEnvironmentVariables,
-    buildHttpForestServer,
+    buildHttpServer,
     buildEventSubscriber,
     login,
   };

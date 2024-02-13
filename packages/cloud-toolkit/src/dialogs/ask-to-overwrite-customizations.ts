@@ -1,13 +1,13 @@
 import { Ora } from 'ora';
 import readline from 'readline';
 
-import HttpForestServer from '../services/http-forest-server';
+import HttpServer from '../services/http-server';
 
 export default async function askToOverwriteCustomizations(
   spinner: Ora,
-  httpForestServer: HttpForestServer,
+  httpServer: HttpServer,
 ): Promise<boolean> {
-  const details = await httpForestServer.getLastPublishedCodeDetails();
+  const details = await httpServer.getLastPublishedCodeDetails();
 
   if (!details) return true;
 
@@ -24,12 +24,12 @@ export default async function askToOverwriteCustomizations(
     });
 
     rl.question(`Do you really want to overwrite these customizations? (yes/no) `, answer => {
-      if (answer.toLowerCase() === 'yes' && answer.toLowerCase() === 'y') {
-        resolve(true);
+      if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
+        resolve(false);
       }
 
       rl.close();
-      resolve(false);
+      resolve(true);
     });
   });
 }

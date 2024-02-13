@@ -7,7 +7,7 @@ import type {
 } from '@forestadmin/datasource-customizer';
 
 import EventSubscriber from './services/event-subscriber';
-import HttpForestServer from './services/http-forest-server';
+import HttpServer from './services/http-server';
 
 /**
  * This agent the central object used to customize your cloud project
@@ -75,7 +75,7 @@ export type EnvironmentVariables = {
 export type MakeCommands = {
   getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  buildHttpForestServer: (vars: EnvironmentVariables) => HttpForestServer;
+  buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
   buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
   login: () => Promise<void>;
   buildSpinner: () => Spinner;

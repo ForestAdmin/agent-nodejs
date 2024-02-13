@@ -10,20 +10,16 @@ import {
   validateEnvironmentVariables,
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
-import HttpForestServer from './services/http-forest-server';
+import HttpServer from './services/http-server';
 import login from './services/login';
 import { EnvironmentVariables } from './types';
 
 configDotenv();
 
-const buildHttpForestServer = (envs: EnvironmentVariables): HttpForestServer => {
+const buildHttpServer = (envs: EnvironmentVariables): HttpServer => {
   validateEnvironmentVariables(envs);
 
-  return new HttpForestServer(
-    envs.FOREST_SERVER_URL,
-    envs.FOREST_ENV_SECRET,
-    envs.FOREST_AUTH_TOKEN,
-  );
+  return new HttpServer(envs.FOREST_SERVER_URL, envs.FOREST_ENV_SECRET, envs.FOREST_AUTH_TOKEN);
 };
 
 const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
@@ -35,7 +31,7 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
 const command = makeCommands({
   getOrRefreshEnvironmentVariables,
   getEnvironmentVariables,
-  buildHttpForestServer,
+  buildHttpServer,
   buildEventSubscriber,
   login,
   buildSpinner: () => ora(),
