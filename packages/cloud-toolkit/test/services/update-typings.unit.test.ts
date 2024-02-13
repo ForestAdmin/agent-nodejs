@@ -26,6 +26,8 @@ describe('update-typings', () => {
     const createAgentSpy = jest.spyOn(agent, 'createAgent').mockReturnValue(agentMock);
     const createSqlDataSourceSpy = jest
       .spyOn(datasourceSQL, 'createSqlDataSource')
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       .mockReturnValue(datasource);
 
     return { introspection, createAgentSpy, createSqlDataSourceSpy, agentMock, datasource };
