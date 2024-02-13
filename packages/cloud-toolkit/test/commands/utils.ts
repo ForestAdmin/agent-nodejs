@@ -22,11 +22,13 @@ export const setupCommandArguments = (
   };
 
   const buildEventSubscriber = jest.fn();
+  const login = jest.fn();
 
   return {
     getOrRefreshEnvironmentVariables,
     getEnvironmentVariables,
     buildHttpForestServer,
     buildEventSubscriber,
+    login,
   };
 };

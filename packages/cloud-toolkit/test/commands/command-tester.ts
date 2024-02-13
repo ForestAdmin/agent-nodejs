@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import logSymbols from 'log-symbols';
 import * as process from 'process';
 import readline from 'readline';
 
@@ -38,27 +39,19 @@ export default class CommandTester {
   }
 
   success(message: string): string {
-    const successIcon = '[32m✔[39m'; // '✔'
-
-    return `${successIcon} ${message}`;
+    return `${logSymbols.success} ${message}`;
   }
 
   warning(message: string): string {
-    const warningIcon = '[33m⚠[39m'; // '⚠'
-
-    return `${warningIcon} ${message}`;
+    return `${logSymbols.warning} ${message}`;
   }
 
   info(message: string): string {
-    const infoIcon = '[34mℹ[39m'; // 'ℹ'
-
-    return `${infoIcon} ${message}`;
+    return `${logSymbols.info} ${message}`;
   }
 
   error(message: string): string {
-    const errorIcon = '[31m✖[39m'; // '✖'
-
-    return `${errorIcon} ${message}`;
+    return `${logSymbols.error} ${message}`;
   }
 
   private catchQuestionTraces() {

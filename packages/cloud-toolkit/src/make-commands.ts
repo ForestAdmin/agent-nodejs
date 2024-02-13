@@ -5,7 +5,6 @@ import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizati
 import { BusinessError } from './errors';
 import bootstrap, { typingsPathAfterBootstrapped } from './services/bootstrap';
 import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
-import login from './services/login';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
@@ -16,6 +15,7 @@ export default function makeCommands({
   getEnvironmentVariables,
   buildHttpForestServer,
   buildEventSubscriber,
+  login,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();

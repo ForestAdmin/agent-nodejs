@@ -10,6 +10,7 @@ import {
 } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpForestServer from './services/http-forest-server';
+import login from './services/login';
 import { EnvironmentVariables } from './types';
 
 configDotenv();
@@ -35,6 +36,7 @@ const command = makeCommands({
   getEnvironmentVariables,
   buildHttpForestServer,
   buildEventSubscriber,
+  login,
 });
 
 command.parseAsync();
