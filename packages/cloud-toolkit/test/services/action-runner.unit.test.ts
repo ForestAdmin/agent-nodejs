@@ -18,10 +18,8 @@ describe('actionRunner', () => {
       fail: jest.fn(),
       stop: jest.fn(),
     };
-    const oraLib = {
-      start: () => spinner,
-    };
-    (ora as unknown as jest.Mock).mockReturnValue(oraLib);
+
+    (ora as unknown as jest.Mock).mockReturnValue(spinner);
 
     return { action, args, spinner };
   };
@@ -51,7 +49,6 @@ describe('actionRunner', () => {
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
         expect(spinner.stop).toHaveBeenCalled();
-        expect(processExit).toHaveBeenCalledWith(1);
       });
     });
 

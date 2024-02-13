@@ -6,6 +6,9 @@ import type {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 
+import EventSubscriber from './services/event-subscriber';
+import HttpForestServer from './services/http-forest-server';
+
 /**
  * This agent the central object used to customize your cloud project
  * some methods available in self-hosted, such as:
@@ -67,4 +70,12 @@ export type EnvironmentVariables = {
   FOREST_SERVER_URL: string;
   FOREST_SUBSCRIPTION_URL: string;
   FOREST_AUTH_TOKEN: string;
+};
+
+export type MakeCommands = {
+  getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
+  getEnvironmentVariables: () => Promise<EnvironmentVariables>;
+  buildHttpForestServer: (vars: EnvironmentVariables) => HttpForestServer;
+  buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
+  login: () => Promise<void>;
 };
