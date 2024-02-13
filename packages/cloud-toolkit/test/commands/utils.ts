@@ -5,7 +5,7 @@ export type MakeCommandsForTests = Pick<
   MakeCommands,
   | 'getOrRefreshEnvironmentVariables'
   | 'getEnvironmentVariables'
-  | 'buildHttpForestServer'
+  | 'buildHttpServer'
   | 'buildEventSubscriber'
   | 'login'
 >;
