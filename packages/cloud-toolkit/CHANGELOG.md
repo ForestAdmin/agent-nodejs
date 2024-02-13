@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.21...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.22) (2024-02-13)
+
+
+### Bug Fixes
+
+* remove IDE linting issues caused by jest ([#994](https://github.com/ForestAdmin/agent-nodejs/issues/994)) ([18cc6d0](https://github.com/ForestAdmin/agent-nodejs/commit/18cc6d0a9113754fb1e3737f319fe4ced0d824f2))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.21) (2024-02-12)
 
 
