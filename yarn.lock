@@ -1876,13 +1876,6 @@
   dependencies:
     "@forestadmin/datasource-toolkit" "1.5.0"
 
-"@forestadmin/datasource-sequelize@^1.6.4":
-  version "1.6.4"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.6.4.tgz#330dc5cc78fa32b121cafde520bca87e816dc7b3"
-  integrity sha512-ph8pv4emMjmOfhX/MNZpORUxfP7eYNyCihzvbwLdIBb5NR6JvcBdiOs4G+Tx4IT7BBTnC7DbolI1n9DR744QWw==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.32.0"
-
 "@forestadmin/datasource-sql@1.6.4":
   version "1.6.4"
   resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.6.4.tgz#b11d6606163a15a8bc4aeb5c6cc9d5148a63bbeb"
@@ -1893,15 +1886,6 @@
     pluralize "^8.0.0"
     sequelize "^6.28.0"
     socks "^2.7.1"
-
-"@forestadmin/datasource-toolkit@1.32.0":
-  version "1.32.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.32.0.tgz#af483275ede162c99431ca63215b8be53cd4b2a3"
-  integrity sha512-uBIAEbiqx0Amn2Uer3TYz4YgmtcHWCqY4DAmlFQ02HRj5Ak+md+TFhUQLwgv9n2yDKR2Dq3wG8ftrUquYU8BIQ==
-  dependencies:
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "^9.0.0"
 
 "@forestadmin/datasource-toolkit@1.5.0":
   version "1.5.0"
