@@ -6,6 +6,7 @@ import type {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 
+import BootstrapPathManager from './services/bootstrap-path-manager';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
 
@@ -73,12 +74,13 @@ export type EnvironmentVariables = {
 };
 
 export type MakeCommands = {
-  getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  getEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
+  buildBootstrapPathManager: () => BootstrapPathManager;
   buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
-  login: () => Promise<void>;
+  buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
   buildSpinner: () => Spinner;
+  getEnvironmentVariables: () => Promise<EnvironmentVariables>;
+  getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
+  login: () => Promise<void>;
 };
 
 export type Spinner = {

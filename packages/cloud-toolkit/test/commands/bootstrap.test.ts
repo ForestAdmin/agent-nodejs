@@ -4,8 +4,50 @@ import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
 
 describe('bootstrap command', () => {
-  beforeEach(async () => {
-    await fs.rm('cloud-customizer', { force: true, recursive: true });
+  describe('when it is the first time to run bootstrap', () => {
+    it('should generate the cloud customizer folder', async () => {
+      const getIntrospection = jest.fn().mockResolvedValue([
+        {
+          name: 'forestCollection',
+          schema: 'public',
+          columns: [
+            {
+              type: { type: 'scalar', subType: 'NUMBER' },
+              autoIncrement: true,
+              defaultValue: null,
+              isLiteralDefaultValue: true,
+              name: 'id',
+              allowNull: false,
+              primaryKey: true,
+              constraints: [],
+            },
+          ],
+          unique: [['id'], ['title']],
+        },
+      ]);
+
+      const setup = setupCommandArguments({ getIntrospection });
+      const cloudCustomizerPath = setup.buildBootstrapPathManager().cloudCustomizer;
+      await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
+
+      const cmd = new CommandTester(setup, [
+        'bootstrap',
+        '--env-secret',
+        'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
+      ]);
+      await cmd.run();
+
+      expect(cmd.outputs).toEqual([
+        cmd.start('Bootstrapping project'),
+        cmd.succeed('Environment found'),
+        cmd.start('Bootstrapping project'),
+        cmd.succeed(
+          'Project successfully bootstrapped. You can start creating your customizations!',
+        ),
+      ]);
+
+      expect(await fs.stat(cloudCustomizerPath)).toBeTruthy();
+    });
   });
 
   describe('when forest env secret is missing', () => {
@@ -30,8 +72,9 @@ describe('bootstrap command', () => {
     it('should throw an error', async () => {
       const getOrRefreshEnvironmentVariables = jest.fn().mockResolvedValue({});
       const setup = setupCommandArguments({ getOrRefreshEnvironmentVariables });
-
-      await fs.mkdir('cloud-customizer');
+      const cloudCustomizerPath = setup.buildBootstrapPathManager().cloudCustomizer;
+      await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
+      await fs.mkdir(cloudCustomizerPath);
 
       const cmd = new CommandTester(setup, [
         'bootstrap',

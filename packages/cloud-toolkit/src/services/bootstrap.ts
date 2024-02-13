@@ -51,9 +51,11 @@ function findPrimaryKeyAndCollectionName(introspection: Table[]): {
   return null;
 }
 
-export default async function bootstrap(envSecret: string, httpServer: HttpServer): Promise<void> {
-  const paths = new BootstrapPathManager(os.tmpdir(), os.homedir());
-
+export default async function bootstrap(
+  envSecret: string,
+  httpServer: HttpServer,
+  paths: BootstrapPathManager,
+): Promise<void> {
   if (fs.existsSync(paths.cloudCustomizer)) {
     throw new BusinessError('You have already a cloud-customizer folder');
   }

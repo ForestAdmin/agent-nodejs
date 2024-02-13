@@ -1,11 +1,9 @@
 import { Command } from 'commander';
-import os from 'os';
 
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
-import BootstrapPathManager from './services/bootstrap-path-manager';
 import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
@@ -13,12 +11,13 @@ import { updateTypingsWithCustomizations } from './services/update-typings';
 import { MakeCommands } from './types';
 
 export default function makeCommands({
-  getOrRefreshEnvironmentVariables,
-  getEnvironmentVariables,
-  buildHttpServer,
+  buildBootstrapPathManager,
   buildEventSubscriber,
-  login,
+  buildHttpServer,
   buildSpinner,
+  getEnvironmentVariables,
+  getOrRefreshEnvironmentVariables,
+  login,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();
@@ -34,8 +33,10 @@ export default function makeCommands({
         const vars = await getOrRefreshEnvironmentVariables();
         validateEnvironmentVariables(vars);
         const introspection = await buildHttpServer(vars).getIntrospection();
-        const paths = new BootstrapPathManager(os.tmpdir(), os.homedir());
-        await updateTypingsWithCustomizations(paths.typingsAfterBootstrapped, introspection);
+        await updateTypingsWithCustomizations(
+          buildBootstrapPathManager().typingsAfterBootstrapped,
+          introspection,
+        );
         spinner.succeed('Your typings have been updated');
       }),
     );
@@ -71,7 +72,7 @@ export default function makeCommands({
         }
 
         spinner.start();
-        await bootstrap(secret, forestServer);
+        await bootstrap(secret, forestServer, buildBootstrapPathManager());
         spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         );

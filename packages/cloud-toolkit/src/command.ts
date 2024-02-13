@@ -2,8 +2,10 @@
 
 import { configDotenv } from 'dotenv';
 import ora from 'ora';
+import os from 'os';
 
 import makeCommands from './make-commands';
+import BootstrapPathManager from './services/bootstrap-path-manager';
 import {
   getEnvironmentVariables,
   getOrRefreshEnvironmentVariables,
@@ -35,6 +37,7 @@ const command = makeCommands({
   buildEventSubscriber,
   login,
   buildSpinner: () => ora(),
+  buildBootstrapPathManager: () => new BootstrapPathManager(os.tmpdir(), os.homedir()),
 });
 
 command.parseAsync();

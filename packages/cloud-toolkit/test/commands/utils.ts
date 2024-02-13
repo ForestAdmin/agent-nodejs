@@ -1,14 +1,10 @@
+import os from 'os';
+
+import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
-export type MakeCommandsForTests = Pick<
-  MakeCommands,
-  | 'getOrRefreshEnvironmentVariables'
-  | 'getEnvironmentVariables'
-  | 'buildHttpServer'
-  | 'buildEventSubscriber'
-  | 'login'
->;
+export type MakeCommandsForTests = Omit<MakeCommands, 'buildSpinner'>;
 
 // eslint-disable-next-line import/prefer-default-export
 export const setupCommandArguments = (
@@ -17,6 +13,7 @@ export const setupCommandArguments = (
     getOrRefreshEnvironmentVariables: jest.Mock;
     getEnvironmentVariables: jest.Mock;
     login: jest.Mock;
+    getIntrospection: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
   const getOrRefreshEnvironmentVariables = options?.getOrRefreshEnvironmentVariables || jest.fn();
@@ -25,7 +22,7 @@ export const setupCommandArguments = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {
     return {
-      getIntrospection: jest.fn(),
+      getIntrospection: options?.getIntrospection || jest.fn(),
       postUploadRequest: jest.fn(),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn(),
@@ -41,5 +38,7 @@ export const setupCommandArguments = (
     buildHttpServer,
     buildEventSubscriber,
     login,
+    buildBootstrapPathManager: () =>
+      new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
   };
 };
