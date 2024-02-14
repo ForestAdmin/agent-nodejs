@@ -2,19 +2,17 @@ import { Table } from '@forestadmin/datasource-sql';
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
-import * as os from 'os';
 
 import { BusinessError } from '../../src/errors';
 import bootstrap from '../../src/services/bootstrap';
+import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { updateTypings } from '../../src/services/update-typings';
 
 jest.mock('adm-zip');
 jest.mock('fs');
-jest.mock('os');
 jest.mock('fs/promises');
 
-jest.spyOn(os, 'tmpdir').mockReturnValue('/tmp');
 jest.mock('../../src/services/update-typings', () => {
   return {
     default: jest.fn(() => {}),
@@ -27,7 +25,8 @@ describe('bootstrap', () => {
     it('should throw a business error', async () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       const httpServer = new HttpServer('', '', '');
-      await expect(bootstrap('abc', httpServer)).rejects.toEqual(
+      const path = new BootstrapPathManager('tmp', 'home');
+      await expect(bootstrap('abc', httpServer, path)).rejects.toEqual(
         new BusinessError('You have already a cloud-customizer folder'),
       );
       expect(fs.existsSync).toHaveBeenCalled();
@@ -38,21 +37,21 @@ describe('bootstrap', () => {
     describe('If some process fails', () => {
       it('should throw a BusinessError', async () => {
         jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-        jest.spyOn(os, 'homedir').mockReturnValue('/my/home/directory');
         const httpServer = new HttpServer('', '', '');
+        const path = new BootstrapPathManager('', '');
         HttpServer.downloadCloudCustomizerTemplate = jest
           .fn()
           .mockRejectedValue(new Error('Failed'));
 
-        await expect(bootstrap('abc', httpServer)).rejects.toEqual(
+        await expect(bootstrap('abc', httpServer, path)).rejects.toEqual(
           new BusinessError('Bootstrap failed: Failed.'),
         );
       });
     });
+
     describe('If no dependency call fails', () => {
       it('should run the bootstrap completely', async () => {
         jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-        jest.spyOn(os, 'homedir').mockReturnValue('/my/home/directory');
         const writeFileSpy = jest.spyOn(fsP, 'writeFile');
         jest.spyOn(fsP, 'readFile').mockImplementation(async () => {
           return `
@@ -68,6 +67,7 @@ describe('bootstrap', () => {
           },
         } as unknown as fs.WriteStream);
         const httpServer = new HttpServer('', '', '');
+        const path = new BootstrapPathManager('/tmp', '/my/home/directory');
         const introspection: Table[] = [
           {
             name: 'towns',
@@ -111,7 +111,7 @@ describe('bootstrap', () => {
         const renameSpy = jest.spyOn(fsP, 'rename').mockResolvedValue();
         const rmSpy = jest.spyOn(fsP, 'rm').mockResolvedValue();
 
-        await bootstrap('abc', httpServer);
+        await bootstrap('abc', httpServer, path);
 
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalled();
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalledWith(

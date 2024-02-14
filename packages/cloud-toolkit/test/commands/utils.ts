@@ -1,30 +1,32 @@
+import os from 'os';
+
+import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
-export type MakeCommandsForTests = Pick<
-  MakeCommands,
-  | 'getOrRefreshEnvironmentVariables'
-  | 'getEnvironmentVariables'
-  | 'buildHttpServer'
-  | 'buildEventSubscriber'
-  | 'login'
->;
+export type MakeCommandsForTests = Omit<MakeCommands, 'spinner'>;
 
 // eslint-disable-next-line import/prefer-default-export
 export const setupCommandArguments = (
   options?: Partial<{
     getLastPublishedCodeDetails: jest.Mock;
-    getOrRefreshEnvironmentVariables: jest.Mock;
+    getEnvironmentVariables: jest.Mock;
     login: jest.Mock;
+    getIntrospection: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
-  const getOrRefreshEnvironmentVariables = options?.getOrRefreshEnvironmentVariables || jest.fn();
-  const getEnvironmentVariables = jest.fn();
+  const getEnvironmentVariables =
+    options?.getEnvironmentVariables ||
+    jest.fn().mockResolvedValue({
+      FOREST_AUTH_TOKEN: 'forest-auth-token',
+      FOREST_SERVER_URL: 'https://api.forestadmin.com',
+      FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
+    });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {
     return {
-      getIntrospection: jest.fn(),
+      getIntrospection: options?.getIntrospection || jest.fn(),
       postUploadRequest: jest.fn(),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn(),
@@ -35,10 +37,10 @@ export const setupCommandArguments = (
   const login = options?.login || jest.fn();
 
   return {
-    getOrRefreshEnvironmentVariables,
     getEnvironmentVariables,
     buildHttpServer,
     buildEventSubscriber,
     login,
+    bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
   };
 };

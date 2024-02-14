@@ -1,12 +1,10 @@
 import { BusinessError } from '../errors';
 import { Spinner } from '../types';
 
-export default function actionRunner(buildSpinner: () => Spinner, fn: (...args) => Promise<any>) {
+export default function actionRunner(spinner: Spinner, fn: (...args) => Promise<any>) {
   return async (...args) => {
-    const spinner = buildSpinner();
-
     try {
-      await fn(spinner, ...args);
+      await fn(...args);
     } catch (e) {
       const error: Error = e;
 

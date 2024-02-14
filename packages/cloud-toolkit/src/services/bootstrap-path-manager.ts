@@ -1,11 +1,14 @@
 import path from 'path';
 
-export default class PathManager {
-  private _tmp: string;
-  private _home: string;
-  constructor(tmp: string, home: string) {
+export default class BootstrapPathManager {
+  private readonly _tmp: string;
+  private readonly _home: string;
+  private readonly cloudCustomizerPath: string;
+
+  constructor(tmp: string, home: string, cloudCustomizerPath?: string) {
     this._tmp = tmp;
     this._home = home;
+    this.cloudCustomizerPath = cloudCustomizerPath ?? '.';
   }
 
   public get home(): string {
@@ -25,7 +28,7 @@ export default class PathManager {
   }
 
   public get cloudCustomizer(): string {
-    return path.join('.', 'cloud-customizer');
+    return path.join(this.cloudCustomizerPath, 'cloud-customizer');
   }
 
   public get typings(): string {

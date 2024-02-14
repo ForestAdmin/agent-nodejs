@@ -1,3 +1,11 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.22...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.23) (2024-02-14)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** remove console log ([#1000](https://github.com/ForestAdmin/agent-nodejs/issues/1000)) ([31df6ef](https://github.com/ForestAdmin/agent-nodejs/commit/31df6ef2a64cced4d1c8e7aeff646a49cbd3eb0a))
+* unit test bootstrap service ([#964](https://github.com/ForestAdmin/agent-nodejs/issues/964)) ([6e929f9](https://github.com/ForestAdmin/agent-nodejs/commit/6e929f9ab51d2c975b91431ff0e1b1ea8ac5f764))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.21...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.22) (2024-02-13)
 
 

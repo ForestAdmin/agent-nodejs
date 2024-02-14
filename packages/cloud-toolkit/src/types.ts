@@ -6,6 +6,7 @@ import type {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 
+import BootstrapPathManager from './services/bootstrap-path-manager';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
 
@@ -73,19 +74,25 @@ export type EnvironmentVariables = {
 };
 
 export type MakeCommands = {
-  getOrRefreshEnvironmentVariables: () => Promise<EnvironmentVariables>;
+  buildEventSubscriber: BuildEventSubscriber;
+  buildHttpServer: BuildHttpServer;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
-  buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
-  buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
-  login: () => Promise<void>;
-  buildSpinner: () => Spinner;
+  bootstrapPathManager: BootstrapPathManager;
+  spinner: Spinner;
+  login: Login;
 };
 
 export type Spinner = {
-  start: (text: string) => void;
-  succeed: (text: string) => void;
-  warn: (text: string) => void;
-  info: (text: string) => void;
-  fail: (text: string) => void;
+  start: (text?: string) => void;
+  succeed: (text?: string) => void;
+  warn: (text?: string) => void;
+  info: (text?: string) => void;
+  fail: (text?: string) => void;
   stop: () => void;
 };
+
+export type Login = (spinner: Spinner) => Promise<void>;
+
+export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
+
+export type BuildEventSubscriber = (vars: EnvironmentVariables) => EventSubscriber;
