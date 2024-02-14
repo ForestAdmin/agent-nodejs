@@ -2,7 +2,14 @@ import * as fs from 'fs';
 import * as fsPromises from 'node:fs/promises';
 import os from 'node:os';
 
-import { getEnvironmentVariables } from '../../src/services/environment-variables';
+import {
+  getEnvironmentVariables,
+  getOrRefreshEnvironmentVariables,
+  validateEnvironmentVariables,
+  validateServerUrl,
+  validateSubscriptionUrl,
+} from '../../src/services/environment-variables';
+import login from '../../src/services/login';
 
 jest.mock('os');
 jest.mock('node:fs/promises');
@@ -11,6 +18,10 @@ jest.mock('fs');
 jest.spyOn(os, 'homedir').mockReturnValue('/home/foo');
 jest.spyOn(fsPromises, 'readFile').mockResolvedValue('the-token-from-file');
 jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+
+jest.mock('../../src/services/login', () => {
+  return jest.fn();
+});
 
 describe('environment-variables', () => {
   beforeEach(() => {
@@ -64,6 +75,181 @@ describe('environment-variables', () => {
         expect(await getEnvironmentVariables()).toMatchObject({
           FOREST_SERVER_URL: 'https://api.forestadmin.com',
           FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
+        });
+      });
+    });
+
+    describe('validateServerUrl', () => {
+      describe('if the url is valid', () => {
+        it('should not throw', () => {
+          expect(() => validateServerUrl('https://test.com')).not.toThrow();
+        });
+      });
+      describe('if no server url is provided', () => {
+        it('should throw a specific error', () => {
+          expect(() => validateServerUrl(undefined as unknown as string)).toThrow(
+            'Missing FOREST_SERVER_URL. Please check your .env file.',
+          );
+        });
+      });
+      describe('if the string is not an url', () => {
+        it('should throw a specific error', () => {
+          expect(() => validateServerUrl('toto')).toThrow(
+            `FOREST_SERVER_URL is invalid. Please check your .env file.\nInvalid URL`,
+          );
+        });
+      });
+      describe('if the protocol is wrong', () => {
+        it('should throw a specific error', () => {
+          expect(() => validateServerUrl('httpx://toto')).toThrow(
+            `FOREST_SERVER_URL is invalid, it must start with 'http://' or 'https://'. Please check your .env file.`,
+          );
+        });
+      });
+    });
+    describe('validateSubscription', () => {
+      describe('if the url is valid', () => {
+        it('should not throw', () => {
+          expect(() => validateSubscriptionUrl('wss://test.com')).not.toThrow();
+        });
+      });
+      describe('if no subscription url is provided', () => {
+        it('should throw a specific error', () => {
+          expect(() => validateSubscriptionUrl(undefined as unknown as string)).toThrow(
+            'Missing FOREST_SUBSCRIPTION_URL. Please check your .env file.',
+          );
+        });
+      });
+      describe('if the string is not an url', () => {
+        it('should throw a specific error', () => {
+          expect(() => validateSubscriptionUrl('toto')).toThrow(
+            `FOREST_SUBSCRIPTION_URL is invalid. Please check your .env file.\nInvalid URL`,
+          );
+        });
+      });
+      describe('if the protocol is wrong', () => {
+        it('should throw a specific error', () => {
+          expect(() => validateSubscriptionUrl('httpx://toto')).toThrow(
+            `FOREST_SUBSCRIPTION_URL is invalid, it must start with 'wss://'. Please check your .env file.`,
+          );
+        });
+      });
+    });
+    describe('validateEnvironmentVariables', () => {
+      describe('if the FOREST_ENV_SECRET is missing', () => {
+        test('it should throw a specific error', () => {
+          expect(() =>
+            validateEnvironmentVariables({
+              FOREST_ENV_SECRET: '',
+              FOREST_SERVER_URL: '',
+              FOREST_SUBSCRIPTION_URL: '',
+              FOREST_AUTH_TOKEN: '',
+            }),
+          ).toThrow('Missing FOREST_ENV_SECRET. Please check your .env file.');
+        });
+      });
+      describe('if the FOREST_ENV_SECRET is a wrong format', () => {
+        test('it should throw a specific error', () => {
+          expect(() =>
+            validateEnvironmentVariables({
+              FOREST_ENV_SECRET: 'wrong-format',
+              FOREST_SERVER_URL: '',
+              FOREST_SUBSCRIPTION_URL: '',
+              FOREST_AUTH_TOKEN: '',
+            }),
+          ).toThrow(
+            // eslint-disable-next-line max-len
+            'FOREST_ENV_SECRET is invalid. Please check your .env file.\n\tYou can retrieve its value from environment settings on Forest Admin.',
+          );
+        });
+      });
+      describe('if the FOREST_ENV_SECRET is not a string', () => {
+        test('it should throw a specific error', () => {
+          expect(() =>
+            validateEnvironmentVariables({
+              FOREST_ENV_SECRET: 123 as unknown as string,
+              FOREST_SERVER_URL: '',
+              FOREST_SUBSCRIPTION_URL: '',
+              FOREST_AUTH_TOKEN: '',
+            }),
+          ).toThrow(
+            // eslint-disable-next-line max-len
+            'FOREST_ENV_SECRET is invalid. Please check your .env file.\n\tYou can retrieve its value from environment settings on Forest Admin.',
+          );
+        });
+      });
+
+      describe('if the FOREST_AUTH_TOKEN is missing', () => {
+        test('it should throw a specific error', () => {
+          expect(() =>
+            validateEnvironmentVariables({
+              FOREST_ENV_SECRET: 'a'.repeat(64),
+              FOREST_SERVER_URL: '',
+              FOREST_SUBSCRIPTION_URL: '',
+              FOREST_AUTH_TOKEN: '',
+            }),
+          ).toThrow(
+            'Missing authentication token. Your TOKEN_PATH is probably wrong on .env file.',
+          );
+        });
+      });
+      describe('if FOREST_SERVER_URL is missing', () => {
+        test('it should delegate to validateServerUrl', () => {
+          expect(() =>
+            validateEnvironmentVariables({
+              FOREST_ENV_SECRET: 'a'.repeat(64),
+              FOREST_SERVER_URL: '',
+              FOREST_SUBSCRIPTION_URL: '',
+              FOREST_AUTH_TOKEN: 'a'.repeat(64),
+            }),
+          ).toThrow('Missing FOREST_SERVER_URL. Please check your .env file.');
+        });
+      });
+      describe('if everything is correctly set', () => {
+        test('it should not throw', () => {
+          expect(() =>
+            validateEnvironmentVariables({
+              FOREST_ENV_SECRET: 'a'.repeat(64),
+              FOREST_SERVER_URL: 'http://test.com',
+              FOREST_SUBSCRIPTION_URL: 'wss://test.com',
+              FOREST_AUTH_TOKEN: 'a'.repeat(64),
+            }),
+          ).not.toThrow();
+        });
+      });
+    });
+    describe('getOrRefreshEnvironmentVariables', () => {
+      describe('if FOREST_AUTH_TOKEN isnt set', () => {
+        test('it should call login to fill it in', async () => {
+          jest.mocked(login).mockResolvedValue();
+          jest.mocked(fs.existsSync).mockReturnValue(false);
+          process.env.FOREST_ENV_SECRET = 'abc';
+          process.env.FOREST_SERVER_URL = 'https://the.forest.server.url';
+          process.env.FOREST_AUTH_TOKEN = '';
+          process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
+          expect(await getOrRefreshEnvironmentVariables()).toEqual({
+            FOREST_AUTH_TOKEN: null,
+            FOREST_ENV_SECRET: 'abc',
+            FOREST_SERVER_URL: 'https://the.forest.server.url',
+            FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
+          });
+
+          expect(login).toHaveBeenCalled();
+        });
+      });
+      describe('if FOREST_AUTH_TOKEN is set', () => {
+        test('it should not call login throw', async () => {
+          process.env.FOREST_ENV_SECRET = 'abc';
+          process.env.FOREST_SERVER_URL = 'https://the.forest.server.url';
+          process.env.FOREST_AUTH_TOKEN = 'tokenAbc123';
+          process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
+          expect(await getOrRefreshEnvironmentVariables()).toEqual({
+            FOREST_AUTH_TOKEN: 'tokenAbc123',
+            FOREST_ENV_SECRET: 'abc',
+            FOREST_SERVER_URL: 'https://the.forest.server.url',
+            FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
+          });
+          expect(login).not.toHaveBeenCalled();
         });
       });
     });
