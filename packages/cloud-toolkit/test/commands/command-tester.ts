@@ -16,8 +16,7 @@ export default class CommandTester {
   private lastSpinnerText: string;
 
   constructor(mocks: MakeCommandsForTests, argv: string[]) {
-    const spinner = this.buildSpinner();
-    this.command = makeCommands({ ...mocks, buildSpinner: () => spinner });
+    this.command = makeCommands({ ...mocks, spinner: this.buildSpinner() });
     this.argv = argv;
 
     this.catchQuestionTraces();
@@ -31,7 +30,7 @@ export default class CommandTester {
     try {
       await this.command.parseAsync(this.argv, { from: 'user' });
     } catch (e) {
-      /* empty */
+      throw new Error(e);
     } finally {
       this.rl?.close();
     }
