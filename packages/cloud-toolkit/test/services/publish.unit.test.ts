@@ -97,4 +97,20 @@ describe('publish', () => {
       );
     });
   });
+
+  describe('when an error occurs while uploading to AWS S3', () => {
+    it('should throw a business error', async () => {
+      const { httpServer, distPathManager } = setup();
+
+      mockToBuffer.mockReturnValue({ byteLength: 101 });
+
+      jest.mocked(FormData.prototype.submit).mockImplementation(() => {
+        throw new Error('S3 bucket not found');
+      });
+
+      await expect(publish(httpServer, distPathManager)).rejects.toThrow(
+        'Publish failed: S3 bucket not found',
+      );
+    });
+  });
 });

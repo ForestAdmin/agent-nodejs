@@ -108,6 +108,28 @@ describe('eventSubscriber', () => {
           variables: { publishId: 'subscriptionId' },
         });
       });
+
+      describe('when subscription fails', () => {
+        it('should handle error', async () => {
+          const failingSubscription = {
+            subscribe: (success: () => void, onError: (error) => void) => {
+              onError(new Error('Something bad'));
+            },
+          };
+
+          jest.mocked(ApolloClient.prototype.subscribe).mockReturnValueOnce(
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            failingSubscription,
+          );
+
+          const subscriber = new EventSubscriber('subscriptionUrl', 'bearerToken');
+
+          await expect(subscriber.subscribeToCodeCustomization('subscriptionId')).rejects.toThrow(
+            'Error while listening to code customization events: Something bad',
+          );
+        });
+      });
     });
 
     describe('when the server emits a fullHostedCustomizationDeployed', () => {
@@ -142,6 +164,36 @@ describe('eventSubscriber', () => {
 
         expect(result).toBeTruthy();
         expect(result).toStrictEqual(true);
+      });
+
+      describe('when subscription fails', () => {
+        it('should handle error', async () => {
+          const failingSubscription = {
+            subscribe: (success: () => void, onError: (error) => void) => {
+              onError(new Error('Something bad'));
+            },
+          };
+
+          jest.mocked(ApolloClient.prototype.subscribe).mockReturnValueOnce(
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            {
+              subscribe: jest.fn(),
+            },
+          );
+
+          jest.mocked(ApolloClient.prototype.subscribe).mockReturnValueOnce(
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            failingSubscription,
+          );
+
+          const subscriber = new EventSubscriber('subscriptionUrl', 'bearerToken');
+
+          await expect(subscriber.subscribeToCodeCustomization('subscriptionId')).rejects.toThrow(
+            'Error while listening to code customization events: Something bad',
+          );
+        });
       });
     });
 
