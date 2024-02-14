@@ -25,50 +25,36 @@ export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   };
 }
 
-export function validateServerUrl(serverUrl: string): void {
-  if (!serverUrl) {
-    throw new BusinessError('Missing FOREST_SERVER_URL. Please check your .env file.');
+function validateUrl(url: string, variableName: string, protocols: string[]): void {
+  if (!url) {
+    throw new BusinessError(`Missing ${variableName}. Please check your .env file.`);
   }
 
   let givenUrl;
 
   try {
-    givenUrl = new URL(serverUrl);
+    givenUrl = new URL(url);
   } catch (err) {
     throw new BusinessError(
-      `FOREST_SERVER_URL is invalid. Please check your .env file. ` +
-        `You can probably remove it from your .env file.: ${err.message}`,
+      `${variableName} is invalid. Please check your .env file.\n${err.message}`,
     );
   }
 
-  if (!['http:', 'https:'].includes(givenUrl.protocol)) {
+  if (!protocols.includes(givenUrl.protocol)) {
     throw new BusinessError(
-      'FOREST_SERVER_URL is invalid, it must start with http:// or https://. Please check your .env file.',
+      `${variableName} is invalid, it must start with '${protocols
+        .map(protocol => `${protocol}//`)
+        .join("' or '")}'. Please check your .env file.`,
     );
   }
 }
 
+export function validateServerUrl(serverUrl: string): void {
+  validateUrl(serverUrl, 'FOREST_SERVER_URL', ['http:', 'https:']);
+}
+
 export function validateSubscriptionUrl(subscriptionUrl: string): void {
-  if (!subscriptionUrl) {
-    throw new BusinessError('Missing FOREST_SUBSCRIPTION_URL. Please check your .env file.');
-  }
-
-  let givenUrl;
-
-  try {
-    givenUrl = new URL(subscriptionUrl);
-  } catch (err) {
-    throw new BusinessError(
-      `FOREST_SUBSCRIPTION_URL is invalid. Please check your .env file.' +
-        ' You can probably remove it from your .env file.: ${err.message}`,
-    );
-  }
-
-  if (givenUrl.protocol !== 'wss:') {
-    throw new BusinessError(
-      "FOREST_SUBSCRIPTION_URL is invalid, it must start with 'wss://'. Please check your .env file.",
-    );
-  }
+  validateUrl(subscriptionUrl, 'FOREST_SUBSCRIPTION_URL', ['wss:']);
 }
 
 export function validateEnvironmentVariables(env: EnvironmentVariables): void {
@@ -78,8 +64,8 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
 
   if (typeof env.FOREST_ENV_SECRET !== 'string' || !/^[0-9a-f]{64}$/.test(env.FOREST_ENV_SECRET)) {
     throw new BusinessError(
-      'FOREST_ENV_SECRET is invalid. Please check your .env file.' +
-        ' You can retrieve its value from environment settings on Forest Admin.',
+      // eslint-disable-next-line max-len
+      'FOREST_ENV_SECRET is invalid. Please check your .env file.\n\tYou can retrieve its value from environment settings on Forest Admin.',
     );
   }
 

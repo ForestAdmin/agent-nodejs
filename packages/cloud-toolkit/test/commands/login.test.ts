@@ -44,10 +44,7 @@ describe('login command', () => {
 
       expect(cmd.outputs).toEqual([
         cmd.start('Logging in'),
-        cmd.fail(
-          'FOREST_SERVER_URL is invalid. Please check your .env file. ' +
-            'You can probably remove it from your .env file.: Invalid URL',
-        ),
+        cmd.fail('FOREST_SERVER_URL is invalid. Please check your .env file.\nInvalid URL'),
       ]);
     });
   });
@@ -65,7 +62,7 @@ describe('login command', () => {
       expect(cmd.outputs).toEqual([
         cmd.start('Logging in'),
         cmd.fail(
-          'FOREST_SERVER_URL is invalid, it must start with http:// or https://. Please check your .env file.',
+          "FOREST_SERVER_URL is invalid, it must start with 'http://' or 'https://'. Please check your .env file.",
         ),
       ]);
     });
