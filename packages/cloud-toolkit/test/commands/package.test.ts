@@ -11,7 +11,7 @@ describe('package command', () => {
     await fs.rm(setup.distPathManager.zip, { force: true, recursive: true });
   });
 
-  it('should package correctly', async () => {
+  it('should create a zip from the dist folder', async () => {
     const setup = setupCommandArguments();
     const distPath = setup.distPathManager.distCodeCustomizations;
     await fs.mkdir(distPath, { recursive: true });

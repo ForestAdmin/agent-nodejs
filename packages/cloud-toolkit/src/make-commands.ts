@@ -155,6 +155,7 @@ export default function makeCommands({
     .option('-f, --force', 'Force the publication without asking for confirmation')
     .action(
       actionRunner(spinner, async (options: { force: boolean }) => {
+        spinner.start('Publishing code customizations');
         const vars = await getOrRefreshEnvironmentVariables(
           login,
           spinner,
