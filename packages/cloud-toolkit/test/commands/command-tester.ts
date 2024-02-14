@@ -30,7 +30,7 @@ export default class CommandTester {
     try {
       await this.command.parseAsync(this.argv, { from: 'user' });
     } catch (e) {
-      /* empty */
+      throw new Error(e);
     } finally {
       this.rl?.close();
     }
