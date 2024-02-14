@@ -4,12 +4,10 @@ import os from 'node:os';
 
 import {
   getEnvironmentVariables,
-  getOrRefreshEnvironmentVariables,
   validateEnvironmentVariables,
   validateServerUrl,
   validateSubscriptionUrl,
 } from '../../src/services/environment-variables';
-import login from '../../src/services/login';
 
 jest.mock('os');
 jest.mock('node:fs/promises');
@@ -18,10 +16,6 @@ jest.mock('fs');
 jest.spyOn(os, 'homedir').mockReturnValue('/home/foo');
 jest.spyOn(fsPromises, 'readFile').mockResolvedValue('the-token-from-file');
 jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-
-jest.mock('../../src/services/login', () => {
-  return jest.fn();
-});
 
 describe('environment-variables', () => {
   beforeEach(() => {
@@ -215,41 +209,6 @@ describe('environment-variables', () => {
               FOREST_AUTH_TOKEN: 'a'.repeat(64),
             }),
           ).not.toThrow();
-        });
-      });
-    });
-    describe('getOrRefreshEnvironmentVariables', () => {
-      describe('if FOREST_AUTH_TOKEN isnt set', () => {
-        test('it should call login to fill it in', async () => {
-          jest.mocked(login).mockResolvedValue();
-          jest.mocked(fs.existsSync).mockReturnValue(false);
-          process.env.FOREST_ENV_SECRET = 'abc';
-          process.env.FOREST_SERVER_URL = 'https://the.forest.server.url';
-          process.env.FOREST_AUTH_TOKEN = '';
-          process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
-          expect(await getOrRefreshEnvironmentVariables()).toEqual({
-            FOREST_AUTH_TOKEN: null,
-            FOREST_ENV_SECRET: 'abc',
-            FOREST_SERVER_URL: 'https://the.forest.server.url',
-            FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
-          });
-
-          expect(login).toHaveBeenCalled();
-        });
-      });
-      describe('if FOREST_AUTH_TOKEN is set', () => {
-        test('it should not call login throw', async () => {
-          process.env.FOREST_ENV_SECRET = 'abc';
-          process.env.FOREST_SERVER_URL = 'https://the.forest.server.url';
-          process.env.FOREST_AUTH_TOKEN = 'tokenAbc123';
-          process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
-          expect(await getOrRefreshEnvironmentVariables()).toEqual({
-            FOREST_AUTH_TOKEN: 'tokenAbc123',
-            FOREST_ENV_SECRET: 'abc',
-            FOREST_SERVER_URL: 'https://the.forest.server.url',
-            FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
-          });
-          expect(login).not.toHaveBeenCalled();
         });
       });
     });
