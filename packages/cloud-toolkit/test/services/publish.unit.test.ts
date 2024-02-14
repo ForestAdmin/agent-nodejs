@@ -1,6 +1,7 @@
 import FormData from 'form-data';
 import { afterEach } from 'node:test';
 
+import DistPathManager from '../../src/services/dist-path-manager';
 import HttpServer from '../../src/services/http-server';
 import publish from '../../src/services/publish';
 
@@ -37,7 +38,9 @@ const setup = () => {
     postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'subscriptionId' }),
   } as unknown as HttpServer;
 
-  return { httpServer, presignedPost };
+  const distPathManager = new DistPathManager();
+
+  return { httpServer, presignedPost, distPathManager };
 };
 
 describe('publish', () => {
@@ -46,7 +49,7 @@ describe('publish', () => {
   });
 
   it('should upload the zip to S3 then ask for publication', async () => {
-    const { httpServer, presignedPost } = setup();
+    const { httpServer, presignedPost, distPathManager } = setup();
 
     mockToBuffer.mockReturnValue({ byteLength: 101 });
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -59,7 +62,7 @@ describe('publish', () => {
       return null;
     });
 
-    const result = await publish(httpServer);
+    const result = await publish(httpServer, distPathManager);
 
     expect(result).toStrictEqual('subscriptionId');
 
@@ -82,13 +85,13 @@ describe('publish', () => {
 
   describe('when an error occurs while reading zip file', () => {
     it('should throw a business error', async () => {
-      const { httpServer } = setup();
+      const { httpServer, distPathManager } = setup();
 
       mockToBuffer.mockImplementation(() => {
         throw new Error('Cannot read file');
       });
 
-      await expect(publish(httpServer)).rejects.toThrow(
+      await expect(publish(httpServer, distPathManager)).rejects.toThrow(
         'Publish failed: Cannot read code-customization zip file ' +
           '- At path: dist/code-customizations.zip',
       );

@@ -7,6 +7,7 @@ import os from 'os';
 import login from './login';
 import makeCommands from './make-commands';
 import BootstrapPathManager from './services/bootstrap-path-manager';
+import DistPathManager from './services/dist-path-manager';
 import { getEnvironmentVariables } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
@@ -29,6 +30,7 @@ const command = makeCommands({
   login,
   spinner: ora(),
   bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
+  distPathManager: new DistPathManager(),
 });
 
 command.parseAsync();

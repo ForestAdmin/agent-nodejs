@@ -62,7 +62,7 @@ describe('bootstrap command', () => {
       ]);
 
       expect(setup.login).toHaveBeenCalled();
-      expect(await fs.stat(cloudCustomizerPath)).toBeTruthy();
+      await expect(fs.access(cloudCustomizerPath)).resolves.not.toThrow();
     });
   });
 

@@ -54,6 +54,7 @@ const validateAndBuildEventSubscriber = (
 
 export default function makeCommands({
   bootstrapPathManager,
+  distPathManager,
   buildEventSubscriber,
   buildHttpServer,
   spinner,
@@ -84,6 +85,7 @@ export default function makeCommands({
         await updateTypingsWithCustomizations(
           bootstrapPathManager.typingsAfterBootstrapped,
           introspection,
+          distPathManager,
         );
         spinner.succeed('Your typings have been updated');
       }),
@@ -165,7 +167,7 @@ export default function makeCommands({
         }
 
         spinner.start('Publishing code customizations (operation cannot be cancelled)');
-        const subscriptionId = await publish(forestServer);
+        const subscriptionId = await publish(forestServer, distPathManager);
         const subscriber = validateAndBuildEventSubscriber(vars, buildEventSubscriber);
 
         try {
@@ -190,7 +192,7 @@ export default function makeCommands({
     .action(
       actionRunner(spinner, async () => {
         spinner.start('Packaging code');
-        await packageCustomizations();
+        await packageCustomizations(distPathManager);
         spinner.succeed('Code customizations packaged and ready for publish');
       }),
     );

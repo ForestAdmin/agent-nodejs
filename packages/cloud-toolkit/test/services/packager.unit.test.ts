@@ -2,7 +2,8 @@ import fs from 'fs/promises';
 import { afterEach } from 'node:test';
 import path from 'path';
 
-import packager, { distCodeCustomizationsPath, zipPath } from '../../src/services/packager';
+import DistPathManager from '../../src/services/dist-path-manager';
+import packager from '../../src/services/packager';
 
 const mockAddLocalFolder = jest.fn();
 const mockWriteZipPromise = jest.fn();
@@ -22,19 +23,20 @@ describe('packager', () => {
   });
 
   it('should create a zip file containing the customizations', async () => {
-    await packager();
+    const distPath = new DistPathManager();
+    await packager(distPath);
 
     expect(jest.mocked(fs).access).toHaveBeenCalled();
-    expect(jest.mocked(fs).access).toHaveBeenCalledWith(distCodeCustomizationsPath);
+    expect(jest.mocked(fs).access).toHaveBeenCalledWith(distPath.distCodeCustomizations);
 
     expect(mockAddLocalFolder).toHaveBeenCalled();
     expect(mockAddLocalFolder).toHaveBeenCalledWith(
-      distCodeCustomizationsPath,
+      distPath.distCodeCustomizations,
       path.join('nodejs', 'customization'),
     );
 
     expect(mockWriteZipPromise).toHaveBeenCalled();
-    expect(mockWriteZipPromise).toHaveBeenCalledWith(zipPath, { overwrite: true });
+    expect(mockWriteZipPromise).toHaveBeenCalledWith(distPath.zip, { overwrite: true });
   });
 
   describe('when an error occurs while reading zip file', () => {
@@ -43,7 +45,7 @@ describe('packager', () => {
         throw new Error('File not found');
       });
 
-      await expect(packager()).rejects.toThrow(
+      await expect(packager(new DistPathManager())).rejects.toThrow(
         /Failed to access directory dist\/code-customizations containing built code:/,
       );
     });

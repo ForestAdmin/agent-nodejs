@@ -2,24 +2,23 @@ import AdmZip from 'adm-zip';
 import fs from 'fs/promises';
 import path from 'path';
 
+import DistPathManager from './dist-path-manager';
 import { BusinessError } from '../errors';
 
-export const zipPath = path.join('dist', 'code-customizations.zip');
-export const distCodeCustomizationsPath = path.join('dist', 'code-customizations');
-
-export default async function packageCustomizations() {
-  const zip: AdmZip = new AdmZip();
+export default async function packageCustomizations(distPathManager: DistPathManager) {
+  const { zip: zipPath, distCodeCustomizations: customPath } = distPathManager;
 
   try {
-    await fs.access(distCodeCustomizationsPath);
+    await fs.access(customPath);
   } catch (e) {
     throw new BusinessError(
-      `Failed to access directory ${distCodeCustomizationsPath} containing built code:
+      `Failed to access directory ${customPath} containing built code:
       ${e.message}
       Please build your code first.`,
     );
   }
 
-  zip.addLocalFolder(distCodeCustomizationsPath, path.join('nodejs', 'customization'));
+  const zip: AdmZip = new AdmZip();
+  zip.addLocalFolder(customPath, path.join('nodejs', 'customization'));
   await zip.writeZipPromise(zipPath, { overwrite: true });
 }

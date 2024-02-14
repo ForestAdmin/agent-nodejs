@@ -1,8 +1,8 @@
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
 
+import DistPathManager from './dist-path-manager';
 import HttpServer from './http-server';
-import { zipPath } from './packager';
 import { BusinessError } from '../errors';
 
 function getKeyFromPolicy(policy: string) {
@@ -15,9 +15,13 @@ function getKeyFromPolicy(policy: string) {
   return keyCondition[2];
 }
 
-export default async function publish(httpServer: HttpServer): Promise<string> {
+export default async function publish(
+  httpServer: HttpServer,
+  distPathManager: DistPathManager,
+): Promise<string> {
   try {
     let buffer: Buffer;
+    const zipPath = distPathManager.zip;
 
     try {
       const zip: AdmZip = new AdmZip(zipPath);

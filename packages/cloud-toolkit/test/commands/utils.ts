@@ -1,6 +1,7 @@
 import os from 'os';
 
 import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
+import DistPathManager from '../../src/services/dist-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
@@ -41,6 +42,7 @@ export const setupCommandArguments = (
     buildHttpServer,
     buildEventSubscriber,
     login,
+    distPathManager: new DistPathManager(os.tmpdir()),
     bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
   };
 };
