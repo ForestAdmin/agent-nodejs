@@ -8,15 +8,15 @@ import DistPathManager from '../../src/services/dist-path-manager';
 
 const createFakeZip = async (distPathManager: DistPathManager) => {
   const { zip: zipPath } = distPathManager;
-  await fs.writeFile(zipPath, 'test', 'utf-8');
+  await fs.mkdir(path.dirname(zipPath), { recursive: true });
   const zip: AdmZip = new AdmZip();
-  zip.addLocalFolder(distPathManager.distCodeCustomizations, path.join('nodejs', 'customization'));
   await zip.writeZipPromise(zipPath, { overwrite: true });
 };
 
 describe('publish command', () => {
   beforeEach(async () => {
     const setup = setupCommandArguments();
+
     await fs.rm(setup.distPathManager.zip, { force: true, recursive: true });
     await createFakeZip(setup.distPathManager);
   });
