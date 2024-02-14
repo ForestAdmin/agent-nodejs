@@ -143,7 +143,7 @@ describe('bootstrap', () => {
         );
 
         expect(updateTypings).toHaveBeenCalled();
-        expect(updateTypings).toHaveBeenCalledWith('cloud-customizer/typings.d.ts', introspection);
+        expect(updateTypings).toHaveBeenCalledWith(introspection, path);
       });
     });
   });

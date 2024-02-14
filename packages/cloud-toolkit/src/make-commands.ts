@@ -82,11 +82,8 @@ export default function makeCommands({
           vars,
           buildHttpServer,
         ).getIntrospection();
-        await updateTypingsWithCustomizations(
-          bootstrapPathManager.typingsAfterBootstrapped,
-          introspection,
-          distPathManager,
-        );
+
+        await updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager);
         spinner.succeed('Your typings have been updated');
       }),
     );

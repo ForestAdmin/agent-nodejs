@@ -50,8 +50,4 @@ export default class BootstrapPathManager {
   get helloWorldTemplate(): string {
     return path.join(__dirname, '..', 'templates', 'hello-world.txt');
   }
-
-  get typingsAfterBootstrapped(): string {
-    return path.join('typings.d.ts');
-  }
 }

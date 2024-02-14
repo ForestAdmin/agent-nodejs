@@ -77,7 +77,7 @@ export default async function bootstrap(
     const data = findPrimaryKeyAndCollectionName(introspection);
     if (data) await generateHelloWorldExample(data.collectionName, data.primaryKey, paths);
 
-    await updateTypings(paths.typings, introspection);
+    await updateTypings(introspection, paths);
   } catch (error) {
     const potentialErrorMessage = await tryToClearBootstrap(paths);
     throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage || ''}`);
