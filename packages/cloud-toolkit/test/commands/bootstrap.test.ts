@@ -6,6 +6,21 @@ import { setupCommandArguments } from './utils';
 describe('bootstrap command', () => {
   describe('when it is the first time to run bootstrap', () => {
     it('should generate the cloud customizer folder', async () => {
+      const defaultEnvs = {
+        FOREST_SERVER_URL: 'https://api.forestadmin.com',
+        FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
+      };
+      const getEnvironmentVariables = jest
+        .fn()
+        .mockResolvedValueOnce({
+          FOREST_AUTH_TOKEN: null, // auth token is missing because login is required
+          ...defaultEnvs,
+        })
+        .mockResolvedValueOnce({
+          FOREST_AUTH_TOKEN: 'a-token-after-login', // auth token is present after login
+          ...defaultEnvs,
+        });
+
       const getIntrospection = jest.fn().mockResolvedValue([
         {
           name: 'forestCollection',
@@ -26,7 +41,7 @@ describe('bootstrap command', () => {
         },
       ]);
 
-      const setup = setupCommandArguments({ getIntrospection });
+      const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
       const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
 
@@ -71,8 +86,7 @@ describe('bootstrap command', () => {
 
   describe('when there is already a cloud customizer folder', () => {
     it('should throw an error', async () => {
-      const getEnvironmentVariables = jest.fn().mockResolvedValue({});
-      const setup = setupCommandArguments({ getEnvironmentVariables });
+      const setup = setupCommandArguments();
       const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
       await fs.mkdir(cloudCustomizerPath);

@@ -16,7 +16,12 @@ export const setupCommandArguments = (
   }>,
 ): MakeCommandsForTests => {
   const getEnvironmentVariables =
-    options?.getEnvironmentVariables || jest.fn().mockResolvedValue({});
+    options?.getEnvironmentVariables ||
+    jest.fn().mockResolvedValue({
+      FOREST_AUTH_TOKEN: 'forest-auth-token',
+      FOREST_SERVER_URL: 'https://api.forestadmin.com',
+      FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
+    });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {

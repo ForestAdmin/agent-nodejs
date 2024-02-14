@@ -5,10 +5,19 @@ import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizati
 import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
 import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
+import EventSubscriber from './services/event-subscriber';
+import HttpServer from './services/http-server';
 import packageCustomizations from './services/packager';
 import publish from './services/publish';
 import { updateTypingsWithCustomizations } from './services/update-typings';
-import { EnvironmentVariables, Login, MakeCommands, Spinner } from './types';
+import {
+  BuildEventSubscriber,
+  BuildHttpServer,
+  EnvironmentVariables,
+  Login,
+  MakeCommands,
+  Spinner,
+} from './types';
 
 export const getOrRefreshEnvironmentVariables = async (
   login: Login,
@@ -23,6 +32,24 @@ export const getOrRefreshEnvironmentVariables = async (
   }
 
   return vars;
+};
+
+const validateAndBuildHttpServer = (
+  envs: EnvironmentVariables,
+  buildHttpServer: BuildHttpServer,
+): HttpServer => {
+  validateEnvironmentVariables(envs);
+
+  return buildHttpServer(envs);
+};
+
+const validateAndBuildEventSubscriber = (
+  envs: EnvironmentVariables,
+  buildEventSubscriber: BuildEventSubscriber,
+): EventSubscriber => {
+  validateEnvironmentVariables(envs);
+
+  return buildEventSubscriber(envs);
 };
 
 export default function makeCommands({
@@ -50,7 +77,10 @@ export default function makeCommands({
           getEnvironmentVariables,
         );
         validateEnvironmentVariables(vars);
-        const introspection = await buildHttpServer(vars).getIntrospection();
+        const introspection = await validateAndBuildHttpServer(
+          vars,
+          buildHttpServer,
+        ).getIntrospection();
         await updateTypingsWithCustomizations(
           bootstrapPathManager.typingsAfterBootstrapped,
           introspection,
@@ -87,7 +117,10 @@ export default function makeCommands({
         spinner.succeed('Environment found');
         spinner.stop();
 
-        const forestServer = buildHttpServer({ ...vars, FOREST_ENV_SECRET: secret });
+        const forestServer = validateAndBuildHttpServer(
+          { ...vars, FOREST_ENV_SECRET: secret },
+          buildHttpServer,
+        );
 
         if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
           throw new BusinessError('Operation aborted');
@@ -125,7 +158,7 @@ export default function makeCommands({
           spinner,
           getEnvironmentVariables,
         );
-        const forestServer = buildHttpServer(vars);
+        const forestServer = validateAndBuildHttpServer(vars, buildHttpServer);
 
         if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
           throw new BusinessError('Operation aborted');
@@ -133,7 +166,7 @@ export default function makeCommands({
 
         spinner.start('Publishing code customizations (operation cannot be cancelled)');
         const subscriptionId = await publish(forestServer);
-        const subscriber = buildEventSubscriber(vars);
+        const subscriber = validateAndBuildEventSubscriber(vars, buildEventSubscriber);
 
         try {
           const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);

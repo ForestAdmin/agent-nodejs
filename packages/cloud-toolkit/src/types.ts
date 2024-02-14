@@ -74,8 +74,8 @@ export type EnvironmentVariables = {
 };
 
 export type MakeCommands = {
-  buildEventSubscriber: (vars: EnvironmentVariables) => EventSubscriber;
-  buildHttpServer: (vars: EnvironmentVariables) => HttpServer;
+  buildEventSubscriber: BuildEventSubscriber;
+  buildHttpServer: BuildHttpServer;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
   bootstrapPathManager: BootstrapPathManager;
   spinner: Spinner;
@@ -92,3 +92,7 @@ export type Spinner = {
 };
 
 export type Login = (spinner: Spinner) => Promise<void>;
+
+export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
+
+export type BuildEventSubscriber = (vars: EnvironmentVariables) => EventSubscriber;
