@@ -7,6 +7,7 @@ import type {
 } from '@forestadmin/datasource-customizer';
 
 import BootstrapPathManager from './services/bootstrap-path-manager';
+import DistPathManager from './services/dist-path-manager';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
 
@@ -78,6 +79,7 @@ export type MakeCommands = {
   buildHttpServer: BuildHttpServer;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
   bootstrapPathManager: BootstrapPathManager;
+  distPathManager: DistPathManager;
   spinner: Spinner;
   login: Login;
 };
