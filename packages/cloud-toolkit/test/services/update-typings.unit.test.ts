@@ -2,6 +2,7 @@ import * as agent from '@forestadmin/agent';
 import * as datasourceSQL from '@forestadmin/datasource-sql';
 import { Table } from '@forestadmin/datasource-sql';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import { BusinessError, CustomizationError } from '../../src/errors';
@@ -28,7 +29,7 @@ describe('update-typings', () => {
       // @ts-ignore
       .mockReturnValue(datasource);
 
-    const distPathManager = new DistPathManager();
+    const distPathManager = new DistPathManager(os.tmpdir());
 
     return {
       introspection,
