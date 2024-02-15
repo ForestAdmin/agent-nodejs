@@ -67,7 +67,7 @@ export default function makeCommands({
 
   program.option('-v, --version', 'output the version number').action(
     actionRunner(spinner, async () => {
-      spinner.info(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
+      spinner.log(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
     }),
   );
 

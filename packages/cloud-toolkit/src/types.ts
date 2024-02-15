@@ -90,6 +90,7 @@ export type Spinner = {
   warn: (text?: string) => void;
   info: (text?: string) => void;
   fail: (text?: string) => void;
+  log: (text?: string) => void;
   stop: () => void;
 };
 
