@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 import CommandTester from './command-tester';
-import { setupCommandArguments } from './utils';
+import { MakeCommandsForTests, setupCommandArguments } from './utils';
 import DistPathManager from '../../src/services/dist-path-manager';
 
 const createFakeZip = async (distPathManager: DistPathManager) => {
@@ -14,15 +14,17 @@ const createFakeZip = async (distPathManager: DistPathManager) => {
 };
 
 describe('publish command', () => {
-  beforeEach(async () => {
-    const setup = setupCommandArguments();
+  async function setupTest(options?): Promise<MakeCommandsForTests> {
+    const setup = setupCommandArguments(options);
 
     await fs.rm(setup.distPathManager.zip, { force: true, recursive: true });
     await createFakeZip(setup.distPathManager);
-  });
+
+    return setup;
+  }
 
   it('should publish the code the forest server', async () => {
-    const setup = setupCommandArguments();
+    const setup = await setupTest();
     const cmd = new CommandTester(setup, ['publish']);
     await cmd.run();
 
@@ -41,7 +43,7 @@ describe('publish command', () => {
         relativeDate: 'yesterday',
         user: { name: 'John Doe', email: 'johndoad@forestadmin.com' },
       });
-      const setup = setupCommandArguments({ getLastPublishedCodeDetails });
+      const setup = await setupTest({ getLastPublishedCodeDetails });
       const cmd = new CommandTester(setup, ['publish']);
       cmd.answerToQuestion('Do you really want to overwrite these customizations? (yes/no)', 'no');
       await cmd.run();
@@ -61,7 +63,7 @@ describe('publish command', () => {
           relativeDate: 'yesterday',
           user: { name: 'John Doe', email: 'johndoad@forestadmin.com' },
         });
-        const setup = setupCommandArguments({ getLastPublishedCodeDetails });
+        const setup = await setupTest({ getLastPublishedCodeDetails });
         const cmd = new CommandTester(setup, ['publish', '-f']);
         await cmd.run();
 
@@ -79,7 +81,7 @@ describe('publish command', () => {
       const subscribeToCodeCustomization = jest
         .fn()
         .mockResolvedValue({ error: 'An error occurred' });
-      const setup = setupCommandArguments({ subscribeToCodeCustomization });
+      const setup = await setupTest({ subscribeToCodeCustomization });
       const cmd = new CommandTester(setup, ['publish']);
       await cmd.run();
 
@@ -96,7 +98,7 @@ describe('publish command', () => {
       const subscribeToCodeCustomization = jest
         .fn()
         .mockRejectedValue(new Error('An error occurred'));
-      const setup = setupCommandArguments({ subscribeToCodeCustomization });
+      const setup = await setupTest({ subscribeToCodeCustomization });
       const cmd = new CommandTester(setup, ['publish']);
       await cmd.run();
 

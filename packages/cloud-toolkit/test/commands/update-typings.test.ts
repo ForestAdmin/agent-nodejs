@@ -3,17 +3,9 @@ import path from 'path';
 
 import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
+import DistPathManager from '../../src/services/dist-path-manager';
 
 describe('update-typings command', () => {
-  beforeEach(async () => {
-    const setup = setupCommandArguments();
-    await fs.rm(setup.distPathManager.distCodeCustomizations, { force: true, recursive: true });
-    await fs.rm(setup.bootstrapPathManager.typingsAfterBootstrapped, {
-      force: true,
-      recursive: true,
-    });
-  });
-
   it('should update the typings from the introspection provided by the forest server', async () => {
     const getIntrospection = jest.fn().mockResolvedValue([
       {
@@ -34,27 +26,12 @@ describe('update-typings command', () => {
         unique: [['id'], ['title']],
       },
     ]);
-
     const setup = setupCommandArguments({ getIntrospection });
-
-    // create the dist folder with the customizations
-    const distPath = setup.distPathManager.distCodeCustomizations;
-    await fs.mkdir(distPath, { recursive: true });
-    await fs.writeFile(
-      path.join(distPath, 'index.ts'),
-      `export default function customizeAgent(agent) {
-              agent.customizeCollection('forestCollection', collection => {
-                collection.addField('HelloWorld', {
-                  columnType: 'String',
-                  defaultValue: 'Hello World',
-                  dependencies: ['id'],
-                  getValues(records) {
-                    return records.map(() => 'Hello World');
-                  },
-                });
-              });
-            }`,
-    );
+    setup.distPathManager = new DistPathManager(path.join(__dirname, '/__data__'));
+    await fs.rm(setup.bootstrapPathManager.typingsAfterBootstrapped, {
+      force: true,
+      recursive: true,
+    });
 
     const cmd = new CommandTester(setup, ['update-typings']);
     await cmd.run();
