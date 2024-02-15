@@ -5,7 +5,7 @@ import DistPathManager from '../../src/services/dist-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
-export type MakeCommandsForTests = Omit<MakeCommands, 'spinner'>;
+export type MakeCommandsForTests = Omit<MakeCommands, 'logger'>;
 
 const presignedPost = {
   url: 'https://s3.eu-west-3.amazonaws.com/forestadmin-platform-cloud-customization-test',

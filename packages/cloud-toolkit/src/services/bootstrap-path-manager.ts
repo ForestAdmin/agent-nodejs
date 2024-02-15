@@ -35,6 +35,10 @@ export default class BootstrapPathManager {
     return path.join(this.cloudCustomizerPath, 'typings.d.ts');
   }
 
+  get packageJsonAfterBootstrapped(): string {
+    return path.join(this.cloudCustomizerPath, 'package.json');
+  }
+
   get index(): string {
     return path.join(this.cloudCustomizer, 'src', 'index.ts');
   }
