@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import { afterEach } from 'node:test';
 import path from 'path';
 
+import { BusinessError } from '../../src/errors';
 import DistPathManager from '../../src/services/dist-path-manager';
 import packager from '../../src/services/packager';
 
@@ -41,12 +42,14 @@ describe('packager', () => {
 
   describe('when an error occurs while reading zip file', () => {
     it('should throw a business error', async () => {
-      jest.mocked(fs.access).mockImplementation(() => {
-        throw new Error('File not found');
-      });
+      jest.mocked(fs.access).mockRejectedValue(new Error('File not found'));
 
-      await expect(packager(new DistPathManager())).rejects.toThrow(
-        /Failed to access directory dist\/code-customizations containing built code:/,
+      const distPath = new DistPathManager();
+      await expect(packager(distPath)).rejects.toThrow(
+        new BusinessError(
+          `No built customization found at ${distPath.distCodeCustomizations}.\n` +
+            'Please build your code to build your customizations',
+        ),
       );
     });
   });
