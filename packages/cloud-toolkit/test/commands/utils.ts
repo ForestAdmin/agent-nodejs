@@ -1,4 +1,6 @@
+import fs from 'fs';
 import os from 'os';
+import path from 'path';
 
 import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import DistPathManager from '../../src/services/dist-path-manager';
@@ -62,12 +64,15 @@ export const setupCommandArguments = (
   });
   const login = options?.login || jest.fn();
 
+  const tmpdir = path.join(os.tmpdir(), (Math.floor(Math.random() * 100000) + 1).toString());
+  fs.mkdirSync(tmpdir);
+
   return {
     getEnvironmentVariables,
     buildHttpServer,
     buildEventSubscriber,
     login,
-    distPathManager: new DistPathManager(os.tmpdir()),
-    bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
+    distPathManager: new DistPathManager(tmpdir),
+    bootstrapPathManager: new BootstrapPathManager(tmpdir, tmpdir, tmpdir),
   };
 };
