@@ -98,6 +98,7 @@ describe('Services > ModelCustomizations > Actions > WebhookActionsPlugin', () =
 
       expect(executeWebhookMock).toHaveBeenCalledWith(action, context);
     });
+
     it('should do nothing if the collection is missing', async () => {
       const action = {
         name: 'myAction',

@@ -34,6 +34,7 @@ export type ColumnSchema = {
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   isSortable?: boolean;
+  allowNull?: boolean;
   type: 'Column';
   validation?: ColumnSchemaValidation;
 };

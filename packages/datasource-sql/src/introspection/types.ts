@@ -4,13 +4,17 @@ export type ScalarSubType =
   | 'BOOLEAN'
   | 'DATE'
   | 'DATEONLY'
+  | 'DECIMAL'
   | 'DOUBLE'
   | 'FLOAT'
   | 'INET'
+  | 'INTEGER'
   | 'JSON'
   | 'JSONB'
   | 'NUMBER'
+  | 'REAL'
   | 'STRING'
+  | 'TEXT'
   | 'TIME'
   | 'UUID';
 
@@ -52,4 +56,9 @@ export type Table = {
       column: string;
     }[];
   }[];
+};
+
+export type Introspection = {
+  tables: Table[];
+  version: number;
 };

@@ -79,8 +79,9 @@ describe('Introspector > Integration', () => {
           await sequelize.sync({ force: true });
 
           const logger = jest.fn();
-          const tables = await Introspector.introspect(sequelizeSchema1, logger);
+          const { tables, version } = await Introspector.introspect(sequelizeSchema1, logger);
 
+          expect(version).toEqual(1);
           expect(tables).toEqual([
             {
               name: 'elements',
@@ -156,7 +157,7 @@ describe('Introspector > Integration', () => {
           CONSTRAINT "FK_Orders_Employees" FOREIGN KEY ("EmployeeID") REFERENCES "dbo"."Employees.oldVersion" ("EmployeeID"),
         )
       `);
-      const tables = await Introspector.introspect(sequelize);
+      const { tables } = await Introspector.introspect(sequelize);
       expect(tables).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

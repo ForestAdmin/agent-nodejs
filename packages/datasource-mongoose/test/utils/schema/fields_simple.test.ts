@@ -131,6 +131,7 @@ describe('SchemaFieldsGenerator', () => {
           [Schema.Types.Mixed, 'Json'],
           [{ type: Schema.Types.Mixed }, 'Json'],
         ];
+
         test.each(cases)('[%p] should build the right column type', (type, expectedType) => {
           const schema = new Schema({ aField: [type] });
 
@@ -196,6 +197,7 @@ describe('SchemaFieldsGenerator', () => {
         [Schema.Types.Mixed, 'Json', false],
         [{ type: Schema.Types.Mixed }, 'Json', false],
       ];
+
       test.each(cases)(
         '[%p] should build the right column type',
         (type, expectedType, expectedIsSortable) => {

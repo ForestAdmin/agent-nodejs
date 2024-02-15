@@ -1,4 +1,4 @@
-import type { Table } from './introspection/types';
+import type { Introspection, Table } from './introspection/types';
 import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
@@ -14,7 +14,7 @@ import RelationBuilder from './orm-builder/relations';
 export async function introspect(
   uriOrOptions: PlainConnectionOptionsOrUri,
   logger?: Logger,
-): Promise<Table[]> {
+): Promise<Introspection> {
   const options = new ConnectionOptions(uriOrOptions, logger);
   let sequelize: Sequelize;
 
@@ -30,14 +30,16 @@ export async function introspect(
 export async function buildSequelizeInstance(
   uriOrOptions: PlainConnectionOptionsOrUri,
   logger: Logger,
-  introspection?: Table[],
+  introspection?: Table[] | Introspection,
 ): Promise<Sequelize> {
   const options = new ConnectionOptions(uriOrOptions, logger);
   let sequelize: Sequelize;
 
   try {
     sequelize = await connect(options);
-    const tables = introspection ?? (await Introspector.introspect(sequelize, logger));
+    const { tables } =
+      Introspector.getIntrospectionInLatestFormat(introspection) ??
+      (await Introspector.introspect(sequelize, logger));
     ModelBuilder.defineModels(sequelize, logger, tables);
     RelationBuilder.defineRelations(sequelize, logger, tables);
   } catch (error) {
@@ -50,10 +52,11 @@ export async function buildSequelizeInstance(
 
 export function createSqlDataSource(
   uriOrOptions: PlainConnectionOptionsOrUri,
-  options?: { introspection: Table[] },
+  options?: { introspection: Table[] | Introspection },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const sequelize = await buildSequelizeInstance(uriOrOptions, logger, options?.introspection);
+    const introspection = Introspector.getIntrospectionInLatestFormat(options?.introspection);
+    const sequelize = await buildSequelizeInstance(uriOrOptions, logger, introspection);
 
     return new SequelizeDataSource(sequelize, logger);
   };
@@ -67,4 +70,4 @@ export async function preprocessOptions(
 }
 
 export * from './connection/errors';
-export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode };
+export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode, Introspection };

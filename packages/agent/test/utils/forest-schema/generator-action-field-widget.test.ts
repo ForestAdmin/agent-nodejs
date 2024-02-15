@@ -80,6 +80,7 @@ describe('GeneratorActionFieldWidget', () => {
           },
         });
       });
+
       it('should include the searchType="dynamic"', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
@@ -796,6 +797,7 @@ describe('GeneratorActionFieldWidget', () => {
           });
         });
       });
+
       describe.each(['min', 'max'])('%s', parameter => {
         it('should copy a valid value in parameters', () => {
           const date = new Date('2000-02-01T00:01:01.001Z');
@@ -882,6 +884,7 @@ describe('GeneratorActionFieldWidget', () => {
           },
         });
       });
+
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
@@ -916,6 +919,7 @@ describe('GeneratorActionFieldWidget', () => {
           },
         });
       });
+
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
@@ -933,6 +937,7 @@ describe('GeneratorActionFieldWidget', () => {
         });
       });
     });
+
     describe('FilePicker', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
@@ -952,6 +957,7 @@ describe('GeneratorActionFieldWidget', () => {
           },
         });
       });
+
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'File',

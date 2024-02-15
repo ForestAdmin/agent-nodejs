@@ -181,6 +181,7 @@ describe('ActionRoute', () => {
 
       route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
     });
+
     describe('when the request is an approval', () => {
       test('it should resolve when authorized to perform', async () => {
         const context = createMockContext({
@@ -262,6 +263,31 @@ describe('ActionRoute', () => {
         await expect(route.handleExecute.call(route, context)).rejects.toThrow();
       });
     });
+  });
+
+  test('it should handle response headers', async () => {
+    dataSource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'books',
+        schema: { actions: { MySingleAction: { scope: 'Global' } } },
+        getForm: jest.fn(),
+        execute: jest.fn().mockResolvedValue({
+          type: 'Error',
+          message: 'the result does not matter',
+          responseHeaders: { test: 'test' },
+        }),
+      }),
+    ]);
+
+    route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
+
+    // Test
+    const context = createMockContext(baseContext);
+
+    // @ts-expect-error: test private method
+    await route.handleExecute(context);
+
+    expect(context.response.headers).toHaveProperty('test', 'test');
   });
 
   describe('with a single action used from list-view, detail-view & summary', () => {

@@ -61,14 +61,14 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'aCollectionName': {
           plain: {
-            'array': Array<string>;
-            'boolean': boolean;
-            'complex': { 'firstname': string; 'lastname': string };
-            'enumWithoutValues': string;
-            'enumWithValues': 'a' | 'b' | 'c';
-            'id': number;
-            'point': [number, number];
-            'string': string;
+            'array': Array<string> | null;
+            'boolean': boolean | null;
+            'complex': { 'firstname': string; 'lastname': string } | null;
+            'enumWithoutValues': string | null;
+            'enumWithValues': 'a' | 'b' | 'c' | null;
+            'id': number | null;
+            'point': [number, number] | null;
+            'string': string | null;
           };
           nested: {};
           flat: {};
@@ -99,16 +99,75 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'aCollectionName': {
           plain: {
-            '0': string;
-            'a': string;
-            'A': string;
-            'b': string;
-            'z': string;
+            '0': string | null;
+            'a': string | null;
+            'A': string | null;
+            'b': string | null;
+            'z': string | null;
           };
           nested: {};
           flat: {};
         };
       };`;
+
+    expectContains(generated, expected);
+  });
+
+  test('should use strict type definitions where appropriate', () => {
+    const datasource = factories.dataSource.buildWithCollections([
+      factories.collection.build({
+        name: 'aCollectionName',
+        schema: {
+          fields: {
+            id: factories.columnSchema.build({
+              columnType: 'Number',
+              isPrimaryKey: true,
+            }),
+            stringAllowNull: factories.columnSchema.build({
+              columnType: 'String',
+              allowNull: true,
+            }),
+            stringRequired: factories.columnSchema.build({
+              columnType: 'String',
+              allowNull: false,
+            }),
+            stringAllowNullUndefined: factories.columnSchema.build({
+              columnType: 'String',
+              allowNull: undefined,
+            }),
+            stringValidationPresent: factories.columnSchema.build({
+              columnType: 'String',
+              validation: [{ operator: 'Present' }],
+            }),
+            stringMiscValidation: factories.columnSchema.build({
+              columnType: 'String',
+              validation: [
+                { operator: 'EndsWith', value: 'a' },
+                { operator: 'Like', value: 'a%' },
+              ],
+            }),
+          },
+        },
+      }),
+    ]);
+
+    const generated = new TypingGenerator(jest.fn()).generateTypes(datasource, 5);
+    const expected = `
+      export type Schema = {
+        'aCollectionName': {
+          plain: {
+            'id': number;
+            'stringAllowNull': string | null;
+            'stringAllowNullUndefined': string | null;
+            'stringMiscValidation': string | null;
+            'stringRequired': string;
+            'stringValidationPresent': string;
+          };
+          nested: {};
+          flat: {};
+        };
+      };
+`;
 
     expectContains(generated, expected);
   });
@@ -148,29 +207,29 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'a': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {};
           flat: {};
         };
         'b': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {};
           flat: {};
         };
         'z': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'a': Schema['a']['plain'] & Schema['a']['nested'];
             'b': Schema['b']['plain'] & Schema['b']['nested'];
           };
           flat: {
-            'a:id': number;
-            'b:id': number;
+            'a:id': number | null;
+            'b:id': number | null;
           };
         };
       };`;
@@ -198,7 +257,7 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'aCollectionName': {
           plain: {
-            'enum': '0' | 'a' | 'A' | 'b' | 'z';
+            'enum': '0' | 'a' | 'A' | 'b' | 'z' | null;
           };
           nested: {};
           flat: {};
@@ -231,6 +290,7 @@ describe('TypingGenerator', () => {
     [' white spaces ', "' white spaces '"],
     ['-dashes', "'-dashes'"],
   ];
+
   test.each(cases)(
     '[%p] should support field name with unconventional characters',
     (fieldName, expectedFieldName) => {
@@ -249,7 +309,7 @@ describe('TypingGenerator', () => {
       const expected = `
       export type Schema = {
         'aCollectionName': {
-          plain: { ${expectedFieldName}:string; };
+          plain: { ${expectedFieldName}:string | null; };
           nested: {};
           flat: {};
         };
@@ -263,6 +323,7 @@ describe('TypingGenerator', () => {
     [' white spaces ', "' white spaces '"],
     ['-dashes', "'-dashes'"],
   ];
+
   test.each(casesCollection)(
     '[%p] should support collection name with unconventional characters',
     (collectionName, expectedCollectionName) => {
@@ -302,17 +363,17 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'col1': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:id': number;
-            'col1:col1:id': number;
-            'col1:col1:col1:id': number;
-            'col1:col1:col1:col1:id': number;
-            'col1:col1:col1:col1:col1:id': number;
+            'col1:id': number | null;
+            'col1:col1:id': number | null;
+            'col1:col1:col1:id': number | null;
+            'col1:col1:col1:col1:id': number | null;
+            'col1:col1:col1:col1:col1:id': number | null;
           };
         };
       };`;
@@ -347,24 +408,24 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'col1': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'col2': Schema['col2']['plain'] & Schema['col2']['nested'];
           };
           flat: {
-            'col2:id':number;
+            'col2:id':number | null;
           };
         };
         'col2': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:id':number;
+            'col1:id':number | null;
           };
         };
       };`;
@@ -408,41 +469,41 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'col1': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'col2': Schema['col2']['plain'] & Schema['col2']['nested'];
           };
           flat: {
-            'col2:id': number;
-            'col2:col3:id': number;
-            'col2:col3:col1:id': number;
+            'col2:id': number | null;
+            'col2:col3:id': number | null;
+            'col2:col3:col1:id': number | null;
           };
         };
         'col2': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'col3': Schema['col3']['plain'] & Schema['col3']['nested'];
           };
           flat: {
-            'col3:id': number;
-            'col3:col1:id': number;
-            'col3:col1:col2:id': number;
+            'col3:id': number | null;
+            'col3:col1:id': number | null;
+            'col3:col1:col2:id': number | null;
           };
         };
         'col3': {
           plain: {
-            'id': number;
+            'id': number | null;
           };
           nested: {
             'col1': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'col1:id': number;
-            'col1:col2:id': number;
-            'col1:col2:col3:id': number;
+            'col1:id': number | null;
+            'col1:col2:id': number | null;
+            'col1:col2:col3:id': number | null;
           };
         };
       };`;
@@ -494,8 +555,8 @@ describe('TypingGenerator', () => {
     );
     const expected = `
       flat: {
-        'col1:field0': string;
-        'col1:field1': string;
+        'col1:field0': string | null;
+        'col1:field1': string | null;
       };
     `;
 
@@ -530,29 +591,29 @@ describe('TypingGenerator', () => {
       export type Schema = {
         'col1': {
           plain: {
-            'animalsCount': number;
-            'marsAttack': string;
-            'zebraCount': number;
+            'animalsCount': number | null;
+            'marsAttack': string | null;
+            'zebraCount': number | null;
           };
           nested: {
             'zebra': Schema['col1']['plain'] & Schema['col1']['nested'];
           };
           flat: {
-            'zebra:animalsCount': number;
-            'zebra:marsAttack': string;
-            'zebra:zebraCount': number;
-            'zebra:zebra:animalsCount': number;
-            'zebra:zebra:marsAttack': string;
-            'zebra:zebra:zebraCount': number;
-            'zebra:zebra:zebra:animalsCount': number;
-            'zebra:zebra:zebra:marsAttack': string;
-            'zebra:zebra:zebra:zebraCount': number;
-            'zebra:zebra:zebra:zebra:animalsCount': number;
-            'zebra:zebra:zebra:zebra:marsAttack': string;
-            'zebra:zebra:zebra:zebra:zebraCount': number;
-            'zebra:zebra:zebra:zebra:zebra:animalsCount': number;
-            'zebra:zebra:zebra:zebra:zebra:marsAttack': string;
-            'zebra:zebra:zebra:zebra:zebra:zebraCount': number;
+            'zebra:animalsCount': number | null;
+            'zebra:marsAttack': string | null;
+            'zebra:zebraCount': number | null;
+            'zebra:zebra:animalsCount': number | null;
+            'zebra:zebra:marsAttack': string | null;
+            'zebra:zebra:zebraCount': number | null;
+            'zebra:zebra:zebra:animalsCount': number | null;
+            'zebra:zebra:zebra:marsAttack': string | null;
+            'zebra:zebra:zebra:zebraCount': number | null;
+            'zebra:zebra:zebra:zebra:animalsCount': number | null;
+            'zebra:zebra:zebra:zebra:marsAttack': string | null;
+            'zebra:zebra:zebra:zebra:zebraCount': number | null;
+            'zebra:zebra:zebra:zebra:zebra:animalsCount': number | null;
+            'zebra:zebra:zebra:zebra:zebra:marsAttack': string | null;
+            'zebra:zebra:zebra:zebra:zebra:zebraCount': number | null;
           };
         };
       };`;

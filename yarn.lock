@@ -1864,10 +1864,47 @@
     path-to-regexp "^6.1.0"
     reusify "^1.0.4"
 
+"@forestadmin/agent@1.37.0-beta-cloud-toolkit.1":
+  version "1.37.0-beta-cloud-toolkit.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.37.0-beta-cloud-toolkit.1.tgz#3b84c61ac1ee6aafd018d68f1c942eaa2bb7b42f"
+  integrity sha512-NbbVgd9otI60XG02Kzbxb09l4ppZIe07SRW7DnakVSta/w2DfllPoAO5jdnGteuHjlTfNZuXRUI57LuJHVlE9Q==
+  dependencies:
+    "@fast-csv/format" "^4.3.5"
+    "@fastify/express" "^1.1.0"
+    "@forestadmin/datasource-customizer" "1.41.0"
+    "@forestadmin/datasource-toolkit" "1.30.0"
+    "@forestadmin/forestadmin-client" "1.25.6"
+    "@koa/cors" "^5.0.0"
+    "@koa/router" "^12.0.0"
+    "@types/koa__router" "^12.0.0"
+    forest-ip-utils "^1.0.1"
+    json-api-serializer "^2.6.6"
+    json-stringify-pretty-compact "^3.0.0"
+    jsonwebtoken "^9.0.0"
+    koa "^2.14.1"
+    koa-bodyparser "^4.3.0"
+    koa-jwt "^4.0.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    superagent "^8.0.6"
+    uuid "^9.0.0"
+
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
+
+"@forestadmin/datasource-customizer@1.41.0":
+  version "1.41.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.41.0.tgz#24e020f14e342acf947310739567f72b4f767ae7"
+  integrity sha512-OgL9YB28ztrIYSXU8cjpdeA/gDr/C6ZF1ELFQQlwXRq+3q7md46bYNELN+HRVIGRDauue3utx89DwdvUMMFnAg==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.30.0"
+    antlr4 "^4.13.1-patch-1"
+    file-type "^16.5.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "^9.0.0"
 
 "@forestadmin/datasource-sequelize@1.3.1":
   version "1.3.1"
@@ -1875,6 +1912,13 @@
   integrity sha512-J3sQEtUgAw5jtuoa4VXXn5j8Bz8ywHpkdIO3HXysK+CDkdUiXmNkD63iq45qr6dWtBp8pVbGF4Be+PtXsgePNQ==
   dependencies:
     "@forestadmin/datasource-toolkit" "1.5.0"
+
+"@forestadmin/datasource-sequelize@1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.6.0.tgz#a3f70adf1fa2f91bd994dff970db4cabc6a3cd9f"
+  integrity sha512-M9fFoKxFVJkF8/RNUbAmy3aq0SyRtHZwNwsLtb8ldd29kRjWmnf4WPQk7dUUnO8aA1V4XISRI7QgNAaIOBguew==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.30.0"
 
 "@forestadmin/datasource-sql@1.6.4":
   version "1.6.4"
@@ -1887,6 +1931,28 @@
     sequelize "^6.28.0"
     socks "^2.7.1"
 
+"@forestadmin/datasource-sql@1.7.45":
+  version "1.7.45"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.7.45.tgz#c1e042b0792104ef2a5ee363ca3ef8e3284ecf7b"
+  integrity sha512-o95Rwnh1wJA1fN9zFMx8476z4Qhn5Fw0i+NrKsfIycru9qG/rrHd32M8sHRufo4B0ueJ5cTq4ewGEvIR2B2d8A==
+  dependencies:
+    "@forestadmin/datasource-sequelize" "1.6.0"
+    "@forestadmin/datasource-toolkit" "1.30.0"
+    "@types/ssh2" "^1.11.11"
+    pluralize "^8.0.0"
+    sequelize "^6.28.0"
+    socks "^2.7.1"
+    ssh2 "^1.14.0"
+
+"@forestadmin/datasource-toolkit@1.30.0":
+  version "1.30.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.30.0.tgz#44197686addb4f2328671c68ba33fe14004dc911"
+  integrity sha512-lgzHwNhmE5I0N4hD2yZKBTcFxfqldIRnUlUrcxT9IrTblEVjcPlCN8xnHEJXqHaR/GG8EvEo5+I4j9EppEjCRg==
+  dependencies:
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "^9.0.0"
+
 "@forestadmin/datasource-toolkit@1.5.0":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.5.0.tgz#d585b41dd9645a86344f7a63d826d64245be86a5"
@@ -1895,6 +1961,18 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
+
+"@forestadmin/forestadmin-client@1.25.6":
+  version "1.25.6"
+  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.25.6.tgz#989fe6b6aa0355eb1a719822567f21295df6f369"
+  integrity sha512-lMVI5HUCU9v8uUo9mqBpScaVHuKKm6uqGUH1BAHANH2ru8RbL61zBCp8diF14h8hnMdfe9UMlftrnD+33IlsBw==
+  dependencies:
+    eventsource "2.0.2"
+    json-api-serializer "^2.6.6"
+    jsonwebtoken "^9.0.0"
+    object-hash "^3.0.0"
+    openid-client "^5.3.1"
+    superagent "^8.0.6"
 
 "@gar/promisify@^1.0.1", "@gar/promisify@^1.1.3":
   version "1.1.3"
@@ -7249,6 +7327,11 @@ eslint-plugin-import@^2.27.4:
     object.values "^1.1.7"
     semver "^6.3.1"
     tsconfig-paths "^3.14.2"
+
+eslint-plugin-jest-formatting@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest-formatting/-/eslint-plugin-jest-formatting-3.1.0.tgz#b26dd5a40f432b642dcc880021a771bb1c93dcd2"
+  integrity sha512-XyysraZ1JSgGbLSDxjj5HzKKh0glgWf+7CkqxbTqb7zEhW7X2WHo5SBQ8cGhnszKN+2Lj3/oevBlHNbHezoc/A==
 
 eslint-plugin-jest@^27.2.1:
   version "27.6.0"

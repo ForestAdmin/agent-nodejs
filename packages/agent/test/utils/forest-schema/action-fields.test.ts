@@ -617,6 +617,7 @@ describe('ActionFields', () => {
 
       expect(result).toBe(false);
     });
+
     it('should return false when passing another type of widget', () => {
       const result = ActionFields.isFilePickerField({
         type: 'String',

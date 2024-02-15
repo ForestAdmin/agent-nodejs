@@ -11,10 +11,12 @@ import {
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from './type-overrides';
-import { Table } from './types';
+import { Introspection, Table } from './types';
+
+const INTROSPECTION_FORMAT_VERSION = 1;
 
 export default class Introspector {
-  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Table[]> {
+  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Introspection> {
     const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
 
     const tableNames = await this.getTableNames(dialect, sequelize as SequelizeWithOptions);
@@ -22,7 +24,30 @@ export default class Introspector {
 
     this.sanitizeInPlace(tables, logger);
 
-    return tables;
+    return { tables, version: INTROSPECTION_FORMAT_VERSION };
+  }
+
+  static getIntrospectionInLatestFormat(
+    introspection?: Table[] | Introspection,
+  ): Introspection | null {
+    const formattedIntrospection = Array.isArray(introspection)
+      ? { tables: introspection, version: INTROSPECTION_FORMAT_VERSION }
+      : introspection;
+
+    if (formattedIntrospection && formattedIntrospection.version > INTROSPECTION_FORMAT_VERSION) {
+      /* This can only occur in CLOUD version, either:
+        - cloud-toolkit does not have the same version of datasource-sql 
+          as cloud-agent-manager & forestadmin-server (We need to fix)
+        - datasource-sql should be updated in the local repository
+          of the client. He should be prompted to update cloud-toolkit.
+      */
+      throw new Error(
+        'This version of introspection is newer than this package version. ' +
+          'Please update @forestadmin/datasource-sql',
+      );
+    }
+
+    return formattedIntrospection;
   }
 
   /** Get names of all tables in the public schema of the db */
@@ -142,10 +167,9 @@ export default class Introspector {
     },
   ): Promise<Table['columns'][number]> {
     const { name, description, references } = options;
-    const typeConverter = new SqlTypeConverter(sequelize);
 
     try {
-      const type = await typeConverter.convert(tableIdentifier, name, description);
+      const type = await SqlTypeConverter.convert(tableIdentifier, description);
 
       return {
         type,

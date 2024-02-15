@@ -22,6 +22,7 @@ export default abstract class ConditionTree {
   abstract forEachLeaf(handler: LeafCallback): void;
   abstract everyLeaf(handler: LeafTester): boolean;
   abstract someLeaf(handler: LeafTester): boolean;
+  abstract toPlainObject(): PlainConditionTree;
 
   abstract get projection(): Projection;
 

@@ -24,6 +24,7 @@ export interface SequelizeIndex {
 
 export interface SequelizeColumn extends ColumnDescription {
   special?: string[];
+  elementType?: string | null;
 }
 
 export interface SequelizeTableIdentifier {

@@ -1,9 +1,60 @@
-# @forestadmin/agent [1.37.0-beta-cloud-toolkit.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.18...@forestadmin/agent@1.37.0-beta-cloud-toolkit.1) (2024-02-01)
+## @forestadmin/agent [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.37.1...@forestadmin/agent@1.37.2) (2024-02-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.1
+
+## @forestadmin/agent [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.37.0...@forestadmin/agent@1.37.1) (2024-02-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.9
+
+# @forestadmin/agent [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.20...@forestadmin/agent@1.37.0) (2024-02-02)
 
 
 ### Features
 
-* add utility to generate typings from introspection ([#910](https://github.com/ForestAdmin/agent-nodejs/issues/910)) ([8a89b63](https://github.com/ForestAdmin/agent-nodejs/commit/8a89b63f0ab46a99be86859ec6bb7196df9a6801))
+* **action result builder:** allow user to set SA response headers ([#945](https://github.com/ForestAdmin/agent-nodejs/issues/945)) ([ce37c01](https://github.com/ForestAdmin/agent-nodejs/commit/ce37c01df1e92628788c0bb3dc0eb8d6409b7aef))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.42.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.31.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.8
+
+## @forestadmin/agent [1.36.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.19...@forestadmin/agent@1.36.20) (2024-02-01)
+
+
+### Bug Fixes
+
+* **schema:** force schema metadata update even in production ([#947](https://github.com/ForestAdmin/agent-nodejs/issues/947)) ([3ce68e0](https://github.com/ForestAdmin/agent-nodejs/commit/3ce68e0a59ca0321926d24893a0e9bedecc5d01f))
+
+## @forestadmin/agent [1.36.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.18...@forestadmin/agent@1.36.19) (2024-02-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.41.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.25.7
 
 ## @forestadmin/agent [1.36.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.36.17...@forestadmin/agent@1.36.18) (2024-01-26)
 

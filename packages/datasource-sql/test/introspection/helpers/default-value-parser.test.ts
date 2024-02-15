@@ -1,6 +1,7 @@
 import { literal } from 'sequelize';
 
 import DefaultValueParser from '../../../src/introspection/helpers/default-value-parser';
+import { ScalarSubType } from '../../../src/introspection/types';
 
 describe('DefaultValueParser', () => {
   describe('parse', () => {
@@ -19,7 +20,7 @@ describe('DefaultValueParser', () => {
       });
     });
 
-    describe('when the data type is STRING', () => {
+    describe.each(['TEXT', 'STRING'] as ScalarSubType[])('when the data type is %s', subType => {
       describe('when the expression is a string', () => {
         it('should return the valid expression', () => {
           const defaultValue = DefaultValueParser.parse(
@@ -30,12 +31,30 @@ describe('DefaultValueParser', () => {
             },
             {
               type: 'scalar',
-              subType: 'STRING',
+              subType,
             },
           );
 
           expect(defaultValue).toBe('default value test');
         });
+      });
+    });
+
+    describe.each(['DATE', 'DATEONLY'] as ScalarSubType[])('when the data type is %s', subType => {
+      it('should return the valid expression', () => {
+        const defaultValue = DefaultValueParser.parse(
+          {
+            defaultValue: '2022-01-01',
+            isLiteralDefaultValue: false,
+            enumValues: null,
+          },
+          {
+            type: 'scalar',
+            subType,
+          },
+        );
+
+        expect(defaultValue).toBe('2022-01-01');
       });
     });
 
@@ -137,6 +156,9 @@ describe('DefaultValueParser', () => {
           ['BIGINT', '1111222233334444', 1111222233334444],
           ['FLOAT', '2.2445', 2.2445],
           ['DOUBLE', '2.24', 2.24],
+          ['INTEGER', '2', 2],
+          ['DECIMAL', '2.21', 2.21],
+          ['REAL', '2.21', 2.21],
         ])(
           'should return the correct default value on data type %s',
           (subType, expression, expectedDefaultValue) => {

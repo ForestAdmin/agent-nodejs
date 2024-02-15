@@ -8,6 +8,7 @@ import {
   ConditionTreeFactory,
   DataSourceDecorator,
   PaginatedFilter,
+  PlainConditionTree,
 } from '@forestadmin/datasource-toolkit';
 
 import CollectionSearchContext, { SearchOptions } from './collection-search-context';
@@ -35,7 +36,11 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     // Implement search ourselves
     if (this.replacer || !this.childCollection.schema.searchable) {
-      const ctx = new CollectionSearchContext(this, caller, this.generateSearchFilter.bind(this));
+      const ctx = new CollectionSearchContext(
+        this,
+        caller,
+        this.generatePlainSearchFilter.bind(this, caller),
+      );
       let tree: ConditionTree;
 
       if (this.replacer) {
@@ -92,6 +97,16 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     }
 
     return conditionTree;
+  }
+
+  private generatePlainSearchFilter(
+    caller: Caller,
+    searchText: string,
+    options?: SearchOptions,
+  ): PlainConditionTree {
+    const conditionTree = this.generateSearchFilter(caller, searchText, options);
+
+    return conditionTree?.toPlainObject();
   }
 
   private getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {

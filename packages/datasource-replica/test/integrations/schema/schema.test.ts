@@ -137,6 +137,7 @@ describe('schema', () => {
 
       expect(datasource.getCollection('contacts').schema.fields).toEqual({
         id: {
+          allowNull: true,
           columnType: 'Number',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -147,6 +148,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         binary: {
+          allowNull: true,
           columnType: 'Binary',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -156,6 +158,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         boolean: {
+          allowNull: true,
           columnType: 'Boolean',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -165,6 +168,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         date: {
+          allowNull: true,
           columnType: 'Date',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -174,6 +178,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         dateOnly: {
+          allowNull: true,
           columnType: 'Dateonly',
           defaultValue: undefined,
           filterOperators: expect.any(Set),
@@ -183,6 +188,7 @@ describe('schema', () => {
           validation: undefined,
         },
         integer: {
+          allowNull: true,
           columnType: 'Number',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -192,6 +198,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         number: {
+          allowNull: true,
           columnType: 'Number',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -201,6 +208,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         string: {
+          allowNull: true,
           columnType: 'String',
           filterOperators: expect.any(Set),
           type: 'Column',
@@ -210,6 +218,7 @@ describe('schema', () => {
           defaultValue: undefined,
         },
         enum: {
+          allowNull: true,
           columnType: 'Enum',
           defaultValue: undefined,
           enumValues: expect.any(Array),

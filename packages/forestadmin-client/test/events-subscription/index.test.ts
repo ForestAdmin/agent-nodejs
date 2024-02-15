@@ -170,6 +170,7 @@ describe('EventsSubscriptionService', () => {
         expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalled();
         expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith(['13', 24]);
       });
+
       describe('on malformed event', () => {
         test('should not do anything', () => {
           const eventsSubscriptionService = new EventsSubscriptionService(
