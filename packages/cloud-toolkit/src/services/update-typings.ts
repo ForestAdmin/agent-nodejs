@@ -49,7 +49,7 @@ export async function updateTypings(
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
   const agent = buildAgent(introspection);
-  await agent.updateTypesOnFileSystem(bootstrapPathManager.typings, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }
 
 export async function updateTypingsWithCustomizations(
@@ -68,5 +68,5 @@ export async function updateTypingsWithCustomizations(
     );
   }
 
-  await agent.updateTypesOnFileSystem(bootstrapPathManager.typings, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }

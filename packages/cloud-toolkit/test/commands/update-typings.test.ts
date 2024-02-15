@@ -8,7 +8,10 @@ describe('update-typings command', () => {
   beforeEach(async () => {
     const setup = setupCommandArguments();
     await fs.rm(setup.distPathManager.distCodeCustomizations, { force: true, recursive: true });
-    await fs.rm(setup.bootstrapPathManager.typings, { force: true, recursive: true });
+    await fs.rm(setup.bootstrapPathManager.typingsAfterBootstrapped, {
+      force: true,
+      recursive: true,
+    });
   });
 
   it('should publish the code the forest server', async () => {
@@ -63,6 +66,8 @@ describe('update-typings command', () => {
       setTimeout(resolve, 500);
     });
 
-    await expect(fs.access(setup.bootstrapPathManager.typings)).resolves.not.toThrow();
+    await expect(
+      fs.access(setup.bootstrapPathManager.typingsAfterBootstrapped),
+    ).resolves.not.toThrow();
   });
 });
