@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.23...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.24) (2024-02-15)
+
+
+### Bug Fixes
+
+* add test for update-typings and fix package message on error ([#1006](https://github.com/ForestAdmin/agent-nodejs/issues/1006)) ([63ac581](https://github.com/ForestAdmin/agent-nodejs/commit/63ac58144c1b94fe3cc757957714b208ec549e8d))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.22...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.23) (2024-02-14)
 
 
