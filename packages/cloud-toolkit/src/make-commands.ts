@@ -58,16 +58,17 @@ export default function makeCommands({
   distPathManager,
   buildEventSubscriber,
   buildHttpServer,
-  spinner,
+  logger,
   getEnvironmentVariables,
   login,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();
+  const { spinner, log } = logger;
 
   program.option('-v, --version', 'output the version number').action(
     actionRunner(spinner, async () => {
-      spinner.log(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
+      log(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
     }),
   );
 

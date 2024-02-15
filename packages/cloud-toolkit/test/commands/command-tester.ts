@@ -5,7 +5,7 @@ import readline from 'readline';
 
 import { MakeCommandsForTests } from './utils';
 import makeCommands from '../../src/make-commands';
-import { Spinner } from '../../src/types';
+import { Logger } from '../../src/types';
 
 export default class CommandTester {
   private readonly command: Command;
@@ -16,7 +16,7 @@ export default class CommandTester {
   private lastSpinnerText: string;
 
   constructor(mocks: MakeCommandsForTests, argv: string[]) {
-    this.command = makeCommands({ ...mocks, spinner: this.buildSpinner() });
+    this.command = makeCommands({ ...mocks, logger: this.buildLogger() });
     this.argv = argv;
 
     this.catchQuestionTraces();
@@ -72,34 +72,36 @@ export default class CommandTester {
     jest.spyOn(readline, 'createInterface').mockReturnValue(this.rl as any);
   }
 
-  private buildSpinner(): Spinner {
+  private buildLogger(): Logger {
     return {
-      start: (text: string) => {
-        if (!text) {
-          this.saveOutput(this.start(this.lastSpinnerText));
+      spinner: {
+        start: (text: string) => {
+          if (!text) {
+            this.saveOutput(this.start(this.lastSpinnerText));
 
-          return;
-        }
+            return;
+          }
 
-        this.lastSpinnerText = text;
-        this.saveOutput(this.start(text));
+          this.lastSpinnerText = text;
+          this.saveOutput(this.start(text));
+        },
+        succeed: (text: string) => {
+          this.saveOutput(this.succeed(text));
+        },
+        warn: (text: string) => {
+          this.saveOutput(this.warn(text));
+        },
+        info: (text: string) => {
+          this.saveOutput(this.info(text));
+        },
+        fail: (text: string) => {
+          this.saveOutput(this.fail(text));
+        },
+        stop: jest.fn(),
       },
-      succeed: (text: string) => {
-        this.saveOutput(this.succeed(text));
-      },
-      warn: (text: string) => {
-        this.saveOutput(this.warn(text));
-      },
-      info: (text: string) => {
-        this.saveOutput(this.info(text));
-      },
-      fail: (text: string) => {
-        this.saveOutput(this.fail(text));
-      },
-      log: (text: string) => {
+      log: (text?: string) => {
         this.saveOutput(this.log(text));
       },
-      stop: jest.fn(),
     };
   }
 

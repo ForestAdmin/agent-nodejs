@@ -11,7 +11,7 @@ import DistPathManager from './services/dist-path-manager';
 import { getEnvironmentVariables } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
-import { EnvironmentVariables } from './types';
+import { EnvironmentVariables, Logger } from './types';
 
 configDotenv();
 
@@ -23,15 +23,10 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
   return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
 };
 
-const spinner = {
-  start: (text?: string) => ora().start(text),
-  succeed: (text?: string) => ora().succeed(text),
-  warn: (text?: string) => ora().warn(text),
-  info: (text?: string) => ora().info(text),
-  fail: (text?: string) => ora().fail(text),
+const logger: Logger = {
+  spinner: ora(),
   // eslint-disable-next-line no-console
   log: (text?: string) => console.log(text),
-  stop: () => ora().stop(),
 };
 
 const command = makeCommands({
@@ -39,7 +34,7 @@ const command = makeCommands({
   buildHttpServer,
   buildEventSubscriber,
   login,
-  spinner,
+  logger,
   bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
   distPathManager: new DistPathManager(),
 });
