@@ -31,6 +31,7 @@ describe('http-server', () => {
         });
       });
     });
+
     describe('if an error occurs', () => {
       describe('if it is not an axios error', () => {
         it('should throw a business error with details', async () => {
@@ -42,6 +43,7 @@ describe('http-server', () => {
           );
         });
       });
+
       describe('if it an axios error', () => {
         it('should throw a business error with details and inner details', async () => {
           const error = new axios.AxiosError('Some axios error');
@@ -118,6 +120,7 @@ describe('http-server', () => {
       });
     });
   });
+
   describe('downloadCloudCustomizerTemplate', () => {
     it('should call axios with the correct parameters', async () => {
       const responseSpy = { data: { pipe: jest.fn() } };
