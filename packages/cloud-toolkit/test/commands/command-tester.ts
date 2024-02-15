@@ -57,11 +57,11 @@ export default class CommandTester {
   }
 
   log(message: string): string {
-    return message;
+    return `(log) ${message}`;
   }
 
   logError(message: string): string {
-    return message;
+    return `(error) ${message}`;
   }
 
   private catchQuestionTraces() {
