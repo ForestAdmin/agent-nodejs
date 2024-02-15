@@ -96,9 +96,10 @@ export type Spinner = {
 export type Logger = {
   spinner: Spinner;
   log: (text?: string) => void;
+  error: (text?: string) => void;
 };
 
-export type Login = (spinner: Spinner) => Promise<void>;
+export type Login = (logger: Logger) => Promise<void>;
 
 export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
 

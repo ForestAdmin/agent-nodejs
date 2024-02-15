@@ -60,6 +60,10 @@ export default class CommandTester {
     return message;
   }
 
+  logError(message: string): string {
+    return message;
+  }
+
   private catchQuestionTraces() {
     jest.clearAllMocks();
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -101,6 +105,9 @@ export default class CommandTester {
       },
       log: (text?: string) => {
         this.saveOutput(this.log(text));
+      },
+      error: (text?: string) => {
+        this.saveOutput(this.logError(text));
       },
     };
   }

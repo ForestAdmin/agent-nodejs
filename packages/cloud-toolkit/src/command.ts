@@ -27,6 +27,8 @@ const logger: Logger = {
   spinner: ora(),
   // eslint-disable-next-line no-console
   log: (text?: string) => console.log(text),
+  // eslint-disable-next-line no-console
+  error: (text?: string) => console.error(text),
 };
 
 const command = makeCommands({
