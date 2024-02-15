@@ -37,6 +37,7 @@ describe('environment-variables', () => {
         });
       });
     });
+
     describe('if FOREST_AUTH_TOKEN is missing', () => {
       it('should retrieve from file at TOKEN_PATH', async () => {
         process.env.FOREST_AUTH_TOKEN = '';
@@ -51,6 +52,7 @@ describe('environment-variables', () => {
           'utf8',
         );
       });
+
       it('should retrieve from homedir file if TOKEN_PATH missing', async () => {
         process.env.FOREST_AUTH_TOKEN = '';
         process.env.TOKEN_PATH = '';
@@ -62,6 +64,7 @@ describe('environment-variables', () => {
         expect(fsPromises.readFile).toHaveBeenCalledWith('/home/foo/.forest.d/.forestrc', 'utf8');
       });
     });
+
     describe('if FOREST_SERVER_URL and FOREST_SUBSCRIPTION_URL are missing', () => {
       it('should use sane default', async () => {
         process.env.FOREST_SERVER_URL = '';
@@ -79,6 +82,7 @@ describe('environment-variables', () => {
           expect(() => validateServerUrl('https://test.com')).not.toThrow();
         });
       });
+
       describe('if no server url is provided', () => {
         it('should throw a specific error', () => {
           expect(() => validateServerUrl(undefined as unknown as string)).toThrow(
@@ -86,6 +90,7 @@ describe('environment-variables', () => {
           );
         });
       });
+
       describe('if the string is not an url', () => {
         it('should throw a specific error', () => {
           expect(() => validateServerUrl('toto')).toThrow(
@@ -93,6 +98,7 @@ describe('environment-variables', () => {
           );
         });
       });
+
       describe('if the protocol is wrong', () => {
         it('should throw a specific error', () => {
           expect(() => validateServerUrl('httpx://toto')).toThrow(
@@ -101,12 +107,14 @@ describe('environment-variables', () => {
         });
       });
     });
+
     describe('validateSubscription', () => {
       describe('if the url is valid', () => {
         it('should not throw', () => {
           expect(() => validateSubscriptionUrl('wss://test.com')).not.toThrow();
         });
       });
+
       describe('if no subscription url is provided', () => {
         it('should throw a specific error', () => {
           expect(() => validateSubscriptionUrl(undefined as unknown as string)).toThrow(
@@ -114,6 +122,7 @@ describe('environment-variables', () => {
           );
         });
       });
+
       describe('if the string is not an url', () => {
         it('should throw a specific error', () => {
           expect(() => validateSubscriptionUrl('toto')).toThrow(
@@ -121,6 +130,7 @@ describe('environment-variables', () => {
           );
         });
       });
+
       describe('if the protocol is wrong', () => {
         it('should throw a specific error', () => {
           expect(() => validateSubscriptionUrl('httpx://toto')).toThrow(
@@ -129,6 +139,7 @@ describe('environment-variables', () => {
         });
       });
     });
+
     describe('validateEnvironmentVariables', () => {
       describe('if the FOREST_ENV_SECRET is missing', () => {
         test('it should throw a specific error', () => {
@@ -142,6 +153,7 @@ describe('environment-variables', () => {
           ).toThrow('Missing FOREST_ENV_SECRET. Please check your .env file.');
         });
       });
+
       describe('if the FOREST_ENV_SECRET is a wrong format', () => {
         test('it should throw a specific error', () => {
           expect(() =>
@@ -157,6 +169,7 @@ describe('environment-variables', () => {
           );
         });
       });
+
       describe('if the FOREST_ENV_SECRET is not a string', () => {
         test('it should throw a specific error', () => {
           expect(() =>
@@ -187,6 +200,7 @@ describe('environment-variables', () => {
           );
         });
       });
+
       describe('if FOREST_SERVER_URL is missing', () => {
         test('it should delegate to validateServerUrl', () => {
           expect(() =>
@@ -199,6 +213,7 @@ describe('environment-variables', () => {
           ).toThrow('Missing FOREST_SERVER_URL. Please check your .env file.');
         });
       });
+
       describe('if everything is correctly set', () => {
         test('it should not throw', () => {
           expect(() =>

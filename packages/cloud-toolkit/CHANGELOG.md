@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.25...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.26) (2024-02-15)
+
+
+### Features
+
+* add version command ([#1010](https://github.com/ForestAdmin/agent-nodejs/issues/1010)) ([f6ca0ee](https://github.com/ForestAdmin/agent-nodejs/commit/f6ca0ee58941a8b5999cfd7e05e00ddfd068b719))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.24...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.25) (2024-02-15)
 
 

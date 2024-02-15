@@ -80,7 +80,7 @@ export type MakeCommands = {
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
   bootstrapPathManager: BootstrapPathManager;
   distPathManager: DistPathManager;
-  spinner: Spinner;
+  logger: Logger;
   login: Login;
 };
 
@@ -93,7 +93,13 @@ export type Spinner = {
   stop: () => void;
 };
 
-export type Login = (spinner: Spinner) => Promise<void>;
+export type Logger = {
+  spinner: Spinner;
+  log: (text?: string) => void;
+  error: (text?: string) => void;
+};
+
+export type Login = (logger: Logger) => Promise<void>;
 
 export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
 

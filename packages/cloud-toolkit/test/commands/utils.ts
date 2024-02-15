@@ -1,11 +1,13 @@
+import fs from 'fs';
 import os from 'os';
+import path from 'path';
 
 import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import DistPathManager from '../../src/services/dist-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
-export type MakeCommandsForTests = Omit<MakeCommands, 'spinner'>;
+export type MakeCommandsForTests = Omit<MakeCommands, 'logger'>;
 
 const presignedPost = {
   url: 'https://s3.eu-west-3.amazonaws.com/forestadmin-platform-cloud-customization-test',
@@ -62,12 +64,15 @@ export const setupCommandArguments = (
   });
   const login = options?.login || jest.fn();
 
+  const tmpdir = path.join(os.tmpdir(), (Math.floor(Math.random() * 100000) + 1).toString());
+  fs.mkdirSync(tmpdir);
+
   return {
     getEnvironmentVariables,
     buildHttpServer,
     buildEventSubscriber,
     login,
-    distPathManager: new DistPathManager(os.tmpdir()),
-    bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir()),
+    distPathManager: new DistPathManager(tmpdir),
+    bootstrapPathManager: new BootstrapPathManager(tmpdir, tmpdir, tmpdir),
   };
 };
