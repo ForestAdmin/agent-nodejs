@@ -13,6 +13,7 @@ describe('http-server', () => {
   afterAll(() => {
     jest.restoreAllMocks();
   });
+
   describe('getIntrospection', () => {
     describe('if no error occurs', () => {
       it('should get the introspection from axios call', async () => {
