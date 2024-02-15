@@ -1,20 +1,16 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
-import fs from 'fs';
 import path from 'path';
 
+import { throwIfNoBuiltCode } from './access-file';
 import BootstrapPathManager from './bootstrap-path-manager';
 import DistPathManager from './dist-path-manager';
-import { BusinessError, CustomizationError } from '../errors';
+import { CustomizationError } from '../errors';
 import { Agent } from '../types';
 
-function indexPath(distPathManager: DistPathManager) {
-  return path.resolve(distPathManager.distCodeCustomizations);
-}
-
-function loadCustomization(agent: Agent, distPathManager: DistPathManager): void {
+function loadCustomization(agent: Agent, builtCodePath: string): void {
   // eslint-disable-next-line
-  const customization = require(indexPath(distPathManager));
+  const customization = require(builtCodePath);
   const entryPoint = customization?.default || customization;
 
   if (typeof entryPoint !== 'function') {
@@ -57,16 +53,9 @@ export async function updateTypingsWithCustomizations(
   distPathManager: DistPathManager,
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
+  const builtCodePath = path.resolve(distPathManager.distCodeCustomizations);
+  await throwIfNoBuiltCode(builtCodePath);
   const agent = buildAgent(introspection);
-
-  if (fs.existsSync(indexPath(distPathManager))) {
-    loadCustomization(agent, distPathManager);
-  } else {
-    throw new BusinessError(
-      `No built customization found at ${indexPath(distPathManager)}.\n` +
-        'Please run `yarn build` to build your customizations.',
-    );
-  }
-
+  loadCustomization(agent, builtCodePath);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }

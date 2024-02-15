@@ -1,7 +1,7 @@
 import * as agent from '@forestadmin/agent';
 import * as datasourceSQL from '@forestadmin/datasource-sql';
 import { Table } from '@forestadmin/datasource-sql';
-import fs from 'fs';
+import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 
@@ -74,7 +74,7 @@ describe('update-typings', () => {
     describe('if no customization file is found', () => {
       it('should throw a specific business error', async () => {
         const { introspection, distPathManager, bootstrapPathManager } = setup();
-        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        jest.spyOn(fs, 'access').mockRejectedValue(new Error('ENOENT'));
 
         await expect(
           updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
@@ -82,7 +82,7 @@ describe('update-typings', () => {
           new BusinessError(
             `No built customization found at ${path.resolve(
               distPathManager.distCodeCustomizations,
-            )}.\nPlease run \`yarn build\` to build your customizations.`,
+            )}.\nPlease build your code to build your customizations`,
           ),
         );
       });
@@ -92,7 +92,7 @@ describe('update-typings', () => {
       describe('if the customization function throws an error', () => {
         it('should be rethrown as CustomizationError', async () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
-          jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+          jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
             path.join('test', 'services', '__data__', 'customization', 'error'),
           );
@@ -108,7 +108,7 @@ describe('update-typings', () => {
       describe('if the customization file does not export a function', () => {
         it('should throw with a specific customization error', async () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
-          jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+          jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
             path.join('test', 'services', '__data__', 'customization', 'not-a-function'),
           );
@@ -123,7 +123,7 @@ describe('update-typings', () => {
         'if the export strategy is %s',
         async directory => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
-          jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+          jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
             path.join('test', 'services', '__data__', 'customization', directory),
           );
