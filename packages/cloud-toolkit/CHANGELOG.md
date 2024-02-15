@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.24...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.25) (2024-02-15)
+
+
+### Bug Fixes
+
+* refactor error to have the same message when build is not found ([#1008](https://github.com/ForestAdmin/agent-nodejs/issues/1008)) ([da24ee2](https://github.com/ForestAdmin/agent-nodejs/commit/da24ee2210bf650e9e74591fb081329c1c5af131))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.23...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.24) (2024-02-15)
 
 
