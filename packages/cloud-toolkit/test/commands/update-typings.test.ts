@@ -42,15 +42,18 @@ describe('update-typings command', () => {
     await fs.mkdir(distPath, { recursive: true });
     await fs.writeFile(
       path.join(distPath, 'index.ts'),
-      `function customize(agent) {
-              agent.addChart('test-exports', (context, resultBuilder) =>
-              resultBuilder.distribution({
-                foo: 42,
-                bar: 24,
-              }),
-            );
-          }
-          module.exports = customize;`,
+      `export default function customizeAgent(agent) {
+              agent.customizeCollection('forestCollection', collection => {
+                collection.addField('HelloWorld', {
+                  columnType: 'String',
+                  defaultValue: 'Hello World',
+                  dependencies: ['id'],
+                  getValues(records) {
+                    return records.map(() => 'Hello World');
+                  },
+                });
+              });
+            }`,
     );
 
     const cmd = new CommandTester(setup, ['update-typings']);
@@ -69,5 +72,8 @@ describe('update-typings command', () => {
     await expect(
       fs.access(setup.bootstrapPathManager.typingsAfterBootstrapped),
     ).resolves.not.toThrow();
+
+    const typings = await fs.readFile(setup.bootstrapPathManager.typingsAfterBootstrapped, 'utf-8');
+    expect(typings).toContain("'HelloWorld': string");
   });
 });
