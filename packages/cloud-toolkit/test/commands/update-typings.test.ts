@@ -14,7 +14,7 @@ describe('update-typings command', () => {
     });
   });
 
-  it('should publish the code the forest server', async () => {
+  it('should update the typings from the introspection provided by the forest server', async () => {
     const getIntrospection = jest.fn().mockResolvedValue([
       {
         name: 'forestCollection',
