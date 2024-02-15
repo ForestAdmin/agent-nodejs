@@ -15,20 +15,20 @@ import {
   BuildEventSubscriber,
   BuildHttpServer,
   EnvironmentVariables,
+  Logger,
   Login,
   MakeCommands,
-  Spinner,
 } from './types';
 
 export const getOrRefreshEnvironmentVariables = async (
   login: Login,
-  spinner: Spinner,
+  logger: Logger,
   getEnvironmentVariables: () => Promise<EnvironmentVariables>,
 ): Promise<EnvironmentVariables> => {
   let vars = await getEnvironmentVariables();
 
   if (!vars.FOREST_AUTH_TOKEN) {
-    await login(spinner);
+    await login(logger);
     vars = await getEnvironmentVariables();
   }
 
@@ -58,16 +58,17 @@ export default function makeCommands({
   distPathManager,
   buildEventSubscriber,
   buildHttpServer,
-  spinner,
+  logger,
   getEnvironmentVariables,
   login,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();
+  const { spinner, log } = logger;
 
   program.option('-v, --version', 'output the version number').action(
     actionRunner(spinner, async () => {
-      spinner.info(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
+      log(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
     }),
   );
 
@@ -80,11 +81,7 @@ export default function makeCommands({
     .action(
       actionRunner(spinner, async () => {
         spinner.start('Updating typings');
-        const vars = await getOrRefreshEnvironmentVariables(
-          login,
-          spinner,
-          getEnvironmentVariables,
-        );
+        const vars = await getOrRefreshEnvironmentVariables(login, logger, getEnvironmentVariables);
         validateEnvironmentVariables(vars);
         const introspection = await validateAndBuildHttpServer(
           vars,
@@ -106,11 +103,7 @@ export default function makeCommands({
     .action(
       actionRunner(spinner, async (options: { envSecret: string }) => {
         spinner.start('Bootstrapping project');
-        const vars = await getOrRefreshEnvironmentVariables(
-          login,
-          spinner,
-          getEnvironmentVariables,
-        );
+        const vars = await getOrRefreshEnvironmentVariables(login, logger, getEnvironmentVariables);
         const secret = options.envSecret || vars.FOREST_ENV_SECRET;
 
         if (!secret) {
@@ -149,7 +142,7 @@ export default function makeCommands({
         spinner.start('Logging in');
         const vars = await getEnvironmentVariables();
         validateServerUrl(vars.FOREST_SERVER_URL);
-        await login(spinner);
+        await login(logger);
         spinner.succeed('You are now logged in');
       }),
     );
@@ -161,11 +154,7 @@ export default function makeCommands({
     .action(
       actionRunner(spinner, async (options: { force: boolean }) => {
         spinner.start('Publishing code customizations');
-        const vars = await getOrRefreshEnvironmentVariables(
-          login,
-          spinner,
-          getEnvironmentVariables,
-        );
+        const vars = await getOrRefreshEnvironmentVariables(login, logger, getEnvironmentVariables);
         const forestServer = validateAndBuildHttpServer(vars, buildHttpServer);
 
         if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
