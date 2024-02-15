@@ -36,9 +36,9 @@ describe('package command', () => {
       expect(cmd.outputs).toEqual([
         cmd.start('Packaging code'),
         cmd.fail(
-          `Failed to access directory ${distPath} containing built code:
-      ENOENT: no such file or directory, access '${distPath}'
-      Please build your code first.`,
+          `--- Please build your code first ---
+      Failed to access directory ${distPath} containing built code:
+      ENOENT: no such file or directory, access '${distPath}'`,
         ),
       ]);
     });

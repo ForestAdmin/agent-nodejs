@@ -12,9 +12,9 @@ export default async function packageCustomizations(distPathManager: DistPathMan
     await fs.access(distPath);
   } catch (e) {
     throw new BusinessError(
-      `Failed to access directory ${distPath} containing built code:
-      ${e.message}
-      Please build your code first.`,
+      `--- Please build your code first ---
+      Failed to access directory ${distPath} containing built code:
+      ${e.message}`,
     );
   }
 

@@ -6,6 +6,7 @@ import os from 'os';
 import path from 'path';
 
 import { BusinessError, CustomizationError } from '../../src/errors';
+import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import DistPathManager from '../../src/services/dist-path-manager';
 import { updateTypings, updateTypingsWithCustomizations } from '../../src/services/update-typings';
 
@@ -30,6 +31,7 @@ describe('update-typings', () => {
       .mockReturnValue(datasource);
 
     const distPathManager = new DistPathManager(os.tmpdir());
+    const bootstrapPathManager = new BootstrapPathManager(os.tmpdir(), os.tmpdir(), os.tmpdir());
 
     return {
       introspection,
@@ -38,14 +40,21 @@ describe('update-typings', () => {
       agentMock,
       datasource,
       distPathManager,
+      bootstrapPathManager,
     };
   }
 
   describe('updateTypings', () => {
     it('should create an agent and generate typings from introspection', () => {
-      const { introspection, createAgentSpy, createSqlDataSourceSpy, agentMock, datasource } =
-        setup();
-      updateTypings('./typings.d.ts', introspection);
+      const {
+        introspection,
+        createAgentSpy,
+        createSqlDataSourceSpy,
+        agentMock,
+        bootstrapPathManager,
+        datasource,
+      } = setup();
+      updateTypings(introspection, bootstrapPathManager);
       expect(createAgentSpy).toHaveBeenCalledWith({
         authSecret: 'a'.repeat(64),
         envSecret: 'a'.repeat(64),
@@ -54,18 +63,21 @@ describe('update-typings', () => {
       });
       expect(createSqlDataSourceSpy).toHaveBeenCalledWith('sqlite::memory:', { introspection });
       expect(agentMock.addDataSource).toHaveBeenCalledWith(datasource);
-      expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith('./typings.d.ts', 3);
+      expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
+        bootstrapPathManager.typingsAfterBootstrapped,
+        3,
+      );
     });
   });
 
   describe('updateTypingsWithCustomizations', () => {
     describe('if no customization file is found', () => {
       it('should throw a specific business error', async () => {
-        const { introspection, distPathManager } = setup();
+        const { introspection, distPathManager, bootstrapPathManager } = setup();
         jest.spyOn(fs, 'existsSync').mockReturnValue(false);
 
         await expect(
-          updateTypingsWithCustomizations('./typings.d.ts', introspection, distPathManager),
+          updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
         ).rejects.toEqual(
           new BusinessError(
             `No built customization found at ${path.resolve(
@@ -79,13 +91,13 @@ describe('update-typings', () => {
     describe('if a customization file is found', () => {
       describe('if the customization function throws an error', () => {
         it('should be rethrown as CustomizationError', async () => {
-          const { introspection, agentMock } = setup();
+          const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'existsSync').mockReturnValue(true);
           const distPathManager = new DistPathManager(
             path.join('test', 'services', '__data__', 'customization', 'error'),
           );
           await expect(
-            updateTypingsWithCustomizations('./typings.d.ts', introspection, distPathManager),
+            updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
           ).rejects.toEqual(
             new CustomizationError('Issue with customizations: Error\nSome error occurred'),
           );
@@ -95,13 +107,13 @@ describe('update-typings', () => {
 
       describe('if the customization file does not export a function', () => {
         it('should throw with a specific customization error', async () => {
-          const { introspection, agentMock } = setup();
+          const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'existsSync').mockReturnValue(true);
           const distPathManager = new DistPathManager(
             path.join('test', 'services', '__data__', 'customization', 'not-a-function'),
           );
           await expect(
-            updateTypingsWithCustomizations('./typings.d.ts', introspection, distPathManager),
+            updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
           ).rejects.toEqual(new CustomizationError('Customization file must export a function'));
           expect(agentMock.updateTypesOnFileSystem).not.toHaveBeenCalled();
         });
@@ -110,13 +122,20 @@ describe('update-typings', () => {
       it.each(['default', 'exports', 'package'])(
         'if the export strategy is %s',
         async directory => {
-          const { introspection, agentMock } = setup();
+          const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'existsSync').mockReturnValue(true);
           const distPathManager = new DistPathManager(
             path.join('test', 'services', '__data__', 'customization', directory),
           );
-          await updateTypingsWithCustomizations('./typings.d.ts', introspection, distPathManager);
-          expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith('./typings.d.ts', 3);
+          await updateTypingsWithCustomizations(
+            introspection,
+            distPathManager,
+            bootstrapPathManager,
+          );
+          expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
+            bootstrapPathManager.typingsAfterBootstrapped,
+            3,
+          );
         },
       );
     });

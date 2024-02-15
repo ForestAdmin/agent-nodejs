@@ -3,6 +3,7 @@ import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
 import fs from 'fs';
 import path from 'path';
 
+import BootstrapPathManager from './bootstrap-path-manager';
 import DistPathManager from './dist-path-manager';
 import { BusinessError, CustomizationError } from '../errors';
 import { Agent } from '../types';
@@ -43,15 +44,18 @@ function buildAgent(introspection: Table[]) {
   return agent;
 }
 
-export async function updateTypings(typingsPath: string, introspection: Table[]): Promise<void> {
+export async function updateTypings(
+  introspection: Table[],
+  bootstrapPathManager: BootstrapPathManager,
+): Promise<void> {
   const agent = buildAgent(introspection);
-  await agent.updateTypesOnFileSystem(typingsPath, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }
 
 export async function updateTypingsWithCustomizations(
-  typingsPath: string,
   introspection: Table[],
   distPathManager: DistPathManager,
+  bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
   const agent = buildAgent(introspection);
 
@@ -64,5 +68,5 @@ export async function updateTypingsWithCustomizations(
     );
   }
 
-  await agent.updateTypesOnFileSystem(typingsPath, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }

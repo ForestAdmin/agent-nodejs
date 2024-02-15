@@ -31,8 +31,8 @@ export default class BootstrapPathManager {
     return path.join(this.cloudCustomizerPath, 'cloud-customizer');
   }
 
-  get typings(): string {
-    return path.join(this.cloudCustomizer, 'typings.d.ts');
+  get typingsAfterBootstrapped(): string {
+    return path.join(this.cloudCustomizerPath, 'typings.d.ts');
   }
 
   get index(): string {
@@ -49,9 +49,5 @@ export default class BootstrapPathManager {
 
   get helloWorldTemplate(): string {
     return path.join(__dirname, '..', 'templates', 'hello-world.txt');
-  }
-
-  get typingsAfterBootstrapped(): string {
-    return path.join('typings.d.ts');
   }
 }
