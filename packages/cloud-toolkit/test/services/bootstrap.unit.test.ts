@@ -29,8 +29,6 @@ describe('bootstrap', () => {
       return `
           env: <FOREST_ENV_SECRET_TO_REPLACE>
           path: <TOKEN_PATH_TO_REPLACE>
-          collection: <COLLECTION_NAME_TO_REPLACE>
-          dep: <DEPENDENCY_TO_REPLACE>
           `;
     });
     jest.spyOn(fs, 'createWriteStream').mockReturnValue({
@@ -142,47 +140,8 @@ describe('bootstrap', () => {
           `
               env: abc
               path: /my/home/directory
-              collection: <COLLECTION_NAME_TO_REPLACE>
-              dep: <DEPENDENCY_TO_REPLACE>
               `.replace(/\s/g, ''),
         );
-        expect(updateTypings).toHaveBeenCalled();
-        expect(updateTypings).toHaveBeenCalledWith(introspection, path);
-      });
-    });
-
-    describe('If there is no collection with primary key', () => {
-      it('should run the bootstrap completely', async () => {
-        const introspection: Table[] = [
-          {
-            name: 'towns',
-            schema: 'public',
-            unique: [['code', 'department'], ['id']],
-            columns: [
-              {
-                name: 'notId',
-                type: {
-                  type: 'scalar',
-                  subType: 'NUMBER',
-                },
-                allowNull: false,
-                primaryKey: false,
-                constraints: [],
-                defaultValue: null,
-                autoIncrement: true,
-                isLiteralDefaultValue: true,
-              },
-            ],
-          },
-        ];
-        const { writeFileSpy, httpServer, path } = setupMocks(introspection);
-
-        await bootstrap('abc', httpServer, path);
-
-        // expect to write only one file because we don't write the index.ts file
-        // because there is no primary key
-        expect(writeFileSpy).toHaveBeenCalledTimes(1);
-
         expect(updateTypings).toHaveBeenCalled();
         expect(updateTypings).toHaveBeenCalledWith(introspection, path);
       });
