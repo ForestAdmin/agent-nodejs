@@ -94,7 +94,7 @@ describe('update-typings', () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
-            path.join('test', 'services', '__data__', 'customization', 'error'),
+            path.join(__dirname, '__data__', 'customization', 'error'),
           );
           await expect(
             updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
@@ -110,7 +110,7 @@ describe('update-typings', () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
-            path.join('test', 'services', '__data__', 'customization', 'not-a-function'),
+            path.join(__dirname, '__data__', 'customization', 'not-a-function'),
           );
           await expect(
             updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
@@ -125,7 +125,7 @@ describe('update-typings', () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
-            path.join('test', 'services', '__data__', 'customization', directory),
+            path.join(__dirname, '__data__', 'customization', directory),
           );
           await updateTypingsWithCustomizations(
             introspection,
