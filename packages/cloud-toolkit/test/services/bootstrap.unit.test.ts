@@ -29,8 +29,6 @@ describe('bootstrap', () => {
       return `
           env: <FOREST_ENV_SECRET_TO_REPLACE>
           path: <TOKEN_PATH_TO_REPLACE>
-          collection: <COLLECTION_NAME_TO_REPLACE>
-          dep: <DEPENDENCY_TO_REPLACE>
           `;
     });
     jest.spyOn(fs, 'createWriteStream').mockReturnValue({
@@ -135,65 +133,15 @@ describe('bootstrap', () => {
         expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'cloud-customizer');
         expect(rmSpy).toHaveBeenCalledWith('/tmp/cloud-customizer.zip', { force: true });
 
-        expect(writeFileSpy).toHaveBeenCalledTimes(2);
+        expect(writeFileSpy).toHaveBeenCalledTimes(1);
         const firstCallArgs = writeFileSpy.mock.calls[0];
         expect(firstCallArgs[0]).toBe('cloud-customizer/.env');
         expect(firstCallArgs[1].toString().replace(/\s/g, '')).toBe(
           `
               env: abc
               path: /my/home/directory
-              collection: <COLLECTION_NAME_TO_REPLACE>
-              dep: <DEPENDENCY_TO_REPLACE>
               `.replace(/\s/g, ''),
         );
-        const secondCallArgs = writeFileSpy.mock.calls[1];
-        expect(secondCallArgs[0]).toBe('cloud-customizer/src/index.ts');
-        expect(secondCallArgs[1].toString().replace(/\s/g, '')).toBe(
-          `
-              env: <FOREST_ENV_SECRET_TO_REPLACE>
-              path: <TOKEN_PATH_TO_REPLACE>
-              collection: towns
-              dep: id
-              `.replace(/\s/g, ''),
-        );
-
-        expect(updateTypings).toHaveBeenCalled();
-        expect(updateTypings).toHaveBeenCalledWith(introspection, path);
-      });
-    });
-
-    describe('If there is no collection with primary key', () => {
-      it('should run the bootstrap completely', async () => {
-        const introspection: Table[] = [
-          {
-            name: 'towns',
-            schema: 'public',
-            unique: [['code', 'department'], ['id']],
-            columns: [
-              {
-                name: 'notId',
-                type: {
-                  type: 'scalar',
-                  subType: 'NUMBER',
-                },
-                allowNull: false,
-                primaryKey: false,
-                constraints: [],
-                defaultValue: null,
-                autoIncrement: true,
-                isLiteralDefaultValue: true,
-              },
-            ],
-          },
-        ];
-        const { writeFileSpy, httpServer, path } = setupMocks(introspection);
-
-        await bootstrap('abc', httpServer, path);
-
-        // expect to write only one file because we don't write the index.ts file
-        // because there is no primary key
-        expect(writeFileSpy).toHaveBeenCalledTimes(1);
-
         expect(updateTypings).toHaveBeenCalled();
         expect(updateTypings).toHaveBeenCalledWith(introspection, path);
       });
