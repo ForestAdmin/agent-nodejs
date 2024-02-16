@@ -1,3 +1,4 @@
+import fsSync from 'fs';
 import ora from 'ora';
 import os from 'os';
 
@@ -27,12 +28,15 @@ const logger: Logger = {
 };
 
 export default function buildCommands() {
+  const { version } = JSON.parse(fsSync.readFileSync('package.json', 'utf-8'));
+
   return makeCommands({
     getEnvironmentVariables,
     buildHttpServer,
     buildEventSubscriber,
     login,
     logger,
+    version,
     bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
     distPathManager: new DistPathManager(),
   });

@@ -82,6 +82,7 @@ export type MakeCommands = {
   distPathManager: DistPathManager;
   logger: Logger;
   login: Login;
+  version: string;
 };
 
 export type Spinner = {

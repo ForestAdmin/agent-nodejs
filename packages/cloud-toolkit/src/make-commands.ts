@@ -1,8 +1,8 @@
 import { Command } from 'commander';
-import fs from 'fs/promises';
 
 import actionRunner from './dialogs/action-runner';
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
+import checkLatestVersion from './dialogs/check-latest-version';
 import { BusinessError } from './errors';
 import bootstrap from './services/bootstrap';
 import { validateEnvironmentVariables, validateServerUrl } from './services/environment-variables';
@@ -61,6 +61,7 @@ export default function makeCommands({
   logger,
   getEnvironmentVariables,
   login,
+  version,
 }: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();
@@ -68,7 +69,9 @@ export default function makeCommands({
 
   program.option('-v, --version', 'output the version number').action(
     actionRunner(spinner, async () => {
-      log(JSON.parse(await fs.readFile('package.json', 'utf-8')).version);
+      // we want to display before to display the warning
+      log(version);
+      await checkLatestVersion(spinner, version, HttpServer.getLatestVersion);
     }),
   );
 
@@ -80,6 +83,8 @@ export default function makeCommands({
     )
     .action(
       actionRunner(spinner, async () => {
+        await checkLatestVersion(spinner, version, HttpServer.getLatestVersion);
+
         spinner.start('Updating typings');
         const vars = await getOrRefreshEnvironmentVariables(login, logger, getEnvironmentVariables);
         validateEnvironmentVariables(vars);
@@ -102,6 +107,8 @@ export default function makeCommands({
     )
     .action(
       actionRunner(spinner, async (options: { envSecret: string }) => {
+        await checkLatestVersion(spinner, version, HttpServer.getLatestVersion);
+
         spinner.start('Bootstrapping project');
         const vars = await getOrRefreshEnvironmentVariables(login, logger, getEnvironmentVariables);
         const secret = options.envSecret || vars.FOREST_ENV_SECRET;
@@ -117,17 +124,19 @@ export default function makeCommands({
         spinner.succeed('Environment found');
         spinner.stop();
 
-        const forestServer = validateAndBuildHttpServer(
+        const httpServer = validateAndBuildHttpServer(
           { ...vars, FOREST_ENV_SECRET: secret },
           buildHttpServer,
         );
 
-        if (!(await askToOverwriteCustomizations(spinner, forestServer))) {
+        if (
+          !(await askToOverwriteCustomizations(spinner, httpServer.getLastPublishedCodeDetails))
+        ) {
           throw new BusinessError('Operation aborted');
         }
 
         spinner.start();
-        await bootstrap(secret, forestServer, bootstrapPathManager);
+        await bootstrap(secret, httpServer, bootstrapPathManager);
         spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         );
@@ -139,6 +148,8 @@ export default function makeCommands({
     .description('Login to your project')
     .action(
       actionRunner(spinner, async () => {
+        await checkLatestVersion(spinner, version, HttpServer.getLatestVersion);
+
         spinner.start('Logging in');
         const vars = await getEnvironmentVariables();
         validateServerUrl(vars.FOREST_SERVER_URL);
@@ -153,16 +164,21 @@ export default function makeCommands({
     .option('-f, --force', 'Force the publication without asking for confirmation')
     .action(
       actionRunner(spinner, async (options: { force: boolean }) => {
+        await checkLatestVersion(spinner, version, HttpServer.getLatestVersion);
+
         spinner.start('Publishing code customizations');
         const vars = await getOrRefreshEnvironmentVariables(login, logger, getEnvironmentVariables);
-        const forestServer = validateAndBuildHttpServer(vars, buildHttpServer);
+        const httpServer = validateAndBuildHttpServer(vars, buildHttpServer);
 
-        if (!options.force && !(await askToOverwriteCustomizations(spinner, forestServer))) {
+        if (
+          !options.force &&
+          !(await askToOverwriteCustomizations(spinner, httpServer.getLastPublishedCodeDetails))
+        ) {
           throw new BusinessError('Operation aborted');
         }
 
         spinner.start('Publishing code customizations (operation cannot be cancelled)');
-        const subscriptionId = await publish(forestServer, distPathManager);
+        const subscriptionId = await publish(httpServer, distPathManager);
         const subscriber = validateAndBuildEventSubscriber(vars, buildEventSubscriber);
 
         try {
@@ -186,6 +202,8 @@ export default function makeCommands({
     .description('Package your code customizations')
     .action(
       actionRunner(spinner, async () => {
+        await checkLatestVersion(spinner, version, HttpServer.getLatestVersion);
+
         spinner.start('Packaging code');
         await packageCustomizations(distPathManager);
         spinner.succeed('Code customizations packaged and ready for publish');

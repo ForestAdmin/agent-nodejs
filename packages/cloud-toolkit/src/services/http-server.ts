@@ -1,6 +1,7 @@
 import { Table } from '@forestadmin/datasource-sql';
 import * as axios from 'axios';
 import * as fs from 'fs';
+import latestVersion from 'latest-version';
 
 import { BusinessError } from '../errors';
 
@@ -109,5 +110,9 @@ export default class HttpServer {
       },
       { errorMessage: `Failed to retrieve last published code details` },
     );
+  }
+
+  static async getLatestVersion(packageName: string): Promise<string> {
+    return latestVersion(packageName);
   }
 }
