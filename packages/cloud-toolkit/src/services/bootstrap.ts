@@ -16,7 +16,7 @@ async function tryToClearBootstrap(paths: BootstrapPathManager): Promise<string 
       fsP.rm(paths.cloudCustomizer, { force: false, recursive: true }),
     ]);
   } catch (e) {
-    return ` \nPlease remove cloud-customizer folder and re-run bootstrap command.`;
+    return `\nPlease remove cloud-customizer folder and re-run bootstrap command.`;
   }
 }
 

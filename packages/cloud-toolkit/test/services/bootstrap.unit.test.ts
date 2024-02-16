@@ -21,6 +21,34 @@ jest.mock('../../src/services/update-typings', () => {
 });
 
 describe('bootstrap', () => {
+  const setupMocks = (introspection: Table[]) => {
+    jest.resetAllMocks();
+    jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+    const writeFileSpy = jest.spyOn(fsP, 'writeFile');
+    jest.spyOn(fsP, 'readFile').mockImplementation(async () => {
+      return `
+          env: <FOREST_ENV_SECRET_TO_REPLACE>
+          path: <TOKEN_PATH_TO_REPLACE>
+          collection: <COLLECTION_NAME_TO_REPLACE>
+          dep: <DEPENDENCY_TO_REPLACE>
+          `;
+    });
+    jest.spyOn(fs, 'createWriteStream').mockReturnValue({
+      on: (eventName: string, callback: () => unknown) => {
+        callback();
+      },
+    } as unknown as fs.WriteStream);
+    const httpServer = new HttpServer('', '', '');
+    const path = new BootstrapPathManager('/tmp', '/my/home/directory');
+    jest.spyOn(httpServer, 'getIntrospection').mockResolvedValue(introspection);
+    HttpServer.downloadCloudCustomizerTemplate = jest.fn();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    jest.mocked(AdmZip).mockReturnValue({ extractAllTo: () => {} });
+
+    return { writeFileSpy, httpServer, path };
+  };
+
   describe('If the target directory exists', () => {
     it('should throw a business error', async () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
@@ -47,27 +75,30 @@ describe('bootstrap', () => {
           new BusinessError('Bootstrap failed: Failed.'),
         );
       });
+
+      describe('If there is an error when trying to clear the bootstrap', () => {
+        it('should notify the client to clear the cloud-customizer folder', async () => {
+          jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+          const httpServer = new HttpServer('', '', '');
+          const path = new BootstrapPathManager('', '');
+          HttpServer.downloadCloudCustomizerTemplate = jest
+            .fn()
+            .mockRejectedValue(new Error('Failed'));
+          // throw error when trying to clear
+          jest.spyOn(fsP, 'rm').mockRejectedValue(new Error('Failed'));
+
+          await expect(bootstrap('abc', httpServer, path)).rejects.toEqual(
+            new BusinessError(
+              // eslint-disable-next-line max-len
+              'Bootstrap failed: Failed.\nPlease remove cloud-customizer folder and re-run bootstrap command.',
+            ),
+          );
+        });
+      });
     });
 
     describe('If no dependency call fails', () => {
       it('should run the bootstrap completely', async () => {
-        jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-        const writeFileSpy = jest.spyOn(fsP, 'writeFile');
-        jest.spyOn(fsP, 'readFile').mockImplementation(async () => {
-          return `
-          env: <FOREST_ENV_SECRET_TO_REPLACE>
-          path: <TOKEN_PATH_TO_REPLACE>
-          collection: <COLLECTION_NAME_TO_REPLACE>
-          dep: <DEPENDENCY_TO_REPLACE>
-          `;
-        });
-        jest.spyOn(fs, 'createWriteStream').mockReturnValue({
-          on: (eventName: string, callback: () => unknown) => {
-            callback();
-          },
-        } as unknown as fs.WriteStream);
-        const httpServer = new HttpServer('', '', '');
-        const path = new BootstrapPathManager('/tmp', '/my/home/directory');
         const introspection: Table[] = [
           {
             name: 'towns',
@@ -87,27 +118,11 @@ describe('bootstrap', () => {
                 autoIncrement: true,
                 isLiteralDefaultValue: true,
               },
-              {
-                name: 'name',
-                type: {
-                  type: 'scalar',
-                  subType: 'STRING',
-                },
-                allowNull: false,
-                primaryKey: false,
-                constraints: [],
-                defaultValue: null,
-                autoIncrement: false,
-                isLiteralDefaultValue: false,
-              },
             ],
           },
         ];
-        jest.spyOn(httpServer, 'getIntrospection').mockResolvedValue(introspection);
-        HttpServer.downloadCloudCustomizerTemplate = jest.fn();
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        jest.mocked(AdmZip).mockReturnValue({ extractAllTo: () => {} });
+        const { writeFileSpy, httpServer, path } = setupMocks(introspection);
+
         const renameSpy = jest.spyOn(fsP, 'rename').mockResolvedValue();
         const rmSpy = jest.spyOn(fsP, 'rm').mockResolvedValue();
 
@@ -141,6 +156,43 @@ describe('bootstrap', () => {
               dep: id
               `.replace(/\s/g, ''),
         );
+
+        expect(updateTypings).toHaveBeenCalled();
+        expect(updateTypings).toHaveBeenCalledWith(introspection, path);
+      });
+    });
+
+    describe('If there is no collection with primary key', () => {
+      it('should run the bootstrap completely', async () => {
+        const introspection: Table[] = [
+          {
+            name: 'towns',
+            schema: 'public',
+            unique: [['code', 'department'], ['id']],
+            columns: [
+              {
+                name: 'notId',
+                type: {
+                  type: 'scalar',
+                  subType: 'NUMBER',
+                },
+                allowNull: false,
+                primaryKey: false,
+                constraints: [],
+                defaultValue: null,
+                autoIncrement: true,
+                isLiteralDefaultValue: true,
+              },
+            ],
+          },
+        ];
+        const { writeFileSpy, httpServer, path } = setupMocks(introspection);
+
+        await bootstrap('abc', httpServer, path);
+
+        // expect to write only one file because we don't write the index.ts file
+        // because there is no primary key
+        expect(writeFileSpy).toHaveBeenCalledTimes(1);
 
         expect(updateTypings).toHaveBeenCalled();
         expect(updateTypings).toHaveBeenCalledWith(introspection, path);

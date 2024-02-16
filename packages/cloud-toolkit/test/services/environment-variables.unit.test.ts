@@ -13,12 +13,11 @@ jest.mock('os');
 jest.mock('node:fs/promises');
 jest.mock('fs');
 
-jest.spyOn(os, 'homedir').mockReturnValue('/home/foo');
-jest.spyOn(fsPromises, 'readFile').mockResolvedValue('the-token-from-file');
-jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-
 describe('environment-variables', () => {
   beforeEach(() => {
+    jest.spyOn(os, 'homedir').mockReturnValue('/home/foo');
+    jest.spyOn(fsPromises, 'readFile').mockResolvedValue('the-token-from-file');
+    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
     jest.clearAllMocks();
   });
 
@@ -51,6 +50,16 @@ describe('environment-variables', () => {
           '/my/token/path/.forest.d/.forestrc',
           'utf8',
         );
+      });
+
+      describe('If there is no .forestrc', () => {
+        it('should return FOREST_AUTH_TOKEN as null', async () => {
+          // no .forestrc
+          jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+
+          const b = await getEnvironmentVariables();
+          expect(b).toMatchObject({ FOREST_AUTH_TOKEN: null });
+        });
       });
 
       it('should retrieve from homedir file if TOKEN_PATH missing', async () => {
