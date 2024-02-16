@@ -1,17 +1,16 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
-import fs from 'fs';
 import path from 'path';
 
-import { distCodeCustomizationsPath } from './packager';
-import { BusinessError, CustomizationError } from '../errors';
+import { throwIfNoBuiltCode } from './access-file';
+import BootstrapPathManager from './bootstrap-path-manager';
+import DistPathManager from './dist-path-manager';
+import { CustomizationError } from '../errors';
 import { Agent } from '../types';
 
-const indexPath = path.resolve(distCodeCustomizationsPath, 'index.js');
-
-function loadCustomization(agent: Agent): void {
+function loadCustomization(agent: Agent, builtCodePath: string): void {
   // eslint-disable-next-line
-  const customization = require(indexPath);
+  const customization = require(builtCodePath);
   const entryPoint = customization?.default || customization;
 
   if (typeof entryPoint !== 'function') {
@@ -41,25 +40,22 @@ function buildAgent(introspection: Table[]) {
   return agent;
 }
 
-export async function updateTypings(typingsPath: string, introspection: Table[]): Promise<void> {
+export async function updateTypings(
+  introspection: Table[],
+  bootstrapPathManager: BootstrapPathManager,
+): Promise<void> {
   const agent = buildAgent(introspection);
-  await agent.updateTypesOnFileSystem(typingsPath, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }
 
 export async function updateTypingsWithCustomizations(
-  typingsPath: string,
   introspection: Table[],
+  distPathManager: DistPathManager,
+  bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
+  const builtCodePath = path.resolve(distPathManager.distCodeCustomizations);
+  await throwIfNoBuiltCode(builtCodePath);
   const agent = buildAgent(introspection);
-
-  if (fs.existsSync(indexPath)) {
-    loadCustomization(agent);
-  } else {
-    throw new BusinessError(
-      `No built customization found at ${indexPath}.\n` +
-        'Please run `yarn build` to build your customizations.',
-    );
-  }
-
-  await agent.updateTypesOnFileSystem(typingsPath, 3);
+  loadCustomization(agent, builtCodePath);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
 }

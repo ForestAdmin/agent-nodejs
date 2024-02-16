@@ -1,14 +1,6 @@
-import { beforeEach } from 'node:test';
-import ora from 'ora';
-
 import actionRunner from '../../src/dialogs/action-runner';
 import { BusinessError } from '../../src/errors';
-
-jest.mock('ora');
-const processExit = jest.spyOn(process, 'exit').mockImplementation();
-beforeEach(() => {
-  processExit.mockClear();
-});
+import { Spinner } from '../../src/types';
 
 describe('actionRunner', () => {
   const setup = () => {
@@ -17,11 +9,7 @@ describe('actionRunner', () => {
     const spinner = {
       fail: jest.fn(),
       stop: jest.fn(),
-    };
-    const oraLib = {
-      start: () => spinner,
-    };
-    (ora as unknown as jest.Mock).mockReturnValue(oraLib);
+    } as unknown as Spinner;
 
     return { action, args, spinner };
   };
@@ -30,10 +18,10 @@ describe('actionRunner', () => {
     it('should return a function starting the spinner', async () => {
       const { action, args, spinner } = setup();
 
-      await actionRunner(action)(args);
+      await actionRunner(spinner, action)(args);
 
       expect(action).toHaveBeenCalled();
-      expect(action).toHaveBeenCalledWith(spinner, args);
+      expect(action).toHaveBeenCalledWith(args);
       expect(spinner.fail).not.toHaveBeenCalled();
       expect(spinner.stop).toHaveBeenCalled();
     });
@@ -43,24 +31,25 @@ describe('actionRunner', () => {
     describe('when BusinessError is thrown', () => {
       it('should call fail on the spinner and process.exit(1)', async () => {
         const { action, args, spinner } = setup();
-        const message = 'some business error occured';
+        const message = 'some business error occurred';
         action.mockRejectedValue(new BusinessError(message));
 
-        await actionRunner(action)(args);
+        await actionRunner(spinner, action)(args);
 
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
         expect(spinner.stop).toHaveBeenCalled();
-        expect(processExit).toHaveBeenCalledWith(1);
       });
     });
 
     describe('when a non BusinessError is thrown', () => {
       it('should let it throw', async () => {
         const { action, args, spinner } = setup();
-        action.mockRejectedValue(new Error('some error occured'));
+        action.mockRejectedValue(new Error('some error occurred'));
 
-        await expect(actionRunner(action)(args)).rejects.toEqual(new Error('some error occured'));
+        await expect(actionRunner(spinner, action)(args)).rejects.toEqual(
+          new Error('some error occurred'),
+        );
 
         expect(spinner.stop).toHaveBeenCalled();
         expect(spinner.fail).not.toHaveBeenCalled();

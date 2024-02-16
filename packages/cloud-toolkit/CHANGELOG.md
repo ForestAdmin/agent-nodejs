@@ -1,3 +1,46 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.25...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.26) (2024-02-15)
+
+
+### Features
+
+* add version command ([#1010](https://github.com/ForestAdmin/agent-nodejs/issues/1010)) ([f6ca0ee](https://github.com/ForestAdmin/agent-nodejs/commit/f6ca0ee58941a8b5999cfd7e05e00ddfd068b719))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.24...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.25) (2024-02-15)
+
+
+### Bug Fixes
+
+* refactor error to have the same message when build is not found ([#1008](https://github.com/ForestAdmin/agent-nodejs/issues/1008)) ([da24ee2](https://github.com/ForestAdmin/agent-nodejs/commit/da24ee2210bf650e9e74591fb081329c1c5af131))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.23...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.24) (2024-02-15)
+
+
+### Bug Fixes
+
+* add test for update-typings and fix package message on error ([#1006](https://github.com/ForestAdmin/agent-nodejs/issues/1006)) ([63ac581](https://github.com/ForestAdmin/agent-nodejs/commit/63ac58144c1b94fe3cc757957714b208ec549e8d))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.22...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.23) (2024-02-14)
+
+
+### Bug Fixes
+
+* **cloud-toolkit:** remove console log ([#1000](https://github.com/ForestAdmin/agent-nodejs/issues/1000)) ([31df6ef](https://github.com/ForestAdmin/agent-nodejs/commit/31df6ef2a64cced4d1c8e7aeff646a49cbd3eb0a))
+* unit test bootstrap service ([#964](https://github.com/ForestAdmin/agent-nodejs/issues/964)) ([6e929f9](https://github.com/ForestAdmin/agent-nodejs/commit/6e929f9ab51d2c975b91431ff0e1b1ea8ac5f764))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.21...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.22) (2024-02-13)
+
+
+### Bug Fixes
+
+* remove IDE linting issues caused by jest ([#994](https://github.com/ForestAdmin/agent-nodejs/issues/994)) ([18cc6d0](https://github.com/ForestAdmin/agent-nodejs/commit/18cc6d0a9113754fb1e3737f319fe4ced0d824f2))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.21) (2024-02-12)
+
+
+### Bug Fixes
+
+* dont specify yarn ([#989](https://github.com/ForestAdmin/agent-nodejs/issues/989)) ([eb31716](https://github.com/ForestAdmin/agent-nodejs/commit/eb317167a5fc228b3db680d7399e4812aaa65fc8))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.19...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.20) (2024-02-08)
 
 

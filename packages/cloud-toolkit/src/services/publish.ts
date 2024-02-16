@@ -1,8 +1,8 @@
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
 
-import HttpForestServer from './http-forest-server';
-import { zipPath } from './packager';
+import DistPathManager from './dist-path-manager';
+import HttpServer from './http-server';
 import { BusinessError } from '../errors';
 
 function getKeyFromPolicy(policy: string) {
@@ -15,9 +15,13 @@ function getKeyFromPolicy(policy: string) {
   return keyCondition[2];
 }
 
-export default async function publish(httpForestServer: HttpForestServer): Promise<string> {
+export default async function publish(
+  httpServer: HttpServer,
+  distPathManager: DistPathManager,
+): Promise<string> {
   try {
     let buffer: Buffer;
+    const zipPath = distPathManager.zip;
 
     try {
       const zip: AdmZip = new AdmZip(zipPath);
@@ -28,7 +32,7 @@ export default async function publish(httpForestServer: HttpForestServer): Promi
       );
     }
 
-    const { url, fields } = await httpForestServer.postUploadRequest(buffer.byteLength);
+    const { url, fields } = await httpServer.postUploadRequest(buffer.byteLength);
 
     const form = new FormData();
     form.append('key', getKeyFromPolicy(fields.Policy));
@@ -44,7 +48,7 @@ export default async function publish(httpForestServer: HttpForestServer): Promi
       });
     });
 
-    const { subscriptionId } = await httpForestServer.postPublish();
+    const { subscriptionId } = await httpServer.postPublish();
 
     return subscriptionId;
   } catch (error) {
