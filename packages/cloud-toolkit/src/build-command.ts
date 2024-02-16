@@ -1,5 +1,7 @@
+import fsSync from 'fs';
 import ora from 'ora';
 import os from 'os';
+import path from 'path';
 
 import login from './login';
 import makeCommands from './make-commands';
@@ -26,6 +28,15 @@ const logger: Logger = {
   error: (text?: string) => console.error(text),
 };
 
+function getCurrentVersion() {
+  // It does't work when bootstrapping the project
+  const { version } = JSON.parse(
+    fsSync.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'),
+  );
+
+  return version;
+}
+
 export default function buildCommands() {
   return makeCommands({
     getEnvironmentVariables,
@@ -33,6 +44,7 @@ export default function buildCommands() {
     buildEventSubscriber,
     login,
     logger,
+    getCurrentVersion,
     bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
     distPathManager: new DistPathManager(),
   });
