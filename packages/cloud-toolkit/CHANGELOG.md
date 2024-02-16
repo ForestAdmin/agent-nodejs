@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.27...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.28) (2024-02-16)
+
+
+### Features
+
+* remove unneeded hello world ([#1016](https://github.com/ForestAdmin/agent-nodejs/issues/1016)) ([53c21df](https://github.com/ForestAdmin/agent-nodejs/commit/53c21df54744114bbaa4a498c61a6feadaa7177a))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.26...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.27) (2024-02-16)
 
 
