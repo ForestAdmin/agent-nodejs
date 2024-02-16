@@ -1,3 +1,10 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.28...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.29) (2024-02-16)
+
+
+### Features
+
+* display a warning when version is outdated ([#987](https://github.com/ForestAdmin/agent-nodejs/issues/987)) ([cc8ea11](https://github.com/ForestAdmin/agent-nodejs/commit/cc8ea11ba97f9ad4f99ba1280a3d04400b1cf5fb))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.27...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.28) (2024-02-16)
 
 
