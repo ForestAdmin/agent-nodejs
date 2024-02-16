@@ -45,7 +45,7 @@ export async function updateTypings(
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
   const agent = buildAgent(introspection);
-  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsDuringBootstrap, 3);
 }
 
 export async function updateTypingsWithCustomizations(
@@ -57,5 +57,5 @@ export async function updateTypingsWithCustomizations(
   await throwIfNoBuiltCode(builtCodePath);
   const agent = buildAgent(introspection);
   loadCustomization(agent, builtCodePath);
-  await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsAfterBootstrapped, 3);
+  await agent.updateTypesOnFileSystem(bootstrapPathManager.typings, 3);
 }
