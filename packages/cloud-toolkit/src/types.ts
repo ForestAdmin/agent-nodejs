@@ -78,11 +78,11 @@ export type MakeCommands = {
   buildEventSubscriber: BuildEventSubscriber;
   buildHttpServer: BuildHttpServer;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
+  getCurrentVersion: () => string;
   bootstrapPathManager: BootstrapPathManager;
   distPathManager: DistPathManager;
   logger: Logger;
   login: Login;
-  version: string;
 };
 
 export type Spinner = {

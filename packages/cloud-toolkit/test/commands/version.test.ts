@@ -13,7 +13,7 @@ describe('version command', () => {
   describe('when the major version is greater', () => {
     it('should display a fail', async () => {
       const setup = setupCommandArguments({
-        version: '1.0.0',
+        getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
         getLatestVersion: jest.fn().mockResolvedValue('2.0.0'),
       });
       const cmd = new CommandTester(setup, ['--version']);
@@ -32,7 +32,7 @@ describe('version command', () => {
   describe('when the minor version is different', () => {
     it('should display a warning', async () => {
       const setup = setupCommandArguments({
-        version: '1.0.0',
+        getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
         getLatestVersion: jest.fn().mockResolvedValue('1.0.1'),
       });
       const cmd = new CommandTester(setup, ['--version']);
@@ -51,7 +51,7 @@ describe('version command', () => {
   describe('when fails to fetch the version', () => {
     it('should display an info', async () => {
       const setup = setupCommandArguments({
-        version: '1.0.0',
+        getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
         getLatestVersion: jest.fn().mockRejectedValue(new Error('Failed to fetch')),
       });
       const cmd = new CommandTester(setup, ['--version']);
@@ -67,7 +67,7 @@ describe('version command', () => {
   describe('when the version is equal', () => {
     it('should only display the version', async () => {
       const setup = setupCommandArguments({
-        version: '1.0.0',
+        getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
         getLatestVersion: jest.fn().mockResolvedValue('1.0.0'),
       });
       const cmd = new CommandTester(setup, ['--version']);
