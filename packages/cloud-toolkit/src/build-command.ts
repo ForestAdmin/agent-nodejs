@@ -26,7 +26,7 @@ const logger: Logger = {
   error: (text?: string) => console.error(text),
 };
 
-export default function buildCommand() {
+export default function buildCommands() {
   return makeCommands({
     getEnvironmentVariables,
     buildHttpServer,
