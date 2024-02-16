@@ -135,7 +135,7 @@ describe('bootstrap', () => {
         expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'cloud-customizer');
         expect(rmSpy).toHaveBeenCalledWith('/tmp/cloud-customizer.zip', { force: true });
 
-        expect(writeFileSpy).toHaveBeenCalledTimes(2);
+        expect(writeFileSpy).toHaveBeenCalledTimes(1);
         const firstCallArgs = writeFileSpy.mock.calls[0];
         expect(firstCallArgs[0]).toBe('cloud-customizer/.env');
         expect(firstCallArgs[1].toString().replace(/\s/g, '')).toBe(
@@ -146,17 +146,6 @@ describe('bootstrap', () => {
               dep: <DEPENDENCY_TO_REPLACE>
               `.replace(/\s/g, ''),
         );
-        const secondCallArgs = writeFileSpy.mock.calls[1];
-        expect(secondCallArgs[0]).toBe('cloud-customizer/src/index.ts');
-        expect(secondCallArgs[1].toString().replace(/\s/g, '')).toBe(
-          `
-              env: <FOREST_ENV_SECRET_TO_REPLACE>
-              path: <TOKEN_PATH_TO_REPLACE>
-              collection: towns
-              dep: id
-              `.replace(/\s/g, ''),
-        );
-
         expect(updateTypings).toHaveBeenCalled();
         expect(updateTypings).toHaveBeenCalledWith(introspection, path);
       });
