@@ -48,6 +48,22 @@ describe('version command', () => {
     });
   });
 
+  describe('when fails to fetch the version', () => {
+    it('should display an info', async () => {
+      const setup = setupCommandArguments({
+        version: '1.0.0',
+        getLatestVersion: jest.fn().mockRejectedValue(new Error('Failed to fetch')),
+      });
+      const cmd = new CommandTester(setup, ['--version']);
+      await cmd.run();
+
+      expect(cmd.outputs).toEqual([
+        cmd.log('1.0.0'),
+        cmd.info('Unable to check the latest version of @forestadmin/cloud-toolkit'),
+      ]);
+    });
+  });
+
   describe('when the version is equal', () => {
     it('should only display the version', async () => {
       const setup = setupCommandArguments({
