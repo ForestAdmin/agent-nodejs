@@ -64,7 +64,7 @@ describe('update-typings', () => {
       expect(createSqlDataSourceSpy).toHaveBeenCalledWith('sqlite::memory:', { introspection });
       expect(agentMock.addDataSource).toHaveBeenCalledWith(datasource);
       expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
-        bootstrapPathManager.typingsAfterBootstrapped,
+        bootstrapPathManager.typingsDuringBootstrap,
         3,
       );
     });
@@ -133,7 +133,7 @@ describe('update-typings', () => {
             bootstrapPathManager,
           );
           expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
-            bootstrapPathManager.typingsAfterBootstrapped,
+            bootstrapPathManager.typings,
             3,
           );
         },

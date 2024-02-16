@@ -28,7 +28,7 @@ describe('update-typings command', () => {
     ]);
     const setup = setupCommandArguments({ getIntrospection });
     setup.distPathManager = new DistPathManager(path.join(__dirname, '/__data__'));
-    await fs.rm(setup.bootstrapPathManager.typingsAfterBootstrapped, {
+    await fs.rm(setup.bootstrapPathManager.typings, {
       force: true,
       recursive: true,
     });
@@ -46,11 +46,9 @@ describe('update-typings command', () => {
       setTimeout(resolve, 500);
     });
 
-    await expect(
-      fs.access(setup.bootstrapPathManager.typingsAfterBootstrapped),
-    ).resolves.not.toThrow();
+    await expect(fs.access(setup.bootstrapPathManager.typings)).resolves.not.toThrow();
 
-    const typings = await fs.readFile(setup.bootstrapPathManager.typingsAfterBootstrapped, 'utf-8');
+    const typings = await fs.readFile(setup.bootstrapPathManager.typings, 'utf-8');
     expect(typings).toContain("'HelloWorld': string");
   });
 });

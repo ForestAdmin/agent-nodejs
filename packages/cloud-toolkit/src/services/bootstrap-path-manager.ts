@@ -31,8 +31,12 @@ export default class BootstrapPathManager {
     return path.join(this.cloudCustomizerPath, 'cloud-customizer');
   }
 
-  get typingsAfterBootstrapped(): string {
+  get typings(): string {
     return path.join(this.cloudCustomizerPath, 'typings.d.ts');
+  }
+
+  get typingsDuringBootstrap(): string {
+    return path.join(this.cloudCustomizer, 'typings.d.ts');
   }
 
   get index(): string {
