@@ -8,7 +8,6 @@ import HttpServer from '../../src/services/http-server';
 import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
 export type MakeCommandsForTests = Omit<MakeCommands, 'logger'>;
-
 const presignedPost = {
   url: 'https://s3.eu-west-3.amazonaws.com/forestadmin-platform-cloud-customization-test',
   fields: {
@@ -46,6 +45,8 @@ export const setupCommandArguments = (
     getCurrentVersion: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
+  jest.clearAllMocks();
+  (process.exit as unknown as jest.Mock) = jest.fn();
   const getCurrentVersionMock = jest.fn().mockReturnValue('1.0.0');
   const getCurrentVersion = options?.getCurrentVersion || getCurrentVersionMock;
   const getEnvironmentVariables =
@@ -71,7 +72,14 @@ export const setupCommandArguments = (
   const login = options?.login || jest.fn();
 
   const tmpdir = path.join(os.tmpdir(), (Math.floor(Math.random() * 100000) + 1).toString());
-  fs.mkdirSync(tmpdir);
+
+  try {
+    fs.mkdirSync(tmpdir);
+  } catch (err) {
+    // clean the tmpdir if it exists
+    fs.rmSync(tmpdir, { recursive: true });
+    fs.mkdirSync(tmpdir);
+  }
 
   return {
     getEnvironmentVariables,
