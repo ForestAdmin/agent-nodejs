@@ -4,9 +4,6 @@ import { Spinner } from '../../src/types';
 
 describe('actionRunner', () => {
   const setup = () => {
-    jest.clearAllMocks();
-    (process.exit as unknown as jest.Mock) = jest.fn();
-
     const args = Symbol('args');
     const action = jest.fn();
     const spinner = {
@@ -27,7 +24,7 @@ describe('actionRunner', () => {
       expect(action).toHaveBeenCalledWith(args);
       expect(spinner.fail).not.toHaveBeenCalled();
       expect(spinner.stop).toHaveBeenCalled();
-      expect(process.exit).not.toHaveBeenCalled();
+      expect(process.exitCode).toBeUndefined();
     });
   });
 
@@ -43,7 +40,7 @@ describe('actionRunner', () => {
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
         expect(spinner.stop).toHaveBeenCalled();
-        expect(process.exit).toHaveBeenCalledWith(1);
+        expect(process.exitCode).toEqual(1);
       });
     });
 

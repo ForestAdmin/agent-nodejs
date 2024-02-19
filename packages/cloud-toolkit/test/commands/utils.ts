@@ -45,8 +45,6 @@ export const setupCommandArguments = (
     getCurrentVersion: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
-  jest.clearAllMocks();
-  (process.exit as unknown as jest.Mock) = jest.fn();
   const getCurrentVersionMock = jest.fn().mockReturnValue('1.0.0');
   const getCurrentVersion = options?.getCurrentVersion || getCurrentVersionMock;
   const getEnvironmentVariables =

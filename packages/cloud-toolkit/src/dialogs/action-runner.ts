@@ -12,7 +12,7 @@ export default function actionRunner(spinner: Spinner, fn: (...args) => Promise<
         spinner.fail(error.message);
         // we must exit the process with a non-zero code to indicate an error
         // when chaining commands, the process will continue if we don't exit
-        process.exit(1);
+        process.exitCode = 1;
       } else {
         spinner.fail(
           'An unexpected error occurred.\nPlease reach out for help in our Developers community (https://community.forestadmin.com/)',
