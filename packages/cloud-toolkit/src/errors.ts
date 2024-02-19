@@ -6,3 +6,4 @@ export class CustomizationError extends BusinessError {
     this.stack = stack;
   }
 }
+export class CloudToolkitVersionError extends BusinessError {}

@@ -3,12 +3,12 @@ import path from 'path';
 export default class BootstrapPathManager {
   private readonly _tmp: string;
   private readonly _home: string;
-  private readonly cloudCustomizerPath: string;
+  private readonly basePath: string;
 
-  constructor(tmp: string, home: string, cloudCustomizerPath?: string) {
+  constructor(tmp: string, home: string, basePath?: string) {
     this._tmp = tmp;
     this._home = home;
-    this.cloudCustomizerPath = cloudCustomizerPath ?? '.';
+    this.basePath = basePath ?? '.';
   }
 
   get home(): string {
@@ -28,15 +28,15 @@ export default class BootstrapPathManager {
   }
 
   get cloudCustomizer(): string {
-    return path.join(this.cloudCustomizerPath, 'cloud-customizer');
+    return path.join(this.basePath, 'cloud-customizer');
   }
 
-  get typingsAfterBootstrapped(): string {
-    return path.join(this.cloudCustomizerPath, 'typings.d.ts');
+  get typings(): string {
+    return path.join(this.basePath, 'typings.d.ts');
   }
 
-  get packageJsonAfterBootstrapped(): string {
-    return path.join(this.cloudCustomizerPath, 'package.json');
+  get typingsDuringBootstrap(): string {
+    return path.join(this.cloudCustomizer, 'typings.d.ts');
   }
 
   get index(): string {

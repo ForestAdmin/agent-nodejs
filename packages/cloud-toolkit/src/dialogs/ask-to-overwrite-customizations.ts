@@ -5,9 +5,9 @@ import { Spinner } from '../types';
 
 export default async function askToOverwriteCustomizations(
   spinner: Spinner,
-  httpServer: HttpServer,
+  getLastPublishedCodeDetails: typeof HttpServer.prototype.getLastPublishedCodeDetails,
 ): Promise<boolean> {
-  const details = await httpServer.getLastPublishedCodeDetails();
+  const details = await getLastPublishedCodeDetails();
 
   if (!details) return true;
 

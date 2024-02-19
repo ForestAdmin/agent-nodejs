@@ -64,7 +64,7 @@ describe('update-typings', () => {
       expect(createSqlDataSourceSpy).toHaveBeenCalledWith('sqlite::memory:', { introspection });
       expect(agentMock.addDataSource).toHaveBeenCalledWith(datasource);
       expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
-        bootstrapPathManager.typingsAfterBootstrapped,
+        bootstrapPathManager.typingsDuringBootstrap,
         3,
       );
     });
@@ -94,7 +94,7 @@ describe('update-typings', () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
-            path.join('test', 'services', '__data__', 'customization', 'error'),
+            path.join(__dirname, '__data__', 'customization', 'error'),
           );
           await expect(
             updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
@@ -110,7 +110,7 @@ describe('update-typings', () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
-            path.join('test', 'services', '__data__', 'customization', 'not-a-function'),
+            path.join(__dirname, '__data__', 'customization', 'not-a-function'),
           );
           await expect(
             updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager),
@@ -125,7 +125,7 @@ describe('update-typings', () => {
           const { introspection, agentMock, bootstrapPathManager } = setup();
           jest.spyOn(fs, 'access').mockImplementation();
           const distPathManager = new DistPathManager(
-            path.join('test', 'services', '__data__', 'customization', directory),
+            path.join(__dirname, '__data__', 'customization', directory),
           );
           await updateTypingsWithCustomizations(
             introspection,
@@ -133,7 +133,7 @@ describe('update-typings', () => {
             bootstrapPathManager,
           );
           expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
-            bootstrapPathManager.typingsAfterBootstrapped,
+            bootstrapPathManager.typings,
             3,
           );
         },

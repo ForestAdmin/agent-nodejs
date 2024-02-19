@@ -1,3 +1,24 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.28...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.29) (2024-02-16)
+
+
+### Features
+
+* display a warning when version is outdated ([#987](https://github.com/ForestAdmin/agent-nodejs/issues/987)) ([cc8ea11](https://github.com/ForestAdmin/agent-nodejs/commit/cc8ea11ba97f9ad4f99ba1280a3d04400b1cf5fb))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.27...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.28) (2024-02-16)
+
+
+### Features
+
+* remove unneeded hello world ([#1016](https://github.com/ForestAdmin/agent-nodejs/issues/1016)) ([53c21df](https://github.com/ForestAdmin/agent-nodejs/commit/53c21df54744114bbaa4a498c61a6feadaa7177a))
+
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.26...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.27) (2024-02-16)
+
+
+### Bug Fixes
+
+* improve path dependent tests ([#1017](https://github.com/ForestAdmin/agent-nodejs/issues/1017)) ([2a8af21](https://github.com/ForestAdmin/agent-nodejs/commit/2a8af21e12e894eb86116d6bec9f3adb9e924f73))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.25...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.26) (2024-02-15)
 
 

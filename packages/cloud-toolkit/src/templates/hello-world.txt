@@ -9,20 +9,11 @@ help you to understand how to use the agent and how to customize your project.
 ===== https://docs.forestadmin.com/developer-guide-agents-nodejs/ =====
 =======================================================================
 
-Run with npm or yarn this command to deploy the hello world custom field.
+Run with npm or yarn this command to publish this code to your backend.
 =======================================================================
 ================== forestadmin:build:package:publish ==================
 =======================================================================
 */
 export default function customizeAgent(agent: Agent<Schema>) {
-  agent.customizeCollection('<COLLECTION_NAME_TO_REPLACE>', collection => {
-    collection.addField('HelloWorld', {
-      columnType: 'String',
-      defaultValue: 'Hello World',
-      dependencies: ['<DEPENDENCY_TO_REPLACE>'],
-      getValues(records) {
-        return records.map(() => 'Hello World');
-      },
-    });
-  });
+
 }

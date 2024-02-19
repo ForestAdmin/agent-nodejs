@@ -42,8 +42,12 @@ export const setupCommandArguments = (
     login: jest.Mock;
     getIntrospection: jest.Mock;
     subscribeToCodeCustomization: jest.Mock;
+    getLatestVersion: jest.Mock;
+    getCurrentVersion: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
+  const getCurrentVersionMock = jest.fn().mockReturnValue('1.0.0');
+  const getCurrentVersion = options?.getCurrentVersion || getCurrentVersionMock;
   const getEnvironmentVariables =
     options?.getEnvironmentVariables || jest.fn().mockResolvedValue(environmentVariables);
 
@@ -56,6 +60,8 @@ export const setupCommandArguments = (
       postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'aSubscriptionId' }),
     } as unknown as HttpServer;
   };
+
+  HttpServer.getLatestVersion = options?.getLatestVersion || getCurrentVersionMock;
 
   const buildEventSubscriber = jest.fn().mockReturnValue({
     destroy: jest.fn(),
@@ -72,6 +78,7 @@ export const setupCommandArguments = (
     buildHttpServer,
     buildEventSubscriber,
     login,
+    getCurrentVersion,
     distPathManager: new DistPathManager(tmpdir),
     bootstrapPathManager: new BootstrapPathManager(tmpdir, tmpdir, tmpdir),
   };
