@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.0...@forestadmin/forest-cloud@1.0.1) (2024-02-19)
+
+
+### Bug Fixes
+
+* **forest-cloud:** add json files in the project dependencies ([#1027](https://github.com/ForestAdmin/agent-nodejs/issues/1027)) ([ace9550](https://github.com/ForestAdmin/agent-nodejs/commit/ace9550f6a540e8ad16746e6693c5a785a15e80c))
+
 # @forestadmin/forest-cloud 1.0.0 (2024-02-19)
 
 
