@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/cloud-toolkit",
-  "version": "1.0.0-beta-cloud-toolkit.29",
+  "version": "1.0.0-beta-cloud-toolkit.30",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
     "@forestadmin/agent": "1.37.0-beta-cloud-toolkit.1",

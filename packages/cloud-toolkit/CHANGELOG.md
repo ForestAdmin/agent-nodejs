@@ -1,3 +1,12 @@
+# @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.29...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.30) (2024-02-19)
+
+
+### Bug Fixes
+
+* typings path is not correct during bootstrap ([#1018](https://github.com/ForestAdmin/agent-nodejs/issues/1018)) ([fa76466](https://github.com/ForestAdmin/agent-nodejs/commit/fa76466bc6500b44ea6e56b0a0c50e5d1ce4c75b))
+* use index template when bootstrapping ([#1020](https://github.com/ForestAdmin/agent-nodejs/issues/1020)) ([8fb0dfd](https://github.com/ForestAdmin/agent-nodejs/commit/8fb0dfde381903f4e815cb4fdc63ae359a2b9e22))
+* when chaining commands, the process must exist if fails ([#1019](https://github.com/ForestAdmin/agent-nodejs/issues/1019)) ([8c2ccd9](https://github.com/ForestAdmin/agent-nodejs/commit/8c2ccd9dd2e1d9df1121f7928c36771cb30d67ae))
+
 # @forestadmin/cloud-toolkit [1.0.0-beta-cloud-toolkit.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.28...@forestadmin/cloud-toolkit@1.0.0-beta-cloud-toolkit.29) (2024-02-16)
 
 
