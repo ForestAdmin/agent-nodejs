@@ -30,8 +30,7 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
-    "dist/**/*.txt",
-    "dist/**/*.json"
+    "dist/**/*.txt"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/forest-cloud",
   "license": "GPL-3.0",
@@ -46,7 +45,7 @@
   "scripts": {
     "build": "tsc && yarn build:copy",
     "build:watch": "tsc --watch & nodemon --watch 'src/templates/*' --ext txt --exec yarn build:copy",
-    "build:copy": "cp -r src/templates ./dist && cp package.json ./dist",
+    "build:copy": "cp -r src/templates ./dist",
     "lint": "eslint src test",
     "test": "jest"
   },

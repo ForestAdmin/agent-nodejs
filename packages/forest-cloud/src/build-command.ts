@@ -29,9 +29,8 @@ const logger: Logger = {
 };
 
 function getCurrentVersion() {
-  // It does't work when bootstrapping the project
   const { version } = JSON.parse(
-    fsSync.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'),
+    fsSync.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
   );
 
   return version;
