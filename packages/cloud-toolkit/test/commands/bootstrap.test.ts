@@ -63,6 +63,12 @@ describe('bootstrap command', () => {
 
       expect(setup.login).toHaveBeenCalled();
       await expect(fs.access(cloudCustomizerPath)).resolves.not.toThrow();
+      expect(await fs.readFile(setup.bootstrapPathManager.index, 'utf-8')).toContain(
+        'export default function customizeAgent(agent: Agent<Schema>) {',
+      );
+      expect(await fs.readFile(setup.bootstrapPathManager.env, 'utf-8')).toContain(
+        'FOREST_ENV_SECRET=d4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
+      );
     });
   });
 

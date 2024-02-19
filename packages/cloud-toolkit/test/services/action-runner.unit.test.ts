@@ -24,6 +24,7 @@ describe('actionRunner', () => {
       expect(action).toHaveBeenCalledWith(args);
       expect(spinner.fail).not.toHaveBeenCalled();
       expect(spinner.stop).toHaveBeenCalled();
+      expect(process.exitCode).toBeUndefined();
     });
   });
 
@@ -39,6 +40,7 @@ describe('actionRunner', () => {
         expect(spinner.fail).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(message);
         expect(spinner.stop).toHaveBeenCalled();
+        expect(process.exitCode).toEqual(1);
       });
     });
 
@@ -52,7 +54,9 @@ describe('actionRunner', () => {
         );
 
         expect(spinner.stop).toHaveBeenCalled();
-        expect(spinner.fail).not.toHaveBeenCalled();
+        expect(spinner.fail).toHaveBeenCalledWith(
+          'An unexpected error occurred.\nPlease reach out for help in our Developers community (https://community.forestadmin.com/)',
+        );
       });
     });
   });

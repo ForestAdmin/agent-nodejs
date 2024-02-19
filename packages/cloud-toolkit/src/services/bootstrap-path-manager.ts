@@ -51,7 +51,7 @@ export default class BootstrapPathManager {
     return path.join(__dirname, '..', 'templates', 'env.txt');
   }
 
-  get helloWorldTemplate(): string {
-    return path.join(__dirname, '..', 'templates', 'hello-world.txt');
+  get indexTemplate(): string {
+    return path.join(__dirname, '..', 'templates', 'index.txt');
   }
 }
