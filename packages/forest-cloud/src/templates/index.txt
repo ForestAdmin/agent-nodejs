@@ -1,4 +1,4 @@
-import type { Agent } from '@forestadmin/cloud-toolkit';
+import type { Agent } from '@forestadmin/forest-cloud';
 
 import { Schema } from '../typings';
 

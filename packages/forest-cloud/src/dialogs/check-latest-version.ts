@@ -10,9 +10,9 @@ export default async function checkLatestVersion(
   let version: string;
 
   try {
-    version = await getLatestVersion('@forestadmin/cloud-toolkit');
+    version = await getLatestVersion('@forestadmin/forest-cloud');
   } catch (e) {
-    spinner.info('Unable to check the latest version of @forestadmin/cloud-toolkit');
+    spinner.info('Unable to check the latest version of @forestadmin/forest-cloud');
 
     return;
   }
@@ -20,12 +20,12 @@ export default async function checkLatestVersion(
   // if major version is different
   if (version.split('.')[0] !== customerVersion.split('.')[0]) {
     throw new CloudToolkitVersionError(
-      `Your version of @forestadmin/cloud-toolkit is outdated. Latest version is ${version}.` +
+      `Your version of @forestadmin/forest-cloud is outdated. Latest version is ${version}.` +
         '\nPlease update it to the latest major version to be able to use our services.',
     );
   } else if (customerVersion !== version) {
     spinner.warn(
-      `Your version of @forestadmin/cloud-toolkit is outdated. Latest version is ${version}.` +
+      `Your version of @forestadmin/forest-cloud is outdated. Latest version is ${version}.` +
         '\nPlease update it.',
     );
   }

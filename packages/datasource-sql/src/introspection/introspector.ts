@@ -36,10 +36,10 @@ export default class Introspector {
 
     if (formattedIntrospection && formattedIntrospection.version > INTROSPECTION_FORMAT_VERSION) {
       /* This can only occur in CLOUD version, either:
-        - cloud-toolkit does not have the same version of datasource-sql 
+        - forest-cloud does not have the same version of datasource-sql
           as cloud-agent-manager & forestadmin-server (We need to fix)
         - datasource-sql should be updated in the local repository
-          of the client. He should be prompted to update cloud-toolkit.
+          of the client. He should be prompted to update forest-cloud.
       */
       throw new Error(
         'This version of introspection is newer than this package version. ' +

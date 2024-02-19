@@ -1,6 +1,6 @@
 {
-  "name": "@forestadmin/cloud-toolkit",
-  "version": "1.0.0-beta-cloud-toolkit.30",
+  "name": "@forestadmin/forest-cloud",
+  "version": "0.0.0",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
     "@forestadmin/agent": "1.38.0",
@@ -32,12 +32,12 @@
     "dist/**/*.d.ts",
     "dist/**/*.txt"
   ],
-  "homepage": "https://github.com/ForestAdmin/agent-nodejs/cloud-toolkit",
+  "homepage": "https://github.com/ForestAdmin/agent-nodejs/forest-cloud",
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
-    "directory": "packages/cloud-toolkit"
+    "directory": "packages/forest-cloud"
   },
   "bin": {
     "forest-cloud": "dist/command.js"
