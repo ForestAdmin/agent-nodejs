@@ -30,7 +30,8 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
-    "dist/**/*.txt"
+    "dist/**/*.txt",
+    "dist/**/*.json"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/forest-cloud",
   "license": "GPL-3.0",
