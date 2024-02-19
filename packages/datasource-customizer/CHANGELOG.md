@@ -1,3 +1,55 @@
+## @forestadmin/datasource-customizer [1.43.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.0...@forestadmin/datasource-customizer@1.43.1) (2024-02-07)
+
+
+### Bug Fixes
+
+* **types:** allow to use relationships in generateSearchFilter ([#985](https://github.com/ForestAdmin/agent-nodejs/issues/985)) ([3219b6c](https://github.com/ForestAdmin/agent-nodejs/commit/3219b6cb1641120be002255ee49f6cb00184c47c))
+
+# @forestadmin/datasource-customizer [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.42.0...@forestadmin/datasource-customizer@1.43.0) (2024-02-06)
+
+
+### Features
+
+* add access to the default search in replaceSearch on a collection ([#966](https://github.com/ForestAdmin/agent-nodejs/issues/966)) ([8e3c0ce](https://github.com/ForestAdmin/agent-nodejs/commit/8e3c0cef623ee6e1fc683e7d9728dd0a979774d5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+
+# @forestadmin/datasource-customizer [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.41.1...@forestadmin/datasource-customizer@1.42.0) (2024-02-02)
+
+
+### Features
+
+* **action result builder:** allow user to set SA response headers ([#945](https://github.com/ForestAdmin/agent-nodejs/issues/945)) ([ce37c01](https://github.com/ForestAdmin/agent-nodejs/commit/ce37c01df1e92628788c0bb3dc0eb8d6409b7aef))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.31.0
+
+## @forestadmin/datasource-customizer [1.41.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.41.0...@forestadmin/datasource-customizer@1.41.1) (2024-02-01)
+
+
+### Bug Fixes
+
+* **typings:** support strict null checking in typescript ([#927](https://github.com/ForestAdmin/agent-nodejs/issues/927)) ([80fa64d](https://github.com/ForestAdmin/agent-nodejs/commit/80fa64d0bf85ee36ab330a8f983b8bf593ae34f1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+
 # @forestadmin/datasource-customizer [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.4...@forestadmin/datasource-customizer@1.41.0) (2024-01-26)
 
 

@@ -1,3 +1,58 @@
+# @forestadmin/datasource-sql [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.49...@forestadmin/datasource-sql@1.8.0) (2024-02-12)
+
+
+### Features
+
+* add version in introspection ([#978](https://github.com/ForestAdmin/agent-nodejs/issues/978)) ([3e7e791](https://github.com/ForestAdmin/agent-nodejs/commit/3e7e791b51af83e720e54a2994b064871ed922cd))
+
+## @forestadmin/datasource-sql [1.7.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.48...@forestadmin/datasource-sql@1.7.49) (2024-02-07)
+
+
+### Bug Fixes
+
+* searching into text[] columns in postgresql leads to error due to invalid introspection ([#983](https://github.com/ForestAdmin/agent-nodejs/issues/983)) ([f9ee1a6](https://github.com/ForestAdmin/agent-nodejs/commit/f9ee1a60998157071010e45a3e30fcbed34aa43a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.4
+
+## @forestadmin/datasource-sql [1.7.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.47...@forestadmin/datasource-sql@1.7.48) (2024-02-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+
+## @forestadmin/datasource-sql [1.7.47](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.46...@forestadmin/datasource-sql@1.7.47) (2024-02-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.31.0
+
+## @forestadmin/datasource-sql [1.7.46](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.45...@forestadmin/datasource-sql@1.7.46) (2024-02-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+
 ## @forestadmin/datasource-sql [1.7.45](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.44...@forestadmin/datasource-sql@1.7.45) (2024-01-26)
 
 

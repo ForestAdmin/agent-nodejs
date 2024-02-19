@@ -1864,6 +1864,31 @@
     path-to-regexp "^6.1.0"
     reusify "^1.0.4"
 
+"@forestadmin/agent@1.38.0":
+  version "1.38.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.38.0.tgz#924724e2a2227061843a284e9c1a9c46ebc22b1a"
+  integrity sha512-xiUxdvu+70EwK0Jp0AoywapL7xi0tu0ah9Ta+GPeVdsQZ8GDP+3H3G2x+DQk2LIy9sV02IcwWAAVI4SXlRKMlw==
+  dependencies:
+    "@fast-csv/format" "^4.3.5"
+    "@fastify/express" "^1.1.0"
+    "@forestadmin/datasource-customizer" "1.43.1"
+    "@forestadmin/datasource-toolkit" "1.32.0"
+    "@forestadmin/forestadmin-client" "1.25.9"
+    "@koa/cors" "^5.0.0"
+    "@koa/router" "^12.0.0"
+    "@types/koa__router" "^12.0.0"
+    forest-ip-utils "^1.0.1"
+    json-api-serializer "^2.6.6"
+    json-stringify-pretty-compact "^3.0.0"
+    jsonwebtoken "^9.0.0"
+    koa "^2.14.1"
+    koa-bodyparser "^4.3.0"
+    koa-jwt "^4.0.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    superagent "^8.0.6"
+    uuid "^9.0.0"
+
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
@@ -7291,6 +7316,11 @@ eslint-plugin-import@^2.27.4:
     object.values "^1.1.7"
     semver "^6.3.1"
     tsconfig-paths "^3.14.2"
+
+eslint-plugin-jest-formatting@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest-formatting/-/eslint-plugin-jest-formatting-3.1.0.tgz#b26dd5a40f432b642dcc880021a771bb1c93dcd2"
+  integrity sha512-XyysraZ1JSgGbLSDxjj5HzKKh0glgWf+7CkqxbTqb7zEhW7X2WHo5SBQ8cGhnszKN+2Lj3/oevBlHNbHezoc/A==
 
 eslint-plugin-jest@^27.2.1:
   version "27.6.0"

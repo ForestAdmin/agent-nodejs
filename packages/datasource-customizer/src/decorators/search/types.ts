@@ -1,4 +1,4 @@
-import CollectionCustomizationContext from '../../context/collection-context';
+import CollectionSearchContext from './collection-search-context';
 import { TCollectionName, TConditionTree, TSchema } from '../../templates';
 
 export type SearchDefinition<
@@ -7,5 +7,5 @@ export type SearchDefinition<
 > = (
   value: string,
   extended: boolean,
-  context: CollectionCustomizationContext<S, N>,
+  context: CollectionSearchContext<S, N>,
 ) => Promise<TConditionTree<S, N>> | TConditionTree<S, N>;

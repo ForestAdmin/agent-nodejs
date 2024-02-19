@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.37.0-beta-cloud-toolkit.1",
+  "version": "1.37.2",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -14,9 +14,9 @@
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@fastify/express": "^1.1.0",
-    "@forestadmin/datasource-customizer": "1.41.0",
-    "@forestadmin/datasource-toolkit": "1.30.0",
-    "@forestadmin/forestadmin-client": "1.25.6",
+    "@forestadmin/datasource-customizer": "1.43.1",
+    "@forestadmin/datasource-toolkit": "1.32.0",
+    "@forestadmin/forestadmin-client": "1.25.9",
     "@koa/cors": "^5.0.0",
     "@koa/router": "^12.0.0",
     "@types/koa__router": "^12.0.0",

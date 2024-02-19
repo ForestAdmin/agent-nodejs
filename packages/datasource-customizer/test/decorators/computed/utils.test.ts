@@ -113,6 +113,7 @@ describe('deprecation-map', () => {
       });
     });
   });
+
   describe.each([
     'String',
     'Binary',

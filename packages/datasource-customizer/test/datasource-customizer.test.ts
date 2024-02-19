@@ -259,6 +259,7 @@ describe('DataSourceCustomizer', () => {
       expect(collection).toMatchObject({ name: 'test' });
       expect(customizer.getCollection).toHaveBeenCalledWith('test');
     });
+
     it('should return undefined if the collection is not found', async () => {
       const customizer = new DataSourceCustomizer();
       jest
