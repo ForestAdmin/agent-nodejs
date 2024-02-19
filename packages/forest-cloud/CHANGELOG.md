@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.1...@forestadmin/forest-cloud@1.0.2) (2024-02-19)
+
+
+### Bug Fixes
+
+* **forest-cloud:** fix checking version feature  ([#1028](https://github.com/ForestAdmin/agent-nodejs/issues/1028)) ([4ad679b](https://github.com/ForestAdmin/agent-nodejs/commit/4ad679b4beb88765d9d2bfa91ac5ffb9e988ca7b))
+
 ## @forestadmin/forest-cloud [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.0...@forestadmin/forest-cloud@1.0.1) (2024-02-19)
 
 
