@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.37.2...@forestadmin/agent@1.38.0) (2024-02-19)
+
+
+### Features
+
+* use the agent to create typings ([#1021](https://github.com/ForestAdmin/agent-nodejs/issues/1021)) ([663dec1](https://github.com/ForestAdmin/agent-nodejs/commit/663dec1f8451eb989da244e281aaf978254613a0))
+
 ## @forestadmin/agent [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.37.1...@forestadmin/agent@1.37.2) (2024-02-07)
 
 
