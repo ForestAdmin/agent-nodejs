@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.0.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.2...@forestadmin/forest-cloud@1.0.3) (2024-02-19)
+
+
+### Bug Fixes
+
+* **forest-cloud:** downgrade the subscriptions-transport-ws version to be able to use it with npm ([#1030](https://github.com/ForestAdmin/agent-nodejs/issues/1030)) ([02cc76e](https://github.com/ForestAdmin/agent-nodejs/commit/02cc76e1d48ca61d70a979818fe94cd7d559f8ef))
+
 ## @forestadmin/forest-cloud [1.0.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.1...@forestadmin/forest-cloud@1.0.2) (2024-02-19)
 
 
