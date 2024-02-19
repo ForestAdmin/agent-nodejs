@@ -48,6 +48,7 @@ export default async function bootstrap(
     // create the .env file if it does not exist
     // we do not overwrite it because it may contain sensitive data
     if (!fs.existsSync(paths.env)) await generateDotEnv(envSecret, paths);
+    await fsP.writeFile(paths.index, await fsP.readFile(paths.indexTemplate));
 
     const introspection = await httpServer.getIntrospection();
 
