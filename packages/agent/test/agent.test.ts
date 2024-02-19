@@ -318,7 +318,7 @@ describe('Agent', () => {
 
       await agent.updateTypesOnFileSystem('the/path/to/typings.d.ts', 42);
 
-      expect(mockCustomizer.getDataSource).toHaveBeenCalledOnce(options.logger);
+      expect(mockCustomizer.getDataSource).toHaveBeenCalledOnceWith(options.logger);
       expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledOnceWith(
         'the/path/to/typings.d.ts',
         42,
