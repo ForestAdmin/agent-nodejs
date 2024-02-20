@@ -3,13 +3,12 @@ import { Command } from 'commander';
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
 import { BusinessError } from '../errors';
+import { validateEnvironmentVariables } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import publish from '../services/publish';
 import {
   askToOverwriteCustomizationsOrAbortCommand,
   loginIfMissingAuthAndReturnEnvironmentVariables,
-  validateAndBuildEventSubscriber,
-  validateAndBuildHttpServer,
 } from '../shared';
 import { MakeCommands } from '../types';
 
@@ -39,12 +38,13 @@ export default (program: Command, context: MakeCommands) => {
           logger,
           getEnvironmentVariables,
         );
-        const httpServer = validateAndBuildHttpServer(vars, buildHttpServer);
+        validateEnvironmentVariables(vars);
+        const httpServer = buildHttpServer(vars);
         if (!options.force) await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);
 
         spinner.start('Publishing code customizations (operation cannot be cancelled)');
         const subscriptionId = await publish(httpServer, distPathManager);
-        const subscriber = validateAndBuildEventSubscriber(vars, buildEventSubscriber);
+        const subscriber = buildEventSubscriber(vars);
 
         try {
           const { error } = await subscriber.subscribeToCodeCustomization(subscriptionId);

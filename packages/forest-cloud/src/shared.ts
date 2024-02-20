@@ -1,33 +1,7 @@
 import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
 import { BusinessError } from './errors';
-import { validateEnvironmentVariables } from './services/environment-variables';
-import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
-import {
-  BuildEventSubscriber,
-  BuildHttpServer,
-  EnvironmentVariables,
-  Logger,
-  Login,
-} from './types';
-
-export const validateAndBuildHttpServer = (
-  envs: EnvironmentVariables,
-  buildHttpServer: BuildHttpServer,
-): HttpServer => {
-  validateEnvironmentVariables(envs);
-
-  return buildHttpServer(envs);
-};
-
-export const validateAndBuildEventSubscriber = (
-  envs: EnvironmentVariables,
-  buildEventSubscriber: BuildEventSubscriber,
-): EventSubscriber => {
-  validateEnvironmentVariables(envs);
-
-  return buildEventSubscriber(envs);
-};
+import { EnvironmentVariables, Logger, Login } from './types';
 
 export const loginIfMissingAuthAndReturnEnvironmentVariables = async (
   login: Login,

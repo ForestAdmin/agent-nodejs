@@ -3,10 +3,10 @@ import { Command } from 'commander';
 import actionRunner from '../dialogs/action-runner';
 import { BusinessError } from '../errors';
 import bootstrap from '../services/bootstrap';
+import { validateEnvironmentVariables } from '../services/environment-variables';
 import {
   askToOverwriteCustomizationsOrAbortCommand,
   loginIfMissingAuthAndReturnEnvironmentVariables,
-  validateAndBuildHttpServer,
 } from '../shared';
 import { MakeCommands } from '../types';
 
@@ -29,9 +29,9 @@ export default (program: Command, context: MakeCommands) => {
           getEnvironmentVariables,
         );
 
-        const secret = options.envSecret || vars.FOREST_ENV_SECRET;
+        vars.FOREST_ENV_SECRET = options.envSecret || vars.FOREST_ENV_SECRET;
 
-        if (!secret) {
+        if (!vars.FOREST_ENV_SECRET) {
           throw new BusinessError(
             'Your forest env secret is missing.' +
               ' Please provide it with the `bootstrap --env-secret <your-secret-key>` command or' +
@@ -39,18 +39,16 @@ export default (program: Command, context: MakeCommands) => {
           );
         }
 
+        validateEnvironmentVariables(vars);
+
         logger.spinner.succeed('Environment found');
         logger.spinner.stop();
 
-        const httpServer = validateAndBuildHttpServer(
-          { ...vars, FOREST_ENV_SECRET: secret },
-          buildHttpServer,
-        );
-
+        const httpServer = buildHttpServer(vars);
         await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);
 
         logger.spinner.start();
-        await bootstrap(secret, httpServer, bootstrapPathManager);
+        await bootstrap(vars.FOREST_ENV_SECRET, httpServer, bootstrapPathManager);
         logger.spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         );

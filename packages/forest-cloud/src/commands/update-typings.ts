@@ -5,10 +5,7 @@ import checkLatestVersion from '../dialogs/check-latest-version';
 import { validateEnvironmentVariables } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import { updateTypingsWithCustomizations } from '../services/update-typings';
-import {
-  loginIfMissingAuthAndReturnEnvironmentVariables,
-  validateAndBuildHttpServer,
-} from '../shared';
+import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
 import { MakeCommands } from '../types';
 
 export default (program: Command, context: MakeCommands) => {
@@ -37,12 +34,9 @@ export default (program: Command, context: MakeCommands) => {
           logger,
           getEnvironmentVariables,
         );
-
         validateEnvironmentVariables(vars);
-        const introspection = await validateAndBuildHttpServer(
-          vars,
-          buildHttpServer,
-        ).getIntrospection();
+
+        const introspection = await buildHttpServer(vars).getIntrospection();
 
         await updateTypingsWithCustomizations(introspection, distPathManager, bootstrapPathManager);
         logger.spinner.succeed('Your typings have been updated');
