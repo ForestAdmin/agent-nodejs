@@ -171,22 +171,5 @@ describe('http-server', () => {
         },
       });
     });
-
-    it('should call axios with the correct parameters when tail is given', async () => {
-      jest.mocked(axios.default).mockResolvedValue({});
-
-      await httpServer.getLogs(10);
-
-      expect(axios.default).toHaveBeenCalled();
-      expect(axios.default).toHaveBeenCalledWith({
-        url: 'server-url/api/full-hosted-agent/logs?limit=10',
-        method: 'GET',
-        headers: {
-          'forest-secret-key': 'sk',
-          Authorization: 'Bearer bearerToken',
-          'Content-Type': 'application/json',
-        },
-      });
-    });
   });
 });
