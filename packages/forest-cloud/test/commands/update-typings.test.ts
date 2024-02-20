@@ -40,11 +40,6 @@ describe('update-typings command', () => {
       cmd.start('Updating typings'),
       cmd.succeed('Your typings have been updated'),
     ]);
-    // TODO: agent does not have an await ! It's a bug but fixed on main.
-    // remove this sleep when merging on main
-    await new Promise(resolve => {
-      setTimeout(resolve, 500);
-    });
 
     await expect(fs.access(setup.bootstrapPathManager.typings)).resolves.not.toThrow();
 
