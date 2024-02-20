@@ -1,3 +1,18 @@
+## @forestadmin/forest-cloud [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.3...@forestadmin/forest-cloud@1.0.4) (2024-02-20)
+
+
+### Bug Fixes
+
+* **update-types:** updateTypesOnFileSystem ends before writing the file ([#1031](https://github.com/ForestAdmin/agent-nodejs/issues/1031)) ([8a7386c](https://github.com/ForestAdmin/agent-nodejs/commit/8a7386c550e275c21f44cc0e2e54942f782dc10c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.1
+
 ## @forestadmin/forest-cloud [1.0.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.2...@forestadmin/forest-cloud@1.0.3) (2024-02-19)
 
 
