@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.38.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.38.0...@forestadmin/agent@1.38.1) (2024-02-20)
+
+
+### Bug Fixes
+
+* **update-types:** updateTypesOnFileSystem ends before writing the file ([#1031](https://github.com/ForestAdmin/agent-nodejs/issues/1031)) ([8a7386c](https://github.com/ForestAdmin/agent-nodejs/commit/8a7386c550e275c21f44cc0e2e54942f782dc10c))
+
 # @forestadmin/agent [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.37.2...@forestadmin/agent@1.38.0) (2024-02-19)
 
 
