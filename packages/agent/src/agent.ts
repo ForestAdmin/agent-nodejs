@@ -118,7 +118,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
     const { logger } = this.options;
     await this.customizer.getDataSource(logger);
-    this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth);
+    await this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth);
   }
 
   /**
