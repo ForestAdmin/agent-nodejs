@@ -26,7 +26,7 @@ const presignedPost = {
   },
 };
 
-const environmentVariables = {
+export const environmentVariables = {
   FOREST_AUTH_TOKEN: 'forest-auth-token',
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',

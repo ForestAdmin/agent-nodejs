@@ -68,6 +68,19 @@ export function validateSubscriptionUrl(subscriptionUrl: string): void {
   validateUrl(subscriptionUrl, 'FOREST_SUBSCRIPTION_URL', ['wss:']);
 }
 
+export function validateMissingForestEnvSecret(
+  forestEnvSecret: string,
+  fromCommand: 'logs' | 'bootstrap',
+): void {
+  if (!forestEnvSecret) {
+    throw new BusinessError(
+      'Your forest env secret is missing.' +
+        ` Please provide it with the \`${fromCommand} --env-secret <your-secret-key>\` command or` +
+        ' add it to your .env file or in environment variables.',
+    );
+  }
+}
+
 export function validateEnvironmentVariables(env: EnvironmentVariables): void {
   if (!env.FOREST_ENV_SECRET) {
     throw new BusinessError('Missing FOREST_ENV_SECRET. Please check your .env file.');

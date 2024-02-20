@@ -3,7 +3,10 @@ import { Command } from 'commander';
 import actionRunner from '../dialogs/action-runner';
 import { BusinessError } from '../errors';
 import bootstrap from '../services/bootstrap';
-import { validateEnvironmentVariables } from '../services/environment-variables';
+import {
+  validateEnvironmentVariables,
+  validateMissingForestEnvSecret,
+} from '../services/environment-variables';
 import {
   askToOverwriteCustomizationsOrAbortCommand,
   loginIfMissingAuthAndReturnEnvironmentVariables,
@@ -33,14 +36,7 @@ export default (program: Command, context: MakeCommands) => {
         );
 
         vars.FOREST_ENV_SECRET = options.envSecret || vars.FOREST_ENV_SECRET;
-
-        if (!vars.FOREST_ENV_SECRET) {
-          throw new BusinessError(
-            'Your forest env secret is missing.' +
-              ' Please provide it with the `bootstrap --env-secret <your-secret-key>` command or' +
-              ' add it to your .env file or in environment variables.',
-          );
-        }
+        validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
 
         validateEnvironmentVariables(vars);
 
