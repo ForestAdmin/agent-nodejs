@@ -72,11 +72,7 @@ describe('logs command', () => {
       ]);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([
-        cmd.start('Fetching logs'),
-        cmd.succeed('Logs fetched'),
-        cmd.warn('No logs available'),
-      ]);
+      expect(cmd.outputs).toEqual([cmd.warn('No logs available')]);
     });
   });
 
@@ -96,8 +92,7 @@ describe('logs command', () => {
           // eslint-disable-next-line max-len
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.\nPlease update it.',
         ),
-        cmd.start('Fetching logs'),
-        cmd.succeed('Logs fetched'),
+
         cmd.log('log1'),
       ]);
     });
@@ -112,11 +107,7 @@ describe('logs command', () => {
       const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([
-        cmd.start('Fetching logs'),
-        cmd.succeed('Logs fetched'),
-        cmd.warn('No logs available'),
-      ]);
+      expect(cmd.outputs).toEqual([cmd.warn('No logs available')]);
     });
   });
 
@@ -129,12 +120,33 @@ describe('logs command', () => {
       const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([
-        cmd.start('Fetching logs'),
-        cmd.succeed('Logs fetched'),
-        cmd.log('log1'),
-        cmd.log('log2'),
-      ]);
+      expect(cmd.outputs).toEqual([cmd.log('log1'), cmd.log('log2')]);
+    });
+
+    describe('when wants n last logs', () => {
+      describe('when given a float instead of integer', () => {
+        it('should display a fail message', async () => {
+          const setup = setupCommandArguments({
+            getLogs: jest.fn().mockResolvedValue(['log1', 'log2']),
+          });
+
+          const cmd = new CommandTester(setup, ['logs', '--tail', '2.5']);
+          await cmd.run();
+
+          expect(cmd.outputs).toEqual([cmd.fail('The --tail (-n) option must be an integer')]);
+        });
+      });
+
+      it('should display the logs with the n last logs', async () => {
+        const getLogs = jest.fn().mockResolvedValue(['log1', 'log2']);
+        const setup = setupCommandArguments({ getLogs });
+
+        const cmd = new CommandTester(setup, ['logs', '--tail', '2']);
+        await cmd.run();
+
+        expect(cmd.outputs).toEqual([cmd.log('log1'), cmd.log('log2')]);
+        expect(getLogs).toHaveBeenCalledWith('2');
+      });
     });
   });
 });
