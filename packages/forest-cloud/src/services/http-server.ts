@@ -112,6 +112,17 @@ export default class HttpServer {
     );
   }
 
+  async getLogs(): Promise<string[]> {
+    return handledAxios<string[]>(
+      {
+        url: `${this.serverUrl}/api/full-hosted-agent/logs`,
+        method: 'GET',
+        headers: this.headers,
+      },
+      { errorMessage: `Failed to retrieve logs` },
+    );
+  }
+
   static async getLatestVersion(packageName: string): Promise<string> {
     return latestVersion(packageName);
   }

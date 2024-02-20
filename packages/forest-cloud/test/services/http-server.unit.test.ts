@@ -153,4 +153,23 @@ describe('http-server', () => {
       });
     });
   });
+
+  describe('getLogs', () => {
+    it('should call axios with the correct parameters', async () => {
+      jest.mocked(axios.default).mockResolvedValue({});
+
+      await httpServer.getLogs();
+
+      expect(axios.default).toHaveBeenCalled();
+      expect(axios.default).toHaveBeenCalledWith({
+        url: 'server-url/api/full-hosted-agent/logs',
+        method: 'GET',
+        headers: {
+          'forest-secret-key': 'sk',
+          Authorization: 'Bearer bearerToken',
+          'Content-Type': 'application/json',
+        },
+      });
+    });
+  });
 });
