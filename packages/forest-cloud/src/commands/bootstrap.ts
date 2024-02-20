@@ -36,7 +36,7 @@ export default (program: Command, context: MakeCommands) => {
         );
 
         vars.FOREST_ENV_SECRET = options.envSecret || vars.FOREST_ENV_SECRET;
-        validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
+        validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'bootstrap');
 
         validateEnvironmentVariables(vars);
 
