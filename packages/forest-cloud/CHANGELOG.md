@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.0.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.4...@forestadmin/forest-cloud@1.0.5) (2024-02-20)
+
+
+### Bug Fixes
+
+* **forest-cloud:** bump forest-cli to remove warning during installation ([#1032](https://github.com/ForestAdmin/agent-nodejs/issues/1032)) ([e539a39](https://github.com/ForestAdmin/agent-nodejs/commit/e539a391d320dfac7177e90d20c0acccb353d295))
+
 ## @forestadmin/forest-cloud [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.3...@forestadmin/forest-cloud@1.0.4) (2024-02-20)
 
 
