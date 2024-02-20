@@ -3,7 +3,7 @@
 
 import { configDotenv } from 'dotenv';
 
-import buildCommand from './build-command';
+import buildCommands from './build-commands';
 
 configDotenv();
-buildCommand().parseAsync();
+buildCommands().parseAsync();
