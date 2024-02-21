@@ -1,3 +1,11 @@
+# @forestadmin/forest-cloud [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.5...@forestadmin/forest-cloud@1.1.0) (2024-02-21)
+
+
+### Features
+
+* dump non default passed env variables to .env ([#1035](https://github.com/ForestAdmin/agent-nodejs/issues/1035)) ([1629d8b](https://github.com/ForestAdmin/agent-nodejs/commit/1629d8bc17fdabb363e1a3e71933d6a79059d0a2))
+* **forest-cloud:** allow the user to give a name of his project ([#1036](https://github.com/ForestAdmin/agent-nodejs/issues/1036)) ([1b73b4a](https://github.com/ForestAdmin/agent-nodejs/commit/1b73b4a46f92c9292c7a67c2b7c9d2e071078257))
+
 ## @forestadmin/forest-cloud [1.0.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.4...@forestadmin/forest-cloud@1.0.5) (2024-02-20)
 
 
