@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.0...@forestadmin/forest-cloud@1.1.1) (2024-02-21)
+
+
+### Bug Fixes
+
+* name must be required for bootstrap command ([#1039](https://github.com/ForestAdmin/agent-nodejs/issues/1039)) ([7eb982b](https://github.com/ForestAdmin/agent-nodejs/commit/7eb982b393bc0853775d5943be3b661b2ad505a5))
+
 # @forestadmin/forest-cloud [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.0.5...@forestadmin/forest-cloud@1.1.0) (2024-02-21)
 
 
