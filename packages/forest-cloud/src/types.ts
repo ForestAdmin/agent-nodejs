@@ -99,8 +99,10 @@ export type Spinner = {
 export type Logger = {
   spinner: Spinner;
   info: (text?: string) => void;
+  log: (text?: string) => void;
   error: (text?: string) => void;
   warn: (text?: string) => void;
+  debug: (text?: string) => void;
 };
 
 export type Login = (logger: Logger) => Promise<void>;

@@ -12,7 +12,7 @@ export default (program: Command, context: MakeCommands) => {
     actionRunner(logger.spinner, async () => {
       // we want to display before to display the warning
       const version = getCurrentVersion();
-      logger.log(version);
+      logger.info(version);
       await checkLatestVersion(logger.spinner, version, HttpServer.getLatestVersion);
     }),
   );

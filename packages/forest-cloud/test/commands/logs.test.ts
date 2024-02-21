@@ -81,7 +81,7 @@ describe('logs command', () => {
       const setup = setupCommandArguments({
         getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
         getLatestVersion: jest.fn().mockResolvedValue('1.0.1'),
-        getLogs: jest.fn().mockResolvedValue(['log1']),
+        getLogs: jest.fn().mockResolvedValue({ logs: ['log1'] }),
       });
 
       const cmd = new CommandTester(setup, ['logs']);
@@ -93,7 +93,7 @@ describe('logs command', () => {
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.\nPlease update it.',
         ),
 
-        cmd.log('log1'),
+        cmd.logInfo('log1'),
       ]);
     });
   });
@@ -120,7 +120,7 @@ describe('logs command', () => {
       const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.log('log1'), cmd.log('log2')]);
+      expect(cmd.outputs).toEqual([cmd.logInfo('log1'), cmd.logInfo('log2')]);
     });
 
     describe('when wants n last logs', () => {
@@ -144,7 +144,7 @@ describe('logs command', () => {
         const cmd = new CommandTester(setup, ['logs', '--tail', '2']);
         await cmd.run();
 
-        expect(cmd.outputs).toEqual([cmd.log('log1'), cmd.log('log2')]);
+        expect(cmd.outputs).toEqual([cmd.logInfo('log1'), cmd.logInfo('log2')]);
         expect(getLogs).toHaveBeenCalledWith('2');
       });
     });
