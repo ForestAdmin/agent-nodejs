@@ -23,7 +23,7 @@ describe('Filter tests on collection', () => {
         await connection.query.createDatabase(dbSequelize, DB);
         await dbSequelize.close();
 
-        sequelize = await new Sequelize(connection.uri(DB), { logging: false });
+        sequelize = new Sequelize(connection.uri(DB), { logging: false });
       } catch (e) {
         console.error(e);
         throw e;

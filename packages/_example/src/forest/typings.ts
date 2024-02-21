@@ -255,12 +255,12 @@ export type Schema = {
       'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
-      'customer:createdAt': string | null;
+      'customer:createdAt': string;
       'customer:deletedAt': string | null;
       'customer:firstName': string;
       'customer:id': number;
       'customer:name': string | null;
-      'customer:updatedAt': string | null;
+      'customer:updatedAt': string;
     };
   };
   'comment': {
@@ -287,12 +287,12 @@ export type Schema = {
   };
   'customer': {
     plain: {
-      'createdAt': string | null;
+      'createdAt': string;
       'deletedAt': string | null;
       'firstName': string;
       'id': number;
       'name': string | null;
-      'updatedAt': string | null;
+      'updatedAt': string;
     };
     nested: {};
     flat: {};
@@ -351,12 +351,12 @@ export type Schema = {
       'dvd:store:name': string;
       'dvd:store:ownerFullName': string | null;
       'dvd:store:ownerId': number;
-      'rental:customer:createdAt': string | null;
+      'rental:customer:createdAt': string;
       'rental:customer:deletedAt': string | null;
       'rental:customer:firstName': string;
       'rental:customer:id': number;
       'rental:customer:name': string | null;
-      'rental:customer:updatedAt': string | null;
+      'rental:customer:updatedAt': string;
       'dvd:store:owner:firstName': string;
       'dvd:store:owner:fullName': string | null;
       'dvd:store:owner:id': number;
@@ -402,12 +402,12 @@ export type Schema = {
       'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
-      'customer:createdAt': string | null;
+      'customer:createdAt': string;
       'customer:deletedAt': string | null;
       'customer:firstName': string;
       'customer:id': number;
       'customer:name': string | null;
-      'customer:updatedAt': string | null;
+      'customer:updatedAt': string;
     };
   };
   'review': {
