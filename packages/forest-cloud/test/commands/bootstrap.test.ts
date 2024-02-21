@@ -93,7 +93,7 @@ describe('bootstrap command', () => {
       const getIntrospection = jest.fn().mockResolvedValue([]);
 
       const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
-      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
+      const cloudCustomizerPath = setup.bootstrapPathManager.folder;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
 
       const cmd = new CommandTester(setup, [
