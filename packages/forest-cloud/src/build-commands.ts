@@ -12,6 +12,13 @@ import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
 import { EnvironmentVariables, Logger } from './types';
 
+const loggerPrefix = {
+  Debug: '\x1b[34mdebug:\x1b[0m',
+  Info: '\x1b[32minfo:\x1b[0m',
+  Warn: '\x1b[33mwarning:\x1b[0m',
+  Error: '\x1b[31merror:\x1b[0m',
+};
+
 const buildHttpServer = (envs: EnvironmentVariables): HttpServer => {
   return new HttpServer(envs.FOREST_SERVER_URL, envs.FOREST_ENV_SECRET, envs.FOREST_AUTH_TOKEN);
 };
@@ -22,9 +29,11 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
 
 const logger: Logger = {
   spinner: ora(),
-  info: (text?: string) => process.stdout.write(text),
-  error: (text?: string) => process.stdout.write(text),
-  warn: (text?: string) => process.stdout.write(text),
+  log: (text?: string) => process.stdout.write(text),
+  info: (text?: string) => process.stdout.write(`${loggerPrefix.Info} ${text}`),
+  error: (text?: string) => process.stdout.write(`${loggerPrefix.Error} ${text}`),
+  warn: (text?: string) => process.stdout.write(`${loggerPrefix.Warn} ${text}`),
+  debug: (text?: string) => process.stdout.write(`${loggerPrefix.Debug} ${text}`),
 };
 
 function getCurrentVersion() {

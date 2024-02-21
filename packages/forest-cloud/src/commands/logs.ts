@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { info } from 'node:console';
 
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
@@ -10,14 +9,13 @@ import {
 } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
-import { MakeCommands } from '../types';
+import { Logger, MakeCommands } from '../types';
 
-// MOVE TO internal logger https://vscode.dev/github/ForestAdmin/agent-nodejs/blob/add-logs/packages/forest-cloud/src/build-commands.ts#L23
-const loggerPrefix = {
-  Debug: '\x1b[34mdebug:\x1b[0m',
-  Info: '\x1b[32minfo:\x1b[0m',
-  Warn: '\x1b[33mwarning:\x1b[0m',
-  Error: '\x1b[31merror:\x1b[0m',
+const levelToLog = {
+  Debug: 'debug',
+  Info: 'info',
+  Warn: 'warn',
+  Error: 'error',
 };
 
 type SystemInfoLog = {
@@ -51,25 +49,19 @@ type RequestWarnLog = {
 
 type Log = SystemInfoLog | RequestInfoLog | RequestWarnLog;
 
-const parseLogMessage = (rawLogMessage: string) => {
-  // @ts-expect-error voila
-  const { level, method, message, path, duration, status, event, error }: Log =
-    JSON.parse(rawLogMessage);
+const logMessage = (logger: Logger, rawLogMessage: string, timestamp: string) => {
+  const log: Log = JSON.parse(rawLogMessage);
 
-  // TODO: Do something great about this
-  switch (event) {
-    case 'request':
-      if (level === 'Info')
-        return `${loggerPrefix[level]}[${status}] ${method} ${path} - ${duration}ms`;
+  if (log.event === 'request') {
+    const { level, method, status, path, duration } = log;
+    const base = `${timestamp} | [${status}] ${method} ${path} - ${duration}ms`;
 
-      return (
-        `${loggerPrefix[level]}[${status}] ${method} ${path} - ${duration}ms\n` +
-        `\t${error.message}\t${error.stack}`
-      );
+    if (level === 'Info') return logger.info(base);
 
-    default:
-      return loggerPrefix[level] + message;
+    return logger[levelToLog[level]](`${base}\n\t${log.error.message}\t${log.error.stack}`);
   }
+
+  return logger[levelToLog[log.level]](log.message);
 };
 
 export default (program: Command, context: MakeCommands) => {
@@ -110,7 +102,7 @@ export default (program: Command, context: MakeCommands) => {
             .sort((a, b) => a.timestamp - b.timestamp)
             .forEach(({ message }) => {
               const [logTimestamp, , , rawLogMessage] = message.split('\t');
-              logger.log(`${logTimestamp} | ${parseLogMessage(rawLogMessage)}`);
+              logMessage(logger, rawLogMessage, logTimestamp);
             });
         } else {
           logger.spinner.warn('No logs available');

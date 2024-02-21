@@ -29,8 +29,9 @@ export default class CommandTester {
   async run(): Promise<void> {
     try {
       await this.command.parseAsync(this.argv, { from: 'user' });
+      // eslint-disable-next-line no-useless-catch
     } catch (e) {
-      throw new Error(e);
+      throw e;
     } finally {
       this.rl?.close();
     }
@@ -56,12 +57,24 @@ export default class CommandTester {
     return `${logSymbols.error} ${message}`;
   }
 
-  log(message: string): string {
-    return `(log) ${message}`;
+  logInfo(message: string): string {
+    return `(info) ${message}`;
   }
 
   logError(message: string): string {
     return `(error) ${message}`;
+  }
+
+  logDebug(message: string): string {
+    return `(debug) ${message}`;
+  }
+
+  logWarn(message: string): string {
+    return `(warn) ${message}`;
+  }
+
+  log(message: string): string {
+    return `(log) ${message}`;
   }
 
   private catchQuestionTraces() {
@@ -103,11 +116,20 @@ export default class CommandTester {
         },
         stop: jest.fn(),
       },
-      log: (text?: string) => {
-        this.saveOutput(this.log(text));
+      info: (text?: string) => {
+        this.saveOutput(this.logInfo(text));
       },
       error: (text?: string) => {
         this.saveOutput(this.logError(text));
+      },
+      warn: (text?: string) => {
+        this.saveOutput(this.logWarn(text));
+      },
+      debug: (text?: string) => {
+        this.saveOutput(this.logDebug(text));
+      },
+      log: (text?: string) => {
+        this.saveOutput(this.log(text));
       },
     };
   }

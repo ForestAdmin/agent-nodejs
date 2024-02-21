@@ -20,7 +20,7 @@ describe('version command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.log('1.0.0'),
+        cmd.logInfo('1.0.0'),
         cmd.fail(
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 2.0.0.' +
             '\nPlease update it to the latest major version to be able to use our services.',
@@ -39,7 +39,7 @@ describe('version command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.log('1.0.0'),
+        cmd.logInfo('1.0.0'),
         cmd.warn(
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.' +
             '\nPlease update it.',
@@ -58,7 +58,7 @@ describe('version command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.log('1.0.0'),
+        cmd.logInfo('1.0.0'),
         cmd.info('Unable to check the latest version of @forestadmin/forest-cloud'),
       ]);
     });
@@ -73,7 +73,7 @@ describe('version command', () => {
       const cmd = new CommandTester(setup, ['--version']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.log('1.0.0')]);
+      expect(cmd.outputs).toEqual([cmd.logInfo('1.0.0')]);
     });
   });
 });
