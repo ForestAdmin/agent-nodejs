@@ -16,7 +16,7 @@ export default (program: Command, context: MakeCommands) => {
   program
     .command('bootstrap')
     .description('Bootstrap your project')
-    .argument('[name]', 'The name of your project folder')
+    .argument('<name>', 'The name of your project folder')
     .option(
       '-e, --env-secret <string>',
       'Environment secret, you can find it in your environment settings',
