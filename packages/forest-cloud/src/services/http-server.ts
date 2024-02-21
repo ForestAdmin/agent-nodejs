@@ -113,10 +113,10 @@ export default class HttpServer {
     );
   }
 
-  async getLogs(tail?: number | string): Promise<{ logs: string[] }> {
+  async getLogs(tail?: number | string) {
     void tail;
 
-    return handledAxios<{ logs: string[] }>(
+    return handledAxios<{ logs: { timestamp: number; message: string }[] }>(
       {
         url: `${this.serverUrl}/api/full-hosted-agent/logs`,
         method: 'GET',
