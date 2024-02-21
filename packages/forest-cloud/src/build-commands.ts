@@ -20,6 +20,13 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
   return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
 };
 
+const logger: Logger = {
+  spinner: ora(),
+  info: (text?: string) => process.stdout.write(text),
+  error: (text?: string) => process.stdout.write(text),
+  warn: (text?: string) => process.stdout.write(text),
+};
+
 function getCurrentVersion() {
   const { version } = JSON.parse(
     fsSync.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
