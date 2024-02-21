@@ -67,5 +67,3 @@ export default async function bootstrap(
     throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage || ''}`);
   }
 }
-
-// NODE_TLS_REJECT_UNAUTHORIZED=0 FOREST_SERVER_URL=https://maison.lamuseauplacard.fr:4430  FOREST_SUBSCRIPTION_URL=https://maison.lamuseauplacard.fr:4430/subscriptions  ../dist/command.js bootstrap --env-secret e1a53ab684fe73fb4c13bd6d271a6849f6ee62d777a52ea855b56e2c3ea421e0
