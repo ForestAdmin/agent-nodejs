@@ -65,7 +65,7 @@ services:
       - MARIADB_ROOT_PASSWORD=password
 
   mariadb11:
-    image: mariadb:11
+    image: mariadb:11.2
     container_name: forest_datasource_sql_test_mariadb11
     ports:
       - '3811:3306'
