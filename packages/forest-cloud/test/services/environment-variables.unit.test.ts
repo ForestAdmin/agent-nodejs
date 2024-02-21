@@ -28,11 +28,13 @@ describe('environment-variables', () => {
         process.env.FOREST_SERVER_URL = 'https://the.forest.server.url';
         process.env.FOREST_AUTH_TOKEN = 'tokenAbc123';
         process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
         expect(await getEnvironmentVariables()).toEqual({
           FOREST_AUTH_TOKEN: 'tokenAbc123',
           FOREST_ENV_SECRET: 'abc',
           FOREST_SERVER_URL: 'https://the.forest.server.url',
           FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
+          NODE_TLS_REJECT_UNAUTHORIZED: '1',
         });
       });
     });
@@ -158,6 +160,7 @@ describe('environment-variables', () => {
               FOREST_SERVER_URL: '',
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
+              NODE_TLS_REJECT_UNAUTHORIZED: '',
             }),
           ).toThrow('Missing FOREST_ENV_SECRET. Please check your .env file.');
         });
@@ -171,6 +174,7 @@ describe('environment-variables', () => {
               FOREST_SERVER_URL: '',
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
+              NODE_TLS_REJECT_UNAUTHORIZED: '',
             }),
           ).toThrow(
             // eslint-disable-next-line max-len
@@ -187,6 +191,7 @@ describe('environment-variables', () => {
               FOREST_SERVER_URL: '',
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
+              NODE_TLS_REJECT_UNAUTHORIZED: '',
             }),
           ).toThrow(
             // eslint-disable-next-line max-len
@@ -203,6 +208,7 @@ describe('environment-variables', () => {
               FOREST_SERVER_URL: '',
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
+              NODE_TLS_REJECT_UNAUTHORIZED: '',
             }),
           ).toThrow(
             'Missing authentication token. Your TOKEN_PATH is probably wrong on .env file.',
@@ -218,6 +224,7 @@ describe('environment-variables', () => {
               FOREST_SERVER_URL: '',
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: 'a'.repeat(64),
+              NODE_TLS_REJECT_UNAUTHORIZED: '',
             }),
           ).toThrow('Missing FOREST_SERVER_URL. Please check your .env file.');
         });
@@ -231,6 +238,7 @@ describe('environment-variables', () => {
               FOREST_SERVER_URL: 'http://test.com',
               FOREST_SUBSCRIPTION_URL: 'wss://test.com',
               FOREST_AUTH_TOKEN: 'a'.repeat(64),
+              NODE_TLS_REJECT_UNAUTHORIZED: '',
             }),
           ).not.toThrow();
         });

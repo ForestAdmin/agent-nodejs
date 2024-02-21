@@ -15,13 +15,21 @@ const getTokenFromToolbelt = async (): Promise<string | null> => {
   return null;
 };
 
+export const defaultEnvs = Object.freeze({
+  FOREST_SERVER_URL: 'https://api.forestadmin.com',
+  FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
+  NODE_TLS_REJECT_UNAUTHORIZED: '1',
+});
+
 export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   return {
     FOREST_ENV_SECRET: process.env.FOREST_ENV_SECRET,
-    FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
+    FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || defaultEnvs.FOREST_SERVER_URL,
     FOREST_SUBSCRIPTION_URL:
-      process.env.FOREST_SUBSCRIPTION_URL || 'wss://api.forestadmin.com/subscriptions',
+      process.env.FOREST_SUBSCRIPTION_URL || defaultEnvs.FOREST_SUBSCRIPTION_URL,
     FOREST_AUTH_TOKEN: process.env.FOREST_AUTH_TOKEN || (await getTokenFromToolbelt()),
+    NODE_TLS_REJECT_UNAUTHORIZED:
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED || defaultEnvs.NODE_TLS_REJECT_UNAUTHORIZED,
   };
 }
 

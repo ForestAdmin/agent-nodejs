@@ -2,14 +2,11 @@ import fs from 'fs/promises';
 
 import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
+import { defaultEnvs } from '../../src/services/environment-variables';
 
 describe('bootstrap command', () => {
   describe('when it is the first time to run bootstrap', () => {
     it('should generate the cloud customizer folder', async () => {
-      const defaultEnvs = {
-        FOREST_SERVER_URL: 'https://api.forestadmin.com',
-        FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
-      };
       const getEnvironmentVariables = jest
         .fn()
         .mockResolvedValueOnce({
@@ -69,6 +66,58 @@ describe('bootstrap command', () => {
       expect(await fs.readFile(setup.bootstrapPathManager.env, 'utf-8')).toContain(
         'FOREST_ENV_SECRET=d4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
       );
+      const generateDotEnv = await fs.readFile(setup.bootstrapPathManager.env, 'utf-8');
+      expect(generateDotEnv.replace(/\s/, '')).not.toContain(
+        `FOREST_SERVER_URL=${defaultEnvs.FOREST_SERVER_URL}`,
+      );
+    });
+  });
+
+  describe('when non-default env variable are passed', () => {
+    it('should generate the .env with variables saved', async () => {
+      const getEnvironmentVariables = jest
+        .fn()
+        .mockResolvedValueOnce({
+          FOREST_AUTH_TOKEN: null, // auth token is missing because login is required
+          ...defaultEnvs,
+          FOREST_SERVER_URL: 'https://my-awesome-server.com',
+          NODE_TLS_REJECT_UNAUTHORIZED: '0',
+        })
+        .mockResolvedValueOnce({
+          FOREST_AUTH_TOKEN: 'a-token-after-login', // auth token is present after login
+          ...defaultEnvs,
+          FOREST_SERVER_URL: 'https://my-awesome-server.com',
+          NODE_TLS_REJECT_UNAUTHORIZED: '0',
+        });
+
+      const getIntrospection = jest.fn().mockResolvedValue([]);
+
+      const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
+      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
+      await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
+
+      const cmd = new CommandTester(setup, [
+        'bootstrap',
+        '--env-secret',
+        'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
+      ]);
+      await cmd.run();
+
+      expect(cmd.outputs).toEqual([
+        cmd.start('Bootstrapping project'),
+        cmd.succeed('Environment found'),
+        cmd.start('Bootstrapping project'),
+        cmd.succeed(
+          'Project successfully bootstrapped. You can start creating your customizations!',
+        ),
+      ]);
+
+      expect(setup.login).toHaveBeenCalled();
+      const generateDotEnv = await fs.readFile(setup.bootstrapPathManager.env, 'utf-8');
+      expect(generateDotEnv.replace(/\s/, '')).toContain(
+        'FOREST_SERVER_URL=https://my-awesome-server.com',
+      );
+      expect(generateDotEnv.replace(/\s/, '')).toContain('NODE_TLS_REJECT_UNAUTHORIZED=0');
     });
   });
 

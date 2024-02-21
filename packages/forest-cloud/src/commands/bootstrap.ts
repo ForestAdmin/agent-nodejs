@@ -48,7 +48,7 @@ export default (program: Command, context: MakeCommands) => {
         await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);
 
         logger.spinner.start();
-        await bootstrap(vars.FOREST_ENV_SECRET, httpServer, bootstrapPathManager);
+        await bootstrap(vars, httpServer, bootstrapPathManager);
         logger.spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         );

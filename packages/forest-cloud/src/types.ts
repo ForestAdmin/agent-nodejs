@@ -72,6 +72,7 @@ export type EnvironmentVariables = {
   FOREST_SERVER_URL: string;
   FOREST_SUBSCRIPTION_URL: string;
   FOREST_AUTH_TOKEN: string;
+  NODE_TLS_REJECT_UNAUTHORIZED: string;
 };
 
 export type MakeCommands = {
