@@ -2,9 +2,18 @@ import fs from 'fs/promises';
 
 import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
+import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import { defaultEnvs } from '../../src/services/environment-variables';
 
 describe('bootstrap command', () => {
+  const removePotentialFolderWithSameProjectName = async (
+    bootstrapPathManager: BootstrapPathManager,
+  ) => {
+    bootstrapPathManager.folderName = 'my-project-name';
+    const folderPath = bootstrapPathManager.folder;
+    await fs.rm(folderPath, { force: true, recursive: true });
+  };
+
   describe('when it is the first time to run bootstrap', () => {
     it('should generate the forest-cloud folder', async () => {
       const getEnvironmentVariables = jest
@@ -39,11 +48,11 @@ describe('bootstrap command', () => {
       ]);
 
       const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
-      const folderPath = setup.bootstrapPathManager.folder;
-      await fs.rm(folderPath, { force: true, recursive: true });
+      await removePotentialFolderWithSameProjectName(setup.bootstrapPathManager);
 
       const cmd = new CommandTester(setup, [
         'bootstrap',
+        'my-project-name',
         '--env-secret',
         'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
       ]);
@@ -59,7 +68,7 @@ describe('bootstrap command', () => {
       ]);
 
       expect(setup.login).toHaveBeenCalled();
-      await expect(fs.access(folderPath)).resolves.not.toThrow();
+      await expect(fs.access(setup.bootstrapPathManager.folder)).resolves.not.toThrow();
       expect(await fs.readFile(setup.bootstrapPathManager.index, 'utf-8')).toContain(
         'export default function customizeAgent(agent: Agent<Schema>) {',
       );
@@ -93,11 +102,11 @@ describe('bootstrap command', () => {
       const getIntrospection = jest.fn().mockResolvedValue([]);
 
       const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
-      const cloudCustomizerPath = setup.bootstrapPathManager.folder;
-      await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
+      await removePotentialFolderWithSameProjectName(setup.bootstrapPathManager);
 
       const cmd = new CommandTester(setup, [
         'bootstrap',
+        'my-project-name',
         '--env-secret',
         'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
       ]);
@@ -123,9 +132,7 @@ describe('bootstrap command', () => {
     describe('when given a project folder name', () => {
       it('should create the folder with the given name', async () => {
         const setup = setupCommandArguments();
-        setup.bootstrapPathManager.folderName = 'my-project-name';
-        const folderPath = setup.bootstrapPathManager.folder;
-        await fs.rm(folderPath, { force: true, recursive: true });
+        await removePotentialFolderWithSameProjectName(setup.bootstrapPathManager);
 
         const cmd = new CommandTester(setup, [
           'bootstrap',
@@ -144,7 +151,7 @@ describe('bootstrap command', () => {
           ),
         ]);
 
-        await expect(fs.access(folderPath)).resolves.not.toThrow();
+        await expect(fs.access(setup.bootstrapPathManager.folder)).resolves.not.toThrow();
       });
     });
   });
@@ -154,7 +161,7 @@ describe('bootstrap command', () => {
       const getEnvironmentVariables = jest.fn().mockResolvedValue({});
       const setup = setupCommandArguments({ getEnvironmentVariables });
 
-      const cmd = new CommandTester(setup, ['bootstrap']);
+      const cmd = new CommandTester(setup, ['bootstrap', 'my-project-name']);
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
@@ -170,12 +177,14 @@ describe('bootstrap command', () => {
   describe('when there is already a cloud customizer folder', () => {
     it('should throw an error', async () => {
       const setup = setupCommandArguments();
+      setup.bootstrapPathManager.folderName = 'my-project-name';
       const folderPath = setup.bootstrapPathManager.folder;
       await fs.rm(folderPath, { force: true, recursive: true });
       await fs.mkdir(folderPath);
 
       const cmd = new CommandTester(setup, [
         'bootstrap',
+        'my-project-name',
         '--env-secret',
         'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
       ]);
@@ -185,7 +194,7 @@ describe('bootstrap command', () => {
         cmd.start('Bootstrapping project'),
         cmd.succeed('Environment found'),
         cmd.start('Bootstrapping project'),
-        cmd.fail('You have already a "forest-cloud" folder'),
+        cmd.fail('You have already a "my-project-name" folder'),
       ]);
     });
   });
@@ -201,6 +210,7 @@ describe('bootstrap command', () => {
 
       const cmd = new CommandTester(setup, [
         'bootstrap',
+        'my-project-name',
         '--env-secret',
         'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
       ]);
@@ -215,6 +225,18 @@ describe('bootstrap command', () => {
         'Do you really want to overwrite these customizations? (yes/no)',
         cmd.fail('Operation aborted'),
       ]);
+    });
+  });
+
+  describe('when the project name is not given', () => {
+    it('should process exit', async () => {
+      process.exit = jest.fn() as any;
+      const setup = setupCommandArguments();
+
+      const cmd = new CommandTester(setup, ['bootstrap']);
+      await cmd.run();
+
+      expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 });
