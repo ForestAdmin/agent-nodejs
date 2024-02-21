@@ -40,7 +40,7 @@ export default (program: Command, context: MakeCommands) => {
 
         validateEnvironmentVariables(vars);
 
-        const logs = await buildHttpServer(vars).getLogs(options.tail);
+        const { logs } = await buildHttpServer(vars).getLogs(options.tail);
 
         if (logs?.length > 0) {
           logger.spinner.stop();
