@@ -13,6 +13,8 @@ export default function makeCommands(context: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes
   const program = new Command();
 
+  program.configureOutput({ writeOut: context.logger.log, writeErr: context.logger.error });
+
   makeBootstrapCommand(program, context);
   makeLoginCommand(program, context);
   makeLogsCommand(program, context);

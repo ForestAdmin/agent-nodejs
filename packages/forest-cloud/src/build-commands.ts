@@ -22,10 +22,9 @@ const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
 
 const logger: Logger = {
   spinner: ora(),
-  // eslint-disable-next-line no-console
-  log: (text?: string) => console.log(text),
-  // eslint-disable-next-line no-console
-  error: (text?: string) => console.error(text),
+  info: (text?: string) => process.stdout.write(text),
+  error: (text?: string) => process.stdout.write(text),
+  warn: (text?: string) => process.stdout.write(text),
 };
 
 function getCurrentVersion() {
