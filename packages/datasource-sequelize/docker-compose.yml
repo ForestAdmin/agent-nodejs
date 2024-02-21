@@ -29,7 +29,7 @@ services:
       - MSSQL_COLLATION=SQL_Latin1_General_CP1_CS_AS
 
   mariadb11:
-    image: mariadb:11
+    image: mariadb:11.2
     container_name: forest_datasource_sequelize_test_mariadb11
     ports:
       - '3821:3306'
