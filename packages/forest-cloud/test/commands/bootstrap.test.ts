@@ -6,7 +6,7 @@ import { defaultEnvs } from '../../src/services/environment-variables';
 
 describe('bootstrap command', () => {
   describe('when it is the first time to run bootstrap', () => {
-    it('should generate the cloud customizer folder', async () => {
+    it('should generate the forest-cloud folder', async () => {
       const getEnvironmentVariables = jest
         .fn()
         .mockResolvedValueOnce({
@@ -39,8 +39,8 @@ describe('bootstrap command', () => {
       ]);
 
       const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
-      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
-      await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
+      const folderPath = setup.bootstrapPathManager.folder;
+      await fs.rm(folderPath, { force: true, recursive: true });
 
       const cmd = new CommandTester(setup, [
         'bootstrap',
@@ -59,7 +59,7 @@ describe('bootstrap command', () => {
       ]);
 
       expect(setup.login).toHaveBeenCalled();
-      await expect(fs.access(cloudCustomizerPath)).resolves.not.toThrow();
+      await expect(fs.access(folderPath)).resolves.not.toThrow();
       expect(await fs.readFile(setup.bootstrapPathManager.index, 'utf-8')).toContain(
         'export default function customizeAgent(agent: Agent<Schema>) {',
       );
@@ -93,7 +93,7 @@ describe('bootstrap command', () => {
       const getIntrospection = jest.fn().mockResolvedValue([]);
 
       const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
-      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
+      const cloudCustomizerPath = setup.bootstrapPathManager.folder;
       await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
 
       const cmd = new CommandTester(setup, [
@@ -119,6 +119,34 @@ describe('bootstrap command', () => {
       );
       expect(generateDotEnv.replace(/\s/, '')).toContain('NODE_TLS_REJECT_UNAUTHORIZED=0');
     });
+
+    describe('when given a project folder name', () => {
+      it('should create the folder with the given name', async () => {
+        const setup = setupCommandArguments();
+        setup.bootstrapPathManager.folderName = 'my-project-name';
+        const folderPath = setup.bootstrapPathManager.folder;
+        await fs.rm(folderPath, { force: true, recursive: true });
+
+        const cmd = new CommandTester(setup, [
+          'bootstrap',
+          'my-project-name',
+          '--env-secret',
+          'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
+        ]);
+        await cmd.run();
+
+        expect(cmd.outputs).toEqual([
+          cmd.start('Bootstrapping project'),
+          cmd.succeed('Environment found'),
+          cmd.start('Bootstrapping project'),
+          cmd.succeed(
+            'Project successfully bootstrapped. You can start creating your customizations!',
+          ),
+        ]);
+
+        await expect(fs.access(folderPath)).resolves.not.toThrow();
+      });
+    });
   });
 
   describe('when forest env secret is missing', () => {
@@ -142,9 +170,9 @@ describe('bootstrap command', () => {
   describe('when there is already a cloud customizer folder', () => {
     it('should throw an error', async () => {
       const setup = setupCommandArguments();
-      const cloudCustomizerPath = setup.bootstrapPathManager.cloudCustomizer;
-      await fs.rm(cloudCustomizerPath, { force: true, recursive: true });
-      await fs.mkdir(cloudCustomizerPath);
+      const folderPath = setup.bootstrapPathManager.folder;
+      await fs.rm(folderPath, { force: true, recursive: true });
+      await fs.mkdir(folderPath);
 
       const cmd = new CommandTester(setup, [
         'bootstrap',
@@ -157,7 +185,7 @@ describe('bootstrap command', () => {
         cmd.start('Bootstrapping project'),
         cmd.succeed('Environment found'),
         cmd.start('Bootstrapping project'),
-        cmd.fail('You have already a cloud-customizer folder'),
+        cmd.fail('You have already a "forest-cloud" folder'),
       ]);
     });
   });

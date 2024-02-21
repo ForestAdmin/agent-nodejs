@@ -3,12 +3,22 @@ import path from 'path';
 export default class BootstrapPathManager {
   private readonly _tmp: string;
   private readonly _home: string;
+  private _folderName: string;
   private readonly basePath: string;
 
   constructor(tmp: string, home: string, basePath?: string) {
     this._tmp = tmp;
     this._home = home;
+    this._folderName = 'forest-cloud';
     this.basePath = basePath ?? '.';
+  }
+
+  get folderName(): string {
+    return this._folderName || 'forest-cloud';
+  }
+
+  set folderName(name: string) {
+    this._folderName = name;
   }
 
   get home(): string {
@@ -27,8 +37,8 @@ export default class BootstrapPathManager {
     return path.join(this.tmp, 'cloud-customizer-main');
   }
 
-  get cloudCustomizer(): string {
-    return path.join(this.basePath, 'cloud-customizer');
+  get folder(): string {
+    return path.join(this.basePath, this.folderName);
   }
 
   get typings(): string {
@@ -36,15 +46,15 @@ export default class BootstrapPathManager {
   }
 
   get typingsDuringBootstrap(): string {
-    return path.join(this.cloudCustomizer, 'typings.d.ts');
+    return path.join(this.folder, 'typings.d.ts');
   }
 
   get index(): string {
-    return path.join(this.cloudCustomizer, 'src', 'index.ts');
+    return path.join(this.folder, 'src', 'index.ts');
   }
 
   get env(): string {
-    return path.join(this.cloudCustomizer, '.env');
+    return path.join(this.folder, '.env');
   }
 
   get dotEnvTemplate(): string {
