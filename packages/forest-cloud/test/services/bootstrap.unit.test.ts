@@ -8,6 +8,7 @@ import bootstrap from '../../src/services/bootstrap';
 import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { updateTypings } from '../../src/services/update-typings';
+import { EnvironmentVariables } from '../../src/types';
 
 jest.mock('adm-zip');
 jest.mock('fs');
@@ -52,9 +53,13 @@ describe('bootstrap', () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       const httpServer = new HttpServer('', '', '');
       const path = new BootstrapPathManager('tmp', 'home');
-      await expect(bootstrap('abc', httpServer, path)).rejects.toEqual(
-        new BusinessError('You have already a cloud-customizer folder'),
-      );
+      await expect(
+        bootstrap(
+          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+          httpServer,
+          path,
+        ),
+      ).rejects.toEqual(new BusinessError('You have already a cloud-customizer folder'));
       expect(fs.existsSync).toHaveBeenCalled();
     });
   });
@@ -69,9 +74,13 @@ describe('bootstrap', () => {
           .fn()
           .mockRejectedValue(new Error('Failed'));
 
-        await expect(bootstrap('abc', httpServer, path)).rejects.toEqual(
-          new BusinessError('Bootstrap failed: Failed.'),
-        );
+        await expect(
+          bootstrap(
+            { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+            httpServer,
+            path,
+          ),
+        ).rejects.toEqual(new BusinessError('Bootstrap failed: Failed.'));
       });
 
       describe('If there is an error when trying to clear the bootstrap', () => {
@@ -85,7 +94,13 @@ describe('bootstrap', () => {
           // throw error when trying to clear
           jest.spyOn(fsP, 'rm').mockRejectedValue(new Error('Failed'));
 
-          await expect(bootstrap('abc', httpServer, path)).rejects.toEqual(
+          await expect(
+            bootstrap(
+              { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+              httpServer,
+              path,
+            ),
+          ).rejects.toEqual(
             new BusinessError(
               // eslint-disable-next-line max-len
               'Bootstrap failed: Failed.\nPlease remove cloud-customizer folder and re-run bootstrap command.',
@@ -124,7 +139,11 @@ describe('bootstrap', () => {
         const renameSpy = jest.spyOn(fsP, 'rename').mockResolvedValue();
         const rmSpy = jest.spyOn(fsP, 'rm').mockResolvedValue();
 
-        await bootstrap('abc', httpServer, path);
+        await bootstrap(
+          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+          httpServer,
+          path,
+        );
 
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalled();
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalledWith(
