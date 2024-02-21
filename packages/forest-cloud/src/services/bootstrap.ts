@@ -14,10 +14,10 @@ async function tryToClearBootstrap(paths: BootstrapPathManager): Promise<string 
     await Promise.all([
       fsP.rm(paths.zip, { force: true }),
       fsP.rm(paths.extracted, { force: true, recursive: true }),
-      fsP.rm(paths.cloudCustomizer, { force: false, recursive: true }),
+      fsP.rm(paths.folder, { force: false, recursive: true }),
     ]);
   } catch (e) {
-    return `\nPlease remove cloud-customizer folder and re-run bootstrap command.`;
+    return `\nPlease remove "${paths.folderName}" folder and re-run bootstrap command.`;
   }
 }
 
@@ -40,8 +40,8 @@ export default async function bootstrap(
   httpServer: HttpServer,
   paths: BootstrapPathManager,
 ): Promise<void> {
-  if (fs.existsSync(paths.cloudCustomizer)) {
-    throw new BusinessError('You have already a cloud-customizer folder');
+  if (fs.existsSync(paths.folder)) {
+    throw new BusinessError(`You have already a "${paths.folderName}" folder`);
   }
 
   try {
@@ -50,7 +50,7 @@ export default async function bootstrap(
     const zip: AdmZip = new AdmZip(paths.zip);
     zip.extractAllTo(paths.tmp, false);
     await Promise.all([
-      fsP.rename(paths.extracted, paths.cloudCustomizer),
+      fsP.rename(paths.extracted, paths.folder),
       fsP.rm(paths.zip, { force: true }),
     ]);
 

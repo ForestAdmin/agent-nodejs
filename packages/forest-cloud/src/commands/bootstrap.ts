@@ -16,13 +16,16 @@ export default (program: Command, context: MakeCommands) => {
   program
     .command('bootstrap')
     .description('Bootstrap your project')
+    .argument('[name]', 'The name of your project folder')
     .option(
       '-e, --env-secret <string>',
       'Environment secret, you can find it in your environment settings',
     )
     .action(
-      actionRunner(logger.spinner, async (options: { envSecret: string }) => {
+      actionRunner(logger.spinner, async (folderName: string, options: { envSecret: string }) => {
         logger.spinner.start('Bootstrapping project');
+        bootstrapPathManager.folderName = folderName;
+
         const vars = await loginIfMissingAuthAndReturnEnvironmentVariables(
           login,
           logger,

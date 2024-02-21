@@ -53,7 +53,7 @@ export const setupCommandArguments = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {
     return {
-      getIntrospection: options?.getIntrospection || jest.fn(),
+      getIntrospection: options?.getIntrospection || jest.fn().mockResolvedValue([]),
       postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'aSubscriptionId' }),

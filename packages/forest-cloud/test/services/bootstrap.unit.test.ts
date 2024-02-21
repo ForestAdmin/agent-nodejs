@@ -53,13 +53,11 @@ describe('bootstrap', () => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       const httpServer = new HttpServer('', '', '');
       const path = new BootstrapPathManager('tmp', 'home');
-      await expect(
-        bootstrap(
-          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
-          httpServer,
-          path,
-        ),
-      ).rejects.toEqual(new BusinessError('You have already a cloud-customizer folder'));
+      await expect(bootstrap(
+        { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+        , httpServer, path)).rejects.toEqual(
+        new BusinessError('You have already a "forest-cloud" folder'),
+      );
       expect(fs.existsSync).toHaveBeenCalled();
     });
   });
@@ -74,17 +72,14 @@ describe('bootstrap', () => {
           .fn()
           .mockRejectedValue(new Error('Failed'));
 
-        await expect(
-          bootstrap(
-            { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
-            httpServer,
-            path,
-          ),
-        ).rejects.toEqual(new BusinessError('Bootstrap failed: Failed.'));
+        await expect(bootstrap(          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+          , httpServer, path)).rejects.toEqual(
+          new BusinessError('Bootstrap failed: Failed.'),
+        );
       });
 
       describe('If there is an error when trying to clear the bootstrap', () => {
-        it('should notify the client to clear the cloud-customizer folder', async () => {
+        it('should notify the client to clear the "forest-cloud" folder', async () => {
           jest.spyOn(fs, 'existsSync').mockReturnValue(false);
           const httpServer = new HttpServer('', '', '');
           const path = new BootstrapPathManager('', '');
@@ -94,16 +89,11 @@ describe('bootstrap', () => {
           // throw error when trying to clear
           jest.spyOn(fsP, 'rm').mockRejectedValue(new Error('Failed'));
 
-          await expect(
-            bootstrap(
-              { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
-              httpServer,
-              path,
-            ),
-          ).rejects.toEqual(
+          await expect(bootstrap(          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+            , httpServer, path)).rejects.toEqual(
             new BusinessError(
               // eslint-disable-next-line max-len
-              'Bootstrap failed: Failed.\nPlease remove cloud-customizer folder and re-run bootstrap command.',
+              'Bootstrap failed: Failed.\nPlease remove "forest-cloud" folder and re-run bootstrap command.',
             ),
           );
         });
@@ -139,22 +129,19 @@ describe('bootstrap', () => {
         const renameSpy = jest.spyOn(fsP, 'rename').mockResolvedValue();
         const rmSpy = jest.spyOn(fsP, 'rm').mockResolvedValue();
 
-        await bootstrap(
-          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
-          httpServer,
-          path,
-        );
+        await bootstrap(          { FOREST_ENV_SECRET: 'abc' } as unknown as EnvironmentVariables,
+          , httpServer, path);
 
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalled();
         expect(HttpServer.downloadCloudCustomizerTemplate).toHaveBeenCalledWith(
           '/tmp/cloud-customizer.zip',
         );
-        expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'cloud-customizer');
+        expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'forest-cloud');
         expect(rmSpy).toHaveBeenCalledWith('/tmp/cloud-customizer.zip', { force: true });
 
         expect(writeFileSpy).toHaveBeenCalledTimes(2);
         const firstCallArgs = writeFileSpy.mock.calls[0];
-        expect(firstCallArgs[0]).toBe('cloud-customizer/.env');
+        expect(firstCallArgs[0]).toBe('forest-cloud/.env');
         expect(firstCallArgs[1].toString().replace(/\s/g, '')).toBe(
           `
               env: abc
@@ -162,7 +149,7 @@ describe('bootstrap', () => {
               `.replace(/\s/g, ''),
         );
         const secondCallArgs = writeFileSpy.mock.calls[1];
-        expect(secondCallArgs[0]).toBe('cloud-customizer/src/index.ts');
+        expect(secondCallArgs[0]).toBe('forest-cloud/src/index.ts');
         expect(secondCallArgs[1].toString().replace(/\s/g, '')).toBe(
           `
           env: <FOREST_ENV_SECRET_TO_REPLACE>
