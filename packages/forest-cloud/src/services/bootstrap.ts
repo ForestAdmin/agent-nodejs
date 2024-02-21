@@ -26,7 +26,7 @@ async function generateDotEnv(vars: EnvironmentVariables, paths: BootstrapPathMa
   let replaced = envTemplate.replace('<FOREST_ENV_SECRET_TO_REPLACE>', vars.FOREST_ENV_SECRET);
   replaced = replaced.replace('<TOKEN_PATH_TO_REPLACE>', paths.home);
   // For forest developers. We store in in the .env what is non default
-  ['FOREST_SERVER_URL', 'NODE_TLS_REJECT_UNAUTHORIZED', 'FOREST_SUBSCRIPTION_URL']
+  Object.keys(defaultEnvs)
     .filter(variableKey => vars[variableKey] && vars[variableKey] !== defaultEnvs[variableKey])
     .forEach(variableKey => {
       replaced += `\n${variableKey}=${vars[variableKey]}`;
