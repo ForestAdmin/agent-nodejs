@@ -61,14 +61,17 @@ const logMessage = (logger: Logger, { message }: { message: string }) => {
 
     if (log.event === 'request') {
       const { level, method, status, path, duration } = log;
-      const base = `${timestamp} | [${status}] ${method} ${path} - ${duration}ms`;
+      const base = `[${status}] ${method} ${path} - ${duration}ms`;
 
-      if (level === 'Info') return logger.info(base);
+      if (level === 'Info') return logger.info(base, timestamp);
 
-      return logger[levelToLog[level]](`${base}\n\t${log.error.message}\t${log.error.stack}`);
+      return logger[levelToLog[level]](
+        `${base}\n\t${log.error.message}\t${log.error.stack}`,
+        timestamp,
+      );
     }
 
-    return logger[levelToLog[log.level]](log.message);
+    return logger[levelToLog[log.level]](log.message, timestamp);
   } catch (e) {
     /* Do nothing if cannot be parsed */
   }

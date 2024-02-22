@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 export class SpinnerTester {
   private text: string;
   private type: 'succeed' | 'warning' | 'info' | 'fail' | undefined;
