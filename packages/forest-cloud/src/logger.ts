@@ -2,7 +2,7 @@ import ora from 'ora';
 
 import { Logger } from './types';
 
-const loggerPrefix = {
+export const loggerPrefix = {
   Debug: '\x1b[34mdebug:\x1b[0m',
   Info: '\x1b[32minfo:\x1b[0m',
   Warn: '\x1b[33mwarning:\x1b[0m',
