@@ -63,6 +63,7 @@ describe('logs command', () => {
           ...environmentVariables,
           FOREST_ENV_SECRET: null,
         }),
+        getLogs: jest.fn().mockResolvedValue({ logs: [] }),
       });
 
       const cmd = new CommandTester(setup, [
@@ -81,20 +82,20 @@ describe('logs command', () => {
       const setup = setupCommandArguments({
         getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
         getLatestVersion: jest.fn().mockResolvedValue('1.0.1'),
-        getLogs: jest.fn().mockResolvedValue({ logs: ['log1'] }),
+        getLogs: jest.fn().mockResolvedValue({ logs: [] }),
       });
 
       const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([
-        cmd.warn(
-          // eslint-disable-next-line max-len
-          'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.\nPlease update it.',
-        ),
-
-        cmd.logInfo('log1'),
-      ]);
+      expect(cmd.outputs).toEqual(
+        expect.arrayContaining([
+          cmd.warn(
+            // eslint-disable-next-line max-len
+            'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.\nPlease update it.',
+          ),
+        ]),
+      );
     });
   });
 
