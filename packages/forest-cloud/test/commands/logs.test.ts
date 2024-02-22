@@ -143,14 +143,16 @@ describe('logs command', () => {
             },
             {
               timestamp: 0,
-              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
-                level: 'Info',
-                event: 'request',
-                status: 200,
-                method: 'GET',
-                path: '/collection',
-                duration: 42,
-              })}`,
+              message:
+                `timestamp\tlambdaRelatedData\tlambdaRelatedData\t` +
+                `[dd.trace_id=8057550120292069400 dd.span_id=8057550120292069400] ${JSON.stringify({
+                  level: 'Info',
+                  event: 'request',
+                  status: 200,
+                  method: 'GET',
+                  path: '/collection',
+                  duration: 42,
+                })}`,
             },
             {
               timestamp: 0,

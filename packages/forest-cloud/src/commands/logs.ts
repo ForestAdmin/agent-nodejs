@@ -102,7 +102,9 @@ export default (program: Command, context: MakeCommands) => {
             .sort((a, b) => a.timestamp - b.timestamp)
             .forEach(({ message }) => {
               const [logTimestamp, , , rawLogMessage] = message.split('\t');
-              logMessage(logger, rawLogMessage, logTimestamp);
+              // Remove Datadog info if any..
+              const [unparsedLogMessage] = rawLogMessage.match(/\{.*\}/);
+              logMessage(logger, unparsedLogMessage, logTimestamp);
             });
         } else {
           logger.spinner.warn('No logs available');
