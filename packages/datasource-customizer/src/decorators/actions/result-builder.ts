@@ -27,7 +27,7 @@ export default class ResultBuilder {
   success(message?: string, options?: { html?: string; invalidated?: string[] }): ActionResult {
     return {
       type: 'Success',
-      message: message ?? 'Success',
+      message: message ?? '',
       invalidated: new Set(options?.invalidated ?? []),
       html: options?.html,
       responseHeaders: this.responseHeaders,

@@ -23,6 +23,13 @@ describe('ResultBuilder', () => {
       responseHeaders: {},
     });
 
+    expect(builder.success()).toEqual({
+      type: 'Success',
+      message: '',
+      invalidated: new Set(),
+      responseHeaders: {},
+    });
+
     expect(builder.setHeader('test', 'test').success('Great!')).toEqual({
       type: 'Success',
       message: 'Great!',
