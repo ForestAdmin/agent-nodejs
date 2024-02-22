@@ -1,8 +1,8 @@
 import { Command } from 'commander';
-import logSymbols from 'log-symbols';
 import * as process from 'process';
 import readline from 'readline';
 
+import { LoggerTester, QuestionTester, SpinnerTester } from './testers';
 import { MakeCommandsForTests } from './utils';
 import makeCommands from '../../src/make-commands';
 import { Logger } from '../../src/types';
@@ -12,7 +12,7 @@ export default class CommandTester {
   private readonly argv: string[];
   private readonly answers: Record<string, string> = {};
   private rl?: readline.Interface;
-  public outputs: string[] = [];
+  public outputs: (LoggerTester | SpinnerTester | QuestionTester)[] = [];
   private lastSpinnerText: string;
 
   constructor(mocks: MakeCommandsForTests, argv: string[]) {
@@ -26,6 +26,18 @@ export default class CommandTester {
     this.answers[question] = answer;
   }
 
+  get spinner(): SpinnerTester {
+    return new SpinnerTester();
+  }
+
+  get logger(): LoggerTester {
+    return new LoggerTester();
+  }
+
+  question(text: string): QuestionTester {
+    return new QuestionTester(text);
+  }
+
   async run(): Promise<void> {
     try {
       await this.command.parseAsync(this.argv, { from: 'user' });
@@ -37,51 +49,11 @@ export default class CommandTester {
     }
   }
 
-  start(message: string): string {
-    return `- ${message}`;
-  }
-
-  succeed(message: string): string {
-    return `${logSymbols.success} ${message}`;
-  }
-
-  warn(message: string): string {
-    return `${logSymbols.warning} ${message}`;
-  }
-
-  info(message: string): string {
-    return `${logSymbols.info} ${message}`;
-  }
-
-  fail(message: string): string {
-    return `${logSymbols.error} ${message}`;
-  }
-
-  logInfo(message: string): string {
-    return `(info) ${message}`;
-  }
-
-  logError(message: string): string {
-    return `(error) ${message}`;
-  }
-
-  logDebug(message: string): string {
-    return `(debug) ${message}`;
-  }
-
-  logWarn(message: string): string {
-    return `(warn) ${message}`;
-  }
-
-  log(message: string): string {
-    return `(log) ${message}`;
-  }
-
   private catchQuestionTraces() {
     jest.clearAllMocks();
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     this.rl.question = jest.fn().mockImplementation((question, callback) => {
-      this.saveOutput(question);
+      this.saveOutput(this.question(question));
       const answer = this.answers[question.trim()];
       if (answer) callback(answer);
       else throw new Error(`Unexpected question: ${question}`);
@@ -94,47 +66,47 @@ export default class CommandTester {
       spinner: {
         start: (text: string) => {
           if (!text) {
-            this.saveOutput(this.start(this.lastSpinnerText));
+            this.saveOutput(this.spinner.start(this.lastSpinnerText));
 
             return;
           }
 
           this.lastSpinnerText = text;
-          this.saveOutput(this.start(text));
+          this.saveOutput(this.spinner.start(text));
         },
         succeed: (text: string) => {
-          this.saveOutput(this.succeed(text));
+          this.saveOutput(this.spinner.succeed(text));
         },
         warn: (text: string) => {
-          this.saveOutput(this.warn(text));
+          this.saveOutput(this.spinner.warn(text));
         },
         info: (text: string) => {
-          this.saveOutput(this.info(text));
+          this.saveOutput(this.spinner.info(text));
         },
         fail: (text: string) => {
-          this.saveOutput(this.fail(text));
+          this.saveOutput(this.spinner.fail(text));
         },
         stop: jest.fn(),
       },
-      info: (text?: string) => {
-        this.saveOutput(this.logInfo(text));
+      info: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.info(text).prefixed(prefix));
       },
-      error: (text?: string) => {
-        this.saveOutput(this.logError(text));
+      error: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.error(text).prefixed(prefix));
       },
-      warn: (text?: string) => {
-        this.saveOutput(this.logWarn(text));
+      warn: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.warn(text).prefixed(prefix));
       },
-      debug: (text?: string) => {
-        this.saveOutput(this.logDebug(text));
+      debug: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.debug(text).prefixed(prefix));
       },
       log: (text?: string) => {
-        this.saveOutput(this.log(text));
+        this.saveOutput(this.logger.log(text));
       },
     };
   }
 
-  private saveOutput(output: string | Uint8Array): void {
-    this.outputs.push(output.toString().trim());
+  private saveOutput(output: SpinnerTester | LoggerTester | QuestionTester): void {
+    this.outputs.push(output);
   }
 }

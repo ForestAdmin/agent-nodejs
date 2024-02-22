@@ -13,7 +13,10 @@ describe('login command', () => {
     await cmd.run();
 
     expect(login).toHaveBeenCalled();
-    expect(cmd.outputs).toEqual([cmd.start('Logging in'), cmd.succeed('You are now logged in')]);
+    expect(cmd.outputs).toEqual([
+      cmd.spinner.start('Logging in'),
+      cmd.spinner.succeed('You are now logged in'),
+    ]);
   });
 
   describe('when forest server url is missing', () => {
@@ -25,8 +28,8 @@ describe('login command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Logging in'),
-        cmd.fail('Missing FOREST_SERVER_URL. Please check your .env file.'),
+        cmd.spinner.start('Logging in'),
+        cmd.spinner.fail('Missing FOREST_SERVER_URL. Please check your .env file.'),
       ]);
     });
   });
@@ -43,8 +46,8 @@ describe('login command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Logging in'),
-        cmd.fail('FOREST_SERVER_URL is invalid. Please check your .env file.\nInvalid URL'),
+        cmd.spinner.start('Logging in'),
+        cmd.spinner.fail('FOREST_SERVER_URL is invalid. Please check your .env file.\nInvalid URL'),
       ]);
     });
   });
@@ -60,8 +63,8 @@ describe('login command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Logging in'),
-        cmd.fail(
+        cmd.spinner.start('Logging in'),
+        cmd.spinner.fail(
           "FOREST_SERVER_URL is invalid, it must start with 'http://' or 'https://'. Please check your .env file.",
         ),
       ]);

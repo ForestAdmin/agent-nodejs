@@ -1,8 +1,8 @@
 import fsSync from 'fs';
-import ora from 'ora';
 import os from 'os';
 import path from 'path';
 
+import createLogger from './logger';
 import login from './login';
 import makeCommands from './make-commands';
 import BootstrapPathManager from './services/bootstrap-path-manager';
@@ -10,14 +10,7 @@ import DistPathManager from './services/dist-path-manager';
 import { getEnvironmentVariables } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import HttpServer from './services/http-server';
-import { EnvironmentVariables, Logger } from './types';
-
-const loggerPrefix = {
-  Debug: '\x1b[34mdebug:\x1b[0m',
-  Info: '\x1b[32minfo:\x1b[0m',
-  Warn: '\x1b[33mwarning:\x1b[0m',
-  Error: '\x1b[31merror:\x1b[0m',
-};
+import { EnvironmentVariables } from './types';
 
 const buildHttpServer = (envs: EnvironmentVariables): HttpServer => {
   return new HttpServer(envs.FOREST_SERVER_URL, envs.FOREST_ENV_SECRET, envs.FOREST_AUTH_TOKEN);
@@ -25,15 +18,6 @@ const buildHttpServer = (envs: EnvironmentVariables): HttpServer => {
 
 const buildEventSubscriber = (envs: EnvironmentVariables): EventSubscriber => {
   return new EventSubscriber(envs.FOREST_SUBSCRIPTION_URL, envs.FOREST_AUTH_TOKEN);
-};
-
-const logger: Logger = {
-  spinner: ora(),
-  log: (text?: string) => process.stdout.write(text),
-  info: (text?: string) => process.stdout.write(`${loggerPrefix.Info} ${text}`),
-  error: (text?: string) => process.stdout.write(`${loggerPrefix.Error} ${text}`),
-  warn: (text?: string) => process.stdout.write(`${loggerPrefix.Warn} ${text}`),
-  debug: (text?: string) => process.stdout.write(`${loggerPrefix.Debug} ${text}`),
 };
 
 function getCurrentVersion() {
@@ -50,7 +34,7 @@ export default function buildCommands() {
     buildHttpServer,
     buildEventSubscriber,
     login,
-    logger,
+    logger: createLogger(),
     getCurrentVersion,
     bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
     distPathManager: new DistPathManager(),

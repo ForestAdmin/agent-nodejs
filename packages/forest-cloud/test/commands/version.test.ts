@@ -3,11 +3,13 @@ import { setupCommandArguments } from './utils';
 
 describe('version command', () => {
   it('should display the version', async () => {
-    const setup = setupCommandArguments();
+    const setup = setupCommandArguments({
+      getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
+    });
     const cmd = new CommandTester(setup, ['--version']);
     await cmd.run();
 
-    expect(cmd.outputs).toEqual([expect.any(String)]);
+    expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0')]);
   });
 
   describe('when the major version is greater', () => {
@@ -20,8 +22,8 @@ describe('version command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.logInfo('1.0.0'),
-        cmd.fail(
+        cmd.logger.log('1.0.0'),
+        cmd.spinner.fail(
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 2.0.0.' +
             '\nPlease update it to the latest major version to be able to use our services.',
         ),
@@ -39,8 +41,8 @@ describe('version command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.logInfo('1.0.0'),
-        cmd.warn(
+        cmd.logger.log('1.0.0'),
+        cmd.spinner.warn(
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.' +
             '\nPlease update it.',
         ),
@@ -58,8 +60,8 @@ describe('version command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.logInfo('1.0.0'),
-        cmd.info('Unable to check the latest version of @forestadmin/forest-cloud'),
+        cmd.logger.log('1.0.0'),
+        cmd.spinner.info('Unable to check the latest version of @forestadmin/forest-cloud'),
       ]);
     });
   });
@@ -73,7 +75,7 @@ describe('version command', () => {
       const cmd = new CommandTester(setup, ['--version']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.logInfo('1.0.0')]);
+      expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0')]);
     });
   });
 });
