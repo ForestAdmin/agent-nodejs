@@ -9,7 +9,7 @@ describe('version command', () => {
     const cmd = new CommandTester(setup, ['--version']);
     await cmd.run();
 
-    expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0')]);
+    expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0'), cmd.spinner.stop()]);
   });
 
   describe('when the major version is greater', () => {
@@ -64,6 +64,7 @@ describe('version command', () => {
       expect(cmd.outputs).toEqual([
         cmd.logger.log('1.0.0'),
         cmd.spinner.info('Unable to check the latest version of @forestadmin/forest-cloud'),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -77,7 +78,7 @@ describe('version command', () => {
       const cmd = new CommandTester(setup, ['--version']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0')]);
+      expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0'), cmd.spinner.stop()]);
     });
   });
 });

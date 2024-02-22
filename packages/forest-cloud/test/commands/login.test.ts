@@ -16,6 +16,7 @@ describe('login command', () => {
     expect(cmd.outputs).toEqual([
       cmd.spinner.start('Logging in'),
       cmd.spinner.succeed('You are now logged in'),
+      cmd.spinner.stop(),
     ]);
   });
 
@@ -30,6 +31,7 @@ describe('login command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.start('Logging in'),
         cmd.spinner.fail('Missing FOREST_SERVER_URL. Please check your .env file.'),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -48,6 +50,7 @@ describe('login command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.start('Logging in'),
         cmd.spinner.fail('FOREST_SERVER_URL is invalid. Please check your .env file.\nInvalid URL'),
+        cmd.spinner.stop(),
       ]);
     });
   });
