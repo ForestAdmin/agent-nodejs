@@ -246,10 +246,10 @@ export type Schema = {
   'card': {
     plain: {
       'card_number': number | null;
-      'card_type': 'american express' | 'mastercard' | 'visa';
+      'card_type': 'american express' | 'mastercard' | 'visa' | null;
       'customer_id': number | null;
       'id': number;
-      'is_active': boolean;
+      'is_active': boolean | null;
     };
     nested: {
       'customer': Schema['customer']['plain'] & Schema['customer']['nested'];

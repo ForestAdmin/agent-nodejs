@@ -290,6 +290,7 @@ describe('TypingGenerator', () => {
     [' white spaces ', "' white spaces '"],
     ['-dashes', "'-dashes'"],
   ];
+
   test.each(cases)(
     '[%p] should support field name with unconventional characters',
     (fieldName, expectedFieldName) => {
@@ -322,6 +323,7 @@ describe('TypingGenerator', () => {
     [' white spaces ', "' white spaces '"],
     ['-dashes', "'-dashes'"],
   ];
+
   test.each(casesCollection)(
     '[%p] should support collection name with unconventional characters',
     (collectionName, expectedCollectionName) => {

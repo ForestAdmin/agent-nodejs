@@ -1,3 +1,48 @@
+## example [1.7.3](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.2...example@1.7.3) (2024-02-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.1
+
+## example [1.7.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.1...example@1.7.2) (2024-02-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.9.0
+
+## example [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.0...example@1.7.1) (2024-02-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.0
+
+# example [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.83...example@1.7.0) (2024-02-12)
+
+
+### Features
+
+* add version in introspection ([#978](https://github.com/ForestAdmin/agent-nodejs/issues/978)) ([3e7e791](https://github.com/ForestAdmin/agent-nodejs/commit/3e7e791b51af83e720e54a2994b064871ed922cd))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.8.0
+
 ## example [1.6.83](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.6.82...example@1.6.83) (2024-02-07)
 
 

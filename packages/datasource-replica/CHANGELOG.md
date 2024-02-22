@@ -1,3 +1,28 @@
+## @forestadmin/datasource-replica [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.1.0...@forestadmin/datasource-replica@1.1.1) (2024-02-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.9.0
+
+# @forestadmin/datasource-replica [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.64...@forestadmin/datasource-replica@1.1.0) (2024-02-12)
+
+
+### Features
+
+* add version in introspection ([#978](https://github.com/ForestAdmin/agent-nodejs/issues/978)) ([3e7e791](https://github.com/ForestAdmin/agent-nodejs/commit/3e7e791b51af83e720e54a2994b064871ed922cd))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.8.0
+
 ## @forestadmin/datasource-replica [1.0.64](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.0.63...@forestadmin/datasource-replica@1.0.64) (2024-02-07)
 
 

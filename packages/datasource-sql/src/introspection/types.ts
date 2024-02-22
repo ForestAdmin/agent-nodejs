@@ -57,3 +57,8 @@ export type Table = {
     }[];
   }[];
 };
+
+export type Introspection = {
+  tables: Table[];
+  version: number;
+};

@@ -1,3 +1,17 @@
+# @forestadmin/datasource-sql [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.8.0...@forestadmin/datasource-sql@1.9.0) (2024-02-19)
+
+
+### Features
+
+* **forest-cloud:** add forest-cloud package to allow users to use cloud customization  ([#1026](https://github.com/ForestAdmin/agent-nodejs/issues/1026)) ([0ad83c6](https://github.com/ForestAdmin/agent-nodejs/commit/0ad83c69b3bd2e2f9149b9798042f0a1e21bee6a))
+
+# @forestadmin/datasource-sql [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.49...@forestadmin/datasource-sql@1.8.0) (2024-02-12)
+
+
+### Features
+
+* add version in introspection ([#978](https://github.com/ForestAdmin/agent-nodejs/issues/978)) ([3e7e791](https://github.com/ForestAdmin/agent-nodejs/commit/3e7e791b51af83e720e54a2994b064871ed922cd))
+
 ## @forestadmin/datasource-sql [1.7.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.7.48...@forestadmin/datasource-sql@1.7.49) (2024-02-07)
 
 
