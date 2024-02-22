@@ -169,6 +169,14 @@ describe('logs command', () => {
                 },
               })}`,
             },
+            {
+              timestamp: 0,
+              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t`,
+            },
+            {
+              timestamp: 0,
+              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t[dd.trace_id=id]`,
+            },
           ],
         }),
       });
