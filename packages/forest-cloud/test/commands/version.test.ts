@@ -9,7 +9,7 @@ describe('version command', () => {
     const cmd = new CommandTester(setup, ['--version']);
     await cmd.run();
 
-    expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0')]);
+    expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0'), cmd.spinner.stop()]);
   });
 
   describe('when the major version is greater', () => {
@@ -27,6 +27,7 @@ describe('version command', () => {
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 2.0.0.' +
             '\nPlease update it to the latest major version to be able to use our services.',
         ),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -46,6 +47,7 @@ describe('version command', () => {
           'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.' +
             '\nPlease update it.',
         ),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -62,6 +64,7 @@ describe('version command', () => {
       expect(cmd.outputs).toEqual([
         cmd.logger.log('1.0.0'),
         cmd.spinner.info('Unable to check the latest version of @forestadmin/forest-cloud'),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -75,7 +78,7 @@ describe('version command', () => {
       const cmd = new CommandTester(setup, ['--version']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0')]);
+      expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0'), cmd.spinner.stop()]);
     });
   });
 });

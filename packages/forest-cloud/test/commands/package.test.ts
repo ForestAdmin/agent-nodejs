@@ -21,6 +21,7 @@ describe('package command', () => {
     expect(cmd.outputs).toEqual([
       cmd.spinner.start('Packaging code'),
       cmd.spinner.succeed('Code customizations packaged and ready for publish'),
+      cmd.spinner.stop(),
     ]);
 
     await expect(fs.access(setup.distPathManager.zip)).resolves.not.toThrow();
@@ -39,6 +40,7 @@ describe('package command', () => {
           `No built customization found at ${distPath}.
 Please build your code to build your customizations`,
         ),
+        cmd.spinner.stop(),
       ]);
     });
   });

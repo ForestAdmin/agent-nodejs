@@ -39,6 +39,7 @@ describe('update-typings command', () => {
     expect(cmd.outputs).toEqual([
       cmd.spinner.start('Updating typings'),
       cmd.spinner.succeed('Your typings have been updated'),
+      cmd.spinner.stop(),
     ]);
 
     await expect(fs.access(setup.bootstrapPathManager.typings)).resolves.not.toThrow();

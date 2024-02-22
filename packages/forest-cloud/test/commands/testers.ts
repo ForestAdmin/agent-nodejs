@@ -2,6 +2,7 @@
 export class SpinnerTester {
   private text: string;
   private type: 'succeed' | 'warning' | 'info' | 'fail' | undefined;
+  private isStopped = false;
 
   start(message: string): this {
     this.text = `- ${message}`;
@@ -36,12 +37,18 @@ export class SpinnerTester {
 
     return this;
   }
+
+  stop(): this {
+    this.isStopped = true;
+
+    return this;
+  }
 }
 
 export class LoggerTester {
   private text: string;
   private prefix: string;
-  private type: 'succeed' | 'warning' | 'info' | 'fail' | 'log' | undefined;
+  private type: 'succeed' | 'warning' | 'info' | 'error' | 'log' | undefined;
 
   info(message: string): this {
     this.text = message;
@@ -52,7 +59,7 @@ export class LoggerTester {
 
   error(message: string): this {
     this.text = message;
-    this.type = 'fail';
+    this.type = 'error';
 
     return this;
   }

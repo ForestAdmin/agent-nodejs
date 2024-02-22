@@ -32,6 +32,7 @@ describe('publish command', () => {
       cmd.spinner.start('Publishing code customizations'),
       cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
       cmd.spinner.succeed('Code customizations published'),
+      cmd.spinner.stop(),
     ]);
 
     await expect(fs.access(setup.distPathManager.zip)).resolves.not.toThrow();
@@ -52,8 +53,10 @@ describe('publish command', () => {
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.warn('There is already deployed customization code on your project'),
         cmd.spinner.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
+        cmd.spinner.stop(),
         cmd.question('Do you really want to overwrite these customizations? (yes/no) '),
         cmd.spinner.fail('Operation aborted'),
+        cmd.spinner.stop(),
       ]);
     });
 
@@ -71,6 +74,7 @@ describe('publish command', () => {
           cmd.spinner.start('Publishing code customizations'),
           cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
           cmd.spinner.succeed('Code customizations published'),
+          cmd.spinner.stop(),
         ]);
       });
     });
@@ -89,6 +93,7 @@ describe('publish command', () => {
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
         cmd.spinner.fail('Something went wrong: An error occurred'),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -106,6 +111,7 @@ describe('publish command', () => {
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
         cmd.spinner.fail('An error occurred'),
+        cmd.spinner.stop(),
       ]);
     });
   });

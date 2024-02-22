@@ -86,7 +86,9 @@ export default class CommandTester {
         fail: (text: string) => {
           this.saveOutput(this.spinner.fail(text));
         },
-        stop: jest.fn(),
+        stop: () => {
+          this.saveOutput(this.spinner.stop());
+        },
       },
       info: (text?: string, prefix?: string) => {
         this.saveOutput(this.logger.info(text).prefixed(prefix));
