@@ -12,7 +12,7 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.fail(
+        cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
@@ -30,7 +30,7 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.fail(
+        cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
@@ -48,7 +48,7 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.fail(
+        cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
@@ -73,7 +73,7 @@ describe('logs command', () => {
       ]);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.warn('No logs available')]);
+      expect(cmd.outputs).toEqual([cmd.spinner.warn('No logs available')]);
     });
   });
 
@@ -90,7 +90,7 @@ describe('logs command', () => {
 
       expect(cmd.outputs).toEqual(
         expect.arrayContaining([
-          cmd.warn(
+          cmd.spinner.warn(
             // eslint-disable-next-line max-len
             'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.\nPlease update it.',
           ),
@@ -108,7 +108,7 @@ describe('logs command', () => {
       const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.warn('No logs available')]);
+      expect(cmd.outputs).toEqual([cmd.spinner.warn('No logs available')]);
     });
   });
 
@@ -185,11 +185,13 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.logError('System error message'),
-        cmd.logInfo('timestamp | [200] GET /collection - 42ms'),
-        cmd.logWarn('timestamp | [200] POST /collection/action - 42ms\n\tError message\tstack'),
-        cmd.logInfo('System info message'),
-        cmd.logWarn('System warn message'),
+        cmd.logger.error('System error message').prefixed('timestamp'),
+        cmd.logger.info('[200] GET /collection - 42ms').prefixed('timestamp'),
+        cmd.logger
+          .warn('[200] POST /collection/action - 42ms\n\tError message\tstack')
+          .prefixed('timestamp'),
+        cmd.logger.info('System info message').prefixed('timestamp'),
+        cmd.logger.warn('System warn message').prefixed('timestamp'),
       ]);
     });
 
@@ -201,7 +203,9 @@ describe('logs command', () => {
           const cmd = new CommandTester(setup, ['logs', '--tail', '2.5']);
           await cmd.run();
 
-          expect(cmd.outputs).toEqual([cmd.fail('The --tail (-n) option must be an integer')]);
+          expect(cmd.outputs).toEqual([
+            cmd.spinner.fail('The --tail (-n) option must be an integer'),
+          ]);
         });
       });
 
@@ -224,7 +228,7 @@ describe('logs command', () => {
       //   const cmd = new CommandTester(setup, ['logs', '--tail', '2']);
       //   await cmd.run();
 
-      //   expect(cmd.outputs).toEqual([cmd.logInfo('log1'), cmd.logInfo('log2')]);
+      //   expect(cmd.outputs).toEqual([cmd.logger.info('log1'), cmd.logger.info('log2')]);
       //   expect(getLogs).toHaveBeenCalledWith('2');
       // });
     });

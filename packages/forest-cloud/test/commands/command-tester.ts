@@ -49,46 +49,6 @@ export default class CommandTester {
     }
   }
 
-  start(message: string): string {
-    return `- ${message}`;
-  }
-
-  succeed(message: string): string {
-    return `${logSymbols.success} ${message}`;
-  }
-
-  warn(message: string): string {
-    return `${logSymbols.warning} ${message}`;
-  }
-
-  info(message: string): string {
-    return `${logSymbols.info} ${message}`;
-  }
-
-  fail(message: string): string {
-    return `${logSymbols.error} ${message}`;
-  }
-
-  logInfo(message: string): string {
-    return `(info) ${message}`;
-  }
-
-  logError(message: string): string {
-    return `(error) ${message}`;
-  }
-
-  logDebug(message: string): string {
-    return `(debug) ${message}`;
-  }
-
-  logWarn(message: string): string {
-    return `(warn) ${message}`;
-  }
-
-  log(message: string): string {
-    return `(log) ${message}`;
-  }
-
   private catchQuestionTraces() {
     jest.clearAllMocks();
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -126,24 +86,21 @@ export default class CommandTester {
         fail: (text: string) => {
           this.saveOutput(this.spinner.fail(text));
         },
-        stop: () => {
-          this.saveOutput(this.spinner.stop());
-        },
       },
-      info: (text?: string) => {
-        this.saveOutput(this.logInfo(text));
+      info: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.info(text).prefixed(prefix));
       },
-      write: (text: string, outputType?: 'stderr' | 'stdout') => {
-        this.saveOutput(this.logger.write(text, outputType));
+      error: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.error(text).prefixed(prefix));
       },
-      warn: (text?: string) => {
-        this.saveOutput(this.logWarn(text));
+      warn: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.warn(text).prefixed(prefix));
       },
-      debug: (text?: string) => {
-        this.saveOutput(this.logDebug(text));
+      debug: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.debug(text).prefixed(prefix));
       },
       log: (text?: string) => {
-        this.saveOutput(this.log(text));
+        this.saveOutput(this.logger.log(text));
       },
     };
   }
