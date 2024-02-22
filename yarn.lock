@@ -1923,10 +1923,47 @@
     path-to-regexp "^6.1.0"
     reusify "^1.0.4"
 
+"@forestadmin/agent@1.37.1":
+  version "1.37.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.37.1.tgz#c75c523c18305a56497da376a6df23c4cdca99f8"
+  integrity sha512-P8lzn+bNhhWhg41170PR9I+ecQD7+mEumxkfIdaukmoOqiKqS6qzUAWh2mHEa/wZPDyGd/WoH0b2CiAZte78AA==
+  dependencies:
+    "@fast-csv/format" "^4.3.5"
+    "@fastify/express" "^1.1.0"
+    "@forestadmin/datasource-customizer" "1.43.0"
+    "@forestadmin/datasource-toolkit" "1.32.0"
+    "@forestadmin/forestadmin-client" "1.25.9"
+    "@koa/cors" "^5.0.0"
+    "@koa/router" "^12.0.0"
+    "@types/koa__router" "^12.0.0"
+    forest-ip-utils "^1.0.1"
+    json-api-serializer "^2.6.6"
+    json-stringify-pretty-compact "^3.0.0"
+    jsonwebtoken "^9.0.0"
+    koa "^2.14.1"
+    koa-bodyparser "^4.3.0"
+    koa-jwt "^4.0.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    superagent "^8.0.6"
+    uuid "^9.0.0"
+
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
+
+"@forestadmin/datasource-customizer@1.43.0":
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.43.0.tgz#4d397acef31cb22fb0acf59a7f1f8dd8e791166e"
+  integrity sha512-AgrHx7NZ5Rua/z8WFyfukgak9LWikxxZFwTwzIwYXCDfgD58QuQ5ZqL6LnYgXCoNue/8kTIqjrfs4WC+wNdj5A==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.32.0"
+    antlr4 "^4.13.1-patch-1"
+    file-type "^16.5.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "^9.0.0"
 
 "@forestadmin/datasource-sequelize@1.3.1":
   version "1.3.1"
@@ -1934,6 +1971,13 @@
   integrity sha512-J3sQEtUgAw5jtuoa4VXXn5j8Bz8ywHpkdIO3HXysK+CDkdUiXmNkD63iq45qr6dWtBp8pVbGF4Be+PtXsgePNQ==
   dependencies:
     "@forestadmin/datasource-toolkit" "1.5.0"
+
+"@forestadmin/datasource-sequelize@1.6.3":
+  version "1.6.3"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.6.3.tgz#2788eedb114e59973bdec0c1711cb4fb87e4f6f4"
+  integrity sha512-02kkmKmtChsh61bw0Yt30+qGDKElAa3puYWl8deB+TTs+FmzpyKiFAuFnWbHU49t9uS1esOMDuN9Qr59PC0ITg==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.32.0"
 
 "@forestadmin/datasource-sql@1.6.4":
   version "1.6.4"
@@ -1945,6 +1989,19 @@
     pluralize "^8.0.0"
     sequelize "^6.28.0"
     socks "^2.7.1"
+
+"@forestadmin/datasource-sql@1.7.48":
+  version "1.7.48"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.7.48.tgz#e44c34b3b341270c74316dbe62bf618b4a792cd5"
+  integrity sha512-Tg4TISvww4TH5kKIW+VHJzZ7b8+kQhHOQN20iK6go3mVjQxJFl9JnjrOLUdL5YzApJ5VxhtqVHRjKjKvGfW74A==
+  dependencies:
+    "@forestadmin/datasource-sequelize" "1.6.3"
+    "@forestadmin/datasource-toolkit" "1.32.0"
+    "@types/ssh2" "^1.11.11"
+    pluralize "^8.0.0"
+    sequelize "^6.28.0"
+    socks "^2.7.1"
+    ssh2 "^1.14.0"
 
 "@forestadmin/datasource-toolkit@1.5.0":
   version "1.5.0"
@@ -12005,22 +12062,6 @@ node-releases@^2.0.13:
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.13.tgz#d5ed1627c23e3461e819b02e57b75e4899b1c81d"
   integrity sha512-uYr7J37ae/ORWdZeQ1xxMJe3NtdmqMC/JZK+geofDrkLUApKRHPd18/TxtBOJ4A0/+uUIliorNrfYV6s1b02eQ==
 
-nodemon@^2.0.20:
-  version "2.0.22"
-  resolved "https://registry.yarnpkg.com/nodemon/-/nodemon-2.0.22.tgz#182c45c3a78da486f673d6c1702e00728daf5258"
-  integrity sha512-B8YqaKMmyuCO7BowF1Z1/mkPqLk6cs/l63Ojtd6otKjMx47Dq1utxfRxcavH1I7VSaL8n5BUaoutadnsX3AAVQ==
-  dependencies:
-    chokidar "^3.5.2"
-    debug "^3.2.7"
-    ignore-by-default "^1.0.1"
-    minimatch "^3.1.2"
-    pstree.remy "^1.1.8"
-    semver "^5.7.1"
-    simple-update-notifier "^1.0.7"
-    supports-color "^5.5.0"
-    touch "^3.1.0"
-    undefsafe "^2.0.5"
-
 nodemon@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/nodemon/-/nodemon-3.0.3.tgz#244a62d1c690eece3f6165c6cdb0db03ebd80b76"
@@ -14238,7 +14279,7 @@ semver-store@^0.3.0:
   resolved "https://registry.yarnpkg.com/semver-store/-/semver-store-0.3.0.tgz#ce602ff07df37080ec9f4fb40b29576547befbe9"
   integrity sha512-TcZvGMMy9vodEFSse30lWinkj+JgOBvPn8wRItpQRSayhc+4ssDs335uklkfvQQJgL/WvmHLVj4Ycv2s7QCQMg==
 
-"semver@2 || 3 || 4 || 5", semver@^5.5.0, semver@^5.6.0, semver@^5.7.1:
+"semver@2 || 3 || 4 || 5", semver@^5.5.0, semver@^5.6.0:
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.2.tgz#48d55db737c3287cd4835e17fa13feace1c41ef8"
   integrity sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==
@@ -14268,11 +14309,6 @@ semver@^7.5.1:
   integrity sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==
   dependencies:
     lru-cache "^6.0.0"
-
-semver@~7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.0.0.tgz#5f3ca35761e47e05b206c6daff2cf814f0316b8e"
-  integrity sha512-+GB6zVA9LWh6zovYQLALHwv5rb2PHGlJi3lfiqIHxR0uuwCgefcOJc59v9fv1w8GbStwxuuqqAjI9NMAOOgq1A==
 
 send@0.18.0:
   version "0.18.0"
@@ -14501,13 +14537,6 @@ simple-swizzle@^0.2.2:
   integrity sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==
   dependencies:
     is-arrayish "^0.3.1"
-
-simple-update-notifier@^1.0.7:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/simple-update-notifier/-/simple-update-notifier-1.1.0.tgz#67694c121de354af592b347cdba798463ed49c82"
-  integrity sha512-VpsrsJSUcJEseSbMHkrsrAVSdvVS5I96Qo1QAQ4FxQ9wXFcB+pjj7FB7/us9+GcgfW4ziHtYMc1J0PLczb55mg==
-  dependencies:
-    semver "~7.0.0"
 
 simple-update-notifier@^2.0.0:
   version "2.0.0"
@@ -15374,6 +15403,25 @@ ts-node@^10.8.1, ts-node@^10.9.1:
   version "10.9.1"
   resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-10.9.1.tgz#e73de9102958af9e1f0b168a6ff320e25adcff4b"
   integrity sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==
+  dependencies:
+    "@cspotcode/source-map-support" "^0.8.0"
+    "@tsconfig/node10" "^1.0.7"
+    "@tsconfig/node12" "^1.0.7"
+    "@tsconfig/node14" "^1.0.0"
+    "@tsconfig/node16" "^1.0.2"
+    acorn "^8.4.1"
+    acorn-walk "^8.1.1"
+    arg "^4.1.0"
+    create-require "^1.1.0"
+    diff "^4.0.1"
+    make-error "^1.1.1"
+    v8-compile-cache-lib "^3.0.1"
+    yn "3.1.1"
+
+ts-node@^10.9.2:
+  version "10.9.2"
+  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-10.9.2.tgz#70f021c9e185bccdca820e26dc413805c101c71f"
+  integrity sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==
   dependencies:
     "@cspotcode/source-map-support" "^0.8.0"
     "@tsconfig/node10" "^1.0.7"
