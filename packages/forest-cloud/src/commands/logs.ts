@@ -49,8 +49,10 @@ type RequestWarnLog = {
 
 type Log = SystemInfoLog | RequestInfoLog | RequestWarnLog;
 
-const logMessage = (logger: Logger, rawLogMessage: string, timestamp: string) => {
+const logMessage = (logger: Logger, { message }: { message: string }) => {
   try {
+    const [timestamp, , , rawLogMessage] = message.split('\t');
+
     // Remove Datadog info if any..
     if (!/\{.*\}/.test(rawLogMessage)) return;
 
@@ -108,11 +110,7 @@ export default (program: Command, context: MakeCommands) => {
           logs
             // Rebuild order
             .sort((a, b) => a.timestamp - b.timestamp)
-            .forEach(({ message }) => {
-              const [logTimestamp, , , rawLogMessage] = message.split('\t');
-
-              logMessage(logger, rawLogMessage, logTimestamp);
-            });
+            .forEach(logMessage.bind(null, logger));
         } else {
           logger.spinner.warn('No logs available');
         }
