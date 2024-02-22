@@ -50,18 +50,26 @@ type RequestWarnLog = {
 type Log = SystemInfoLog | RequestInfoLog | RequestWarnLog;
 
 const logMessage = (logger: Logger, rawLogMessage: string, timestamp: string) => {
-  const log: Log = JSON.parse(rawLogMessage);
+  try {
+    // Remove Datadog info if any..
+    if (!/\{.*\}/.test(rawLogMessage)) return;
 
-  if (log.event === 'request') {
-    const { level, method, status, path, duration } = log;
-    const base = `${timestamp} | [${status}] ${method} ${path} - ${duration}ms`;
+    const [unparsedLogMessage] = rawLogMessage.match(/\{.*\}/);
+    const log: Log = JSON.parse(unparsedLogMessage);
 
-    if (level === 'Info') return logger.info(base);
+    if (log.event === 'request') {
+      const { level, method, status, path, duration } = log;
+      const base = `${timestamp} | [${status}] ${method} ${path} - ${duration}ms`;
 
-    return logger[levelToLog[level]](`${base}\n\t${log.error.message}\t${log.error.stack}`);
+      if (level === 'Info') return logger.info(base);
+
+      return logger[levelToLog[level]](`${base}\n\t${log.error.message}\t${log.error.stack}`);
+    }
+
+    return logger[levelToLog[log.level]](log.message);
+  } catch (e) {
+    /* Do nothing if cannot be parsed */
   }
-
-  return logger[levelToLog[log.level]](log.message);
 };
 
 export default (program: Command, context: MakeCommands) => {
@@ -102,9 +110,8 @@ export default (program: Command, context: MakeCommands) => {
             .sort((a, b) => a.timestamp - b.timestamp)
             .forEach(({ message }) => {
               const [logTimestamp, , , rawLogMessage] = message.split('\t');
-              // Remove Datadog info if any..
-              const [unparsedLogMessage] = rawLogMessage.match(/\{.*\}/);
-              logMessage(logger, unparsedLogMessage, logTimestamp);
+
+              logMessage(logger, rawLogMessage, logTimestamp);
             });
         } else {
           logger.spinner.warn('No logs available');
