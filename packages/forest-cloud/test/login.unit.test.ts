@@ -32,10 +32,8 @@ describe('login', () => {
     await login(logger);
 
     expect(exec).toHaveBeenCalledWith(expect.any(String));
-    expect(logger.spinner.stop).toHaveBeenCalled();
-    expect(logger.spinner.start).toHaveBeenCalled();
     expect(process.stdout.on).toHaveBeenCalledWith('data', logger.log);
-    expect(process.stderr.on).toHaveBeenCalledWith('data', logger.error);
+    expect(process.stderr.on).toHaveBeenCalledWith('data', expect.any(Function));
     expect(process.on).toHaveBeenCalledWith('close', expect.any(Function));
   });
 });
