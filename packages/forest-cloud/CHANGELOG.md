@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.2...@forestadmin/forest-cloud@1.1.3) (2024-02-23)
+
+
+### Bug Fixes
+
+* unable to bootstrap with npx when the user is not previously logged in with forest cli ([#1044](https://github.com/ForestAdmin/agent-nodejs/issues/1044)) ([06b686e](https://github.com/ForestAdmin/agent-nodejs/commit/06b686ef379b9273b9bc86efd6a629a572dc4a30))
+
 ## @forestadmin/forest-cloud [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.1...@forestadmin/forest-cloud@1.1.2) (2024-02-23)
 
 
