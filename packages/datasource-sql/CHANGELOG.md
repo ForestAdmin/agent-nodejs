@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.9.0...@forestadmin/datasource-sql@1.9.1) (2024-02-23)
+
+
+### Bug Fixes
+
+* record creation with UUIDs on MySQL and MariaDB ([#1043](https://github.com/ForestAdmin/agent-nodejs/issues/1043)) ([0674db0](https://github.com/ForestAdmin/agent-nodejs/commit/0674db0d56bdc8a371092b9f8c91b62abc360c9f))
+
 # @forestadmin/datasource-sql [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.8.0...@forestadmin/datasource-sql@1.9.0) (2024-02-19)
 
 
