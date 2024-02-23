@@ -716,5 +716,56 @@ describe('SqlDataSourceFactory > Integration', () => {
         });
       });
     }
+
+    if (connectionDetails.supports.uuid) {
+      describe('with an UUID primary key', () => {
+        const dbName = 'datasource-sql-uuid-primary-key-test';
+        let setupSequelize: Sequelize;
+
+        beforeEach(async () => {
+          setupSequelize = await setupEmptyDatabase(connectionDetails, dbName);
+        });
+
+        afterEach(async () => {
+          await setupSequelize?.close();
+        });
+
+        it('should correctly create records and return their id', async () => {
+          const logger = jest.fn();
+
+          try {
+            if (connectionDetails.setupUUID) await connectionDetails.setupUUID(setupSequelize);
+
+            await setupSequelize.getQueryInterface().createTable('things', {
+              id: {
+                type: DataTypes.UUID,
+                primaryKey: true,
+                defaultValue: setupSequelize.literal(
+                  connectionDetails.uuidFunctionLiteral as string,
+                ),
+              },
+              name: {
+                type: DataTypes.STRING,
+              },
+            });
+          } catch (e) {
+            console.error('Error', e);
+            throw e;
+          }
+
+          const sequelize = await buildSequelizeInstance(connectionDetails.url(dbName), logger);
+
+          try {
+            const thing = (await sequelize.models.things.create({
+              name: 'test',
+            })) as unknown as { id: string };
+
+            expect(thing.id).toMatch(/[0-9a-f-]{36}/i);
+          } finally {
+            await sequelize.close();
+          }
+        });
+      });
+    }
   });
 });

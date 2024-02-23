@@ -1,6 +1,6 @@
 import { tmpdir } from 'os';
 import path from 'path';
-import { Dialect, Options } from 'sequelize';
+import { Dialect, Options, Sequelize } from 'sequelize';
 
 export type ConnectionDetails = {
   name: string;
@@ -21,8 +21,11 @@ export type ConnectionDetails = {
     functionDefaultValue: boolean;
     dateDefault: boolean;
     authentication: boolean;
+    uuid?: boolean;
   };
   defaultSchema?: string;
+  uuidFunctionLiteral: string | undefined;
+  setupUUID?: (sequelize: Sequelize) => Promise<void>;
 };
 
 export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
@@ -57,8 +60,13 @@ export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: true,
     dateDefault: true,
     authentication: true,
+    uuid: true,
   },
   defaultSchema: 'public',
+  uuidFunctionLiteral: 'uuid_generate_v4()',
+  setupUUID: async (sequelize: Sequelize) => {
+    await sequelize.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+  },
 }));
 
 export const MSSQL_DETAILS: ConnectionDetails[] = [
@@ -93,8 +101,10 @@ export const MSSQL_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: true,
     dateDefault: true,
     authentication: true,
+    uuid: true,
   },
   defaultSchema: 'dbo',
+  uuidFunctionLiteral: 'NEWID()',
 }));
 
 export const MYSQL_DETAILS: ConnectionDetails[] = [
@@ -127,8 +137,10 @@ export const MYSQL_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: false,
     dateDefault: version >= 8,
     authentication: true,
+    uuid: version >= 8,
   },
   defaultSchema: undefined,
+  uuidFunctionLiteral: '(UUID())',
 }));
 
 export const MARIADB_DETAILS: ConnectionDetails[] = [
@@ -162,8 +174,10 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: true,
     dateDefault: true,
     authentication: true,
+    uuid: true,
   },
   defaultSchema: undefined,
+  uuidFunctionLiteral: 'UUID()',
 }));
 
 export const SQLITE_DETAILS: ConnectionDetails = {
@@ -189,8 +203,10 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     functionDefaultValue: true,
     dateDefault: true,
     authentication: false,
+    uuid: false,
   },
   defaultSchema: undefined,
+  uuidFunctionLiteral: undefined,
 };
 
 const CONNECTION_DETAILS: ConnectionDetails[] = [
