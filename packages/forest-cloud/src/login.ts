@@ -4,17 +4,18 @@ import { Logger } from './types';
 
 export default async function login(logger: Logger) {
   return new Promise<void>((resolve, reject) => {
-    const errors: string[] = [];
+    let hasLoginSuccess = false;
     const pathForest = require.resolve('forest-cli/bin/run');
     const process = exec(`node ${pathForest} login`);
-    process.stdout.on('data', logger.log);
-    process.stderr.on('data', data => {
-      errors.push(data);
+    process.stderr.on('data', logger.error);
+
+    process.stdout.on('data', data => {
+      if (data.includes('Login successful')) hasLoginSuccess = true;
+      logger.log(data);
     });
 
     process.on('close', () => {
-      if (errors.length > 0) return reject(new Error(errors.join('\n')));
-
+      if (!hasLoginSuccess) return reject(new Error('Login failed'));
       resolve();
     });
   });

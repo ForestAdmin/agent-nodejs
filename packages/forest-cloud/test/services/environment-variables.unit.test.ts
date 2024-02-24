@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as fsPromises from 'node:fs/promises';
-import os from 'node:os';
+import { homedir } from 'node:os';
 
 import {
   getEnvironmentVariables,
@@ -9,13 +9,11 @@ import {
   validateSubscriptionUrl,
 } from '../../src/services/environment-variables';
 
-jest.mock('os');
 jest.mock('node:fs/promises');
 jest.mock('fs');
 
 describe('environment-variables', () => {
   beforeEach(() => {
-    jest.spyOn(os, 'homedir').mockReturnValue('/home/foo');
     jest.spyOn(fsPromises, 'readFile').mockResolvedValue('the-token-from-file');
     jest.spyOn(fs, 'existsSync').mockReturnValue(true);
     jest.clearAllMocks();
@@ -35,6 +33,7 @@ describe('environment-variables', () => {
           FOREST_SERVER_URL: 'https://the.forest.server.url',
           FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
           NODE_TLS_REJECT_UNAUTHORIZED: '1',
+          TOKEN_PATH: homedir(),
         });
       });
     });
@@ -69,10 +68,13 @@ describe('environment-variables', () => {
         process.env.TOKEN_PATH = '';
         expect(await getEnvironmentVariables()).toMatchObject({
           FOREST_AUTH_TOKEN: 'the-token-from-file',
+          TOKEN_PATH: homedir(),
         });
-        expect(os.homedir).toHaveBeenCalledTimes(1);
         expect(fsPromises.readFile).toHaveBeenCalledTimes(1);
-        expect(fsPromises.readFile).toHaveBeenCalledWith('/home/foo/.forest.d/.forestrc', 'utf8');
+        expect(fsPromises.readFile).toHaveBeenCalledWith(
+          `${homedir()}/.forest.d/.forestrc`,
+          'utf8',
+        );
       });
     });
 
@@ -161,6 +163,7 @@ describe('environment-variables', () => {
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
               NODE_TLS_REJECT_UNAUTHORIZED: '',
+              TOKEN_PATH: '',
             }),
           ).toThrow('Missing FOREST_ENV_SECRET. Please check your .env file.');
         });
@@ -175,6 +178,7 @@ describe('environment-variables', () => {
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
               NODE_TLS_REJECT_UNAUTHORIZED: '',
+              TOKEN_PATH: '',
             }),
           ).toThrow(
             // eslint-disable-next-line max-len
@@ -192,6 +196,7 @@ describe('environment-variables', () => {
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
               NODE_TLS_REJECT_UNAUTHORIZED: '',
+              TOKEN_PATH: '',
             }),
           ).toThrow(
             // eslint-disable-next-line max-len
@@ -209,6 +214,7 @@ describe('environment-variables', () => {
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: '',
               NODE_TLS_REJECT_UNAUTHORIZED: '',
+              TOKEN_PATH: '',
             }),
           ).toThrow(
             'Missing authentication token. Your TOKEN_PATH is probably wrong on .env file.',
@@ -225,6 +231,7 @@ describe('environment-variables', () => {
               FOREST_SUBSCRIPTION_URL: '',
               FOREST_AUTH_TOKEN: 'a'.repeat(64),
               NODE_TLS_REJECT_UNAUTHORIZED: '',
+              TOKEN_PATH: '',
             }),
           ).toThrow('Missing FOREST_SERVER_URL. Please check your .env file.');
         });
@@ -239,6 +246,7 @@ describe('environment-variables', () => {
               FOREST_SUBSCRIPTION_URL: 'wss://test.com',
               FOREST_AUTH_TOKEN: 'a'.repeat(64),
               NODE_TLS_REJECT_UNAUTHORIZED: '',
+              TOKEN_PATH: '',
             }),
           ).not.toThrow();
         });
