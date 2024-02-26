@@ -16,16 +16,24 @@ export default (): Logger => {
     return `${prefix} | ${text}`;
   };
 
-  const log = (level: string, text?: string, prefix?: string) => {
-    process.stdout.write(addPrefix(`${loggerPrefix[level]} ${text}\n`, prefix));
+  const write = (text: string, outputType?: 'stderr' | 'stdout') => {
+    if (outputType === 'stderr') process.stderr.write(text);
+    else process.stdout.write(text);
+  };
+
+  const log = (text?: string) => write(`${text}\n`);
+
+  const logLevel = (level: string, text?: string, prefix?: string) => {
+    log(addPrefix(`${loggerPrefix[level]} ${text}`, prefix));
   };
 
   return {
     spinner: ora(),
-    log: (text?: string) => process.stdout.write(`${text}\n`),
-    info: (text?: string, prefix?: string) => log('Info', text, prefix),
-    error: (text?: string, prefix?: string) => log('Error', text, prefix),
-    warn: (text?: string, prefix?: string) => log('Warn', text, prefix),
-    debug: (text?: string, prefix?: string) => log('Debug', text, prefix),
+    write: (text: string, outputType?: 'stderr' | 'stdout') => write(text, outputType),
+    log: (text?: string) => log(text),
+    info: (text?: string, prefix?: string) => logLevel('Info', text, prefix),
+    error: (text?: string, prefix?: string) => logLevel('Error', text, prefix),
+    warn: (text?: string, prefix?: string) => logLevel('Warn', text, prefix),
+    debug: (text?: string, prefix?: string) => logLevel('Debug', text, prefix),
   };
 };

@@ -109,7 +109,6 @@ export default (program: Command, context: MakeCommands) => {
         const { logs } = await buildHttpServer(vars).getLogs(options.tail);
 
         if (logs?.length > 0) {
-          logger.spinner.stop();
           logs
             // Rebuild order
             .sort((a, b) => a.timestamp - b.timestamp)

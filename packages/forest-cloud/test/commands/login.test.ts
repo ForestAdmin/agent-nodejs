@@ -15,6 +15,7 @@ describe('login command', () => {
     expect(login).toHaveBeenCalled();
     expect(cmd.outputs).toEqual([
       cmd.spinner.start('Logging in'),
+      cmd.spinner.stop(),
       cmd.spinner.succeed('You are now logged in'),
       cmd.spinner.stop(),
     ]);
