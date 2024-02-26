@@ -6,8 +6,7 @@ import path from 'path';
 import { BusinessError } from '../errors';
 import { EnvironmentVariables } from '../types';
 
-const getTokenFromToolbelt = async (): Promise<string | null> => {
-  const baseTokenPath = process.env.TOKEN_PATH || homedir();
+const getTokenFromToolbelt = async (baseTokenPath: string): Promise<string | null> => {
   const tokenPath = path.join(baseTokenPath, '.forest.d', '.forestrc');
 
   if (fs.existsSync(tokenPath)) return readFile(tokenPath, 'utf8');
@@ -19,15 +18,19 @@ export const defaultEnvs = Object.freeze({
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
   NODE_TLS_REJECT_UNAUTHORIZED: '1',
+  TOKEN_PATH: homedir(),
 });
 
 export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
+  const tokenPath = process.env.TOKEN_PATH || defaultEnvs.TOKEN_PATH;
+
   return {
     FOREST_ENV_SECRET: process.env.FOREST_ENV_SECRET,
+    TOKEN_PATH: tokenPath,
     FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || defaultEnvs.FOREST_SERVER_URL,
     FOREST_SUBSCRIPTION_URL:
       process.env.FOREST_SUBSCRIPTION_URL || defaultEnvs.FOREST_SUBSCRIPTION_URL,
-    FOREST_AUTH_TOKEN: process.env.FOREST_AUTH_TOKEN || (await getTokenFromToolbelt()),
+    FOREST_AUTH_TOKEN: process.env.FOREST_AUTH_TOKEN || (await getTokenFromToolbelt(tokenPath)),
     NODE_TLS_REJECT_UNAUTHORIZED:
       process.env.NODE_TLS_REJECT_UNAUTHORIZED || defaultEnvs.NODE_TLS_REJECT_UNAUTHORIZED,
   };

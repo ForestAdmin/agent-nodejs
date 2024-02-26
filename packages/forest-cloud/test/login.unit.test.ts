@@ -13,29 +13,29 @@ describe('login', () => {
     (exec as unknown as jest.Mock).mockClear();
   });
 
-  it('should call the login from the bin', async () => {
-    const process = {
-      stdout: { on: jest.fn() },
-      stderr: { on: jest.fn() },
-      on: jest.fn().mockImplementation((_, cb) => {
-        cb();
-      }),
-    } as unknown as NodeJS.Process;
-    (exec as unknown as jest.Mock).mockReturnValue(process);
+  describe('when the "login successful" message is not received', () => {
+    it('should reject the login', async () => {
+      const process = {
+        stdout: { on: jest.fn() },
+        stderr: { on: jest.fn() },
+        on: jest.fn().mockImplementation((_, cb) => {
+          cb();
+        }),
+      } as unknown as NodeJS.Process;
+      (exec as unknown as jest.Mock).mockReturnValue(process);
 
-    const logger: Logger = {
-      spinner: { start: jest.fn(), stop: jest.fn() },
-      log: jest.fn(),
-      error: jest.fn(),
-    } as unknown as Logger;
+      const logger: Logger = {
+        spinner: { start: jest.fn(), stop: jest.fn() },
+        log: jest.fn(),
+        error: jest.fn(),
+      } as unknown as Logger;
 
-    await login(logger);
+      await expect(login(logger)).rejects.toThrow('Login failed');
 
-    expect(exec).toHaveBeenCalledWith(expect.any(String));
-    expect(logger.spinner.stop).toHaveBeenCalled();
-    expect(logger.spinner.start).toHaveBeenCalled();
-    expect(process.stdout.on).toHaveBeenCalledWith('data', logger.log);
-    expect(process.stderr.on).toHaveBeenCalledWith('data', logger.error);
-    expect(process.on).toHaveBeenCalledWith('close', expect.any(Function));
+      expect(exec).toHaveBeenCalledWith(expect.any(String));
+      expect(process.stdout.on).toHaveBeenCalledWith('data', expect.any(Function));
+      expect(process.stderr.on).toHaveBeenCalledWith('data', expect.any(Function));
+      expect(process.on).toHaveBeenCalledWith('close', expect.any(Function));
+    });
   });
 });

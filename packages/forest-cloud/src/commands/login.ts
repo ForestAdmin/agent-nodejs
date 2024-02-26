@@ -19,6 +19,7 @@ export default (program: Command, context: MakeCommands) => {
         spinner.start('Logging in');
         const vars = await getEnvironmentVariables();
         validateServerUrl(vars.FOREST_SERVER_URL);
+        spinner.stop();
         await login(logger);
         spinner.succeed('You are now logged in');
       }),
