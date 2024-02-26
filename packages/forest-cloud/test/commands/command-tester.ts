@@ -105,6 +105,9 @@ export default class CommandTester {
       log: (text?: string) => {
         this.saveOutput(this.logger.log(text));
       },
+      write: (text: string, outputType?: 'stderr' | 'stdout') => {
+        this.saveOutput(this.logger.write(text, outputType));
+      },
     };
   }
 

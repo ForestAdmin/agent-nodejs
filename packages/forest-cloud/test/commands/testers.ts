@@ -48,7 +48,8 @@ export class SpinnerTester {
 export class LoggerTester {
   private text: string;
   private prefix: string;
-  private type: 'succeed' | 'warning' | 'info' | 'error' | 'log' | undefined;
+  private type: 'succeed' | 'warning' | 'info' | 'error' | 'log' | 'write' | undefined;
+  private outputTypeForWrite: 'stderr' | 'stdout' | undefined;
 
   info(message: string): this {
     this.text = message;
@@ -87,6 +88,14 @@ export class LoggerTester {
 
   prefixed(prefix: string): this {
     this.prefix = prefix;
+
+    return this;
+  }
+
+  write(message: string, outputType?: 'stderr' | 'stdout'): this {
+    this.text = message;
+    this.type = 'write';
+    this.outputTypeForWrite = outputType;
 
     return this;
   }

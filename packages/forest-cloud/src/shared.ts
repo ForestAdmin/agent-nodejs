@@ -11,7 +11,8 @@ export const loginIfMissingAuthAndReturnEnvironmentVariables = async (
   const vars = await getEnvironmentVariables();
   if (vars.FOREST_AUTH_TOKEN) return vars;
 
-  // we want to show the spinner only if we need to login
+  // must be sure to stop the spinner before calling login
+  // because the spinner will clear the process.stdout
   logger.spinner.stop();
   await login(logger);
 

@@ -40,7 +40,6 @@ export default (program: Command, context: MakeCommands) => {
         validateEnvironmentVariables(vars);
 
         logger.spinner.succeed('Environment found');
-        logger.spinner.stop();
 
         const httpServer = buildHttpServer(vars);
         await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);

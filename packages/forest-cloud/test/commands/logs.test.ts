@@ -12,6 +12,7 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
+        cmd.spinner.stop(),
         cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
@@ -31,6 +32,7 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
+        cmd.spinner.stop(),
         cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
@@ -50,6 +52,7 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
+        cmd.spinner.stop(),
         cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
@@ -188,7 +191,6 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.spinner.stop(),
         cmd.logger.error('System error message').prefixed('timestamp'),
         cmd.logger.info('[200] GET /collection - 42ms').prefixed('timestamp'),
         cmd.logger
