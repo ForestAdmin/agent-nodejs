@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.3...@forestadmin/forest-cloud@1.1.4) (2024-02-26)
+
+
+### Bug Fixes
+
+* **forest-cloud:** when login fails it displays a success message ([#1045](https://github.com/ForestAdmin/agent-nodejs/issues/1045)) ([74980ef](https://github.com/ForestAdmin/agent-nodejs/commit/74980ef797b57e3377ca16f6e10746e30868dce8))
+
 ## @forestadmin/forest-cloud [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.2...@forestadmin/forest-cloud@1.1.3) (2024-02-23)
 
 
