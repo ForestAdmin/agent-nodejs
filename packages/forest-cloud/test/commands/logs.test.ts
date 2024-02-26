@@ -191,13 +191,13 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
+        cmd.logger.info('System info message').prefixed('timestamp'),
+        cmd.logger.warn('System warn message').prefixed('timestamp'),
         cmd.logger.error('System error message').prefixed('timestamp'),
         cmd.logger.info('[200] GET /collection - 42ms').prefixed('timestamp'),
         cmd.logger
           .warn('[200] POST /collection/action - 42ms\n\tError message\tstack')
           .prefixed('timestamp'),
-        cmd.logger.info('System info message').prefixed('timestamp'),
-        cmd.logger.warn('System warn message').prefixed('timestamp'),
         cmd.spinner.stop(),
       ]);
     });
