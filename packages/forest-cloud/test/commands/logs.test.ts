@@ -247,6 +247,34 @@ describe('logs command', () => {
         });
       });
 
+      describe('when given 0 as a value instead of positive integer', () => {
+        it('should display a fail message', async () => {
+          const setup = setupCommandArguments({});
+
+          const cmd = new CommandTester(setup, ['logs', '--tail', '0']);
+          await cmd.run();
+
+          expect(cmd.outputs).toEqual([
+            cmd.spinner.fail('The --tail (-n) option must be greater than 0'),
+            cmd.spinner.stop(),
+          ]);
+        });
+      });
+
+      describe('when given a negative value instead of positive integer', () => {
+        it('should display a fail message', async () => {
+          const setup = setupCommandArguments({});
+
+          const cmd = new CommandTester(setup, ['logs', '--tail', '-2']);
+          await cmd.run();
+
+          expect(cmd.outputs).toEqual([
+            cmd.spinner.fail('The --tail (-n) option must be a positive integer'),
+            cmd.spinner.stop(),
+          ]);
+        });
+      });
+
       it('should call getLogs to only request the n last logs', async () => {
         const getLogs = jest.fn().mockResolvedValue({ logs: [] });
         const setup = setupCommandArguments({ getLogs });
