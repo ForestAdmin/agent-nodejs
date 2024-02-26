@@ -95,13 +95,15 @@ export default (program: Command, context: MakeCommands) => {
     .command('logs')
     .option(
       '-e, --env-secret <string>',
-      'Environment secret, you can find it in your environment settings. (env: FOREST_ENV_SECRET).',
+      'Environment secret, you can find it in your environment settings.' +
+        ' (you can also pass it with environment variable FOREST_ENV_SECRET)',
     )
     .option(
       '-n, --tail <integer>',
-      'Number of lines to show from the end of the logs. Default is 100.',
+      'Number of lines to show from the end of the logs.' +
+        ' May return slightly less lines than expected in some cases. Default is 30',
     )
-    .description('Display the logs of the published customizations')
+    .description('Display the logs of the customizations published on your agent')
     .action(
       actionRunner(logger.spinner, async (options: { envSecret: string; tail: number }) => {
         validateTailOption(options.tail);
@@ -117,10 +119,11 @@ export default (program: Command, context: MakeCommands) => {
         validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
         validateEnvironmentVariables(vars);
 
-        const { logs } = await buildHttpServer(vars).getLogs(options.tail ?? 100);
+        const { logs } = await buildHttpServer(vars).getLogs(options.tail ?? 30);
 
-        if (logs?.length > 0) logs.forEach(logMessage.bind(null, logger));
-        else logger.spinner.warn('No logs available');
+        if (logs?.length > 0) {
+          logs.forEach(log => logMessage(logger, log));
+        } else logger.spinner.warn('No logs available');
       }),
     );
 };
