@@ -21,8 +21,7 @@ export default (program: Command, context: MakeCommands) => {
     .argument('<name>', 'The name of your project folder')
     .option(
       '-e, --env-secret <string>',
-      'Environment secret, you can find it in your environment settings.' +
-        ' (you can also pass it with environment variable FOREST_ENV_SECRET)',
+      'Environment secret, you can find it in your environment settings. (env: FOREST_ENV_SECRET).',
     )
     .action(
       actionRunner(logger.spinner, async (folderName: string, options: { envSecret: string }) => {
