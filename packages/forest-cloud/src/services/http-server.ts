@@ -113,11 +113,11 @@ export default class HttpServer {
   }
 
   async getLogs(tail?: number | string) {
-    void tail;
+    const potentialTail = tail ? `?limit=${tail}` : '';
 
     return handledAxios<{ logs: { timestamp: number; message: string }[] }>(
       {
-        url: `${this.serverUrl}/api/full-hosted-agent/logs`,
+        url: `${this.serverUrl}/api/full-hosted-agent/logs${potentialTail}`,
         method: 'GET',
         headers: this.headers,
       },

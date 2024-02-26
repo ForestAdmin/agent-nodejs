@@ -118,7 +118,7 @@ describe('logs command', () => {
     });
   });
 
-  describe('when there is logs', () => {
+  describe('when there are logs', () => {
     it('should display all the logs', async () => {
       const setup = setupCommandArguments({
         getLogs: jest.fn().mockResolvedValue({
@@ -202,6 +202,36 @@ describe('logs command', () => {
       ]);
     });
 
+    describe('when the log is unprocessable', () => {
+      it('should display the log with a warning message', async () => {
+        const setup = setupCommandArguments({
+          getLogs: jest.fn().mockResolvedValue({
+            logs: [
+              {
+                timestamp: 2,
+                message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
+                  level: 'BAD',
+                  event: 'system',
+                  message: 'System error message',
+                })}`,
+              },
+            ],
+          }),
+        });
+
+        const cmd = new CommandTester(setup, ['logs']);
+        await cmd.run();
+
+        expect(cmd.outputs).toEqual([
+          cmd.logger.warn(
+            // eslint-disable-next-line max-len
+            'Could not parse log message: timestamp\tlambdaRelatedData\tlambdaRelatedData\t{"level":"BAD","event":"system","message":"System error message"}',
+          ),
+          cmd.spinner.stop(),
+        ]);
+      });
+    });
+
     describe('when wants n last logs', () => {
       describe('when given a float instead of integer', () => {
         it('should display a fail message', async () => {
@@ -226,19 +256,6 @@ describe('logs command', () => {
 
         expect(getLogs).toHaveBeenCalledWith('2');
       });
-
-      // Not implemented with display all logs
-      // eslint-disable-next-line jest/no-commented-out-tests
-      // it('should display the logs with the n last logs', async () => {
-      //   const getLogs = jest.fn().mockResolvedValue(['log1', 'log2']);
-      //   const setup = setupCommandArguments({ getLogs });
-
-      //   const cmd = new CommandTester(setup, ['logs', '--tail', '2']);
-      //   await cmd.run();
-
-      //   expect(cmd.outputs).toEqual([cmd.logger.info('log1'), cmd.logger.info('log2')]);
-      //   expect(getLogs).toHaveBeenCalledWith('2');
-      // });
     });
   });
 });

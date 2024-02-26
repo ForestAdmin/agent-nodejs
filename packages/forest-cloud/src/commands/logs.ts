@@ -73,7 +73,7 @@ const logMessage = (logger: Logger, { message }: { message: string }) => {
 
     return logger[levelToLog[log.level]](log.message, timestamp);
   } catch (e) {
-    /* Do nothing if cannot be parsed */
+    logger.warn(`Could not parse log message: ${message}`);
   }
 };
 
@@ -109,10 +109,7 @@ export default (program: Command, context: MakeCommands) => {
         const { logs } = await buildHttpServer(vars).getLogs(options.tail);
 
         if (logs?.length > 0) {
-          logs
-            // Rebuild order
-            .sort((a, b) => a.timestamp - b.timestamp)
-            .forEach(logMessage.bind(null, logger));
+          logs.forEach(logMessage.bind(null, logger));
         } else {
           logger.spinner.warn('No logs available');
         }
