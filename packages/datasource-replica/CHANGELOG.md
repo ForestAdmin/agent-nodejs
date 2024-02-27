@@ -1,3 +1,21 @@
+## @forestadmin/datasource-replica [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.1.2...@forestadmin/datasource-replica@1.1.3) (2024-02-27)
+
+
+### Bug Fixes
+
+* **caller:** caller now exposes permissionLevel ([#1029](https://github.com/ForestAdmin/agent-nodejs/issues/1029)) ([a99f5d7](https://github.com/ForestAdmin/agent-nodejs/commit/a99f5d7999b8a6bcfc610d9c5f5fde54c08f1c57))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.2
+* **@forestadmin/datasource-sequelize:** upgraded to 1.6.5
+* **@forestadmin/datasource-sql:** upgraded to 1.9.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.1
+
 ## @forestadmin/datasource-replica [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.1.1...@forestadmin/datasource-replica@1.1.2) (2024-02-23)
 
 
