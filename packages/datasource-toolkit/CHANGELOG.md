@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.32.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.0...@forestadmin/datasource-toolkit@1.32.1) (2024-02-27)
+
+
+### Bug Fixes
+
+* **caller:** caller now exposes permissionLevel ([#1029](https://github.com/ForestAdmin/agent-nodejs/issues/1029)) ([a99f5d7](https://github.com/ForestAdmin/agent-nodejs/commit/a99f5d7999b8a6bcfc610d9c5f5fde54c08f1c57))
+
 # @forestadmin/datasource-toolkit [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.31.0...@forestadmin/datasource-toolkit@1.32.0) (2024-02-06)
 
 
