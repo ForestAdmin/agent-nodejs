@@ -85,6 +85,8 @@ function validateTailOption(tail?: unknown) {
       throw new BusinessError('The --tail (-n) option must be a positive integer');
     } else if (Number(tail) === 0) {
       throw new BusinessError('The --tail (-n) option must be greater than 0');
+    } else if (Number(tail) > 1000) {
+      throw new BusinessError('The --tail (-n) option must be equal or less than 1000');
     }
   }
 }

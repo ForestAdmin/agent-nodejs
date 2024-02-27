@@ -275,6 +275,20 @@ describe('logs command', () => {
         });
       });
 
+      describe('when given a too big value', () => {
+        it('should display a fail message', async () => {
+          const setup = setupCommandArguments({});
+
+          const cmd = new CommandTester(setup, ['logs', '--tail', '10001']);
+          await cmd.run();
+
+          expect(cmd.outputs).toEqual([
+            cmd.spinner.fail('The --tail (-n) option must be equal or less than 1000'),
+            cmd.spinner.stop(),
+          ]);
+        });
+      });
+
       it('should call getLogs to only request the n last logs', async () => {
         const getLogs = jest.fn().mockResolvedValue({ logs: [] });
         const setup = setupCommandArguments({ getLogs });
