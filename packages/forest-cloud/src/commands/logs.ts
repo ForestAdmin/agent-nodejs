@@ -53,9 +53,6 @@ const logMessage = (logger: Logger, { message }: { message: string }) => {
   try {
     const [timestamp, , , rawLogMessage] = message.split('\t');
 
-    // Remove Datadog info if any..
-    if (!/\{.*\}/.test(rawLogMessage)) return;
-
     const [unparsedLogMessage] = rawLogMessage.match(/\{.*\}/);
     const log: Log = JSON.parse(unparsedLogMessage);
 
@@ -103,9 +100,9 @@ export default (program: Command, context: MakeCommands) => {
     .option(
       '-n, --tail <integer>',
       'Number of lines to show from the end of the logs.' +
-        ' May return slightly less lines than expected in some cases. Default is 30',
+        ' May return less lines than expected in some cases. Default is 30',
     )
-    .description('Display the logs of the customizations published on your agent')
+    .description('Display logs of the customizations published on your agent.')
     .action(
       actionRunner(logger.spinner, async (options: { envSecret: string; tail: number }) => {
         validateTailOption(options.tail);
