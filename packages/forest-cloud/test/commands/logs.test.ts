@@ -123,58 +123,9 @@ describe('logs command', () => {
       const setup = setupCommandArguments({
         getLogs: jest.fn().mockResolvedValue({
           logs: [
-            {
-              timestamp: 2,
-              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
-                level: 'Info',
-                event: 'system',
-                message: 'System info message',
-              })}`,
-            },
-            {
-              timestamp: 2,
-              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
-                level: 'Warn',
-                event: 'system',
-                message: 'System warn message',
-              })}`,
-            },
-            {
-              timestamp: 0,
-              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
-                level: 'Error',
-                event: 'system',
-                message: 'System error message',
-              })}`,
-            },
-            {
-              timestamp: 0,
-              message:
-                `timestamp\tlambdaRelatedData\tlambdaRelatedData\t` +
-                `[dd.trace_id=8057550120292069400 dd.span_id=8057550120292069400] ${JSON.stringify({
-                  level: 'Info',
-                  event: 'request',
-                  status: 200,
-                  method: 'GET',
-                  path: '/collection',
-                  duration: 42,
-                })}`,
-            },
-            {
-              timestamp: 0,
-              message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
-                level: 'Warn',
-                event: 'request',
-                status: 200,
-                method: 'POST',
-                path: '/collection/action',
-                duration: 42,
-                error: {
-                  message: 'Error message',
-                  stack: 'stack',
-                },
-              })}`,
-            },
+            { timestamp: 2, message: 'a-message', level: 'Info' },
+            { timestamp: 3, message: 'a-message', level: 'Warn' },
+            { timestamp: 4, message: 'a-message' },
           ],
         }),
       });
@@ -183,13 +134,9 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.logger.info('System info message').prefixed('timestamp'),
-        cmd.logger.warn('System warn message').prefixed('timestamp'),
-        cmd.logger.error('System error message').prefixed('timestamp'),
-        cmd.logger.info('[200] GET /collection - 42ms').prefixed('timestamp'),
-        cmd.logger
-          .warn('[200] POST /collection/action - 42ms\n\tError message\tstack')
-          .prefixed('timestamp'),
+        cmd.logger.info('a-message').prefixed(new Date(2).toISOString()),
+        cmd.logger.warn('a-message').prefixed(new Date(3).toISOString()),
+        cmd.logger.log('a-message').prefixed(new Date(4).toISOString()),
         cmd.spinner.stop(),
       ]);
     });
@@ -198,16 +145,7 @@ describe('logs command', () => {
       it('should display the log with a warning message', async () => {
         const setup = setupCommandArguments({
           getLogs: jest.fn().mockResolvedValue({
-            logs: [
-              {
-                timestamp: 2,
-                message: `timestamp\tlambdaRelatedData\tlambdaRelatedData\t${JSON.stringify({
-                  level: 'BAD',
-                  event: 'system',
-                  message: 'System error message',
-                })}`,
-              },
-            ],
+            logs: [{ timestamp: 3, message: 'a-message', level: 'BAD_LEVEL' }],
           }),
         });
 
@@ -215,10 +153,7 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
-          cmd.logger.warn(
-            // eslint-disable-next-line max-len
-            'Could not parse log message: timestamp\tlambdaRelatedData\tlambdaRelatedData\t{"level":"BAD","event":"system","message":"System error message"}',
-          ),
+          cmd.logger.log('a-message').prefixed(new Date(3).toISOString()),
           cmd.spinner.stop(),
         ]);
       });
