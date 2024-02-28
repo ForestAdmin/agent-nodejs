@@ -102,8 +102,8 @@ export default class CommandTester {
       debug: (text?: string, prefix?: string) => {
         this.saveOutput(this.logger.debug(text).prefixed(prefix));
       },
-      log: (text?: string) => {
-        this.saveOutput(this.logger.log(text));
+      log: (text?: string, prefix?: string) => {
+        this.saveOutput(this.logger.log(text).prefixed(prefix));
       },
       write: (text: string, outputType?: 'stderr' | 'stdout') => {
         this.saveOutput(this.logger.write(text, outputType));
