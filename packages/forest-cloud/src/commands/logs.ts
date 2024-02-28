@@ -50,9 +50,9 @@ type RequestWarnLog = {
 type Log = SystemInfoLog | RequestInfoLog | RequestWarnLog;
 
 const logMessage = (logger: Logger, { message }: { message: string }) => {
-  try {
-    const [timestamp, , , rawLogMessage] = message.split('\t');
+  const [timestamp, , , rawLogMessage] = message.split('\t');
 
+  try {
     const [unparsedLogMessage] = rawLogMessage.match(/\{.*\}/);
     const log: Log = JSON.parse(unparsedLogMessage);
 
@@ -70,7 +70,7 @@ const logMessage = (logger: Logger, { message }: { message: string }) => {
 
     return logger[levelToLog[log.level]](log.message, timestamp);
   } catch (e) {
-    logger.warn(`Could not parse log message: ${message}`);
+    logger.log(message, timestamp);
   }
 };
 
