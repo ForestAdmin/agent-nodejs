@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.43.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.2...@forestadmin/datasource-customizer@1.43.3) (2024-02-28)
+
+
+### Bug Fixes
+
+* **agent:** action default success message is now handled by the frontend ([#1040](https://github.com/ForestAdmin/agent-nodejs/issues/1040)) ([42cd54b](https://github.com/ForestAdmin/agent-nodejs/commit/42cd54be194d196a3defd962c36ffe910222110f))
+
 ## @forestadmin/datasource-customizer [1.43.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.1...@forestadmin/datasource-customizer@1.43.2) (2024-02-27)
 
 
