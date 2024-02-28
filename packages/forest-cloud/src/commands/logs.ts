@@ -72,9 +72,8 @@ export default (program: Command, context: MakeCommands) => {
 
         const { logs } = await buildHttpServer(vars).getLogs(options.tail ?? 30);
 
-        if (logs?.length > 0) {
-          logs.forEach(log => displayLog(logger, log));
-        } else logger.spinner.warn('No logs available');
+        if (logs?.length > 0) logs.forEach(log => displayLog(logger, log));
+        else logger.spinner.warn('No logs available');
       }),
     );
 };
