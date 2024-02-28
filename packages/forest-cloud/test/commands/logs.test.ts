@@ -123,9 +123,9 @@ describe('logs command', () => {
       const setup = setupCommandArguments({
         getLogs: jest.fn().mockResolvedValue({
           logs: [
-            { timestamp: 2, message: 'a-message', level: 'Info' },
-            { timestamp: 3, message: 'a-message', level: 'Warn' },
-            { timestamp: 4, message: 'a-message' },
+            { timestamp: '2', message: 'a-message', level: 'Info' },
+            { timestamp: '3', message: 'a-message', level: 'Warn' },
+            { timestamp: '4', message: 'a-message' },
           ],
         }),
       });
@@ -134,9 +134,9 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.logger.info('a-message').prefixed(new Date(2).toISOString()),
-        cmd.logger.warn('a-message').prefixed(new Date(3).toISOString()),
-        cmd.logger.log('a-message').prefixed(new Date(4).toISOString()),
+        cmd.logger.info('a-message').prefixed('2'),
+        cmd.logger.warn('a-message').prefixed('3'),
+        cmd.logger.log('a-message').prefixed('4'),
         cmd.spinner.stop(),
       ]);
     });
@@ -145,7 +145,7 @@ describe('logs command', () => {
       it('should display the log with a warning message', async () => {
         const setup = setupCommandArguments({
           getLogs: jest.fn().mockResolvedValue({
-            logs: [{ timestamp: 3, message: 'a-message', level: 'BAD_LEVEL' }],
+            logs: [{ timestamp: '3', message: 'a-message', level: 'BAD_LEVEL' }],
           }),
         });
 
@@ -153,7 +153,7 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
-          cmd.logger.log('a-message').prefixed(new Date(3).toISOString()),
+          cmd.logger.log('a-message').prefixed('3'),
           cmd.spinner.stop(),
         ]);
       });

@@ -18,12 +18,12 @@ const levelToLog = {
 
 const displayLog = (
   logger: Logger,
-  log: { message: string; timestamp: number; level?: 'Info' | 'Warn' },
+  log: { message: string; timestamp: string; level?: 'Info' | 'Warn' },
 ) => {
   try {
-    logger[levelToLog[log.level]](log.message, new Date(log.timestamp).toISOString());
+    logger[levelToLog[log.level]](log.message, log.timestamp);
   } catch (e) {
-    logger.log(log.message, new Date(log.timestamp).toISOString());
+    logger.log(log.message, log.timestamp);
   }
 };
 
