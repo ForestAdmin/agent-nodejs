@@ -116,7 +116,7 @@ export default class HttpServer {
     const potentialTail = tail ? `?limit=${tail}` : '';
 
     return handledAxios<{
-      logs: { message: string; timestamp: number; level?: 'Info' | 'Warn' }[];
+      logs: { message: string; timestamp: string; level?: 'Info' | 'Warn' }[];
     }>(
       {
         url: `${this.serverUrl}/api/full-hosted-agent/logs${potentialTail}`,
