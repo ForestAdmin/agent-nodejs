@@ -12,65 +12,18 @@ import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
 import { Logger, MakeCommands } from '../types';
 
 const levelToLog = {
-  Debug: 'debug',
   Info: 'info',
   Warn: 'warn',
-  Error: 'error',
 };
 
-type SystemInfoLog = {
-  level: 'Info';
-  event: 'system';
-  message: string;
-};
-
-type RequestInfoLog = {
-  level: 'Info';
-  event: 'request';
-  method: string;
-  status: number;
-  path: string;
-  duration: number;
-};
-
-type RequestWarnLog = {
-  level: 'Warn';
-  event: 'request';
-  message: string;
-  method: string;
-  status: number;
-  path: string;
-  duration: number;
-  error: {
-    message: string;
-    stack: string;
-  };
-};
-
-type Log = SystemInfoLog | RequestInfoLog | RequestWarnLog;
-
-const logMessage = (logger: Logger, { message }: { message: string }) => {
-  const [timestamp, , , rawLogMessage] = message.split('\t');
-
+const displayLog = (
+  logger: Logger,
+  log: { message: string; timestamp: number; level?: 'Info' | 'Warn' },
+) => {
   try {
-    const [unparsedLogMessage] = rawLogMessage.match(/\{.*\}/);
-    const log: Log = JSON.parse(unparsedLogMessage);
-
-    if (log.event === 'request') {
-      const { level, method, status, path, duration } = log;
-      const base = `[${status}] ${method} ${path} - ${duration}ms`;
-
-      if (level === 'Info') return logger.info(base, timestamp);
-
-      return logger[levelToLog[level]](
-        `${base}\n\t${log.error.message}\t${log.error.stack}`,
-        timestamp,
-      );
-    }
-
-    return logger[levelToLog[log.level]](log.message, timestamp);
+    logger[levelToLog[log.level]](log.message, new Date(log.timestamp).toISOString());
   } catch (e) {
-    logger.log(message, timestamp);
+    logger.log(log.message, new Date(log.timestamp).toISOString());
   }
 };
 
@@ -121,7 +74,7 @@ export default (program: Command, context: MakeCommands) => {
         const { logs } = await buildHttpServer(vars).getLogs(options.tail ?? 30);
 
         if (logs?.length > 0) {
-          logs.forEach(log => logMessage(logger, log));
+          logs.forEach(log => displayLog(logger, log));
         } else logger.spinner.warn('No logs available');
       }),
     );
