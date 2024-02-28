@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.38.2",
+  "version": "1.38.3",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -14,7 +14,7 @@
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@fastify/express": "^1.1.0",
-    "@forestadmin/datasource-customizer": "1.43.2",
+    "@forestadmin/datasource-customizer": "1.43.3",
     "@forestadmin/datasource-toolkit": "1.32.1",
     "@forestadmin/forestadmin-client": "1.25.10",
     "@koa/cors": "^5.0.0",
