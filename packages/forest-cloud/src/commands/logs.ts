@@ -52,8 +52,7 @@ export default (program: Command, context: MakeCommands) => {
     )
     .option(
       '-n, --tail <integer>',
-      'Number of lines to show from the end of the logs.' +
-        ' May return less lines than expected in some cases. Default is 30',
+      'Number of lines to show from the end of the logs. Default is 30, Max is 1000',
     )
     .description('Display logs of the customizations published on your agent.')
     .action(
