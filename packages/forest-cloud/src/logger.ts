@@ -21,16 +21,18 @@ export default (): Logger => {
     else process.stdout.write(text);
   };
 
-  const log = (text?: string) => write(`${text}\n`);
+  const log = (text?: string, prefix?: string) => {
+    write(`${addPrefix(text, prefix)}\n`);
+  };
 
   const logLevel = (level: string, text?: string, prefix?: string) => {
-    log(addPrefix(`${loggerPrefix[level]} ${text}`, prefix));
+    log(`${loggerPrefix[level]} ${text}`, prefix);
   };
 
   return {
     spinner: ora(),
     write: (text: string, outputType?: 'stderr' | 'stdout') => write(text, outputType),
-    log: (text?: string) => log(text),
+    log: (text?: string, prefix?: string) => log(text, prefix),
     info: (text?: string, prefix?: string) => logLevel('Info', text, prefix),
     error: (text?: string, prefix?: string) => logLevel('Error', text, prefix),
     warn: (text?: string, prefix?: string) => logLevel('Warn', text, prefix),
