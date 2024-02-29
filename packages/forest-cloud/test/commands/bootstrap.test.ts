@@ -59,12 +59,14 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Bootstrapping project'),
-        cmd.succeed('Environment found'),
-        cmd.start('Bootstrapping project'),
-        cmd.succeed(
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.stop(),
+        cmd.spinner.succeed('Environment found'),
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         ),
+        cmd.spinner.stop(),
       ]);
 
       expect(setup.login).toHaveBeenCalled();
@@ -113,12 +115,14 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Bootstrapping project'),
-        cmd.succeed('Environment found'),
-        cmd.start('Bootstrapping project'),
-        cmd.succeed(
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.stop(),
+        cmd.spinner.succeed('Environment found'),
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
         ),
+        cmd.spinner.stop(),
       ]);
 
       expect(setup.login).toHaveBeenCalled();
@@ -143,12 +147,13 @@ describe('bootstrap command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
-          cmd.start('Bootstrapping project'),
-          cmd.succeed('Environment found'),
-          cmd.start('Bootstrapping project'),
-          cmd.succeed(
+          cmd.spinner.start('Bootstrapping project'),
+          cmd.spinner.succeed('Environment found'),
+          cmd.spinner.start('Bootstrapping project'),
+          cmd.spinner.succeed(
             'Project successfully bootstrapped. You can start creating your customizations!',
           ),
+          cmd.spinner.stop(),
         ]);
 
         await expect(fs.access(setup.bootstrapPathManager.folder)).resolves.not.toThrow();
@@ -165,11 +170,13 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Bootstrapping project'),
-        cmd.fail(
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.stop(),
+        cmd.spinner.fail(
           // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `bootstrap --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -191,10 +198,11 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Bootstrapping project'),
-        cmd.succeed('Environment found'),
-        cmd.start('Bootstrapping project'),
-        cmd.fail('You have already a "my-project-name" folder'),
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.succeed('Environment found'),
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.fail('You have already a "my-project-name" folder'),
+        cmd.spinner.stop(),
       ]);
     });
   });
@@ -218,12 +226,14 @@ describe('bootstrap command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.start('Bootstrapping project'),
-        cmd.succeed('Environment found'),
-        cmd.warn('There is already deployed customization code on your project'),
-        cmd.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
-        'Do you really want to overwrite these customizations? (yes/no)',
-        cmd.fail('Operation aborted'),
+        cmd.spinner.start('Bootstrapping project'),
+        cmd.spinner.succeed('Environment found'),
+        cmd.spinner.warn('There is already deployed customization code on your project'),
+        cmd.spinner.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
+        cmd.spinner.stop(),
+        cmd.question('Do you really want to overwrite these customizations? (yes/no) '),
+        cmd.spinner.fail('Operation aborted'),
+        cmd.spinner.stop(),
       ]);
     });
   });

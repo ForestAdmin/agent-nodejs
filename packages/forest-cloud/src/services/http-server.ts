@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import latestVersion from 'latest-version';
 
 import { BusinessError } from '../errors';
+import { Log } from '../types';
 
 async function handledAxios<T>(
   axiosRequestConfig: axios.AxiosRequestConfig,
@@ -109,6 +110,19 @@ export default class HttpServer {
         headers: this.headers,
       },
       { errorMessage: `Failed to retrieve last published code details` },
+    );
+  }
+
+  async getLogs(tail?: number | string): Promise<{ logs: Log[] }> {
+    const potentialTail = tail ? `?limit=${tail}` : '';
+
+    return handledAxios<{ logs: Log[] }>(
+      {
+        url: `${this.serverUrl}/api/full-hosted-agent/logs${potentialTail}`,
+        method: 'GET',
+        headers: this.headers,
+      },
+      { errorMessage: `Failed to retrieve logs` },
     );
   }
 

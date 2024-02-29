@@ -19,8 +19,9 @@ describe('package command', () => {
     await cmd.run();
 
     expect(cmd.outputs).toEqual([
-      cmd.start('Packaging code'),
-      cmd.succeed('Code customizations packaged and ready for publish'),
+      cmd.spinner.start('Packaging code'),
+      cmd.spinner.succeed('Code customizations packaged and ready for publish'),
+      cmd.spinner.stop(),
     ]);
 
     await expect(fs.access(setup.distPathManager.zip)).resolves.not.toThrow();
@@ -34,11 +35,12 @@ describe('package command', () => {
 
       const distPath = path.resolve(setup.distPathManager.distCodeCustomizations);
       expect(cmd.outputs).toEqual([
-        cmd.start('Packaging code'),
-        cmd.fail(
+        cmd.spinner.start('Packaging code'),
+        cmd.spinner.fail(
           `No built customization found at ${distPath}.
 Please build your code to build your customizations`,
         ),
+        cmd.spinner.stop(),
       ]);
     });
   });

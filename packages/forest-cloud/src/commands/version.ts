@@ -8,7 +8,7 @@ import { MakeCommands } from '../types';
 export default (program: Command, context: MakeCommands) => {
   const { logger, getCurrentVersion } = context;
 
-  program.option('-v, --version', 'output the version number').action(
+  program.option('-v, --version', 'Output the version number').action(
     actionRunner(logger.spinner, async () => {
       // we want to display before to display the warning
       const version = getCurrentVersion();

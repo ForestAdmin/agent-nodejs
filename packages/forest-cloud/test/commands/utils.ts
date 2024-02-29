@@ -26,7 +26,7 @@ const presignedPost = {
   },
 };
 
-const environmentVariables = {
+export const environmentVariables = {
   FOREST_AUTH_TOKEN: 'forest-auth-token',
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_SUBSCRIPTION_URL: 'wss://api.forestadmin.com/subscriptions',
@@ -43,6 +43,7 @@ export const setupCommandArguments = (
     subscribeToCodeCustomization: jest.Mock;
     getLatestVersion: jest.Mock;
     getCurrentVersion: jest.Mock;
+    getLogs: jest.Mock;
   }>,
 ): MakeCommandsForTests => {
   const getCurrentVersionMock = jest.fn().mockReturnValue('1.0.0');
@@ -57,6 +58,7 @@ export const setupCommandArguments = (
       postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'aSubscriptionId' }),
+      getLogs: options?.getLogs || jest.fn(),
     } as unknown as HttpServer;
   };
 

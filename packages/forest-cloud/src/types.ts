@@ -98,8 +98,12 @@ export type Spinner = {
 
 export type Logger = {
   spinner: Spinner;
-  log: (text?: string) => void;
-  error: (text?: string) => void;
+  write: (text: string, outputType?: 'stderr' | 'stdout') => void;
+  log: (text?: string, prefix?: string) => void;
+  info: (text?: string, prefix?: string) => void;
+  error: (text?: string, prefix?: string) => void;
+  warn: (text?: string, prefix?: string) => void;
+  debug: (text?: string, prefix?: string) => void;
 };
 
 export type Login = (logger: Logger) => Promise<void>;
@@ -107,3 +111,5 @@ export type Login = (logger: Logger) => Promise<void>;
 export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
 
 export type BuildEventSubscriber = (vars: EnvironmentVariables) => EventSubscriber;
+
+export type Log = { message: string; timestamp: string; level?: 'Info' | 'Warn' | 'Error' };

@@ -6,15 +6,17 @@ export default async function login(logger: Logger) {
   return new Promise<void>((resolve, reject) => {
     let hasLoginSuccess = false;
     const pathForest = require.resolve('forest-cli/bin/run');
-    const process = exec(`node ${pathForest} login`);
-    process.stderr.on('data', logger.error);
-
-    process.stdout.on('data', data => {
-      if (data.includes('Login successful')) hasLoginSuccess = true;
-      logger.log(data);
+    const subProcess = exec(`node ${pathForest} login`);
+    subProcess.stderr.on('data', data => {
+      logger.write(data, 'stderr');
     });
 
-    process.on('close', () => {
+    subProcess.stdout.on('data', data => {
+      if (data.includes('Login successful')) hasLoginSuccess = true;
+      logger.write(data, 'stdout');
+    });
+
+    subProcess.on('close', () => {
       if (!hasLoginSuccess) return reject(new Error('Login failed'));
       resolve();
     });

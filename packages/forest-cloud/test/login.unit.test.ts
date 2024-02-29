@@ -24,11 +24,7 @@ describe('login', () => {
       } as unknown as NodeJS.Process;
       (exec as unknown as jest.Mock).mockReturnValue(process);
 
-      const logger: Logger = {
-        spinner: { start: jest.fn(), stop: jest.fn() },
-        log: jest.fn(),
-        error: jest.fn(),
-      } as unknown as Logger;
+      const logger: Logger = { write: jest.fn() } as unknown as Logger;
 
       await expect(login(logger)).rejects.toThrow('Login failed');
 
