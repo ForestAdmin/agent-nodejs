@@ -50,12 +50,14 @@ export default (program: Command, context: MakeCommands) => {
     )
     .option(
       '-n, --tail <integer>',
-      'Number of lines to show from the end of the logs. Default is 30, Max is 1000',
+      'Number of lines to show from the end of the logs in the last hour.' +
+        ' Default is 30, Max is 1000',
     )
     .description('Display logs of the customizations published on your agent.')
     .action(
       actionRunner(logger.spinner, async (options: { envSecret: string; tail: number }) => {
         validateTailOption(options.tail);
+        const tail = options.tail ?? 30;
         await checkLatestVersion(logger.spinner, getCurrentVersion(), HttpServer.getLatestVersion);
 
         const vars = await loginIfMissingAuthAndReturnEnvironmentVariables(
@@ -68,10 +70,20 @@ export default (program: Command, context: MakeCommands) => {
         validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
         validateEnvironmentVariables(vars);
 
-        const { logs } = await buildHttpServer(vars).getLogs(options.tail ?? 30);
+        const { logs } = await buildHttpServer(vars).getLogs(tail);
 
-        if (logs?.length > 0) logs.forEach(log => displayLog(logger, log));
-        else logger.spinner.warn('No logs available');
+        if (logs?.length > 0) {
+          const pluralize = logs.length > 1 ? 's' : '';
+          const baseMessage = `Requested ${tail} log${pluralize} in the last hour`;
+
+          if (logs.length === Number(tail)) {
+            logger.spinner.succeed(baseMessage);
+          } else {
+            logger.spinner.succeed(`${baseMessage}, but only ${logs.length} were found`);
+          }
+
+          logs.forEach(log => displayLog(logger, log));
+        } else logger.spinner.warn('No logs found in the last hour');
       }),
     );
 };
