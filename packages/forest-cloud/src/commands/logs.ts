@@ -9,17 +9,15 @@ import {
 } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
-import { Logger, MakeCommands } from '../types';
+import { Log, Logger, MakeCommands } from '../types';
 
 const levelToLog = {
   Info: 'info',
   Warn: 'warn',
+  Error: 'error',
 };
 
-const displayLog = (
-  logger: Logger,
-  log: { message: string; timestamp: string; level?: 'Info' | 'Warn' },
-) => {
+const displayLog = (logger: Logger, log: Log) => {
   try {
     logger[levelToLog[log.level]](log.message, log.timestamp);
   } catch (e) {

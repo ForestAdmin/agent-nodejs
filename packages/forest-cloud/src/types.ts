@@ -111,3 +111,5 @@ export type Login = (logger: Logger) => Promise<void>;
 export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
 
 export type BuildEventSubscriber = (vars: EnvironmentVariables) => EventSubscriber;
+
+export type Log = { message: string; timestamp: string; level?: 'Info' | 'Warn' | 'Error' };
