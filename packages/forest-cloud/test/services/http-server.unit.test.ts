@@ -156,13 +156,14 @@ describe('http-server', () => {
 
   describe('getLogs', () => {
     it('should call axios with the correct parameters', async () => {
-      jest.mocked(axios.default).mockResolvedValue({});
+      jest.mocked(axios.default).mockResolvedValue({ data: { logs: [] } });
 
-      await httpServer.getLogs({ tail: 10, from: 'now-1h', to: 'now' });
+      await httpServer.getLogs({ limit: 10, from: 'now-1h', to: 'now', orderByRecentFirst: true });
 
       expect(axios.default).toHaveBeenCalled();
       expect(axios.default).toHaveBeenCalledWith({
-        url: 'server-url/api/full-hosted-agent/logs?limit=10&from=now-1h&to=now',
+        // eslint-disable-next-line max-len
+        url: 'server-url/api/full-hosted-agent/logs?limit=10&from=now-1h&to=now&order-by-recent-first=true',
         method: 'GET',
         headers: {
           'forest-secret-key': 'sk',

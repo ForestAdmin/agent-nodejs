@@ -50,7 +50,8 @@ function validateFromOption(from?: string) {
   if (fromAndToValidator().validate(from).error) {
     throw new BusinessError(
       'The --from (-f) option must be a valid timestamp.' +
-        ' You must match this regex: /^now-\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+        ' You must enter a date (e.g: 2021-01-01T00:00:00.000Z) or' +
+        ' match a relative date (e.g. now-1d)',
     );
   }
 }
@@ -59,7 +60,8 @@ function validateToOption(to?: string) {
   if (Joi.alternatives(fromAndToValidator(), Joi.string().valid('now')).validate(to).error) {
     throw new BusinessError(
       'The --to (-t) option must be a valid timestamp.' +
-        ' You must match this regex: /^now\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+        ' You must enter a date (e.g: 2021-01-01T00:00:00.000Z) or' +
+        'match a relative date (e.g. now-1d)',
     );
   }
 }
@@ -91,7 +93,7 @@ export default (program: Command, context: MakeCommands) => {
           validateTailOption(options.tail);
           validateFromOption(options.from);
           validateToOption(options.to);
-          const tail = Number(options.tail) ?? 30;
+          const tail = Number(options.tail ?? 30);
           const from = options.from ?? 'now-1h';
           const to = options.to ?? 'now';
 
@@ -133,11 +135,12 @@ export default (program: Command, context: MakeCommands) => {
           let message: string;
 
           if (options.from && options.to) {
-            message = `between ${from} and ${to} - Logs are returned from the oldest to the newest`;
+            const suffix = '- Logs are returned from the oldest to the newest';
+            message = `between "${from}" and "${to}" ${suffix}`;
           } else if (options.from) {
-            message = `since ${from} - Logs are returned from the oldest to the newest`;
+            message = `since "${from}" - Logs are returned from the oldest to the newest`;
           } else {
-            message = `until ${to} - Logs are returned from the newest to the oldest`;
+            message = `until "${to}" - Logs are returned from the newest to the oldest`;
           }
 
           if (logs?.length > 0) {
@@ -145,7 +148,7 @@ export default (program: Command, context: MakeCommands) => {
 
             const pluralize = tail > 1 ? 's' : '';
             const baseMessage = `Requested ${tail} log${pluralize} ${message}`;
-            const fromToMessage = `You have receives logs from ${logs[0].timestamp} to ${
+            const fromToMessage = `You have received logs from ${logs[0].timestamp} to ${
               logs[logs.length - 1].timestamp
             }`;
 
