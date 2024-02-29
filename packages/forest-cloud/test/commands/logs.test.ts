@@ -79,7 +79,10 @@ describe('logs command', () => {
       ]);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.spinner.warn('No logs available'), cmd.spinner.stop()]);
+      expect(cmd.outputs).toEqual([
+        cmd.spinner.warn('No logs found in the last hour'),
+        cmd.spinner.stop(),
+      ]);
     });
   });
 
@@ -114,7 +117,10 @@ describe('logs command', () => {
       const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
-      expect(cmd.outputs).toEqual([cmd.spinner.warn('No logs available'), cmd.spinner.stop()]);
+      expect(cmd.outputs).toEqual([
+        cmd.spinner.warn('No logs found in the last hour'),
+        cmd.spinner.stop(),
+      ]);
     });
   });
 
@@ -130,10 +136,11 @@ describe('logs command', () => {
         }),
       });
 
-      const cmd = new CommandTester(setup, ['logs']);
+      const cmd = new CommandTester(setup, ['logs', '--tail', '3']);
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
+        cmd.spinner.succeed('Requested 3 logs in the last hour'),
         cmd.logger.info('a-message').prefixed('2'),
         cmd.logger.warn('a-message').prefixed('3'),
         cmd.logger.log('a-message').prefixed('4'),
@@ -153,6 +160,7 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
+          cmd.spinner.succeed('Requested 30 log in the last hour, but only 1 were found'),
           cmd.logger.log('a-message').prefixed('3'),
           cmd.spinner.stop(),
         ]);
