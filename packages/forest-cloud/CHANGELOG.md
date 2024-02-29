@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.6...@forestadmin/forest-cloud@1.2.0) (2024-02-29)
+
+
+### Features
+
+* **forest-cloud:** add logs command to display logs ([#1034](https://github.com/ForestAdmin/agent-nodejs/issues/1034)) ([98a62ed](https://github.com/ForestAdmin/agent-nodejs/commit/98a62edf176559598c4bb8337da8d41e141d9cbc))
+
 ## @forestadmin/forest-cloud [1.1.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.5...@forestadmin/forest-cloud@1.1.6) (2024-02-28)
 
 
