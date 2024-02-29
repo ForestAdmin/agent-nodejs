@@ -113,12 +113,10 @@ export default class HttpServer {
     );
   }
 
-  async getLogs(tail?: number | string): Promise<{ logs: Log[] }> {
-    const potentialTail = tail ? `?limit=${tail}` : '';
-
+  async getLogs({ tail, from }: { tail: number | string; from: string }): Promise<{ logs: Log[] }> {
     return handledAxios<{ logs: Log[] }>(
       {
-        url: `${this.serverUrl}/api/full-hosted-agent/logs${potentialTail}`,
+        url: `${this.serverUrl}/api/full-hosted-agent/logs?limit=${tail}&from=${from}`,
         method: 'GET',
         headers: this.headers,
       },

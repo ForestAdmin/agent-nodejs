@@ -21,7 +21,8 @@
     "ora": "^3.2.0",
     "sqlite3": "^5.1.7",
     "subscriptions-transport-ws": "^0.9.19",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "joi": "^17.12.2"
   },
   "publishConfig": {
     "access": "public"

@@ -122,6 +122,26 @@ describe('logs command', () => {
         cmd.spinner.stop(),
       ]);
     });
+
+    describe('when the from is given', () => {
+      it('should display the given from in the message', async () => {
+        const getLogs = jest.fn().mockResolvedValue({ logs: [] });
+        const setup = setupCommandArguments({ getLogs });
+
+        const cmd = new CommandTester(setup, ['logs', '--from', '2021-05-01T00:00:00Z']);
+        await cmd.run();
+
+        expect(getLogs).toHaveBeenCalledWith({
+          from: '2021-05-01T00:00:00Z',
+          tail: 30,
+        });
+
+        expect(cmd.outputs).toEqual([
+          cmd.spinner.warn('No logs found from 2021-05-01T00:00:00Z'),
+          cmd.spinner.stop(),
+        ]);
+      });
+    });
   });
 
   describe('when there are logs', () => {
@@ -160,17 +180,17 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
-          cmd.spinner.succeed('Requested 30 log in the last hour, but only 1 were found'),
+          cmd.spinner.succeed('Requested 30 logs in the last hour, but only 1 were found'),
           cmd.logger.log('a-message').prefixed('3'),
           cmd.spinner.stop(),
         ]);
       });
     });
 
-    describe('when wants n last logs', () => {
+    describe('when the n option is given', () => {
       describe('when given a float instead of integer', () => {
         it('should display a fail message', async () => {
-          const setup = setupCommandArguments({});
+          const setup = setupCommandArguments();
 
           const cmd = new CommandTester(setup, ['logs', '--tail', '2.5']);
           await cmd.run();
@@ -182,23 +202,9 @@ describe('logs command', () => {
         });
       });
 
-      describe('when given 0 as a value instead of positive integer', () => {
-        it('should display a fail message', async () => {
-          const setup = setupCommandArguments({});
-
-          const cmd = new CommandTester(setup, ['logs', '--tail', '0']);
-          await cmd.run();
-
-          expect(cmd.outputs).toEqual([
-            cmd.spinner.fail('The --tail (-n) option must be greater than 0'),
-            cmd.spinner.stop(),
-          ]);
-        });
-      });
-
       describe('when given a negative value instead of positive integer', () => {
         it('should display a fail message', async () => {
-          const setup = setupCommandArguments({});
+          const setup = setupCommandArguments();
 
           const cmd = new CommandTester(setup, ['logs', '--tail', '-2']);
           await cmd.run();
@@ -212,7 +218,7 @@ describe('logs command', () => {
 
       describe('when given a too big value', () => {
         it('should display a fail message', async () => {
-          const setup = setupCommandArguments({});
+          const setup = setupCommandArguments();
 
           const cmd = new CommandTester(setup, ['logs', '--tail', '10001']);
           await cmd.run();
@@ -231,7 +237,130 @@ describe('logs command', () => {
         const cmd = new CommandTester(setup, ['logs', '--tail', '2']);
         await cmd.run();
 
-        expect(getLogs).toHaveBeenCalledWith('2');
+        expect(getLogs).toHaveBeenCalledWith({
+          from: 'now-1h',
+          tail: '2',
+        });
+      });
+    });
+
+    describe('when the from option is given', () => {
+      it('should add the given "from" to the success message', async () => {
+        const getLogs = jest.fn().mockResolvedValue({
+          logs: [{ timestamp: '2', message: 'a-message', level: 'Info' }],
+        });
+        const setup = setupCommandArguments({ getLogs });
+
+        const cmd = new CommandTester(setup, ['logs', '--from', '2021-05-01T00:00:00Z']);
+        await cmd.run();
+
+        expect(getLogs).toHaveBeenCalledWith({
+          from: '2021-05-01T00:00:00Z',
+          tail: 30,
+        });
+
+        expect(cmd.outputs).toEqual([
+          cmd.spinner.succeed('Requested 30 logs from 2021-05-01T00:00:00Z, but only 1 were found'),
+          cmd.logger.info('a-message').prefixed('2'),
+          cmd.spinner.stop(),
+        ]);
+      });
+
+      describe('when is not a valid date', () => {
+        it('should display a fail message', async () => {
+          const setup = setupCommandArguments();
+
+          const cmd = new CommandTester(setup, ['logs', '--from', 'not-a-date']);
+          await cmd.run();
+
+          expect(cmd.outputs).toEqual([
+            cmd.spinner.fail(
+              // eslint-disable-next-line max-len
+              'The --from (-f) option must be a valid timestamp. You must match this regex: /^now-\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+            ),
+            cmd.spinner.stop(),
+          ]);
+        });
+      });
+
+      describe('when is not a valid format for the now syntax', () => {
+        it('should display a fail message', async () => {
+          const setup = setupCommandArguments();
+
+          const cmd = new CommandTester(setup, ['logs', '--from', 'now-bad']);
+          await cmd.run();
+
+          expect(cmd.outputs).toEqual([
+            cmd.spinner.fail(
+              // eslint-disable-next-line max-len
+              'The --from (-f) option must be a valid timestamp. You must match this regex: /^now-\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+            ),
+            cmd.spinner.stop(),
+          ]);
+        });
+
+        describe('when now is used with a +', () => {
+          it('should display a fail message', async () => {
+            const setup = setupCommandArguments();
+
+            const cmd = new CommandTester(setup, ['logs', '--from', 'now+1h']);
+            await cmd.run();
+
+            expect(cmd.outputs).toEqual([
+              cmd.spinner.fail(
+                // eslint-disable-next-line max-len
+                'The --from (-f) option must be a valid timestamp. You must match this regex: /^now-\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+              ),
+              cmd.spinner.stop(),
+            ]);
+          });
+        });
+      });
+
+      describe('when it is a valid date', () => {
+        it('should call getLogs with the given from', async () => {
+          const getLogs = jest.fn().mockResolvedValue({ logs: [] });
+          const setup = setupCommandArguments({ getLogs });
+
+          const cmd = new CommandTester(setup, ['logs', '--from', '2021-05-01T00:00:00Z']);
+          await cmd.run();
+
+          expect(getLogs).toHaveBeenCalledWith({
+            from: '2021-05-01T00:00:00Z',
+            tail: 30,
+          });
+        });
+      });
+
+      it.each(['now-1h', 'now-1m', 'now-1s', 'now-1d', 'now-1w', 'now-1M', 'now-1y'])(
+        `when %s`,
+        async from => {
+          const getLogs = jest.fn().mockResolvedValue({ logs: [] });
+          const setup = setupCommandArguments({ getLogs });
+
+          const cmd = new CommandTester(setup, ['logs', '--from', from]);
+          await cmd.run();
+
+          expect(getLogs).toHaveBeenCalledWith({
+            from,
+            tail: 30,
+          });
+        },
+      );
+    });
+
+    describe('when the from is given with the -f option', () => {
+      it('should call getLogs with the given from', async () => {
+        const getLogs = jest.fn().mockResolvedValue({ logs: [] });
+        const setup = setupCommandArguments({ getLogs });
+
+        const cmd = new CommandTester(setup, ['logs', '-f', '2021-05-01T00:00:00Z']);
+        await cmd.run();
+
+        expect(getLogs).toHaveBeenCalledWith({
+          from: '2021-05-01T00:00:00Z',
+          tail: 30,
+        });
       });
     });
   });

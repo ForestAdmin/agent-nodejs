@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import Joi from 'joi';
 
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
@@ -26,16 +27,27 @@ const displayLog = (logger: Logger, log: Log) => {
 };
 
 function validateTailOption(tail?: unknown) {
-  if (tail !== undefined) {
-    if (!Number.isInteger(Number(tail))) {
-      throw new BusinessError('The --tail (-n) option must be an integer');
-    } else if (Number(tail) < 0) {
-      throw new BusinessError('The --tail (-n) option must be a positive integer');
-    } else if (Number(tail) === 0) {
-      throw new BusinessError('The --tail (-n) option must be greater than 0');
-    } else if (Number(tail) > 1000) {
-      throw new BusinessError('The --tail (-n) option must be equal or less than 1000');
-    }
+  if (tail === undefined) return;
+
+  if (Joi.number().integer().validate(tail).error) {
+    throw new BusinessError('The --tail (-n) option must be an integer');
+  } else if (Joi.number().positive().validate(tail).error) {
+    throw new BusinessError('The --tail (-n) option must be a positive integer');
+  } else if (Joi.number().max(1000).validate(tail).error) {
+    throw new BusinessError('The --tail (-n) option must be equal or less than 1000');
+  }
+}
+
+function validateFromOption(from?: string) {
+  if (from === undefined) return;
+  const dateMatchValidator = Joi.string().regex(/^now(-)\d+(s|m|H|h|d|w|M|y)(\/d)?$/);
+  const validator = Joi.alternatives([Joi.date(), dateMatchValidator]).optional();
+
+  if (validator.validate(from).error) {
+    throw new BusinessError(
+      'The --from (-f) option must be a valid timestamp.' +
+        ' You must match this regex: /^now-\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+    );
   }
 }
 
@@ -53,37 +65,52 @@ export default (program: Command, context: MakeCommands) => {
       'Number of lines to show from the end of the logs in the last hour.' +
         ' Default is 30, Max is 1000',
     )
-    .description('Display logs of the customizations published on your agent.')
+    .option(
+      '-f, --from <timestamp>',
+      'Minimum timestamp for requested logs. Default is the last hour (now-1h)',
+    )
+    .description('Display logs of the customizations published on your agent')
     .action(
-      actionRunner(logger.spinner, async (options: { envSecret: string; tail: number }) => {
-        validateTailOption(options.tail);
-        const tail = options.tail ?? 30;
-        await checkLatestVersion(logger.spinner, getCurrentVersion(), HttpServer.getLatestVersion);
+      actionRunner(
+        logger.spinner,
+        async (options: { envSecret: string; tail: number; from: string }) => {
+          validateTailOption(options.tail);
+          validateFromOption(options.from);
+          const tail = options.tail ?? 30;
+          const from = options.from ?? 'now-1h';
 
-        const vars = await loginIfMissingAuthAndReturnEnvironmentVariables(
-          login,
-          logger,
-          getEnvironmentVariables,
-        );
+          await checkLatestVersion(
+            logger.spinner,
+            getCurrentVersion(),
+            HttpServer.getLatestVersion,
+          );
 
-        vars.FOREST_ENV_SECRET = options.envSecret || vars.FOREST_ENV_SECRET;
-        validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
-        validateEnvironmentVariables(vars);
+          const vars = await loginIfMissingAuthAndReturnEnvironmentVariables(
+            login,
+            logger,
+            getEnvironmentVariables,
+          );
 
-        const { logs } = await buildHttpServer(vars).getLogs(tail);
+          vars.FOREST_ENV_SECRET = options.envSecret || vars.FOREST_ENV_SECRET;
+          validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
+          validateEnvironmentVariables(vars);
 
-        if (logs?.length > 0) {
-          const pluralize = logs.length > 1 ? 's' : '';
-          const baseMessage = `Requested ${tail} log${pluralize} in the last hour`;
+          const { logs } = await buildHttpServer(vars).getLogs({ from, tail });
 
-          if (logs.length === Number(tail)) {
-            logger.spinner.succeed(baseMessage);
-          } else {
-            logger.spinner.succeed(`${baseMessage}, but only ${logs.length} were found`);
-          }
+          const fromMessage = from === 'now-1h' ? 'in the last hour' : `from ${from}`;
+          if (logs?.length > 0) {
+            const pluralize = tail > 1 ? 's' : '';
+            const baseMessage = `Requested ${tail} log${pluralize} ${fromMessage}`;
 
-          logs.forEach(log => displayLog(logger, log));
-        } else logger.spinner.warn('No logs found in the last hour');
-      }),
+            if (logs.length === Number(tail)) {
+              logger.spinner.succeed(baseMessage);
+            } else {
+              logger.spinner.succeed(`${baseMessage}, but only ${logs.length} were found`);
+            }
+
+            logs.forEach(log => displayLog(logger, log));
+          } else logger.spinner.warn(`No logs found ${fromMessage}`);
+        },
+      ),
     );
 };
