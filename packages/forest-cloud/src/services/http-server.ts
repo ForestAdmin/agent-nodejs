@@ -113,15 +113,30 @@ export default class HttpServer {
     );
   }
 
-  async getLogs({ tail, from }: { tail: number | string; from: string }): Promise<{ logs: Log[] }> {
-    return handledAxios<{ logs: Log[] }>(
-      {
-        url: `${this.serverUrl}/api/full-hosted-agent/logs?limit=${tail}&from=${from}`,
-        method: 'GET',
-        headers: this.headers,
-      },
-      { errorMessage: `Failed to retrieve logs` },
-    );
+  async getLogs({
+    limit,
+    from,
+    to,
+    orderByRecentFirst,
+  }: {
+    limit: number;
+    from: string;
+    to: string;
+    orderByRecentFirst: boolean;
+  }): Promise<Log[]> {
+    const base = `${this.serverUrl}/api/full-hosted-agent/logs`;
+
+    return (
+      await handledAxios<{ logs: Log[] }>(
+        {
+          // eslint-disable-next-line max-len
+          url: `${base}?limit=${limit}&from=${from}&to=${to}&order-by-recent-first=${orderByRecentFirst}`,
+          method: 'GET',
+          headers: this.headers,
+        },
+        { errorMessage: `Failed to retrieve logs` },
+      )
+    ).logs;
   }
 
   static async getLatestVersion(packageName: string): Promise<string> {

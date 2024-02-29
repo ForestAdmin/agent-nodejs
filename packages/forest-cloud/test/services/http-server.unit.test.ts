@@ -158,28 +158,11 @@ describe('http-server', () => {
     it('should call axios with the correct parameters', async () => {
       jest.mocked(axios.default).mockResolvedValue({});
 
-      await httpServer.getLogs();
+      await httpServer.getLogs({ tail: 10, from: 'now-1h', to: 'now' });
 
       expect(axios.default).toHaveBeenCalled();
       expect(axios.default).toHaveBeenCalledWith({
-        url: 'server-url/api/full-hosted-agent/logs',
-        method: 'GET',
-        headers: {
-          'forest-secret-key': 'sk',
-          Authorization: 'Bearer bearerToken',
-          'Content-Type': 'application/json',
-        },
-      });
-    });
-
-    it('should call axios with the correct parameters when tail is given', async () => {
-      jest.mocked(axios.default).mockResolvedValue({});
-
-      await httpServer.getLogs(10);
-
-      expect(axios.default).toHaveBeenCalled();
-      expect(axios.default).toHaveBeenCalledWith({
-        url: 'server-url/api/full-hosted-agent/logs?limit=10',
+        url: 'server-url/api/full-hosted-agent/logs?limit=10&from=now-1h&to=now',
         method: 'GET',
         headers: {
           'forest-secret-key': 'sk',

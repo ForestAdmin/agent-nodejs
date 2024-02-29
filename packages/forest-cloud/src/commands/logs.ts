@@ -38,15 +38,28 @@ function validateTailOption(tail?: unknown) {
   }
 }
 
-function validateFromOption(from?: string) {
-  if (from === undefined) return;
+function fromAndToValidator() {
   const dateMatchValidator = Joi.string().regex(/^now(-)\d+(s|m|H|h|d|w|M|y)(\/d)?$/);
-  const validator = Joi.alternatives([Joi.date(), dateMatchValidator]).optional();
 
-  if (validator.validate(from).error) {
+  return Joi.alternatives([Joi.date(), dateMatchValidator]).optional();
+}
+
+function validateFromOption(from?: string) {
+  if (!from) return;
+
+  if (fromAndToValidator().validate(from).error) {
     throw new BusinessError(
       'The --from (-f) option must be a valid timestamp.' +
         ' You must match this regex: /^now-\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
+    );
+  }
+}
+
+function validateToOption(to?: string) {
+  if (Joi.alternatives(fromAndToValidator(), Joi.string().valid('now')).validate(to).error) {
+    throw new BusinessError(
+      'The --to (-t) option must be a valid timestamp.' +
+        ' You must match this regex: /^now\\d+(s|m|H|h|d|w|M|y)(\\/d)?$) or a valid date',
     );
   }
 }
@@ -63,21 +76,24 @@ export default (program: Command, context: MakeCommands) => {
     .option(
       '-n, --tail <integer>',
       'Number of lines to show from the end of the logs in the last hour.' +
-        ' Default is 30, Max is 1000',
+        ' Default is 30, Max is 1000. Use from option to get older logs.',
     )
     .option(
       '-f, --from <timestamp>',
       'Minimum timestamp for requested logs. Default is the last hour (now-1h)',
     )
+    .option('-t, --to <timestamp>', 'Maximum timestamp for requested logs. Default is now')
     .description('Display logs of the customizations published on your agent')
     .action(
       actionRunner(
         logger.spinner,
-        async (options: { envSecret: string; tail: number; from: string }) => {
+        async (options: { envSecret: string; tail: number; from: string; to: string }) => {
           validateTailOption(options.tail);
           validateFromOption(options.from);
-          const tail = options.tail ?? 30;
+          validateToOption(options.to);
+          const tail = Number(options.tail) ?? 30;
           const from = options.from ?? 'now-1h';
+          const to = options.to ?? 'now';
 
           await checkLatestVersion(
             logger.spinner,
@@ -95,21 +111,53 @@ export default (program: Command, context: MakeCommands) => {
           validateMissingForestEnvSecret(vars.FOREST_ENV_SECRET, 'logs');
           validateEnvironmentVariables(vars);
 
-          const { logs } = await buildHttpServer(vars).getLogs({ from, tail });
+          let logs: Log[];
 
-          const fromMessage = from === 'now-1h' ? 'in the last hour' : `from ${from}`;
+          try {
+            logs = await buildHttpServer(vars).getLogs({
+              from,
+              to,
+              limit: tail,
+              // we want to get the logs from the oldest to the newest when we have a from option
+              orderByRecentFirst: !options.from,
+            });
+          } catch (e) {
+            logger.spinner.fail(
+              `Your options are probably wrong, please check them\n` +
+                `Check if "from" option is not greater or equal than "to" option`,
+            );
+            logger.spinner.warn(`Given Options: from=${from}, to=${to}, tail=${tail}\n`);
+            throw e;
+          }
+
+          let message: string;
+
+          if (options.from && options.to) {
+            message = `between ${from} and ${to} - Logs are returned from the oldest to the newest`;
+          } else if (options.from) {
+            message = `since ${from} - Logs are returned from the oldest to the newest`;
+          } else {
+            message = `until ${to} - Logs are returned from the newest to the oldest`;
+          }
+
           if (logs?.length > 0) {
-            const pluralize = tail > 1 ? 's' : '';
-            const baseMessage = `Requested ${tail} log${pluralize} ${fromMessage}`;
-
-            if (logs.length === Number(tail)) {
-              logger.spinner.succeed(baseMessage);
-            } else {
-              logger.spinner.succeed(`${baseMessage}, but only ${logs.length} were found`);
-            }
-
             logs.forEach(log => displayLog(logger, log));
-          } else logger.spinner.warn(`No logs found ${fromMessage}`);
+
+            const pluralize = tail > 1 ? 's' : '';
+            const baseMessage = `Requested ${tail} log${pluralize} ${message}`;
+            const fromToMessage = `You have receives logs from ${logs[0].timestamp} to ${
+              logs[logs.length - 1].timestamp
+            }`;
+
+            if (logs.length === tail) {
+              logger.log('...you have probably more logs...\n');
+              logger.spinner.succeed(`${baseMessage}\n${fromToMessage}`);
+            } else {
+              logger.spinner.succeed(
+                `${baseMessage}, but only ${logs.length} were found\n${fromToMessage}`,
+              );
+            }
+          } else logger.spinner.warn(`No logs found ${message}`);
         },
       ),
     );
