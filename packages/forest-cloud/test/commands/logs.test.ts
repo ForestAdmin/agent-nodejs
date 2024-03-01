@@ -379,7 +379,7 @@ describe('logs command', () => {
         });
       });
 
-      it.each(['now-1M', 'now-1m', 'now-1s', 'now-1d', 'now-1w', 'now-1M', 'now-1y'])(
+      it.each(['now-1h', 'now-1m', 'now-1s', 'now-1d', 'now-1w', 'now-1M', 'now-1y'])(
         `when %s should call getLogs with the given from`,
         async from => {
           const getLogs = jest.fn().mockResolvedValue([]);
