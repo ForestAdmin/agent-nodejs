@@ -3,7 +3,7 @@ import * as axios from 'axios';
 import * as fs from 'fs';
 import latestVersion from 'latest-version';
 
-import { BusinessError } from '../errors';
+import { BusinessError, ValidationError } from '../errors';
 import { Log } from '../types';
 
 async function handledAxios<T>(
@@ -14,16 +14,18 @@ async function handledAxios<T>(
     return (await axios.default(axiosRequestConfig)).data;
   } catch (e) {
     const error: Error = e;
-
-    let details;
+    let details = '';
 
     if (error instanceof axios.AxiosError) {
       const errors: { detail: string; status: number }[] = error.response?.data?.errors;
-      details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
+      details = errors?.map(innerError => `🚨 ${innerError.detail}`).join(`\n`);
     }
 
-    const detailsOrEmpty = details ? ` ${details}` : '';
-    throw new BusinessError(`${errorMessage}: ${error.message}${detailsOrEmpty}`);
+    if (e.response?.status === 400) {
+      throw new ValidationError(details);
+    } else {
+      throw new BusinessError(`${errorMessage}: ${error.message}\n${details}`.trim());
+    }
   }
 }
 

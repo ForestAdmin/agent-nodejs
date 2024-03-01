@@ -3,7 +3,7 @@ import Joi from 'joi';
 
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
-import { BusinessError } from '../errors';
+import { BusinessError, ValidationError } from '../errors';
 import {
   validateEnvironmentVariables,
   validateMissingForestEnvSecret,
@@ -93,16 +93,12 @@ export default (program: Command, context: MakeCommands) => {
           validateTailOption(options.tail);
           validateFromOption(options.from);
           validateToOption(options.to);
+          const { spinner } = logger;
           const tail = Number(options.tail ?? 30);
           const from = options.from ?? 'now-1h';
           const to = options.to ?? 'now';
 
-          await checkLatestVersion(
-            logger.spinner,
-            getCurrentVersion(),
-            HttpServer.getLatestVersion,
-          );
-
+          await checkLatestVersion(spinner, getCurrentVersion(), HttpServer.getLatestVersion);
           const vars = await loginIfMissingAuthAndReturnEnvironmentVariables(
             login,
             logger,
@@ -124,11 +120,10 @@ export default (program: Command, context: MakeCommands) => {
               orderByRecentFirst: !options.from,
             });
           } catch (e) {
-            logger.spinner.fail(
-              `Your options are probably wrong, please check them\n` +
-                `Check if "from" option is not greater or equal than "to" option`,
-            );
-            logger.spinner.warn(`Given Options: from=${from}, to=${to}, tail=${tail}\n`);
+            if (e instanceof ValidationError) {
+              logger.spinner.warn(`Given Options: from=${from}, to=${to}, tail=${tail}`);
+            }
+
             throw e;
           }
 
@@ -162,14 +157,14 @@ export default (program: Command, context: MakeCommands) => {
             if (logs.length === tail) {
               logger.log('...you have probably more logs...');
               logger.log(`${helperMessage}\n`);
-              logger.spinner.succeed(`${baseMessage}\n${fromToMessage}`);
+              spinner.succeed(`${baseMessage}\n${fromToMessage}`);
             } else {
-              logger.spinner.succeed(
+              spinner.succeed(
                 `${baseMessage}, but only ${logs.length} were found\n${fromToMessage}`,
               );
             }
           } else {
-            logger.spinner.warn(`No logs found ${message}`);
+            spinner.warn(`No logs found ${message}`);
             logger.log(helperMessage);
           }
         },

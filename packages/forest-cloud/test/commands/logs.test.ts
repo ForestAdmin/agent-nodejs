@@ -1,5 +1,6 @@
 import CommandTester from './command-tester';
 import { environmentVariables, setupCommandArguments } from './utils';
+import { ValidationError } from '../../src/errors';
 
 describe('logs command', () => {
   describe('when there is no env secret', () => {
@@ -570,26 +571,21 @@ describe('logs command', () => {
   });
 
   describe('when the failing to fetch logs', () => {
-    it('should display a fail message', async () => {
-      const setup = setupCommandArguments({
-        getLogs: jest.fn().mockRejectedValue(new Error('An error')),
+    describe('when it is a validation error', () => {
+      it('should display a fail message', async () => {
+        const setup = setupCommandArguments({
+          getLogs: jest.fn().mockRejectedValue(new ValidationError('Validation error')),
+        });
+
+        const cmd = new CommandTester(setup, ['logs']);
+        await cmd.run();
+
+        expect(cmd.outputs).toEqual([
+          cmd.spinner.warn('Given Options: from=now-1h, to=now, tail=30'),
+          cmd.spinner.fail('Validation error'),
+          cmd.spinner.stop(),
+        ]);
       });
-
-      const cmd = new CommandTester(setup, ['logs']);
-      await expect(cmd.run()).rejects.toThrow('An error');
-
-      expect(cmd.outputs).toEqual([
-        cmd.spinner.fail(
-          'Your options are probably wrong, please check them\n' +
-            'Check if "from" option is not greater or equal than "to" option',
-        ),
-        cmd.spinner.warn('Given Options: from=now-1h, to=now, tail=30\n'),
-        cmd.spinner.fail(
-          'An unexpected error occurred.\n' +
-            'Please reach out for help in our Developers community (https://community.forestadmin.com/)',
-        ),
-        cmd.spinner.stop(),
-      ]);
     });
   });
 });
