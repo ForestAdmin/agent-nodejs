@@ -82,7 +82,8 @@ describe('logs command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.warn('No logs found until "now"'),
         cmd.logger.log(
-          'You can increase your tail option to get more logs or increase/decrease your from and to options to get older or newer logs',
+          'You can increase your tail option to get more logs or ' +
+            'increase/decrease your from and to options to get older or newer logs',
         ),
         cmd.spinner.stop(),
       ]);
@@ -123,7 +124,8 @@ describe('logs command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.warn('No logs found until "now"'),
         cmd.logger.log(
-          'You can increase your tail option to get more logs or increase/decrease your from and to options to get older or newer logs',
+          'You can increase your tail option to get more logs or ' +
+            'increase/decrease your from and to options to get older or newer logs',
         ),
         cmd.spinner.stop(),
       ]);
@@ -150,7 +152,8 @@ describe('logs command', () => {
             'No logs found since "2021-05-01T00:00:00Z"',
           ),
           cmd.logger.log(
-            'You can increase your tail option to get more logs or increase/decrease your from and to options to get older or newer logs',
+            'You can increase your tail option to get more logs or ' +
+              'increase/decrease your from and to options to get older or newer logs',
           ),
           cmd.spinner.stop(),
         ]);
