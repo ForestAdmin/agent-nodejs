@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.2.0...@forestadmin/forest-cloud@1.3.0) (2024-03-01)
+
+
+### Features
+
+* **logs:** add new command options --from and --to ([#1047](https://github.com/ForestAdmin/agent-nodejs/issues/1047)) ([eff3524](https://github.com/ForestAdmin/agent-nodejs/commit/eff3524c1e24182205d2f585e9fb90cc8b94d7ef))
+
 # @forestadmin/forest-cloud [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.1.6...@forestadmin/forest-cloud@1.2.0) (2024-02-29)
 
 
