@@ -80,8 +80,9 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.spinner.warn(
-          'No logs found until "now" - Logs are returned from the newest to the oldest',
+        cmd.spinner.warn('No logs found until "now"'),
+        cmd.logger.log(
+          'You can increase your tail option to get more logs or increase/decrease your from and to options to get older or newer logs',
         ),
         cmd.spinner.stop(),
       ]);
@@ -120,8 +121,9 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.spinner.warn(
-          'No logs found until "now" - Logs are returned from the newest to the oldest',
+        cmd.spinner.warn('No logs found until "now"'),
+        cmd.logger.log(
+          'You can increase your tail option to get more logs or increase/decrease your from and to options to get older or newer logs',
         ),
         cmd.spinner.stop(),
       ]);
@@ -145,7 +147,10 @@ describe('logs command', () => {
         expect(cmd.outputs).toEqual([
           cmd.spinner.warn(
             // eslint-disable-next-line max-len
-            'No logs found since "2021-05-01T00:00:00Z" - Logs are returned from the oldest to the newest',
+            'No logs found since "2021-05-01T00:00:00Z"',
+          ),
+          cmd.logger.log(
+            'You can increase your tail option to get more logs or increase/decrease your from and to options to get older or newer logs',
           ),
           cmd.spinner.stop(),
         ]);
@@ -172,7 +177,7 @@ describe('logs command', () => {
         cmd.logger.log('a-message').prefixed('4'),
         cmd.logger.log('...you have probably more logs...'),
         cmd.logger.log(
-          'you can increase your tail option to get more logs or' +
+          'You can increase your tail option to get more logs or ' +
             'increase/decrease your from and to options to get older or newer logs\n',
         ),
         cmd.spinner.succeed(

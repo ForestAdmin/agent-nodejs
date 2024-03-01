@@ -133,38 +133,45 @@ export default (program: Command, context: MakeCommands) => {
           }
 
           let message: string;
+          let orderDetails: string;
 
           if (options.from && options.to) {
-            const suffix = '- Logs are returned from the oldest to the newest';
-            message = `between "${from}" and "${to}" ${suffix}`;
+            orderDetails = '- Logs are returned from the oldest to the newest';
+            message = `between "${from}" and "${to}"`;
           } else if (options.from) {
-            message = `since "${from}" - Logs are returned from the oldest to the newest`;
+            orderDetails = '- Logs are returned from the oldest to the newest';
+            message = `since "${from}"`;
           } else {
-            message = `until "${to}" - Logs are returned from the newest to the oldest`;
+            orderDetails = '- Logs are returned from the newest to the oldest';
+            message = `until "${to}"`;
           }
+
+          const helperMessage =
+            `You can increase your tail option to get more logs or ` +
+            'increase/decrease your from and to options to get older or newer logs';
 
           if (logs?.length > 0) {
             logs.forEach(log => displayLog(logger, log));
 
             const pluralize = tail > 1 ? 's' : '';
-            const baseMessage = `Requested ${tail} log${pluralize} ${message}`;
+            const baseMessage = `Requested ${tail} log${pluralize} ${message} ${orderDetails}`;
             const fromToMessage = `You have received logs from ${logs[0].timestamp} to ${
               logs[logs.length - 1].timestamp
             }`;
 
             if (logs.length === tail) {
               logger.log('...you have probably more logs...');
-              logger.log(
-                `you can increase your tail option to get more logs or` +
-                  'increase/decrease your from and to options to get older or newer logs\n',
-              );
+              logger.log(`${helperMessage}\n`);
               logger.spinner.succeed(`${baseMessage}\n${fromToMessage}`);
             } else {
               logger.spinner.succeed(
                 `${baseMessage}, but only ${logs.length} were found\n${fromToMessage}`,
               );
             }
-          } else logger.spinner.warn(`No logs found ${message}`);
+          } else {
+            logger.spinner.warn(`No logs found ${message}`);
+            logger.log(helperMessage);
+          }
         },
       ),
     );
