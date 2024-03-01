@@ -153,7 +153,11 @@ export default (program: Command, context: MakeCommands) => {
             }`;
 
             if (logs.length === tail) {
-              logger.log('...you have probably more logs...\n');
+              logger.log('...you have probably more logs...');
+              logger.log(
+                `you can increase your tail option to get more logs or` +
+                  'increase/decrease your from and to options to get older or newer logs\n',
+              );
               logger.spinner.succeed(`${baseMessage}\n${fromToMessage}`);
             } else {
               logger.spinner.succeed(

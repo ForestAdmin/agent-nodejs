@@ -170,7 +170,11 @@ describe('logs command', () => {
         cmd.logger.info('a-message').prefixed('2'),
         cmd.logger.warn('a-message').prefixed('3'),
         cmd.logger.log('a-message').prefixed('4'),
-        cmd.logger.log('...you have probably more logs...\n'),
+        cmd.logger.log('...you have probably more logs...'),
+        cmd.logger.log(
+          'you can increase your tail option to get more logs or' +
+            'increase/decrease your from and to options to get older or newer logs\n',
+        ),
         cmd.spinner.succeed(
           // eslint-disable-next-line max-len
           'Requested 3 logs until "now" - Logs are returned from the newest to the oldest\nYou have received logs from 2 to 4',
