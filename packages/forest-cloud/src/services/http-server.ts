@@ -3,7 +3,7 @@ import * as axios from 'axios';
 import * as fs from 'fs';
 import latestVersion from 'latest-version';
 
-import { BusinessError } from '../errors';
+import { BusinessError, ValidationError } from '../errors';
 import { Log } from '../types';
 
 async function handledAxios<T>(
@@ -14,16 +14,18 @@ async function handledAxios<T>(
     return (await axios.default(axiosRequestConfig)).data;
   } catch (e) {
     const error: Error = e;
-
-    let details;
+    let details = '';
 
     if (error instanceof axios.AxiosError) {
       const errors: { detail: string; status: number }[] = error.response?.data?.errors;
-      details = errors?.map(innerError => `\n 🚨 ${innerError.detail}`);
+      details = errors?.map(innerError => `🚨 ${innerError.detail}`).join(`\n`);
     }
 
-    const detailsOrEmpty = details ? ` ${details}` : '';
-    throw new BusinessError(`${errorMessage}: ${error.message}${detailsOrEmpty}`);
+    if (e.response?.status === 400) {
+      throw new ValidationError(details);
+    } else {
+      throw new BusinessError(`${errorMessage}: ${error.message}\n${details}`.trim());
+    }
   }
 }
 
@@ -113,17 +115,30 @@ export default class HttpServer {
     );
   }
 
-  async getLogs(tail?: number | string): Promise<{ logs: Log[] }> {
-    const potentialTail = tail ? `?limit=${tail}` : '';
+  async getLogs({
+    limit,
+    from,
+    to,
+    orderByRecentFirst,
+  }: {
+    limit: number;
+    from: string;
+    to: string;
+    orderByRecentFirst: boolean;
+  }): Promise<Log[]> {
+    const base = `${this.serverUrl}/api/full-hosted-agent/logs`;
 
-    return handledAxios<{ logs: Log[] }>(
-      {
-        url: `${this.serverUrl}/api/full-hosted-agent/logs${potentialTail}`,
-        method: 'GET',
-        headers: this.headers,
-      },
-      { errorMessage: `Failed to retrieve logs` },
-    );
+    return (
+      await handledAxios<{ logs: Log[] }>(
+        {
+          // eslint-disable-next-line max-len
+          url: `${base}?limit=${limit}&from=${from}&to=${to}&order-by-recent-first=${orderByRecentFirst}`,
+          method: 'GET',
+          headers: this.headers,
+        },
+        { errorMessage: `Failed to retrieve logs` },
+      )
+    ).logs;
   }
 
   static async getLatestVersion(packageName: string): Promise<string> {
