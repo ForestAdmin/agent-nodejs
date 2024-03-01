@@ -86,7 +86,7 @@ export default (program: Command, context: MakeCommands) => {
     )
     .option(
       '-f, --from <timestamp>',
-      'Minimum timestamp for requested logs. Default is the last month (now-1m)',
+      'Minimum timestamp for requested logs. Default is the last month (now-1M)',
     )
     .option('-t, --to <timestamp>', 'Maximum timestamp for requested logs. Default is now')
     .description('Display logs of the customizations published on your agent')
