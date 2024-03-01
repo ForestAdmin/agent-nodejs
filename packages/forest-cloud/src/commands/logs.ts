@@ -66,8 +66,8 @@ function validateToOption(to?: string) {
   }
 }
 
-function isRunningWithoutOptions(options: { tail: number; from: string; to: string }) {
-  return !options.tail && !options.from && !options.to;
+function isRunningWithOptions(options: { tail: number; from: string; to: string }): boolean {
+  return !!(options.tail || options.from || options.to);
 }
 
 export default (program: Command, context: MakeCommands) => {
@@ -152,7 +152,9 @@ export default (program: Command, context: MakeCommands) => {
             'To see more logs or change the time range, use --help for all options';
 
           if (logs?.length > 0) {
+            logger.log('...you have probably more logs...');
             logs.forEach(log => displayLog(logger, log));
+            if (isRunningWithOptions(options)) logger.log('...you have probably more logs...');
 
             const pluralize = tail > 1 ? 's' : '';
             const baseMessage = `Requested ${tail} log${pluralize} ${message} ${orderDetails}`;
@@ -161,7 +163,6 @@ export default (program: Command, context: MakeCommands) => {
             }`;
 
             if (logs.length === tail) {
-              logger.log('...you have probably more logs...');
               spinner.succeed(`${baseMessage}\n${fromToMessage}\n`);
               logger.log(`${helperMessage}`);
             } else {
@@ -172,7 +173,7 @@ export default (program: Command, context: MakeCommands) => {
           } else {
             spinner.warn(`No logs found ${message}`);
 
-            if (isRunningWithoutOptions(options)) {
+            if (!isRunningWithOptions(options)) {
               const defaultMessage =
                 'By default, the last 30 logs from the past month are displayed.';
               logger.log(`${defaultMessage} ${helperMessage}`);
