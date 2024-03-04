@@ -66,6 +66,10 @@ function validateToOption(to?: string) {
   }
 }
 
+function isRunningWithOptions(options: { tail: number; from: string; to: string }): boolean {
+  return !!(options.tail || options.from || options.to);
+}
+
 export default (program: Command, context: MakeCommands) => {
   const { logger, getCurrentVersion, login, getEnvironmentVariables, buildHttpServer } = context;
   program
@@ -82,7 +86,7 @@ export default (program: Command, context: MakeCommands) => {
     )
     .option(
       '-f, --from <timestamp>',
-      'Minimum timestamp for requested logs. Default is the last hour (now-1h)',
+      'Minimum timestamp for requested logs. Default is the last month (now-1M)',
     )
     .option('-t, --to <timestamp>', 'Maximum timestamp for requested logs. Default is now')
     .description('Display logs of the customizations published on your agent')
@@ -95,7 +99,7 @@ export default (program: Command, context: MakeCommands) => {
           validateToOption(options.to);
           const { spinner } = logger;
           const tail = Number(options.tail ?? 30);
-          const from = options.from ?? 'now-1h';
+          const from = options.from ?? 'now-1M';
           const to = options.to ?? 'now';
 
           await checkLatestVersion(spinner, getCurrentVersion(), HttpServer.getLatestVersion);
@@ -136,17 +140,21 @@ export default (program: Command, context: MakeCommands) => {
           } else if (options.from) {
             orderDetails = '- Logs are returned from the oldest to the newest';
             message = `since "${from}"`;
-          } else {
+          } else if (options.to) {
             orderDetails = '- Logs are returned from the newest to the oldest';
             message = `until "${to}"`;
+          } else {
+            orderDetails = '- Logs are returned from the newest to the oldest';
+            message = 'in the last month';
           }
 
           const helperMessage =
-            `You can increase your tail option to get more logs or ` +
-            'increase/decrease your from and to options to get older or newer logs';
+            'To see more logs or change the time range, use --help for all options';
 
           if (logs?.length > 0) {
+            logger.log('...you have probably more logs...');
             logs.forEach(log => displayLog(logger, log));
+            if (isRunningWithOptions(options)) logger.log('...you have probably more logs...');
 
             const pluralize = tail > 1 ? 's' : '';
             const baseMessage = `Requested ${tail} log${pluralize} ${message} ${orderDetails}`;
@@ -155,9 +163,8 @@ export default (program: Command, context: MakeCommands) => {
             }`;
 
             if (logs.length === tail) {
-              logger.log('...you have probably more logs...');
-              logger.log(`${helperMessage}\n`);
-              spinner.succeed(`${baseMessage}\n${fromToMessage}`);
+              spinner.succeed(`${baseMessage}\n${fromToMessage}\n`);
+              logger.log(`${helperMessage}`);
             } else {
               spinner.succeed(
                 `${baseMessage}, but only ${logs.length} were found\n${fromToMessage}`,
@@ -165,7 +172,14 @@ export default (program: Command, context: MakeCommands) => {
             }
           } else {
             spinner.warn(`No logs found ${message}`);
-            logger.log(helperMessage);
+
+            if (!isRunningWithOptions(options)) {
+              const defaultMessage =
+                'By default, the last 30 logs from the past month are displayed.';
+              logger.log(`${defaultMessage} ${helperMessage}`);
+            } else {
+              logger.log(helperMessage);
+            }
           }
         },
       ),

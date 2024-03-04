@@ -81,10 +81,10 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.spinner.warn('No logs found until "now"'),
+        cmd.spinner.warn('No logs found in the last month'),
         cmd.logger.log(
-          'You can increase your tail option to get more logs or ' +
-            'increase/decrease your from and to options to get older or newer logs',
+          // eslint-disable-next-line max-len
+          'By default, the last 30 logs from the past month are displayed. To see more logs or change the time range, use --help for all options',
         ),
         cmd.spinner.stop(),
       ]);
@@ -123,10 +123,10 @@ describe('logs command', () => {
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
-        cmd.spinner.warn('No logs found until "now"'),
+        cmd.spinner.warn('No logs found in the last month'),
         cmd.logger.log(
-          'You can increase your tail option to get more logs or ' +
-            'increase/decrease your from and to options to get older or newer logs',
+          // eslint-disable-next-line max-len
+          'By default, the last 30 logs from the past month are displayed. To see more logs or change the time range, use --help for all options',
         ),
         cmd.spinner.stop(),
       ]);
@@ -152,10 +152,7 @@ describe('logs command', () => {
             // eslint-disable-next-line max-len
             'No logs found since "2021-05-01T00:00:00Z"',
           ),
-          cmd.logger.log(
-            'You can increase your tail option to get more logs or ' +
-              'increase/decrease your from and to options to get older or newer logs',
-          ),
+          cmd.logger.log('To see more logs or change the time range, use --help for all options'),
           cmd.spinner.stop(),
         ]);
       });
@@ -172,21 +169,17 @@ describe('logs command', () => {
         ]),
       });
 
-      const cmd = new CommandTester(setup, ['logs', '--tail', '3']);
+      const cmd = new CommandTester(setup, ['logs']);
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
+        cmd.logger.log('...you have probably more logs...'),
         cmd.logger.info('a-message').prefixed('2'),
         cmd.logger.warn('a-message').prefixed('3'),
         cmd.logger.log('a-message').prefixed('4'),
-        cmd.logger.log('...you have probably more logs...'),
-        cmd.logger.log(
-          'You can increase your tail option to get more logs or ' +
-            'increase/decrease your from and to options to get older or newer logs\n',
-        ),
         cmd.spinner.succeed(
           // eslint-disable-next-line max-len
-          'Requested 3 logs until "now" - Logs are returned from the newest to the oldest\nYou have received logs from 2 to 4',
+          'Requested 30 logs in the last month - Logs are returned from the newest to the oldest, but only 3 were found\nYou have received logs from 2 to 4',
         ),
         cmd.spinner.stop(),
       ]);
@@ -204,10 +197,11 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
+          cmd.logger.log('...you have probably more logs...'),
           cmd.logger.log('a-message').prefixed('3'),
           cmd.spinner.succeed(
             // eslint-disable-next-line max-len
-            'Requested 30 logs until "now" - Logs are returned from the newest to the oldest, but only 1 were found\nYou have received logs from 3 to 3',
+            'Requested 30 logs in the last month - Logs are returned from the newest to the oldest, but only 1 were found\nYou have received logs from 3 to 3',
           ),
           cmd.spinner.stop(),
         ]);
@@ -265,7 +259,7 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(getLogs).toHaveBeenCalledWith({
-          from: 'now-1h',
+          from: 'now-1M',
           limit: 2,
           orderByRecentFirst: true,
           to: 'now',
@@ -291,7 +285,9 @@ describe('logs command', () => {
         });
 
         expect(cmd.outputs).toEqual([
+          cmd.logger.log('...you have probably more logs...'),
           cmd.logger.info('a-message').prefixed('2'),
+          cmd.logger.log('...you have probably more logs...'),
           cmd.spinner.succeed(
             // eslint-disable-next-line max-len
             'Requested 30 logs since "2021-05-01T00:00:00Z" - Logs are returned from the oldest to the newest, but only 1 were found\nYou have received logs from 2 to 2',
@@ -415,14 +411,16 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(getLogs).toHaveBeenCalledWith({
-          from: 'now-1h',
+          from: 'now-1M',
           limit: 30,
           orderByRecentFirst: true,
           to: '2021-05-01T00:00:00Z',
         });
 
         expect(cmd.outputs).toEqual([
+          cmd.logger.log('...you have probably more logs...'),
           cmd.logger.info('a-message').prefixed('2'),
+          cmd.logger.log('...you have probably more logs...'),
           cmd.spinner.succeed(
             // eslint-disable-next-line max-len
             'Requested 30 logs until "2021-05-01T00:00:00Z" - Logs are returned from the newest to the oldest, but only 1 were found\nYou have received logs from 2 to 2',
@@ -491,7 +489,7 @@ describe('logs command', () => {
           await cmd.run();
 
           expect(getLogs).toHaveBeenCalledWith({
-            from: 'now-1h',
+            from: 'now-1M',
             limit: 30,
             orderByRecentFirst: true,
             to: '2021-05-01T00:00:00Z',
@@ -508,7 +506,7 @@ describe('logs command', () => {
           await cmd.run();
 
           expect(getLogs).toHaveBeenCalledWith({
-            from: 'now-1h',
+            from: 'now-1M',
             limit: 30,
             orderByRecentFirst: true,
             to: '2021-05-01T00:00:00Z',
@@ -526,7 +524,7 @@ describe('logs command', () => {
           await cmd.run();
 
           expect(getLogs).toHaveBeenCalledWith({
-            from: 'now-1h',
+            from: 'now-1M',
             limit: 30,
             orderByRecentFirst: true,
             to,
@@ -559,7 +557,9 @@ describe('logs command', () => {
         });
 
         expect(cmd.outputs).toEqual([
+          cmd.logger.log('...you have probably more logs...'),
           cmd.logger.info('a-message').prefixed('2'),
+          cmd.logger.log('...you have probably more logs...'),
           cmd.spinner.succeed(
             // eslint-disable-next-line max-len
             'Requested 30 logs between "2021-05-01T00:00:00Z" and "2021-05-02T00:00:00Z" - Logs are returned from the oldest to the newest, but only 1 were found\nYou have received logs from 2 to 2',
@@ -581,7 +581,7 @@ describe('logs command', () => {
         await cmd.run();
 
         expect(cmd.outputs).toEqual([
-          cmd.spinner.warn('Given Options: from=now-1h, to=now, tail=30'),
+          cmd.spinner.warn('Given Options: from=now-1M, to=now, tail=30'),
           cmd.spinner.fail('Validation error'),
           cmd.spinner.stop(),
         ]);
