@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.0...@forestadmin/forest-cloud@1.3.1) (2024-03-04)
+
+
+### Bug Fixes
+
+* **logs:** improve default message when nos logs are displayed ([#1049](https://github.com/ForestAdmin/agent-nodejs/issues/1049)) ([594014c](https://github.com/ForestAdmin/agent-nodejs/commit/594014c8f251a40cae30c287789a9be56396ba67))
+
 # @forestadmin/forest-cloud [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.2.0...@forestadmin/forest-cloud@1.3.0) (2024-03-01)
 
 
