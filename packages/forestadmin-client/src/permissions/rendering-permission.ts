@@ -294,4 +294,17 @@ export default class RenderingPermissionService {
 
     return permissions.team;
   }
+
+  public async getUsersForRoles(roleIds: number[]): Promise<UserPermissionV4[]> {
+
+    const users = await this.userPermissions.getAllUsers();
+    console.log(users);
+
+    return roleIds.reduce<UserPermissionV4[]>((acc, id) => {
+
+      acc.push(...users.filter(({roleId}) => roleId === id));
+
+      return acc;
+    }, []);
+  }
 }

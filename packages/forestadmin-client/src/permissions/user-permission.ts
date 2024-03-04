@@ -21,17 +21,7 @@ export default class UserPermissionService {
       // Only allow refetch when not using server events and not found
       (!this.options.instantCacheRefresh && !(await this.userInfoById).has(`${userId}`))
     ) {
-      this.cacheExpirationTimestamp =
-        Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
-
-      this.options.logger('Debug', `Refreshing user permissions cache`);
-
-      // The response here is not awaited in order to be set in the cache
-      // allowing subsequent calls to getUserInfo to use the cache even if
-      // the response is not yet available.
-      this.userInfoById = this.forestAdminServerInterface
-        .getUsers(this.options)
-        .then(users => new Map(users.map(user => [`${user.id}`, user])));
+      this.internalGetUsers();
     }
 
     return (await this.userInfoById).get(`${userId}`);
@@ -43,4 +33,32 @@ export default class UserPermissionService {
     this.userInfoById = undefined;
     this.cacheExpirationTimestamp = undefined;
   }
+
+  public async getAllUsers() {
+    if (
+      !this.cacheExpirationTimestamp ||
+      this.cacheExpirationTimestamp < Date.now() ||
+      // Only allow refetch when not using server events and not found
+      (!this.options.instantCacheRefresh && !this.userInfoById)
+    ) {
+      this.internalGetUsers();
+    }
+
+    return Array.from((await this.userInfoById)?.values());
+  }
+
+  private async internalGetUsers() {
+    this.cacheExpirationTimestamp =
+      Date.now() + this.options.permissionsCacheDurationInSeconds * 1000;
+
+    this.options.logger('Debug', `Refreshing user permissions cache`);
+
+    // The response here is not awaited in order to be set in the cache
+    // allowing subsequent calls to getUserInfo to use the cache even if
+    // the response is not yet available.
+    this.userInfoById = this.forestAdminServerInterface
+      .getUsers(this.options)
+      .then(users => new Map(users.map(user => [`${user.id}`, user])));
+  }
+
 }

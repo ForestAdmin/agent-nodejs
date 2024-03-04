@@ -61,4 +61,12 @@ export interface Collection {
   ): Promise<AggregateResult[]>;
 
   renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart>;
+
+  executeWebhook(
+    caller: Caller,
+    filter: Filter,
+    name: string,
+    type: string,
+    flexContext: unknown
+  ): Promise<void>;
 }

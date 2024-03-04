@@ -138,6 +138,11 @@ export default class CollectionCustomizer<
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .addAction(name, definition as ActionDefinition<any, any>);
+
+        if(definition.onApprovalRequested)
+          this.stack.webhook
+          .getCollection(this.name)
+          .addWebhook(name, 'ApprovalRequested', definition.onApprovalRequested);
     });
   }
 

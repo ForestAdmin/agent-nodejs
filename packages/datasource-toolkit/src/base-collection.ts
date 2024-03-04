@@ -29,6 +29,7 @@ export default abstract class BaseCollection implements Collection {
     };
   }
 
+
   protected addAction(name: string, schema: ActionSchema): void {
     const action = this.schema.actions[name];
 
@@ -100,5 +101,9 @@ export default abstract class BaseCollection implements Collection {
 
   async renderChart(caller: Caller, name: string): Promise<Chart> {
     throw new Error(`Chart ${name} is not implemented.`);
+  }
+
+  async executeWebhook(caller: Caller, filter: Filter, name: string, type: string, flexContext: unknown): Promise<void> {
+    throw new Error(`Webhook ${name} is not implemented.`);
   }
 }
