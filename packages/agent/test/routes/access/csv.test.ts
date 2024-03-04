@@ -91,7 +91,12 @@ describe('CsvRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
+        },
         ['id', 'name'],
         'id,name',
         paginatedFilter,

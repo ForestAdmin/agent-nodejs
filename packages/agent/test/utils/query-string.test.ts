@@ -386,7 +386,7 @@ describe('QueryStringParser', () => {
   });
 
   describe('parseCaller', () => {
-    test('should return the timezone and the user', () => {
+    test('should return the timezone, the user and the current URL', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: { query: { timezone: 'America/Los_Angeles' } },
@@ -396,6 +396,7 @@ describe('QueryStringParser', () => {
         email: 'john.doe@domain.com',
         requestId: expect.any(String),
         timezone: 'America/Los_Angeles',
+        webAppURL: 'http://test.com/',
       });
     });
 
