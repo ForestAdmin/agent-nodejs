@@ -85,7 +85,15 @@ export default class ConditionTreeLeaf extends ConditionTree {
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
     const supported = [
       ...['In', 'Equal', 'LessThan', 'GreaterThan', 'Match', 'StartsWith', 'EndsWith'],
-      ...['LongerThan', 'ShorterThan', 'IncludesAll', 'NotIn', 'NotEqual', 'NotContains'],
+      ...[
+        'LongerThan',
+        'ShorterThan',
+        'IncludesAll',
+        'IncludesNone',
+        'NotIn',
+        'NotEqual',
+        'NotContains',
+      ],
     ] as const;
 
     switch (this.operator) {
@@ -109,9 +117,12 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return typeof fieldValue === 'string' ? fieldValue.length < this.value : false;
       case 'IncludesAll':
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
+      case 'IncludesNone':
+        return !(this.value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
       case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
+      case 'NotIContains':
         return !this.inverse().match(record, collection, timezone);
 
       default:
@@ -130,5 +141,13 @@ export default class ConditionTreeLeaf extends ConditionTree {
 
   override unnest(): ConditionTreeLeaf {
     return super.unnest() as ConditionTreeLeaf;
+  }
+
+  toPlainObject(): PlainConditionTree {
+    return {
+      field: this.field,
+      operator: this.operator,
+      value: this.value,
+    };
   }
 }

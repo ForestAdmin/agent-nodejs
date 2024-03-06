@@ -25,7 +25,11 @@ export default class ConditionTreeEquivalent {
   ): ConditionTree {
     const { operator } = leaf;
 
-    return ConditionTreeEquivalent.getReplacer(operator, operators, columnType)(leaf, timezone);
+    const replacer = ConditionTreeEquivalent.getReplacer(operator, operators, columnType);
+
+    if (!replacer) return leaf;
+
+    return replacer ? replacer(leaf, timezone) : null;
   }
 
   static hasEquivalentTree(
@@ -33,7 +37,7 @@ export default class ConditionTreeEquivalent {
     operators: Set<Operator>,
     columnType: ColumnType,
   ): boolean {
-    return !!ConditionTreeEquivalent.getReplacer(operator, operators, columnType);
+    return Boolean(ConditionTreeEquivalent.getReplacer(operator, operators, columnType));
   }
 
   /** Find a way to replace an operator by recursively exploring the transforms graph */

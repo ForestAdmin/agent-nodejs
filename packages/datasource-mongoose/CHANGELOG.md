@@ -1,3 +1,75 @@
+## @forestadmin/datasource-mongoose [1.6.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.3...@forestadmin/datasource-mongoose@1.6.4) (2024-02-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.1
+
+## @forestadmin/datasource-mongoose [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.2...@forestadmin/datasource-mongoose@1.6.3) (2024-02-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+
+## @forestadmin/datasource-mongoose [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.1...@forestadmin/datasource-mongoose@1.6.2) (2024-02-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.31.0
+
+## @forestadmin/datasource-mongoose [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.0...@forestadmin/datasource-mongoose@1.6.1) (2024-02-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+
+# @forestadmin/datasource-mongoose [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.33...@forestadmin/datasource-mongoose@1.6.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+
+## @forestadmin/datasource-mongoose [1.5.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.32...@forestadmin/datasource-mongoose@1.5.33) (2024-01-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
+## @forestadmin/datasource-mongoose [1.5.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.31...@forestadmin/datasource-mongoose@1.5.32) (2023-12-15)
+
+
+### Bug Fixes
+
+* **mongoose:** export mongoose options type ([#900](https://github.com/ForestAdmin/agent-nodejs/issues/900)) ([f822279](https://github.com/ForestAdmin/agent-nodejs/commit/f8222799aeafa86415744f6e18b2b53de1b8b662))
+
 ## @forestadmin/datasource-mongoose [1.5.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.5.30...@forestadmin/datasource-mongoose@1.5.31) (2023-12-12)
 
 

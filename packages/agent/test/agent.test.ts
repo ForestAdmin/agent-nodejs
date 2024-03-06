@@ -25,6 +25,7 @@ const mockCustomizer = {
   addChart: jest.fn(),
   customizeCollection: jest.fn(),
   updateTypesOnFileSystem: jest.fn(),
+  getDataSource: jest.fn(),
   use: jest.fn(),
   getFactory: jest.fn(),
   removeCollection: jest.fn(),
@@ -138,7 +139,7 @@ describe('Agent', () => {
       expect(mockNocodeCustomizer.addDataSource).toHaveBeenCalledWith('factory');
     });
 
-    test('start should upload apimap', async () => {
+    test('start should create new schema definition/meta and upload apimap', async () => {
       const agent = new Agent(options);
       await agent.start();
 
@@ -261,7 +262,7 @@ describe('Agent', () => {
       );
     });
 
-    test('start should upload apimap when unknown', async () => {
+    test('start should read existing definition and upload apimap with current meta', async () => {
       const agent = new Agent(options);
       await agent.start();
 
@@ -271,9 +272,18 @@ describe('Agent', () => {
       expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
       expect(mockCustomizer.updateTypesOnFileSystem).not.toHaveBeenCalled();
 
-      const schemaContent = JSON.parse(await readFile(options.schemaPath, 'utf8'));
+      const { collections } = JSON.parse(await readFile(options.schemaPath, 'utf8'));
 
-      expect(mockPostSchema).toHaveBeenCalledWith(schemaContent);
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collections,
+          meta: expect.objectContaining({
+            liana: 'forest-nodejs-agent',
+            liana_features: null,
+            liana_version: expect.any(String),
+          }),
+        }),
+      );
     });
 
     test('start should not update schema when specified', async () => {
@@ -285,6 +295,7 @@ describe('Agent', () => {
       expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
       expect(mockNocodeCustomizer.getDataSource).toHaveBeenCalledTimes(1);
       expect(mockCustomizer.updateTypesOnFileSystem).not.toHaveBeenCalled();
+
       expect(mockPostSchema).not.toHaveBeenCalled();
     });
   });
@@ -297,6 +308,21 @@ describe('Agent', () => {
       await agent.stop();
 
       expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('updateTypesOnFileSystem', () => {
+    test('should write/update the typings file if apimap has changed', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      await agent.updateTypesOnFileSystem('the/path/to/typings.d.ts', 42);
+
+      expect(mockCustomizer.getDataSource).toHaveBeenCalledOnceWith(options.logger);
+      expect(mockCustomizer.updateTypesOnFileSystem).toHaveBeenCalledOnceWith(
+        'the/path/to/typings.d.ts',
+        42,
+      );
     });
   });
 });

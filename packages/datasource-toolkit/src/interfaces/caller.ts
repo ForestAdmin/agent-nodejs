@@ -8,5 +8,6 @@ export type Caller = {
   requestId: string;
   role: string;
   tags: { [key: string]: string };
+  permissionLevel: 'admin' | 'developer' | 'editor' | 'user';
   timezone: string;
 };

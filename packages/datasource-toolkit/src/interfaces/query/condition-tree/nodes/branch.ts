@@ -74,4 +74,11 @@ export default class ConditionTreeBranch extends ConditionTree {
       ? this.conditions.every(c => c.match(record, collection, timezone))
       : this.conditions.some(c => c.match(record, collection, timezone));
   }
+
+  toPlainObject(): PlainConditionTreeBranch {
+    return {
+      aggregator: this.aggregator,
+      conditions: this.conditions.map(c => c.toPlainObject()),
+    };
+  }
 }

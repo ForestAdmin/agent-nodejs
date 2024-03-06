@@ -124,6 +124,18 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   /**
+   * Find a collection by name. Returns undefined if the collection is missing
+   * @param name name of the collection
+   */
+  findCollection(name: string): CollectionCustomizer<S> | undefined {
+    if (this.collections.find(collection => collection.name === name))
+      /**
+       * If the collection is found, we use the getCollection to apply side effects
+       */
+      return this.getCollection(name as TCollectionName<S>);
+  }
+
+  /**
    * Remove collections from the exported schema (they will still be usable within the agent).
    * @param names the collections to remove
    * @example

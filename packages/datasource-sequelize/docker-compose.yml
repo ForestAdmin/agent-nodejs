@@ -1,0 +1,37 @@
+version: '3.1'
+services:
+  postgres16:
+    image: postgres:16-alpine
+    container_name: forest_datasource_sequelize_test_postgres16
+    ports:
+      - '5456:5432'
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=password
+
+  mysql8:
+    image: mysql:8
+    container_name: forest_datasource_sequelize_test_mysql8
+    ports:
+      - '3318:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+
+  mssql2022:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: forest_datasource_sequelize_test_mssql2022
+    platform: linux/amd64
+    ports:
+      - '1432:1433'
+    environment:
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - ACCEPT_EULA=Y
+      - MSSQL_COLLATION=SQL_Latin1_General_CP1_CS_AS
+
+  mariadb11:
+    image: mariadb:11.2
+    container_name: forest_datasource_sequelize_test_mariadb11
+    ports:
+      - '3821:3306'
+    environment:
+      - MARIADB_ROOT_PASSWORD=password

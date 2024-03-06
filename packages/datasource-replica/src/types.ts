@@ -4,7 +4,7 @@ import type { ConnectionOptions } from '@forestadmin/datasource-sql';
 import type {
   Aggregation,
   Caller,
-  ColumnSchema,
+  ColumnSchemaValidation,
   Logger,
   PrimitiveTypes,
   Projection,
@@ -31,7 +31,7 @@ export type LeafField = {
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   unique?: boolean;
-  validation?: ColumnSchema['validation'];
+  validation?: ColumnSchemaValidation;
   reference?: {
     relationName: string;
     targetCollection: string;

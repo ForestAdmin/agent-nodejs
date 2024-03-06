@@ -40,6 +40,8 @@ export default class ConditionTreeFactory {
   }
 
   static union(...trees: ConditionTree[]): ConditionTree {
+    if (trees.length === 1) return trees[0];
+
     return ConditionTreeFactory.group('Or', trees);
   }
 

@@ -241,4 +241,38 @@ describe('DataSourceCustomizer', () => {
       expect(array).toEqual([1, 2, 3, 4, 5]);
     });
   });
+
+  describe('findCollection', () => {
+    it('should return the collection if found', async () => {
+      const customizer = new DataSourceCustomizer();
+      jest
+        .spyOn(customizer, 'collections', 'get')
+        .mockReturnValue([
+          { name: 'test' },
+          { name: 'otherCollection' },
+        ] as Array<CollectionCustomizer>);
+      jest
+        .spyOn(customizer, 'getCollection')
+        .mockReturnValue({ name: 'test' } as CollectionCustomizer);
+
+      const collection = await customizer.findCollection('test');
+      expect(collection).toMatchObject({ name: 'test' });
+      expect(customizer.getCollection).toHaveBeenCalledWith('test');
+    });
+
+    it('should return undefined if the collection is not found', async () => {
+      const customizer = new DataSourceCustomizer();
+      jest
+        .spyOn(customizer, 'collections', 'get')
+        .mockReturnValue([
+          { name: 'test' },
+          { name: 'otherCollection' },
+        ] as Array<CollectionCustomizer>);
+      jest.spyOn(customizer, 'getCollection');
+
+      const collection = await customizer.findCollection('somethingElse');
+      expect(collection).toBeUndefined();
+      expect(customizer.getCollection).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -1,0 +1,4 @@
+typings.d.ts
+cloud-customizer*
+.env
+!test/**/*

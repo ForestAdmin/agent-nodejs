@@ -1,3 +1,80 @@
+## @forestadmin/datasource-sequelize [1.6.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.4...@forestadmin/datasource-sequelize@1.6.5) (2024-02-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.1
+
+## @forestadmin/datasource-sequelize [1.6.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.3...@forestadmin/datasource-sequelize@1.6.4) (2024-02-07)
+
+
+### Bug Fixes
+
+* searching into text[] columns in postgresql leads to error due to invalid introspection ([#983](https://github.com/ForestAdmin/agent-nodejs/issues/983)) ([f9ee1a6](https://github.com/ForestAdmin/agent-nodejs/commit/f9ee1a60998157071010e45a3e30fcbed34aa43a))
+
+## @forestadmin/datasource-sequelize [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.2...@forestadmin/datasource-sequelize@1.6.3) (2024-02-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+
+## @forestadmin/datasource-sequelize [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.1...@forestadmin/datasource-sequelize@1.6.2) (2024-02-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.31.0
+
+## @forestadmin/datasource-sequelize [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.0...@forestadmin/datasource-sequelize@1.6.1) (2024-02-01)
+
+
+### Bug Fixes
+
+* **typings:** support strict null checking in typescript ([#927](https://github.com/ForestAdmin/agent-nodejs/issues/927)) ([80fa64d](https://github.com/ForestAdmin/agent-nodejs/commit/80fa64d0bf85ee36ab330a8f983b8bf593ae34f1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+
+# @forestadmin/datasource-sequelize [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.27...@forestadmin/datasource-sequelize@1.6.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+
+## @forestadmin/datasource-sequelize [1.5.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.26...@forestadmin/datasource-sequelize@1.5.27) (2024-01-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
 ## @forestadmin/datasource-sequelize [1.5.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.5.25...@forestadmin/datasource-sequelize@1.5.26) (2023-12-12)
 
 

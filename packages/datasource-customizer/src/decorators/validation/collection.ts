@@ -3,6 +3,7 @@ import {
   CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
+  ColumnSchemaValidation,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   FieldValidator,
@@ -11,7 +12,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-type ValidationRule = ColumnSchema['validation'][number];
+type ValidationRule = ColumnSchemaValidation[number];
 
 export default class ValidationDecorator extends CollectionDecorator {
   private validation: Record<string, ColumnSchema['validation']> = {};

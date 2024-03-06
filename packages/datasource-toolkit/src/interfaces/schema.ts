@@ -24,6 +24,8 @@ export type CollectionSchema = {
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
 export type FieldSchema = ColumnSchema | RelationSchema;
 
+export type ColumnSchemaValidation = Array<{ operator: Operator; value?: unknown }>;
+
 export type ColumnSchema = {
   columnType: ColumnType;
   filterOperators?: Set<Operator>;
@@ -32,8 +34,9 @@ export type ColumnSchema = {
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   isSortable?: boolean;
+  allowNull?: boolean;
   type: 'Column';
-  validation?: Array<{ operator: Operator; value?: unknown }>;
+  validation?: ColumnSchemaValidation;
 };
 
 export type ManyToOneSchema = {

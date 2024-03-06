@@ -12,12 +12,22 @@ type DBColumn = {
   Default: string;
   Null: 'YES' | 'NO';
   Type: string;
+  ElementType: string | null;
+  TechnicalElementType: string | null;
   Special: string;
   Comment: string;
   Identity: 'BY DEFAULT' | 'ALWAYS' | null;
 };
 
 export default class PostgreSQLDialect implements IntrospectionDialect {
+  getDefaultSchema(): string {
+    return 'public';
+  }
+
+  getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier {
+    return tableIdentifier;
+  }
+
   async listColumns(
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,
@@ -50,15 +60,17 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
         || (CASE WHEN c.character_maximum_length IS NOT NULL 
             THEN '(' || c.character_maximum_length || ')' 
             ELSE '' END) as "Type", 
-      (SELECT array_agg(e.enumlabel) 
-        FROM pg_catalog.pg_type t JOIN pg_catalog.pg_enum e ON t.oid=e.enumtypid 
-        WHERE t.typname=c.udt_name
-      ) AS "Special", 
+      (SELECT array_agg(en.enumlabel) 
+        FROM pg_catalog.pg_type t JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid 
+        WHERE t.typname = c.udt_name OR t.typname = e.udt_name
+      ) AS "Special",
       (SELECT pgd.description 
         FROM pg_catalog.pg_statio_all_tables AS st
         INNER JOIN pg_catalog.pg_description pgd on (pgd.objoid=st.relid) 
         WHERE c.ordinal_position=pgd.objsubid AND c.table_name=st.relname
-      ) AS "Comment" 
+      ) AS "Comment",
+      e.data_type AS "ElementType",
+      e.udt_name AS "TechnicalElementType"
       FROM 
         information_schema.columns c 
       LEFT JOIN (
@@ -74,6 +86,13 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       ) pk ON pk.table_schema=c.table_schema 
         AND pk.table_name=c.table_name 
         AND pk.column_name=c.column_name 
+      LEFT JOIN INFORMATION_SCHEMA.element_types e ON (
+        c.table_catalog = e.object_catalog AND
+        c.table_schema = e.object_schema AND
+        c.table_name = e.object_name AND
+        'TABLE' = e.object_type AND
+        c.dtd_identifier = e.collection_type_identifier
+      )
       WHERE c.table_catalog = :database 
         AND ${conditions}
       ORDER BY c.table_schema, c.table_name, c.ordinal_position;
@@ -109,9 +128,14 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
 
   private getColumnDescription(dbColumn: DBColumn): ColumnDescription {
     const type = dbColumn.Type.toUpperCase();
+    const elementType =
+      dbColumn.ElementType?.toUpperCase() === 'USER-DEFINED'
+        ? dbColumn.TechnicalElementType
+        : dbColumn.ElementType?.toUpperCase();
 
     const sequelizeColumn: SequelizeColumn = {
       type,
+      elementType,
       allowNull: dbColumn.Null === 'YES',
       comment: dbColumn.Comment,
       special: parseArray(dbColumn.Special),

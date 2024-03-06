@@ -1,6 +1,7 @@
 {
   "name": "root",
   "private": true,
+  "packageManager": "yarn@1.22.19",
   "devDependencies": {
     "@commitlint/cli": "^17.4.2",
     "@commitlint/config-conventional": "^17.4.2",
@@ -16,6 +17,7 @@
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-import": "^2.27.4",
     "eslint-plugin-jest": "^27.2.1",
+    "eslint-plugin-jest-formatting": "^3.1.0",
     "eslint-plugin-prettier": "^4.2.1",
     "fishery": "^2.2.2",
     "husky": "^8.0.3",
