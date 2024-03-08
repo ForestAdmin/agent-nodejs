@@ -10373,13 +10373,6 @@ ky@^1.2.0:
   resolved "https://registry.yarnpkg.com/ky/-/ky-1.2.2.tgz#875b4132012ff7d8c12e5e884f35015676c436d2"
   integrity sha512-gYA2QOI3uIaImJPJjaBbLCdvKHzwxsuB03s7PjrXmoO6tcn6k53rwYoSRgqrmVsEV6wFFegOXDVjABxFZ0aRSg==
 
-latest-version@^9.0.0:
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/latest-version/-/latest-version-9.0.0.tgz#e91ed216e7a4badc6f73b66c65adb46c58ec6ba1"
-  integrity sha512-7W0vV3rqv5tokqkBAFV1LbR7HPOWzXQDpDgEuib/aJ1jsZZx6x3c2mBI+TJhJzOhkGeaLbCKEHXEXLfirtG2JA==
-  dependencies:
-    package-json "^10.0.0"
-
 lerna@^6.4.1:
   version "6.6.2"
   resolved "https://registry.yarnpkg.com/lerna/-/lerna-6.6.2.tgz#ad921f913aca4e7307123a598768b6f15ca5804f"
