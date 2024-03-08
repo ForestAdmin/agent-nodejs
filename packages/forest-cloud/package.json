@@ -17,12 +17,12 @@
     "form-data": "^4.0.0",
     "graphql": "14.5.7",
     "graphql-tag": "^2.12.6",
-    "latest-version": "^5.0.0",
+    "joi": "^17.12.2",
+    "latest-version": "9.0.0",
     "ora": "^3.2.0",
     "sqlite3": "^5.1.7",
     "subscriptions-transport-ws": "^0.9.19",
-    "ws": "^8.16.0",
-    "joi": "^17.12.2"
+    "ws": "^8.16.0"
   },
   "publishConfig": {
     "access": "public"
