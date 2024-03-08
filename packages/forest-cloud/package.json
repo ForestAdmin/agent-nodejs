@@ -13,16 +13,16 @@
     "axios": "^1.6.7",
     "commander": "^11.1.0",
     "dotenv": "^16.4.1",
-    "forest-cli": "^5.0.2",
+    "forest-cli": "5.0.6",
     "form-data": "^4.0.0",
     "graphql": "14.5.7",
     "graphql-tag": "^2.12.6",
+    "joi": "^17.12.2",
     "latest-version": "^5.0.0",
     "ora": "^3.2.0",
     "sqlite3": "^5.1.7",
     "subscriptions-transport-ws": "^0.9.19",
-    "ws": "^8.16.0",
-    "joi": "^17.12.2"
+    "ws": "^8.16.0"
   },
   "publishConfig": {
     "access": "public"
