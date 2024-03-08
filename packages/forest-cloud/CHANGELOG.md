@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.3.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.2...@forestadmin/forest-cloud@1.3.3) (2024-03-08)
+
+
+### Bug Fixes
+
+* vulnerability in axios ([#1051](https://github.com/ForestAdmin/agent-nodejs/issues/1051)) ([6a2e861](https://github.com/ForestAdmin/agent-nodejs/commit/6a2e861bb3dfb6806f23d353c1f6b579eeefadd9))
+
 ## @forestadmin/forest-cloud [1.3.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.1...@forestadmin/forest-cloud@1.3.2) (2024-03-08)
 
 
