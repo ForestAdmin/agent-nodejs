@@ -1,7 +1,7 @@
 import { Table } from '@forestadmin/datasource-sql';
 import * as axios from 'axios';
 import * as fs from 'fs';
-import latestVersion from 'latest-version';
+import packageJson from 'package-json';
 
 import { BusinessError, ValidationError } from '../errors';
 import { Log } from '../types';
@@ -142,6 +142,8 @@ export default class HttpServer {
   }
 
   static async getLatestVersion(packageName: string): Promise<string> {
-    return latestVersion(packageName);
+    const { version } = await packageJson(packageName.toLowerCase());
+
+    return version;
   }
 }
