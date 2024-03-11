@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.5...@forestadmin/forest-cloud@1.4.0) (2024-03-11)
+
+
+### Features
+
+* accept FOREST_URL as alternative to FOREST_SERVER_URL variable in forest-cloud command ([#1055](https://github.com/ForestAdmin/agent-nodejs/issues/1055)) ([bb19e66](https://github.com/ForestAdmin/agent-nodejs/commit/bb19e666c3e42159f8ba48745e818c2f1d046fe0))
+
 ## @forestadmin/forest-cloud [1.3.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.4...@forestadmin/forest-cloud@1.3.5) (2024-03-11)
 
 
