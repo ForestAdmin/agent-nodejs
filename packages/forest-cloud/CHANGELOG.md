@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.3.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.3...@forestadmin/forest-cloud@1.3.4) (2024-03-11)
+
+
+### Bug Fixes
+
+* latest version vulnerability by relying on npm instead ([#1053](https://github.com/ForestAdmin/agent-nodejs/issues/1053)) ([47a29aa](https://github.com/ForestAdmin/agent-nodejs/commit/47a29aa35fd67ece0f79628bd34304b41bf49cda))
+
 ## @forestadmin/forest-cloud [1.3.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.2...@forestadmin/forest-cloud@1.3.3) (2024-03-08)
 
 
