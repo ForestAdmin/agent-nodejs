@@ -98,6 +98,7 @@ describe('environment-variables', () => {
     describe('if FOREST_SERVER_URL and FOREST_SUBSCRIPTION_URL are missing', () => {
       it('should use sane default', async () => {
         process.env.FOREST_SERVER_URL = '';
+        process.env.FOREST_URL = '';
         process.env.FOREST_SUBSCRIPTION_URL = '';
         expect(await getEnvironmentVariables()).toMatchObject({
           FOREST_SERVER_URL: 'https://api.forestadmin.com',
