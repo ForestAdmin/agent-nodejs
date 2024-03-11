@@ -36,6 +36,23 @@ describe('environment-variables', () => {
           TOKEN_PATH: homedir(),
         });
       });
+
+      it('should accept FOREST_URL as alternative to FOREST_SERVER_URL', async () => {
+        process.env.FOREST_ENV_SECRET = 'abc';
+        process.env.FOREST_URL = 'https://the.forest.server.url';
+        delete process.env.FOREST_SERVER_URL;
+        process.env.FOREST_AUTH_TOKEN = 'tokenAbc123';
+        process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+        expect(await getEnvironmentVariables()).toEqual({
+          FOREST_AUTH_TOKEN: 'tokenAbc123',
+          FOREST_ENV_SECRET: 'abc',
+          FOREST_SERVER_URL: 'https://the.forest.server.url',
+          FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
+          NODE_TLS_REJECT_UNAUTHORIZED: '1',
+          TOKEN_PATH: homedir(),
+        });
+      });
     });
 
     describe('if FOREST_AUTH_TOKEN is missing', () => {
