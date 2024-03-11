@@ -2,7 +2,7 @@ import { Table } from '@forestadmin/datasource-sql';
 import * as axios from 'axios';
 import * as fs from 'fs';
 
-import latestVersion from './internal/latest-version';
+import latestVersion from './latest-version';
 import { BusinessError, ValidationError } from '../errors';
 import { Log } from '../types';
 

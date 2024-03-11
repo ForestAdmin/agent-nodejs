@@ -1,4 +1,4 @@
-import latestVersion from '../../../src/services/internal/latest-version';
+import latestVersion from '../../src/services/latest-version';
 
 describe('Services > Internal > latestVersion', () => {
   describe('When the package exists', () => {
