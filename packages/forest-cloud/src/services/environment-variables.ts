@@ -27,7 +27,8 @@ export async function getEnvironmentVariables(): Promise<EnvironmentVariables> {
   return {
     FOREST_ENV_SECRET: process.env.FOREST_ENV_SECRET,
     TOKEN_PATH: tokenPath,
-    FOREST_SERVER_URL: process.env.FOREST_SERVER_URL || defaultEnvs.FOREST_SERVER_URL,
+    FOREST_SERVER_URL:
+      process.env.FOREST_SERVER_URL || process.env.FOREST_URL || defaultEnvs.FOREST_SERVER_URL,
     FOREST_SUBSCRIPTION_URL:
       process.env.FOREST_SUBSCRIPTION_URL || defaultEnvs.FOREST_SUBSCRIPTION_URL,
     FOREST_AUTH_TOKEN: process.env.FOREST_AUTH_TOKEN || (await getTokenFromToolbelt(tokenPath)),
