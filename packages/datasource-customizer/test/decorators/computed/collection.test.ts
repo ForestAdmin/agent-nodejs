@@ -71,6 +71,7 @@ describe('ComputedDecorator', () => {
           lastName: factories.columnSchema.build(),
         },
       }),
+      list: jest.fn().mockImplementation(() => []),
     });
 
     dataSource = factories.dataSource.buildWithCollections([persons, books]);
@@ -155,6 +156,18 @@ describe('ComputedDecorator', () => {
         isPrimaryKey: false,
         type: 'Column',
       });
+    });
+
+    test('list() result should early return if no records', async () => {
+      const caller = factories.caller.build();
+
+      const records = await newPersons.list(
+        caller,
+        new PaginatedFilter({}),
+        new Projection('fullName'),
+      );
+
+      expect(records).toStrictEqual([]);
     });
 
     test('list() result should contain the computed', async () => {
