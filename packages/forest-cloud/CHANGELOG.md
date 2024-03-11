@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.0...@forestadmin/forest-cloud@1.4.1) (2024-03-11)
+
+
+### Bug Fixes
+
+* **security:** patch jsonwebtoken dependency vulnerabilities ([#1059](https://github.com/ForestAdmin/agent-nodejs/issues/1059)) ([7a611a8](https://github.com/ForestAdmin/agent-nodejs/commit/7a611a8ef6efed658151abe63147a3f813f7677b))
+
 # @forestadmin/forest-cloud [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.5...@forestadmin/forest-cloud@1.4.0) (2024-03-11)
 
 
