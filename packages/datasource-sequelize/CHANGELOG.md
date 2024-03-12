@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.6.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.5...@forestadmin/datasource-sequelize@1.6.6) (2024-03-12)
+
+
+### Bug Fixes
+
+* clarify rawQuery only support sequelize replacements ([#1060](https://github.com/ForestAdmin/agent-nodejs/issues/1060)) ([d3ee996](https://github.com/ForestAdmin/agent-nodejs/commit/d3ee9966196039a59aa4ee1f4752c78cbc4e3cdb))
+
 ## @forestadmin/datasource-sequelize [1.6.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.4...@forestadmin/datasource-sequelize@1.6.5) (2024-02-27)
 
 
