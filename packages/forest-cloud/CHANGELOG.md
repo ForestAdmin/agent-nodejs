@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.3...@forestadmin/forest-cloud@1.4.4) (2024-03-12)
+
+
+### Bug Fixes
+
+* improve publish message wording ([#1063](https://github.com/ForestAdmin/agent-nodejs/issues/1063)) ([93c5c87](https://github.com/ForestAdmin/agent-nodejs/commit/93c5c870939722c2925cd7fe1aab7acc5bcf5018))
+
 ## @forestadmin/forest-cloud [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.2...@forestadmin/forest-cloud@1.4.3) (2024-03-12)
 
 
