@@ -4,7 +4,7 @@ import * as fs from 'fs';
 
 import latestVersion from './latest-version';
 import { BusinessError, ValidationError } from '../errors';
-import { Log } from '../types';
+import { CodeCustomizationDetails, Log } from '../types';
 
 async function handledAxios<T>(
   axiosRequestConfig: axios.AxiosRequestConfig,
@@ -100,12 +100,8 @@ export default class HttpServer {
     );
   }
 
-  async getLastPublishedCodeDetails() {
-    return handledAxios<{
-      date: Date;
-      relativeDate: string;
-      user: { name: string; email: string };
-    } | null>(
+  async getLastPublishedCodeDetails(): Promise<CodeCustomizationDetails> {
+    return handledAxios<CodeCustomizationDetails | null>(
       {
         url: `${this.serverUrl}/api/full-hosted-agent/last-published-code-details`,
         method: 'GET',

@@ -1,15 +1,15 @@
 import { Command } from 'commander';
 
 import actionRunner from '../dialogs/action-runner';
+import askQuestion from '../dialogs/ask-question';
+import displayCustomizationInfo from '../dialogs/display-customization-info';
+import { BusinessError } from '../errors';
 import bootstrap from '../services/bootstrap';
 import {
   validateEnvironmentVariables,
   validateMissingForestEnvSecret,
 } from '../services/environment-variables';
-import {
-  askToOverwriteCustomizationsOrAbortCommand,
-  loginIfMissingAuthAndReturnEnvironmentVariables,
-} from '../shared';
+import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
 import { MakeCommands } from '../types';
 
 export default (program: Command, context: MakeCommands) => {
@@ -43,7 +43,20 @@ export default (program: Command, context: MakeCommands) => {
         logger.spinner.succeed('Environment found');
 
         const httpServer = buildHttpServer(vars);
-        await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);
+
+        const details = await httpServer.getLastPublishedCodeDetails();
+
+        if (details) {
+          displayCustomizationInfo(logger.spinner, details);
+          logger.spinner.warn(
+            'If you continue it will boostrap a new customization project from scratch',
+          );
+          logger.spinner.stop();
+
+          if (!(await askQuestion('Do you want to continue?'))) {
+            throw new BusinessError('Operation aborted');
+          }
+        }
 
         logger.spinner.start();
         await bootstrap(vars, httpServer, bootstrapPathManager);
