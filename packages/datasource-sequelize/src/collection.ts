@@ -53,12 +53,12 @@ export default class SequelizeCollection extends BaseCollection {
       /**
        * Executes a raw SQL query using Sequelize Replacements by default
        * @see {@link https://sequelize.org/docs/v6/core-concepts/raw-queries/#replacements}
-       * Use option useBind = true for Sequelize Bind
+       * Use option { syntax: "bind" } for Sequelize Bind
        * @see {@link https://sequelize.org/docs/v6/core-concepts/raw-queries/#bind-parameter}
        *
        * @param {string} sql
        * @param {Replacements} replacements
-       * @param {{useBind?:boolean}} {useBind}
+       * @param {{syntax?:'bind'|'replacements'}} options?
        * @returns {any}
        */
       rawQuery: async (
