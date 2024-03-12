@@ -1,3 +1,19 @@
+## @forestadmin/forest-cloud [1.4.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.6...@forestadmin/forest-cloud@1.4.7) (2024-03-12)
+
+
+### Bug Fixes
+
+* **forest-cloud:** improve wording when re-bootstrapping or publishing ([#1064](https://github.com/ForestAdmin/agent-nodejs/issues/1064)) ([27262bd](https://github.com/ForestAdmin/agent-nodejs/commit/27262bd34eb68bbaf99c2ef4a2e3686823ba7a29))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.6
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.5
+
 ## @forestadmin/forest-cloud [1.4.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.5...@forestadmin/forest-cloud@1.4.6) (2024-03-12)
 
 
