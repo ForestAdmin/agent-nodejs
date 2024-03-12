@@ -17,10 +17,3 @@ export interface ComputedDefinition<
     context: CollectionCustomizationContext<S, N>,
   ): Promise<unknown[]> | unknown[];
 }
-
-export interface DeprecatedComputedDefinition<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> extends Omit<ComputedDefinition<S, N>, 'columnType'> {
-  readonly columnType: 'Timeonly';
-}

@@ -83,6 +83,7 @@ export type PrimitiveTypes =
   | 'Point'
   | 'String'
   | 'Time'
+  | 'Timeonly' // Deprecated. Use Time
   | 'Uuid';
 
 export type FieldTypes = 'Column' | 'ManyToOne' | 'OneToOne' | 'OneToMany' | 'ManyToMany';

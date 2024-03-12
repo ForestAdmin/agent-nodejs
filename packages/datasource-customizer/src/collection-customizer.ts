@@ -11,7 +11,7 @@ import DataSourceCustomizer from './datasource-customizer';
 import { ActionDefinition } from './decorators/actions/types/actions';
 import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
-import { ComputedDefinition, DeprecatedComputedDefinition } from './decorators/computed/types';
+import { ComputedDefinition } from './decorators/computed/types';
 import mapDeprecated from './decorators/computed/utils/map-deprecated';
 import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
@@ -175,17 +175,13 @@ export default class CollectionCustomizer<
    */
   addField: {
     (name: string, definition: ComputedDefinition<S, N>): CollectionCustomizer<S, N>;
-    /** @deprecated
-     * Use 'Time' instead of 'Timeonly' as your columnType
-     * */
-    (name: string, definition: DeprecatedComputedDefinition<S, N>): CollectionCustomizer<S, N>;
-  } = (
-    name: string,
-    definition: DeprecatedComputedDefinition<S, N> | ComputedDefinition<S, N>,
-  ): this => {
+  } = (name: string, definition: ComputedDefinition<S, N>): this => {
     return this.pushCustomization(async (logger: Logger) => {
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
+
+      if (definition.columnType === 'Timeonly')
+        logger('Warn', `Use 'Time' instead of 'Timeonly' as your columnType`);
 
       if (!definition.dependencies) {
         logger(

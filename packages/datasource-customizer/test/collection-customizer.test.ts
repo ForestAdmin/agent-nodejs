@@ -347,6 +347,27 @@ describe('Builder > Collection', () => {
       );
     });
 
+    it('should log a warning when timeonly type is provided', async () => {
+      const { customizer, dsc } = await setup();
+
+      const loggerMock = jest.fn();
+
+      const fieldDefinition: ComputedDefinition = {
+        columnType: 'Timeonly',
+        dependencies: ['firstName'],
+        getValues: records => records.map(() => 'aaa'),
+      };
+
+      customizer.addField('timeonly_dependency_field', fieldDefinition);
+
+      await expect(dsc.getDataSource(loggerMock)).resolves.not.toThrow();
+
+      expect(loggerMock).toHaveBeenCalledWith(
+        'Warn',
+        `Use 'Time' instead of 'Timeonly' as your columnType`,
+      );
+    });
+
     it('should log an error when no dependencies are provided', async () => {
       const { customizer, dsc } = await setup();
 
