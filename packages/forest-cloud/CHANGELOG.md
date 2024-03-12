@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.4.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.4...@forestadmin/forest-cloud@1.4.5) (2024-03-12)
+
+
+### Bug Fixes
+
+* **forest-cloud:** display an error when the command does not exist ([#1061](https://github.com/ForestAdmin/agent-nodejs/issues/1061)) ([5f00de8](https://github.com/ForestAdmin/agent-nodejs/commit/5f00de8d0f3da1c5f91c5c95a2dad3d6d5060e50))
+
 ## @forestadmin/forest-cloud [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.3...@forestadmin/forest-cloud@1.4.4) (2024-03-12)
 
 
