@@ -352,6 +352,7 @@ describe('Builder > Collection', () => {
 
       const loggerMock = jest.fn();
 
+      // @ts-expect-error
       const fieldDefinition: ComputedDefinition = {
         columnType: 'String',
         getValues: records => records.map(() => 'aaa'),
