@@ -81,7 +81,7 @@ export default (program: Command, context: MakeCommands) => {
     )
     .option(
       '-n, --tail <integer>',
-      'Number of lines to show from the end of the logs in the last hour.' +
+      'Number of lines to show from the end of the logs in the last month.' +
         ' Default is 30, Max is 1000. Use from option to get older logs.',
     )
     .option(
