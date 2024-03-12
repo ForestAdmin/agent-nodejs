@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.1...@forestadmin/forest-cloud@1.4.2) (2024-03-12)
+
+
+### Bug Fixes
+
+* **logs:** fix the wording when fetching logs ([#1057](https://github.com/ForestAdmin/agent-nodejs/issues/1057)) ([22af406](https://github.com/ForestAdmin/agent-nodejs/commit/22af4069b5c24e31cd2a79d5d9cf7354a10821dd))
+
 ## @forestadmin/forest-cloud [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.0...@forestadmin/forest-cloud@1.4.1) (2024-03-11)
 
 
