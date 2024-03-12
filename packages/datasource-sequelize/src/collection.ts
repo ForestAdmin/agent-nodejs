@@ -51,19 +51,27 @@ export default class SequelizeCollection extends BaseCollection {
       sequelize: model.sequelize,
       model,
       /**
-       * Executes a raw SQL query, supports only Sequelize Replacements
+       * Executes a raw SQL query using Sequelize Replacements by default
        * @see {@link https://sequelize.org/docs/v6/core-concepts/raw-queries/#replacements}
+       * Use option { syntax: "bind" } for Sequelize Bind
+       * @see {@link https://sequelize.org/docs/v6/core-concepts/raw-queries/#bind-parameter}
        *
        * @param {string} sql
        * @param {Replacements} replacements
+       * @param {{syntax?:'bind'|'replacements'}} options?
        * @returns {any}
        */
-      rawQuery: async (sql: string, replacements: Replacements) => {
+      rawQuery: async (
+        sql: string,
+        replacements: Replacements,
+        options?: { syntax?: 'bind' | 'replacements' },
+      ) => {
+        const opt = { syntax: 'replacements', ...options };
         const result = await model.sequelize.query(sql, {
           type: QueryTypes.RAW,
           plain: false,
           raw: true,
-          replacements,
+          ...(opt.syntax === 'bind' ? { bind: replacements } : { replacements }),
         });
 
         return result?.[0];
