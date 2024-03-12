@@ -1,5 +1,5 @@
-import readline from 'readline';
-
+import askQuestion from './ask-question';
+import displayCustomizationInfo from './display-customization-info';
 import HttpServer from '../services/http-server';
 import { Spinner } from '../types';
 
@@ -8,28 +8,14 @@ export default async function askToOverwriteCustomizations(
   getLastPublishedCodeDetails: typeof HttpServer.prototype.getLastPublishedCodeDetails,
 ): Promise<boolean> {
   const details = await getLastPublishedCodeDetails();
-
   if (!details) return true;
 
-  const { relativeDate, user } = details;
-
-  spinner.warn('There is already deployed customization code on your project');
-  spinner.info(`Last code pushed ${relativeDate}, by ${user.name} (${user.email})`);
+  displayCustomizationInfo(spinner, details);
+  spinner.info(
+    'For the next time, you can publish your customizations with the' +
+      ' --force option to skip this step',
+  );
   spinner.stop();
 
-  return new Promise(resolve => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-
-    rl.question(`Do you really want to overwrite these customizations? (yes/no) `, answer => {
-      if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
-        resolve(false);
-      }
-
-      rl.close();
-      resolve(true);
-    });
-  });
+  return askQuestion('Do you really want to overwrite these customizations?');
 }
