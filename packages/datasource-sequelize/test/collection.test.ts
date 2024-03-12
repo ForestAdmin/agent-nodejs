@@ -43,25 +43,56 @@ describe('SequelizeDataSource > Collection', () => {
     );
   });
 
-  it('should foward rawQuery calls to sequelize', async () => {
-    type NativeDriver = { rawQuery: (...args: unknown[]) => Promise<RecordData[]> };
+  describe('rawQuery', () => {
+    it('should forward rawQuery calls to sequelize', async () => {
+      type NativeDriver = { rawQuery: (...args: unknown[]) => Promise<RecordData[]> };
 
-    const { dataSource, name, sequelize } = makeConstructorParams();
-    const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
+      const { dataSource, name, sequelize } = makeConstructorParams();
+      const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
 
-    const spy = jest.spyOn(sequelize, 'query').mockResolvedValueOnce([[{ id: 1 }], 1]);
+      const spy = jest.spyOn(sequelize, 'query').mockResolvedValueOnce([[{ id: 1 }], 1]);
 
-    const result = await (sequelizeCollection.nativeDriver as NativeDriver).rawQuery(
-      'SELECT * FROM __collection__ where id = :id',
-      { id: 1 },
-    );
+      const result = await (sequelizeCollection.nativeDriver as NativeDriver).rawQuery(
+        'SELECT * FROM __collection__ where id = :id',
+        { id: 1 },
+      );
 
-    expect(result).toEqual([{ id: 1 }]);
-    expect(spy).toHaveBeenCalledWith('SELECT * FROM __collection__ where id = :id', {
-      plain: false,
-      raw: true,
-      replacements: { id: 1 },
-      type: 'RAW',
+      expect(result).toEqual([{ id: 1 }]);
+      expect(spy).toHaveBeenCalledWith('SELECT * FROM __collection__ where id = :id', {
+        plain: false,
+        raw: true,
+        replacements: { id: 1 },
+        type: 'RAW',
+      });
+    });
+
+    describe('when using bind', () => {
+      it('should forward parameters through bind', async () => {
+        type NativeDriver = { rawQuery: (...args: unknown[]) => Promise<RecordData[]> };
+
+        const { dataSource, name, sequelize } = makeConstructorParams();
+        const sequelizeCollection = new SequelizeCollection(
+          name,
+          dataSource,
+          sequelize.models[name],
+        );
+
+        const spy = jest.spyOn(sequelize, 'query').mockResolvedValueOnce([[{ id: 1 }], 1]);
+
+        const result = await (sequelizeCollection.nativeDriver as NativeDriver).rawQuery(
+          'SELECT * FROM __collection__ where id = $1',
+          [1],
+          { useBind: true },
+        );
+
+        expect(result).toEqual([{ id: 1 }]);
+        expect(spy).toHaveBeenCalledWith('SELECT * FROM __collection__ where id = $1', {
+          plain: false,
+          raw: true,
+          bind: [1],
+          type: 'RAW',
+        });
+      });
     });
   });
 
