@@ -222,7 +222,7 @@ describe('bootstrap command', () => {
         '--env-secret',
         'd4ae505b138c30f2d70952421d738627d65ca5322a27431d067479932cebcfa2',
       ]);
-      cmd.answerToQuestion('Do you really want to overwrite these customizations? (yes/no)', 'no');
+      cmd.answerToQuestion('Do you want to continue? (yes/no)', 'no');
       await cmd.run();
 
       expect(cmd.outputs).toEqual([
@@ -230,8 +230,11 @@ describe('bootstrap command', () => {
         cmd.spinner.succeed('Environment found'),
         cmd.spinner.warn('There is already deployed customization code on your project'),
         cmd.spinner.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
+        cmd.spinner.warn(
+          'If you continue it will generate a new boilerplate without your previous customizations',
+        ),
         cmd.spinner.stop(),
-        cmd.question('Do you really want to overwrite these customizations? (yes/no) '),
+        cmd.question('Do you want to continue? (yes/no) '),
         cmd.spinner.fail('Operation aborted'),
         cmd.spinner.stop(),
       ]);

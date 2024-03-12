@@ -113,3 +113,9 @@ export type BuildHttpServer = (envs: EnvironmentVariables) => HttpServer;
 export type BuildEventSubscriber = (vars: EnvironmentVariables) => EventSubscriber;
 
 export type Log = { message: string; timestamp: string; level?: 'Info' | 'Warn' | 'Error' };
+
+export type CodeCustomizationDetails = {
+  date: Date;
+  relativeDate: string;
+  user: { name: string; email: string };
+};
