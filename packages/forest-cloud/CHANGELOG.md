@@ -1,3 +1,13 @@
+## @forestadmin/forest-cloud [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.2...@forestadmin/forest-cloud@1.4.3) (2024-03-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.9.3
+
 ## @forestadmin/forest-cloud [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.1...@forestadmin/forest-cloud@1.4.2) (2024-03-12)
 
 
