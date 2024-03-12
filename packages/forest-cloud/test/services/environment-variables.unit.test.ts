@@ -55,6 +55,25 @@ describe('environment-variables', () => {
       });
     });
 
+    describe(`if FOREST_SERVER_URL is different from
+    default and FOREST_SUBSCRIPTION_URL is not provided`, () => {
+      it.each([
+        ['https://my-super-url.co'],
+        ['http://my-super-url.co'],
+        ['https://my-super-url.co/'],
+        ['http://my-super-url.co/'],
+      ])(
+        'from FOREST_SERVER_URL=%s it should build FOREST_SUBSCRIPTION_URL=%s',
+        async FOREST_SERVER_URL => {
+          process.env.FOREST_SERVER_URL = FOREST_SERVER_URL;
+          process.env.FOREST_SUBSCRIPTION_URL = '';
+          expect(await getEnvironmentVariables()).toMatchObject({
+            FOREST_SUBSCRIPTION_URL: 'wss://my-super-url.co/subscriptions',
+          });
+        },
+      );
+    });
+
     describe('if FOREST_AUTH_TOKEN is missing', () => {
       it('should retrieve from file at TOKEN_PATH', async () => {
         process.env.FOREST_AUTH_TOKEN = '';
