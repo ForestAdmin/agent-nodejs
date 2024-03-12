@@ -42,7 +42,7 @@ export default (program: Command, context: MakeCommands) => {
         const httpServer = buildHttpServer(vars);
         if (!options.force) await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);
 
-        spinner.start('Publishing code customizations (operation cannot be cancelled)');
+        spinner.start('Publishing code customizations');
         const subscriptionId = await publish(httpServer, distPathManager);
         const subscriber = buildEventSubscriber(vars);
 

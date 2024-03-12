@@ -30,7 +30,7 @@ describe('publish command', () => {
 
     expect(cmd.outputs).toEqual([
       cmd.spinner.start('Publishing code customizations'),
-      cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
+      cmd.spinner.start('Publishing code customizations'),
       cmd.spinner.succeed('Code customizations published'),
       cmd.spinner.stop(),
     ]);
@@ -72,7 +72,7 @@ describe('publish command', () => {
 
         expect(cmd.outputs).toEqual([
           cmd.spinner.start('Publishing code customizations'),
-          cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
+          cmd.spinner.start('Publishing code customizations'),
           cmd.spinner.succeed('Code customizations published'),
           cmd.spinner.stop(),
         ]);
@@ -91,7 +91,7 @@ describe('publish command', () => {
 
       expect(cmd.outputs).toEqual([
         cmd.spinner.start('Publishing code customizations'),
-        cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
+        cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.fail('Something went wrong: An error occurred'),
         cmd.spinner.stop(),
       ]);
@@ -109,7 +109,7 @@ describe('publish command', () => {
 
       expect(cmd.outputs).toEqual([
         cmd.spinner.start('Publishing code customizations'),
-        cmd.spinner.start('Publishing code customizations (operation cannot be cancelled)'),
+        cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.fail('An error occurred'),
         cmd.spinner.stop(),
       ]);
