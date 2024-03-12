@@ -82,7 +82,7 @@ describe('SequelizeDataSource > Collection', () => {
         const result = await (sequelizeCollection.nativeDriver as NativeDriver).rawQuery(
           'SELECT * FROM __collection__ where id = $1',
           [1],
-          { useBind: true },
+          { syntax: 'bind' },
         );
 
         expect(result).toEqual([{ id: 1 }]);

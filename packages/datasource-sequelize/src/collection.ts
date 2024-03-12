@@ -64,13 +64,14 @@ export default class SequelizeCollection extends BaseCollection {
       rawQuery: async (
         sql: string,
         replacements: Replacements,
-        options?: { useBind?: boolean },
+        options?: { syntax?: 'bind' | 'replacements' },
       ) => {
+        const opt = { syntax: 'replacements', ...options };
         const result = await model.sequelize.query(sql, {
           type: QueryTypes.RAW,
           plain: false,
           raw: true,
-          ...(!options?.useBind ? { replacements } : { bind: replacements }),
+          ...(opt.syntax === 'bind' ? { bind: replacements } : { replacements }),
         });
 
         return result?.[0];
