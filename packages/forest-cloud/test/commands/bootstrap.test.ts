@@ -231,7 +231,7 @@ describe('bootstrap command', () => {
         cmd.spinner.warn('There is already deployed customization code on your project'),
         cmd.spinner.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
         cmd.spinner.warn(
-          'If you continue it will generate a new boilerplate without your previous customizations',
+          'If you continue it will boostrap a new customization project from scratch',
         ),
         cmd.spinner.stop(),
         cmd.question('Do you want to continue? (yes/no) '),

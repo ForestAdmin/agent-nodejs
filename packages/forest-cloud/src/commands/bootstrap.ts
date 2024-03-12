@@ -49,8 +49,7 @@ export default (program: Command, context: MakeCommands) => {
         if (details) {
           displayCustomizationInfo(logger.spinner, details);
           logger.spinner.warn(
-            // eslint-disable-next-line max-len
-            'If you continue it will generate a new boilerplate without your previous customizations',
+            'If you continue it will boostrap a new customization project from scratch',
           );
           logger.spinner.stop();
 
