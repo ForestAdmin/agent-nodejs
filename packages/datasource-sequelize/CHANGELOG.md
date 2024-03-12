@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.6...@forestadmin/datasource-sequelize@1.7.0) (2024-03-12)
+
+
+### Features
+
+* allow rawQuery to use bind parameters ([#1062](https://github.com/ForestAdmin/agent-nodejs/issues/1062)) ([f649ca8](https://github.com/ForestAdmin/agent-nodejs/commit/f649ca8ec0a515932c30d69069dce69b0d669018))
+
 ## @forestadmin/datasource-sequelize [1.6.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.6.5...@forestadmin/datasource-sequelize@1.6.6) (2024-03-12)
 
 
