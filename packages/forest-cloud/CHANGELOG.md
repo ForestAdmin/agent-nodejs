@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.7...@forestadmin/forest-cloud@1.5.0) (2024-03-13)
+
+
+### Features
+
+* build FOREST_SUBSCRIPTION_URL from FOREST_SERVER_URL if needed ([#1068](https://github.com/ForestAdmin/agent-nodejs/issues/1068)) ([1d8b68f](https://github.com/ForestAdmin/agent-nodejs/commit/1d8b68fabb82a6f078bd112e5952c2608b045a96))
+
 ## @forestadmin/forest-cloud [1.4.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.6...@forestadmin/forest-cloud@1.4.7) (2024-03-12)
 
 
