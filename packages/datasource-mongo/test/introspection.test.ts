@@ -1,5 +1,5 @@
 import createDb from './_mock';
-import Introspector from '../src/introspection';
+import Introspector from '../src/introspection/introspector';
 import { MongoDb } from '../src/introspection/types';
 
 describe('Introspection > index', () => {
