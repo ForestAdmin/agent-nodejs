@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Connection, Schema } from 'mongoose';
 
-import { ModelAnalysis, ModelDefinition, PrimitiveDef } from '../introspection/types';
+import { ModelAnalysis, ModelDefinition, PrimitiveDefinition } from '../introspection/types';
 
 export default class OdmBuilder {
-  private static readonly primitives: Partial<Record<PrimitiveDef, unknown>> = {
+  private static readonly primitives: Partial<Record<PrimitiveDefinition, unknown>> = {
     boolean: Boolean,
     number: Number,
     string: String,
