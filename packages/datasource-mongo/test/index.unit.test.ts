@@ -1,13 +1,8 @@
 import mongoose, { Connection } from 'mongoose';
 
-import {
-  IntrospectorParams,
-  MongoDatasourceParams,
-  buildMongooseInstance,
-  introspect,
-} from '../src';
+import { IntrospectorParams, buildMongooseInstance, introspect } from '../src';
 import Introspector from '../src/introspection/introspector';
-import { Introspection, ModelDefinition } from '../src/introspection/types';
+import { Introspection } from '../src/introspection/types';
 import OdmBuilder from '../src/odm-builder';
 
 jest.mock('mongoose');
