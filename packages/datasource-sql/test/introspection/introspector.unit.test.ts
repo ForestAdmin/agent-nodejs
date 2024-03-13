@@ -38,6 +38,12 @@ describe('Introspector > Unit', () => {
       });
     });
 
+    it('should return undefined if the introspection is undefined', () => {
+      const result = Introspector.getIntrospectionInLatestFormat(undefined);
+
+      expect(result).toBeUndefined();
+    });
+
     describe('source', () => {
       describe('when the introspection does not contain the source', () => {
         it('should add the source and return the introspection', () => {
