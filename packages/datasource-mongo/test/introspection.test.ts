@@ -28,40 +28,44 @@ describe('Introspection > index', () => {
   test('should work', async () => {
     const result = await Introspector.introspect(db);
 
-    expect(result).toEqual([
-      {
-        name: 'book',
-        analysis: {
-          type: 'object',
-          nullable: false,
-          object: {
-            _id: { type: 'string', nullable: false },
-            dateOfPublication: { type: 'Date', nullable: false },
-            publisher: { type: 'string', referenceTo: 'publisher', nullable: false },
-            title: { type: 'string', nullable: false },
-            categories: {
-              type: 'array',
-              nullable: false,
-              arrayElement: { type: 'string', nullable: false },
+    expect(result).toEqual({
+      version: 1,
+      source: '@forestadmin/datasource-mongo',
+      models: [
+        {
+          name: 'book',
+          analysis: {
+            type: 'object',
+            nullable: false,
+            object: {
+              _id: { type: 'string', nullable: false },
+              dateOfPublication: { type: 'Date', nullable: false },
+              publisher: { type: 'string', referenceTo: 'publisher', nullable: false },
+              title: { type: 'string', nullable: false },
+              categories: {
+                type: 'array',
+                nullable: false,
+                arrayElement: { type: 'string', nullable: false },
+              },
+              cover: { type: 'Binary', nullable: false },
             },
-            cover: { type: 'Binary', nullable: false },
           },
         },
-      },
-      {
-        name: 'publisher',
-        analysis: {
-          type: 'object',
-          nullable: false,
-          object: {
-            _id: { type: 'string', nullable: false },
-            defunct: { type: 'number', nullable: true },
-            founded: { type: 'number', nullable: false },
-            name: { type: 'string', nullable: false },
-            mixed: { type: 'Mixed', nullable: true },
+        {
+          name: 'publisher',
+          analysis: {
+            type: 'object',
+            nullable: false,
+            object: {
+              _id: { type: 'string', nullable: false },
+              defunct: { type: 'number', nullable: true },
+              founded: { type: 'number', nullable: false },
+              name: { type: 'string', nullable: false },
+              mixed: { type: 'Mixed', nullable: true },
+            },
           },
         },
-      },
-    ]);
+      ],
+    });
   });
 });
