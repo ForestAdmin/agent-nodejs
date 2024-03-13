@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Connection, Schema } from 'mongoose';
 
-import { ModelStudyDef, NodeStudyDef, PrimitiveDef } from '../introspection/types';
+import { ModelAnalysis, ModelDefinition, PrimitiveDef } from '../introspection/types';
 
 export default class OdmBuilder {
   private static readonly primitives: Partial<Record<PrimitiveDef, unknown>> = {
@@ -14,14 +14,14 @@ export default class OdmBuilder {
     ObjectId: Schema.Types.ObjectId,
   };
 
-  static defineModels(connection: Connection, study: ModelStudyDef[]) {
+  static defineModels(connection: Connection, study: ModelDefinition[]) {
     for (const collection of study) {
       const definition = this.buildDefinition(collection.analysis);
       connection.model(collection.name, new Schema(definition), collection.name);
     }
   }
 
-  private static buildDefinition(node: NodeStudyDef): unknown {
+  private static buildDefinition(node: ModelAnalysis): unknown {
     if (node.type === 'array') {
       return [this.buildDefinition(node.arrayElement!)];
     }

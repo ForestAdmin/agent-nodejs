@@ -1,69 +1,66 @@
+import type { Introspection } from './introspection/types';
+import type { IntrospectorParams, MongoDatasourceParams } from './type';
+import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
+import type { Connection } from 'mongoose';
+
 import { MongooseDatasource } from '@forestadmin/datasource-mongoose';
-import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
-import { readFile, writeFile } from 'fs/promises';
-import stringify from 'json-stringify-pretty-compact';
-import mongoose, { Connection } from 'mongoose';
+import mongoose from 'mongoose';
 
-import Introspection from './introspection';
-import { ModelStudyDef } from './introspection/types';
+import Introspector from './introspection/introspector';
 import OdmBuilder from './odm-builder';
-import { IntrospectOptions, MongoOptions } from './type';
 
-export { ModelStudyDef };
-export { IntrospectOptions, MongoOptions };
+export type { Introspection };
+export type { IntrospectorParams };
+export type { MongoDatasourceParams };
 
-export async function introspect(options: IntrospectOptions): Promise<ModelStudyDef[]> {
-  const { uri, connectOptions, introspectionOptions } = options;
+export async function introspect(options: IntrospectorParams): Promise<Introspection> {
+  const { uri, connection: connectOptions, introspection: introspectionOptions } = options;
   let connection: Connection;
 
   try {
     connection = mongoose.createConnection(uri, connectOptions);
 
-    return await Introspection.introspect(connection.getClient().db(), introspectionOptions);
+    return await Introspector.introspect(connection.getClient().db(), introspectionOptions);
   } finally {
     await connection?.close(true);
   }
 }
 
-export function createMongoDataSource(options: MongoOptions): DataSourceFactory {
-  // Extract options
-  const { uri, connectOptions, introspectionOptions } = options;
-  const introspectionPath = 'introspectionPath' in options ? options.introspectionPath : undefined;
-  const otherOptions = {
-    flattenMode: options.flattenMode,
-    flattenOptions: 'flattenOptions' in options ? options.flattenOptions : undefined,
-    asModels: 'asModels' in options ? options.asModels : undefined,
-  };
+export async function buildMongooseInstance(
+  introspectionOptions: IntrospectorParams,
+  introspection?: Introspection,
+): Promise<Connection> {
+  const connection = mongoose.createConnection(
+    introspectionOptions.uri,
+    introspectionOptions.connection,
+  );
 
-  // Check that either introspection or introspectionPath is provided, but not both
-  let introspectionRef = 'introspection' in options ? options.introspection : undefined;
-  if (!introspectionRef && !introspectionPath)
-    throw new Error('You must provide either introspection or introspectionPath');
-  if (introspectionRef && introspectionPath)
-    throw new Error('You cannot provide both introspection and introspectionPath');
+  try {
+    Introspector.assertIntrospectionInLatestFormat(introspection);
 
+    const { models } =
+      introspection ||
+      (await Introspector.introspect(
+        connection.getClient().db(),
+        introspectionOptions.introspection,
+      ));
+
+    OdmBuilder.defineModels(connection, models);
+  } catch (error) {
+    await connection?.close(true);
+    throw error;
+  }
+
+  return connection;
+}
+
+export function createMongoDataSource(
+  params: MongoDatasourceParams,
+  options?: { introspection: Introspection },
+): DataSourceFactory {
   return async (logger: Logger) => {
-    const connection = mongoose.createConnection(uri, connectOptions);
-    const db = connection.getClient().db();
+    const connection = await buildMongooseInstance(params, options?.introspection);
 
-    if (!introspectionRef) {
-      try {
-        introspectionRef = JSON.parse(await readFile(introspectionPath, 'utf-8'));
-        logger('Info', `Loaded MongoDB structure from: '${introspectionPath}'`);
-      } catch {
-        logger('Info', `MongoDB structure file not found at '${introspectionPath}'`);
-        introspectionRef = await Introspection.introspect(db, introspectionOptions);
-
-        await writeFile(
-          introspectionPath,
-          stringify(introspectionRef, { indent: 2, maxLength: 100 }),
-        );
-        logger('Info', `Saved MongoDB structure to: '${introspectionPath}'`);
-      }
-    }
-
-    OdmBuilder.defineModels(connection, introspectionRef);
-
-    return new MongooseDatasource(connection, otherOptions, logger);
+    return new MongooseDatasource(connection, params.dataSource, logger);
   };
 }

@@ -1,14 +1,23 @@
 import ReferenceCandidateFinder from './reference-candidates-finder';
 import ReferenceCandidateVerifier from './reference-candidates-verifier';
 import Structure from './structure';
-import { ModelStudy, ModelStudyDef, MongoDb, NodeStudy, NodeStudyDef, PrimitiveDef } from './types';
-import { IntrospectOptions } from '../type';
+import {
+  Introspection,
+  ModelAnalysis,
+  ModelStudy,
+  MongoDb,
+  NodeStudy,
+  PrimitiveDef,
+} from './types';
+import { IntrospectionOptions } from '../type';
 
 export default class Introspector {
+  static readonly VERSION = 1;
+
   static async introspect(
     connection: MongoDb,
-    options?: IntrospectOptions['introspectionOptions'],
-  ): Promise<ModelStudyDef[]> {
+    options?: IntrospectionOptions,
+  ): Promise<Introspection> {
     const collectionSampleSize = options?.collectionSampleSize ?? 100;
     const referenceSampleSize = options?.referenceSampleSize ?? 10;
     const maxProps = options?.maxPropertiesPerObject ?? 30;
@@ -24,12 +33,27 @@ export default class Introspector {
 
     const references = await this.findReferences(connection, structure);
 
-    return structure
+    const models = structure
       .map(({ name, analysis }) => ({
         name,
         analysis: this.convert(analysis, references, maxProps),
       }))
       .sort(({ name: name1 }, { name: name2 }) => name1.localeCompare(name2));
+
+    return {
+      source: '@forestadmin/datasource-mongo',
+      version: this.VERSION,
+      models,
+    };
+  }
+
+  static assertIntrospectionInLatestFormat(introspection?: Introspection) {
+    if (introspection?.version > this.VERSION) {
+      throw new Error(
+        'This version of introspection is newer than this package version. ' +
+          'Please update @forestadmin/datasource-mongo',
+      );
+    }
   }
 
   private static async findReferences(
@@ -57,11 +81,11 @@ export default class Introspector {
     node: NodeStudy,
     references: Map<NodeStudy, string>,
     maxProps: number,
-  ): NodeStudyDef {
+  ): ModelAnalysis {
     const type = this.getNodeType(node, maxProps);
     const nullable = 'null' in node.types;
     const referenceTo = references.get(node);
-    const defNode: NodeStudyDef = { type, nullable, referenceTo };
+    const defNode: ModelAnalysis = { type, nullable, referenceTo };
 
     if (type === 'array')
       defNode.arrayElement = this.convert(node.arrayElement, references, maxProps);
@@ -69,7 +93,7 @@ export default class Introspector {
     if (type === 'object')
       defNode.object = Object.fromEntries(
         Object.entries(node.object)
-          .map(([k, v]) => [k, this.convert(v, references, maxProps)] as [string, NodeStudyDef])
+          .map(([k, v]) => [k, this.convert(v, references, maxProps)] as [string, ModelAnalysis])
           .sort(([k1], [k2]) => k1.localeCompare(k2)),
       );
 

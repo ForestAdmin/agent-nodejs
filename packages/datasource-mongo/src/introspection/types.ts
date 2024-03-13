@@ -27,15 +27,21 @@ export type Primitive =
 
 export type PrimitiveDef = Exclude<Primitive, 'null'> | 'Mixed';
 
-export type ModelStudyDef = {
+export type ModelDefinition = {
   name: string;
-  analysis: NodeStudyDef;
+  analysis: ModelAnalysis;
 };
 
-export type NodeStudyDef = {
+export type ModelAnalysis = {
   type: PrimitiveDef;
   nullable: boolean;
   referenceTo?: string;
-  arrayElement?: NodeStudyDef;
-  object?: Record<string, NodeStudyDef>;
+  arrayElement?: ModelAnalysis;
+  object?: Record<string, ModelAnalysis>;
+};
+
+export type Introspection = {
+  models: ModelDefinition[];
+  version: number;
+  source: '@forestadmin/datasource-mongo';
 };
