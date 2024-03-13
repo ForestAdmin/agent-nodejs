@@ -72,8 +72,9 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
       const subRecords = creations.map(({ subRecord }) => subRecord);
       const relatedRecords = await relation.create(caller, subRecords);
 
-      for (const { index } of creations)
+      for (const { index } of creations) {
         records[index][schema.foreignKey] = relatedRecords[index][schema.foreignKeyTarget];
+      }
     }
 
     // Update the relations when the fk is present

@@ -36,6 +36,42 @@ describe('environment-variables', () => {
           TOKEN_PATH: homedir(),
         });
       });
+
+      it('should accept FOREST_URL as alternative to FOREST_SERVER_URL', async () => {
+        process.env.FOREST_ENV_SECRET = 'abc';
+        process.env.FOREST_URL = 'https://the.forest.server.url';
+        delete process.env.FOREST_SERVER_URL;
+        process.env.FOREST_AUTH_TOKEN = 'tokenAbc123';
+        process.env.FOREST_SUBSCRIPTION_URL = 'wss://the.forest.subs.url';
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+        expect(await getEnvironmentVariables()).toEqual({
+          FOREST_AUTH_TOKEN: 'tokenAbc123',
+          FOREST_ENV_SECRET: 'abc',
+          FOREST_SERVER_URL: 'https://the.forest.server.url',
+          FOREST_SUBSCRIPTION_URL: 'wss://the.forest.subs.url',
+          NODE_TLS_REJECT_UNAUTHORIZED: '1',
+          TOKEN_PATH: homedir(),
+        });
+      });
+    });
+
+    describe(`if FOREST_SERVER_URL is different from
+    default and FOREST_SUBSCRIPTION_URL is not provided`, () => {
+      it.each([
+        ['https://my-super-url.co'],
+        ['http://my-super-url.co'],
+        ['https://my-super-url.co/'],
+        ['http://my-super-url.co/'],
+      ])(
+        'from FOREST_SERVER_URL=%s it should build FOREST_SUBSCRIPTION_URL=%s',
+        async FOREST_SERVER_URL => {
+          process.env.FOREST_SERVER_URL = FOREST_SERVER_URL;
+          process.env.FOREST_SUBSCRIPTION_URL = '';
+          expect(await getEnvironmentVariables()).toMatchObject({
+            FOREST_SUBSCRIPTION_URL: 'wss://my-super-url.co/subscriptions',
+          });
+        },
+      );
     });
 
     describe('if FOREST_AUTH_TOKEN is missing', () => {
@@ -81,6 +117,7 @@ describe('environment-variables', () => {
     describe('if FOREST_SERVER_URL and FOREST_SUBSCRIPTION_URL are missing', () => {
       it('should use sane default', async () => {
         process.env.FOREST_SERVER_URL = '';
+        process.env.FOREST_URL = '';
         process.env.FOREST_SUBSCRIPTION_URL = '';
         expect(await getEnvironmentVariables()).toMatchObject({
           FOREST_SERVER_URL: 'https://api.forestadmin.com',

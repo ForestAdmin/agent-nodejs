@@ -36,8 +36,9 @@ export default class LookupGenerator {
   ): PipelineStage[] {
     const pipeline = [];
 
-    for (const [name, subProjection] of Object.entries(projection.relations))
+    for (const [name, subProjection] of Object.entries(projection.relations)) {
       pipeline.push(...this.lookupRelation(models, currentPath, schemaStack, name, subProjection));
+    }
 
     return pipeline;
   }

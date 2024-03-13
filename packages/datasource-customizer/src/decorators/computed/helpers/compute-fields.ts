@@ -57,6 +57,9 @@ export default async function computeFromRecords(
   desiredProjection: Projection,
   records: RecordData[],
 ): Promise<RecordData[]> {
+  // As there is nothing to compute let's return
+  if (!records.length) return [];
+
   // Format data for easy computation (one cell per path, with all values).
   const paths = withNullMarkers(recordsProjection);
   const promises = flatten(records, paths).map(values => Promise.resolve(values));

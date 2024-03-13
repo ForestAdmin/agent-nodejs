@@ -52,11 +52,13 @@ export default class CustomerSource implements SynchronizationSource {
       options.pullDeltaOnAfterWrite ||
       options.pullDeltaOnBeforeAccess;
 
-    if (options.pullDeltaHandler && !hasPullDeltaFlag)
+    if (options.pullDeltaHandler && !hasPullDeltaFlag) {
       throw new Error('Using pullDeltaHandler without pullDelta[*] flags');
+    }
 
-    if (hasPullDeltaFlag && !options.pullDeltaHandler)
+    if (hasPullDeltaFlag && !options.pullDeltaHandler) {
       throw new Error('Using pullDelta[*] flags without pullDeltaHandler');
+    }
   }
 
   async start(target: SynchronizationTarget): Promise<void> {
@@ -68,11 +70,13 @@ export default class CustomerSource implements SynchronizationSource {
     if (
       options.pullDumpHandler &&
       (options.pullDumpOnRestart || (await this.getStartupState()) !== 'done')
-    )
+    ) {
       await this.queuePullDump({ name: 'startup' });
+    }
 
-    if (options.pullDeltaHandler && options.pullDeltaOnRestart)
+    if (options.pullDeltaHandler && options.pullDeltaOnRestart) {
       await this.queuePullDelta({ name: 'startup' });
+    }
 
     if (options.pushDeltaHandler) {
       options.pushDeltaHandler(
@@ -104,8 +108,9 @@ export default class CustomerSource implements SynchronizationSource {
   }
 
   private queuePushDelta(delta: PushDeltaResponse): void {
-    if (!this.queuedPushDeltaRequest)
+    if (!this.queuedPushDeltaRequest) {
       this.queuedPushDeltaRequest = { newOrUpdatedEntries: [], deletedEntries: [] };
+    }
 
     this.queuedPushDeltaRequest.deletedEntries.push(...delta.deletedEntries);
     this.queuedPushDeltaRequest.newOrUpdatedEntries.push(...delta.newOrUpdatedEntries);
@@ -114,8 +119,9 @@ export default class CustomerSource implements SynchronizationSource {
   }
 
   queuePullDump(reason: PullDumpReason): Promise<void> {
-    if (!this.queuedPullDumpReasons)
+    if (!this.queuedPullDumpReasons) {
       this.queuedPullDumpReasons = { deferred: new Deferred(), reasons: [] };
+    }
 
     const { deferred } = this.queuedPullDumpReasons;
     this.queuedPullDumpReasons.reasons.push({ ...reason, at: new Date() });
@@ -125,17 +131,20 @@ export default class CustomerSource implements SynchronizationSource {
   }
 
   queuePullDelta(reason: PullDeltaReason): Promise<void> {
-    if (!this.queuedPullDeltaReasons)
+    if (!this.queuedPullDeltaReasons) {
       this.queuedPullDeltaReasons = { deferred: new Deferred(), reasons: [] };
+    }
 
     const { deferred } = this.queuedPullDeltaReasons;
     this.queuedPullDeltaReasons.reasons.push({ ...reason, at: new Date() });
 
     // We wait for the access delay before running the delta
     // This allows to batch delta requests at the cost of adding a floor delay to all requests.
-    if (this.options.pullDeltaOnBeforeAccessDelay)
+    if (this.options.pullDeltaOnBeforeAccessDelay) {
       setTimeout(() => this.tick(), this.options.pullDeltaOnBeforeAccessDelay);
-    else this.tick();
+    } else {
+      this.tick();
+    }
 
     return deferred.promise;
   }
@@ -188,8 +197,10 @@ export default class CustomerSource implements SynchronizationSource {
 
         more = changes.more;
         if (changes.more === true) state = changes.nextDumpState;
-        if (changes.more === false && changes.nextDeltaState)
+
+        if (changes.more === false && changes.nextDeltaState) {
           await this.setDeltaState(changes.nextDeltaState);
+        }
       } catch (error) {
         more = false;
         this.logger(

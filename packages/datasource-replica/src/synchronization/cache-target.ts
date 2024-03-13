@@ -66,10 +66,12 @@ export default class CacheTarget implements SynchronizationTarget {
       for (const entry of changes.newOrUpdatedEntries) {
         if (this.checkCollection(entry.collection)) {
           await this.destroySubModels(entry, transaction);
-          for (const subEntry of this.flattenRecord(entry))
+
+          for (const subEntry of this.flattenRecord(entry)) {
             await this.connection
               .model(subEntry.collection)
               .upsert(subEntry.record, { transaction });
+          }
         }
       }
     });
@@ -78,13 +80,14 @@ export default class CacheTarget implements SynchronizationTarget {
   private flattenRecord(
     recordWithCollection: RecordDataWithCollection,
   ): RecordDataWithCollection[] {
-    if (this.checkCollection(recordWithCollection.collection))
+    if (this.checkCollection(recordWithCollection.collection)) {
       return flattenRecord(
         recordWithCollection,
         this.options.schema.find(s => s.name === recordWithCollection.collection).fields,
         this.options?.flattenOptions?.[recordWithCollection.collection]?.asFields ?? [],
         this.options?.flattenOptions?.[recordWithCollection.collection]?.asModels ?? [],
       );
+    }
   }
 
   private async destroySubModels(

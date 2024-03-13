@@ -47,9 +47,11 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
         const values = leaf.value as string[];
         const conditions = [];
 
-        for (const value of [null, ''])
-          if (values.includes(value))
+        for (const value of [null, '']) {
+          if (values.includes(value)) {
             conditions.push(new ConditionTreeLeaf(leaf.field, 'Equal', value));
+          }
+        }
 
         if (values.some(v => v !== null && v !== '')) {
           const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
@@ -84,9 +86,11 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
         const values = leaf.value as string[];
         const conditions = [];
 
-        for (const value of [null, ''])
-          if (values.includes(value))
+        for (const value of [null, '']) {
+          if (values.includes(value)) {
             conditions.push(new ConditionTreeLeaf(leaf.field, 'NotEqual', value));
+          }
+        }
 
         if (values.some(v => v !== null && v !== '')) {
           const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));

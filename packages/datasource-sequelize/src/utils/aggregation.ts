@@ -106,8 +106,9 @@ export default class AggregationUtils {
 
       // Workaround Sequelize casting sums to strings.
       // This happens since sequelize@6.27.0 because sequelize implemented support for bigints.
-      if (expectsNumber && typeof value === 'string' && !Number.isNaN(Number(value)))
+      if (expectsNumber && typeof value === 'string' && !Number.isNaN(Number(value))) {
         value = Number(value);
+      }
 
       return {
         value,

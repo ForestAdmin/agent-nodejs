@@ -118,8 +118,9 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       if (extended && (field.type === 'ManyToOne' || field.type === 'OneToOne')) {
         const related = collection.dataSource.getCollection(field.foreignCollection);
 
-        for (const [subName, subField] of Object.entries(related.schema.fields))
+        for (const [subName, subField] of Object.entries(related.schema.fields)) {
           if (subField.type === 'Column') fields.push([`${name}:${subName}`, subField]);
+        }
       }
     }
 

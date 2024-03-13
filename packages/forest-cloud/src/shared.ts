@@ -1,8 +1,6 @@
-import askToOverwriteCustomizations from './dialogs/ask-to-overwrite-customizations';
-import { BusinessError } from './errors';
-import HttpServer from './services/http-server';
 import { EnvironmentVariables, Logger, Login } from './types';
 
+// eslint-disable-next-line import/prefer-default-export
 export const loginIfMissingAuthAndReturnEnvironmentVariables = async (
   login: Login,
   logger: Logger,
@@ -17,18 +15,4 @@ export const loginIfMissingAuthAndReturnEnvironmentVariables = async (
   await login(logger);
 
   return getEnvironmentVariables();
-};
-
-export const askToOverwriteCustomizationsOrAbortCommand = async (
-  logger: Logger,
-  httpServer: HttpServer,
-): Promise<void> => {
-  if (
-    !(await askToOverwriteCustomizations(
-      logger.spinner,
-      httpServer.getLastPublishedCodeDetails.bind(httpServer),
-    ))
-  ) {
-    throw new BusinessError('Operation aborted');
-  }
 };

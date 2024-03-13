@@ -36,8 +36,10 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
 
     return records.map(childRecord => {
       const record = {};
-      for (const key of Object.keys(childRecord))
+
+      for (const key of Object.keys(childRecord)) {
         if (!this.blacklist.has(key)) record[key] = childRecord[key];
+      }
 
       return record;
     });
@@ -62,21 +64,23 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     // Implicitly hidden
     const field = this.childCollection.schema.fields[name];
 
-    if (field.type === 'ManyToOne')
+    if (field.type === 'ManyToOne') {
       return (
         this.dataSource.isPublished(field.foreignCollection) &&
         this.isPublished(field.foreignKey) &&
         this.dataSource.getCollection(field.foreignCollection).isPublished(field.foreignKeyTarget)
       );
+    }
 
-    if (field.type === 'OneToOne' || field.type === 'OneToMany')
+    if (field.type === 'OneToOne' || field.type === 'OneToMany') {
       return (
         this.dataSource.isPublished(field.foreignCollection) &&
         this.dataSource.getCollection(field.foreignCollection).isPublished(field.originKey) &&
         this.isPublished(field.originKeyTarget)
       );
+    }
 
-    if (field.type === 'ManyToMany')
+    if (field.type === 'ManyToMany') {
       return (
         this.dataSource.isPublished(field.throughCollection) &&
         this.dataSource.isPublished(field.foreignCollection) &&
@@ -85,6 +89,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
         this.isPublished(field.originKeyTarget) &&
         this.dataSource.getCollection(field.foreignCollection).isPublished(field.foreignKeyTarget)
       );
+    }
 
     return true;
   }

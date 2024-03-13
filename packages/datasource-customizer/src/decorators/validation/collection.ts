@@ -21,8 +21,11 @@ export default class ValidationDecorator extends CollectionDecorator {
     FieldValidator.validate(this, name);
 
     const field = this.childCollection.schema.fields[name] as ColumnSchema;
-    if (field?.type !== 'Column')
+
+    if (field?.type !== 'Column') {
       throw new Error('Cannot add validators on a relation, use the foreign key instead');
+    }
+
     if (field.isReadOnly) throw new Error('Cannot add validators on a readonly field');
 
     this.validation[name] ??= [];

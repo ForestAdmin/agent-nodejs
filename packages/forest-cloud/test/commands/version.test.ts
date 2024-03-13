@@ -81,4 +81,19 @@ describe('version command', () => {
       expect(cmd.outputs).toEqual([cmd.logger.log('1.0.0'), cmd.spinner.stop()]);
     });
   });
+
+  describe('when a command does not exist', () => {
+    it('should return the version', async () => {
+      const setup = setupCommandArguments({
+        getCurrentVersion: jest.fn().mockReturnValue('1.0.0'),
+      });
+      const cmd = new CommandTester(setup, ['unknown-command']);
+      await cmd.run();
+
+      expect(cmd.outputs).toEqual([
+        cmd.spinner.fail('unknown command unknown-command'),
+        cmd.spinner.stop(),
+      ]);
+    });
+  });
 });

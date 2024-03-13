@@ -1,3 +1,116 @@
+# @forestadmin/forest-cloud [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.7...@forestadmin/forest-cloud@1.5.0) (2024-03-13)
+
+
+### Features
+
+* build FOREST_SUBSCRIPTION_URL from FOREST_SERVER_URL if needed ([#1068](https://github.com/ForestAdmin/agent-nodejs/issues/1068)) ([1d8b68f](https://github.com/ForestAdmin/agent-nodejs/commit/1d8b68fabb82a6f078bd112e5952c2608b045a96))
+
+## @forestadmin/forest-cloud [1.4.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.6...@forestadmin/forest-cloud@1.4.7) (2024-03-12)
+
+
+### Bug Fixes
+
+* **forest-cloud:** improve wording when re-bootstrapping or publishing ([#1064](https://github.com/ForestAdmin/agent-nodejs/issues/1064)) ([27262bd](https://github.com/ForestAdmin/agent-nodejs/commit/27262bd34eb68bbaf99c2ef4a2e3686823ba7a29))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.6
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.5
+
+## @forestadmin/forest-cloud [1.4.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.5...@forestadmin/forest-cloud@1.4.6) (2024-03-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.9.4
+
+## @forestadmin/forest-cloud [1.4.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.4...@forestadmin/forest-cloud@1.4.5) (2024-03-12)
+
+
+### Bug Fixes
+
+* **forest-cloud:** display an error when the command does not exist ([#1061](https://github.com/ForestAdmin/agent-nodejs/issues/1061)) ([5f00de8](https://github.com/ForestAdmin/agent-nodejs/commit/5f00de8d0f3da1c5f91c5c95a2dad3d6d5060e50))
+
+## @forestadmin/forest-cloud [1.4.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.3...@forestadmin/forest-cloud@1.4.4) (2024-03-12)
+
+
+### Bug Fixes
+
+* improve publish message wording ([#1063](https://github.com/ForestAdmin/agent-nodejs/issues/1063)) ([93c5c87](https://github.com/ForestAdmin/agent-nodejs/commit/93c5c870939722c2925cd7fe1aab7acc5bcf5018))
+
+## @forestadmin/forest-cloud [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.2...@forestadmin/forest-cloud@1.4.3) (2024-03-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.9.3
+
+## @forestadmin/forest-cloud [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.1...@forestadmin/forest-cloud@1.4.2) (2024-03-12)
+
+
+### Bug Fixes
+
+* **logs:** fix the wording when fetching logs ([#1057](https://github.com/ForestAdmin/agent-nodejs/issues/1057)) ([22af406](https://github.com/ForestAdmin/agent-nodejs/commit/22af4069b5c24e31cd2a79d5d9cf7354a10821dd))
+
+## @forestadmin/forest-cloud [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.0...@forestadmin/forest-cloud@1.4.1) (2024-03-11)
+
+
+### Bug Fixes
+
+* **security:** patch jsonwebtoken dependency vulnerabilities ([#1059](https://github.com/ForestAdmin/agent-nodejs/issues/1059)) ([7a611a8](https://github.com/ForestAdmin/agent-nodejs/commit/7a611a8ef6efed658151abe63147a3f813f7677b))
+
+# @forestadmin/forest-cloud [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.5...@forestadmin/forest-cloud@1.4.0) (2024-03-11)
+
+
+### Features
+
+* accept FOREST_URL as alternative to FOREST_SERVER_URL variable in forest-cloud command ([#1055](https://github.com/ForestAdmin/agent-nodejs/issues/1055)) ([bb19e66](https://github.com/ForestAdmin/agent-nodejs/commit/bb19e666c3e42159f8ba48745e818c2f1d046fe0))
+
+## @forestadmin/forest-cloud [1.3.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.4...@forestadmin/forest-cloud@1.3.5) (2024-03-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.5
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.4
+
+## @forestadmin/forest-cloud [1.3.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.3...@forestadmin/forest-cloud@1.3.4) (2024-03-11)
+
+
+### Bug Fixes
+
+* latest version vulnerability by relying on npm instead ([#1053](https://github.com/ForestAdmin/agent-nodejs/issues/1053)) ([47a29aa](https://github.com/ForestAdmin/agent-nodejs/commit/47a29aa35fd67ece0f79628bd34304b41bf49cda))
+
+## @forestadmin/forest-cloud [1.3.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.2...@forestadmin/forest-cloud@1.3.3) (2024-03-08)
+
+
+### Bug Fixes
+
+* vulnerability in axios ([#1051](https://github.com/ForestAdmin/agent-nodejs/issues/1051)) ([6a2e861](https://github.com/ForestAdmin/agent-nodejs/commit/6a2e861bb3dfb6806f23d353c1f6b579eeefadd9))
+
+## @forestadmin/forest-cloud [1.3.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.1...@forestadmin/forest-cloud@1.3.2) (2024-03-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.4
+
 ## @forestadmin/forest-cloud [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.3.0...@forestadmin/forest-cloud@1.3.1) (2024-03-04)
 
 

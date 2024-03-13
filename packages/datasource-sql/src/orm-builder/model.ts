@@ -110,8 +110,9 @@ export default class ModelBuilder {
       primaryKeys = table.columns.map(c => c.name);
     }
 
-    for (const column of primaryKeys)
+    for (const column of primaryKeys) {
       (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
+    }
 
     if (primaryKeys.length) {
       logger?.(

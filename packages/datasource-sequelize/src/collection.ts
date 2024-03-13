@@ -27,6 +27,8 @@ import ModelConverter from './utils/model-to-collection-schema-converter';
 import QueryConverter from './utils/query-converter';
 import Serializer from './utils/serializer';
 
+type Replacements = BindOrReplacements;
+
 export default class SequelizeCollection extends BaseCollection {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected model: ModelDefined<any, any>;
@@ -48,12 +50,28 @@ export default class SequelizeCollection extends BaseCollection {
     super(name, datasource, {
       sequelize: model.sequelize,
       model,
-      rawQuery: async (sql: string, replacements: BindOrReplacements) => {
+      /**
+       * Executes a raw SQL query using Sequelize Replacements by default
+       * @see {@link https://sequelize.org/docs/v6/core-concepts/raw-queries/#replacements}
+       * Use option { syntax: "bind" } for Sequelize Bind
+       * @see {@link https://sequelize.org/docs/v6/core-concepts/raw-queries/#bind-parameter}
+       *
+       * @param {string} sql
+       * @param {Replacements} replacements
+       * @param {{syntax?:'bind'|'replacements'}} options?
+       * @returns {any}
+       */
+      rawQuery: async (
+        sql: string,
+        replacements: Replacements,
+        options?: { syntax?: 'bind' | 'replacements' },
+      ) => {
+        const opt = { syntax: 'replacements', ...options };
         const result = await model.sequelize.query(sql, {
           type: QueryTypes.RAW,
           plain: false,
           raw: true,
-          replacements,
+          ...(opt.syntax === 'bind' ? { bind: replacements } : { replacements }),
         });
 
         return result?.[0];

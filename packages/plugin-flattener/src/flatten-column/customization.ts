@@ -65,8 +65,11 @@ export function makeUpdateHook(
       deepUpdateInPlace(patchForThatRecord, { [columnName]: context.patch[columnName] });
 
       const hash = hashRecord(patchForThatRecord);
-      if (!recordsByPatch.has(hash))
+
+      if (!recordsByPatch.has(hash)) {
         recordsByPatch.set(hash, { matches: [], patch: patchForThatRecord });
+      }
+
       recordsByPatch.get(hash).matches.push(record);
     }
 

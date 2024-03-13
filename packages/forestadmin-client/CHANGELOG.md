@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.25.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.10...@forestadmin/forestadmin-client@1.25.11) (2024-03-08)
+
+
+### Bug Fixes
+
+* bump openid-client to fix jose vulnerability ([#1050](https://github.com/ForestAdmin/agent-nodejs/issues/1050)) ([35c22f2](https://github.com/ForestAdmin/agent-nodejs/commit/35c22f278c62a76e88e7fb78463780144c1ca6c6))
+
 ## @forestadmin/forestadmin-client [1.25.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.9...@forestadmin/forestadmin-client@1.25.10) (2024-02-27)
 
 

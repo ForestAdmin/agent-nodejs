@@ -131,8 +131,10 @@ export default class ForestValueConverter {
 
     for (const mediaType of mediaTypes) {
       const index = mediaType.indexOf('=');
-      if (index !== -1)
+
+      if (index !== -1) {
         result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
+      }
     }
 
     return result as File;

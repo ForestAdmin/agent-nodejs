@@ -54,8 +54,9 @@ export default class QueryStringParser {
       const { schema } = collection;
       const rootFields = fields.toString().split(',');
       const explicitRequest = rootFields.map(field => {
-        if (!schema.fields[field])
+        if (!schema.fields[field]) {
           throw new ValidationError(`field not found '${collection.name}.${field}'`);
+        }
 
         return schema.fields[field].type === 'Column'
           ? field

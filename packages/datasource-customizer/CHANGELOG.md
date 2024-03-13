@@ -1,3 +1,17 @@
+## @forestadmin/datasource-customizer [1.43.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.4...@forestadmin/datasource-customizer@1.43.5) (2024-03-12)
+
+
+### Bug Fixes
+
+* addField dependencies are mandatory ([#1066](https://github.com/ForestAdmin/agent-nodejs/issues/1066)) ([92d38a1](https://github.com/ForestAdmin/agent-nodejs/commit/92d38a1f883a6726c4f2d46761ecd1f5c9ac6717))
+
+## @forestadmin/datasource-customizer [1.43.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.3...@forestadmin/datasource-customizer@1.43.4) (2024-03-11)
+
+
+### Performance Improvements
+
+* **computed:** avoid calling computed handler when there is nothing to compute ([#1054](https://github.com/ForestAdmin/agent-nodejs/issues/1054)) ([1a32df8](https://github.com/ForestAdmin/agent-nodejs/commit/1a32df84988002dea90a747eaf8f1bc8d4be4d3c))
+
 ## @forestadmin/datasource-customizer [1.43.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.2...@forestadmin/datasource-customizer@1.43.3) (2024-02-28)
 
 
