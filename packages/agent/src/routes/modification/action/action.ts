@@ -150,10 +150,11 @@ export default class ActionRoute extends CollectionRoute {
       : null;
     const searchValues: Record<string, string | null> = {};
 
-    if (forestFields)
+    if (forestFields) {
       for (const field of forestFields) {
         searchValues[field.field] = field.searchValue;
       }
+    }
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);

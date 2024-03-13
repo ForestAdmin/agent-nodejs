@@ -170,12 +170,16 @@ export default class MongooseSchema {
         // Flatten nested schemas and arrays
         if (field.constructor.name === 'SubdocumentPath') {
           const subPaths = this.buildFields(field.schema as Schema, level + 1);
-          for (const [subName, subField] of Object.entries(subPaths))
+
+          for (const [subName, subField] of Object.entries(subPaths)) {
             recursiveSet(paths, `${name}.${subName}`, subField);
+          }
         } else if (field.constructor.name === 'DocumentArrayPath') {
           const subPaths = this.buildFields(field.schema as Schema, level + 1);
-          for (const [subName, subField] of Object.entries(subPaths))
+
+          for (const [subName, subField] of Object.entries(subPaths)) {
             recursiveSet(paths, `${name}.[].${subName}`, subField);
+          }
         } else if (field.constructor.name === 'SchemaArray') {
           recursiveSet(paths, `${name}.[]`, (field as any).caster);
         } else {

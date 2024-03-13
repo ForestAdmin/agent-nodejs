@@ -14,8 +14,10 @@ export function extractValue(record: RecordData, path: string, remove: boolean) 
 
   const [prefix, suffix] = path.split(/\.(.*)/);
   const value = extractValue(record?.[prefix], suffix, remove);
-  if (remove && record && (!suffix || !Object.keys(record?.[prefix] ?? {}).length))
+
+  if (remove && record && (!suffix || !Object.keys(record?.[prefix] ?? {}).length)) {
     delete record[prefix];
+  }
 
   return value;
 }

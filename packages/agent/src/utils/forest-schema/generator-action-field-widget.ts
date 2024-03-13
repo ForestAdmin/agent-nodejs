@@ -40,62 +40,81 @@ import ActionFields from './action-fields';
 
 export default class GeneratorActionFieldWidget {
   static buildWidgetOptions(field: ActionField): ForestServerActionField['widgetEdit'] | undefined {
-    if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type))
+    if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type)) {
       return undefined;
+    }
 
-    if (ActionFields.isDropdownField(field))
+    if (ActionFields.isDropdownField(field)) {
       return GeneratorActionFieldWidget.buildDropdownWidgetEdit(field);
+    }
 
-    if (ActionFields.isRadioGroupField(field))
+    if (ActionFields.isRadioGroupField(field)) {
       return GeneratorActionFieldWidget.buildRadioGroupWidgetEdit(field);
+    }
 
-    if (ActionFields.isCheckboxGroupField(field))
+    if (ActionFields.isCheckboxGroupField(field)) {
       return GeneratorActionFieldWidget.buildCheckboxGroupWidgetEdit(field);
+    }
 
-    if (ActionFields.isCheckboxField(field))
+    if (ActionFields.isCheckboxField(field)) {
       return GeneratorActionFieldWidget.buildCheckboxWidgetEdit();
+    }
 
-    if (ActionFields.isTextInputField(field))
+    if (ActionFields.isTextInputField(field)) {
       return GeneratorActionFieldWidget.buildTextInputWidgetEdit(field);
+    }
 
-    if (ActionFields.isDatePickerInputField(field))
+    if (ActionFields.isDatePickerInputField(field)) {
       return GeneratorActionFieldWidget.buildDatePickerInputWidgetEdit(field);
+    }
 
-    if (ActionFields.isTextInputListField(field))
+    if (ActionFields.isTextInputListField(field)) {
       return GeneratorActionFieldWidget.buildTextInputListWidgetEdit(field);
+    }
 
-    if (ActionFields.isTextAreaField(field))
+    if (ActionFields.isTextAreaField(field)) {
       return GeneratorActionFieldWidget.buildTextAreaWidgetEdit(field);
+    }
 
-    if (ActionFields.isRichTextField(field))
+    if (ActionFields.isRichTextField(field)) {
       return GeneratorActionFieldWidget.buildRichTextWidgetEdit(field);
+    }
 
-    if (ActionFields.isNumberInputField(field))
+    if (ActionFields.isNumberInputField(field)) {
       return GeneratorActionFieldWidget.buildNumberInputWidgetEdit(field);
+    }
 
-    if (ActionFields.isColorPickerField(field))
+    if (ActionFields.isColorPickerField(field)) {
       return GeneratorActionFieldWidget.buildColorPickerWidgetEdit(field);
+    }
 
-    if (ActionFields.isNumberInputListField(field))
+    if (ActionFields.isNumberInputListField(field)) {
       return GeneratorActionFieldWidget.buildNumberInputListWidgetEdit(field);
+    }
 
-    if (ActionFields.isCurrencyInputField(field))
+    if (ActionFields.isCurrencyInputField(field)) {
       return GeneratorActionFieldWidget.buildCurrencyInputWidgetEdit(field);
+    }
 
-    if (ActionFields.isUserDropdownField(field))
+    if (ActionFields.isUserDropdownField(field)) {
       return GeneratorActionFieldWidget.buildUserDropdownWidgetEdit(field);
+    }
 
-    if (ActionFields.isTimePicker(field))
+    if (ActionFields.isTimePicker(field)) {
       return GeneratorActionFieldWidget.buildTimePickerWidgetEdit();
+    }
 
-    if (ActionFields.isJsonEditorField(field))
+    if (ActionFields.isJsonEditorField(field)) {
       return GeneratorActionFieldWidget.buildJsonEditorWidgetEdit();
+    }
 
-    if (ActionFields.isFilePickerField(field))
+    if (ActionFields.isFilePickerField(field)) {
       return GeneratorActionFieldWidget.buildFilePickerWidgetEdit(field);
+    }
 
-    if (ActionFields.isAddressAutocompleteField(field))
+    if (ActionFields.isAddressAutocompleteField(field)) {
       return GeneratorActionFieldWidget.buildAddressAutocompleteWidgetEdit(field);
+    }
 
     throw new Error(`Unsupported widget type: ${(field as { widget: string }).widget}`);
   }

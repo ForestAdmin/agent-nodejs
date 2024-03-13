@@ -48,11 +48,12 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
           order: [['id', 'ASC']],
         });
 
-        if (record)
+        if (record) {
           // eslint-disable-next-line no-await-in-loop
           await (record.dataValues.type === 'dump'
             ? target.applyDump(...(record.dataValues.content as [PullDumpResponse, boolean]))
             : target.applyDelta(...(record.dataValues.content as [PushDeltaResponse])));
+        }
       }
 
       await this.recordCache.truncate();

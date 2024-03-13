@@ -28,8 +28,10 @@ export default class FieldsGenerator {
     for (const [name, field] of Object.entries(childSchema.fields)) {
       if (name !== 'parent') {
         ourSchema[name] = this.buildColumnSchema(field);
-        if (field instanceof SchemaType && field.options.ref)
+
+        if (field instanceof SchemaType && field.options.ref) {
           ourSchema[`${name}__manyToOne`] = this.buildManyToOne(field.options.ref, name);
+        }
       }
     }
 

@@ -66,6 +66,8 @@ module.exports = {
     // Allow `function (arg1, arg2) { void arg1; void arg2; }` to work around unused arguments
     'no-void': ['error', { allowAsStatement: true }],
 
+    'curly': ['error', 'multi-line', 'consistent'],
+
     // Allow methods that do not use `this` (notably private methods)
     'class-methods-use-this': 'off',
 
