@@ -25,8 +25,9 @@ export default class NativeRefreshEventsHandlerService implements RefreshEventsH
   }
 
   public refreshRenderings(renderingIds: (string | number)[]) {
-    for (const renderingId of renderingIds)
+    for (const renderingId of renderingIds) {
       this.renderingPermissionService.invalidateCache(renderingId);
+    }
   }
 
   public refreshCustomizations() {

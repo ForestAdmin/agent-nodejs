@@ -32,8 +32,10 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
 
   getCollection(name: string): CollectionDecorator {
     const collection = this.childDataSource.getCollection(name);
-    if (!this.decorators.has(collection))
+
+    if (!this.decorators.has(collection)) {
       this.decorators.set(collection, new this.CollectionDecoratorCtor(collection, this));
+    }
 
     return this.decorators.get(collection);
   }

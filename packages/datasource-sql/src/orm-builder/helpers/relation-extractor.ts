@@ -27,7 +27,7 @@ export default class RelationExtractor {
         });
 
         // Skip HasMany to junction tables
-        if (!this.isJunctionTable(table))
+        if (!this.isJunctionTable(table)) {
           relations.push({
             type: this.isUnique(table, column.name) ? 'HasOne' : 'HasMany',
             from: constraint.table,
@@ -35,6 +35,7 @@ export default class RelationExtractor {
             originKey: column.name,
             originKeyTarget: constraint.column,
           });
+        }
       }
     }
 

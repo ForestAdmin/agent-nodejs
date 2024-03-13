@@ -128,11 +128,12 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * @param name name of the collection
    */
   findCollection(name: string): CollectionCustomizer<S> | undefined {
-    if (this.collections.find(collection => collection.name === name))
+    if (this.collections.find(collection => collection.name === name)) {
       /**
        * If the collection is found, we use the getCollection to apply side effects
        */
       return this.getCollection(name as TCollectionName<S>);
+    }
   }
 
   /**

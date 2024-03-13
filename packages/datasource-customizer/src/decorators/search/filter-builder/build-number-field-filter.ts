@@ -35,8 +35,11 @@ export default function buildNumberFieldFilter(
     const operators = isNegated ? negativeOperators : positiveOperators;
 
     // If Missing is not supported, we try to build a condition tree anyway
-    if (!operators.filter(op => op !== 'Missing').every(operator => filterOperators.has(operator)))
+    if (
+      !operators.filter(op => op !== 'Missing').every(operator => filterOperators.has(operator))
+    ) {
       continue;
+    }
 
     return ConditionTreeFactory.union(
       ...operators

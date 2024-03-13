@@ -63,8 +63,9 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
   }
 
   public markScopesAsUpdated(renderingId: number | string) {
-    if (!this.options.instantCacheRefresh)
+    if (!this.options.instantCacheRefresh) {
       this.renderingPermissionService.invalidateCache(renderingId);
+    }
   }
 
   public async subscribeToServerEvents() {

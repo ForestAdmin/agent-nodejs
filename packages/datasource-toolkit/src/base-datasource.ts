@@ -17,7 +17,7 @@ export default class BaseDataSource<T extends Collection = Collection> implement
   getCollection(name: string): T {
     const collection = this._collections[name];
 
-    if (collection === undefined)
+    if (collection === undefined) {
       throw new Error(
         `Collection '${name}' not found. List of available collections: ${Object.keys(
           this._collections,
@@ -25,13 +25,15 @@ export default class BaseDataSource<T extends Collection = Collection> implement
           .sort()
           .join(', ')}`,
       );
+    }
 
     return collection;
   }
 
   addCollection(collection: T): void {
-    if (this._collections[collection.name] !== undefined)
+    if (this._collections[collection.name] !== undefined) {
       throw new Error(`Collection '${collection.name}' already defined in datasource`);
+    }
 
     this._collections[collection.name] = collection;
   }
