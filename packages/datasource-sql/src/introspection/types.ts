@@ -61,4 +61,6 @@ export type Table = {
 export type Introspection = {
   tables: Table[];
   version: number;
+  // Old versions of introspection did not have the source field
+  source?: '@forestadmin/datasource-sql';
 };
