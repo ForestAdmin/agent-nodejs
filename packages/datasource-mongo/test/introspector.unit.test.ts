@@ -26,6 +26,26 @@ describe('Introspection > index', () => {
       });
     });
 
+    describe('invalid options', () => {
+      it('should throw an error if collectionSampleSize < 1', async () => {
+        await expect(Introspector.introspect(db, { collectionSampleSize: 0 })).rejects.toThrow(
+          'collectionSampleSize must be at least 1',
+        );
+      });
+
+      it('should throw an error if referenceSampleSize < 0', async () => {
+        await expect(Introspector.introspect(db, { referenceSampleSize: -1 })).rejects.toThrow(
+          'referenceSampleSize must be at least 0',
+        );
+      });
+
+      it('should throw an error if maxPropertiesPerObject < 1', async () => {
+        await expect(Introspector.introspect(db, { maxPropertiesPerObject: 0 })).rejects.toThrow(
+          'maxPropertiesPerObject must be at least 1',
+        );
+      });
+    });
+
     test('should work', async () => {
       const result = await Introspector.introspect(db);
 
