@@ -37,8 +37,10 @@ export default class Structure {
 
   private static walkNode(node: NodeStudy, sample: unknown, referenceSampleSize: number): void {
     if (Array.isArray(sample)) this.walkArrayNode(node, sample, referenceSampleSize);
-    if (sample?.constructor === Object)
+
+    if (sample?.constructor === Object) {
       this.walkObjectNode(node, sample as Record<string, unknown>, referenceSampleSize);
+    }
 
     this.annotateNode(node, sample, referenceSampleSize);
   }
@@ -49,8 +51,10 @@ export default class Structure {
     referenceSampleSize: number,
   ): void {
     if (!node.arrayElement) node.arrayElement = this.createNode();
-    for (const subSample of sample)
+
+    for (const subSample of sample) {
       this.walkNode(node.arrayElement, subSample, referenceSampleSize);
+    }
   }
 
   private static walkObjectNode(
@@ -78,8 +82,9 @@ export default class Structure {
       const isSingleType = Object.keys(node.types).every(t => t === type || t === 'null');
 
       if (isSingleType && this.isCandidateForReference(type, sample)) {
-        if (sample && node.referenceSamples.size < referenceSampleSize)
+        if (sample && node.referenceSamples.size < referenceSampleSize) {
           node.referenceSamples.add(sample);
+        }
       } else {
         node.isReferenceCandidate = false;
         delete node.referenceSamples;

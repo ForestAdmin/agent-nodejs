@@ -78,8 +78,10 @@ export default class Introspector {
 
     // Build a map of references by node
     const referencesByNode = new Map<NodeStudy, string>();
-    for (const [modelName, nodes] of Object.entries(referencesByModel))
+
+    for (const [modelName, nodes] of Object.entries(referencesByModel)) {
       for (const node of nodes) referencesByNode.set(node, modelName);
+    }
 
     return referencesByNode;
   }
@@ -94,15 +96,17 @@ export default class Introspector {
     const referenceTo = references.get(node);
     const defNode: ModelAnalysis = { type, nullable, referenceTo };
 
-    if (type === 'array')
+    if (type === 'array') {
       defNode.arrayElement = this.convert(node.arrayElement, references, maxProps);
+    }
 
-    if (type === 'object')
+    if (type === 'object') {
       defNode.object = Object.fromEntries(
         Object.entries(node.object)
           .map(([k, v]) => [k, this.convert(v, references, maxProps)] as [string, ModelAnalysis])
           .sort(([k1], [k2]) => k1.localeCompare(k2)),
       );
+    }
 
     return defNode;
   }
