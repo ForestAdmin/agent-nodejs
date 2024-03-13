@@ -7,7 +7,7 @@ import {
   ModelStudy,
   MongoDb,
   NodeStudy,
-  PrimitiveDef,
+  PrimitiveDefinition,
 } from './types';
 import { IntrospectionOptions } from '../type';
 
@@ -111,11 +111,11 @@ export default class Introspector {
     return defNode;
   }
 
-  private static getNodeType(node: NodeStudy, maxProps: number): PrimitiveDef {
-    let type: PrimitiveDef = 'Mixed';
+  private static getNodeType(node: NodeStudy, maxProps: number): PrimitiveDefinition {
+    let type: PrimitiveDefinition = 'Mixed';
 
     // If there is only one type, it's the type of the node
-    const nonNullTypes = Object.keys(node.types).filter(t => t !== 'null') as PrimitiveDef[];
+    const nonNullTypes = Object.keys(node.types).filter(t => t !== 'null') as PrimitiveDefinition[];
     if (nonNullTypes.length === 1) [type] = nonNullTypes;
 
     // If the node only contains empty objects, it's a Mixed, as it could be anything
