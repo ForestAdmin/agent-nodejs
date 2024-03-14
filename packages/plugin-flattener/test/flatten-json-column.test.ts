@@ -1,8 +1,8 @@
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { DataSource, Projection } from '@forestadmin/datasource-toolkit';
+import { ColumnType, DataSource, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import flattenColumn from '../src/flatten-column';
+import flattenJsonColumn from '../src/flatten-json-column';
 
 const logger = () => {};
 
@@ -10,7 +10,7 @@ const logger = () => {};
 const filter = factories.filter.build({ search: null as unknown as undefined });
 const caller = factories.caller.build();
 
-describe('flattenColumn', () => {
+describe('flattenJsonColumn', () => {
   let dataSource: DataSource;
   let customizer: DataSourceCustomizer;
 
@@ -21,20 +21,10 @@ describe('flattenColumn', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
-            myself: factories.manyToOneSchema.build({
-              foreignCollection: 'book',
-              foreignKey: 'id',
-              foreignKeyTarget: 'id',
-            }),
             title: factories.columnSchema.build(),
-            tags: factories.columnSchema.build({ columnType: ['String'] }),
             author: factories.columnSchema.build({
-              columnType: {
-                name: 'String',
-                address: { city: 'String' },
-              },
+              columnType: 'Json',
             }),
-            meta: factories.columnSchema.build({ columnType: 'Json' }),
           },
         }),
         create: jest.fn().mockImplementation((_, records) => Promise.resolve(records)),
@@ -46,107 +36,56 @@ describe('flattenColumn', () => {
   });
 
   it('should throw when used on the datasource', async () => {
-    const options = { columnName: 'myColumn' };
-
-    await expect(customizer.use(flattenColumn, options).getDataSource(logger)).rejects.toThrow(
-      'This plugin can only be called when customizing collections.',
-    );
+    await expect(
+      customizer
+        .use(flattenJsonColumn, { columnName: 'myColumn', columnType: { name: 'String' } })
+        .getDataSource(logger),
+    ).rejects.toThrow('This plugin can only be called when customizing collections.');
   });
 
   it('should throw when option is not provided', async () => {
     await expect(
-      customizer.customizeCollection('book', book => book.use(flattenColumn)).getDataSource(logger),
-    ).rejects.toThrow('options.columnName is required.');
+      customizer
+        .customizeCollection('book', book => book.use(flattenJsonColumn))
+        .getDataSource(logger),
+    ).rejects.toThrow('options.columnName and options.columnType are required.');
   });
 
   it('should throw when target is not provided', async () => {
-    const options = {} as { columnName: string };
+    const options = {} as { columnName: string; columnType: { [key: string]: ColumnType } };
 
     await expect(
       customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .customizeCollection('book', book => book.use(flattenJsonColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow('options.columnName is required.');
+    ).rejects.toThrow('options.columnName and options.columnType are required.');
   });
 
-  it('should throw when target does not exists', async () => {
-    const options = { columnName: 'doctor who?' };
+  it('should throw when target is a primitive type Json', async () => {
+    const options = { columnName: 'title', columnType: {} } as {
+      columnName: string;
+      columnType: { [key: string]: ColumnType };
+    };
 
     await expect(
       customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow("'book.doctor who?' cannot be flattened (not found).");
-  });
-
-  it('should throw when target is a primitive', async () => {
-    const options = { columnName: 'title' };
-
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow("'book.title' cannot be flattened (primitive type 'String' not supported).");
-  });
-
-  it('should throw when target is an array', async () => {
-    const options = { columnName: 'tags' };
-
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow("'book.tags' cannot be flattened (array not supported).");
-  });
-
-  it('should throw when target is a relation', async () => {
-    const options = { columnName: 'myself' };
-
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow("'book.myself' cannot be flattened (not a column).");
-  });
-
-  it('should throw level is invalid', async () => {
-    const options = { columnName: 'author', level: -1 };
-
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow('options.level must be greater than 0.');
-  });
-
-  it('should throw when no subcolumn match the provided rules', async () => {
-    const options = { columnName: 'author', level: 2, exclude: ['name', 'address:city'] };
-
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow("'book.author' cannot be flattened (no fields match level/include/exclude).");
-  });
-
-  it('should throw when include has invalid column', async () => {
-    const options = { columnName: 'author', include: ['missing'] };
-
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger),
-    ).rejects.toThrow("Cannot add field 'author@@@missing' (dependency not found).");
-  });
-
-  it('should throw when using wrong flattener plugin', async () => {
-    const options = { columnName: 'meta' };
-    await expect(
-      customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .customizeCollection('book', book => book.use(flattenJsonColumn, options))
         .getDataSource(logger),
     ).rejects.toThrow(
-      "'book.meta' cannot be flattened using flattenColumn please use flattenJsonColumn.",
+      "'book.title cannot be flattened' (only available on primitive JSON column) " +
+        'prefer flattenColumn otherwise.',
+    );
+  });
+
+  it('should throw when columnType is not an json object', async () => {
+    const options = { columnName: 'author', columnType: {} };
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenJsonColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow(
+      // eslint-disable-next-line max-len
+      'options.columnType must be defined as json object representing a subset of the shape of the data in the json column.',
     );
   });
 
@@ -154,14 +93,24 @@ describe('flattenColumn', () => {
     let decorated: DataSource;
 
     beforeEach(async () => {
-      const options = { columnName: 'author' };
       decorated = await customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .customizeCollection('book', book =>
+          book.use(flattenJsonColumn, {
+            columnName: 'author',
+            columnType: {
+              name: 'String',
+              address: { city: 'String' },
+            },
+            readonly: false,
+            level: 1,
+          }),
+        )
         .getDataSource(logger);
     });
 
     it('should update the schema', async () => {
       const { fields } = decorated.getCollection('book').schema;
+
       expect(fields['author@@@name']).toMatchObject({ columnType: 'String' });
       expect(fields['author@@@address']).toMatchObject({ columnType: { city: 'String' } });
     });
@@ -188,7 +137,6 @@ describe('flattenColumn', () => {
       baseList.mockResolvedValue([
         {
           id: '1',
-          title: 'The Lord of the Rings',
           author: { name: 'J.R.R. Tolkien', address: { city: 'New York' } },
         },
       ]);
@@ -199,7 +147,6 @@ describe('flattenColumn', () => {
       expect(records).toEqual([
         {
           id: '1',
-          title: 'The Lord of the Rings',
           'author@@@name': 'J.R.R. Tolkien',
           'author@@@address': { city: 'New York' },
         },
@@ -301,46 +248,6 @@ describe('flattenColumn', () => {
         { conditionTree: { field: 'id', operator: 'In', value: ['2', '3'] }, search: null },
         { author: { name: 'Tolkien' } },
       );
-    });
-  });
-
-  describe('when flattening recursively', () => {
-    it('flatten two levels when no include/exclude is provided', async () => {
-      const options = { columnName: 'author', level: 2 };
-      const decoratedDataSource = await customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger);
-
-      const { fields } = decoratedDataSource.getCollection('book').schema;
-      expect(fields).toHaveProperty('author@@@name');
-      expect(fields).toHaveProperty('author@@@address@@@city');
-    });
-
-    it('flatten two levels when include is provided', async () => {
-      const options = { columnName: 'author', include: ['name', 'address:city'] };
-      const decoratedDataSource = await customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger);
-
-      const { fields } = decoratedDataSource.getCollection('book').schema;
-      expect(fields).toHaveProperty('author@@@name');
-      expect(fields).toHaveProperty('author@@@address@@@city');
-    });
-
-    it('flatten fields specified by include/exclude rules', async () => {
-      const options = {
-        columnName: 'author',
-        include: ['name', 'address:city'],
-        exclude: ['name'],
-      };
-
-      const decoratedDataSource = await customizer
-        .customizeCollection('book', book => book.use(flattenColumn, options))
-        .getDataSource(logger);
-
-      const { fields } = decoratedDataSource.getCollection('book').schema;
-      expect(fields).not.toHaveProperty('author@@@name');
-      expect(fields).toHaveProperty('author@@@address@@@city');
     });
   });
 });

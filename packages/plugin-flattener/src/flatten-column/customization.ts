@@ -5,18 +5,13 @@ import type {
   TConditionTree,
 } from '@forestadmin/datasource-customizer';
 
-import {
-  ColumnSchema,
-  ColumnType,
-  ConditionTreeFactory,
-  SchemaUtils,
-} from '@forestadmin/datasource-toolkit';
+import { ColumnType, ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
 import hashRecord from 'object-hash';
 
 import { deepUpdateInPlace, getValue, unflattenPathsInPlace } from './helpers';
 
-export function makeField(columnName: string, path: string, schema: ColumnSchema) {
-  const columnType = getValue({ [columnName]: schema.columnType }, path) as ColumnType;
+export function makeField(columnName: string, path: string, baseColumnType: ColumnType) {
+  const columnType = getValue({ [columnName]: baseColumnType }, path) as ColumnType;
   if (!columnType) throw new Error(`Cannot add field '${path}' (dependency not found).`);
 
   return {
