@@ -3,6 +3,13 @@ import { MongoDb } from '../src/introspection/types';
 
 type Doc = Record<string, unknown>;
 
+function createFakeMongoDocument<T>(document: T) {
+  return {
+    ...document,
+    toJSON: jest.fn().mockReturnValue(document),
+  };
+}
+
 function createCursor(docs: Doc[]) {
   return {
     [Symbol.asyncIterator]() {
@@ -10,7 +17,10 @@ function createCursor(docs: Doc[]) {
 
       return {
         next: () => {
-          const res = Promise.resolve({ value: docs[index], done: !(index < docs.length) });
+          const res = Promise.resolve({
+            value: createFakeMongoDocument(docs[index]),
+            done: !(index < docs.length),
+          });
           index += 1;
 
           return res;
