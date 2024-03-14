@@ -15,6 +15,7 @@ import { Log, Logger, MakeCommands } from '../types';
 const levelToLog = {
   Info: 'info',
   Warn: 'warn',
+  Debug: 'debug',
   Error: 'error',
 };
 
