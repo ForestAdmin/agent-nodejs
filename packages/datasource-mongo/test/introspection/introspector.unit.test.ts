@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
-import createDb from './_mock';
-import Introspector from '../src/introspection/introspector';
-import { Introspection, MongoDb } from '../src/introspection/types';
+import Introspector from '../../src/introspection/introspector';
+import { Introspection, MongoDb } from '../../src/introspection/types';
+import createDb from '../_mock';
 
 const { Binary } = mongoose.mongo;
 
