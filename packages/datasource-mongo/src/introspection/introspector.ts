@@ -26,11 +26,10 @@ export default class Introspector {
     if (referenceSampleSize < 0) throw new Error('referenceSampleSize must be at least 0');
     if (maxProps < 1) throw new Error('maxPropertiesPerObject must be at least 1');
 
-    const structure = await Structure.introspect(
-      connection,
+    const structure = await Structure.introspect(connection, {
       collectionSampleSize,
       referenceSampleSize,
-    );
+    });
 
     const references = await this.findReferences(connection, structure);
 
