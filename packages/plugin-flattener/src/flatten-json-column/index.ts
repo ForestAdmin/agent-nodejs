@@ -12,8 +12,11 @@ export type FlattenJsonColumnOptions = {
   columnType: { [key: string]: ColumnType };
   level?: number;
   readonly?: boolean;
-  removeOriginalColumn?: boolean;
+  keepOriginalColumn?: boolean;
 };
+
+const getObjectDepth = o =>
+  Object(o) === o ? 1 + Math.max(-1, ...Object.values(o).map(getObjectDepth)) : 0;
 
 /**
  * Flatten a JSON column which have a composite type
@@ -21,11 +24,25 @@ export type FlattenJsonColumnOptions = {
  * @param dataSource The dataSource customizer provided by the agent.
  * @param collection The collection customizer instance provided by the agent.
  * @param options The options of the plugin.
- * @param options.columnName The name of the column to import.
- * @param options.columnType The type of the column to import.
+ * @param options.columnName The name of the json column that you want to flatten.
+ * @param options.columnType A json object representing the shape of the data in the json column,
+ * with keys the column names, and values either json or the primitive type.
  * @param options.level The maximum level of nested fields to import.
  * @param options.readonly Should the imported fields be read-only?
- * @param options.removeOriginalColumn Should the original column be removed?
+ * @param options.keepOriginalColumn Should the original column be kept?
+ *
+ * @example
+ * collection.use(flattenJsonColumn, {
+ *  columnName: 'meta',
+ *  columnType: {
+ *    bio: 'String',
+ *    sex: 'String',
+ *    sidejob: { area: 'String', job: 'String' },
+ *  },
+ *  readonly: false,
+ *  level: 2,
+ *  keepOriginalColumn: true,
+ * });
  */
 export default async function flattenJsonColumn(
   dataSource: DataSourceCustomizer,
@@ -47,14 +64,21 @@ export default async function flattenJsonColumn(
     );
   }
 
+  if (Object.keys(options.columnType)) {
+    throw new Error(
+      'options.columnType must be defined as json object representing the shape of the data ' +
+        'in the json column.',
+    );
+  }
+
   collection.use(flattenColumn, {
     columnName: options.columnName,
     columnType: options.columnType,
     readonly: options.readonly,
-    level: options.level,
+    level: options.level ?? getObjectDepth(options.columnType),
   });
 
-  if (options.removeOriginalColumn) {
+  if (!options.keepOriginalColumn) {
     collection.removeField(options.columnName);
   }
 }
