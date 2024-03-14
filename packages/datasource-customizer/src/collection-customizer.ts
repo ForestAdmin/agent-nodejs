@@ -180,8 +180,9 @@ export default class CollectionCustomizer<
       const collectionBeforeRelations = this.stack.earlyComputed.getCollection(this.name);
       const collectionAfterRelations = this.stack.lateComputed.getCollection(this.name);
 
-      if (definition.columnType === 'Timeonly')
-        logger('Warn', `Use 'Time' instead of 'Timeonly' as your columnType`);
+      if (definition.columnType === 'Timeonly') {
+        logger('Warn', `'Timeonly' is deprecated. Use 'Time' as your columnType instead`);
+      }
 
       if (!definition.dependencies) {
         logger(

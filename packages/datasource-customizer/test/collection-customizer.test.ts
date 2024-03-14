@@ -364,7 +364,7 @@ describe('Builder > Collection', () => {
 
       expect(loggerMock).toHaveBeenCalledWith(
         'Warn',
-        `Use 'Time' instead of 'Timeonly' as your columnType`,
+        `'Timeonly' is deprecated. Use 'Time' as your columnType instead`,
       );
     });
 
