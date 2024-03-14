@@ -27,7 +27,7 @@ const getObjectDepth = o =>
  * @param options.columnName The name of the json column that you want to flatten.
  * @param options.columnType A json object representing the shape of the data in the json column,
  * with keys the column names, and values either json or the primitive type.
- * @param options.level The maximum level of nested fields to import.
+ * @param options.level The maximum level of nested fields to import by default all levels.
  * @param options.readonly Should the imported fields be read-only?
  * @param options.keepOriginalColumn Should the original column be kept?
  *
