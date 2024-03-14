@@ -3,7 +3,7 @@ import type {
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
 
-import { ColumnSchema } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, ColumnType } from '@forestadmin/datasource-toolkit';
 
 import { makeCreateHook, makeField, makeUpdateHook, makeWriteHandler } from './customization';
 import { includeStrToPath, listPaths } from './helpers';
@@ -14,28 +14,37 @@ export type FlattenColumnOptions = {
   exclude?: string[];
   level?: number;
   readonly?: boolean;
+  columnType?: { [key: string]: ColumnType };
 };
 
 function optionsToPaths(collection: CollectionCustomizer, options: FlattenColumnOptions): string[] {
-  const { columnName, include, exclude, level } = options;
+  const { columnName, include, exclude, level, columnType } = options;
   const errorMessage = `'${collection.name}.${columnName}' cannot be flattened`;
   const schema = collection.schema.fields[options.columnName];
 
-  if (!schema) throw new Error(`${errorMessage}' (not found).`);
-  if (schema.type !== 'Column') throw new Error(`${errorMessage}' (not a column).`);
-  if (typeof schema.columnType === 'string') throw new Error(`${errorMessage}' (primitive).`);
-  if (Array.isArray(schema.columnType)) throw new Error(`${errorMessage}' (array).`);
+  if (!schema) throw new Error(`${errorMessage} (not found).`);
+  if (schema.type !== 'Column') throw new Error(`${errorMessage} (not a column).`);
+
+  if (Array.isArray(schema.columnType)) throw new Error(`${errorMessage} (array not supported).`);
+
+  if (!columnType && typeof schema.columnType === 'string') {
+    if (schema.columnType === 'Json') {
+      throw new Error(`${errorMessage} please use flattenJsonColumn.`);
+    }
+
+    throw new Error(`${errorMessage} (primitive type '${schema.columnType}' not supported).`);
+  }
 
   let paths = include?.map(p => includeStrToPath(columnName, p));
 
   if (!paths?.length) {
     if (level < 1) throw new Error('options.level must be greater than 0.');
-    paths = listPaths(columnName, schema.columnType, level ?? 1);
+    paths = listPaths(columnName, columnType || schema.columnType, level ?? 1);
   }
 
   paths = paths.filter(path => !exclude?.find(p => path === includeStrToPath(columnName, p)));
 
-  if (!paths.length) throw new Error(`${errorMessage}' (no fields match level/include/exclude).`);
+  if (!paths.length) throw new Error(`${errorMessage} (no fields match level/include/exclude).`);
 
   return paths;
 }
@@ -65,7 +74,10 @@ export default async function flattenColumn(
 
   // Add fields that reads the value from the deeply nested column
   for (const path of paths) {
-    collection.addField(path, makeField(options.columnName, path, schema));
+    collection.addField(
+      path,
+      makeField(options.columnName, path, options.columnType || schema.columnType),
+    );
   }
 
   // Implement write
