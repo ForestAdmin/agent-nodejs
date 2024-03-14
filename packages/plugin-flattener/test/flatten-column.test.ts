@@ -34,6 +34,7 @@ describe('flattenColumn', () => {
                 address: { city: 'String' },
               },
             }),
+            meta: factories.columnSchema.build({ columnType: 'Json' }),
           },
         }),
         create: jest.fn().mockImplementation((_, records) => Promise.resolve(records)),
@@ -136,6 +137,17 @@ describe('flattenColumn', () => {
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
     ).rejects.toThrow("Cannot add field 'author@@@missing' (dependency not found).");
+  });
+
+  it('should throw when using wrong flattener plugin', async () => {
+    const options = { columnName: 'meta' };
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow(
+      "'book.meta' cannot be flattened using flattenColumn please use flattenJsonColumn.",
+    );
   });
 
   describe('when flattening a single level', () => {

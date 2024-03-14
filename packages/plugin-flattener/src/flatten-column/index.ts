@@ -29,7 +29,7 @@ function optionsToPaths(collection: CollectionCustomizer, options: FlattenColumn
 
   if (!columnType && typeof schema.columnType === 'string') {
     if (schema.columnType === 'Json') {
-      throw new Error(`${errorMessage} please use flattenJsonColumn.`);
+      throw new Error(`${errorMessage} using flattenColumn please use flattenJsonColumn.`);
     }
 
     throw new Error(`${errorMessage} (primitive type '${schema.columnType}' not supported).`);
