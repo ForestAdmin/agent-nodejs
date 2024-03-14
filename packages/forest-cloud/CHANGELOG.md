@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.5.0...@forestadmin/forest-cloud@1.5.1) (2024-03-14)
+
+
+### Bug Fixes
+
+* **logs:** add missing debug level ([#1070](https://github.com/ForestAdmin/agent-nodejs/issues/1070)) ([aaafdbe](https://github.com/ForestAdmin/agent-nodejs/commit/aaafdbe6a819fef2411c2448b10bc255591221e4))
+
 # @forestadmin/forest-cloud [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.4.7...@forestadmin/forest-cloud@1.5.0) (2024-03-13)
 
 
