@@ -61,6 +61,7 @@ const BUILDER_BY_TYPE: Record<
   Binary: undefined,
   Point: undefined,
   Time: undefined,
+  Timeonly: undefined,
 };
 
 describe('buildFieldFilter', () => {
