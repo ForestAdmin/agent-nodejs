@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.43.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.5...@forestadmin/datasource-customizer@1.43.6) (2024-03-14)
+
+
+### Bug Fixes
+
+* addField is marked as deprecated by webstorm ([#1067](https://github.com/ForestAdmin/agent-nodejs/issues/1067)) ([735d20b](https://github.com/ForestAdmin/agent-nodejs/commit/735d20b82dc50541ffa9081792e3602264f426ae))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.2
+
 ## @forestadmin/datasource-customizer [1.43.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.4...@forestadmin/datasource-customizer@1.43.5) (2024-03-12)
 
 
