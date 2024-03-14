@@ -77,6 +77,18 @@ describe('flattenJsonColumn', () => {
     );
   });
 
+  it('should throw when columnType is not an json object', async () => {
+    const options = { columnName: 'author', columnType: {} };
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenJsonColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow(
+      // eslint-disable-next-line max-len
+      'options.columnType must be defined as json object representing a subset of the shape of the data in the json column.',
+    );
+  });
+
   describe('when flattening a single level', () => {
     let decorated: DataSource;
 

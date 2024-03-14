@@ -79,10 +79,10 @@ export default function flattenJsonColumn(
     );
   }
 
-  if (!Object.keys(options.columnType)) {
+  if (!Object.keys(options.columnType).length) {
     throw new Error(
-      'options.columnType must be defined as json object representing a subset ' +
-        'of the shape of the data in the json column.',
+      // eslint-disable-next-line max-len
+      'options.columnType must be defined as json object representing a subset of the shape of the data in the json column.',
     );
   }
 
