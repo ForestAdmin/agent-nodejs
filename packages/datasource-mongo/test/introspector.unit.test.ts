@@ -1,27 +1,56 @@
+import mongoose from 'mongoose';
+
 import createDb from './_mock';
 import Introspector from '../src/introspection/introspector';
 import { Introspection, MongoDb } from '../src/introspection/types';
 
+const { Binary } = mongoose.mongo;
+
 describe('Introspection > index', () => {
   let db: MongoDb;
+
+  function fakeMongoDocument<T>(document: T) {
+    return {
+      ...document,
+      toJSON: jest.fn().mockReturnValue(document),
+    };
+  }
 
   describe('introspect', () => {
     beforeAll(async () => {
       db = createDb({
         publisher: [
-          { _id: 'pub1', name: 'Gnome Press', founded: 1948, defunct: 1962, mixed: true },
-          { _id: 'pub2', name: 'Hachette', founded: 1826, defunct: null, mixed: null },
-          { _id: 'pub2', name: 'Gallimard', founded: 1911, defunct: null, mixed: 'Hi!' },
+          fakeMongoDocument({
+            _id: 'pub1',
+            name: 'Gnome Press',
+            founded: 1948,
+            defunct: 1962,
+            mixed: true,
+          }),
+          fakeMongoDocument({
+            _id: 'pub2',
+            name: 'Hachette',
+            founded: 1826,
+            defunct: null,
+            mixed: null,
+          }),
+          fakeMongoDocument({
+            _id: 'pub2',
+            name: 'Gallimard',
+            founded: 1911,
+            defunct: null,
+            mixed: 'Hi!',
+          }),
         ],
         book: [
-          {
+          fakeMongoDocument({
             _id: 'bk1',
             title: 'Foundation',
             publisher: 'pub1',
             dateOfPublication: new Date('1951-01-01T00:00:00Z'),
             categories: ['sf', 'novel', 'top-sellers'],
-            cover: { _bsontype: 'Binary' },
-          },
+            cover: new Binary(Buffer.from('cover1', 'utf-8')),
+          }),
         ],
       });
     });
