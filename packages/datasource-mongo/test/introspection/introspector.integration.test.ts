@@ -1,16 +1,23 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { createMongoDataSource } from '@forestadmin/datasource-mongo';
-import mongoose, { createConnection } from 'mongoose';
+import mongoose, { Schema, createConnection, set } from 'mongoose';
 
 import Introspector from '../../src/introspection/introspector';
 
-const createSchema = async (dbName: string) => {
-  const { Schema } = mongoose;
-  //  mongoose.set('bufferCommands', false);
-  const connection = await createConnection('mongodb://forest:secret@localhost:27017', { dbName });
-  await connection.dropDatabase();
+let connection;
+let Model;
 
-  const TypeList = await connection.model(
+const setup = async () => {
+  Model = connection.model('Model', new Schema({ someKey: Schema.Types.Mixed }));
+};
+
+const openConnection = async (dbName: string) => {
+  //  const { Schema } = mongoose;
+
+  //  mongoose.set('bufferCommands', false);
+  return createConnection('mongodb://forest:secret@localhost:27017', { dbName });
+  //  await connection.dropDatabase();
+
+  /*   const TypeList = await connection.model(
     'typeList',
     new Schema({
       name: String,
@@ -40,29 +47,15 @@ const createSchema = async (dbName: string) => {
         of: String,
       },
     }),
-  );
+  ); */
 
-  const Companies = await connection.model(
-    'companies',
-    new Schema({
-      name: String,
-      address: {
-        street: String,
-        city: String,
-        zipCode: String,
-        number: String,
-      },
-    }),
-  );
-
-  const type = new TypeList({
+  /*   const type = new TypeList({
     name: 'toto',
     binary: Buffer.from('buff', 'utf-8'),
     living: true,
-    updated: Date.now,
+    updated: Date.now(),
     age: 33,
-    mixed: Date.now,
-    _someId: 123,
+    mixed: Date.now(),
     decimal: 6.28,
     array: [],
     ofString: ['Hello', 'Bye'],
@@ -71,7 +64,6 @@ const createSchema = async (dbName: string) => {
     ofBuffer: [Buffer.from('buffer22', 'utf-8'), Buffer.from('buffer11', 'utf-8')],
     ofBoolean: [true, true, false, false, true, false, false],
     ofMixed: [new Date(), true, 'mixed bag', 123, { hello: 'world' }],
-    ofObjectId: [123, 456],
     ofArrays: [
       ['hello', 'world'],
       ['bye', 'world'],
@@ -92,25 +84,69 @@ const createSchema = async (dbName: string) => {
       ['key1', 'string_val1'],
       ['key2', 'string_val2'],
     ]),
-  });
-  await type.save();
+  }); */
 
-  return connection;
+  //  return connection;
 };
 
 describe('Introspector > Integration', () => {
+  beforeAll(async () => {
+    connection = await openConnection('test1');
+    setup();
+  });
+  afterEach(async () => {
+    await connection.dropDatabase();
+  });
+  afterAll(async () => {
+    await connection.close();
+  });
+
+  describe('nullable', () => {
+    describe('if 1 sample is null', () => {
+      test('it should assume it is nullable', async () => {
+        await Promise.all(
+          ['aaa', 'bbb', 'ccc', null].map(val => new Model({ someKey: val }).save()),
+        );
+        expect(
+          (await Introspector.introspect(connection.db)).models.find(
+            model => model.name === 'models',
+          )?.analysis.object,
+        ).toMatchObject({
+          someKey: {
+            nullable: true,
+            referenceTo: undefined,
+            type: 'string',
+          },
+        });
+      });
+    });
+
+    describe('if no samples are null', () => {
+      test('it should assume it is not nullable', async () => {
+        await Promise.all(
+          ['aaa', 'bbb', 'ccc', 'ddd'].map(val => new Model({ someKey: val }).save()),
+        );
+        const introspection = await Introspector.introspect(connection.db);
+        expect(introspection.models[0].analysis.object).toMatchObject({
+          someKey: {
+            nullable: false,
+            referenceTo: undefined,
+            type: 'string',
+          },
+        });
+      });
+    });
+  });
+
+  describe('reference', () => {});
+
   test('should work', async () => {
     const dbName = 'hella';
-    const connection = await createSchema(dbName);
+    const connection = await openConnection(dbName);
     const introspection = await Introspector.introspect(connection.db);
-    console.log(
-      `🚀  \x1b[45m%s\x1b[0m`,
-      ` - test - introspection:`,
-      JSON.stringify(introspection.models[0].analysis, null, 2),
-    );
     connection.destroy();
 
-    expect(introspection.models[0].analysis).toMatchObject({
+    expect(introspection.models[0].analysis).toEqual({
       type: 'object',
       nullable: false,
       object: {
@@ -122,12 +158,8 @@ describe('Introspector > Integration', () => {
           type: 'ObjectId',
           nullable: false,
         },
-        binary: {
-          type: 'Binary',
-          nullable: false,
-        },
-        name: {
-          type: 'string',
+        age: {
+          type: 'number',
           nullable: false,
         },
         array: {
@@ -138,27 +170,93 @@ describe('Introspector > Integration', () => {
             nullable: false,
           },
         },
+        binary: {
+          type: 'Binary',
+          nullable: false,
+        },
+        decimal: {
+          type: 'Decimal128',
+          nullable: false,
+        },
+        living: {
+          type: 'boolean',
+          nullable: false,
+        },
+        map: {
+          type: 'object',
+          nullable: false,
+          object: {
+            key1: {
+              type: 'number',
+              nullable: false,
+            },
+            key2: {
+              type: 'number',
+              nullable: false,
+            },
+          },
+        },
+        mapOfString: {
+          type: 'object',
+          nullable: false,
+          object: {
+            key1: {
+              type: 'string',
+              nullable: false,
+            },
+            key2: {
+              type: 'string',
+              nullable: false,
+            },
+          },
+        },
+        mixed: {
+          type: 'number',
+          nullable: false,
+        },
+        name: {
+          type: 'string',
+          nullable: false,
+        },
+        nested: {
+          type: 'object',
+          nullable: false,
+          object: {
+            stuff: {
+              type: 'string',
+              nullable: false,
+            },
+          },
+        },
         ofArrayOfNumbers: {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'array',
             nullable: false,
+            arrayElement: {
+              type: 'number',
+              nullable: false,
+            },
           },
         },
         ofArrays: {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'array',
             nullable: false,
+            arrayElement: {
+              type: 'string',
+              nullable: false,
+            },
           },
         },
         ofBoolean: {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'boolean',
             nullable: false,
           },
         },
@@ -166,7 +264,7 @@ describe('Introspector > Integration', () => {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'Binary',
             nullable: false,
           },
         },
@@ -174,7 +272,7 @@ describe('Introspector > Integration', () => {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'Date',
             nullable: false,
           },
         },
@@ -190,7 +288,7 @@ describe('Introspector > Integration', () => {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'number',
             nullable: false,
           },
         },
@@ -206,7 +304,7 @@ describe('Introspector > Integration', () => {
           type: 'array',
           nullable: false,
           arrayElement: {
-            type: 'Mixed',
+            type: 'string',
             nullable: false,
           },
         },
