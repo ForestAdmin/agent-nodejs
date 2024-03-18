@@ -79,7 +79,9 @@ export default class Introspector {
     const referencesByNode = new Map<NodeStudy, string>();
 
     for (const [modelName, nodes] of Object.entries(referencesByModel)) {
-      for (const node of nodes) referencesByNode.set(node, modelName);
+      for (const node of nodes) {
+        referencesByNode.set(node, modelName);
+      }
     }
 
     return referencesByNode;

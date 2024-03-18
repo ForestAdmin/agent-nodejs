@@ -1,114 +1,381 @@
 import mongoose from 'mongoose';
 
 import Introspector from '../../src/introspection/introspector';
-import { Introspection, MongoDb } from '../../src/introspection/types';
-import createDb from '../_mock';
+import ReferenceCandidateFinder from '../../src/introspection/reference-candidates-finder';
+import ReferenceCandidateVerifier from '../../src/introspection/reference-candidates-verifier';
+import Structure from '../../src/introspection/structure';
+import { Introspection, ModelStudy, MongoDb } from '../../src/introspection/types';
 
-const { Binary } = mongoose.mongo;
+const { ObjectId } = mongoose.mongo;
+
+jest.mock('../../src/introspection/structure');
+jest.mock('../../src/introspection/reference-candidates-finder');
+jest.mock('../../src/introspection/reference-candidates-verifier');
 
 describe('Introspection > index', () => {
-  let db: MongoDb;
-
   describe('introspect', () => {
-    beforeAll(async () => {
-      db = createDb({
-        publisher: [
-          {
-            _id: 'pub1',
-            name: 'Gnome Press',
-            founded: 1948,
-            defunct: 1962,
-            mixed: true,
-          },
-          {
-            _id: 'pub2',
-            name: 'Hachette',
-            founded: 1826,
-            defunct: null,
-            mixed: null,
-          },
-          {
-            _id: 'pub2',
-            name: 'Gallimard',
-            founded: 1911,
-            defunct: null,
-            mixed: 'Hi!',
-          },
-        ],
-        book: [
-          {
-            _id: 'bk1',
-            title: 'Foundation',
-            publisher: 'pub1',
-            dateOfPublication: new Date('1951-01-01T00:00:00Z'),
-            categories: ['sf', 'novel', 'top-sellers'],
-            cover: new Binary(Buffer.from('cover1', 'utf-8')),
-          },
-        ],
-      });
-    });
-
     describe('invalid options', () => {
       it('should throw an error if collectionSampleSize < 1', async () => {
+        const db = Symbol('db') as unknown as MongoDb;
         await expect(Introspector.introspect(db, { collectionSampleSize: 0 })).rejects.toThrow(
           'collectionSampleSize must be at least 1',
         );
       });
 
       it('should throw an error if referenceSampleSize < 0', async () => {
+        const db = Symbol('db') as unknown as MongoDb;
         await expect(Introspector.introspect(db, { referenceSampleSize: -1 })).rejects.toThrow(
           'referenceSampleSize must be at least 0',
         );
       });
 
       it('should throw an error if maxPropertiesPerObject < 1', async () => {
+        const db = Symbol('db') as unknown as MongoDb;
         await expect(Introspector.introspect(db, { maxPropertiesPerObject: 0 })).rejects.toThrow(
           'maxPropertiesPerObject must be at least 1',
         );
       });
     });
 
-    test('should work', async () => {
-      const result = await Introspector.introspect(db);
+    describe('with valid options', () => {
+      describe('with a simple collection', () => {
+        it('should return the expected introspection', async () => {
+          const db = Symbol('db');
 
-      expect(result).toEqual({
-        version: 1,
-        source: '@forestadmin/datasource-mongo',
-        models: [
-          {
-            name: 'book',
-            analysis: {
-              type: 'object',
-              nullable: false,
-              object: {
-                _id: { type: 'string', nullable: false },
-                dateOfPublication: { type: 'Date', nullable: false },
-                publisher: { type: 'string', referenceTo: 'publisher', nullable: false },
-                title: { type: 'string', nullable: false },
-                categories: {
-                  type: 'array',
-                  nullable: false,
-                  arrayElement: { type: 'string', nullable: false },
+          const structure: ModelStudy[] = [
+            {
+              name: 'books',
+              analysis: {
+                isReferenceCandidate: false,
+                seen: 2,
+                types: { object: 2 },
+                object: {
+                  _id: {
+                    isReferenceCandidate: true,
+                    seen: 2,
+                    types: { ObjectId: 2 },
+                    referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                  },
+                  title: {
+                    isReferenceCandidate: false,
+                    seen: 2,
+                    types: { string: 2 },
+                  },
                 },
-                cover: { type: 'Binary', nullable: false },
               },
             },
-          },
-          {
-            name: 'publisher',
+          ];
+
+          jest.mocked(Structure.introspect).mockResolvedValue(structure);
+          jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({});
+          jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({});
+
+          const introspection = await Introspector.introspect(db as unknown as MongoDb);
+
+          expect(introspection).toEqual({
+            source: '@forestadmin/datasource-mongo',
+            version: 1,
+            models: [
+              {
+                name: 'books',
+                analysis: {
+                  nullable: false,
+                  referenceTo: undefined,
+                  type: 'object',
+                  object: {
+                    _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                    title: { type: 'string', nullable: false, referenceTo: undefined },
+                  },
+                },
+              },
+            ],
+          });
+        });
+      });
+
+      describe('with nullable fields', () => {
+        it('should return nullable: true', async () => {
+          const db = Symbol('db');
+
+          const structure: ModelStudy[] = [
+            {
+              name: 'books',
+              analysis: {
+                isReferenceCandidate: false,
+                seen: 2,
+                types: { object: 2 },
+                object: {
+                  _id: {
+                    isReferenceCandidate: true,
+                    seen: 2,
+                    types: { ObjectId: 2 },
+                    referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                  },
+                  title: {
+                    isReferenceCandidate: false,
+                    seen: 1,
+                    types: { string: 1, null: 1 },
+                  },
+                },
+              },
+            },
+          ];
+
+          jest.mocked(Structure.introspect).mockResolvedValue(structure);
+          jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({});
+          jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({});
+
+          const introspection = await Introspector.introspect(db as unknown as MongoDb);
+
+          expect(introspection).toEqual({
+            source: '@forestadmin/datasource-mongo',
+            version: 1,
+            models: [
+              {
+                name: 'books',
+                analysis: {
+                  nullable: false,
+                  referenceTo: undefined,
+                  type: 'object',
+                  object: {
+                    _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                    title: { type: 'string', nullable: true, referenceTo: undefined },
+                  },
+                },
+              },
+            ],
+          });
+        });
+      });
+
+      describe('with references to other models', () => {
+        it('should return the expected introspection', async () => {
+          const db = Symbol('db');
+
+          const books: ModelStudy = {
+            name: 'books',
             analysis: {
-              type: 'object',
-              nullable: false,
+              isReferenceCandidate: false,
+              seen: 2,
+              types: { object: 2 },
               object: {
-                _id: { type: 'string', nullable: false },
-                defunct: { type: 'number', nullable: true },
-                founded: { type: 'number', nullable: false },
-                name: { type: 'string', nullable: false },
-                mixed: { type: 'Mixed', nullable: true },
+                _id: {
+                  isReferenceCandidate: true,
+                  seen: 2,
+                  types: { ObjectId: 2 },
+                  referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                },
+                title: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { string: 2 },
+                },
+                authorId: {
+                  isReferenceCandidate: true,
+                  seen: 2,
+                  types: { ObjectId: 2 },
+                  referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                },
               },
             },
-          },
-        ],
+          };
+
+          const authors: ModelStudy = {
+            name: 'authors',
+            analysis: {
+              isReferenceCandidate: false,
+              seen: 2,
+              types: { object: 2 },
+              object: {
+                _id: {
+                  isReferenceCandidate: true,
+                  seen: 2,
+                  types: { ObjectId: 2 },
+                  referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                },
+                name: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { string: 2 },
+                },
+              },
+            },
+          };
+
+          const structure: ModelStudy[] = [books, authors];
+
+          jest.mocked(Structure.introspect).mockResolvedValue(structure);
+          jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({
+            books: [books.analysis.object!.authorId],
+          });
+          jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({
+            authors: [books.analysis.object!.authorId],
+          });
+
+          const introspection = await Introspector.introspect(db as unknown as MongoDb);
+
+          expect(introspection).toEqual({
+            source: '@forestadmin/datasource-mongo',
+            version: 1,
+            models: [
+              {
+                name: 'authors',
+                analysis: {
+                  nullable: false,
+                  referenceTo: undefined,
+                  type: 'object',
+                  object: {
+                    _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                    name: { type: 'string', nullable: false, referenceTo: undefined },
+                  },
+                },
+              },
+              {
+                name: 'books',
+                analysis: {
+                  nullable: false,
+                  referenceTo: undefined,
+                  type: 'object',
+                  object: {
+                    _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                    title: { type: 'string', nullable: false, referenceTo: undefined },
+                    authorId: { type: 'ObjectId', nullable: false, referenceTo: 'authors' },
+                  },
+                },
+              },
+            ],
+          });
+        });
+      });
+
+      describe('with arrays', () => {
+        it('should return the expected introspection', async () => {
+          const db = Symbol('db');
+
+          const books: ModelStudy = {
+            name: 'books',
+            analysis: {
+              isReferenceCandidate: false,
+              seen: 2,
+              types: { object: 2 },
+              object: {
+                _id: {
+                  isReferenceCandidate: true,
+                  seen: 2,
+                  types: { ObjectId: 2 },
+                  referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                },
+                titles: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { array: 2 },
+                  arrayElement: {
+                    isReferenceCandidate: false,
+                    seen: 2,
+                    types: { string: 2 },
+                  },
+                },
+              },
+            },
+          };
+
+          const structure: ModelStudy[] = [books];
+
+          jest.mocked(Structure.introspect).mockResolvedValue(structure);
+          jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({});
+          jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({});
+
+          const introspection = await Introspector.introspect(db as unknown as MongoDb);
+
+          expect(introspection).toEqual({
+            source: '@forestadmin/datasource-mongo',
+            version: 1,
+            models: [
+              {
+                name: 'books',
+                analysis: {
+                  nullable: false,
+                  referenceTo: undefined,
+                  type: 'object',
+                  object: {
+                    _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                    titles: {
+                      type: 'array',
+                      nullable: false,
+                      referenceTo: undefined,
+                      arrayElement: { type: 'string', nullable: false, referenceTo: undefined },
+                    },
+                  },
+                },
+              },
+            ],
+          });
+        });
+      });
+
+      describe('with mixed types', () => {
+        it('should return the expected introspection', async () => {
+          const db = Symbol('db');
+
+          const books: ModelStudy = {
+            name: 'books',
+            analysis: {
+              isReferenceCandidate: false,
+              seen: 2,
+              types: { object: 2 },
+              object: {
+                _id: {
+                  isReferenceCandidate: true,
+                  seen: 2,
+                  types: { ObjectId: 2 },
+                  referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                },
+                title: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { string: 2 },
+                },
+                isbn: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { string: 1, number: 1 },
+                },
+              },
+            },
+          };
+
+          const structure: ModelStudy[] = [books];
+
+          jest.mocked(Structure.introspect).mockResolvedValue(structure);
+          jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({});
+          jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({});
+
+          const introspection = await Introspector.introspect(db as unknown as MongoDb);
+
+          expect(introspection).toEqual({
+            source: '@forestadmin/datasource-mongo',
+            version: 1,
+            models: [
+              {
+                name: 'books',
+                analysis: {
+                  nullable: false,
+                  referenceTo: undefined,
+                  type: 'object',
+                  object: {
+                    _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                    title: { type: 'string', nullable: false, referenceTo: undefined },
+                    isbn: {
+                      nullable: false,
+                      referenceTo: undefined,
+                      type: 'Mixed',
+                    },
+                  },
+                },
+              },
+            ],
+          });
+        });
       });
     });
   });
