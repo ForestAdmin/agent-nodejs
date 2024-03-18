@@ -35,7 +35,9 @@ function buildAgent(introspection: Table[]) {
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
-  agent.addDataSource(createSqlDataSource(`sqlite::memory:`, { introspection }));
+  agent.addDataSource(
+    createSqlDataSource({ dialect: 'sqlite', storage: ':memory:' }, { introspection }),
+  );
 
   return agent;
 }

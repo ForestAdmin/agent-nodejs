@@ -61,7 +61,13 @@ describe('update-typings', () => {
         loggerLevel: 'Error',
         isProduction: false,
       });
-      expect(createSqlDataSourceSpy).toHaveBeenCalledWith('sqlite::memory:', { introspection });
+      expect(createSqlDataSourceSpy).toHaveBeenCalledWith(
+        {
+          dialect: 'sqlite',
+          storage: ':memory:',
+        },
+        { introspection },
+      );
       expect(agentMock.addDataSource).toHaveBeenCalledWith(datasource);
       expect(agentMock.updateTypesOnFileSystem).toHaveBeenCalledWith(
         bootstrapPathManager.typingsDuringBootstrap,
