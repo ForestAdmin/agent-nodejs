@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.5.2...@forestadmin/forest-cloud@1.5.3) (2024-03-18)
+
+
+### Bug Fixes
+
+* **forest-cloud:** remove a deprecated warning when updating the typing ([#1074](https://github.com/ForestAdmin/agent-nodejs/issues/1074)) ([7b0c0c2](https://github.com/ForestAdmin/agent-nodejs/commit/7b0c0c2e7e6b37f2f4a1c04800e246352be79ef8))
+
 ## @forestadmin/forest-cloud [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.5.1...@forestadmin/forest-cloud@1.5.2) (2024-03-14)
 
 
