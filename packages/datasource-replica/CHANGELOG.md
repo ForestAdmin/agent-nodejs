@@ -1,3 +1,18 @@
+# @forestadmin/datasource-replica [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.1.9...@forestadmin/datasource-replica@1.2.0) (2024-03-19)
+
+
+### Features
+
+* **datasource-mongo:** add new datasource ([#689](https://github.com/ForestAdmin/agent-nodejs/issues/689)) ([af95276](https://github.com/ForestAdmin/agent-nodejs/commit/af95276b70a85d2cf972ac45a210cfed02b09675))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.10.0
+
 ## @forestadmin/datasource-replica [1.1.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.1.8...@forestadmin/datasource-replica@1.1.9) (2024-03-14)
 
 
