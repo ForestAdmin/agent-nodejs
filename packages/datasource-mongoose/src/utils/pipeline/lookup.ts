@@ -66,10 +66,19 @@ export default class LookupGenerator {
 
       const subSchema = MongooseSchema.fromModel(model).fields;
 
+      const $addFields = subProjection
+        .filter(field => field.includes('@@@'))
+        .map(fieldName => `${name}${fieldName}`)
+        .reduce(
+          (acc: object, curr: string) => ((acc[curr] = `$${curr.replace(/@@@/g, '.')}`), acc),
+          {},
+        );
+
       return [
         // Push lookup to pipeline
         { $lookup: { from, localField, foreignField, as } },
         { $unwind: { path: `$${as}`, preserveNullAndEmptyArrays: true } },
+        { $addFields },
 
         // Recurse to get relations of relations
         ...this.lookupProjection(models, as, [...schemaStack, subSchema], subProjection),
