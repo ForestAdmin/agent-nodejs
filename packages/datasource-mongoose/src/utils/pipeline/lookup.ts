@@ -68,7 +68,7 @@ export default class LookupGenerator {
 
       const $addFields = subProjection
         .filter(field => field.includes('@@@'))
-        .map(fieldName => `${name}${fieldName}`)
+        .map(fieldName => `${name}.${fieldName}`)
         .reduce(
           (acc: object, curr: string) => ((acc[curr] = `$${curr.replace(/@@@/g, '.')}`), acc),
           {},
