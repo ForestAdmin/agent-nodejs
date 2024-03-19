@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.9.5...@forestadmin/datasource-sql@1.10.0) (2024-03-19)
+
+
+### Features
+
+* **datasource-mongo:** add new datasource ([#689](https://github.com/ForestAdmin/agent-nodejs/issues/689)) ([af95276](https://github.com/ForestAdmin/agent-nodejs/commit/af95276b70a85d2cf972ac45a210cfed02b09675))
+
 ## @forestadmin/datasource-sql [1.9.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.9.4...@forestadmin/datasource-sql@1.9.5) (2024-03-14)
 
 
