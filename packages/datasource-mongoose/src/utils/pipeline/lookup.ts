@@ -66,6 +66,7 @@ export default class LookupGenerator {
 
       const subSchema = MongooseSchema.fromModel(model).fields;
 
+      // $addFields are needed in the case of a relation with nested fields
       const $addFields = subProjection
         .filter(field => field.includes('@@@'))
         .map(fieldName => `${name}.${fieldName}`)
