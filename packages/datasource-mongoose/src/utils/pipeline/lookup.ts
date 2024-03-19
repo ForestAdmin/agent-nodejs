@@ -66,14 +66,15 @@ export default class LookupGenerator {
 
       const subSchema = MongooseSchema.fromModel(model).fields;
 
-      // $addFields are needed in the case of a relation with nested fields
+      // $addFields mappings are needed in the case of a relation with nested fields
       const $addFields = subProjection
         .filter(field => field.includes('@@@'))
         .map(fieldName => `${name}.${fieldName}`)
-        .reduce(
-          (acc: object, curr: string) => ((acc[curr] = `$${curr.replace(/@@@/g, '.')}`), acc),
-          {},
-        );
+        .reduce((acc: object, curr: string) => {
+          acc[curr] = `$${curr.replace(/@@@/g, '.')}`;
+
+          return acc;
+        }, {});
 
       return [
         // Push lookup to pipeline
