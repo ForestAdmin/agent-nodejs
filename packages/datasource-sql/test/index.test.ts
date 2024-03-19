@@ -29,7 +29,7 @@ describe('index', () => {
     describe('when the introspection version is not handled', () => {
       test('should throw an error', async () => {
         const factory = createSqlDataSource('postgres://', {
-          introspection: { tables: [], version: 2255345234 },
+          introspection: { tables: [], version: 2255345234, source: '@forestadmin/datasource-sql' },
         });
         const logger = jest.fn();
 

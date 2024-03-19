@@ -474,7 +474,9 @@ describe('SqlDataSourceFactory > Integration', () => {
         const attributesMapping = getAttributeMapping(connectionDetails.dialect);
 
         const introspection = await introspect(connectionDetails.url(databaseName), logger);
-        jest.spyOn(Introspector, 'introspect').mockResolvedValue({ tables: [], version: 1 });
+        jest
+          .spyOn(Introspector, 'introspect')
+          .mockResolvedValue({ tables: [], version: 1, source: '@forestadmin/datasource-sql' });
         const sequelize = await buildSequelizeInstance(
           connectionDetails.url(databaseName),
           logger,

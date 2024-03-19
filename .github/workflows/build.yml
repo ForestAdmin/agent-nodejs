@@ -67,6 +67,7 @@ jobs:
           - datasource-dummy
           - datasource-mongoose
           - datasource-replica
+          - datasource-mongo
           - datasource-sequelize
           - datasource-sql
           - datasource-toolkit
@@ -124,18 +125,7 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageLocations: |
-            ${{github.workspace}}/reports/agent/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-customizer/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-dummy/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-mongoose/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-replica/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-sequelize/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-sql/clover.xml:clover
-            ${{github.workspace}}/reports/datasource-toolkit/clover.xml:clover
-            ${{github.workspace}}/reports/forestadmin-client/clover.xml:clover
-            ${{github.workspace}}/reports/plugin-aws-s3/clover.xml:clover
-            ${{github.workspace}}/reports/plugin-export-advanced/clover.xml:clover
-            ${{github.workspace}}/reports/plugin-flattener/clover.xml:clover
+            ${{github.workspace}}/reports/**/clover.xml:clover
 
   build-api-reference:
     name: Build API Reference
