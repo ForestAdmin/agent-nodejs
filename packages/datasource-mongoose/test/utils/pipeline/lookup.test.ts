@@ -14,6 +14,11 @@ describe('LookupGenerator', () => {
       new Schema({
         firstname: String,
         lastname: String,
+        address: {
+          city: String,
+          street: String,
+          code: String,
+        },
         country: { type: 'ObjectId', ref: 'countries' },
       }),
     );
@@ -76,6 +81,29 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
+        { $addFields: {} },
+      ]);
+    });
+
+    it('should load the editor (relation) with nested fields', () => {
+      const projection = new Projection('editor__manyToOne:address@@@city');
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
+
+      expect(pipeline).toStrictEqual([
+        {
+          $lookup: {
+            as: 'editor__manyToOne',
+            foreignField: '_id',
+            from: 'editors',
+            localField: 'editor',
+          },
+        },
+        { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
+        {
+          $addFields: {
+            'editor__manyToOne.address@@@city': '$editor__manyToOne.address.city',
+          },
+        },
       ]);
     });
 
@@ -98,6 +126,7 @@ describe('LookupGenerator', () => {
             preserveNullAndEmptyArrays: true,
           },
         },
+        { $addFields: {} },
       ]);
     });
 
@@ -115,6 +144,7 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
+        { $addFields: {} },
         {
           $lookup: {
             as: 'editor__manyToOne.country__manyToOne',
@@ -129,6 +159,7 @@ describe('LookupGenerator', () => {
             preserveNullAndEmptyArrays: true,
           },
         },
+        { $addFields: {} },
       ]);
     });
   });
@@ -153,6 +184,7 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$country__manyToOne', preserveNullAndEmptyArrays: true } },
+        { $addFields: {} },
       ]);
     });
 
@@ -170,6 +202,7 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$parent.editor__manyToOne', preserveNullAndEmptyArrays: true } },
+        { $addFields: {} },
       ]);
     });
   });
