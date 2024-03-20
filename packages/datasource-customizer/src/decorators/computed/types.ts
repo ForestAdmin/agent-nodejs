@@ -8,7 +8,7 @@ export interface ComputedDefinition<
   N extends TCollectionName<S> = TCollectionName<S>,
 > {
   readonly columnType: ColumnType;
-  readonly dependencies?: TFieldName<S, N>[];
+  readonly dependencies: TFieldName<S, N>[];
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
 
@@ -16,11 +16,4 @@ export interface ComputedDefinition<
     records: TRow<S, N>[],
     context: CollectionCustomizationContext<S, N>,
   ): Promise<unknown[]> | unknown[];
-}
-
-export interface DeprecatedComputedDefinition<
-  S extends TSchema = TSchema,
-  N extends TCollectionName<S> = TCollectionName<S>,
-> extends Omit<ComputedDefinition<S, N>, 'columnType'> {
-  readonly columnType: 'Timeonly';
 }

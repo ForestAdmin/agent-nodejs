@@ -1,4 +1,4 @@
-import type { Introspection, Table } from './introspection/types';
+import type { Introspection, IntrospectionWithoutSource, Table } from './introspection/types';
 import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
@@ -30,7 +30,7 @@ export async function introspect(
 export async function buildSequelizeInstance(
   uriOrOptions: PlainConnectionOptionsOrUri,
   logger: Logger,
-  introspection?: Table[] | Introspection,
+  introspection?: Table[] | IntrospectionWithoutSource | Introspection,
 ): Promise<Sequelize> {
   const options = new ConnectionOptions(uriOrOptions, logger);
   let sequelize: Sequelize;

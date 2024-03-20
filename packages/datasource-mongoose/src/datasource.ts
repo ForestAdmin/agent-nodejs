@@ -65,24 +65,27 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     for (const field of localAsFields) {
       const name = prefix ? `${prefix}.${field}` : field;
 
-      if (!field.includes('.') && prefix)
+      if (!field.includes('.') && prefix) {
         throw new Error(
           `asFields contains "${name}", which can't be flattened further because ` +
             `asModels contains "${prefix}", so it is already at the root of a collection.`,
         );
+      }
 
-      if (!field.includes('.'))
+      if (!field.includes('.')) {
         throw new Error(
           `asFields contains "${name}", which can't be flattened because it is already at ` +
             `the root of the model.`,
         );
+      }
 
-      if (this.containsIntermediaryArray(localSchema, field))
+      if (this.containsIntermediaryArray(localSchema, field)) {
         throw new Error(
           `asFields contains "${name}", ` +
             `which can't be moved to the root of the model, because it is inside of an array. ` +
             'Either add all intermediary arrays to asModels, or remove it from asFields.',
         );
+      }
     }
   }
 
@@ -92,12 +95,13 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     for (const field of localAsModels) {
       const name = prefix ? `${prefix}.${field}` : field;
 
-      if (this.containsIntermediaryArray(localSchema, field))
+      if (this.containsIntermediaryArray(localSchema, field)) {
         throw new Error(
           `asModels contains "${name}", ` +
             `which can't be transformed into a model, because it is inside of an array. ` +
             'Either add all intermediary arrays to asModels, or remove it from asModels.',
         );
+      }
     }
   }
 

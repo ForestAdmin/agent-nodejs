@@ -14,10 +14,12 @@ export default class ReferenceCandidateFinder {
     const modelByPkType: Record<Primitive, string[]> = this.getModelsByPkType(introspection);
 
     // Perform the first level here to skip root _id field
-    // (instead of calling findCandidatesRec on model.analysis directly)
-    for (const model of introspection)
-      for (const [key, subNode] of Object.entries(model.analysis.object ?? {}))
-        if (key !== '_id') this.findCandidatesRec(subNode, modelByPkType, candidatesByModel);
+    // (instead of calling findCandidatesRecursive on model.analysis directly)
+    for (const model of introspection) {
+      for (const [key, subNode] of Object.entries(model.analysis.object ?? {})) {
+        if (key !== '_id') this.findCandidatesRecursive(subNode, modelByPkType, candidatesByModel);
+      }
+    }
 
     return candidatesByModel;
   }
@@ -38,29 +40,33 @@ export default class ReferenceCandidateFinder {
   }
 
   /** Recursive helper of findCandidate */
-  private static findCandidatesRec(
+  private static findCandidatesRecursive(
     node: NodeStudy,
     modelByPkType: Record<Primitive, string[]>,
     candidatesByModel: Record<string, NodeStudy[]>,
   ): void {
     // Recurse
-    if (node.object)
-      for (const [, subNode] of Object.entries(node.object))
-        this.findCandidatesRec(subNode, modelByPkType, candidatesByModel);
+    if (node.object) {
+      for (const [, subNode] of Object.entries(node.object)) {
+        this.findCandidatesRecursive(subNode, modelByPkType, candidatesByModel);
+      }
+    }
 
-    if (node.arrayElement)
-      this.findCandidatesRec(node.arrayElement, modelByPkType, candidatesByModel);
+    if (node.arrayElement) {
+      this.findCandidatesRecursive(node.arrayElement, modelByPkType, candidatesByModel);
+    }
 
     // Remember the node if it's a reference candidate
     if (node.isReferenceCandidate) {
       const nodeTypes = Object.keys(node.types).filter(t => t !== 'null') as Primitive[];
 
       // nodeTypes.length may be zero if the node only contains null values (=> we skip it)
-      if (nodeTypes.length === 1)
+      if (nodeTypes.length === 1) {
         for (const modelName of modelByPkType[nodeTypes[0]] ?? []) {
           if (!candidatesByModel[modelName]) candidatesByModel[modelName] = [];
           candidatesByModel[modelName].push(node);
         }
+      }
     }
   }
 }

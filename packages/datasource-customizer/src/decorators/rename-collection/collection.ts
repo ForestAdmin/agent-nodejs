@@ -25,8 +25,10 @@ export default class RenameCollectionCollectionDecorator extends CollectionDecor
 
       if (schema.type !== 'Column') {
         schema.foreignCollection = this.dataSource.getCollectionName(schema.foreignCollection);
-        if (schema.type === 'ManyToMany')
+
+        if (schema.type === 'ManyToMany') {
           schema.throughCollection = this.dataSource.getCollectionName(schema.throughCollection);
+        }
       }
 
       fields[name] = schema;

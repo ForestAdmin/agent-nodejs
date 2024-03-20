@@ -39,8 +39,10 @@ export default class SortEmulate extends CollectionDecorator {
   }
 
   replaceFieldSorting(name: string, equivalentSort: PlainSortClause[]): void {
-    if (!equivalentSort)
+    if (!equivalentSort) {
       throw new Error('A new sorting method should be provided to replace field sorting');
+    }
+
     this.replaceOrEmulateFieldSorting(name, equivalentSort);
   }
 

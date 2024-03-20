@@ -1,3 +1,41 @@
+# @forestadmin/plugin-flattener [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.93...@forestadmin/plugin-flattener@1.1.0) (2024-03-14)
+
+
+### Features
+
+* **flattener:** allow users to flatten JSON primitive column ([#1071](https://github.com/ForestAdmin/agent-nodejs/issues/1071)) ([fd1db13](https://github.com/ForestAdmin/agent-nodejs/commit/fd1db1365955df48d76ebfce8d9cab55cf19348d))
+
+## @forestadmin/plugin-flattener [1.0.93](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.92...@forestadmin/plugin-flattener@1.0.93) (2024-03-14)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.2
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.6
+
+## @forestadmin/plugin-flattener [1.0.92](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.91...@forestadmin/plugin-flattener@1.0.92) (2024-03-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.5
+
+## @forestadmin/plugin-flattener [1.0.91](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.90...@forestadmin/plugin-flattener@1.0.91) (2024-03-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.43.4
+
 ## @forestadmin/plugin-flattener [1.0.90](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.0.89...@forestadmin/plugin-flattener@1.0.90) (2024-02-28)
 
 

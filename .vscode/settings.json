@@ -13,7 +13,7 @@
   "eslint.workingDirectories": ["."],
   "eslint.format.enable": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "always"
   },
 
   // Easier debugging

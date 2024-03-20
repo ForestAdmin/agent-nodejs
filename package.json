@@ -43,7 +43,7 @@
     "clean": "lerna run clean && rm -rf coverage api-reference/",
     "docs": "typedoc",
     "lint": "lerna exec --parallel eslint src test",
-    "lint:fix": "lerna exec eslint src test -- --fix",
+    "lint:fix": "lerna exec --parallel eslint src test -- --fix",
     "prepare": "husky install",
     "test": "jest",
     "test:coverage": "yarn test --coverage"

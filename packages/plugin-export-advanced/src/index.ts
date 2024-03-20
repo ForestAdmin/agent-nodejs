@@ -39,22 +39,24 @@ function getForm(
   const form: ActionGlobal['form'] = [];
   const projection = getFields(dataSource, collection, 2);
 
-  if (!options?.filename)
+  if (!options?.filename) {
     form.push({
       label: 'Filename',
       type: 'String',
       defaultValue: `${collection.name} - ${new Date().toISOString().substring(0, 10)}`,
     });
+  }
 
-  if (!options?.format)
+  if (!options?.format) {
     form.push({
       label: 'Format',
       type: 'Enum',
       enumValues: Object.keys(renderers),
       defaultValue: Object.keys(renderers)[0],
     });
+  }
 
-  if (!options?.fields)
+  if (!options?.fields) {
     form.push({
       label: 'Fields',
       type: 'EnumList',
@@ -63,6 +65,7 @@ function getForm(
       // this line should be: `defaultValue: projection,`
       value: c => (c.formValues.Fields?.length ? c.formValues.Fields : projection),
     });
+  }
 
   return form;
 }

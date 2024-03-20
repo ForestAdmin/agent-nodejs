@@ -15,6 +15,7 @@ import { Log, Logger, MakeCommands } from '../types';
 const levelToLog = {
   Info: 'info',
   Warn: 'warn',
+  Debug: 'debug',
   Error: 'error',
 };
 
@@ -81,7 +82,7 @@ export default (program: Command, context: MakeCommands) => {
     )
     .option(
       '-n, --tail <integer>',
-      'Number of lines to show from the end of the logs in the last hour.' +
+      'Number of lines to show from the end of the logs in the last month.' +
         ' Default is 30, Max is 1000. Use from option to get older logs.',
     )
     .option(
@@ -116,6 +117,7 @@ export default (program: Command, context: MakeCommands) => {
           let logs: Log[];
 
           try {
+            spinner.start('Fetching logs');
             logs = await buildHttpServer(vars).getLogs({
               from,
               to,
@@ -132,32 +134,29 @@ export default (program: Command, context: MakeCommands) => {
           }
 
           let message: string;
-          let orderDetails: string;
 
           if (options.from && options.to) {
-            orderDetails = '- Logs are returned from the oldest to the newest';
             message = `between "${from}" and "${to}"`;
           } else if (options.from) {
-            orderDetails = '- Logs are returned from the oldest to the newest';
             message = `since "${from}"`;
           } else if (options.to) {
-            orderDetails = '- Logs are returned from the newest to the oldest';
             message = `until "${to}"`;
           } else {
-            orderDetails = '- Logs are returned from the newest to the oldest';
             message = 'in the last month';
           }
 
           const helperMessage =
             'To see more logs or change the time range, use --help for all options';
 
+          spinner.stop();
+
           if (logs?.length > 0) {
-            logger.log('...you have probably more logs...');
+            spinner.info('...you have probably more logs...');
             logs.forEach(log => displayLog(logger, log));
-            if (isRunningWithOptions(options)) logger.log('...you have probably more logs...');
+            if (isRunningWithOptions(options)) spinner.info('...you have probably more logs...');
 
             const pluralize = tail > 1 ? 's' : '';
-            const baseMessage = `Requested ${tail} log${pluralize} ${message} ${orderDetails}`;
+            const baseMessage = `Requested ${tail} log${pluralize} ${message}`;
             const fromToMessage = `You have received logs from ${logs[0].timestamp} to ${
               logs[logs.length - 1].timestamp
             }`;
@@ -167,7 +166,7 @@ export default (program: Command, context: MakeCommands) => {
               logger.log(`${helperMessage}`);
             } else {
               spinner.succeed(
-                `${baseMessage}, but only ${logs.length} were found\n${fromToMessage}`,
+                `${baseMessage} but only ${logs.length} were found\n${fromToMessage}`,
               );
             }
           } else {

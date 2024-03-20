@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.32.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.1...@forestadmin/datasource-toolkit@1.32.2) (2024-03-14)
+
+
+### Bug Fixes
+
+* addField is marked as deprecated by webstorm ([#1067](https://github.com/ForestAdmin/agent-nodejs/issues/1067)) ([735d20b](https://github.com/ForestAdmin/agent-nodejs/commit/735d20b82dc50541ffa9081792e3602264f426ae))
+
 ## @forestadmin/datasource-toolkit [1.32.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.0...@forestadmin/datasource-toolkit@1.32.1) (2024-02-27)
 
 

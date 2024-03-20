@@ -1,16 +1,28 @@
 import { Command } from 'commander';
 
 import actionRunner from '../dialogs/action-runner';
+import askToOverwriteCustomizations from '../dialogs/ask-to-overwrite-customizations';
 import checkLatestVersion from '../dialogs/check-latest-version';
 import { BusinessError } from '../errors';
 import { validateEnvironmentVariables } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import publish from '../services/publish';
-import {
-  askToOverwriteCustomizationsOrAbortCommand,
-  loginIfMissingAuthAndReturnEnvironmentVariables,
-} from '../shared';
-import { MakeCommands } from '../types';
+import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
+import { Logger, MakeCommands } from '../types';
+
+const askToOverwriteCustomizationsOrAbortCommand = async (
+  logger: Logger,
+  httpServer: HttpServer,
+): Promise<void> => {
+  if (
+    !(await askToOverwriteCustomizations(
+      logger.spinner,
+      httpServer.getLastPublishedCodeDetails.bind(httpServer),
+    ))
+  ) {
+    throw new BusinessError('Operation aborted');
+  }
+};
 
 export default (program: Command, context: MakeCommands) => {
   const {
@@ -42,7 +54,7 @@ export default (program: Command, context: MakeCommands) => {
         const httpServer = buildHttpServer(vars);
         if (!options.force) await askToOverwriteCustomizationsOrAbortCommand(logger, httpServer);
 
-        spinner.start('Publishing code customizations (operation cannot be cancelled)');
+        spinner.start('Publishing code customizations');
         const subscriptionId = await publish(httpServer, distPathManager);
         const subscriber = buildEventSubscriber(vars);
 

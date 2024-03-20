@@ -25,7 +25,7 @@ export type Primitive =
   | 'Date'
   | 'ObjectId';
 
-export type PrimitiveDef = Exclude<Primitive, 'null'> | 'Mixed';
+export type PrimitiveDefinition = Exclude<Primitive, 'null'> | 'Mixed';
 
 export type ModelDefinition = {
   name: string;
@@ -33,7 +33,7 @@ export type ModelDefinition = {
 };
 
 export type ModelAnalysis = {
-  type: PrimitiveDef;
+  type: PrimitiveDefinition;
   nullable: boolean;
   referenceTo?: string;
   arrayElement?: ModelAnalysis;

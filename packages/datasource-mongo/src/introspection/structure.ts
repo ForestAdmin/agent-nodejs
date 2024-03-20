@@ -1,20 +1,24 @@
-/* eslint-disable no-underscore-dangle */
+import type { Binary } from 'bson';
 
 import { ModelStudy, MongoCollection, MongoDb, NodeStudy, Primitive } from './types';
 
 export default class Structure {
   static async introspect(
     connection: MongoDb,
-    collectionSampleSize: number,
-    referenceSampleSize: number,
+    {
+      collectionSampleSize,
+      referenceSampleSize,
+    }: { collectionSampleSize: number; referenceSampleSize: number },
   ): Promise<ModelStudy[]> {
     const collections = await connection.collections();
-    const promises = collections.map(c =>
-      this.analyzeCollection(c, collectionSampleSize, referenceSampleSize),
+    const promises = collections.map(collection =>
+      this.analyzeCollection(collection, collectionSampleSize, referenceSampleSize),
     );
     const structure = await Promise.all(promises);
 
-    return structure.filter(s => s.analysis.seen > 0).sort((a, b) => a.name.localeCompare(b.name));
+    return structure
+      .filter(collectionAnalysis => collectionAnalysis.analysis.seen > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   private static async analyzeCollection(
@@ -25,7 +29,7 @@ export default class Structure {
     const node = this.createNode();
 
     for await (const sample of collection.find().limit(collectionSampleSize)) {
-      this.walkNode(node, sample, referenceSampleSize);
+      this.walkNode(node, sample.toJSON({ flattenMap: false }), referenceSampleSize);
     }
 
     return { name: collection.collectionName, analysis: node };
@@ -35,10 +39,16 @@ export default class Structure {
     return { types: {}, seen: 0, isReferenceCandidate: true, referenceSamples: new Set() };
   }
 
-  private static walkNode(node: NodeStudy, sample: unknown, referenceSampleSize: number): void {
+  private static walkNode(
+    node: NodeStudy,
+    sample: Record<string, unknown> | Array<unknown>,
+    referenceSampleSize: number,
+  ): void {
     if (Array.isArray(sample)) this.walkArrayNode(node, sample, referenceSampleSize);
-    if (sample?.constructor === Object)
+
+    if (sample?.constructor === Object) {
       this.walkObjectNode(node, sample as Record<string, unknown>, referenceSampleSize);
+    }
 
     this.annotateNode(node, sample, referenceSampleSize);
   }
@@ -49,8 +59,14 @@ export default class Structure {
     referenceSampleSize: number,
   ): void {
     if (!node.arrayElement) node.arrayElement = this.createNode();
-    for (const subSample of sample)
-      this.walkNode(node.arrayElement, subSample, referenceSampleSize);
+
+    for (const subSample of sample) {
+      this.walkNode(
+        node.arrayElement,
+        subSample as unknown[] | Record<string, unknown>,
+        referenceSampleSize,
+      );
+    }
   }
 
   private static walkObjectNode(
@@ -62,7 +78,11 @@ export default class Structure {
 
     for (const [key, subSample] of Object.entries(sample)) {
       if (!node.object[key]) node.object[key] = this.createNode();
-      this.walkNode(node.object[key], subSample, referenceSampleSize);
+      this.walkNode(
+        node.object[key],
+        subSample as unknown[] | Record<string, unknown>,
+        referenceSampleSize,
+      );
     }
   }
 
@@ -78,8 +98,9 @@ export default class Structure {
       const isSingleType = Object.keys(node.types).every(t => t === type || t === 'null');
 
       if (isSingleType && this.isCandidateForReference(type, sample)) {
-        if (sample && node.referenceSamples.size < referenceSampleSize)
+        if (sample && node.referenceSamples.size < referenceSampleSize) {
           node.referenceSamples.add(sample);
+        }
       } else {
         node.isReferenceCandidate = false;
         delete node.referenceSamples;
@@ -89,6 +110,7 @@ export default class Structure {
 
   private static getSampleType(sample: unknown): Primitive {
     if (sample === null) return 'null';
+    // eslint-disable-next-line no-underscore-dangle
     if (typeof sample === 'object' && '_bsontype' in sample) return sample._bsontype as Primitive;
     if (sample instanceof Date) return 'Date';
     if (Array.isArray(sample)) return 'array';
@@ -105,7 +127,7 @@ export default class Structure {
     return (
       type === 'null' ||
       type === 'ObjectId' ||
-      (type === 'Binary' && (sample as Buffer).length <= 16) ||
+      (type === 'Binary' && (sample as Binary).length() <= 16) ||
       (type === 'string' && (sample as string).length <= 36)
     );
   }

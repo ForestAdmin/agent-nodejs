@@ -127,9 +127,11 @@ function getActionRoutes(
 ): BaseRoute[] {
   const routes: BaseRoute[] = [];
 
-  for (const collection of dataSource.collections)
-    for (const actionName of Object.keys(collection.schema.actions))
+  for (const collection of dataSource.collections) {
+    for (const actionName of Object.keys(collection.schema.actions)) {
       routes.push(new ActionRoute(services, options, dataSource, collection.name, actionName));
+    }
+  }
 
   return routes;
 }

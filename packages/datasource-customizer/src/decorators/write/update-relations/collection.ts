@@ -51,10 +51,14 @@ export default class UpdateRelationCollectionDecorator extends CollectionDecorat
         const relation = this.dataSource.getCollection(schema.foreignCollection);
 
         projection = projection.union(new Projection().withPks(relation).nest(key));
-        if (schema.type === 'ManyToOne')
+
+        if (schema.type === 'ManyToOne') {
           projection = projection.union(new Projection(schema.foreignKeyTarget).nest(key));
-        if (schema.type === 'OneToOne')
+        }
+
+        if (schema.type === 'OneToOne') {
           projection = projection.union(new Projection(schema.originKeyTarget));
+        }
       }
     }
 

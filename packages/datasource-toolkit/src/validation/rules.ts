@@ -47,6 +47,7 @@ export const MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE: Readonly<
   Dateonly: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS],
   Date: [...BASE_OPERATORS, ...BASE_DATEONLY_OPERATORS, 'BeforeXHoursAgo', 'AfterXHoursAgo'],
   Time: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
+  Timeonly: [...BASE_OPERATORS, 'LessThan', 'GreaterThan'],
   Binary: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Enum: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
   Json: [...BASE_OPERATORS, ...ARRAY_OPERATORS],
@@ -68,6 +69,7 @@ export const MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE: Readonly<
   Json: ['Json', null],
   Point: ['Point', null],
   Time: ['Time', null],
+  Timeonly: ['Timeonly', null],
   Uuid: ['Uuid', null],
 });
 
