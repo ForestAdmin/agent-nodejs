@@ -35,12 +35,30 @@ export default class LookupGenerator {
     projection: Projection,
   ): PipelineStage[] {
     const pipeline = [];
+    const $addFields = {};
 
     for (const [name, subProjection] of Object.entries(projection.relations)) {
       pipeline.push(...this.lookupRelation(models, currentPath, schemaStack, name, subProjection));
+      Object.assign($addFields, this.addFields(name, subProjection));
     }
 
+    if (Object.keys($addFields).length) pipeline.push({ $addFields });
+
     return pipeline;
+  }
+
+  /**
+   * $addFields aliases are needed in the case of relations with nested fields
+   */
+  private static addFields(name: string, subProjection: Projection): Record<string, string> {
+    return subProjection
+      .filter(field => field.includes('@@@'))
+      .map(fieldName => `${name}.${fieldName.replace(/:/, '.')}`)
+      .reduce((acc: object, curr: string) => {
+        acc[curr] = `$${curr.replace(/@@@/g, '.')}`;
+
+        return acc;
+      }, {});
   }
 
   private static lookupRelation(
