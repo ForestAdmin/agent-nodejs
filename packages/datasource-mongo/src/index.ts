@@ -36,7 +36,7 @@ export async function buildMongooseInstance(
   );
 
   try {
-    Introspector.assertIntrospectionInLatestFormat(introspection);
+    Introspector.assertGivenIntrospectionInLatestFormat(introspection);
 
     const { models } =
       introspection ||

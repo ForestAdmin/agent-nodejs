@@ -47,8 +47,8 @@ export default class Introspector {
     };
   }
 
-  static assertIntrospectionInLatestFormat(introspection?: Introspection) {
-    if (!introspection) throw new Error('Introspection missing.');
+  static assertGivenIntrospectionInLatestFormat(introspection?: Introspection) {
+    if (!introspection) return;
 
     if (introspection.source !== this.SOURCE) {
       throw new Error(
