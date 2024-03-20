@@ -63,14 +63,6 @@ export default function makeAgent() {
       .addDataSource(
         createSqlDataSource('postgres://forest:secret@maison.lamuseauplacard.fr:5440/forest'),
       )
-      .customizeCollection('actor', actors => {
-        actors.use(flattenColumn, {
-          columnName: 'meta',
-          level: 2,
-          readonly: false,
-          include: ['bio', 'sex'],
-        });
-      })
 
     //  .addDataSource(createSequelizeDataSource(sequelizeMySql))
     //  .addDataSource(createSequelizeDataSource(sequelizeMsSql))
