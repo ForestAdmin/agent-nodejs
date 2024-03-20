@@ -380,19 +380,25 @@ describe('Introspection > index', () => {
     });
   });
 
-  describe('assertIntrospectionInLatestFormat', () => {
+  describe('assertGivenIntrospectionInLatestFormat', () => {
     it('should not throw if the version and source are correct', () => {
       expect(() => {
-        Introspector.assertIntrospectionInLatestFormat({
+        Introspector.assertGivenIntrospectionInLatestFormat({
           source: '@forestadmin/datasource-mongo',
           version: 1,
         } as unknown as Introspection);
       }).not.toThrow();
     });
 
+    it('should not throw when the introspection is missing', () => {
+      expect(() => {
+        Introspector.assertGivenIntrospectionInLatestFormat();
+      }).not.toThrow();
+    });
+
     it('should throw an error when the source is not the expected one', () => {
       expect(() => {
-        Introspector.assertIntrospectionInLatestFormat({
+        Introspector.assertGivenIntrospectionInLatestFormat({
           source: 'another-source',
         } as unknown as Introspection);
       }).toThrow(
@@ -402,7 +408,7 @@ describe('Introspection > index', () => {
 
     it('should throw an error when the version is greater than the expected one', () => {
       expect(() => {
-        Introspector.assertIntrospectionInLatestFormat({
+        Introspector.assertGivenIntrospectionInLatestFormat({
           source: '@forestadmin/datasource-mongo',
           version: 2,
         } as unknown as Introspection);
