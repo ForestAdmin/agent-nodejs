@@ -230,7 +230,9 @@ describe('DatasourceMongo', () => {
 
         await buildMongooseInstance(params, introspection);
 
-        expect(Introspector.assertIntrospectionInLatestFormat).toHaveBeenCalledWith(introspection);
+        expect(Introspector.assertGivenIntrospectionInLatestFormat).toHaveBeenCalledWith(
+          introspection,
+        );
       });
     });
 
@@ -294,7 +296,7 @@ describe('DatasourceMongo', () => {
 
         const error = new Error('Introspection error');
 
-        jest.mocked(Introspector.assertIntrospectionInLatestFormat).mockImplementation(() => {
+        jest.mocked(Introspector.assertGivenIntrospectionInLatestFormat).mockImplementation(() => {
           throw error;
         });
 
