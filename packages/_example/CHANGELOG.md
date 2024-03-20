@@ -1,3 +1,13 @@
+## example [1.7.14](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.13...example@1.7.14) (2024-03-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.6.6
+
 ## example [1.7.13](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.12...example@1.7.13) (2024-03-19)
 
 
