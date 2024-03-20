@@ -36,11 +36,36 @@ export default class LookupGenerator {
   ): PipelineStage[] {
     const pipeline = [];
 
+    const $addFields = {};
+
     for (const [name, subProjection] of Object.entries(projection.relations)) {
       pipeline.push(...this.lookupRelation(models, currentPath, schemaStack, name, subProjection));
+      Object.assign($addFields, this.addFields(name, subProjection));
+    }
+
+    if (Object.keys($addFields).length) {
+      return [...pipeline, { $addFields }];
     }
 
     return pipeline;
+  }
+
+  /**
+   * $addFields aliases are needed in the case of relations with nested fields
+   *
+   * @param name
+   * @param subProjection
+   * @returns
+   */
+  private static addFields(name: string, subProjection: Projection) {
+    return subProjection
+      .filter(field => field.includes('@@@'))
+      .map(fieldName => `${name}.${fieldName.replace(/:/, '.')}`)
+      .reduce((acc: object, curr: string) => {
+        acc[curr] = `$${curr.replace(/@@@/g, '.')}`;
+
+        return acc;
+      }, {});
   }
 
   private static lookupRelation(
@@ -66,21 +91,10 @@ export default class LookupGenerator {
 
       const subSchema = MongooseSchema.fromModel(model).fields;
 
-      // $addFields mappings are needed in the case of a relation with nested fields
-      const $addFields = subProjection
-        .filter(field => field.includes('@@@'))
-        .map(fieldName => `${name}.${fieldName}`)
-        .reduce((acc: object, curr: string) => {
-          acc[curr] = `$${curr.replace(/@@@/g, '.')}`;
-
-          return acc;
-        }, {});
-
       return [
         // Push lookup to pipeline
         { $lookup: { from, localField, foreignField, as } },
         { $unwind: { path: `$${as}`, preserveNullAndEmptyArrays: true } },
-        { $addFields },
 
         // Recurse to get relations of relations
         ...this.lookupProjection(models, as, [...schemaStack, subSchema], subProjection),

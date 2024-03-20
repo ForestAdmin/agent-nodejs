@@ -8,7 +8,13 @@ describe('LookupGenerator', () => {
   let books: Model<unknown>;
 
   beforeAll(() => {
-    mongoose.model('countries', new Schema({ name: String }));
+    mongoose.model(
+      'countries',
+      new Schema({
+        name: String,
+        meta: { population: Number, capital: String },
+      }),
+    );
     mongoose.model(
       'editors',
       new Schema({
@@ -18,6 +24,9 @@ describe('LookupGenerator', () => {
           city: String,
           street: String,
           code: String,
+          meta: {
+            length: Number,
+          },
         },
         country: { type: 'ObjectId', ref: 'countries' },
       }),
@@ -81,7 +90,6 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
-        { $addFields: {} },
       ]);
     });
 
@@ -107,6 +115,125 @@ describe('LookupGenerator', () => {
       ]);
     });
 
+    it('should load the editor (relation) with doubly nested fields', () => {
+      const projection = new Projection('editor__manyToOne:address@@@meta@@@length');
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
+
+      expect(pipeline).toStrictEqual([
+        {
+          $lookup: {
+            as: 'editor__manyToOne',
+            foreignField: '_id',
+            from: 'editors',
+            localField: 'editor',
+          },
+        },
+        { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
+        {
+          $addFields: {
+            'editor__manyToOne.address@@@meta@@@length': '$editor__manyToOne.address.meta.length',
+          },
+        },
+      ]);
+    });
+
+    it('should load the editor country capital (double relation with nested field)', () => {
+      const projection = new Projection('editor__manyToOne:country__manyToOne:meta@@@capital');
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
+
+      expect(pipeline).toStrictEqual([
+        {
+          $lookup: {
+            from: 'editors',
+            localField: 'editor',
+            foreignField: '_id',
+            as: 'editor__manyToOne',
+          },
+        },
+        {
+          $unwind: {
+            path: '$editor__manyToOne',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'countries',
+            localField: 'editor__manyToOne.country',
+            foreignField: '_id',
+            as: 'editor__manyToOne.country__manyToOne',
+          },
+        },
+        {
+          $unwind: {
+            path: '$editor__manyToOne.country__manyToOne',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            'country__manyToOne.meta@@@capital': '$country__manyToOne.meta.capital',
+          },
+        },
+        {
+          $addFields: {
+            'editor__manyToOne.country__manyToOne.meta@@@capital':
+              '$editor__manyToOne.country__manyToOne.meta.capital',
+          },
+        },
+      ]);
+    });
+
+    // eslint-disable-next-line max-len
+    it('should load the editor country meta length (double relation with doubly nested field)', () => {
+      const projection = new Projection(
+        'editor__manyToOne:country__manyToOne:meta@@@meta@@@length',
+      );
+      const pipeline = LookupGenerator.lookup(books, stack, projection);
+
+      expect(pipeline).toStrictEqual([
+        {
+          $lookup: {
+            from: 'editors',
+            localField: 'editor',
+            foreignField: '_id',
+            as: 'editor__manyToOne',
+          },
+        },
+        {
+          $unwind: {
+            path: '$editor__manyToOne',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'countries',
+            localField: 'editor__manyToOne.country',
+            foreignField: '_id',
+            as: 'editor__manyToOne.country__manyToOne',
+          },
+        },
+        {
+          $unwind: {
+            path: '$editor__manyToOne.country__manyToOne',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            'country__manyToOne.meta@@@meta@@@length': '$country__manyToOne.meta.meta.length',
+          },
+        },
+        {
+          $addFields: {
+            'editor__manyToOne.country__manyToOne.meta@@@meta@@@length':
+              '$editor__manyToOne.country__manyToOne.meta.meta.length',
+          },
+        },
+      ]);
+    });
+
     it('should load the author country (relation within fake relation)', () => {
       const projection = new Projection('author:country__manyToOne:name');
       const pipeline = LookupGenerator.lookup(books, stack, projection);
@@ -126,7 +253,6 @@ describe('LookupGenerator', () => {
             preserveNullAndEmptyArrays: true,
           },
         },
-        { $addFields: {} },
       ]);
     });
 
@@ -144,7 +270,6 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
-        { $addFields: {} },
         {
           $lookup: {
             as: 'editor__manyToOne.country__manyToOne',
@@ -159,7 +284,6 @@ describe('LookupGenerator', () => {
             preserveNullAndEmptyArrays: true,
           },
         },
-        { $addFields: {} },
       ]);
     });
   });
@@ -184,7 +308,6 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$country__manyToOne', preserveNullAndEmptyArrays: true } },
-        { $addFields: {} },
       ]);
     });
 
@@ -202,7 +325,6 @@ describe('LookupGenerator', () => {
           },
         },
         { $unwind: { path: '$parent.editor__manyToOne', preserveNullAndEmptyArrays: true } },
-        { $addFields: {} },
       ]);
     });
   });
