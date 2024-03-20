@@ -35,7 +35,6 @@ export default class LookupGenerator {
     projection: Projection,
   ): PipelineStage[] {
     const pipeline = [];
-
     const $addFields = {};
 
     for (const [name, subProjection] of Object.entries(projection.relations)) {
@@ -43,21 +42,15 @@ export default class LookupGenerator {
       Object.assign($addFields, this.addFields(name, subProjection));
     }
 
-    if (Object.keys($addFields).length) {
-      return [...pipeline, { $addFields }];
-    }
+    if (Object.keys($addFields).length) pipeline.push({ $addFields });
 
     return pipeline;
   }
 
   /**
    * $addFields aliases are needed in the case of relations with nested fields
-   *
-   * @param name
-   * @param subProjection
-   * @returns
    */
-  private static addFields(name: string, subProjection: Projection) {
+  private static addFields(name: string, subProjection: Projection): Record<string, string> {
     return subProjection
       .filter(field => field.includes('@@@'))
       .map(fieldName => `${name}.${fieldName.replace(/:/, '.')}`)
