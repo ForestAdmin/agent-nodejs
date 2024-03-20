@@ -390,6 +390,12 @@ describe('Introspection > index', () => {
       }).not.toThrow();
     });
 
+    it('should throw an error when the introspection is missing', () => {
+      expect(() => {
+        Introspector.assertIntrospectionInLatestFormat();
+      }).toThrow('Introspection missing.');
+    });
+
     it('should throw an error when the source is not the expected one', () => {
       expect(() => {
         Introspector.assertIntrospectionInLatestFormat({
