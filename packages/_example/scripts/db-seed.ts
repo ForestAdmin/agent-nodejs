@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 import { faker } from '@faker-js/faker';
-import { Connection } from 'mongoose';
+import { Connection, Schema } from 'mongoose';
 import { Sequelize } from 'sequelize';
 
 import initMsSql from './mssql-init';
@@ -47,7 +47,44 @@ async function createStoreRecords(connection: Sequelize, ownerRecords: any[]): P
   );
 }
 
-async function createAccountRecords(connection: Connection, storeRecords: any[]): Promise<void> {
+async function createSaleRecords(connection: Connection, accounts: { _id }[]): Promise<void> {
+  const records: any[] = [];
+  const thingSchema = new Schema({}, { strict: false });
+  const Sale = connection.model('sale', thingSchema);
+
+  for (let i = 0; i < 100; i += 1) {
+    records.push({
+      saleDate: faker.datatype.datetime(),
+      saleItems: faker.helpers.uniqueArray(
+        () => ({
+          name: faker.commerce.productName(),
+          tags: faker.helpers.arrayElements(
+            ['stationary', 'office', 'general', 'school', 'travel', 'kids', 'general'],
+            faker.datatype.number(3),
+          ),
+          price: faker.datatype.number({ min: 10, max: 100, precision: 0.01 }),
+          quantity: faker.datatype.number({ min: 10, max: 100, precision: 1 }),
+        }),
+        faker.datatype.number(15),
+      ),
+      storeLocation: faker.address.city(),
+      customer: {
+        gender: faker.helpers.arrayElement(['M', 'F', 'N']),
+        age: faker.datatype.number(100),
+        email: faker.internet.email(),
+        satisfaction: faker.datatype.number({ min: 0, max: 5, precision: 0.5 }),
+        // eslint-disable-next-line no-underscore-dangle
+        accountNumber: faker.helpers.arrayElement(accounts.map(account => account._id)),
+      },
+      couponUsed: faker.helpers.arrayElement([true, false]),
+      purchaseMethod: faker.helpers.arrayElement(['Online', 'In-store', 'In-mail', 'Door-to-door']),
+    });
+  }
+
+  await Sale.create(records);
+}
+
+async function createAccountRecords(connection: Connection, storeRecords: any[]) {
   const records: any[] = [];
 
   for (let i = 0; i < 30; i += 1) {
@@ -80,7 +117,7 @@ async function createAccountRecords(connection: Connection, storeRecords: any[])
     });
   }
 
-  await connection.models.account.create(records);
+  return connection.models.account.create(records);
 }
 
 async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> {
@@ -184,7 +221,8 @@ async function seedData() {
     const ownerRecords = await createOwnerRecords(sequelizePostgres);
     const storeRecords = await createStoreRecords(sequelizeMySql, ownerRecords);
     const customerRecords = await createCustomerCardRecords(sequelizeMariaDb);
-    await createAccountRecords(mongoose, storeRecords);
+    const accounts = await createAccountRecords(mongoose, storeRecords);
+    await createSaleRecords(mongoose, accounts);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
     await createReviewRecords(sequelizePostgres, storeRecords);
   } catch (error) {

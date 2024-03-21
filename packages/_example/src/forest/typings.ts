@@ -113,6 +113,20 @@ export type AccountBillsItemsFilter = TPaginatedFilter<Schema, 'account_bills_it
 export type AccountBillsItemsSortClause = TSortClause<Schema, 'account_bills_items'>;
 export type AccountBillsItemsAggregation = TAggregation<Schema, 'account_bills_items'>;
 
+export type SalesCustomizer = CollectionCustomizer<Schema, 'sales'>;
+export type SalesRecord = TPartialRow<Schema, 'sales'>;
+export type SalesConditionTree = TConditionTree<Schema, 'sales'>;
+export type SalesFilter = TPaginatedFilter<Schema, 'sales'>;
+export type SalesSortClause = TSortClause<Schema, 'sales'>;
+export type SalesAggregation = TAggregation<Schema, 'sales'>;
+
+export type SalesSaleItemsCustomizer = CollectionCustomizer<Schema, 'sales_saleItems'>;
+export type SalesSaleItemsRecord = TPartialRow<Schema, 'sales_saleItems'>;
+export type SalesSaleItemsConditionTree = TConditionTree<Schema, 'sales_saleItems'>;
+export type SalesSaleItemsFilter = TPaginatedFilter<Schema, 'sales_saleItems'>;
+export type SalesSaleItemsSortClause = TSortClause<Schema, 'sales_saleItems'>;
+export type SalesSaleItemsAggregation = TAggregation<Schema, 'sales_saleItems'>;
+
 
 export type Schema = {
   'account': {
@@ -429,6 +443,88 @@ export type Schema = {
       'store:owner:fullName': string | null;
       'store:owner:id': number;
       'store:owner:lastName': string;
+    };
+  };
+  'sales': {
+    plain: {
+      '_id': string;
+      'couponUsed': boolean;
+      'customer@@@accountNumber': string;
+      'customer@@@age': number;
+      'customer@@@email': string;
+      'customer@@@gender': string;
+      'customer@@@satisfaction': number;
+      'purchaseMethod': string;
+      'saleDate': string;
+      'storeLocation': string;
+    };
+    nested: {
+      'customerAccount': Schema['account']['plain'] & Schema['account']['nested'];
+    };
+    flat: {
+      'customerAccount:_id': string;
+      'customerAccount:avatar': Buffer | null;
+      'customerAccount:firstname': string | null;
+      'customerAccount:lastname': string | null;
+      'customerAccount:storeId': number | null;
+      'customerAccount:address:_id': string;
+      'customerAccount:address:city': string | null;
+      'customerAccount:address:country': string | null;
+      'customerAccount:address:parentId': string;
+      'customerAccount:address:streetName': string | null;
+      'customerAccount:address:streetNumber': number | null;
+      'customerAccount:store:id': number;
+      'customerAccount:store:name': string;
+      'customerAccount:store:ownerFullName': string | null;
+      'customerAccount:store:ownerId': number;
+      'customerAccount:store:owner:firstName': string;
+      'customerAccount:store:owner:fullName': string | null;
+      'customerAccount:store:owner:id': number;
+      'customerAccount:store:owner:lastName': string;
+    };
+  };
+  'sales_saleItems': {
+    plain: {
+      '_id': string;
+      'name': string;
+      'parentId': string;
+      'price': number;
+      'quantity': number;
+      'tags': Array<string> | null;
+    };
+    nested: {
+      'parent': Schema['sales']['plain'] & Schema['sales']['nested'];
+    };
+    flat: {
+      'parent:_id': string;
+      'parent:couponUsed': boolean;
+      'parent:customer@@@accountNumber': string;
+      'parent:customer@@@age': number;
+      'parent:customer@@@email': string;
+      'parent:customer@@@gender': string;
+      'parent:customer@@@satisfaction': number;
+      'parent:purchaseMethod': string;
+      'parent:saleDate': string;
+      'parent:storeLocation': string;
+      'parent:customerAccount:_id': string;
+      'parent:customerAccount:avatar': Buffer | null;
+      'parent:customerAccount:firstname': string | null;
+      'parent:customerAccount:lastname': string | null;
+      'parent:customerAccount:storeId': number | null;
+      'parent:customerAccount:address:_id': string;
+      'parent:customerAccount:address:city': string | null;
+      'parent:customerAccount:address:country': string | null;
+      'parent:customerAccount:address:parentId': string;
+      'parent:customerAccount:address:streetName': string | null;
+      'parent:customerAccount:address:streetNumber': number | null;
+      'parent:customerAccount:store:id': number;
+      'parent:customerAccount:store:name': string;
+      'parent:customerAccount:store:ownerFullName': string | null;
+      'parent:customerAccount:store:ownerId': number;
+      'parent:customerAccount:store:owner:firstName': string;
+      'parent:customerAccount:store:owner:fullName': string | null;
+      'parent:customerAccount:store:owner:id': number;
+      'parent:customerAccount:store:owner:lastName': string;
     };
   };
   'store': {
