@@ -1,9 +1,7 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
-import { flattenColumn } from '@forestadmin/plugin-flattener';
 
 import customizeAccount from './customizations/account';
 import customizeCard from './customizations/card';
@@ -32,60 +30,48 @@ export default function makeAgent() {
     typingsPath: 'src/forest/typings.ts',
   };
 
-  return (
-    createAgent<Schema>(envOptions)
-      //    .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
+  return createAgent<Schema>(envOptions)
+    .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
-      //    .addDataSource(
-      //      // Using an URI
-      //      createSqlDataSource('mariadb://example:password@localhost:3808/example'),
-      //      { include: ['customer'] },
-      //    )
-      //    .addDataSource(
-      //      // Using a connection object
-      //      createSqlDataSource({
-      //        dialect: 'mariadb',
-      //        username: 'example',
-      //        password: 'password',
-      //        port: 3808,
-      //        database: 'example',
-      //      }),
-      //      { include: ['card'] },
-      //    )
-      //   .addDataSource(createTypicode())
-      //   .addDataSource(createSequelizeDataSource(sequelizePostgres))
-      .addDataSource(
-        createMongoDataSource({
-          uri: 'mongodb://forest:secret@localhost:27017',
-          dataSource: {},
-        }),
-      )
-      .addDataSource(
-        createSqlDataSource('postgres://forest:secret@maison.lamuseauplacard.fr:5440/forest'),
-      )
+    .addDataSource(
+      // Using an URI
+      createSqlDataSource('mariadb://example:password@localhost:3808/example'),
+      { include: ['customer'] },
+    )
+    .addDataSource(
+      // Using a connection object
+      createSqlDataSource({
+        dialect: 'mariadb',
+        username: 'example',
+        password: 'password',
+        port: 3808,
+        database: 'example',
+      }),
+      { include: ['card'] },
+    )
+    .addDataSource(createTypicode())
+    .addDataSource(createSequelizeDataSource(sequelizePostgres))
+    .addDataSource(createSequelizeDataSource(sequelizeMySql))
+    .addDataSource(createSequelizeDataSource(sequelizeMsSql))
+    .addDataSource(
+      createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+    )
 
-    //  .addDataSource(createSequelizeDataSource(sequelizeMySql))
-    //  .addDataSource(createSequelizeDataSource(sequelizeMsSql))
-    //  .addDataSource(
-    //    createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
-    //  )
+    .addChart('numRentals', async (context, resultBuilder) => {
+      const rentals = context.dataSource.getCollection('rental');
+      const rows = await rentals.aggregate({}, { operation: 'Count' });
 
-    //  .addChart('numRentals', async (context, resultBuilder) => {
-    //    const rentals = context.dataSource.getCollection('rental');
-    //    const rows = await rentals.aggregate({}, { operation: 'Count' });
+      return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
+    })
 
-    //    return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
-    //  })
-  );
-
-  //   .customizeCollection('card', customizeCard)
-  //   .customizeCollection('account', customizeAccount)
-  //   .customizeCollection('owner', customizeOwner)
-  //   .customizeCollection('store', customizeStore)
-  //   .customizeCollection('rental', customizeRental)
-  //   .customizeCollection('dvd', customizeDvd)
-  //   .customizeCollection('customer', customizeCustomer)
-  //   .customizeCollection('post', customizePost)
-  //   .customizeCollection('comment', customizeComment)
-  //   .customizeCollection('review', customizeReview);
+    .customizeCollection('card', customizeCard)
+    .customizeCollection('account', customizeAccount)
+    .customizeCollection('owner', customizeOwner)
+    .customizeCollection('store', customizeStore)
+    .customizeCollection('rental', customizeRental)
+    .customizeCollection('dvd', customizeDvd)
+    .customizeCollection('customer', customizeCustomer)
+    .customizeCollection('post', customizePost)
+    .customizeCollection('comment', customizeComment)
+    .customizeCollection('review', customizeReview);
 }
