@@ -29,7 +29,7 @@ export default class Structure {
     const node = this.createNode();
 
     for await (const sample of collection.find().limit(collectionSampleSize)) {
-      this.walkNode(node, sample.toJSON({ flattenMap: false }), referenceSampleSize);
+      this.walkNode(node, sample, referenceSampleSize);
     }
 
     return { name: collection.collectionName, analysis: node };
