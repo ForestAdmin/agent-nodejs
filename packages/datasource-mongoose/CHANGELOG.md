@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.6.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.5...@forestadmin/datasource-mongoose@1.6.6) (2024-03-20)
+
+
+### Bug Fixes
+
+* mongoose relation flattened field not showing ([#1076](https://github.com/ForestAdmin/agent-nodejs/issues/1076)) ([0a64c00](https://github.com/ForestAdmin/agent-nodejs/commit/0a64c0047f63ed82d66846e85cbb69795ccf5b5b))
+
 ## @forestadmin/datasource-mongoose [1.6.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.4...@forestadmin/datasource-mongoose@1.6.5) (2024-03-14)
 
 
