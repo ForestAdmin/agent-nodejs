@@ -22,12 +22,10 @@ describe('Introspection > Structure', () => {
     const findQueries: Array<{
       limit: jest.Mock;
     }> = [];
-    const mongoRecords: Array<Array<{ toJSON: jest.Mock }>> = [];
+    const mongoRecords: Array<Record<string, unknown>[]> = [];
 
     const collections = collectionDefinitions.map(({ collectionName, records }) => {
-      const collectionMongoRecords = records.map(record => ({
-        toJSON: jest.fn().mockReturnValue(record),
-      }));
+      const collectionMongoRecords = records;
       const query = {
         limit: jest.fn().mockReturnValue(asyncIterate(collectionMongoRecords)),
       };
@@ -87,22 +85,6 @@ describe('Introspection > Structure', () => {
         expect.objectContaining({ name: 'a' }),
         expect.objectContaining({ name: 'b' }),
       ]);
-    });
-
-    it('should not flatten the records', async () => {
-      const { connection, mongoRecords } = setupConnectionMock([
-        {
-          collectionName: 'collection',
-          records: [{ name: 'Alice' }],
-        },
-      ]);
-
-      await Structure.introspect(connection as unknown as MongoDb, {
-        collectionSampleSize: 1,
-        referenceSampleSize: 1,
-      });
-
-      expect(mongoRecords[0][0].toJSON).toHaveBeenCalledWith({ flattenMap: false });
     });
 
     it('should limit to the collectionSampleSize', async () => {
