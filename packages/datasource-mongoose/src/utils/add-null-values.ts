@@ -1,8 +1,26 @@
+import { RECORD_DOES_NOT_EXIST } from './pipeline/ConditionGenerator';
+
+function removeRecordWithoutId(record: Record<string, unknown>): Record<string, unknown> | null {
+  if (!record || record[RECORD_DOES_NOT_EXIST]) return null;
+
+  Object.entries(record).forEach(([key, value]) => {
+    if (
+      value &&
+      typeof value === 'object' &&
+      Object.values(value).find(v => v === RECORD_DOES_NOT_EXIST)
+    ) {
+      record[key] = null;
+    }
+  });
+
+  return record;
+}
+
 function addNullValuesOnRecord(
   record: Record<string, unknown>,
   projection: string[],
 ): Record<string, unknown> {
-  if (!record) return record;
+  if (!record) return null;
 
   const result = { ...record };
 
@@ -37,12 +55,12 @@ function addNullValuesOnRecord(
     }
   }
 
-  return result;
+  return removeRecordWithoutId(result);
 }
 
 export default function addNullValues(
   records: Record<string, unknown>[],
   projection: string[],
 ): Record<string, unknown>[] {
-  return records.map(record => addNullValuesOnRecord(record, projection));
+  return records.map(record => addNullValuesOnRecord(record, projection)).filter(Boolean);
 }

@@ -26,7 +26,6 @@ import {
   splitId,
   unflattenRecord,
 } from './utils/helpers';
-import AsModelNotNullGenerator from './utils/pipeline/as-model-not-null';
 import FilterGenerator from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
 import LookupGenerator from './utils/pipeline/lookup';
@@ -57,30 +56,21 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    return this._list(
-      AsModelNotNullGenerator.asModelNotNull(this.model, this.stack),
-      filter,
-      projection,
-    );
+    return this._list(filter, projection);
   }
 
-  private async _list(
-    pipelineBefore: PipelineStage[],
-    filter: PaginatedFilter,
-    projection: Projection,
-  ): Promise<RecordData[]> {
+  private async _list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
     const lookupProjection = projection.union(
       filter.conditionTree?.projection,
       filter.sort?.projection,
     );
 
-    const records = await this.model.aggregate([
-      ...(pipelineBefore || []),
+    const pipeline = [
       ...this.buildBasePipeline(filter, lookupProjection),
       ...ProjectionGenerator.project(projection),
-    ]);
+    ];
 
-    return addNullValues(replaceMongoTypes(records), projection);
+    return addNullValues(replaceMongoTypes(await this.model.aggregate(pipeline)), projection);
   }
 
   async aggregate(
@@ -209,7 +199,7 @@ export default class MongooseCollection extends BaseCollection {
     // Fetch the ids of the documents OR subdocuments that will be updated.
     // We need to do that regardless of `this.prefix` because the filter may contain conditions on
     // relationships.
-    const records = await this._list([], filter, new Projection('_id'));
+    const records = await this._list(filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {
@@ -257,7 +247,7 @@ export default class MongooseCollection extends BaseCollection {
   }
 
   private async _delete(caller: Caller, filter: Filter): Promise<void> {
-    const records = await this._list([], filter, new Projection('_id'));
+    const records = await this._list(filter, new Projection('_id'));
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {

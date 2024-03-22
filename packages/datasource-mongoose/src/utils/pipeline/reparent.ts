@@ -1,5 +1,6 @@
 import { Model, PipelineStage } from 'mongoose';
 
+import ConditionGenerator from './ConditionGenerator';
 import MongooseSchema from '../../mongoose/schema';
 
 /**
@@ -41,11 +42,11 @@ export default class ReparentGenerator {
           newRoot: {
             $mergeObjects: [
               inDoc ? { content: `$${prefix}` } : `$${prefix}`,
-              {
+              ConditionGenerator.tagRecordIfNotExist(prefix, {
                 _id: { $concat: [{ $toString: '$_id' }, `.${prefix}.`, { $toString: '$index' }] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
@@ -60,11 +61,11 @@ export default class ReparentGenerator {
           newRoot: {
             $mergeObjects: [
               inDoc ? { content: `$${prefix}` } : `$${prefix}`,
-              {
+              ConditionGenerator.tagRecordIfNotExist(prefix, {
                 _id: { $concat: [{ $toString: '$_id' }, `.${prefix}`] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
