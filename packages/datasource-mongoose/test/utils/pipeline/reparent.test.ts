@@ -1,5 +1,6 @@
 import mongoose, { Model, Schema } from 'mongoose';
 
+import ConditionGenerator from '../../../src/utils/pipeline/ConditionGenerator';
 import ReparentGenerator from '../../../src/utils/pipeline/reparent';
 
 describe('ReparentGenerator', () => {
@@ -39,11 +40,11 @@ describe('ReparentGenerator', () => {
           newRoot: {
             $mergeObjects: [
               '$author',
-              {
+              ConditionGenerator.tagRecordIfNotExist('author', {
                 _id: { $concat: [{ $toString: '$_id' }, '.author'] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
@@ -64,11 +65,11 @@ describe('ReparentGenerator', () => {
           newRoot: {
             $mergeObjects: [
               '$editions',
-              {
+              ConditionGenerator.tagRecordIfNotExist('editions', {
                 _id: { $concat: [{ $toString: '$_id' }, '.editions.', { $toString: '$index' }] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
@@ -88,11 +89,11 @@ describe('ReparentGenerator', () => {
           newRoot: {
             $mergeObjects: [
               { content: '$title' },
-              {
+              ConditionGenerator.tagRecordIfNotExist('title', {
                 _id: { $concat: [{ $toString: '$_id' }, '.title'] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
@@ -113,11 +114,11 @@ describe('ReparentGenerator', () => {
           newRoot: {
             $mergeObjects: [
               '$author',
-              {
+              ConditionGenerator.tagRecordIfNotExist('author', {
                 _id: { $concat: [{ $toString: '$_id' }, '.author'] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
@@ -127,11 +128,11 @@ describe('ReparentGenerator', () => {
           newRoot: {
             $mergeObjects: [
               { content: '$lastname' },
-              {
+              ConditionGenerator.tagRecordIfNotExist('lastname', {
                 _id: { $concat: [{ $toString: '$_id' }, '.lastname'] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
@@ -152,11 +153,11 @@ describe('ReparentGenerator', () => {
           newRoot: {
             $mergeObjects: [
               { content: '$publishers' },
-              {
+              ConditionGenerator.tagRecordIfNotExist('publishers', {
                 _id: { $concat: [{ $toString: '$_id' }, '.publishers.', { $toString: '$index' }] },
                 parentId: '$_id',
                 parent: '$$ROOT',
-              },
+              }),
             ],
           },
         },
