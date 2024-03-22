@@ -1,7 +1,7 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import { PipelineStage } from 'mongoose';
 
-import { RECORD_DOES_NOT_EXIST } from './ConditionGenerator';
+import { RECORD_DOES_NOT_EXIST } from './condition-generator';
 
 /** Generate a mongo pipeline which applies a forest admin projection */
 export default class ProjectionGenerator {

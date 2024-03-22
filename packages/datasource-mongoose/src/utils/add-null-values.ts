@@ -1,6 +1,6 @@
-import { RECORD_DOES_NOT_EXIST } from './pipeline/ConditionGenerator';
+import { RECORD_DOES_NOT_EXIST } from './pipeline/condition-generator';
 
-function removeRecordWithoutId(record: Record<string, unknown>): Record<string, unknown> | null {
+function removeNotExistRecord(record: Record<string, unknown>): Record<string, unknown> | null {
   if (!record || record[RECORD_DOES_NOT_EXIST]) return null;
 
   Object.entries(record).forEach(([key, value]) => {
@@ -55,7 +55,7 @@ function addNullValuesOnRecord(
     }
   }
 
-  return removeRecordWithoutId(result);
+  return removeNotExistRecord(result);
 }
 
 export default function addNullValues(

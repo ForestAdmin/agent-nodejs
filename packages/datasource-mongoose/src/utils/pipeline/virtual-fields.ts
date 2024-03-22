@@ -1,7 +1,7 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import { AnyExpression, Model, PipelineStage } from 'mongoose';
 
-import ConditionGenerator from './ConditionGenerator';
+import ConditionGenerator from './condition-generator';
 import { Stack } from '../../types';
 
 /**
