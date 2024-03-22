@@ -1,6 +1,7 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import mongoose, { Model, Schema } from 'mongoose';
 
+import ConditionGenerator from '../../../src/utils/pipeline/ConditionGenerator';
 import VirtualFieldsGenerator from '../../../src/utils/pipeline/virtual-fields';
 
 describe('VirtualFieldsGenerator', () => {
@@ -39,8 +40,10 @@ describe('VirtualFieldsGenerator', () => {
     expect(pipeline).toEqual([
       {
         $addFields: {
-          'author._id': { $concat: [{ $toString: '$_id' }, '.author'] },
-          'author.parentId': '$_id',
+          'author._id': ConditionGenerator.tagRecordIfNotExistByValue('author', {
+            $concat: [{ $toString: '$_id' }, '.author'],
+          }),
+          'author.parentId': ConditionGenerator.tagRecordIfNotExistByValue('author', '$_id'),
         },
       },
     ]);
@@ -54,8 +57,10 @@ describe('VirtualFieldsGenerator', () => {
     expect(pipeline).toEqual([
       {
         $addFields: {
-          'title._id': { $concat: [{ $toString: '$_id' }, '.title'] },
-          'title.parentId': '$_id',
+          'title._id': ConditionGenerator.tagRecordIfNotExistByValue('title', {
+            $concat: [{ $toString: '$_id' }, '.title'],
+          }),
+          'title.parentId': ConditionGenerator.tagRecordIfNotExistByValue('title', '$_id'),
           'title.content': '$title',
         },
       },
@@ -70,7 +75,9 @@ describe('VirtualFieldsGenerator', () => {
     expect(pipeline).toEqual([
       {
         $addFields: {
-          'author.country._id': { $concat: [{ $toString: '$_id' }, '.author.country'] },
+          'author.country._id': ConditionGenerator.tagRecordIfNotExistByValue('author.country', {
+            $concat: [{ $toString: '$_id' }, '.author.country'],
+          }),
         },
       },
     ]);
@@ -84,7 +91,10 @@ describe('VirtualFieldsGenerator', () => {
     expect(pipeline).toEqual([
       {
         $addFields: {
-          'author.country.name': '$author.country.name',
+          'author.country.name': ConditionGenerator.tagRecordIfNotExistByValue(
+            'author.country',
+            '$author.country.name',
+          ),
         },
       },
     ]);
