@@ -16,6 +16,11 @@ import mapDeprecated from './decorators/computed/utils/map-deprecated';
 import DecoratorsStack from './decorators/decorators-stack';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
+import {
+  CreateOverrideHandler,
+  DeleteOverrideHandler,
+  UpdateOverrideHandler,
+} from './decorators/override/types';
 import { RelationDefinition } from './decorators/relation/types';
 import { SearchDefinition } from './decorators/search/types';
 import { SegmentDefinition } from './decorators/segment/types';
@@ -572,6 +577,24 @@ export default class CollectionCustomizer<
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .replaceSearch(definition as SearchDefinition<any, any>);
+    });
+  }
+
+  overrideCreate(handler: CreateOverrideHandler<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.override.getCollection(this.name).addCreateHandler(handler);
+    });
+  }
+
+  overrideUpdate(handler: UpdateOverrideHandler<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.override.getCollection(this.name).addUpdateHandler(handler);
+    });
+  }
+
+  overrideDelete(handler: DeleteOverrideHandler<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.override.getCollection(this.name).addDeleteHandler(handler);
     });
   }
 

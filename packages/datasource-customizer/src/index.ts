@@ -15,6 +15,7 @@ export { SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export * from './decorators/write/write-replace/types';
 export * from './decorators/hook/types';
+export * from './decorators/override/types';
 
 // Context
 export { default as CollectionCustomizationContext } from './context/collection-context';
