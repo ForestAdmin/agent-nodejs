@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.6.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.6...@forestadmin/datasource-mongoose@1.6.7) (2024-03-25)
+
+
+### Bug Fixes
+
+* **mongo-datasource:** should return record with empty flattened record ([#1080](https://github.com/ForestAdmin/agent-nodejs/issues/1080)) ([420fbfc](https://github.com/ForestAdmin/agent-nodejs/commit/420fbfc245665c96bf5798211749a69f93ba777a))
+
 ## @forestadmin/datasource-mongoose [1.6.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.6.5...@forestadmin/datasource-mongoose@1.6.6) (2024-03-20)
 
 
