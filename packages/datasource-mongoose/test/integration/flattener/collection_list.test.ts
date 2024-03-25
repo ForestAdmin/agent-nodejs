@@ -119,9 +119,7 @@ describe('Complex flattening', () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {
           flattenMode: 'manual',
-          flattenOptions: {
-            cars: { asModels: ['engine'] },
-          },
+          flattenOptions: { cars: { asModels: ['engine'] } },
         });
 
         const [car] = await dataSource
@@ -139,9 +137,7 @@ describe('Complex flattening', () => {
         expect(records).toEqual([
           expect.objectContaining({
             _id: car._id,
-            engine: {
-              horsePower: '98',
-            },
+            engine: { horsePower: '98' },
           }),
         ]);
       });
@@ -170,12 +166,7 @@ describe('Complex flattening', () => {
         expect(records).toEqual([
           expect.objectContaining({
             horsePower: '98',
-            parent: {
-              _id: car._id,
-              engine: {
-                horsePower: '98',
-              },
-            },
+            parent: { _id: car._id, engine: { horsePower: '98' } },
           }),
         ]);
       });
@@ -184,9 +175,7 @@ describe('Complex flattening', () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {
           flattenMode: 'manual',
-          flattenOptions: {
-            companies: { asModels: ['address'] },
-          },
+          flattenOptions: { companies: { asModels: ['address'] } },
         });
 
         const [company] = await dataSource
@@ -202,6 +191,162 @@ describe('Complex flattening', () => {
         );
 
         expect(records).toEqual([]);
+      });
+
+      it('should return records even if flatten field is empty', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { companies: { asModels: ['address'] } },
+        });
+
+        await dataSource.getCollection('companies').create(caller, [{ name: 'Renault' }]);
+
+        const records = await dataSource
+          .getCollection('companies')
+          .list(caller, new Filter({}), new Projection('_id'));
+
+        expect(records).toEqual([{ _id: expect.any(String) }]);
+      });
+
+      it('should return null when asking a flattened field that does not exist', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { companies: { asModels: ['address'] } },
+        });
+
+        await dataSource.getCollection('companies').create(caller, [{ name: 'Renault' }]);
+
+        const records = await dataSource
+          .getCollection('companies')
+          .list(caller, new Filter({}), new Projection('_id', 'address:city'));
+
+        // expected address null, not an empty object
+        expect(records).toEqual([{ _id: expect.any(String), address: null }]);
+      });
+
+      it('should return a value when asking a flattened field with that exist', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { companies: { asModels: ['address'] } },
+        });
+
+        await dataSource
+          .getCollection('companies')
+          .create(caller, [{ name: 'Renault', address: { city: 'Paris' } }]);
+
+        const records = await dataSource
+          .getCollection('companies')
+          .list(caller, new Filter({}), new Projection('_id', 'address:city'));
+
+        expect(records).toEqual([{ _id: expect.any(String), address: { city: 'Paris' } }]);
+      });
+
+      // eslint-disable-next-line max-len
+      it('should not return the record when only asking the flattened field that does not exist', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { companies: { asModels: ['address'] } },
+        });
+
+        await dataSource.getCollection('companies').create(caller, [{ name: 'Renault' }]);
+
+        const records = await dataSource
+          .getCollection('companies_address')
+          .list(caller, new Filter({}), new Projection('city'));
+
+        expect(records).toEqual([]);
+      });
+
+      // eslint-disable-next-line max-len
+      it('should return the record when asking the flattened field that exists', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { companies: { asModels: ['address'] } },
+        });
+
+        await dataSource.getCollection('companies').create(caller, [
+          {
+            name: 'Renault',
+            address: { city: null, number: 10 },
+          },
+        ]);
+
+        const records = await dataSource
+          .getCollection('companies_address')
+          .list(caller, new Filter({}), new Projection('city'));
+
+        expect(records).toEqual([{ city: null }]);
+      });
+
+      // eslint-disable-next-line max-len
+      it('should return the record with nested field when asking a null field from an existing flattened field', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { companies: { asModels: ['address'] } },
+        });
+
+        await dataSource.getCollection('companies').create(caller, [
+          {
+            name: 'Renault',
+            address: { city: null, number: 10 },
+          },
+        ]);
+
+        const records = await dataSource
+          .getCollection('companies')
+          .list(caller, new Filter({}), new Projection('name', 'address:city'));
+
+        expect(records).toEqual([{ name: 'Renault', address: { city: null } }]);
+      });
+
+      // eslint-disable-next-line max-len
+      it('should return null when asking null deep flattened field that not exist', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { assets: { asModels: ['image', 'image.metadata'] } },
+        });
+
+        await dataSource.getCollection('assets').create(caller, [
+          {
+            name: 'dog',
+            image: { path: 'dog', metadata: null },
+          },
+        ]);
+
+        const records = await dataSource
+          .getCollection('assets')
+          .list(caller, new Filter({}), new Projection('name', 'image:metadata:size'));
+
+        expect(records).toEqual([{ name: 'dog', image: { metadata: null } }]);
+      });
+
+      // eslint-disable-next-line max-len
+      it('should return the record when asking null deep flattened field that exist', async () => {
+        connection = await setupFlattener('collection_flattener_list');
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'manual',
+          flattenOptions: { assets: { asModels: ['image', 'image.metadata'] } },
+        });
+
+        await dataSource.getCollection('assets').create(caller, [
+          {
+            name: 'dog',
+            image: { path: 'dog', metadata: { format: 'jpeg' } },
+          },
+        ]);
+
+        const records = await dataSource
+          .getCollection('assets')
+          .list(caller, new Filter({}), new Projection('name', 'image:metadata:size'));
+
+        expect(records).toEqual([{ name: 'dog', image: { metadata: { size: null } } }]);
       });
     });
   });

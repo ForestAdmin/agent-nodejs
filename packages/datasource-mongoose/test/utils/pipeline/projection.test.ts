@@ -12,6 +12,8 @@ describe('ProjectionGenerator', () => {
   it('should generate a $project stage when fields are provided', () => {
     const pipeline = ProjectionGenerator.project(new Projection('_id', 'title:_id'));
 
-    expect(pipeline).toEqual([{ $project: { _id: true, 'title._id': true } }]);
+    expect(pipeline).toEqual([
+      { $project: { _id: true, 'title._id': true, FOREST_RECORD_DOES_NOT_EXIST: true } },
+    ]);
   });
 });

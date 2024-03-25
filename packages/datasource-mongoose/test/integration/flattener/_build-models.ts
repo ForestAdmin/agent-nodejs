@@ -44,6 +44,20 @@ export default async function setupFlattener(dbName = 'test') {
     }),
   );
 
+  connection.model(
+    'assets',
+    new Schema({
+      name: String,
+      image: {
+        path: String,
+        metadata: {
+          size: Number,
+          format: String,
+        },
+      },
+    }),
+  );
+
   await connection.dropDatabase();
 
   return connection;
