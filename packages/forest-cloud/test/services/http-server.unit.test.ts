@@ -55,6 +55,25 @@ describe('http-server', () => {
           );
         });
       });
+
+      describe('if it is an Unauthorized error', () => {
+        it('should throw a Business error with details', async () => {
+          const error = new axios.AxiosError('Some axios error');
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          error.response = {
+            status: 401,
+            data: { errors: [{ detail: 'some details' }] },
+          };
+          jest.mocked(axios.default).mockRejectedValue(error);
+          await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+            new BusinessError(
+              // eslint-disable-next-line max-len
+              "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\nPlease make sure you are logged in. Run 'npx @forestadmin/forest-cloud@latest login' to login",
+            ),
+          );
+        });
+      });
     });
   });
 

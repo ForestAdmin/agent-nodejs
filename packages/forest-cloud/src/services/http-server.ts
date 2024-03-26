@@ -24,7 +24,16 @@ async function handledAxios<T>(
     if (e.response?.status === 400) {
       throw new ValidationError(details);
     } else {
-      throw new BusinessError(`${errorMessage}: ${error.message}\n${details}`.trim());
+      const baseMessage = `${errorMessage}: ${error.message}\n${details}`.trim();
+
+      if (e.response?.status === 401) {
+        const loginMessage =
+          'Please make sure you are logged in.' +
+          " Run 'npx @forestadmin/forest-cloud@latest login' to login";
+        throw new BusinessError(`${baseMessage}\n${loginMessage}`);
+      }
+
+      throw new BusinessError(baseMessage);
     }
   }
 }
