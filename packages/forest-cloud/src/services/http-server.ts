@@ -26,10 +26,9 @@ async function handledAxios<T>(
     } else {
       const baseMessage = `${errorMessage}: ${error.message}\n${details}`.trim();
 
-      if (e.response?.status === 401) {
+      if (e.response?.status === 401 || e.response?.status === 403) {
         const loginMessage =
-          'Please make sure you are logged in with the right account.' +
-          " Run 'npx @forestadmin/forest-cloud@latest login' to login";
+          " You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'";
         throw new BusinessError(`${baseMessage}\n${loginMessage}`);
       }
 

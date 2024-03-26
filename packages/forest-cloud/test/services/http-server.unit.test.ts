@@ -69,7 +69,26 @@ describe('http-server', () => {
           await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
             new BusinessError(
               // eslint-disable-next-line max-len
-              "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\nPlease make sure you are logged in with the right account. Run 'npx @forestadmin/forest-cloud@latest login' to login",
+              "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\n You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'",
+            ),
+          );
+        });
+      });
+
+      describe('if it is a Forbidden error', () => {
+        it('should throw a Business error with details', async () => {
+          const error = new axios.AxiosError('Some axios error');
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          error.response = {
+            status: 403,
+            data: { errors: [{ detail: 'some details' }] },
+          };
+          jest.mocked(axios.default).mockRejectedValue(error);
+          await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+            new BusinessError(
+              // eslint-disable-next-line max-len
+              "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\n You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'",
             ),
           );
         });
