@@ -2,8 +2,8 @@ import fsSync from 'fs';
 import os from 'os';
 import path from 'path';
 
-import createLogger from './logger';
-import login from './login';
+import createLogger from './externals/logger';
+import login from './externals/login';
 import makeCommands from './make-commands';
 import BootstrapPathManager from './services/bootstrap-path-manager';
 import DistPathManager from './services/dist-path-manager';

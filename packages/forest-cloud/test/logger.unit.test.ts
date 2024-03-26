@@ -1,4 +1,4 @@
-import createLogger, { loggerPrefix } from '../src/logger';
+import createLogger, { loggerPrefix } from '../src/externals/logger';
 
 describe('logger', () => {
   describe('when log', () => {
