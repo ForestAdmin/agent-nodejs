@@ -1,8 +1,8 @@
 import { exec } from 'child_process';
 import { beforeEach } from 'node:test';
 
-import login from '../src/login';
-import { Logger } from '../src/types';
+import login from '../../src/externals/login';
+import { Logger } from '../../src/types';
 
 jest.mock('child_process', () => ({
   exec: jest.fn(),

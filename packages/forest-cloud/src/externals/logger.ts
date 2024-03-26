@@ -1,6 +1,6 @@
 import ora from 'ora';
 
-import { Logger } from './types';
+import { Logger } from '../types';
 
 export const loggerPrefix = {
   Debug: '\x1b[34mdebug:\x1b[0m',
