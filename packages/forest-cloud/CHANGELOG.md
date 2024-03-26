@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.5.4...@forestadmin/forest-cloud@1.6.0) (2024-03-26)
+
+
+### Features
+
+* **forest-cloud:** improve a message when there is a 401 http error ([#1081](https://github.com/ForestAdmin/agent-nodejs/issues/1081)) ([358a104](https://github.com/ForestAdmin/agent-nodejs/commit/358a104141101d389059282abc6c5b64eda11f1b))
+
 ## @forestadmin/forest-cloud [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.5.3...@forestadmin/forest-cloud@1.5.4) (2024-03-19)
 
 
