@@ -69,7 +69,7 @@ describe('http-server', () => {
           await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
             new BusinessError(
               // eslint-disable-next-line max-len
-              "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\nPlease make sure you are logged in. Run 'npx @forestadmin/forest-cloud@latest login' to login",
+              "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\nPlease make sure you are logged in with the right account. Run 'npx @forestadmin/forest-cloud@latest login' to login",
             ),
           );
         });
