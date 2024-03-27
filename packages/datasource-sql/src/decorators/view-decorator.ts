@@ -1,7 +1,6 @@
 import {
   CollectionDecorator,
   CollectionSchema,
-  RecordData,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -23,15 +22,15 @@ export default class ViewDecorator extends CollectionDecorator {
     };
   }
 
-  override async create(): Promise<RecordData[]> {
+  override async create(): Promise<never> {
     throw new UnprocessableError('View is read-only');
   }
 
-  override async update(): Promise<void> {
+  override async update(): Promise<never> {
     throw new UnprocessableError('View is read-only');
   }
 
-  override async delete(): Promise<void> {
+  override async delete(): Promise<never> {
     throw new UnprocessableError('View is read-only');
   }
 }

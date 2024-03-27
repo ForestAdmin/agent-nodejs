@@ -6,6 +6,7 @@ import IntrospectionDialect, {
 } from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
 import CONNECTION_DETAILS, { ConnectionDetails } from '../../_helpers/connection-details';
+import setupEmptyDatabase from '../../_helpers/setup-empty-database';
 
 const SCALAR_TYPES: [string, string, string[]?][] = [
   // Testing a subset of types
@@ -20,12 +21,10 @@ const SCALAR_TYPES: [string, string, string[]?][] = [
 ];
 
 async function setupTestDB(connectionDetails: ConnectionDetails, schema) {
-  await connectionDetails.reinitDb('datasource-sql-introspection-test');
-
-  const sequelize = new Sequelize({
-    ...connectionDetails.options('datasource-sql-introspection-test'),
-    schema,
-  });
+  const sequelize = await setupEmptyDatabase(
+    connectionDetails,
+    'datasource-sql-introspection-test',
+  );
 
   if (schema) {
     await sequelize.getQueryInterface().createSchema(schema);
@@ -52,7 +51,7 @@ describe('Integration > SqlTypeConverter', () => {
         });
 
         afterEach(async () => {
-          sequelize?.close();
+          await sequelize?.close();
         });
 
         describe.each(
@@ -74,8 +73,6 @@ describe('Integration > SqlTypeConverter', () => {
 
               await sequelize.sync();
 
-              const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
               const [columnDescriptions] = await dialect.listColumns(
                 [{ tableName: 'test', schema }],
                 sequelize,
@@ -84,9 +81,8 @@ describe('Integration > SqlTypeConverter', () => {
                 c => c.name === 'column',
               ) as ColumnDescription;
 
-              const result = await sqlTypeConverter.convert(
+              const result = await SqlTypeConverter.convert(
                 { tableName: 'test', schema },
-                'column',
                 description,
               );
 
@@ -115,8 +111,6 @@ describe('Integration > SqlTypeConverter', () => {
 
             await sequelize.sync();
 
-            const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
             const [columnDescriptions] = await dialect.listColumns(
               [{ tableName: 'test', schema }],
               sequelize,
@@ -125,9 +119,8 @@ describe('Integration > SqlTypeConverter', () => {
               c => c.name === 'column',
             ) as ColumnDescription;
 
-            const result = await sqlTypeConverter.convert(
+            const result = await SqlTypeConverter.convert(
               { tableName: 'test', schema },
-              'column',
               description,
             );
 
@@ -177,7 +170,6 @@ describe('Integration > SqlTypeConverter', () => {
 
               await sequelize.sync();
 
-              const sqlTypeConverter = new SqlTypeConverter(sequelize);
               const [columnDescriptions] = await dialect.listColumns(
                 [{ tableName: 'test', schema }],
                 sequelize,
@@ -186,9 +178,8 @@ describe('Integration > SqlTypeConverter', () => {
                 c => c.name === 'column',
               ) as ColumnDescription;
 
-              const result = await sqlTypeConverter.convert(
+              const result = await SqlTypeConverter.convert(
                 { tableName: 'test', schema },
-                'column',
                 description,
               );
 
@@ -220,7 +211,6 @@ describe('Integration > SqlTypeConverter', () => {
 
               await sequelize.sync();
 
-              const sqlTypeConverter = new SqlTypeConverter(sequelize);
               const [columnDescriptions] = await dialect.listColumns(
                 [{ tableName: 'test', schema }],
                 sequelize,
@@ -229,9 +219,8 @@ describe('Integration > SqlTypeConverter', () => {
                 c => c.name === 'column',
               ) as ColumnDescription;
 
-              const result = await sqlTypeConverter.convert(
+              const result = await SqlTypeConverter.convert(
                 { tableName: 'test', schema },
-                'column',
                 description,
               );
 

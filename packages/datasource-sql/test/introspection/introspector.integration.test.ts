@@ -3,11 +3,12 @@ import { DataTypes, Sequelize } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
 import CONNECTION_DETAILS, { MSSQL_DETAILS } from '../_helpers/connection-details';
-
-const db = 'database_introspector';
+import setupEmptyDatabase from '../_helpers/setup-empty-database';
 
 describe('Introspector > Integration', () => {
   describe('relations to different schemas', () => {
+    const db = 'database_introspector';
+
     describe.each(CONNECTION_DETAILS.filter(connection => connection.supports.schemas))(
       'on $name',
       connectionDetails => {
@@ -15,16 +16,7 @@ describe('Introspector > Integration', () => {
         let sequelizeSchema1: Sequelize;
 
         beforeEach(async () => {
-          const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-          try {
-            const queryInterface = internalSequelize.getQueryInterface();
-            await queryInterface.dropDatabase(db);
-            await queryInterface.createDatabase(db);
-          } finally {
-            internalSequelize.close();
-          }
-
+          await setupEmptyDatabase(connectionDetails, db);
           sequelize = new Sequelize(connectionDetails.url(db), {
             logging: false,
           });
@@ -108,23 +100,12 @@ describe('Introspector > Integration', () => {
   });
 
   describe.each(MSSQL_DETAILS)('mssql $name', connectionDetails => {
+    const db = 'database_introspector';
+
     let sequelize: Sequelize;
 
     beforeEach(async () => {
-      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-      try {
-        const queryInterface = internalSequelize.getQueryInterface();
-        await queryInterface.createDatabase(db);
-        await queryInterface.dropDatabase(db);
-        await queryInterface.createDatabase(db);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      } finally {
-        internalSequelize.close();
-      }
-
+      await setupEmptyDatabase(connectionDetails, db);
       sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
     });
 
@@ -203,8 +184,7 @@ describe('Introspector > Integration', () => {
       const db = 'database_introspector_views';
 
       beforeEach(async () => {
-        await connectionDetails.reinitDb(db);
-
+        await setupEmptyDatabase(connectionDetails, db);
         sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
       });
 
@@ -295,8 +275,7 @@ describe('Introspector > Integration', () => {
           let sequelize: Sequelize;
 
           beforeEach(async () => {
-            await connectionDetails.reinitDb(db);
-
+            await setupEmptyDatabase(connectionDetails, db);
             sequelize = new Sequelize(connectionDetails.url(db), {
               logging: false,
               schema: 'schema1',

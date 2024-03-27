@@ -135,7 +135,7 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
   async listViews(sequelize: SequelizeWithOptions): Promise<SequelizeTableIdentifier[]> {
     const schema = sequelize.options.schema || this.getDefaultSchema();
 
-    return sequelize.query<{ tableName: string; schema }>(
+    return sequelize.query<{ tableName: string; schema: string }>(
       `
       SELECT table_name as "tableName", table_schema as "schema"
       FROM information_schema.views

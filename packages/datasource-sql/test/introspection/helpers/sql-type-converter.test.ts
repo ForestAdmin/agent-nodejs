@@ -76,7 +76,6 @@ describe('SqlTypeConverter', () => {
         expect(
           await SqlTypeConverter.convert(
             { tableName: 'test', schema: 'public' },
-            `column-${columnType}`,
             makeColumnDescriptionForType(columnType),
           ),
         ).toEqual({ type: 'scalar', subType: expectedSubType });

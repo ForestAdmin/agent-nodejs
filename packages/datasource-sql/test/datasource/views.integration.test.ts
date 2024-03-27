@@ -1,11 +1,11 @@
 import {
-  Caller,
   ConditionTreeFactory,
   Filter,
   PaginatedFilter,
   Projection,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource, introspect } from '../../src';
@@ -16,9 +16,9 @@ import setupSimpleTable from '../_helpers/setup-simple-table';
 describe('datasource with views', () => {
   describe.each(CONNECTION_DETAILS)('on $name', connectionDetails => {
     const db = 'test_datasource_views';
+    const caller = factories.caller.build();
     let datasource: SqlDatasource;
     let sequelize;
-    let caller: Caller;
 
     beforeAll(async () => {
       await setupSimpleTable(connectionDetails, db);
@@ -42,19 +42,6 @@ describe('datasource with views', () => {
       sequelize = await buildSequelizeInstance(connectionDetails.url(db), jest.fn(), introspection);
 
       datasource = (await createSqlDataSource(connectionDetails.url(db))(logger)) as SqlDatasource;
-
-      caller = {
-        email: 'alice@forestadmin.com',
-        firstName: 'Alice',
-        id: 1,
-        lastName: 'Liddell',
-        renderingId: 42,
-        requestId: 'requestId',
-        role: 'ADMIN',
-        tags: {},
-        team: 'FOO',
-        timezone: 'UTC',
-      };
     });
 
     afterAll(async () => {

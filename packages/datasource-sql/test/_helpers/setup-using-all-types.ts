@@ -2,6 +2,7 @@ import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
 import { Literal } from 'sequelize/types/utils';
 
 import { ConnectionDetails } from './connection-details';
+import setupEmptyDatabase from './setup-empty-database';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {
   switch (dialect) {
@@ -164,14 +165,8 @@ export default async (
   let sequelize: Sequelize | null = null;
 
   try {
-    await connectionDetails.reinitDb(database);
-
     const optionalSchemaOption = schema ? { schema } : {};
-
-    sequelize = new Sequelize(connectionDetails.url(database), {
-      logging: false,
-      ...optionalSchemaOption,
-    });
+    sequelize = await setupEmptyDatabase(connectionDetails, database, optionalSchemaOption);
 
     if (schema) {
       await sequelize.getQueryInterface().dropSchema(schema);

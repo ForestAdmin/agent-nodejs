@@ -23,6 +23,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     this.createCollections(this.sequelize.models, logger);
   }
 
+  async close(): Promise<void> {
+    await this.sequelize.close();
+  }
+
   protected createCollections(models: Sequelize['models'], logger?: Logger) {
     Object.values(models)
       // avoid schema reordering
@@ -31,9 +35,5 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
         const collection = new SequelizeCollection(model.name, this, model, logger);
         this.addCollection(collection);
       });
-  }
-
-  public async close() {
-    await this.sequelize.close();
   }
 }

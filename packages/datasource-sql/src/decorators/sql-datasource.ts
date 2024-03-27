@@ -21,7 +21,7 @@ export default class SqlDatasource extends DataSourceDecorator<Collection> {
     return super.getCollection(name);
   }
 
-  public async close() {
+  public async close(): Promise<void> {
     await (this.childDataSource as SequelizeDataSource).close();
   }
 }

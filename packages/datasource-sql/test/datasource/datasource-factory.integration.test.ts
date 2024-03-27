@@ -1,14 +1,14 @@
 import { stringify } from 'querystring';
 import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 
-import CONNECTION_DETAILS from './_helpers/connection-details';
-import setupEmptyDatabase from './_helpers/setup-empty-database';
-import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
-import setupSimpleTable from './_helpers/setup-simple-table';
-import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
-import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
-import { buildSequelizeInstance, introspect } from '../src';
-import Introspector from '../src/introspection/introspector';
+import { buildSequelizeInstance, introspect } from '../../src';
+import Introspector from '../../src/introspection/introspector';
+import CONNECTION_DETAILS from '../_helpers/connection-details';
+import setupEmptyDatabase from '../_helpers/setup-empty-database';
+import setupDatabaseWithIdNotPrimary from '../_helpers/setup-id-is-not-a-pk';
+import setupSimpleTable from '../_helpers/setup-simple-table';
+import setupDatabaseWithTypes, { getAttributeMapping } from '../_helpers/setup-using-all-types';
+import setupDatabaseWithRelations, { RELATION_MAPPING } from '../_helpers/setup-using-relations';
 
 function extractTablesAndRelations(
   models: Sequelize['models'],
