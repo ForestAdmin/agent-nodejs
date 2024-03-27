@@ -10,7 +10,7 @@ import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource, introspect } from '../../src';
 import SqlDatasource from '../../src/decorators/sql-datasource';
-import CONNECTION_DETAILS from '../_helpers/connection-details';
+import { CONNECTION_DETAILS } from '../_helpers/connection-details';
 import setupSimpleTable from '../_helpers/setup-simple-table';
 
 describe('datasource with views', () => {

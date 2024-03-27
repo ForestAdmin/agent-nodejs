@@ -217,12 +217,10 @@ export const SQLITE_DETAILS: ConnectionDetails = {
   uuidFunctionLiteral: undefined,
 };
 
-const CONNECTION_DETAILS: ConnectionDetails[] = [
+export const CONNECTION_DETAILS: ConnectionDetails[] = [
   ...POSTGRESQL_DETAILS,
   ...MSSQL_DETAILS,
   ...MYSQL_DETAILS,
   ...MARIADB_DETAILS,
   SQLITE_DETAILS,
 ];
-
-export default CONNECTION_DETAILS;

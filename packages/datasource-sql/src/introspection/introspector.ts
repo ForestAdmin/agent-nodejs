@@ -85,7 +85,7 @@ export default class Introspector {
 
     return {
       ...(introspection as ObjectIntrospection),
-      source: this.SOURCE,
+      source: introspection.source || this.SOURCE,
       views: introspection.views || [],
     };
   }

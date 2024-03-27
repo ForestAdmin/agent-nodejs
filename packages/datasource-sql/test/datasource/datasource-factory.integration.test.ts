@@ -3,7 +3,7 @@ import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize
 
 import { buildSequelizeInstance, introspect } from '../../src';
 import Introspector from '../../src/introspection/introspector';
-import CONNECTION_DETAILS from '../_helpers/connection-details';
+import { CONNECTION_DETAILS } from '../_helpers/connection-details';
 import setupEmptyDatabase from '../_helpers/setup-empty-database';
 import setupDatabaseWithIdNotPrimary from '../_helpers/setup-id-is-not-a-pk';
 import setupSimpleTable from '../_helpers/setup-simple-table';

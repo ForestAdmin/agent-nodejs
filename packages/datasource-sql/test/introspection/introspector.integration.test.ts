@@ -2,7 +2,7 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
-import CONNECTION_DETAILS, { MSSQL_DETAILS } from '../_helpers/connection-details';
+import { CONNECTION_DETAILS, MSSQL_DETAILS } from '../_helpers/connection-details';
 import setupEmptyDatabase from '../_helpers/setup-empty-database';
 
 describe('Introspector > Integration', () => {
@@ -230,7 +230,7 @@ describe('Introspector > Integration', () => {
               expect.objectContaining({
                 name: 'id',
                 type: {
-                  subType: 'NUMBER',
+                  subType: 'INTEGER',
                   type: 'scalar',
                 },
               }),

@@ -5,7 +5,7 @@ import IntrospectionDialect, {
   ColumnDescription,
 } from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import CONNECTION_DETAILS, { ConnectionDetails } from '../../_helpers/connection-details';
+import { CONNECTION_DETAILS, ConnectionDetails } from '../../_helpers/connection-details';
 import setupEmptyDatabase from '../../_helpers/setup-empty-database';
 
 const SCALAR_TYPES: [string, string, string[]?][] = [
@@ -17,7 +17,7 @@ const SCALAR_TYPES: [string, string, string[]?][] = [
   ['BIT', 'BOOLEAN', ['mssql']],
   ['BOOLEAN', 'BOOLEAN', ['mysql', 'mariadb', 'postgres']],
   ['CHARACTER VARYING', 'STRING', ['postgres']],
-  ['TEXT', 'STRING'],
+  ['TEXT', 'TEXT'],
 ];
 
 async function setupTestDB(connectionDetails: ConnectionDetails, schema) {
@@ -153,7 +153,7 @@ describe('Integration > SqlTypeConverter', () => {
           });
 
           afterEach(async () => {
-            sequelize?.close();
+            await sequelize?.close();
           });
 
           describe('with a basic scalar type', () => {
@@ -229,7 +229,7 @@ describe('Integration > SqlTypeConverter', () => {
                 subType: {
                   type: 'enum',
                   name: 'enum_test_column',
-                  schema: schema || 'public',
+                  schema,
                   values: ['value1', 'value2'],
                 },
               });
