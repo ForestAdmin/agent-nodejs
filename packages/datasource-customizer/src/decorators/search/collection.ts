@@ -6,30 +6,29 @@ import {
   ColumnSchema,
   ConditionTree,
   ConditionTreeFactory,
-  ConditionTreeLeaf,
-  Operator,
+  DataSourceDecorator,
   PaginatedFilter,
+  PlainConditionTree,
 } from '@forestadmin/datasource-toolkit';
-import { validate as uuidValidate } from 'uuid';
 
+import CollectionSearchContext, { SearchOptions } from './collection-search-context';
+import normalizeName from './normalize-name';
+import { extractSpecifiedFields, generateConditionTree, parseQuery } from './parse-query';
 import { SearchDefinition } from './types';
-import CollectionCustomizationContext from '../../context/collection-context';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
+  override dataSource: DataSourceDecorator<SearchCollectionDecorator>;
   replacer: SearchDefinition = null;
 
   replaceSearch(replacer: SearchDefinition): void {
     this.replacer = replacer;
   }
 
-  public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
+  override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return { ...subSchema, searchable: true };
   }
 
-  public override async refineFilter(
-    caller: Caller,
-    filter?: PaginatedFilter,
-  ): Promise<PaginatedFilter> {
+  override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
     // Search string is not significant
     if (!filter?.search?.trim().length) {
       return filter?.override({ search: null });
@@ -37,12 +36,20 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     // Implement search ourselves
     if (this.replacer || !this.childCollection.schema.searchable) {
-      const ctx = new CollectionCustomizationContext(this, caller);
-      let tree = this.defaultReplacer(filter.search, filter.searchExtended);
+      const ctx = new CollectionSearchContext(
+        this,
+        caller,
+        this.generatePlainSearchFilter.bind(this, caller),
+      );
+      let tree: ConditionTree;
 
       if (this.replacer) {
         const plainTree = await this.replacer(filter.search, filter.searchExtended, ctx);
         tree = ConditionTreeFactory.fromPlainObject(plainTree);
+      } else {
+        tree = this.generateSearchFilter(caller, filter.search, {
+          extended: filter.searchExtended,
+        });
       }
 
       // Note that if no fields are searchable with the provided searchString, the conditions
@@ -58,57 +65,51 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return filter;
   }
 
-  private defaultReplacer(search: string, extended: boolean): ConditionTree {
-    const searchableFields = SearchCollectionDecorator.getFields(this.childCollection, extended);
-    const conditions = searchableFields
-      .map(([field, schema]) => SearchCollectionDecorator.buildCondition(field, schema, search))
-      .filter(Boolean);
-
-    return ConditionTreeFactory.union(...conditions);
-  }
-
-  private static buildCondition(
-    field: string,
-    schema: ColumnSchema,
-    searchString: string,
+  private generateSearchFilter(
+    caller: Caller,
+    searchText: string,
+    options?: SearchOptions,
   ): ConditionTree {
-    const { columnType, enumValues, filterOperators } = schema;
-    const isNumber = Number(searchString).toString() === searchString;
-    const isUuid = uuidValidate(searchString);
+    const parsedQuery = parseQuery(searchText);
 
-    if (columnType === 'Number' && isNumber && filterOperators?.has('Equal')) {
-      return new ConditionTreeLeaf(field, 'Equal', Number(searchString));
+    const specifiedFields = options?.onlyFields ? [] : extractSpecifiedFields(parsedQuery);
+
+    const defaultFields = options?.onlyFields
+      ? []
+      : this.getFields(this.childCollection, Boolean(options?.extended));
+
+    const searchableFields = new Map(
+      [
+        ...defaultFields,
+        ...[...specifiedFields, ...(options?.onlyFields ?? []), ...(options?.includeFields ?? [])]
+          .map(name => this.lenientGetSchema(name))
+          .filter(Boolean)
+          .map(schema => [schema.field, schema.schema] as [string, ColumnSchema]),
+      ]
+        .filter(Boolean)
+        .filter(([field]) => !options?.excludeFields?.includes(field)),
+    );
+
+    const conditionTree = generateConditionTree(caller, parsedQuery, [...searchableFields]);
+
+    if (!conditionTree && searchText.trim().length) {
+      return ConditionTreeFactory.MatchNone;
     }
 
-    if (columnType === 'Enum' && filterOperators?.has('Equal')) {
-      const searchValue = SearchCollectionDecorator.lenientFind(enumValues, searchString);
-
-      if (searchValue) return new ConditionTreeLeaf(field, 'Equal', searchValue);
-    }
-
-    if (columnType === 'String') {
-      const isCaseSensitive = searchString.toLocaleLowerCase() !== searchString.toLocaleUpperCase();
-      const supportsIContains = filterOperators?.has('IContains');
-      const supportsContains = filterOperators?.has('Contains');
-      const supportsEqual = filterOperators?.has('Equal');
-
-      // Perf: don't use case-insensitive operator when the search string is indifferent to case
-      let operator: Operator;
-      if (supportsIContains && (isCaseSensitive || !supportsContains)) operator = 'IContains';
-      else if (supportsContains) operator = 'Contains';
-      else if (supportsEqual) operator = 'Equal';
-
-      if (operator) return new ConditionTreeLeaf(field, operator, searchString);
-    }
-
-    if (columnType === 'Uuid' && isUuid && filterOperators?.has('Equal')) {
-      return new ConditionTreeLeaf(field, 'Equal', searchString);
-    }
-
-    return null;
+    return conditionTree;
   }
 
-  private static getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {
+  private generatePlainSearchFilter(
+    caller: Caller,
+    searchText: string,
+    options?: SearchOptions,
+  ): PlainConditionTree {
+    const conditionTree = this.generateSearchFilter(caller, searchText, options);
+
+    return conditionTree?.toPlainObject();
+  }
+
+  private getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {
     const fields: [string, ColumnSchema][] = [];
 
     for (const [name, field] of Object.entries(collection.schema.fields)) {
@@ -117,18 +118,39 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       if (extended && (field.type === 'ManyToOne' || field.type === 'OneToOne')) {
         const related = collection.dataSource.getCollection(field.foreignCollection);
 
-        for (const [subName, subField] of Object.entries(related.schema.fields))
+        for (const [subName, subField] of Object.entries(related.schema.fields)) {
           if (subField.type === 'Column') fields.push([`${name}:${subName}`, subField]);
+        }
       }
     }
 
     return fields;
   }
 
-  private static lenientFind(haystack: string[], needle: string): string {
-    return (
-      haystack?.find(v => v === needle.trim()) ??
-      haystack?.find(v => v.toLocaleLowerCase() === needle.toLocaleLowerCase().trim())
-    );
+  private lenientGetSchema(path: string): { field: string; schema: ColumnSchema } | null {
+    const [prefix, suffix] = path.split(/:(.*)/);
+    const fuzzyPrefix = normalizeName(prefix);
+
+    for (const [field, schema] of Object.entries(this.schema.fields)) {
+      const fuzzyFieldName = normalizeName(field);
+
+      if (fuzzyPrefix === fuzzyFieldName) {
+        if (!suffix && schema.type === 'Column') {
+          return { field, schema };
+        }
+
+        if (
+          suffix &&
+          (schema.type === 'OneToMany' || schema.type === 'ManyToOne' || schema.type === 'OneToOne')
+        ) {
+          const related = this.dataSource.getCollection(schema.foreignCollection);
+          const fuzzy = related.lenientGetSchema(suffix);
+
+          if (fuzzy) return { field: `${field}:${fuzzy.field}`, schema: fuzzy.schema };
+        }
+      }
+    }
+
+    return null;
   }
 }

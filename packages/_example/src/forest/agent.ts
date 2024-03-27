@@ -1,4 +1,5 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
+import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
@@ -12,10 +13,11 @@ import customizeOwner from './customizations/owner';
 import customizePost from './customizations/post';
 import customizeRental from './customizations/rental';
 import customizeReview from './customizations/review';
+import customizeSales from './customizations/sale';
 import customizeStore from './customizations/store';
 import createTypicode from './datasources/typicode';
 import { Schema } from './typings';
-import mongoose from '../connections/mongoose';
+import mongoose, { connectionString } from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
 import sequelizePostgres from '../connections/sequelize-postgres';
@@ -56,7 +58,15 @@ export default function makeAgent() {
     .addDataSource(
       createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
     )
-
+    .addDataSource(
+      createMongoDataSource({
+        uri: connectionString,
+        dataSource: { flattenMode: 'auto' },
+      }),
+      {
+        exclude: ['accounts', 'accounts_bills', 'accounts_bills_items'],
+      },
+    )
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');
       const rows = await rentals.aggregate({}, { operation: 'Count' });
@@ -73,5 +83,6 @@ export default function makeAgent() {
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
-    .customizeCollection('review', customizeReview);
+    .customizeCollection('review', customizeReview)
+    .customizeCollection('sales', customizeSales);
 }

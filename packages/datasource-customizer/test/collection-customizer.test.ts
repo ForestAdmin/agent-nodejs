@@ -265,7 +265,7 @@ describe('Builder > Collection', () => {
 
       expect(spy).toHaveBeenCalledWith('translatorName', expect.any(Function));
       const [[, definition]] = spy.mock.calls;
-      expect(definition('newNameValue', {} as never)).toEqual({
+      expect(definition?.('newNameValue', {} as never)).toEqual({
         translator: { name: 'newNameValue' },
       });
       expect(self).toEqual(customizer);
@@ -347,11 +347,33 @@ describe('Builder > Collection', () => {
       );
     });
 
+    it('should log a warning when timeonly type is provided', async () => {
+      const { customizer, dsc } = await setup();
+
+      const loggerMock = jest.fn();
+
+      const fieldDefinition: ComputedDefinition = {
+        columnType: 'Timeonly',
+        dependencies: ['firstName'],
+        getValues: records => records.map(() => 'aaa'),
+      };
+
+      customizer.addField('timeonly_dependency_field', fieldDefinition);
+
+      await expect(dsc.getDataSource(loggerMock)).resolves.not.toThrow();
+
+      expect(loggerMock).toHaveBeenCalledWith(
+        'Warn',
+        `'Timeonly' is deprecated. Use 'Time' as your columnType instead`,
+      );
+    });
+
     it('should log an error when no dependencies are provided', async () => {
       const { customizer, dsc } = await setup();
 
       const loggerMock = jest.fn();
 
+      // @ts-expect-error
       const fieldDefinition: ComputedDefinition = {
         columnType: 'String',
         getValues: records => records.map(() => 'aaa'),
@@ -551,6 +573,64 @@ describe('Builder > Collection', () => {
       expect(self.schema.fields.myBooks).toBeDefined();
       expect(self).toEqual(customizer);
     });
+
+    it('should not allow disableFieldSorting', async () => {
+      const { dsc, customizer, stack } = await setup();
+
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
+
+      const self = customizer.addOneToOneRelation('myBookAuthor', 'book_author', {
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+
+      customizer.disableFieldSorting('myBookAuthor');
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        new Error(
+          "Unexpected field type: 'authors.myBookAuthor' (found 'OneToOne' expected 'Column')",
+        ),
+      );
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myBookAuthor', {
+        type: 'OneToOne',
+        foreignCollection: 'book_author',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+      expect(self.schema.fields.myBookAuthor).toBeDefined();
+      expect(self).toEqual(customizer);
+    });
+
+    it('should not allow replaceFieldSorting', async () => {
+      const { dsc, customizer, stack } = await setup();
+
+      const spy = jest.spyOn(stack.relation.getCollection('authors'), 'addRelation');
+
+      const self = customizer.addOneToOneRelation('myBookAuthor', 'book_author', {
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+
+      customizer.replaceFieldSorting('myBookAuthor', []);
+
+      await expect(() => dsc.getDataSource(logger)).rejects.toThrow(
+        new Error(
+          "Unexpected field type: 'authors.myBookAuthor' (found 'OneToOne' expected 'Column')",
+        ),
+      );
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('myBookAuthor', {
+        type: 'OneToOne',
+        foreignCollection: 'book_author',
+        originKey: 'authorFk',
+        originKeyTarget: 'authorId',
+      });
+      expect(self.schema.fields.myBookAuthor).toBeDefined();
+      expect(self).toEqual(customizer);
+    });
   });
 
   describe('addSegment', () => {
@@ -568,6 +648,22 @@ describe('Builder > Collection', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('new segment', generator);
       expect(self.schema.segments).toEqual(expect.arrayContaining(['new segment']));
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('disableFieldSorting', () => {
+    it('should disable sort on field', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const collection = stack.sortEmulate.getCollection('authors');
+
+      const spy = jest.spyOn(collection, 'disableFieldSorting');
+
+      const self = customizer.disableFieldSorting('firstName');
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith('firstName');
       expect(self).toEqual(customizer);
     });
   });
@@ -632,7 +728,32 @@ describe('Builder > Collection', () => {
       const self = customizer.emulateFieldFiltering('lastName');
       await dsc.getDataSource(logger);
 
-      expect(spy).toHaveBeenCalledTimes(19);
+      expect(spy).toHaveBeenCalledTimes(21);
+      [
+        'Equal',
+        'NotEqual',
+        'Present',
+        'Blank',
+        'In',
+        'NotIn',
+        'StartsWith',
+        'EndsWith',
+        'IStartsWith',
+        'IEndsWith',
+        'Contains',
+        'NotContains',
+        'IContains',
+        'NotIContains',
+        'Missing',
+        'Like',
+        'ILike',
+        'LongerThan',
+        'ShorterThan',
+        'IncludesAll',
+        'IncludesNone',
+      ].forEach(operator => {
+        expect(spy).toHaveBeenCalledWith('lastName', operator);
+      });
       expect(self).toEqual(customizer);
     });
   });

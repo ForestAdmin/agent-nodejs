@@ -1,8 +1,31 @@
+import { FOREST_RECORD_DOES_NOT_EXIST } from './pipeline/condition-generator';
+
+/**
+ * Filter out records that have been tagged as not existing
+ * If the key FOREST_RECORD_DOES_NOT_EXIST is present in the record, the record is removed
+ * If a nested object has a key with FOREST_RECORD_DOES_NOT_EXIST, the nested object is removed
+ */
+function removeNotExistRecord(record: Record<string, unknown>): Record<string, unknown> | null {
+  if (!record || record[FOREST_RECORD_DOES_NOT_EXIST]) return null;
+
+  Object.entries(record).forEach(([key, value]) => {
+    if (
+      value &&
+      typeof value === 'object' &&
+      Object.values(value).find(v => v === FOREST_RECORD_DOES_NOT_EXIST)
+    ) {
+      record[key] = null;
+    }
+  });
+
+  return record;
+}
+
 function addNullValuesOnRecord(
   record: Record<string, unknown>,
   projection: string[],
 ): Record<string, unknown> {
-  if (!record) return record;
+  if (!record) return null;
 
   const result = { ...record };
 
@@ -37,12 +60,12 @@ function addNullValuesOnRecord(
     }
   }
 
-  return result;
+  return removeNotExistRecord(result);
 }
 
 export default function addNullValues(
   records: Record<string, unknown>[],
   projection: string[],
 ): Record<string, unknown>[] {
-  return records.map(record => addNullValuesOnRecord(record, projection));
+  return records.map(record => addNullValuesOnRecord(record, projection)).filter(Boolean);
 }

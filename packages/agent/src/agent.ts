@@ -110,6 +110,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
+   * Update the typings files generated from your datasources
+   * @param typingsPath the path at which to write the new file
+   * @param typingsMaxDepth the max depth of relation typings
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/install/autocompletion-and-typings Documentation Link}
+   */
+  async updateTypesOnFileSystem(typingsPath: string, typingsMaxDepth: number): Promise<void> {
+    const { logger } = this.options;
+    await this.customizer.getDataSource(logger);
+    await this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth);
+  }
+
+  /**
    * Create a new API chart
    * @param name name of the chart
    * @param definition definition of the chart
@@ -229,7 +241,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
 
     // Either load the schema from the file system or build it
-    let schema: ForestSchema;
+    let schema: Pick<ForestSchema, 'collections'>;
+
+    const { meta } = SchemaGenerator.buildMetadata(this.customizationService.buildFeatures());
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {
@@ -239,16 +253,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(
-        dataSource,
-        this.customizationService.buildFeatures(),
-      );
+      schema = await SchemaGenerator.buildSchema(dataSource);
 
-      const pretty = stringify(schema, { maxLength: 100 });
+      const pretty = stringify({ ...schema, meta }, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
     }
 
     // Send schema to forest servers
-    await this.options.forestAdminClient.postSchema(schema);
+    await this.options.forestAdminClient.postSchema({ ...schema, meta });
   }
 }

@@ -9,11 +9,13 @@ export const uniqueOperators = [
   // Strings
   'Match',
   'NotContains',
+  'NotIContains',
   'LongerThan',
   'ShorterThan',
 
   // Arrays
   'IncludesAll',
+  'IncludesNone',
 ] as const;
 
 export const intervalOperators = [

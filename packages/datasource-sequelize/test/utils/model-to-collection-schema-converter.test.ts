@@ -31,6 +31,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         countable: true,
         fields: {
           id: {
+            allowNull: false,
             columnType: 'Number',
             filterOperators: TypeConverter.operatorsForColumnType('Number'),
             isPrimaryKey: true,
@@ -118,6 +119,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             type: 'Column',
           },
           createdAt: {
+            allowNull: false,
             columnType: 'Date',
             filterOperators: TypeConverter.operatorsForColumnType('Date'),
             isSortable: true,
@@ -125,6 +127,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             type: 'Column',
           },
           updatedAt: {
+            allowNull: false,
             columnType: 'Date',
             filterOperators: TypeConverter.operatorsForColumnType('Date'),
             isSortable: true,
@@ -133,6 +136,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myRequired: {
             columnType: 'Uuid',
+            allowNull: false,
             filterOperators: TypeConverter.operatorsForColumnType('Uuid'),
             isSortable: true,
             validation: [
@@ -152,10 +156,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
           },
           myEnumList: {
             columnType: ['Enum'],
-            filterOperators: new Set([
-              ...TypeConverter.operatorsForColumnType('Enum'),
-              'IncludesAll',
-            ]),
+            filterOperators: new Set([...TypeConverter.operatorsForColumnType(['Enum'])]),
             enumValues: ['enum1', 'enum2', 'enum3'],
             isSortable: true,
             validation: [],
@@ -224,6 +225,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
             countable: true,
             fields: {
               Model2Id: {
+                allowNull: true,
                 columnType: 'Number',
                 filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isSortable: true,
@@ -237,6 +239,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 type: 'ManyToOne',
               },
               id: {
+                allowNull: false,
                 columnType: 'Number',
                 filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
@@ -323,6 +326,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 type: 'OneToMany',
               },
               id: {
+                allowNull: false,
                 columnType: 'Number',
                 filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,
@@ -360,6 +364,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 type: 'OneToOne',
               },
               id: {
+                allowNull: false,
                 columnType: 'Number',
                 filterOperators: TypeConverter.operatorsForColumnType('Number'),
                 isPrimaryKey: true,

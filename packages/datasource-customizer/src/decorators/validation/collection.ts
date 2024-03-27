@@ -3,6 +3,7 @@ import {
   CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
+  ColumnSchemaValidation,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   FieldValidator,
@@ -11,7 +12,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-type ValidationRule = ColumnSchema['validation'][number];
+type ValidationRule = ColumnSchemaValidation[number];
 
 export default class ValidationDecorator extends CollectionDecorator {
   private validation: Record<string, ColumnSchema['validation']> = {};
@@ -20,8 +21,11 @@ export default class ValidationDecorator extends CollectionDecorator {
     FieldValidator.validate(this, name);
 
     const field = this.childCollection.schema.fields[name] as ColumnSchema;
-    if (field?.type !== 'Column')
+
+    if (field?.type !== 'Column') {
       throw new Error('Cannot add validators on a relation, use the foreign key instead');
+    }
+
     if (field.isReadOnly) throw new Error('Cannot add validators on a readonly field');
 
     this.validation[name] ??= [];

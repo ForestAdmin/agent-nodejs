@@ -1,3 +1,166 @@
+## @forestadmin/datasource-customizer [1.43.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.5...@forestadmin/datasource-customizer@1.43.6) (2024-03-14)
+
+
+### Bug Fixes
+
+* addField is marked as deprecated by webstorm ([#1067](https://github.com/ForestAdmin/agent-nodejs/issues/1067)) ([735d20b](https://github.com/ForestAdmin/agent-nodejs/commit/735d20b82dc50541ffa9081792e3602264f426ae))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.2
+
+## @forestadmin/datasource-customizer [1.43.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.4...@forestadmin/datasource-customizer@1.43.5) (2024-03-12)
+
+
+### Bug Fixes
+
+* addField dependencies are mandatory ([#1066](https://github.com/ForestAdmin/agent-nodejs/issues/1066)) ([92d38a1](https://github.com/ForestAdmin/agent-nodejs/commit/92d38a1f883a6726c4f2d46761ecd1f5c9ac6717))
+
+## @forestadmin/datasource-customizer [1.43.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.3...@forestadmin/datasource-customizer@1.43.4) (2024-03-11)
+
+
+### Performance Improvements
+
+* **computed:** avoid calling computed handler when there is nothing to compute ([#1054](https://github.com/ForestAdmin/agent-nodejs/issues/1054)) ([1a32df8](https://github.com/ForestAdmin/agent-nodejs/commit/1a32df84988002dea90a747eaf8f1bc8d4be4d3c))
+
+## @forestadmin/datasource-customizer [1.43.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.2...@forestadmin/datasource-customizer@1.43.3) (2024-02-28)
+
+
+### Bug Fixes
+
+* **agent:** action default success message is now handled by the frontend ([#1040](https://github.com/ForestAdmin/agent-nodejs/issues/1040)) ([42cd54b](https://github.com/ForestAdmin/agent-nodejs/commit/42cd54be194d196a3defd962c36ffe910222110f))
+
+## @forestadmin/datasource-customizer [1.43.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.1...@forestadmin/datasource-customizer@1.43.2) (2024-02-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.1
+
+## @forestadmin/datasource-customizer [1.43.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.0...@forestadmin/datasource-customizer@1.43.1) (2024-02-07)
+
+
+### Bug Fixes
+
+* **types:** allow to use relationships in generateSearchFilter ([#985](https://github.com/ForestAdmin/agent-nodejs/issues/985)) ([3219b6c](https://github.com/ForestAdmin/agent-nodejs/commit/3219b6cb1641120be002255ee49f6cb00184c47c))
+
+# @forestadmin/datasource-customizer [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.42.0...@forestadmin/datasource-customizer@1.43.0) (2024-02-06)
+
+
+### Features
+
+* add access to the default search in replaceSearch on a collection ([#966](https://github.com/ForestAdmin/agent-nodejs/issues/966)) ([8e3c0ce](https://github.com/ForestAdmin/agent-nodejs/commit/8e3c0cef623ee6e1fc683e7d9728dd0a979774d5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.0
+
+# @forestadmin/datasource-customizer [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.41.1...@forestadmin/datasource-customizer@1.42.0) (2024-02-02)
+
+
+### Features
+
+* **action result builder:** allow user to set SA response headers ([#945](https://github.com/ForestAdmin/agent-nodejs/issues/945)) ([ce37c01](https://github.com/ForestAdmin/agent-nodejs/commit/ce37c01df1e92628788c0bb3dc0eb8d6409b7aef))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.31.0
+
+## @forestadmin/datasource-customizer [1.41.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.41.0...@forestadmin/datasource-customizer@1.41.1) (2024-02-01)
+
+
+### Bug Fixes
+
+* **typings:** support strict null checking in typescript ([#927](https://github.com/ForestAdmin/agent-nodejs/issues/927)) ([80fa64d](https://github.com/ForestAdmin/agent-nodejs/commit/80fa64d0bf85ee36ab330a8f983b8bf593ae34f1))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.1
+
+# @forestadmin/datasource-customizer [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.4...@forestadmin/datasource-customizer@1.41.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.30.0
+
+## @forestadmin/datasource-customizer [1.40.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.3...@forestadmin/datasource-customizer@1.40.4) (2024-01-22)
+
+
+### Bug Fixes
+
+* **replaceFieldWriting:** force customer to give a replaceFieldWriting definition to avoid emulation when null is given ([#913](https://github.com/ForestAdmin/agent-nodejs/issues/913)) ([b0b1862](https://github.com/ForestAdmin/agent-nodejs/commit/b0b1862dfba148acf61b0463f246dbc19a4b5afd))
+
+## @forestadmin/datasource-customizer [1.40.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.2...@forestadmin/datasource-customizer@1.40.3) (2024-01-22)
+
+
+### Bug Fixes
+
+* disableFieldSorting is now only preventing frontend to sort the collection ([7f1481b](https://github.com/ForestAdmin/agent-nodejs/commit/7f1481bd56fc98da87fa4aa473cb7b806851c551))
+
+## @forestadmin/datasource-customizer [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.1...@forestadmin/datasource-customizer@1.40.2) (2024-01-18)
+
+
+### Bug Fixes
+
+* **replaceFieldOperator:** disallow to pass null because it will emulate instead to remove the operator ([#911](https://github.com/ForestAdmin/agent-nodejs/issues/911)) ([bf0c105](https://github.com/ForestAdmin/agent-nodejs/commit/bf0c105cfb5850ede7be223bfbe59044ff6fe9cb))
+
+## @forestadmin/datasource-customizer [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.40.0...@forestadmin/datasource-customizer@1.40.1) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.29.2
+
+# @forestadmin/datasource-customizer [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.3...@forestadmin/datasource-customizer@1.40.0) (2024-01-03)
+
+
+### Features
+
+* **customizer:** allow users to disable sort properly on column ([#904](https://github.com/ForestAdmin/agent-nodejs/issues/904)) ([2dfaeac](https://github.com/ForestAdmin/agent-nodejs/commit/2dfaeac0aa84f6372f717b4fc4118ba187ecb08c))
+
+## @forestadmin/datasource-customizer [1.39.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.2...@forestadmin/datasource-customizer@1.39.3) (2023-12-21)
+
+
+### Bug Fixes
+
+* cloud sync error with customization applied to missing collections ([#901](https://github.com/ForestAdmin/agent-nodejs/issues/901)) ([60e8d1c](https://github.com/ForestAdmin/agent-nodejs/commit/60e8d1c55017d47f7ab296da4f88490328a6ce13))
+
 ## @forestadmin/datasource-customizer [1.39.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.39.1...@forestadmin/datasource-customizer@1.39.2) (2023-12-15)
 
 

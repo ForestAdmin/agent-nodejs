@@ -1,6 +1,8 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import { PipelineStage } from 'mongoose';
 
+import { FOREST_RECORD_DOES_NOT_EXIST } from './condition-generator';
+
 /** Generate a mongo pipeline which applies a forest admin projection */
 export default class ProjectionGenerator {
   static project(projection: Projection): PipelineStage[] {
@@ -8,7 +10,10 @@ export default class ProjectionGenerator {
       return [{ $replaceRoot: { newRoot: { $literal: {} } } }];
     }
 
-    const project: PipelineStage.Project['$project'] = { _id: false };
+    const project: PipelineStage.Project['$project'] = {
+      _id: false,
+      [FOREST_RECORD_DOES_NOT_EXIST]: true,
+    };
 
     for (const field of projection) {
       const formattedField = field.replace(/:/g, '.');

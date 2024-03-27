@@ -4,13 +4,17 @@ export type ScalarSubType =
   | 'BOOLEAN'
   | 'DATE'
   | 'DATEONLY'
+  | 'DECIMAL'
   | 'DOUBLE'
   | 'FLOAT'
   | 'INET'
+  | 'INTEGER'
   | 'JSON'
   | 'JSONB'
   | 'NUMBER'
+  | 'REAL'
   | 'STRING'
+  | 'TEXT'
   | 'TIME'
   | 'UUID';
 
@@ -54,7 +58,13 @@ export type Table = {
   }[];
 };
 
-export type Introspection = {
+export type IntrospectionWithoutSource = {
   tables: Table[];
-  views: Table[];
+  version: number;
+  views?: Table[];
+  // Old versions of introspection did not have the source field
+};
+
+export type Introspection = IntrospectionWithoutSource & {
+  source: '@forestadmin/datasource-sql';
 };

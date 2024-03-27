@@ -17,7 +17,7 @@ module.exports = {
     sourceType: 'module',
     project: ['./tsconfig.eslint.json'],
   },
-  plugins: ['@typescript-eslint', 'prettier', 'jest'],
+  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting'],
   rules: {
     /**********/
     /** Style */
@@ -66,6 +66,8 @@ module.exports = {
     // Allow `function (arg1, arg2) { void arg1; void arg2; }` to work around unused arguments
     'no-void': ['error', { allowAsStatement: true }],
 
+    'curly': ['error', 'multi-line', 'consistent'],
+
     // Allow methods that do not use `this` (notably private methods)
     'class-methods-use-this': 'off',
 
@@ -96,6 +98,10 @@ module.exports = {
 
     // We allow import cycles because they cause no issues for types.
     'import/no-cycle': 'off',
+
+    // padding around describe and tests
+    "jest-formatting/padding-around-describe-blocks": 2,
+    "jest-formatting/padding-around-test-blocks": 2
   },
   overrides: [
     ...readdirSync(resolve(__dirname, 'packages'))

@@ -1,4 +1,4 @@
-import type { Introspection, Table } from './introspection/types';
+import type { Introspection, IntrospectionWithoutSource, Table } from './introspection/types';
 import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
@@ -7,7 +7,6 @@ import { Sequelize } from 'sequelize';
 
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';
-import SqlDatasource from './decorators/sql-datasource';
 import Introspector from './introspection/introspector';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
@@ -31,17 +30,18 @@ export async function introspect(
 export async function buildSequelizeInstance(
   uriOrOptions: PlainConnectionOptionsOrUri,
   logger: Logger,
-  introspection?: Introspection,
+  introspection?: Table[] | IntrospectionWithoutSource | Introspection,
 ): Promise<Sequelize> {
   const options = new ConnectionOptions(uriOrOptions, logger);
   let sequelize: Sequelize;
 
   try {
     sequelize = await connect(options);
-    const computedIntrospection =
-      introspection ?? (await Introspector.introspect(sequelize, logger));
-    ModelBuilder.defineModels(sequelize, logger, computedIntrospection);
-    RelationBuilder.defineRelations(sequelize, logger, computedIntrospection);
+    const { tables } =
+      Introspector.getIntrospectionInLatestFormat(introspection) ??
+      (await Introspector.introspect(sequelize, logger));
+    ModelBuilder.defineModels(sequelize, logger, tables);
+    RelationBuilder.defineRelations(sequelize, logger, tables);
   } catch (error) {
     await sequelize?.close();
     throw error;
@@ -55,23 +55,10 @@ export function createSqlDataSource(
   options?: { introspection: Table[] | Introspection },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    let sequelize: Sequelize;
-    let introspection: Introspection = Array.isArray(options?.introspection)
-      ? { tables: options.introspection, views: [] }
-      : options?.introspection;
+    const introspection = Introspector.getIntrospectionInLatestFormat(options?.introspection);
+    const sequelize = await buildSequelizeInstance(uriOrOptions, logger, introspection);
 
-    try {
-      const connectionOptions = new ConnectionOptions(uriOrOptions, logger);
-      sequelize = await connect(connectionOptions);
-      introspection = introspection ?? (await Introspector.introspect(sequelize, logger));
-      ModelBuilder.defineModels(sequelize, logger, introspection);
-      RelationBuilder.defineRelations(sequelize, logger, introspection);
-    } catch (error) {
-      await sequelize?.close();
-      throw error;
-    }
-
-    return new SqlDatasource(new SequelizeDataSource(sequelize, logger), introspection?.views);
+    return new SequelizeDataSource(sequelize, logger);
   };
 }
 
@@ -83,4 +70,4 @@ export async function preprocessOptions(
 }
 
 export * from './connection/errors';
-export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode };
+export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode, Introspection };

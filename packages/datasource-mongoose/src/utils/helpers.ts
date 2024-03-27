@@ -75,8 +75,9 @@ export function compareIds(a: string, b: string): number {
   const length = a.length < b.length ? a.length : b.length;
 
   for (let i = 0; i < length; i += 1) {
-    if (partsA[i] !== partsB[i] && isNumber.test(partsA[i]) && isNumber.test(partsB[i]))
+    if (partsA[i] !== partsB[i] && isNumber.test(partsA[i]) && isNumber.test(partsB[i])) {
       return Number(partsA[i]) - Number(partsB[i]);
+    }
 
     if (partsA[i] < partsB[i]) return -1;
     if (partsA[i] > partsB[i]) return 1;
@@ -143,10 +144,11 @@ export function replaceMongoTypes(data: any): any {
 
   if (Array.isArray(data)) return data.map(item => replaceMongoTypes(item));
 
-  if (typeof data === 'object' && data !== null)
+  if (typeof data === 'object' && data !== null) {
     return Object.fromEntries(
       Object.entries(data).map(([key, value]) => [key, replaceMongoTypes(value)]),
     );
+  }
 
   return data;
 }

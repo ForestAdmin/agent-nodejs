@@ -1,9 +1,6 @@
 import { ColumnType } from '@forestadmin/datasource-toolkit';
 
-import {
-  ComputedDefinition,
-  DeprecatedComputedDefinition,
-} from '../../../src/decorators/computed/types';
+import { ComputedDefinition } from '../../../src/decorators/computed/types';
 import transformUniqueValues from '../../../src/decorators/computed/utils/deduplication';
 import {
   flatten,
@@ -105,7 +102,7 @@ describe('deprecation-map', () => {
         columnType: 'Timeonly',
         dependencies: ['dep'],
         getValues: records => records.map(() => 'abc'),
-      } as DeprecatedComputedDefinition;
+      } as ComputedDefinition;
       expect(mapDeprecated(input)).toStrictEqual({
         columnType: 'Time',
         dependencies: ['dep'],
@@ -113,6 +110,7 @@ describe('deprecation-map', () => {
       });
     });
   });
+
   describe.each([
     'String',
     'Binary',

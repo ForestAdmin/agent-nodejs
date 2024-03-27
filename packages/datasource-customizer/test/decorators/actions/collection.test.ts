@@ -155,6 +155,7 @@ describe('ActionDecorator', () => {
       ]);
     });
   });
+
   describe('with single action with ifs', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
@@ -199,6 +200,7 @@ describe('ActionDecorator', () => {
         }),
       ]);
     });
+
     test('should not dropIfs if required', async () => {
       const fields = await newBooks.getForm(
         factories.caller.build(),
@@ -332,6 +334,7 @@ describe('ActionDecorator', () => {
       });
     });
   });
+
   describe('with single action with search hook', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {
@@ -353,6 +356,7 @@ describe('ActionDecorator', () => {
         ],
       });
     });
+
     test('should only return the field matching the searchField', async () => {
       const fields = await newBooks.getForm(
         factories.caller.build(),
@@ -391,6 +395,7 @@ describe('ActionDecorator', () => {
           ],
         });
       });
+
       test('should mark the action as dynamic', async () => {
         expect(newBooks.schema.actions['make photocopy']).toEqual({
           scope: 'Single',
@@ -399,6 +404,7 @@ describe('ActionDecorator', () => {
         });
       });
     });
+
     describe('with single action with File type and function defaultValue', () => {
       beforeEach(() => {
         newBooks.addAction('make photocopy', {
@@ -413,6 +419,7 @@ describe('ActionDecorator', () => {
           ],
         });
       });
+
       test('should mark the action as dynamic', async () => {
         expect(newBooks.schema.actions['make photocopy']).toEqual({
           scope: 'Single',
@@ -421,6 +428,7 @@ describe('ActionDecorator', () => {
         });
       });
     });
+
     describe('with single action with String type and hardcoded defaultValue', () => {
       beforeEach(() => {
         newBooks.addAction('make photocopy', {
@@ -435,6 +443,7 @@ describe('ActionDecorator', () => {
           ],
         });
       });
+
       test('should mark the action as static', async () => {
         expect(newBooks.schema.actions['make photocopy']).toEqual({
           scope: 'Single',
@@ -477,6 +486,7 @@ describe('ActionDecorator', () => {
       });
     },
   );
+
   describe('searchField', () => {
     test(`it should pass and use the context and searchField in the options handler`, async () => {
       newBooks.addAction('make photocopy', {

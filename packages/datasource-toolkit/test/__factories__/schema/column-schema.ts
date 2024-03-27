@@ -21,6 +21,14 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
       filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE.Uuid),
     });
   }
+
+  text(): ColumnSchemaFactory {
+    return this.params({
+      type: 'Column',
+      columnType: 'String',
+      filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE.String),
+    });
+  }
 }
 
 export default ColumnSchemaFactory.define(() => ({

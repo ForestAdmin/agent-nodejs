@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import { Sequelize, UUIDV4 } from 'sequelize';
 
 import { ColumnType, Table } from '../../src/introspection/types';
 import ModelBuilder from '../../src/orm-builder/model';
@@ -258,6 +258,35 @@ describe('ModelBuilder', () => {
 
         expect(sequelize.models.aModel).toBeDefined();
         expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
+      });
+    });
+
+    describe('when on MySQL', () => {
+      describe('when the default value is UUID', () => {
+        it('should use UUIDV4 as the default value', () => {
+          const sequelize = new Sequelize('mysql://');
+          const column = {
+            // a literal default value
+            defaultValue: sequelize.literal('uuid()'),
+            type: { type: 'scalar', subType: 'STRING' },
+            autoIncrement: false,
+            isLiteralDefaultValue: true,
+            name: 'uuid',
+            allowNull: false,
+            primaryKey: false,
+            constraints: [],
+          };
+
+          const tables = [
+            { columns: [column], name: 'aModel', schema: undefined, unique: [] },
+          ] as Table[];
+
+          ModelBuilder.defineModels(sequelize, () => {}, tables);
+
+          expect(sequelize.models.aModel).toBeDefined();
+
+          expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBeInstanceOf(UUIDV4);
+        });
       });
     });
   });

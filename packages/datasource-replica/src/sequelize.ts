@@ -91,7 +91,9 @@ function defineRelationships(schema: CollectionReplicaSchema[], sequelize: Seque
 export async function createSequelize(logger: Logger, options: ReplicaDataSourceOptions) {
   const sequelize = await buildSequelizeInstance(options.cacheInto, logger, {
     tables: [],
+    version: 1,
     views: [],
+    source: '@forestadmin/datasource-sql',
   });
 
   // This table should never need to change => use normal sync

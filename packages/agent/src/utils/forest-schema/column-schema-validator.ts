@@ -1,6 +1,6 @@
 import { ColumnSchema, ValidationError } from '@forestadmin/datasource-toolkit';
 
-export default class ColumnSchemaValidation {
+export default class ColumnSchemaValidator {
   static validate(column: ColumnSchema, name: string): void {
     if (!column.enumValues) return;
 

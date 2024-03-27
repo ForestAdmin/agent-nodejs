@@ -21,8 +21,10 @@ export function withNullMarkers(projection: string[]): string[] {
 
   for (const path of projection) {
     const parts = path.split(':');
-    for (let i = 1; i < parts.length; i += 1)
+
+    for (let i = 1; i < parts.length; i += 1) {
       set.add(`${parts.slice(0, i).join(':')}:${markerName}`);
+    }
   }
 
   return [...set];

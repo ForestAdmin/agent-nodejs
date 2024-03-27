@@ -71,6 +71,7 @@ describe('ComputedDecorator', () => {
           lastName: factories.columnSchema.build(),
         },
       }),
+      list: jest.fn().mockImplementation(() => []),
     });
 
     dataSource = factories.dataSource.buildWithCollections([persons, books]);
@@ -175,6 +176,35 @@ describe('ComputedDecorator', () => {
         'author:firstName',
         'author:lastName',
       ]);
+    });
+
+    describe('when there is no records', () => {
+      test('list() should avoid calling computed handler [getValues]', async () => {
+        const getValuesHandler = jest.fn();
+
+        newPersons.registerComputed('getValuesHandler', {
+          columnType: 'String',
+          dependencies: ['firstName', 'lastName'],
+          getValues: getValuesHandler,
+        });
+        const caller = factories.caller.build();
+
+        await newPersons.list(caller, new PaginatedFilter({}), new Projection('getValuesHandler'));
+
+        expect(getValuesHandler).not.toHaveBeenCalled();
+      });
+
+      test('list() should early with no records', async () => {
+        const caller = factories.caller.build();
+
+        const records = await newPersons.list(
+          caller,
+          new PaginatedFilter({}),
+          new Projection('fullName'),
+        );
+
+        expect(records).toStrictEqual([]);
+      });
     });
 
     test('aggregate() should use the child implementation when relevant', async () => {

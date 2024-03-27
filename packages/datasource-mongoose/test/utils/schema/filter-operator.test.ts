@@ -9,12 +9,16 @@ describe('FilterOperatorBuilder > getSupportedOperators', () => {
     ['Dateonly', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'GreaterThan', 'LessThan']],
     ['Enum', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn']],
     ['Number', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'GreaterThan', 'LessThan']],
-    ['String', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'Match', 'NotContains']],
-    ['Uuid', ['Equal', 'NotEqual', 'Present', 'Match', 'NotContains']],
+    [
+      'String',
+      ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'Match', 'NotContains', 'NotIContains'],
+    ],
+    ['Uuid', ['Equal', 'NotEqual', 'Present', 'Match', 'NotContains', 'NotIContains']],
     ['Json', ['Equal', 'NotEqual', 'Present']],
     ['Point', []],
     ['Time', []],
   ];
+
   test.each(cases)('[%p] returns the supported operators', (type, expectedTypes) => {
     expect(Array.from(FilterOperatorsGenerator.getSupportedOperators(type))).toStrictEqual(
       expectedTypes,

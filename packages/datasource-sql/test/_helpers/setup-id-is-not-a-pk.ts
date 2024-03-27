@@ -1,6 +1,7 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import { ConnectionDetails } from './connection-details';
+import setupEmptyDatabase from './setup-empty-database';
 
 export default async (
   connectionDetails: ConnectionDetails,
@@ -8,10 +9,12 @@ export default async (
 ): Promise<Sequelize> => {
   let sequelize: Sequelize | null = null;
 
-  await connectionDetails.reinitDb(database);
-
   try {
-    sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
+    sequelize = await setupEmptyDatabase(connectionDetails, database);
+
+    if (!connectionDetails.supports.multipleDatabases) {
+      await sequelize.getQueryInterface().dropTable('person');
+    }
 
     await sequelize.getQueryInterface().createTable('person', {
       id: { type: DataTypes.INTEGER, primaryKey: false },

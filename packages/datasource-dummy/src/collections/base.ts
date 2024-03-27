@@ -24,6 +24,7 @@ export default class BaseDummyCollection extends BaseCollection {
     'GreaterThan',
     'In',
     'IncludesAll',
+    'IncludesNone',
     'ShorterThan',
     'LongerThan',
     'Present',

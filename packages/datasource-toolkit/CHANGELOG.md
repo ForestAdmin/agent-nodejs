@@ -1,3 +1,52 @@
+## @forestadmin/datasource-toolkit [1.32.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.1...@forestadmin/datasource-toolkit@1.32.2) (2024-03-14)
+
+
+### Bug Fixes
+
+* addField is marked as deprecated by webstorm ([#1067](https://github.com/ForestAdmin/agent-nodejs/issues/1067)) ([735d20b](https://github.com/ForestAdmin/agent-nodejs/commit/735d20b82dc50541ffa9081792e3602264f426ae))
+
+## @forestadmin/datasource-toolkit [1.32.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.0...@forestadmin/datasource-toolkit@1.32.1) (2024-02-27)
+
+
+### Bug Fixes
+
+* **caller:** caller now exposes permissionLevel ([#1029](https://github.com/ForestAdmin/agent-nodejs/issues/1029)) ([a99f5d7](https://github.com/ForestAdmin/agent-nodejs/commit/a99f5d7999b8a6bcfc610d9c5f5fde54c08f1c57))
+
+# @forestadmin/datasource-toolkit [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.31.0...@forestadmin/datasource-toolkit@1.32.0) (2024-02-06)
+
+
+### Features
+
+* add access to the default search in replaceSearch on a collection ([#966](https://github.com/ForestAdmin/agent-nodejs/issues/966)) ([8e3c0ce](https://github.com/ForestAdmin/agent-nodejs/commit/8e3c0cef623ee6e1fc683e7d9728dd0a979774d5))
+
+# @forestadmin/datasource-toolkit [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.30.1...@forestadmin/datasource-toolkit@1.31.0) (2024-02-02)
+
+
+### Features
+
+* **action result builder:** allow user to set SA response headers ([#945](https://github.com/ForestAdmin/agent-nodejs/issues/945)) ([ce37c01](https://github.com/ForestAdmin/agent-nodejs/commit/ce37c01df1e92628788c0bb3dc0eb8d6409b7aef))
+
+## @forestadmin/datasource-toolkit [1.30.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.30.0...@forestadmin/datasource-toolkit@1.30.1) (2024-02-01)
+
+
+### Bug Fixes
+
+* **typings:** support strict null checking in typescript ([#927](https://github.com/ForestAdmin/agent-nodejs/issues/927)) ([80fa64d](https://github.com/ForestAdmin/agent-nodejs/commit/80fa64d0bf85ee36ab330a8f983b8bf593ae34f1))
+
+# @forestadmin/datasource-toolkit [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.2...@forestadmin/datasource-toolkit@1.30.0) (2024-01-26)
+
+
+### Features
+
+* **datasource-customizer:** implement gmail-style search ([#780](https://github.com/ForestAdmin/agent-nodejs/issues/780)) ([3ad8ed8](https://github.com/ForestAdmin/agent-nodejs/commit/3ad8ed895c44ec17959e062dacf085691d42e528))
+
+## @forestadmin/datasource-toolkit [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.1...@forestadmin/datasource-toolkit@1.29.2) (2024-01-17)
+
+
+### Bug Fixes
+
+* allow to use skip lib check = false in tsconfig ([#909](https://github.com/ForestAdmin/agent-nodejs/issues/909)) ([da69776](https://github.com/ForestAdmin/agent-nodejs/commit/da697766745983bfb334488ca946ff8f69281e63))
+
 ## @forestadmin/datasource-toolkit [1.29.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.29.0...@forestadmin/datasource-toolkit@1.29.1) (2023-12-12)
 
 

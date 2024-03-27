@@ -105,6 +105,10 @@ export default class ActionRoute extends CollectionRoute {
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
     const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
 
+    if (result.responseHeaders) {
+      context.response.set(result.responseHeaders);
+    }
+
     if (result?.type === 'Error') {
       context.response.status = HttpCode.BadRequest;
       context.response.body = { error: result.message, html: result.html };
@@ -146,10 +150,11 @@ export default class ActionRoute extends CollectionRoute {
       : null;
     const searchValues: Record<string, string | null> = {};
 
-    if (forestFields)
+    if (forestFields) {
       for (const field of forestFields) {
         searchValues[field.field] = field.searchValue;
       }
+    }
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);

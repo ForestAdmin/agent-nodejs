@@ -211,37 +211,106 @@ describe('Utils > QueryConverter', () => {
         const stringValue = 'VaLuE';
 
         it.each([
-          ['Equal', integerValue, { [Op.eq]: integerValue }],
-          ['Equal', null, { [Op.is]: null }],
-          ['GreaterThan', integerValue, { [Op.gt]: integerValue }],
-          ['In', [null], { [Op.is]: null }],
-          ['In', [null, 2], { [Op.or]: [{ [Op.eq]: 2 }, { [Op.is]: null }] }],
-          ['In', simpleArrayValue, { [Op.in]: simpleArrayValue }],
+          ['Equal', integerValue, { __field_1__: { [Op.eq]: integerValue } }],
+          ['Equal', null, { __field_1__: { [Op.is]: null } }],
+          ['GreaterThan', integerValue, { __field_1__: { [Op.gt]: integerValue } }],
+          ['In', [null], { __field_1__: { [Op.is]: null } }],
+          [
+            'In',
+            [null, 2],
+            { [Op.or]: [{ __field_1__: { [Op.eq]: 2 } }, { __field_1__: { [Op.is]: null } }] },
+          ],
+          ['In', simpleArrayValue, { __field_1__: { [Op.in]: simpleArrayValue } }],
           [
             'In',
             arrayValueWithNull,
-            { [Op.or]: [{ [Op.in]: simpleArrayValue }, { [Op.is]: null }] },
+            {
+              [Op.or]: [
+                { __field_1__: { [Op.in]: simpleArrayValue } },
+                { __field_1__: { [Op.is]: null } },
+              ],
+            },
           ],
-          ['In', [integerValue], { [Op.eq]: integerValue }],
-          ['IncludesAll', simpleArrayValue, { [Op.contains]: simpleArrayValue }],
-          ['LessThan', integerValue, { [Op.lt]: integerValue }],
-          ['Missing', undefined, { [Op.is]: null }],
-          ['NotEqual', integerValue, { [Op.ne]: integerValue }],
-          ['NotIn', [2], { [Op.ne]: 2 }],
-          ['NotIn', [null], { [Op.ne]: null }],
-          ['NotIn', simpleArrayValue, { [Op.notIn]: simpleArrayValue }],
+          ['In', [integerValue], { __field_1__: { [Op.eq]: integerValue } }],
+          ['IncludesAll', simpleArrayValue, { __field_1__: { [Op.contains]: simpleArrayValue } }],
+          ['LessThan', integerValue, { __field_1__: { [Op.lt]: integerValue } }],
+          ['Missing', undefined, { __field_1__: { [Op.is]: null } }],
+          [
+            'NotEqual',
+            integerValue,
+            {
+              [Op.or]: [
+                { __field_1__: { [Op.ne]: integerValue } },
+                { __field_1__: { [Op.is]: null } },
+              ],
+            },
+          ],
+          [
+            'NotEqual',
+            null,
+            {
+              __field_1__: { [Op.ne]: null },
+            },
+          ],
+          [
+            'NotIn',
+            [2],
+            { [Op.or]: [{ __field_1__: { [Op.is]: null } }, { __field_1__: { [Op.ne]: 2 } }] },
+          ],
+          ['NotIn', [null], { __field_1__: { [Op.ne]: null } }],
+          [
+            'NotIn',
+            simpleArrayValue,
+            {
+              [Op.or]: [
+                { __field_1__: { [Op.notIn]: simpleArrayValue } },
+                { __field_1__: { [Op.is]: null } },
+              ],
+            },
+          ],
           [
             'NotIn',
             arrayValueWithNull,
-            { [Op.and]: [{ [Op.ne]: null }, { [Op.notIn]: simpleArrayValue }] },
+            {
+              [Op.and]: [
+                { __field_1__: { [Op.ne]: null } },
+                { __field_1__: { [Op.ne]: 21 } },
+                { __field_1__: { [Op.ne]: 42 } },
+                { __field_1__: { [Op.ne]: 84 } },
+              ],
+            },
           ],
           [
             'NotIn',
             [null, integerValue],
-            { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: integerValue }] },
+            {
+              [Op.and]: [
+                { __field_1__: { [Op.ne]: null } },
+                { __field_1__: { [Op.ne]: integerValue } },
+              ],
+            },
           ],
-          ['Present', undefined, { [Op.ne]: null }],
-          ['NotContains', stringValue, { [Op.notLike]: `%${stringValue}%` }],
+          ['Present', undefined, { __field_1__: { [Op.ne]: null } }],
+          [
+            'NotContains',
+            stringValue,
+            {
+              [Op.or]: [
+                { __field_1__: { [Op.notLike]: `%${stringValue}%` } },
+                { __field_1__: { [Op.is]: null } },
+              ],
+            },
+          ],
+          [
+            'NotIContains',
+            stringValue,
+            {
+              [Op.or]: [
+                { __field_1__: { [Op.notILike]: `%${stringValue}%` } },
+                { __field_1__: { [Op.is]: null } },
+              ],
+            },
+          ],
         ])(
           'should generate a "where" Sequelize filter from a "%s" operator',
           (operator, value, where) => {
@@ -251,7 +320,7 @@ describe('Utils > QueryConverter', () => {
             const queryConverter = new QueryConverter(model);
             const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
 
-            expect(sequelizeFilter).toHaveProperty('__field_1__', where);
+            expect(sequelizeFilter).toEqual(where);
           },
         );
 
@@ -263,11 +332,18 @@ describe('Utils > QueryConverter', () => {
             const conditionTree = new ConditionTreeLeaf('__field_1__', 'NotContains', 'test');
             const sequelizeFilter = queryConverter.getWhereFromConditionTree(conditionTree);
             expect(sequelizeFilter).toEqual({
-              __field_1__: {
-                attribute: { col: '__field_1__' },
-                comparator: 'NOT GLOB',
-                logic: '*test*',
-              },
+              [Op.or]: [
+                {
+                  attribute: { col: '__field_1__' },
+                  comparator: 'NOT GLOB',
+                  logic: '*test*',
+                },
+                {
+                  __field_1__: {
+                    [Op.is]: null,
+                  },
+                },
+              ],
             });
           });
         });
@@ -282,7 +358,7 @@ describe('Utils > QueryConverter', () => {
                 logic: 'VaLuE',
               },
             ],
-            ['mssql', { [Op.like]: 'VaLuE' }],
+            ['mssql', { __field_1__: { [Op.like]: 'VaLuE' } }],
             [
               'mysql',
               {
@@ -291,20 +367,20 @@ describe('Utils > QueryConverter', () => {
                 logic: 'VaLuE',
               },
             ],
-            ['postgres', { [Op.like]: 'VaLuE' }],
+            ['postgres', { __field_1__: { [Op.like]: 'VaLuE' } }],
           ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
             const tree = new ConditionTreeLeaf('__field_1__', 'Like', 'VaLuE');
             const model = setupModel(dialect as Dialect);
             const queryConverter = new QueryConverter(model);
             const sequelizeFilter = queryConverter.getWhereFromConditionTree(tree);
 
-            expect(sequelizeFilter).toHaveProperty('__field_1__', where);
+            expect(sequelizeFilter).toEqual(where);
           });
         });
 
         describe('with "ILike" operator', () => {
           it.each([
-            ['mariadb', { [Op.like]: 'VaLuE' }],
+            ['mariadb', { __field_1__: { [Op.like]: 'VaLuE' } }],
             [
               'mssql',
               {
@@ -313,15 +389,15 @@ describe('Utils > QueryConverter', () => {
                 logic: 'value',
               },
             ],
-            ['mysql', { [Op.like]: 'VaLuE' }],
-            ['postgres', { [Op.iLike]: 'VaLuE' }],
+            ['mysql', { __field_1__: { [Op.like]: 'VaLuE' } }],
+            ['postgres', { __field_1__: { [Op.iLike]: 'VaLuE' } }],
           ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
             const tree = new ConditionTreeLeaf('__field_1__', 'ILike', 'VaLuE');
             const model = setupModel(dialect as Dialect);
             const queryConverter = new QueryConverter(model);
             const sequelizeFilter = queryConverter.getWhereFromConditionTree(tree);
 
-            expect(sequelizeFilter).toHaveProperty('__field_1__', where);
+            expect(sequelizeFilter).toEqual(where);
           });
         });
 
@@ -404,7 +480,6 @@ describe('Utils > QueryConverter', () => {
       it.each([
         ['In', Op.in],
         ['IncludesAll', Op.contains],
-        ['NotIn', Op.notIn],
       ])('should handle array values "%s"', (operator, sequelizeOperator) => {
         const model = setupModel();
         const queryConverter = new QueryConverter(model);
@@ -414,6 +489,24 @@ describe('Utils > QueryConverter', () => {
         );
 
         expect(sequelizeFilter).toHaveProperty('__field_1__', { [sequelizeOperator]: [42, 43] });
+      });
+
+      describe('NotIn', () => {
+        it('should handle array values', () => {
+          const model = setupModel();
+          const queryConverter = new QueryConverter(model);
+
+          const sequelizeFilter = queryConverter.getWhereFromConditionTree(
+            new ConditionTreeLeaf('__field_1__', 'NotIn', [42, 43]),
+          );
+
+          expect(sequelizeFilter).toEqual({
+            [Op.or]: [
+              { __field_1__: { [Op.notIn]: [42, 43] } },
+              { __field_1__: { [Op.is]: null } },
+            ],
+          });
+        });
       });
     });
   });

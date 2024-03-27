@@ -35,110 +35,167 @@ export default class QueryConverter {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private makeWhereClause(field: string, operator: Operator, value?: unknown): any {
-    switch (operator) {
+  private makeWhereClause(
+    colName: string,
+    field: string,
+    operator: Operator,
+    value: unknown,
+  ): WhereOptions {
+    switch (true) {
       // Presence
-      case 'Present':
-        return { [Op.ne]: null };
-      case 'Missing':
-        return { [Op.is]: null };
+      case operator === 'Present':
+        return { [colName]: { [Op.ne]: null } };
+      case operator === 'Missing':
+        return { [colName]: { [Op.is]: null } };
 
       // Equality
-      case 'Equal':
-        return { [value !== null ? Op.eq : Op.is]: value };
-      case 'NotEqual':
-        return { [Op.ne]: value };
-      case 'In':
-        return this.makeInWhereClause(field, value);
-      case 'NotIn':
-        return this.makeNotInWhereClause(field, value);
+      case operator === 'Equal':
+        return { [colName]: { [value !== null ? Op.eq : Op.is]: value } };
+      case operator === 'NotEqual':
+        return value === null
+          ? { [colName]: { [Op.ne]: value } }
+          : {
+              [Op.or]: [{ [colName]: { [Op.ne]: value } }, { [colName]: { [Op.is]: null } }],
+            };
+      case operator === 'In':
+        return this.makeInWhereClause(colName, field, value);
+      case operator === 'NotIn':
+        return this.makeNotInWhereClause(colName, field, value);
 
       // Orderables
-      case 'LessThan':
-        return { [Op.lt]: value };
-      case 'GreaterThan':
-        return { [Op.gt]: value };
+      case operator === 'LessThan':
+        return { [colName]: { [Op.lt]: value } };
+      case operator === 'GreaterThan':
+        return { [colName]: { [Op.gt]: value } };
 
       // Strings
-      case 'Like':
-        return this.makeLikeWhereClause(field, value as string, true, false);
-      case 'ILike':
-        return this.makeLikeWhereClause(field, value as string, false, false);
-      case 'NotContains':
-        return this.makeLikeWhereClause(field, `%${value}%`, true, true);
+      case operator === 'Like':
+        return this.makeLikeWhereClause(colName, field, value as string, true, false);
+      case operator === 'ILike':
+        return this.makeLikeWhereClause(colName, field, value as string, false, false);
+      case operator === 'NotContains':
+        return this.makeLikeWhereClause(colName, field, `%${value}%`, true, true);
+      case operator === 'NotIContains':
+        return this.makeLikeWhereClause(colName, field, `%${value}%`, false, true);
 
       // Arrays
-      case 'IncludesAll':
-        return { [Op.contains]: Array.isArray(value) ? value : [value] };
+      case operator === 'IncludesAll' && this.dialect === 'postgres':
+        return { [colName]: { [Op.contains]: Array.isArray(value) ? value : [value] } };
+      case operator === 'IncludesNone' && this.dialect === 'postgres':
+        return {
+          [Op.or]: [
+            { [colName]: { [Op.is]: null } },
+            {
+              [Op.and]: (Array.isArray(value) ? value : [value]).map(oneValue => ({
+                [Op.not]: {
+                  [colName]: { [Op.contains]: [oneValue] },
+                },
+              })),
+            },
+          ],
+        };
 
       default:
         throw new Error(`Unsupported operator: "${operator}".`);
     }
   }
 
-  private makeInWhereClause(field: string, value: unknown): unknown {
+  private makeInWhereClause(colName: string, field: string, value: unknown): WhereOptions {
     const valueAsArray = value as unknown[];
 
     if (valueAsArray.length === 1) {
-      return this.makeWhereClause(field, 'Equal', valueAsArray[0]);
+      return this.makeWhereClause(colName, field, 'Equal', valueAsArray[0]);
     }
 
     if (valueAsArray.includes(null)) {
       const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
 
       return {
-        [Op.or]: [this.makeInWhereClause(field, valueAsArrayWithoutNull), { [Op.is]: null }],
+        [Op.or]: [
+          this.makeInWhereClause(colName, field, valueAsArrayWithoutNull),
+          { [colName]: { [Op.is]: null } },
+        ],
       };
     }
 
-    return { [Op.in]: valueAsArray };
+    return { [colName]: { [Op.in]: valueAsArray } };
   }
 
-  private makeNotInWhereClause(field: string, value: unknown): unknown {
+  private makeNotInWhereClause(colName: string, field: string, value: unknown): WhereOptions {
     const valueAsArray = value as unknown[];
 
-    if (valueAsArray.length === 1) {
-      return this.makeWhereClause(field, 'NotEqual', valueAsArray[0]);
-    }
-
     if (valueAsArray.includes(null)) {
+      if (valueAsArray.length === 1) {
+        return { [colName]: { [Op.ne]: null } };
+      }
+
       const valueAsArrayWithoutNull = valueAsArray.filter(v => v !== null);
 
       return {
-        [Op.and]: [{ [Op.ne]: null }, this.makeNotInWhereClause(field, valueAsArrayWithoutNull)],
+        [Op.and]: [
+          { [colName]: { [Op.ne]: null } },
+          ...valueAsArrayWithoutNull.map(v => ({
+            [colName]: { [Op.ne]: v },
+          })),
+        ],
       };
     }
 
-    return { [Op.notIn]: valueAsArray };
+    if (valueAsArray.length === 1) {
+      return {
+        [Op.or]: [
+          { [colName]: { [Op.is]: null } },
+          ...valueAsArray.map(v => ({
+            [colName]: { [Op.ne]: v },
+          })),
+        ],
+      };
+    }
+
+    return {
+      [Op.or]: [{ [colName]: { [Op.notIn]: valueAsArray } }, { [colName]: { [Op.is]: null } }],
+    };
   }
 
   private makeLikeWhereClause(
+    colName: string,
     field: string,
     value: string,
     caseSensitive: boolean,
     not: boolean,
-  ): unknown {
+  ): WhereOptions {
     const op = not ? 'NOT LIKE' : 'LIKE';
-    const seqOp = not ? Op.notLike : Op.like;
+    let condition: WhereOptions;
 
     if (caseSensitive) {
       if (this.dialect === 'sqlite') {
         const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
 
-        return this.where(this.col(field), sqLiteOp, value.replace(/%/g, '*').replace(/_/g, '?'));
+        condition = this.where(
+          this.col(field),
+          sqLiteOp,
+          value.replace(/%/g, '*').replace(/_/g, '?'),
+        );
+      } else if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
+        condition = this.where(this.fn('BINARY', this.col(field)), op, value);
+      } else {
+        condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
       }
 
-      if (this.dialect === 'mysql' || this.dialect === 'mariadb')
-        return this.where(this.fn('BINARY', this.col(field)), op, value);
-
-      return { [seqOp]: value };
+      // Case insensitive
+    } else if (this.dialect === 'postgres') {
+      condition = { [colName]: { [not ? Op.notILike : Op.iLike]: value } };
+    } else if (
+      this.dialect === 'mysql' ||
+      this.dialect === 'mariadb' ||
+      this.dialect === 'sqlite'
+    ) {
+      condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
+    } else {
+      condition = this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
     }
 
-    if (this.dialect === 'postgres') return { [Op.iLike]: value };
-    if (this.dialect === 'mysql' || this.dialect === 'mariadb' || this.dialect === 'sqlite')
-      return { [seqOp]: value };
-
-    return this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
+    return not ? { [Op.or]: [condition, { [colName]: { [Op.is]: null } }] } : condition;
   }
 
   /*
@@ -173,8 +230,6 @@ export default class QueryConverter {
   getWhereFromConditionTree(conditionTree?: ConditionTree): WhereOptions {
     if (!conditionTree) return {};
 
-    const sequelizeWhereClause = {};
-
     if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
       const { aggregator, conditions } = conditionTree as ConditionTreeBranch;
 
@@ -188,25 +243,26 @@ export default class QueryConverter {
         throw new Error('Conditions must be an array.');
       }
 
-      sequelizeWhereClause[sequelizeOperator] = conditions.map(condition =>
-        this.getWhereFromConditionTree(condition),
-      );
-    } else if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
+      return {
+        [sequelizeOperator]: conditions.map(condition => this.getWhereFromConditionTree(condition)),
+      };
+    }
+
+    if ((conditionTree as ConditionTreeLeaf).operator !== undefined) {
       const { field, operator, value } = conditionTree as ConditionTreeLeaf;
       const isRelation = field.includes(':');
 
       const safeField = unAmbigousField(this.model, field);
 
-      sequelizeWhereClause[isRelation ? `$${safeField}$` : safeField] = this.makeWhereClause(
+      return this.makeWhereClause(
+        isRelation ? `$${safeField}$` : safeField,
         safeField,
         operator,
         value,
       );
-    } else {
-      throw new Error('Invalid ConditionTree.');
     }
 
-    return sequelizeWhereClause;
+    throw new Error('Invalid ConditionTree.');
   }
 
   getIncludeFromProjection(

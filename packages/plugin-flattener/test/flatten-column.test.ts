@@ -34,6 +34,7 @@ describe('flattenColumn', () => {
                 address: { city: 'String' },
               },
             }),
+            meta: factories.columnSchema.build({ columnType: 'Json' }),
           },
         }),
         create: jest.fn().mockImplementation((_, records) => Promise.resolve(records)),
@@ -75,7 +76,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.doctor who?' cannot be flattened' (not found).");
+    ).rejects.toThrow("'book.doctor who?' cannot be flattened (not found).");
   });
 
   it('should throw when target is a primitive', async () => {
@@ -85,7 +86,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.title' cannot be flattened' (primitive).");
+    ).rejects.toThrow("'book.title' cannot be flattened (primitive type 'String' not supported).");
   });
 
   it('should throw when target is an array', async () => {
@@ -95,7 +96,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.tags' cannot be flattened' (array).");
+    ).rejects.toThrow("'book.tags' cannot be flattened (array not supported).");
   });
 
   it('should throw when target is a relation', async () => {
@@ -105,7 +106,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.myself' cannot be flattened' (not a column).");
+    ).rejects.toThrow("'book.myself' cannot be flattened (not a column).");
   });
 
   it('should throw level is invalid', async () => {
@@ -125,9 +126,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow(
-      "'book.author' cannot be flattened' (no fields match level/include/exclude).",
-    );
+    ).rejects.toThrow("'book.author' cannot be flattened (no fields match level/include/exclude).");
   });
 
   it('should throw when include has invalid column', async () => {
@@ -138,6 +137,17 @@ describe('flattenColumn', () => {
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
     ).rejects.toThrow("Cannot add field 'author@@@missing' (dependency not found).");
+  });
+
+  it('should throw when using wrong flattener plugin', async () => {
+    const options = { columnName: 'meta' };
+    await expect(
+      customizer
+        .customizeCollection('book', book => book.use(flattenColumn, options))
+        .getDataSource(logger),
+    ).rejects.toThrow(
+      "'book.meta' cannot be flattened using flattenColumn please use flattenJsonColumn.",
+    );
   });
 
   describe('when flattening a single level', () => {

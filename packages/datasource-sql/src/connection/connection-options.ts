@@ -113,8 +113,10 @@ export default class ConnectionOptions {
 
     // Check required options
     if (!this.dialect) throw new DatabaseConnectError(`Dialect is required`, this.debugDatabaseUri);
-    if (this.dialect !== 'sqlite' && !this.port)
+
+    if (this.dialect !== 'sqlite' && !this.port) {
       throw new DatabaseConnectError(`Port is required`, this.debugDatabaseUri);
+    }
   }
 
   changeHostAndPort(host: string, port: number): void {
@@ -154,8 +156,9 @@ export default class ConnectionOptions {
       `Connection Uri "${str}" provided to SQL data source is not valid. ` +
       `Should be <dialect>://<connection>.`;
 
-    if (!str.startsWith('sqlite') && !/.*:\/\//g.test(str))
+    if (!str.startsWith('sqlite') && !/.*:\/\//g.test(str)) {
       throw new DatabaseConnectError(message, str);
+    }
 
     try {
       return new URL(str);
@@ -189,10 +192,15 @@ export default class ConnectionOptions {
 
       case 'mssql':
         if (sslMode === 'disabled') return { options: { encrypt: false } };
-        if (sslMode === 'required')
+
+        if (sslMode === 'required') {
           return { options: { encrypt: true, trustServerCertificate: true } };
-        if (sslMode === 'verify')
+        }
+
+        if (sslMode === 'verify') {
           return { options: { encrypt: true, trustServerCertificate: false } };
+        }
+
         break;
 
       case 'mysql':
@@ -214,12 +222,16 @@ export default class ConnectionOptions {
 
         // Note that we should either do that for the other vendors (if possible), or
         // replace the reverse proxy by a forward proxy (when supported).
-        if (sslMode === 'required')
+        if (sslMode === 'required') {
           return {
             ssl: { require: true, rejectUnauthorized: false, servername: this.initialHost },
           };
-        if (sslMode === 'verify')
+        }
+
+        if (sslMode === 'verify') {
           return { ssl: { require: true, rejectUnauthorized: true, servername: this.initialHost } };
+        }
+
         break;
 
       case 'db2':

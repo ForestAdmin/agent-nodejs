@@ -1,8 +1,7 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes } from 'sequelize';
 
 import { ColumnDescription } from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import CONNECTION_DETAILS from '../../_helpers/connection-details';
 
 const makeColumnDescription = (description: Partial<ColumnDescription>) => {
   return {
@@ -43,7 +42,7 @@ describe('SqlTypeConverter', () => {
       ['LONGBLOB', DataTypes.BLOB, 'BLOB'],
       ['BYTEA', DataTypes.BLOB, 'BLOB'],
       ['CHARACTER VARYING', DataTypes.STRING, 'STRING'],
-      ['TEXT', DataTypes.STRING, 'STRING'],
+      ['TEXT', DataTypes.STRING, 'TEXT'],
       ['NTEXT', DataTypes.STRING, 'STRING'],
       ['SOMETHING TEXT', DataTypes.STRING, 'STRING'],
       ['VARCHAR(255)', DataTypes.STRING, 'STRING'],
@@ -52,20 +51,20 @@ describe('SqlTypeConverter', () => {
       ['UNIQUEIDENTIFIER', DataTypes.UUID, 'UUID'],
       ['UUID', DataTypes.UUID, 'UUID'],
       ['JSONB', DataTypes.JSONB, 'JSONB'],
-      ['INTEGER', DataTypes.NUMBER, 'NUMBER'],
+      ['INTEGER', DataTypes.NUMBER, 'INTEGER'],
       ['SERIAL', DataTypes.NUMBER, 'NUMBER'],
-      ['INT8', DataTypes.NUMBER, 'NUMBER'],
-      ['SMALLINT4', DataTypes.NUMBER, 'NUMBER'],
-      ['TINYINT2', DataTypes.NUMBER, 'NUMBER'],
-      ['MEDIUMINT4', DataTypes.NUMBER, 'NUMBER'],
+      ['INT8', DataTypes.NUMBER, 'INTEGER'],
+      ['SMALLINT4', DataTypes.NUMBER, 'INTEGER'],
+      ['TINYINT2', DataTypes.NUMBER, 'INTEGER'],
+      ['MEDIUMINT4', DataTypes.NUMBER, 'INTEGER'],
       ['BIGINT4', DataTypes.BIGINT, 'BIGINT'],
       ['FLOAT8', DataTypes.FLOAT, 'FLOAT'],
-      ['NUMERIC', DataTypes.DOUBLE, 'DOUBLE'],
-      ['DECIMAL', DataTypes.DOUBLE, 'DOUBLE'],
-      ['REAL', DataTypes.DOUBLE, 'DOUBLE'],
+      ['NUMERIC', DataTypes.DOUBLE, 'DECIMAL'],
+      ['DECIMAL', DataTypes.DOUBLE, 'DECIMAL'],
+      ['REAL', DataTypes.DOUBLE, 'REAL'],
       ['DOUBLE', DataTypes.DOUBLE, 'DOUBLE'],
       ['DOUBLE PRECISION', DataTypes.DOUBLE, 'DOUBLE'],
-      ['DECIMAL8', DataTypes.DOUBLE, 'DOUBLE'],
+      ['DECIMAL8', DataTypes.DOUBLE, 'DECIMAL'],
       ['DATE', DataTypes.DATEONLY, 'DATEONLY'],
       ['DATETIME', DataTypes.DATE, 'DATE'],
       ['TIMESTAMP', DataTypes.DATE, 'DATE'],
@@ -74,10 +73,8 @@ describe('SqlTypeConverter', () => {
       ['INET', DataTypes.INET, 'INET'],
     ])('from simple type %s', (columnType, dataType, expectedSubType) => {
       it(`should return DataTypes.${dataType.key}`, async () => {
-        const sequelize = new Sequelize('postgres://');
-        const sqlTypeConverter = new SqlTypeConverter(sequelize);
         expect(
-          await sqlTypeConverter.convert(
+          await SqlTypeConverter.convert(
             { tableName: 'test', schema: 'public' },
             `column-${columnType}`,
             makeColumnDescriptionForType(columnType),
@@ -88,13 +85,9 @@ describe('SqlTypeConverter', () => {
 
     describe("from type ENUM('a','b')", () => {
       it('should return a DataTypes.ENUM', async () => {
-        const sequelize = new Sequelize('postgres://');
-        const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
         expect(
-          await sqlTypeConverter.convert(
+          await SqlTypeConverter.convert(
             { tableName: 'test', schema: 'public' },
-            'column-ENUM-a-b',
             makeColumnDescriptionForEnum("ENUM('a','b')", ['a', 'b']),
           ),
         ).toEqual({ type: 'enum', values: ['a', 'b'] });
@@ -104,13 +97,9 @@ describe('SqlTypeConverter', () => {
     describe('from type USER-DEFINED', () => {
       describe('when the column is an enum', () => {
         it('should return a DataTypes.ENUM', async () => {
-          const sequelize = new Sequelize('postgres://');
-          const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
           expect(
-            await sqlTypeConverter.convert(
+            await SqlTypeConverter.convert(
               { tableName: 'test', schema: 'public' },
-              'column-USER-DEFINED-ENUM',
               makeColumnDescriptionForEnum('USER-DEFINED', ['valueA', 'valueB']),
             ),
           ).toEqual({ type: 'enum', values: ['valueA', 'valueB'] });
@@ -119,13 +108,9 @@ describe('SqlTypeConverter', () => {
 
       describe('when the column cannot be detected', () => {
         it('should return a DataTypes.STRING', async () => {
-          const sequelize = new Sequelize('postgres://');
-          const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
           expect(
-            await sqlTypeConverter.convert(
+            await SqlTypeConverter.convert(
               { tableName: 'test', schema: 'public' },
-              'column-USER-DEFINED-ENUM-WITH-NO-VALUES',
               makeColumnDescriptionForEnum('USER-DEFINED', []),
             ),
           ).toEqual({ type: 'scalar', subType: 'STRING' });
@@ -133,97 +118,66 @@ describe('SqlTypeConverter', () => {
       });
     });
 
-    describe.each(CONNECTION_DETAILS.filter(c => c.supports.arrays))(
-      'on $name from a table with arrays of integers, strings and enums',
-      connectionDetails => {
-        it('should detect the proper types', async () => {
-          let sequelize: Sequelize | null = null;
+    describe('on $name from a table with arrays of integers, strings and enums', () => {
+      it('should detect the proper types', async () => {
+        const description = makeColumnDescriptionForType('ARRAY');
 
-          try {
-            const database = 'datasource-sql-array-type-getter-test';
-            await connectionDetails.reinitDb(database);
-
-            sequelize = new Sequelize(connectionDetails.url(database), { logging: false });
-            sequelize.define(
-              'arrayTable',
-              {
-                arrayInt: DataTypes.ARRAY(DataTypes.INTEGER),
-                arrayString: DataTypes.ARRAY(DataTypes.STRING),
-                arrayEnum: DataTypes.ARRAY(DataTypes.ENUM('enum1', 'enum2')),
-                arrayTimestamp: DataTypes.ARRAY(DataTypes.TIME),
-              },
-              { tableName: 'arrayTable', schema: 'public' },
-            );
-
-            await sequelize.sync({ force: true });
-
-            const converter = new SqlTypeConverter(sequelize);
-            const description = makeColumnDescriptionForType('ARRAY');
-
-            expect(
-              await converter.convert(
-                { tableName: 'arrayTable', schema: 'public' },
-                'arrayInt',
-                description,
-              ),
-            ).toStrictEqual({
-              type: 'array',
-              subType: { type: 'scalar', subType: 'NUMBER' },
-            });
-
-            expect(
-              await converter.convert(
-                { tableName: 'arrayTable', schema: 'public' },
-                'arrayString',
-                description,
-              ),
-            ).toStrictEqual({
-              type: 'array',
-              subType: { type: 'scalar', subType: 'STRING' },
-            });
-
-            expect(
-              await converter.convert(
-                { tableName: 'arrayTable', schema: 'public' },
-                'arrayEnum',
-                description,
-              ),
-            ).toStrictEqual({
-              type: 'array',
-              subType: {
-                type: 'enum',
-                schema: 'public',
-                name: 'enum_arrayTable_arrayEnum',
-                values: ['enum1', 'enum2'],
-              },
-            });
-
-            expect(
-              await converter.convert(
-                { tableName: 'arrayTable', schema: 'public' },
-                'arrayTimestamp',
-                description,
-              ),
-            ).toStrictEqual({
-              type: 'array',
-              subType: { type: 'scalar', subType: 'TIME' },
-            });
-          } finally {
-            await sequelize?.close();
-          }
+        expect(
+          await SqlTypeConverter.convert(
+            { tableName: 'arrayTable', schema: 'public' },
+            { ...description, elementType: 'SERIAL' },
+          ),
+        ).toStrictEqual({
+          type: 'array',
+          subType: { type: 'scalar', subType: 'NUMBER' },
         });
-      },
-    );
+
+        expect(
+          await SqlTypeConverter.convert(
+            { tableName: 'arrayTable', schema: 'public' },
+            { ...description, elementType: 'VARCHAR' },
+          ),
+        ).toStrictEqual({
+          type: 'array',
+          subType: { type: 'scalar', subType: 'STRING' },
+        });
+
+        expect(
+          await SqlTypeConverter.convert(
+            { tableName: 'arrayTable', schema: 'public' },
+            {
+              ...description,
+              enumValues: ['enum1', 'enum2'],
+              elementType: 'enum_arrayTable_arrayEnum',
+            },
+          ),
+        ).toStrictEqual({
+          type: 'array',
+          subType: {
+            type: 'enum',
+            schema: 'public',
+            name: 'enum_arrayTable_arrayEnum',
+            values: ['enum1', 'enum2'],
+          },
+        });
+
+        expect(
+          await SqlTypeConverter.convert(
+            { tableName: 'arrayTable', schema: 'public' },
+            { ...description, elementType: 'TIME' },
+          ),
+        ).toStrictEqual({
+          type: 'array',
+          subType: { type: 'scalar', subType: 'TIME' },
+        });
+      });
+    });
 
     describe('from an unsupported type', () => {
       it('should ignore the column', async () => {
-        const sequelize = new Sequelize('postgres://');
-        const sqlTypeConverter = new SqlTypeConverter(sequelize);
-
         await expect(
-          sqlTypeConverter.convert(
+          SqlTypeConverter.convert(
             { tableName: 'test', schema: 'public' },
-            'column-WITH-UNKNOWN-TYPE',
             makeColumnDescriptionForType('UNKNOWN'),
           ),
         ).rejects.toThrow('Unsupported type: UNKNOWN');

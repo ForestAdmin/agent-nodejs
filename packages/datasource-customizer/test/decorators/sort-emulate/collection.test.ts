@@ -104,9 +104,9 @@ describe('SortEmulationDecoratorCollection', () => {
     );
   });
 
-  test('emulateFieldSorting() should throw if the field is in a relation', () => {
-    expect(() => newBooks.emulateFieldSorting('author:firstName')).toThrow(
-      'Cannot replace sort on relation',
+  test('replaceFieldSorting() should throw if no equivalentSort is provided', () => {
+    expect(() => newBooks.replaceFieldSorting('authorId', null)).toThrow(
+      'A new sorting method should be provided to replace field sorting',
     );
   });
 
@@ -239,6 +239,35 @@ describe('SortEmulationDecoratorCollection', () => {
         { id: 2, title: 'Beat the dealer', author: { lastName: 'Thorp' } },
         { id: 3, title: 'Gomorrah', author: { lastName: 'Saviano' } },
         { id: 1, title: 'Foundation', author: { lastName: 'Asimov' } },
+      ]);
+    });
+  });
+
+  describe('when disabling sort on book.title (no relations)', () => {
+    beforeEach(() => {
+      newBooks.disableFieldSorting('title');
+    });
+
+    test('schema should be updated', () => {
+      const schema = newBooks.schema.fields.title as ColumnSchema;
+      expect(schema.isSortable).toBeFalsy();
+    });
+
+    test('should set isSortable to false', async () => {
+      expect((newBooks.schema.fields.title as ColumnSchema).isSortable).toBeFalse();
+    });
+
+    test('should still sort normally when calling the method', async () => {
+      const records = await newBooks.list(
+        factories.caller.build(),
+        new PaginatedFilter({ sort: new Sort({ field: 'title', ascending: true }) }),
+        new Projection('id', 'title'),
+      );
+
+      expect(records).toStrictEqual([
+        { id: 2, title: 'Beat the dealer' },
+        { id: 1, title: 'Foundation' },
+        { id: 3, title: 'Gomorrah' },
       ]);
     });
   });

@@ -1,6 +1,7 @@
 import { Logger } from '@forestadmin/datasource-toolkit';
-import { ModelAttributes, Sequelize } from 'sequelize';
+import { ModelAttributes, Sequelize, UUIDV4 } from 'sequelize';
 import { ModelAttributeColumnOptions } from 'sequelize/types/model';
+import { Literal } from 'sequelize/types/utils';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
 import { Introspection, Table } from '../introspection/types';
@@ -52,19 +53,30 @@ export default class ModelBuilder {
       const isExplicit =
         !(hasTimestamps && (column.name === 'updatedAt' || column.name === 'createdAt')) &&
         !(isParanoid && column.name === 'deletedAt');
+      const type = SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name);
 
       if (column.defaultValue && column.isLiteralDefaultValue) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        column.defaultValue = Sequelize.literal((column.defaultValue as any).val);
+        if (
+          ['mysql', 'mariadb'].includes(dialect) &&
+          /^uuid\(\)$/i.test((column.defaultValue as Literal).val as string)
+        ) {
+          // MySQL and MariaDB in sequelize do not support default values for UUIDs as literal
+          // when creating records so we use the UUIDV4 function instead.
+          column.defaultValue = UUIDV4;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          column.defaultValue = Sequelize.literal((column.defaultValue as any).val);
+        }
       }
 
       // Clone object, because sequelize modifies it.
-      if (isExplicit)
+      if (isExplicit) {
         modelAttrs[column.name] = {
           ...column,
-          type: SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name),
+          type,
           unique: table.unique.some(u => u.length === 1 && u[0] === column.name),
         };
+      }
     }
 
     // If there is no primary key, we try to guess one.
@@ -98,8 +110,9 @@ export default class ModelBuilder {
       primaryKeys = table.columns.map(c => c.name);
     }
 
-    for (const column of primaryKeys)
+    for (const column of primaryKeys) {
       (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
+    }
 
     if (primaryKeys.length) {
       logger?.(

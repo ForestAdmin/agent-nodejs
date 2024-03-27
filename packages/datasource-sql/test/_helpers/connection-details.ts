@@ -1,23 +1,6 @@
-import fs from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
 import { Dialect, Options, Sequelize } from 'sequelize';
-
-async function reinitDbWithSequelize(url: string, database: string): Promise<void> {
-  const sequelize = new Sequelize(url, { logging: false });
-
-  try {
-    const queryInterface = sequelize.getQueryInterface();
-
-    await queryInterface.dropDatabase(database);
-    await queryInterface.createDatabase(database);
-  } catch (e) {
-    console.error('Error', e);
-    throw e;
-  } finally {
-    await sequelize.close();
-  }
-}
 
 export type ConnectionDetails = {
   name: string;
@@ -25,7 +8,6 @@ export type ConnectionDetails = {
   url: (dbName?: string) => string;
   urlDocker: (dbName?: string) => string;
   options: (dbName?: string) => Options;
-  reinitDb: (dbName: string) => Promise<void>;
   version: number;
   supports: {
     schemas?: boolean;
@@ -39,8 +21,11 @@ export type ConnectionDetails = {
     functionDefaultValue: boolean;
     dateDefault: boolean;
     authentication: boolean;
+    uuid?: boolean;
   };
   defaultSchema?: string;
+  uuidFunctionLiteral: string | undefined;
+  setupUUID?: (sequelize: Sequelize) => Promise<void>;
 };
 
 export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
@@ -53,8 +38,6 @@ export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
     `postgres://test:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `postgres://test:password@postgres${version}:5432${dbName ? `/${dbName}` : ''}`,
-  reinitDb: (dbName: string) =>
-    reinitDbWithSequelize(`postgres://test:password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'postgres' as Dialect,
     username: 'test',
@@ -77,8 +60,13 @@ export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: true,
     dateDefault: true,
     authentication: true,
+    uuid: true,
   },
   defaultSchema: 'public',
+  uuidFunctionLiteral: 'uuid_generate_v4()',
+  setupUUID: async (sequelize: Sequelize) => {
+    await sequelize.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+  },
 }));
 
 export const MSSQL_DETAILS: ConnectionDetails[] = [
@@ -91,8 +79,6 @@ export const MSSQL_DETAILS: ConnectionDetails[] = [
     `mssql://sa:yourStrong(!)Password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `mssql://sa:yourStrong(!)Password@mssql${version}:1433${dbName ? `/${dbName}` : ''}`,
-  reinitDb: (dbName: string) =>
-    reinitDbWithSequelize(`mssql://sa:yourStrong(!)Password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'mssql' as Dialect,
     username: 'sa',
@@ -115,8 +101,10 @@ export const MSSQL_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: true,
     dateDefault: true,
     authentication: true,
+    uuid: true,
   },
   defaultSchema: 'dbo',
+  uuidFunctionLiteral: 'NEWID()',
 }));
 
 export const MYSQL_DETAILS: ConnectionDetails[] = [
@@ -128,8 +116,6 @@ export const MYSQL_DETAILS: ConnectionDetails[] = [
   url: (dbName?: string) => `mysql://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `mysql://root:password@mysql${version}:3306${dbName ? `/${dbName}` : ''}`,
-  reinitDb: (dbName: string) =>
-    reinitDbWithSequelize(`mysql://root:password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'mysql' as Dialect,
     username: 'root',
@@ -151,8 +137,10 @@ export const MYSQL_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: false,
     dateDefault: version >= 8,
     authentication: true,
+    uuid: version >= 8,
   },
   defaultSchema: undefined,
+  uuidFunctionLiteral: '(UUID())',
 }));
 
 export const MARIADB_DETAILS: ConnectionDetails[] = [
@@ -165,8 +153,6 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
     `mariadb://root:password@localhost:${port}${dbName ? `/${dbName}` : ''}`,
   urlDocker: (dbName?: string) =>
     `mariadb://root:password@mariadb${version}:3306${dbName ? `/${dbName}` : ''}`,
-  reinitDb: (dbName: string) =>
-    reinitDbWithSequelize(`mariadb://root:password@localhost:${port}`, dbName),
   options: (dbName?: string) => ({
     dialect: 'mariadb' as Dialect,
     username: 'root',
@@ -188,8 +174,10 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
     functionDefaultValue: true,
     dateDefault: true,
     authentication: true,
+    uuid: true,
   },
   defaultSchema: undefined,
+  uuidFunctionLiteral: 'UUID()',
 }));
 
 function generateDbPath(dbName?: string): string {
@@ -211,7 +199,6 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     database: dbName,
     logging: false,
   }),
-  reinitDb: async (dbName: string) => fs.rm(generateDbPath(dbName), { force: true }),
   version: 3,
   supports: {
     schemas: false,
@@ -224,8 +211,10 @@ export const SQLITE_DETAILS: ConnectionDetails = {
     functionDefaultValue: true,
     dateDefault: true,
     authentication: false,
+    uuid: false,
   },
   defaultSchema: undefined,
+  uuidFunctionLiteral: undefined,
 };
 
 const CONNECTION_DETAILS: ConnectionDetails[] = [

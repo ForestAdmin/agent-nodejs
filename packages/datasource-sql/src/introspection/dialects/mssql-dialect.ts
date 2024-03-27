@@ -47,8 +47,10 @@ export default class MsSQLDialect implements IntrospectionDialect {
     tableNames: SequelizeTableIdentifier[],
     sequelize: Sequelize,
   ): Promise<ColumnDescription[][]> {
-    if (!sequelize.getDatabaseName())
+    if (!sequelize.getDatabaseName()) {
       throw new Error('Database name is required. Please check your connection settings.');
+    }
+
     if (!tableNames?.length) return Promise.resolve([]);
 
     const conditions = `(${tableNames

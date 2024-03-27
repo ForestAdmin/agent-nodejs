@@ -94,12 +94,13 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
       return;
     }
 
-    if (status === 404)
+    if (status === 404) {
       throw new Error(
         'Forest Admin server failed to find the environment ' +
           'related to the envSecret you configured. ' +
           'Can you check that you copied it properly during initialization?',
       );
+    }
 
     if (message) this.options.logger('Warn', `Server Event - Error: ${JSON.stringify(event)}`);
   }

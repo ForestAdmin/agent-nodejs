@@ -493,6 +493,7 @@ describe('plugin-aws-s3', () => {
           );
         });
       });
+
       describe('with some dependencies', () => {
         test('should use the specified fields as dependencies', async () => {
           let addFieldSpy;

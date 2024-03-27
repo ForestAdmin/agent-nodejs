@@ -1,6 +1,7 @@
 import { Projection } from '@forestadmin/datasource-toolkit';
 import { AnyExpression, Model, PipelineStage } from 'mongoose';
 
+import ConditionGenerator from './condition-generator';
 import { Stack } from '../../types';
 
 /**
@@ -34,9 +35,11 @@ export default class VirtualFieldsGenerator {
 
   private static getPath(field: string): AnyExpression {
     if (field.endsWith('._id')) {
-      const suffix = field.substring(0, field.length - 4);
+      const suffix = field.substring(0, field.length - '._id'.length);
 
-      return { $concat: [{ $toString: '$_id' }, `.${suffix}`] };
+      return ConditionGenerator.tagRecordIfNotExistByValue(suffix, {
+        $concat: [{ $toString: '$_id' }, `.${suffix}`],
+      });
     }
 
     if (field.endsWith('.parentId')) {
@@ -54,15 +57,19 @@ export default class VirtualFieldsGenerator {
         throw new Error('Fetching virtual parentId deeper than 1 level is not supported.');
       }
 
-      return '$_id';
+      const suffix = field.substring(0, field.length - '.parentId'.length);
+
+      return ConditionGenerator.tagRecordIfNotExistByValue(suffix, '$_id');
     }
 
     if (field.endsWith('.content')) {
       // FIXME: we should check that this is really a leaf field because "content" can't
       // really be used as a reserved word
-      return `$${field.substring(0, field.length - 8)}`;
+      return `$${field.substring(0, field.length - '.content'.length)}`;
     }
 
-    return `$${field}`;
+    const parent = field.substring(0, field.lastIndexOf('.'));
+
+    return ConditionGenerator.tagRecordIfNotExistByValue(parent, `$${field}`);
   }
 }

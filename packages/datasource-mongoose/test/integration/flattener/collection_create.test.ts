@@ -106,7 +106,7 @@ describe('Complex flattening', () => {
       .update(
         caller,
         new Filter({ conditionTree: new ConditionTreeLeaf('parentId', 'Equal', car._id) }),
-        { horsePower: '12' },
+        { horsePower: '12', fuel: { capacity: null, category: null } },
       );
 
     await dataSource

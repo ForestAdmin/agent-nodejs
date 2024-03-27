@@ -4,10 +4,10 @@ import { DataTypes, Sequelize } from 'sequelize';
 import Introspector from '../../src/introspection/introspector';
 import CONNECTION_DETAILS, { MSSQL_DETAILS } from '../_helpers/connection-details';
 
+const db = 'database_introspector';
+
 describe('Introspector > Integration', () => {
   describe('relations to different schemas', () => {
-    const db = 'database_introspector_relations_schema';
-
     describe.each(CONNECTION_DETAILS.filter(connection => connection.supports.schemas))(
       'on $name',
       connectionDetails => {
@@ -15,7 +15,15 @@ describe('Introspector > Integration', () => {
         let sequelizeSchema1: Sequelize;
 
         beforeEach(async () => {
-          await connectionDetails.reinitDb(db);
+          const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+          try {
+            const queryInterface = internalSequelize.getQueryInterface();
+            await queryInterface.dropDatabase(db);
+            await queryInterface.createDatabase(db);
+          } finally {
+            internalSequelize.close();
+          }
 
           sequelize = new Sequelize(connectionDetails.url(db), {
             logging: false,
@@ -71,8 +79,9 @@ describe('Introspector > Integration', () => {
           await sequelize.sync({ force: true });
 
           const logger = jest.fn();
-          const { tables } = await Introspector.introspect(sequelizeSchema1, logger);
+          const { tables, version } = await Introspector.introspect(sequelizeSchema1, logger);
 
+          expect(version).toEqual(1);
           expect(tables).toEqual([
             {
               name: 'elements',
@@ -100,10 +109,21 @@ describe('Introspector > Integration', () => {
 
   describe.each(MSSQL_DETAILS)('mssql $name', connectionDetails => {
     let sequelize: Sequelize;
-    const db = 'database_introspector_mssql';
 
     beforeEach(async () => {
-      await connectionDetails.reinitDb(db);
+      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+      try {
+        const queryInterface = internalSequelize.getQueryInterface();
+        await queryInterface.createDatabase(db);
+        await queryInterface.dropDatabase(db);
+        await queryInterface.createDatabase(db);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      } finally {
+        internalSequelize.close();
+      }
 
       sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
     });

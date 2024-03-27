@@ -12,5 +12,6 @@ export default Factory.define<Caller>(() => ({
   role: 'role',
   tags: {},
   team: 'team',
+  permissionLevel: 'developer',
   timezone: 'Europe/Paris',
 }));

@@ -107,7 +107,7 @@ export default class TypingGenerator {
     const content = TypingGenerator.sortedEntries(collection.schema.fields).reduce(
       (memo, [name, field]) => {
         return field.type === 'Column'
-          ? [...memo, `      '${name}': ${this.getType(field)};`]
+          ? [...memo, `      '${name}': ${this.getStrictType(field)};`]
           : memo;
       },
       [],
@@ -158,7 +158,8 @@ export default class TypingGenerator {
           ...sortedFields
             .filter(([, schema]) => schema.type === 'Column')
             .map(
-              ([name, schema]) => `'${prefix}:${name}': ${this.getType(schema as ColumnSchema)};`,
+              ([name, schema]) =>
+                `'${prefix}:${name}': ${this.getStrictType(schema as ColumnSchema)};`,
             ),
         );
       }
@@ -200,6 +201,16 @@ export default class TypingGenerator {
     }
 
     return result.slice(0, this.options.maxFieldsCount);
+  }
+
+  private getStrictType(columnSchema: ColumnSchema): string {
+    const isRequired =
+      (columnSchema.validation?.some(v => v.operator === 'Present') ||
+        columnSchema.isPrimaryKey ||
+        columnSchema.allowNull === false) ??
+      false;
+
+    return `${this.getType(columnSchema)}${isRequired ? '' : ' | null'}`;
   }
 
   private getType(field: { columnType: ColumnType; enumValues?: string[] }): string {

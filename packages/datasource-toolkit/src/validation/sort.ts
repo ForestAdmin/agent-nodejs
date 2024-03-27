@@ -7,8 +7,10 @@ export default class SortValidator {
   static validate(collection: Collection, sort: PlainSortClause[]): void {
     for (const s of sort ?? []) {
       FieldValidator.validate(collection, s.field);
-      if (typeof s.ascending !== 'boolean')
+
+      if (typeof s.ascending !== 'boolean') {
         throw new ValidationError(`Invalid sort.ascending value: ${s.ascending}`);
+      }
     }
   }
 }
