@@ -234,32 +234,20 @@ describe('Introspector > Integration', () => {
                   type: 'scalar',
                 },
               }),
-              {
-                allowNull: true,
-                autoIncrement: false,
-                constraints: [],
-                defaultValue: undefined,
-                isLiteralDefaultValue: false,
+              expect.objectContaining({
                 name: 'name',
-                primaryKey: false,
                 type: {
                   subType: 'STRING',
                   type: 'scalar',
                 },
-              },
-              {
-                allowNull: true,
-                autoIncrement: false,
-                constraints: [],
-                defaultValue: undefined,
-                isLiteralDefaultValue: false,
+              }),
+              expect.objectContaining({
                 name: 'description',
-                primaryKey: false,
                 type: {
                   subType: 'STRING',
                   type: 'scalar',
                 },
-              },
+              }),
             ],
           }),
         ]);

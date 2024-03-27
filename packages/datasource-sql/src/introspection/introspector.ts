@@ -31,7 +31,6 @@ export default class Introspector {
 
   static async introspect(sequelize: Sequelize, logger?: Logger): Promise<LatestIntrospection> {
     const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
-
     const tableNames = await this.getTableNames(dialect, sequelize as SequelizeWithOptions);
     const tables = await this.getTables(dialect, tableNames, sequelize, logger);
     const views = await this.getViews(dialect, sequelize as SequelizeWithOptions, logger);
