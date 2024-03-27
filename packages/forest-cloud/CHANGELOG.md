@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.6.0...@forestadmin/forest-cloud@1.7.0) (2024-03-27)
+
+
+### Features
+
+* improve error message in case of invalid token ([#1083](https://github.com/ForestAdmin/agent-nodejs/issues/1083)) ([f03d5c7](https://github.com/ForestAdmin/agent-nodejs/commit/f03d5c7d41152736b36e006a4f5a931df69a968f))
+
 # @forestadmin/forest-cloud [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.5.4...@forestadmin/forest-cloud@1.6.0) (2024-03-26)
 
 
