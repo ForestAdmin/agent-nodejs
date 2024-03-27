@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import * as axios from 'axios';
 import fs from 'fs';
 
@@ -21,6 +22,19 @@ describe('http-server', () => {
         await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
           new BusinessError(
             'Failed to retrieve database schema from Forest Admin server: Some generic error',
+          ),
+        );
+      });
+
+      it('should provide specific detail if message contains ERR_INVALID_CHAR', async () => {
+        const error = new Error('Invalid character in header content ["Authorization"]');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        error.code = 'ERR_INVALID_CHAR';
+        jest.mocked(axios.default).mockRejectedValue(error);
+        await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+          new BusinessError(
+            `Invalid character in header content ["Authorization"]\nYour authentication token seems incorrect. You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'`,
           ),
         );
       });

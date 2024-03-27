@@ -13,12 +13,21 @@ async function handledAxios<T>(
   try {
     return (await axios.default(axiosRequestConfig)).data;
   } catch (e) {
-    const error: Error = e;
+    const error: Error & { code: string } = e;
     let details = '';
 
     if (error instanceof axios.AxiosError) {
       const errors: { detail: string; status: number }[] = error.response?.data?.errors;
       details = errors?.map(innerError => `🚨 ${innerError.detail}`).join(`\n`);
+    }
+
+    const loginAgainMessage =
+      " You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'";
+
+    if (error.code === 'ERR_INVALID_CHAR' && error?.message.includes('"Authorization"')) {
+      throw new BusinessError(
+        `${error.message}\nYour authentication token seems incorrect.${loginAgainMessage}`,
+      );
     }
 
     if (e.response?.status === 400) {
@@ -27,9 +36,7 @@ async function handledAxios<T>(
       const baseMessage = `${errorMessage}: ${error.message}\n${details}`.trim();
 
       if (e.response?.status === 401 || e.response?.status === 403) {
-        const loginMessage =
-          " You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'";
-        throw new BusinessError(`${baseMessage}\n${loginMessage}`);
+        throw new BusinessError(`${baseMessage}\n${loginAgainMessage}`);
       }
 
       throw new BusinessError(baseMessage);
