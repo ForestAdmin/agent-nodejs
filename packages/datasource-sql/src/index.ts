@@ -8,6 +8,7 @@ import { Sequelize } from 'sequelize';
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';
 import Introspector from './introspection/introspector';
+import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
@@ -71,3 +72,4 @@ export async function preprocessOptions(
 
 export * from './connection/errors';
 export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode, Introspection };
+export { listCollectionsFromIntrospection };
