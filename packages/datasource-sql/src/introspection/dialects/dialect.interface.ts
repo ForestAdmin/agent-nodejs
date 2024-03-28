@@ -15,6 +15,8 @@ export default interface IntrospectionDialect {
     sequelize: Sequelize,
   ): Promise<ColumnDescription[][]>;
 
+  listViews(sequelize: Sequelize): Promise<SequelizeTableIdentifier[]>;
+
   getDefaultSchema(sequelize: Sequelize): string;
   getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier;
 }

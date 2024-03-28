@@ -1,7 +1,7 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeTableIdentifier } from '../type-overrides';
+import { SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
 
 type DBColumn = {
   cid: number;
@@ -19,6 +19,19 @@ export default class SQLiteDialect implements IntrospectionDialect {
 
   getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier {
     return tableIdentifier;
+  }
+
+  async listViews(sequelize: SequelizeWithOptions): Promise<SequelizeTableIdentifier[]> {
+    return sequelize.query<SequelizeTableIdentifier>(
+      `
+      SELECT name as 'tableName'
+      FROM sqlite_master 
+      WHERE type = 'view';
+    `,
+      {
+        type: QueryTypes.SELECT,
+      },
+    );
   }
 
   listColumns(

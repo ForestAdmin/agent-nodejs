@@ -11,7 +11,7 @@ export default class SqlTypeConverter {
   ): Promise<ColumnType> {
     switch (columnInfo.type) {
       case 'ARRAY':
-        return this.getArrayType(tableIdentifier, columnInfo);
+        return this.getArrayTypeForPostgres(tableIdentifier, columnInfo);
 
       case 'USER-DEFINED':
       case this.typeMatch(columnInfo.type, SqlTypeConverter.enumRegex):
@@ -35,7 +35,7 @@ export default class SqlTypeConverter {
    * Note that we don't need to write multiple SQL queries, because arrays are only supported by
    * Postgres
    */
-  private static async getArrayType(
+  private static async getArrayTypeForPostgres(
     tableIdentifier: SequelizeTableIdentifier,
     columnDescription: ColumnDescription,
   ): Promise<ColumnType> {

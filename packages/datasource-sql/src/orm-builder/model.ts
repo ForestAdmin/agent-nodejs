@@ -4,16 +4,30 @@ import { ModelAttributeColumnOptions } from 'sequelize/types/model';
 import { Literal } from 'sequelize/types/utils';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
-import { Table } from '../introspection/types';
+import { LatestIntrospection, Table } from '../introspection/types';
+
+type TableOrView = Table & { view?: boolean };
 
 export default class ModelBuilder {
-  static defineModels(sequelize: Sequelize, logger: Logger, tables: Table[]): void {
-    for (const table of tables) {
-      this.defineModel(sequelize, logger, table);
+  static defineModels(
+    sequelize: Sequelize,
+    logger: Logger,
+    introspection: LatestIntrospection,
+  ): void {
+    for (const table of introspection.tables) {
+      this.defineModelFromTable(sequelize, logger, table);
+    }
+
+    for (const table of introspection.views) {
+      this.defineModelFromTable(sequelize, logger, { ...table, view: true });
     }
   }
 
-  private static defineModel(sequelize: Sequelize, logger: Logger, table: Table): void {
+  private static defineModelFromTable(
+    sequelize: Sequelize,
+    logger: Logger,
+    table: TableOrView,
+  ): void {
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
     const dialect = sequelize.getDialect();
@@ -42,7 +56,7 @@ export default class ModelBuilder {
 
   private static buildModelAttributes(
     logger: Logger,
-    table: Table,
+    table: TableOrView,
     hasTimestamps: boolean,
     isParanoid: boolean,
     dialect: string,
@@ -91,7 +105,11 @@ export default class ModelBuilder {
    * When the primary key is missing, we attempt to find a column that may act as such.
    * This enables us to support tables that have no primary key.
    */
-  private static guessPrimaryKeyInPlace(logger: Logger, table: Table, attributes: ModelAttributes) {
+  private static guessPrimaryKeyInPlace(
+    logger: Logger,
+    table: TableOrView,
+    attributes: ModelAttributes,
+  ) {
     // Try to find a column named "id".
     let primaryKeys = table.columns.some(c => c.name === 'id') ? ['id'] : [];
 
@@ -114,7 +132,8 @@ export default class ModelBuilder {
       (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
     }
 
-    if (primaryKeys.length) {
+    // View does not have primary key, so we don't need to warn about it.
+    if (primaryKeys.length && !table.view) {
       logger?.(
         'Warn',
         `Table "${table.name}" has no primary key. Using "${primaryKeys.join(', ')}".`,

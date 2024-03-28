@@ -1,6 +1,7 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import { ConnectionDetails } from './connection-details';
+import setupEmptyDatabase from './setup-empty-database';
 
 export default async (
   connectionDetails: ConnectionDetails,
@@ -10,21 +11,8 @@ export default async (
   let sequelize: Sequelize | null = null;
 
   try {
-    if (connectionDetails.supports.multipleDatabases) {
-      sequelize = new Sequelize(connectionDetails.url(), { logging: false });
-      const queryInterface = sequelize.getQueryInterface();
-
-      await queryInterface.dropDatabase(database);
-      await queryInterface.createDatabase(database);
-
-      await sequelize.close();
-    }
-
     const optionalSchemaOption = schema ? { schema } : {};
-    sequelize = new Sequelize(connectionDetails.url(database), {
-      logging: false,
-      ...optionalSchemaOption,
-    });
+    sequelize = await setupEmptyDatabase(connectionDetails, database, optionalSchemaOption);
 
     if (schema) {
       await sequelize.getQueryInterface().dropSchema(schema);

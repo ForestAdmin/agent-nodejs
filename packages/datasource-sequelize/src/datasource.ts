@@ -23,6 +23,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     this.createCollections(this.sequelize.models, logger);
   }
 
+  async close(): Promise<void> {
+    await this.sequelize.close();
+  }
+
   protected createCollections(models: Sequelize['models'], logger?: Logger) {
     Object.values(models)
       // avoid schema reordering

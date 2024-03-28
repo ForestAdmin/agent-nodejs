@@ -58,12 +58,15 @@ export type Table = {
   }[];
 };
 
-export type IntrospectionWithoutSource = {
+export type ObjectIntrospection = {
   tables: Table[];
   version: number;
   // Old versions of introspection did not have the source field
+  source?: '@forestadmin/datasource-sql';
+  // Old versions of introspection did not have the views field
+  views?: Table[];
 };
 
-export type Introspection = IntrospectionWithoutSource & {
-  source: '@forestadmin/datasource-sql';
-};
+export type LegacyIntrospection = ObjectIntrospection | Table[];
+
+export type LatestIntrospection = Required<ObjectIntrospection>;

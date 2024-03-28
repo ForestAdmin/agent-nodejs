@@ -49,7 +49,7 @@ export default function makeAgent() {
         port: 3808,
         database: 'example',
       }),
-      { include: ['card'] },
+      { include: ['card', 'active_cards'] }, // active_cards is a view
     )
     .addDataSource(createTypicode())
     .addDataSource(createSequelizeDataSource(sequelizePostgres))
