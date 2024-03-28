@@ -26,6 +26,8 @@ module.exports = {
         releaseRules: [
           // Example: `type(scope): subject [force release]`
           { subject: '*\\[force release\\]*', release: 'patch' },
+          // Example: `type(scope): subject [force-release]`
+          { subject: '*\\[force-release\\]*', release: 'patch' },
         ],
       },
     ],
