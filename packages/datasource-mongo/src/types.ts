@@ -34,7 +34,7 @@ export type IntrospectionOptions = {
   maxPropertiesPerObject?: number;
 };
 
-export type IntrospectorParams = {
+export type ConnectionParams = {
   /**
    * Connection string (will be passed to mongoose)
    */
@@ -44,7 +44,9 @@ export type IntrospectorParams = {
    * Connection options that (will be passed to mongoose)
    */
   connection?: ConnectOptions;
+};
 
+export type IntrospectorParams = ConnectionParams & {
   introspection?: IntrospectionOptions;
 };
 

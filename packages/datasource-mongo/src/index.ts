@@ -1,5 +1,5 @@
 import type { Introspection } from './introspection/types';
-import type { IntrospectorParams, MongoDatasourceParams } from './type';
+import type { ConnectionParams, IntrospectorParams, MongoDatasourceParams } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 import type { Connection } from 'mongoose';
 
@@ -7,11 +7,13 @@ import { MongooseDatasource } from '@forestadmin/datasource-mongoose';
 import mongoose from 'mongoose';
 
 import Introspector from './introspection/introspector';
+import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
 import OdmBuilder from './odm-builder';
 
 export type { Introspection };
 export type { IntrospectorParams };
 export type { MongoDatasourceParams };
+export type { ConnectionParams };
 
 export async function introspect(options: IntrospectorParams): Promise<Introspection> {
   const { uri, connection: connectOptions, introspection: introspectionOptions } = options;
@@ -64,3 +66,5 @@ export function createMongoDataSource(
     return new MongooseDatasource(connection, params.dataSource, logger);
   };
 }
+
+export { listCollectionsFromIntrospection };

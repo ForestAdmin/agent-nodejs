@@ -1,3 +1,5 @@
+## @forestadmin/datasource-mongo [1.0.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.0.4...@forestadmin/datasource-mongo@1.0.5) (2024-03-28)
+
 ## @forestadmin/datasource-mongo [1.0.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.0.3...@forestadmin/datasource-mongo@1.0.4) (2024-03-25)
 
 
