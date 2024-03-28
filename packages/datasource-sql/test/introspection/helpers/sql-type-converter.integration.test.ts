@@ -129,7 +129,7 @@ describe('Integration > SqlTypeConverter', () => {
                   type: 'enum',
                   values: ['value1', 'value2'],
                 }
-              : { type: 'scalar', subType: 'STRING' };
+              : { type: 'scalar', subType: 'TEXT' };
 
             expect(result).toEqual(expectedResult);
           });
