@@ -9,7 +9,7 @@ import {
   NodeStudy,
   PrimitiveDefinition,
 } from './types';
-import { IntrospectionOptions } from '../type';
+import { IntrospectionOptions } from '../types';
 
 export default class Introspector {
   static readonly FORMAT_VERSION = 1;
