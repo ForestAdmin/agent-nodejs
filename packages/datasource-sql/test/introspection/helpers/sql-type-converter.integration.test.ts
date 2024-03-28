@@ -129,7 +129,10 @@ describe('Integration > SqlTypeConverter', () => {
                   type: 'enum',
                   values: ['value1', 'value2'],
                 }
-              : { type: 'scalar', subType: 'STRING' };
+              : {
+                  type: 'scalar',
+                  subType: connectionDetails.dialect === 'sqlite' ? 'TEXT' : 'STRING',
+                };
 
             expect(result).toEqual(expectedResult);
           });
