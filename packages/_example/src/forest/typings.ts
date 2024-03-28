@@ -22,6 +22,13 @@ export type CustomerFilter = TPaginatedFilter<Schema, 'customer'>;
 export type CustomerSortClause = TSortClause<Schema, 'customer'>;
 export type CustomerAggregation = TAggregation<Schema, 'customer'>;
 
+export type ActiveCardsCustomizer = CollectionCustomizer<Schema, 'active_cards'>;
+export type ActiveCardsRecord = TPartialRow<Schema, 'active_cards'>;
+export type ActiveCardsConditionTree = TConditionTree<Schema, 'active_cards'>;
+export type ActiveCardsFilter = TPaginatedFilter<Schema, 'active_cards'>;
+export type ActiveCardsSortClause = TSortClause<Schema, 'active_cards'>;
+export type ActiveCardsAggregation = TAggregation<Schema, 'active_cards'>;
+
 export type CardCustomizer = CollectionCustomizer<Schema, 'card'>;
 export type CardRecord = TPartialRow<Schema, 'card'>;
 export type CardConditionTree = TConditionTree<Schema, 'card'>;
@@ -256,6 +263,17 @@ export type Schema = {
       'parent:parent:store:owner:id': number;
       'parent:parent:store:owner:lastName': string;
     };
+  };
+  'active_cards': {
+    plain: {
+      'card_number': number | null;
+      'card_type': 'american express' | 'mastercard' | 'visa' | null;
+      'customer_id': number | null;
+      'id': number;
+      'is_active': boolean | null;
+    };
+    nested: {};
+    flat: {};
   };
   'card': {
     plain: {

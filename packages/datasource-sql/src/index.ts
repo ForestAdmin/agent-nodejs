@@ -28,16 +28,12 @@ export async function introspect(
   }
 }
 
-export async function buildSequelizeInstance(
-  uriOrOptions: PlainConnectionOptionsOrUri,
+async function buildModelsAndRelations(
+  sequelize: Sequelize,
   logger: Logger,
-  introspection?: LegacyIntrospection,
-): Promise<Sequelize> {
-  const options = new ConnectionOptions(uriOrOptions, logger);
-  let sequelize: Sequelize;
-
+  introspection: LegacyIntrospection,
+): Promise<LatestIntrospection> {
   try {
-    sequelize = await connect(options);
     const latestIntrospection = await Introspector.introspectOrMigrate(
       sequelize,
       logger,
@@ -45,10 +41,22 @@ export async function buildSequelizeInstance(
     );
     ModelBuilder.defineModels(sequelize, logger, latestIntrospection);
     RelationBuilder.defineRelations(sequelize, logger, latestIntrospection);
+
+    return latestIntrospection;
   } catch (error) {
     await sequelize?.close();
     throw error;
   }
+}
+
+export async function buildSequelizeInstance(
+  uriOrOptions: PlainConnectionOptionsOrUri,
+  logger: Logger,
+  introspection?: LegacyIntrospection,
+): Promise<Sequelize> {
+  const options = new ConnectionOptions(uriOrOptions, logger);
+  const sequelize = await connect(options);
+  await buildModelsAndRelations(sequelize, logger, introspection);
 
   return sequelize;
 }
@@ -58,8 +66,8 @@ export function createSqlDataSource(
   options?: { introspection?: LegacyIntrospection },
 ): DataSourceFactory {
   return async (logger: Logger) => {
-    const sequelize = await buildSequelizeInstance(uriOrOptions, logger, options?.introspection);
-    const latestIntrospection = await Introspector.introspectOrMigrate(
+    const sequelize = await connect(new ConnectionOptions(uriOrOptions, logger));
+    const latestIntrospection = await buildModelsAndRelations(
       sequelize,
       logger,
       options?.introspection,

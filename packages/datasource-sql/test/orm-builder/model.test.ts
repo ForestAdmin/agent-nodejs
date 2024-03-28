@@ -224,6 +224,26 @@ describe('ModelBuilder', () => {
         'Skipping table "myTable" because of error: Invalid Model.',
       );
     });
+
+    describe('when it is a view', () => {
+      it('should not log a warning and fallback to the unique id as primary key', () => {
+        const sequelize = new Sequelize('postgres://');
+        const views: Table[] = [
+          {
+            name: 'myView',
+            schema: undefined,
+            columns: [{ ...baseColumn, name: 'id', primaryKey: false }],
+            unique: [],
+          },
+        ];
+        const logger = jest.fn();
+        ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, views });
+
+        expect(sequelize.models.myView).toBeDefined();
+        expect(sequelize.models.myView.rawAttributes.id.primaryKey).toBe(true);
+        expect(logger).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('when the default value is a literal', () => {
