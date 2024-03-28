@@ -2,7 +2,10 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
-import CONNECTION_DETAILS, { MSSQL_DETAILS } from '../_helpers/connection-details';
+import CONNECTION_DETAILS, {
+  MSSQL_DETAILS,
+  POSTGRESQL_DETAILS,
+} from '../_helpers/connection-details';
 
 const db = 'database_introspector';
 
@@ -103,44 +106,6 @@ describe('Introspector > Integration', () => {
             "Failed to load constraints on relation on table 'elements' referencing 'users.id'. The relation will be ignored.",
           );
         });
-
-        it('should support table with multiple sequences', async () => {
-          sequelize.query(`
-          CREATE SEQUENCE id_seq;
-          CREATE SEQUENCE position_seq;
-
-          CREATE TABLE "schema1"."elements" (
-              "id" integer DEFAULT nextval('id_seq'::regclass),
-              "position" integer DEFAULT nextval('position_seq'::regclass),
-              PRIMARY KEY ("id")
-          );`);
-
-          const logger = jest.fn();
-          const { tables, version } = await Introspector.introspect(sequelizeSchema1, logger);
-
-          expect(version).toEqual(1);
-          expect(tables).toEqual([
-            {
-              name: 'elements',
-              schema: 'schema1',
-              unique: [['id']],
-              columns: [
-                expect.objectContaining({
-                  name: 'id',
-                  autoIncrement: false,
-                  defaultValue: expect.anything(),
-                }),
-                expect.objectContaining({
-                  name: 'userId',
-                  autoIncrement: false,
-                  defaultValue: expect.anything(),
-                }),
-              ],
-            },
-          ]);
-
-          expect(logger).not.toHaveBeenCalled();
-        });
       },
     );
   });
@@ -232,6 +197,74 @@ describe('Introspector > Integration', () => {
           }),
         ]),
       );
+    });
+  });
+
+  describe.each(POSTGRESQL_DETAILS)('$name', connectionDetails => {
+    let sequelize: Sequelize;
+
+    beforeEach(async () => {
+      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+      try {
+        const queryInterface = internalSequelize.getQueryInterface();
+        await queryInterface.createDatabase(db);
+        await queryInterface.dropDatabase(db);
+        await queryInterface.createDatabase(db);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      } finally {
+        internalSequelize.close();
+      }
+
+      sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+    });
+
+    afterEach(async () => {
+      await sequelize?.close();
+    });
+
+    it('should support table with multiple sequences', async () => {
+      sequelize.query(`
+      CREATE SEQUENCE id_seq;
+      CREATE SEQUENCE position_seq;
+
+      CREATE TABLE "elements" (
+          "id" integer DEFAULT nextval('id_seq'::regclass),
+          "position" integer DEFAULT nextval('position_seq'::regclass),
+          PRIMARY KEY ("id")
+      );`);
+
+      const logger = jest.fn();
+      const { tables, version } = await Introspector.introspect(sequelize, logger);
+
+      expect(version).toEqual(1);
+      expect(tables).toEqual([
+        {
+          name: 'elements',
+          schema: 'public',
+          unique: [['id']],
+          columns: [
+            expect.objectContaining({
+              name: 'id',
+              primaryKey: true,
+              autoIncrement: true,
+              defaultValue: null,
+            }),
+
+            expect.objectContaining({
+              name: 'userId',
+              autoIncrement: false,
+              defaultValue: expect.objectContaining({
+                val: "nextval('position_seq'::regclass)",
+              }),
+            }),
+          ],
+        },
+      ]);
+
+      expect(logger).not.toHaveBeenCalled();
     });
   });
 });
