@@ -107,12 +107,12 @@ describe('Introspector > Integration', () => {
         it('should support table with multiple sequences', async () => {
           sequelize.query(`
           CREATE SEQUENCE id_seq;
-          CREATE SEQUENCE user_id_seq;
+          CREATE SEQUENCE position_seq;
 
           CREATE TABLE "schema1"."elements" (
               "id" integer DEFAULT nextval('id_seq'::regclass),
-              "userId" integer DEFAULT nextval('user_id_seq'::regclass),
-              PRIMARY KEY ("id", "userId")
+              "position" integer DEFAULT nextval('position_seq'::regclass),
+              PRIMARY KEY ("id")
           );`);
 
           const logger = jest.fn();
