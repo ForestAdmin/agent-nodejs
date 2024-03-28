@@ -34,7 +34,7 @@ async function buildModelsAndRelations(
   introspection: LegacyIntrospection,
 ): Promise<LatestIntrospection> {
   try {
-    const latestIntrospection = await Introspector.introspectOrMigrate(
+    const latestIntrospection = await Introspector.migrateOrIntrospect(
       sequelize,
       logger,
       introspection,

@@ -17,7 +17,7 @@ export default class Introspector {
   static readonly FORMAT_VERSION = 1;
   static readonly SOURCE = '@forestadmin/datasource-sql';
 
-  static async introspectOrMigrate(
+  static async migrateOrIntrospect(
     sequelize: Sequelize,
     logger?: Logger,
     introspection?: LegacyIntrospection,
