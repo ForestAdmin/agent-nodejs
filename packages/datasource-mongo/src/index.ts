@@ -7,6 +7,7 @@ import { MongooseDatasource } from '@forestadmin/datasource-mongoose';
 import mongoose from 'mongoose';
 
 import Introspector from './introspection/introspector';
+import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
 import OdmBuilder from './odm-builder';
 
 export type { Introspection };
@@ -65,3 +66,5 @@ export function createMongoDataSource(
     return new MongooseDatasource(connection, params.dataSource, logger);
   };
 }
+
+export { listCollectionsFromIntrospection };
