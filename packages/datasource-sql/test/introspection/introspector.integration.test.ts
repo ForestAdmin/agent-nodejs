@@ -103,6 +103,44 @@ describe('Introspector > Integration', () => {
             "Failed to load constraints on relation on table 'elements' referencing 'users.id'. The relation will be ignored.",
           );
         });
+
+        it('should support table with multiple sequences', async () => {
+          sequelize.query(`
+          CREATE SEQUENCE id_seq;
+          CREATE SEQUENCE user_id_seq;
+
+          CREATE TABLE "schema1"."elements" (
+              "id" integer DEFAULT nextval('id_seq'::regclass),
+              "userId" integer DEFAULT nextval('user_id_seq'::regclass),
+              PRIMARY KEY ("id", "userId")
+          );`);
+
+          const logger = jest.fn();
+          const { tables, version } = await Introspector.introspect(sequelizeSchema1, logger);
+
+          expect(version).toEqual(1);
+          expect(tables).toEqual([
+            {
+              name: 'elements',
+              schema: 'schema1',
+              unique: [['id']],
+              columns: [
+                expect.objectContaining({
+                  name: 'id',
+                  autoIncrement: false,
+                  defaultValue: expect.anything(),
+                }),
+                expect.objectContaining({
+                  name: 'userId',
+                  autoIncrement: false,
+                  defaultValue: expect.anything(),
+                }),
+              ],
+            },
+          ]);
+
+          expect(logger).not.toHaveBeenCalled();
+        });
       },
     );
   });
