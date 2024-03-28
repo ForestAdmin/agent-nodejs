@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.10.0...@forestadmin/datasource-sql@1.11.0) (2024-03-28)
+
+
+### Features
+
+* list collections from an introspection result ([#1086](https://github.com/ForestAdmin/agent-nodejs/issues/1086)) ([2407dc9](https://github.com/ForestAdmin/agent-nodejs/commit/2407dc94b07f74e76175266b09aab5493216eab8))
+
 # @forestadmin/datasource-sql [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.9.5...@forestadmin/datasource-sql@1.10.0) (2024-03-19)
 
 
