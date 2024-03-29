@@ -207,10 +207,12 @@ export default class Introspector {
 
       return {
         type,
-        autoIncrement: description.autoIncrement,
-        defaultValue: description.autoIncrement
-          ? null
-          : DefaultValueParser.parse(description, type),
+        // Only use autoIncrement for PK when there's a chance of not having a Literal Default Value
+        autoIncrement: description.primaryKey && description.autoIncrement,
+        defaultValue:
+          description.primaryKey && description.autoIncrement
+            ? null
+            : DefaultValueParser.parse(description, type),
         isLiteralDefaultValue: description.isLiteralDefaultValue,
         name,
         allowNull: description.allowNull,

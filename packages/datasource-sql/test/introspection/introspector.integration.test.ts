@@ -1,8 +1,11 @@
 /* eslint-disable max-len */
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Sequelize, literal } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
-import CONNECTION_DETAILS, { MSSQL_DETAILS } from '../_helpers/connection-details';
+import CONNECTION_DETAILS, {
+  MSSQL_DETAILS,
+  POSTGRESQL_DETAILS,
+} from '../_helpers/connection-details';
 
 const db = 'database_introspector';
 
@@ -115,7 +118,6 @@ describe('Introspector > Integration', () => {
 
       try {
         const queryInterface = internalSequelize.getQueryInterface();
-        await queryInterface.createDatabase(db);
         await queryInterface.dropDatabase(db);
         await queryInterface.createDatabase(db);
       } catch (e) {
@@ -194,6 +196,80 @@ describe('Introspector > Integration', () => {
           }),
         ]),
       );
+    });
+  });
+
+  describe.each(POSTGRESQL_DETAILS)('$name', connectionDetails => {
+    let sequelize: Sequelize;
+
+    beforeEach(async () => {
+      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
+
+      try {
+        const queryInterface = internalSequelize.getQueryInterface();
+        await queryInterface.dropDatabase(`${db}_sequences`);
+        await queryInterface.createDatabase(`${db}_sequences`);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      } finally {
+        internalSequelize.close();
+      }
+
+      sequelize = new Sequelize(connectionDetails.url(`${db}_sequences`), { logging: false });
+    });
+
+    afterEach(async () => {
+      await sequelize?.close();
+    });
+
+    it('should support table with multiple sequences', async () => {
+      await sequelize.query(`
+      CREATE SEQUENCE id_seq;
+      CREATE SEQUENCE position_seq;
+
+      CREATE TABLE "elements" (
+          "id" integer DEFAULT nextval('id_seq'::regclass),
+          "position" integer DEFAULT nextval('position_seq'::regclass),
+          "order" SERIAL,
+          PRIMARY KEY ("id")
+      );`);
+
+      const logger = jest.fn();
+      const { tables, version } = await Introspector.introspect(sequelize, logger);
+
+      expect(version).toEqual(1);
+      expect(tables).toEqual([
+        {
+          name: 'elements',
+          schema: 'public',
+          unique: [['id']],
+          columns: [
+            expect.objectContaining({
+              name: 'id',
+              primaryKey: true,
+              autoIncrement: true,
+              defaultValue: null,
+            }),
+
+            expect.objectContaining({
+              name: 'position',
+              autoIncrement: false,
+              defaultValue: literal("nextval('position_seq'::regclass)"),
+              isLiteralDefaultValue: true,
+            }),
+
+            expect.objectContaining({
+              name: 'order',
+              autoIncrement: false,
+              defaultValue: literal("nextval('elements_order_seq'::regclass)"),
+              isLiteralDefaultValue: true,
+            }),
+          ],
+        },
+      ]);
+
+      expect(logger).not.toHaveBeenCalled();
     });
   });
 });
