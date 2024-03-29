@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.11.0...@forestadmin/datasource-sql@1.11.1) (2024-03-29)
+
+
+### Bug Fixes
+
+* **sql:** users should be able to use table with multiple sequences ([#1087](https://github.com/ForestAdmin/agent-nodejs/issues/1087)) ([9e8b6eb](https://github.com/ForestAdmin/agent-nodejs/commit/9e8b6eb452f3d1be20a14df6139b032bf2abc050))
+
 # @forestadmin/datasource-sql [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.10.0...@forestadmin/datasource-sql@1.11.0) (2024-03-28)
 
 
