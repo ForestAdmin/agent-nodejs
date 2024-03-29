@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongo [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.1.0...@forestadmin/datasource-mongo@1.1.1) (2024-03-29)
+
+
+### Bug Fixes
+
+* **mongo:** introspection of models with more than 30 properties (by default) ([#1088](https://github.com/ForestAdmin/agent-nodejs/issues/1088)) ([c06c064](https://github.com/ForestAdmin/agent-nodejs/commit/c06c0640f59931ce44d6e6a208088d211c142f4e))
+
 # @forestadmin/datasource-mongo [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.0.5...@forestadmin/datasource-mongo@1.1.0) (2024-03-28)
 
 
