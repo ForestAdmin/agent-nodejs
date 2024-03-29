@@ -207,7 +207,7 @@ export default class Introspector {
 
       return {
         type,
-        // Only use autoIncrement for PK basically when we don't have any Literal Default Value
+        // Only use autoIncrement for PK when there's a chance of not having a Literal Default Value
         autoIncrement: description.primaryKey && description.autoIncrement,
         defaultValue:
           description.primaryKey && description.autoIncrement
