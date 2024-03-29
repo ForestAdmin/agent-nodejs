@@ -53,6 +53,5 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
 
   // Debugging tests
-  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000",
-  "conventionalCommits.scopes": ["mongo"]
+  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000"
 }
