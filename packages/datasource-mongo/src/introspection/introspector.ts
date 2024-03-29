@@ -36,7 +36,7 @@ export default class Introspector {
     const models = structure
       .map(({ name, analysis }) => ({
         name,
-        analysis: this.convert(analysis, references, maxProps),
+        analysis: this.convert(analysis, references, { maxProps, isModel: true }),
       }))
       .sort(({ name: name1 }, { name: name2 }) => name1.localeCompare(name2));
 
@@ -92,21 +92,23 @@ export default class Introspector {
   private static convert(
     node: NodeStudy,
     references: Map<NodeStudy, string>,
-    maxProps: number,
+    { maxProps, isModel }: { maxProps: number; isModel?: boolean },
   ): ModelAnalysis {
-    const type = this.getNodeType(node, maxProps);
+    const type = this.getNodeType(node, { maxProps, isModel });
     const nullable = 'null' in node.types;
     const referenceTo = references.get(node);
     const defNode: ModelAnalysis = { type, nullable, referenceTo };
 
     if (type === 'array') {
-      defNode.arrayElement = this.convert(node.arrayElement, references, maxProps);
+      defNode.arrayElement = this.convert(node.arrayElement, references, { maxProps });
     }
 
     if (type === 'object') {
       defNode.object = Object.fromEntries(
         Object.entries(node.object)
-          .map(([k, v]) => [k, this.convert(v, references, maxProps)] as [string, ModelAnalysis])
+          .map(
+            ([k, v]) => [k, this.convert(v, references, { maxProps })] as [string, ModelAnalysis],
+          )
           .sort(([k1], [k2]) => k1.localeCompare(k2)),
       );
     }
@@ -114,7 +116,10 @@ export default class Introspector {
     return defNode;
   }
 
-  private static getNodeType(node: NodeStudy, maxProps: number): PrimitiveDefinition {
+  private static getNodeType(
+    node: NodeStudy,
+    { maxProps, isModel }: { maxProps: number; isModel?: boolean },
+  ): PrimitiveDefinition {
     let type: PrimitiveDefinition = 'Mixed';
 
     // If there is only one type, it's the type of the node
@@ -126,7 +131,8 @@ export default class Introspector {
 
     // If the node contains more than maxProps keys, it's a Mixed, as it probably uses
     // dynamic keys
-    if (type === 'object' && Object.keys(node.object).length > maxProps) type = 'Mixed';
+    // Models cannot be handled as mixed
+    if (!isModel && type === 'object' && Object.keys(node.object).length > maxProps) type = 'Mixed';
 
     return type;
   }
