@@ -124,7 +124,12 @@ describe('CountRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            timezone: 'Europe/Paris',
+            webAppURL: 'http://test.com/',
+          },
           new Filter({
             search: 'searched argument',
             searchExtended: false,
@@ -223,7 +228,12 @@ describe('CountRelatedRoute', () => {
           dataSource.getCollection('books'),
           ['2d162303-78bf-599e-b197-93590ac3d315'],
           'myBookPersons',
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            timezone: 'Europe/Paris',
+            webAppURL: 'http://test.com/',
+          },
           new Filter({
             search: 'searched argument',
             searchExtended: false,

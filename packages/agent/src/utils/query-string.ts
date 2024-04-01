@@ -141,7 +141,12 @@ export default class QueryStringParser {
       QueryStringParser.VALID_TIMEZONES.add(timezone);
     }
 
-    return { ...context.state.user, timezone, requestId: uuidv4() };
+    return {
+      ...context.state.user,
+      timezone,
+      requestId: uuidv4(),
+      webAppURL: new URL(context.originalUrl),
+    };
   }
 
   static parsePagination(context: Context): Page {
