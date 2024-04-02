@@ -111,7 +111,8 @@ export default class ModelBuilder {
     attributes: ModelAttributes,
   ) {
     // Try to find a column named "id".
-    let primaryKeys = table.columns.some(c => c.name === 'id') ? ['id'] : [];
+    const columnId = table.columns.find(c => c.name.toLowerCase() === 'id')?.name;
+    let primaryKeys = columnId ? [columnId] : [];
 
     // If there is no id column, look at unique indexes, and use the shortest one.
     // (hopefully only one column, but this can also be a composite key for many-to-many tables)
@@ -128,14 +129,14 @@ export default class ModelBuilder {
       primaryKeys = table.columns.map(c => c.name);
     }
 
-    for (const column of primaryKeys) {
-      (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
-    }
-
     // in case of views, it may occur that there is no primary key defined
     // in this case, we just pick an arbitrary colum, since it will be read-only anyway
     if (!primaryKeys.length && table.view) {
-      (attributes[Object.keys(attributes)[0]] as ModelAttributeColumnOptions).primaryKey = true;
+      primaryKeys = Object.keys(attributes).slice(0, 1);
+    }
+
+    for (const column of primaryKeys) {
+      (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
     }
 
     // View does not have primary key, so we don't need to warn about it.
