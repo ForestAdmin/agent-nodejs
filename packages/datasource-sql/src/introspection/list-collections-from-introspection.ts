@@ -1,14 +1,12 @@
-import { Introspection, IntrospectionWithoutSource } from './types';
+import Introspector from './introspector';
+import { LegacyIntrospection } from './types';
 
 export default function listCollectionsFromIntrospection(
-  introspection: Introspection | Introspection['tables'] | IntrospectionWithoutSource,
+  introspection: LegacyIntrospection,
 ): string[] {
   if (!introspection) {
     return [];
   }
 
-  // Support the previous format of introspection
-  const tables = Array.isArray(introspection) ? introspection : introspection.tables;
-
-  return tables.map(table => table.name);
+  return Introspector.getIntrospectionInLatestFormat(introspection).tables.map(table => table.name);
 }
