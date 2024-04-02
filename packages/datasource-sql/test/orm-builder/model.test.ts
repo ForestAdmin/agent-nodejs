@@ -133,6 +133,23 @@ describe('ModelBuilder', () => {
       expect(sequelize.models.myTable.rawAttributes.id.primaryKey).toBe(true);
     });
 
+    it('should use the "ID" field, even if not marked as pk in the schema', () => {
+      const sequelize = new Sequelize('postgres://');
+      const tables: Table[] = [
+        {
+          name: 'myTable',
+          schema: undefined,
+          columns: [{ ...baseColumn, name: 'ID', primaryKey: false }],
+          unique: [],
+        },
+      ];
+
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
+
+      expect(sequelize.models.myTable).toBeDefined();
+      expect(sequelize.models.myTable.rawAttributes.ID.primaryKey).toBe(true);
+    });
+
     it('should use a unique column is available', () => {
       const sequelize = new Sequelize('postgres://');
       const tables: Table[] = [
