@@ -60,6 +60,7 @@ describe('SqlTypeConverter', () => {
       ['BIGINT4', DataTypes.BIGINT, 'BIGINT'],
       ['FLOAT8', DataTypes.FLOAT, 'FLOAT'],
       ['NUMERIC', DataTypes.DOUBLE, 'DECIMAL'],
+      ['NUMERIC(10,2)', DataTypes.DOUBLE, 'DECIMAL'],
       ['DECIMAL', DataTypes.DOUBLE, 'DECIMAL'],
       ['REAL', DataTypes.DOUBLE, 'REAL'],
       ['DOUBLE', DataTypes.DOUBLE, 'DOUBLE'],

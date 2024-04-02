@@ -167,14 +167,17 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
   private getColumnDescription(dbColumn: DBColumn): ColumnDescription {
     const type = dbColumn.Type.toUpperCase();
 
-    const elementType = dbColumn.TechnicalElementType || dbColumn.ElementType?.toUpperCase();
+    const special = parseArray(dbColumn.Special);
+
+    const elementType = dbColumn.TechnicalElementType || dbColumn.ElementType;
 
     const sequelizeColumn: SequelizeColumn = {
       type,
-      elementType,
+      // Don't change the casing of types when it's an enum
+      elementType: special ? elementType : elementType?.toUpperCase(),
       allowNull: dbColumn.Null === 'YES',
       comment: dbColumn.Comment,
-      special: parseArray(dbColumn.Special),
+      special,
       primaryKey: dbColumn.Constraint === 'PRIMARY KEY',
       defaultValue: dbColumn.Default,
       // Supabase databases do not expose a default value for auto-increment columns
