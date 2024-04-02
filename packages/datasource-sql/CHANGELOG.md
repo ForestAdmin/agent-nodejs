@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.11.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.11.1...@forestadmin/datasource-sql@1.11.2) (2024-03-29)
+
+
+### Bug Fixes
+
+* **sql:** fix the type of listCollectionsFromIntrospection to support previous versions of introspection ([#1089](https://github.com/ForestAdmin/agent-nodejs/issues/1089)) ([64604e0](https://github.com/ForestAdmin/agent-nodejs/commit/64604e0e959e1156d40ad0952e37c67c62ea5ea6))
+
 ## @forestadmin/datasource-sql [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.11.0...@forestadmin/datasource-sql@1.11.1) (2024-03-29)
 
 

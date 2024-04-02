@@ -377,6 +377,145 @@ describe('Introspection > index', () => {
           });
         });
       });
+
+      describe('maxProps', () => {
+        describe('when a sub property has more than maxProps properties', () => {
+          it('should return the type "Mixed"', async () => {
+            const db = Symbol('db');
+
+            const structure: ModelStudy[] = [
+              {
+                name: 'books',
+                analysis: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { object: 2 },
+                  object: {
+                    _id: {
+                      isReferenceCandidate: true,
+                      seen: 2,
+                      types: { ObjectId: 2 },
+                      referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                    },
+                    title: {
+                      isReferenceCandidate: false,
+                      seen: 2,
+                      types: { string: 2 },
+                    },
+                    tags: {
+                      isReferenceCandidate: false,
+                      seen: 2,
+                      types: { object: 2 },
+                      object: {
+                        tag1: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                        tag2: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                        tag3: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                        tag4: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                        tag5: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                      },
+                    },
+                  },
+                },
+              },
+            ];
+
+            jest.mocked(Structure.introspect).mockResolvedValue(structure);
+            jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({});
+            jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({});
+
+            const introspection = await Introspector.introspect(db as unknown as MongoDb, {
+              maxPropertiesPerObject: 4,
+            });
+
+            expect(introspection).toEqual({
+              source: '@forestadmin/datasource-mongo',
+              version: 1,
+              models: [
+                {
+                  name: 'books',
+                  analysis: {
+                    nullable: false,
+                    referenceTo: undefined,
+                    type: 'object',
+                    object: {
+                      _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                      title: { type: 'string', nullable: false, referenceTo: undefined },
+                      tags: { type: 'Mixed', nullable: false, referenceTo: undefined },
+                    },
+                  },
+                },
+              ],
+            });
+          });
+        });
+
+        describe('when a model has more than maxProps properties', () => {
+          it('should return all the properties', async () => {
+            const db = Symbol('db');
+
+            const structure: ModelStudy[] = [
+              {
+                name: 'books',
+                analysis: {
+                  isReferenceCandidate: false,
+                  seen: 2,
+                  types: { object: 2 },
+                  object: {
+                    _id: {
+                      isReferenceCandidate: true,
+                      seen: 2,
+                      types: { ObjectId: 2 },
+                      referenceSamples: new Set([new ObjectId(), new ObjectId()]),
+                    },
+                    title: {
+                      isReferenceCandidate: false,
+                      seen: 2,
+                      types: { string: 2 },
+                    },
+                    tag1: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                    tag2: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                    tag3: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                    tag4: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                    tag5: { isReferenceCandidate: false, seen: 1, types: { boolean: 1 } },
+                  },
+                },
+              },
+            ];
+
+            jest.mocked(Structure.introspect).mockResolvedValue(structure);
+            jest.mocked(ReferenceCandidateFinder.findCandidates).mockReturnValue({});
+            jest.mocked(ReferenceCandidateVerifier.filterCandidates).mockResolvedValue({});
+
+            const introspection = await Introspector.introspect(db as unknown as MongoDb, {
+              maxPropertiesPerObject: 4,
+            });
+
+            expect(introspection).toEqual({
+              source: '@forestadmin/datasource-mongo',
+              version: 1,
+              models: [
+                {
+                  name: 'books',
+                  analysis: {
+                    nullable: false,
+                    referenceTo: undefined,
+                    type: 'object',
+                    object: {
+                      _id: { type: 'ObjectId', nullable: false, referenceTo: undefined },
+                      title: { type: 'string', nullable: false, referenceTo: undefined },
+                      tag1: { type: 'boolean', nullable: false, referenceTo: undefined },
+                      tag2: { type: 'boolean', nullable: false, referenceTo: undefined },
+                      tag3: { type: 'boolean', nullable: false, referenceTo: undefined },
+                      tag4: { type: 'boolean', nullable: false, referenceTo: undefined },
+                      tag5: { type: 'boolean', nullable: false, referenceTo: undefined },
+                    },
+                  },
+                },
+              ],
+            });
+          });
+        });
+      });
     });
   });
 
