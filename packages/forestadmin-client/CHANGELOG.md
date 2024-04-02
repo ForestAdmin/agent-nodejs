@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.12...@forestadmin/forestadmin-client@1.26.0) (2024-04-02)
+
+
+### Features
+
+* **datasource-sql:** add support for views ([#903](https://github.com/ForestAdmin/agent-nodejs/issues/903)) ([1695245](https://github.com/ForestAdmin/agent-nodejs/commit/1695245a472bd24c0026d740383b82453befdae2))
+
 ## @forestadmin/forestadmin-client [1.25.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.25.11...@forestadmin/forestadmin-client@1.25.12) (2024-03-14)
 
 
