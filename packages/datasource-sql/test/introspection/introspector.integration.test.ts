@@ -2,7 +2,11 @@
 import { DataTypes, Sequelize, literal } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
-import { CONNECTION_DETAILS, MSSQL_DETAILS, POSTGRESQL_DETAILS } from '../_helpers/connection-details';
+import {
+  CONNECTION_DETAILS,
+  MSSQL_DETAILS,
+  POSTGRESQL_DETAILS,
+} from '../_helpers/connection-details';
 import setupEmptyDatabase from '../_helpers/setup-empty-database';
 
 describe('Introspector > Integration', () => {
@@ -16,10 +20,7 @@ describe('Introspector > Integration', () => {
         let sequelizeSchema1: Sequelize;
 
         beforeEach(async () => {
-          await setupEmptyDatabase(connectionDetails, db);
-          sequelize = new Sequelize(connectionDetails.url(db), {
-            logging: false,
-          });
+          sequelize = await setupEmptyDatabase(connectionDetails, db);
 
           sequelizeSchema1 = new Sequelize(connectionDetails.url(db), {
             logging: false,
@@ -105,8 +106,7 @@ describe('Introspector > Integration', () => {
     let sequelize: Sequelize;
 
     beforeEach(async () => {
-      await setupEmptyDatabase(connectionDetails, db);
-      sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+      sequelize = await setupEmptyDatabase(connectionDetails, db);
     });
 
     afterEach(async () => {
@@ -184,8 +184,7 @@ describe('Introspector > Integration', () => {
       const db = 'database_introspector_views';
 
       beforeEach(async () => {
-        await setupEmptyDatabase(connectionDetails, db);
-        sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+        sequelize = await setupEmptyDatabase(connectionDetails, db);
       });
 
       afterEach(async () => {
@@ -328,22 +327,10 @@ describe('Introspector > Integration', () => {
 
   describe.each(POSTGRESQL_DETAILS)('$name', connectionDetails => {
     let sequelize: Sequelize;
+    const db = 'database_introspector';
 
     beforeEach(async () => {
-      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-      try {
-        const queryInterface = internalSequelize.getQueryInterface();
-        await queryInterface.dropDatabase(`${db}_sequences`);
-        await queryInterface.createDatabase(`${db}_sequences`);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      } finally {
-        internalSequelize.close();
-      }
-
-      sequelize = new Sequelize(connectionDetails.url(`${db}_sequences`), { logging: false });
+      sequelize = await setupEmptyDatabase(connectionDetails, db);
     });
 
     afterEach(async () => {
