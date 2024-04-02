@@ -132,6 +132,12 @@ export default class ModelBuilder {
       (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
     }
 
+    // in case of views, it may occur that there is no primary key defined
+    // in this case, we just pick an arbitrary colum, since it will be read-only anyway
+    if (!primaryKeys.length && table.view) {
+      (attributes[Object.keys(attributes)[0]] as ModelAttributeColumnOptions).primaryKey = true;
+    }
+
     // View does not have primary key, so we don't need to warn about it.
     if (primaryKeys.length && !table.view) {
       logger?.(
