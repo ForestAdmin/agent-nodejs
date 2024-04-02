@@ -1,3 +1,20 @@
+# example [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.20...example@1.8.0) (2024-04-02)
+
+
+### Features
+
+* **datasource-sql:** add support for views ([#903](https://github.com/ForestAdmin/agent-nodejs/issues/903)) ([1695245](https://github.com/ForestAdmin/agent-nodejs/commit/1695245a472bd24c0026d740383b82453befdae2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.8
+* **@forestadmin/datasource-sequelize:** upgraded to 1.8.0
+* **@forestadmin/datasource-sql:** upgraded to 1.12.0
+
 ## example [1.7.20](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.7.19...example@1.7.20) (2024-03-29)
 
 
