@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sql [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.11.2...@forestadmin/datasource-sql@1.12.0) (2024-04-02)
+
+
+### Features
+
+* **datasource-sql:** add support for views ([#903](https://github.com/ForestAdmin/agent-nodejs/issues/903)) ([1695245](https://github.com/ForestAdmin/agent-nodejs/commit/1695245a472bd24c0026d740383b82453befdae2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.8.0
+
 ## @forestadmin/datasource-sql [1.11.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.11.1...@forestadmin/datasource-sql@1.11.2) (2024-03-29)
 
 
