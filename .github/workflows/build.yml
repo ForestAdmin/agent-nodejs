@@ -82,7 +82,7 @@ jobs:
           node-version: 18.14.0
       - name: Start docker containers
         if: ${{ matrix.package == 'datasource-mongo' || matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' || matrix.package == 'datasource-sequelize' }}
-        run: docker-compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
+        run: docker compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v3
         with:
