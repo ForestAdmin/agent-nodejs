@@ -1011,6 +1011,81 @@ describe.each([
                   ],
                 ]);
               });
+
+              if (connectionDetails.supports.arrays) {
+                describe('array of enums', () => {
+                  it('should correctly detect array of enums', async () => {
+                    await connection.getQueryInterface().dropTable('elements');
+                    await connection.getQueryInterface().createTable('elements', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      mood: {
+                        type: DataTypes.ARRAY(
+                          DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                        ),
+                      },
+                    });
+
+                    const dialect = dialectFactory();
+
+                    const tableNames = [
+                      { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                    ];
+
+                    const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                    expect(tableColumns).toEqual([
+                      [
+                        expect.objectContaining({ name: 'id' }),
+                        expect.objectContaining({
+                          name: 'mood',
+                          ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
+                          type: 'ARRAY',
+                        }),
+                      ],
+                    ]);
+                  });
+
+                  // eslint-disable-next-line max-len
+                  it('should correctly detect array of enums when the table name contains uppercase chararacters', async () => {
+                    await connection.getQueryInterface().dropTable('importantElements');
+                    await connection.getQueryInterface().createTable('importantElements', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      mood: {
+                        type: DataTypes.ARRAY(
+                          DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                        ),
+                      },
+                    });
+
+                    const dialect = dialectFactory();
+
+                    const tableNames = [
+                      { schema: connectionDetails.defaultSchema, tableName: 'importantElements' },
+                    ];
+
+                    const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                    expect(tableColumns).toEqual([
+                      [
+                        expect.objectContaining({ name: 'id' }),
+                        expect.objectContaining({
+                          name: 'mood',
+                          ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
+                          type: 'ARRAY',
+                        }),
+                      ],
+                    ]);
+                  });
+                });
+              }
             });
           }
         });

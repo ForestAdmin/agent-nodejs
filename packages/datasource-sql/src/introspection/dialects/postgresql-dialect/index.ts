@@ -72,6 +72,8 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
           (CASE 
             WHEN "ElementType" LIKE '"%"[]' 
               THEN SUBSTRING("ElementType", 2, LENGTH("ElementType") - 4)
+            WHEN "ElementType" LIKE '%[]' 
+              THEN SUBSTRING("ElementType", 1, LENGTH("ElementType") - 2)
             ELSE NULL 
           END) AS "TechnicalElementType"
         FROM (
@@ -86,7 +88,7 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
             columns.udt_name as "udt_name",
             (CASE 
               WHEN columns.udt_name = 'hstore' 
-              THEN columns.udt_name 
+                THEN columns.udt_name 
               ELSE columns.data_type
             END)
             || 
