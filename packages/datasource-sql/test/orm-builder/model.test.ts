@@ -243,6 +243,26 @@ describe('ModelBuilder', () => {
         expect(sequelize.models.myView.rawAttributes.id.primaryKey).toBe(true);
         expect(logger).not.toHaveBeenCalled();
       });
+
+      describe('when there is no unique id', () => {
+        it('should take a random column as primary key', () => {
+          const sequelize = new Sequelize('postgres://');
+          const views: Table[] = [
+            {
+              name: 'myView',
+              schema: undefined,
+              columns: [{ ...baseColumn, name: 'notUnique', primaryKey: false }],
+              unique: [],
+            },
+          ];
+          const logger = jest.fn();
+          ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, views });
+
+          expect(sequelize.models.myView).toBeDefined();
+          expect(sequelize.models.myView.rawAttributes.notUnique.primaryKey).toBe(true);
+          expect(logger).not.toHaveBeenCalled();
+        });
+      });
     });
   });
 

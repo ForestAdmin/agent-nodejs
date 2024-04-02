@@ -120,7 +120,7 @@ export default class ModelBuilder {
       [primaryKeys] = [...table.unique].sort((a, b) => a.length - b.length);
     }
 
-    // If all the columns have contraints (e.g. foreign keys), use all of them as a composite key.
+    // If all the columns have constraints (e.g. foreign keys), use all of them as a composite key.
     if (
       !primaryKeys.length &&
       table.columns.length === 2 &&
@@ -139,7 +139,7 @@ export default class ModelBuilder {
       (attributes[column] as ModelAttributeColumnOptions).primaryKey = true;
     }
 
-    // View does not have primary key, so we don't need to warn about it.
+    // View does not have primary key, so we don't need to warn about it. It is the normal behavior.
     if (primaryKeys.length && !table.view) {
       logger?.(
         'Warn',
