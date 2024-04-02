@@ -180,14 +180,22 @@ export const MARIADB_DETAILS: ConnectionDetails[] = [
   uuidFunctionLiteral: 'UUID()',
 }));
 
+function generateDbPath(dbName?: string): string {
+  return path.join(tmpdir(), dbName ? `${dbName}.db` : 'test.db');
+}
+
+function sqliteUrl(dbName?: string): string {
+  return `sqlite://${generateDbPath(dbName)}`;
+}
+
 export const SQLITE_DETAILS: ConnectionDetails = {
   name: 'SQLite',
   dialect: 'sqlite',
-  url: (dbName?: string) => `sqlite://${path.join(tmpdir(), `${dbName}.db` || 'test.db')}}`,
-  urlDocker: (dbName?: string) => `sqlite://${path.join('/tmp', `${dbName}.db` || 'test.db')}}`,
+  url: sqliteUrl,
+  urlDocker: sqliteUrl,
   options: (dbName?: string) => ({
     dialect: 'sqlite' as Dialect,
-    storage: ':memory:',
+    storage: generateDbPath(dbName),
     database: dbName,
     logging: false,
   }),
@@ -209,12 +217,10 @@ export const SQLITE_DETAILS: ConnectionDetails = {
   uuidFunctionLiteral: undefined,
 };
 
-const CONNECTION_DETAILS: ConnectionDetails[] = [
+export const CONNECTION_DETAILS: ConnectionDetails[] = [
   ...POSTGRESQL_DETAILS,
   ...MSSQL_DETAILS,
   ...MYSQL_DETAILS,
   ...MARIADB_DETAILS,
   SQLITE_DETAILS,
 ];
-
-export default CONNECTION_DETAILS;

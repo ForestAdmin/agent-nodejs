@@ -1,10 +1,10 @@
-import type { Introspection, Table } from '../../src/introspection/types';
+import type { LegacyIntrospection, Table } from '../../src/introspection/types';
 
 import listCollectionsFromIntrospection from '../../src/introspection/list-collections-from-introspection';
 
 describe('listCollectionsFromIntrospection', () => {
   it('should return an empty array if introspection is falsy', () => {
-    const result = listCollectionsFromIntrospection(undefined as unknown as Introspection);
+    const result = listCollectionsFromIntrospection(undefined as unknown as LegacyIntrospection);
     expect(result).toEqual([]);
   });
 
@@ -17,7 +17,9 @@ describe('listCollectionsFromIntrospection', () => {
   });
 
   it('should return the list of table names if introspection is an object', () => {
-    const introspection = { tables: [{ name: 'table1' }, { name: 'table2' }] } as Introspection;
+    const introspection = {
+      tables: [{ name: 'table1' }, { name: 'table2' }],
+    } as LegacyIntrospection;
 
     const result = listCollectionsFromIntrospection(introspection);
 

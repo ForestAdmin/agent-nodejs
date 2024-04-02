@@ -91,6 +91,7 @@ function defineRelationships(schema: CollectionReplicaSchema[], sequelize: Seque
 export async function createSequelize(logger: Logger, options: ReplicaDataSourceOptions) {
   const sequelize = await buildSequelizeInstance(options.cacheInto, logger, {
     tables: [],
+    views: [],
     version: 1,
     source: '@forestadmin/datasource-sql',
   });

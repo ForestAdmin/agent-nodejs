@@ -1,14 +1,14 @@
 import { stringify } from 'querystring';
 import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 
-import CONNECTION_DETAILS from './_helpers/connection-details';
-import setupEmptyDatabase from './_helpers/setup-empty-database';
-import setupDatabaseWithIdNotPrimary from './_helpers/setup-id-is-not-a-pk';
-import setupSimpleTable from './_helpers/setup-simple-table';
-import setupDatabaseWithTypes, { getAttributeMapping } from './_helpers/setup-using-all-types';
-import setupDatabaseWithRelations, { RELATION_MAPPING } from './_helpers/setup-using-relations';
-import { buildSequelizeInstance, introspect } from '../src';
-import Introspector from '../src/introspection/introspector';
+import { buildSequelizeInstance, introspect } from '../../src';
+import Introspector from '../../src/introspection/introspector';
+import { CONNECTION_DETAILS } from '../_helpers/connection-details';
+import setupEmptyDatabase from '../_helpers/setup-empty-database';
+import setupDatabaseWithIdNotPrimary from '../_helpers/setup-id-is-not-a-pk';
+import setupSimpleTable from '../_helpers/setup-simple-table';
+import setupDatabaseWithTypes, { getAttributeMapping } from '../_helpers/setup-using-all-types';
+import setupDatabaseWithRelations, { RELATION_MAPPING } from '../_helpers/setup-using-relations';
 
 function extractTablesAndRelations(
   models: Sequelize['models'],
@@ -95,7 +95,7 @@ describe('SqlDataSourceFactory > Integration', () => {
 
       describe('with tables', () => {
         let sequelize: Sequelize | undefined;
-        let groupModel: ModelStatic<Model<{ id: number; name: string }, { name?: string }>>;
+        let thingModel: ModelStatic<Model<{ id: number; name: string }, { name?: string }>>;
 
         beforeEach(async () => {
           const databaseName = 'datasource-sql-tables-test';
@@ -108,7 +108,7 @@ describe('SqlDataSourceFactory > Integration', () => {
             logger,
           );
 
-          groupModel = sequelize.models.group;
+          thingModel = sequelize.models.thing;
         });
 
         afterEach(async () => {
@@ -117,7 +117,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         });
 
         it('should allow to insert records', async () => {
-          const inserted = await groupModel.create(
+          const inserted = await thingModel.create(
             {
               name: 'test',
             },
@@ -135,7 +135,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         });
 
         it('should allow to select records', async () => {
-          const created = await groupModel.create(
+          const created = await thingModel.create(
             {
               name: 'test',
             },
@@ -145,7 +145,7 @@ describe('SqlDataSourceFactory > Integration', () => {
             },
           );
 
-          const group = await groupModel.findByPk(created.get('id') as number);
+          const group = await thingModel.findByPk(created.get('id') as number);
 
           expect(group).toEqual(expect.objectContaining({ id: created.get('id'), name: 'test' }));
         });
@@ -474,9 +474,12 @@ describe('SqlDataSourceFactory > Integration', () => {
         const attributesMapping = getAttributeMapping(connectionDetails.dialect);
 
         const introspection = await introspect(connectionDetails.url(databaseName), logger);
-        jest
-          .spyOn(Introspector, 'introspect')
-          .mockResolvedValue({ tables: [], version: 1, source: '@forestadmin/datasource-sql' });
+        jest.spyOn(Introspector, 'introspect').mockResolvedValue({
+          tables: [],
+          views: [],
+          version: 1,
+          source: '@forestadmin/datasource-sql',
+        });
         const sequelize = await buildSequelizeInstance(
           connectionDetails.url(databaseName),
           logger,

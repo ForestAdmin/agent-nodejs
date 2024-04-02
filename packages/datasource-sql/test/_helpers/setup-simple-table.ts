@@ -21,9 +21,9 @@ export default async function setupSimpleTable(
     }
 
     sequelize.define(
-      'group',
+      'thing',
       { name: DataTypes.STRING },
-      { tableName: 'group', ...optionalSchemaOption, timestamps: false },
+      { tableName: 'thing', ...optionalSchemaOption, timestamps: false },
     );
 
     await sequelize.sync({ force: true, ...optionalSchemaOption });

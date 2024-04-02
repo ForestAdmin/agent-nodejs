@@ -4,7 +4,7 @@ import { resolve } from 'path';
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';
-import CONNECTION_DETAILS from '../_helpers/connection-details';
+import { CONNECTION_DETAILS } from '../_helpers/connection-details';
 import createDatabaseIfNotExist from '../_helpers/create-database-if-not-exist';
 
 const proxySocks = { host: 'localhost', port: 1083, password: 'password', userId: 'username' };

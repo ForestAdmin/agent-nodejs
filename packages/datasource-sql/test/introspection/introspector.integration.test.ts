@@ -2,15 +2,17 @@
 import { DataTypes, Sequelize, literal } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
-import CONNECTION_DETAILS, {
+import {
+  CONNECTION_DETAILS,
   MSSQL_DETAILS,
   POSTGRESQL_DETAILS,
 } from '../_helpers/connection-details';
-
-const db = 'database_introspector';
+import setupEmptyDatabase from '../_helpers/setup-empty-database';
 
 describe('Introspector > Integration', () => {
   describe('relations to different schemas', () => {
+    const db = 'database_introspector';
+
     describe.each(CONNECTION_DETAILS.filter(connection => connection.supports.schemas))(
       'on $name',
       connectionDetails => {
@@ -18,19 +20,7 @@ describe('Introspector > Integration', () => {
         let sequelizeSchema1: Sequelize;
 
         beforeEach(async () => {
-          const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-          try {
-            const queryInterface = internalSequelize.getQueryInterface();
-            await queryInterface.dropDatabase(db);
-            await queryInterface.createDatabase(db);
-          } finally {
-            internalSequelize.close();
-          }
-
-          sequelize = new Sequelize(connectionDetails.url(db), {
-            logging: false,
-          });
+          sequelize = await setupEmptyDatabase(connectionDetails, db);
 
           sequelizeSchema1 = new Sequelize(connectionDetails.url(db), {
             logging: false,
@@ -111,23 +101,12 @@ describe('Introspector > Integration', () => {
   });
 
   describe.each(MSSQL_DETAILS)('mssql $name', connectionDetails => {
+    const db = 'database_introspector';
+
     let sequelize: Sequelize;
 
     beforeEach(async () => {
-      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-      try {
-        const queryInterface = internalSequelize.getQueryInterface();
-        await queryInterface.dropDatabase(db);
-        await queryInterface.createDatabase(db);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      } finally {
-        internalSequelize.close();
-      }
-
-      sequelize = new Sequelize(connectionDetails.url(db), { logging: false });
+      sequelize = await setupEmptyDatabase(connectionDetails, db);
     });
 
     afterEach(async () => {
@@ -199,24 +178,159 @@ describe('Introspector > Integration', () => {
     });
   });
 
+  describe('views', () => {
+    describe.each(CONNECTION_DETAILS)('on $name', connectionDetails => {
+      let sequelize: Sequelize;
+      const db = 'database_introspector_views';
+
+      beforeEach(async () => {
+        sequelize = await setupEmptyDatabase(connectionDetails, db);
+      });
+
+      afterEach(async () => {
+        await sequelize?.close();
+      });
+
+      it('should return views', async () => {
+        const queryInterface = sequelize.getQueryInterface();
+
+        await queryInterface.createTable('things', {
+          id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true,
+          },
+          name: {
+            type: DataTypes.STRING,
+          },
+          description: {
+            type: DataTypes.STRING,
+          },
+        });
+
+        try {
+          await sequelize.query(`
+              CREATE VIEW the_view AS
+              SELECT * FROM things
+            `);
+        } catch (e) {
+          console.error('error', e);
+          throw e;
+        }
+
+        const { views } = await Introspector.introspect(sequelize);
+
+        expect(views).toEqual([
+          expect.objectContaining({
+            name: 'the_view',
+            unique: [],
+            schema: connectionDetails.defaultSchema,
+            columns: [
+              expect.objectContaining({
+                name: 'id',
+                type: {
+                  subType: 'INTEGER',
+                  type: 'scalar',
+                },
+              }),
+              expect.objectContaining({
+                name: 'name',
+                type: {
+                  subType: 'STRING',
+                  type: 'scalar',
+                },
+              }),
+              expect.objectContaining({
+                name: 'description',
+                type: {
+                  subType: 'STRING',
+                  type: 'scalar',
+                },
+              }),
+            ],
+          }),
+        ]);
+      });
+    });
+
+    describe('with schemas', () => {
+      const db = 'database_introspector_views_schemas';
+
+      describe.each(CONNECTION_DETAILS.filter(c => c.supports.schemas))(
+        'on $name',
+        connectionDetails => {
+          let sequelize: Sequelize;
+
+          beforeEach(async () => {
+            await setupEmptyDatabase(connectionDetails, db);
+            sequelize = new Sequelize(connectionDetails.url(db), {
+              logging: false,
+              schema: 'schema1',
+            });
+
+            await sequelize.getQueryInterface().createSchema('schema1');
+          });
+
+          afterEach(async () => {
+            await sequelize?.close();
+          });
+
+          it('should return views', async () => {
+            sequelize.define(
+              'things',
+              {
+                id: {
+                  type: DataTypes.INTEGER,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
+                name: {
+                  type: DataTypes.STRING,
+                },
+                description: {
+                  type: DataTypes.STRING,
+                },
+              },
+              {
+                schema: 'schema1',
+              },
+            );
+
+            await sequelize.sync({ force: true });
+
+            try {
+              await sequelize.query(`
+              CREATE VIEW schema1.the_view AS
+              SELECT * FROM schema1.things
+            `);
+            } catch (e) {
+              console.error('error', e);
+              throw e;
+            }
+
+            const { tables, views } = await Introspector.introspect(sequelize);
+            expect(tables).toEqual([
+              expect.objectContaining({
+                name: 'things',
+              }),
+            ]);
+            expect(views).toEqual([
+              expect.objectContaining({
+                name: 'the_view',
+              }),
+            ]);
+          });
+        },
+      );
+    });
+  });
+
   describe.each(POSTGRESQL_DETAILS)('$name', connectionDetails => {
     let sequelize: Sequelize;
+    const db = 'database_introspector';
 
     beforeEach(async () => {
-      const internalSequelize = new Sequelize(connectionDetails.url(), { logging: false });
-
-      try {
-        const queryInterface = internalSequelize.getQueryInterface();
-        await queryInterface.dropDatabase(`${db}_sequences`);
-        await queryInterface.createDatabase(`${db}_sequences`);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      } finally {
-        internalSequelize.close();
-      }
-
-      sequelize = new Sequelize(connectionDetails.url(`${db}_sequences`), { logging: false });
+      sequelize = await setupEmptyDatabase(connectionDetails, db);
     });
 
     afterEach(async () => {
