@@ -1,3 +1,12 @@
+## @forestadmin/datasource-sql [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.12.0...@forestadmin/datasource-sql@1.12.1) (2024-04-03)
+
+
+### Bug Fixes
+
+* replace latesIntrospection to legacyIntrospection ([#1092](https://github.com/ForestAdmin/agent-nodejs/issues/1092)) ([e5e6c73](https://github.com/ForestAdmin/agent-nodejs/commit/e5e6c730245f36300749c8440f3b5c684bd4a7b4))
+* **sql:** random error on postgresql during introspection caused by left join on information_schema.element_types ([#1090](https://github.com/ForestAdmin/agent-nodejs/issues/1090)) ([2b1d1df](https://github.com/ForestAdmin/agent-nodejs/commit/2b1d1df84ce5116b807ff218fed4b60f2972edad))
+* **sql:** type detection for enums in schemas ([#1093](https://github.com/ForestAdmin/agent-nodejs/issues/1093)) ([49d78e3](https://github.com/ForestAdmin/agent-nodejs/commit/49d78e3ccca72a5afa6f486ed8ba1e7742070257))
+
 # @forestadmin/datasource-sql [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.11.2...@forestadmin/datasource-sql@1.12.0) (2024-04-02)
 
 
