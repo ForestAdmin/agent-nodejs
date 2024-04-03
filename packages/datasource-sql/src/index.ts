@@ -91,5 +91,6 @@ export type {
   Table,
   SslMode,
   LegacyIntrospection as Introspection,
+  LatestIntrospection,
 };
 export { listCollectionsFromIntrospection };

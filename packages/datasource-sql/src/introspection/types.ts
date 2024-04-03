@@ -67,6 +67,6 @@ export type ObjectIntrospection = {
   views?: Table[];
 };
 
-export type LegacyIntrospection = ObjectIntrospection | Table[];
+export type LegacyIntrospection = ObjectIntrospection | Table[] | LatestIntrospection;
 
 export type LatestIntrospection = Required<ObjectIntrospection>;
