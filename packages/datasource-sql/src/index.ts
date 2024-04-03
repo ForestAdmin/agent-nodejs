@@ -90,6 +90,6 @@ export type {
   PlainConnectionOptionsOrUri as ConnectionOptions,
   Table,
   SslMode,
-  LatestIntrospection as Introspection,
+  LegacyIntrospection as Introspection,
 };
 export { listCollectionsFromIntrospection };
