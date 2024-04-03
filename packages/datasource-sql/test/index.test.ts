@@ -29,7 +29,12 @@ describe('index', () => {
     describe('when the introspection version is not handled', () => {
       test('should throw an error', async () => {
         const factory = createSqlDataSource('postgres://', {
-          introspection: { tables: [], version: 2255345234, source: '@forestadmin/datasource-sql' },
+          introspection: {
+            tables: [],
+            version: 2255345234 as 3,
+            source: '@forestadmin/datasource-sql',
+            views: [],
+          },
         });
         const logger = jest.fn();
 
@@ -47,7 +52,12 @@ describe('index', () => {
     describe('when a database schema is given from uri string', () => {
       it('should use the given schema', async () => {
         const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
-        await buildSequelizeInstance(uri, jest.fn(), { tables: [], version: 1, views: [] });
+        await buildSequelizeInstance(uri, jest.fn(), {
+          tables: [],
+          version: 3,
+          views: [],
+          source: '@forestadmin/datasource-sql',
+        });
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
@@ -61,7 +71,12 @@ describe('index', () => {
     describe('when a database schema is given from uri options', () => {
       it('should use the given schema', async () => {
         const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
-        await buildSequelizeInstance({ uri }, jest.fn(), { views: [], tables: [], version: 1 });
+        await buildSequelizeInstance({ uri }, jest.fn(), {
+          views: [],
+          tables: [],
+          version: 3,
+          source: '@forestadmin/datasource-sql',
+        });
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),
@@ -75,7 +90,12 @@ describe('index', () => {
     describe('when a database schema is not given', () => {
       it('should not use a schema', async () => {
         const uri = 'postgres://example:password@localhost:5442/example';
-        await buildSequelizeInstance(uri, jest.fn(), { views: [], tables: [], version: 1 });
+        await buildSequelizeInstance(uri, jest.fn(), {
+          views: [],
+          tables: [],
+          version: 3,
+          source: '@forestadmin/datasource-sql',
+        });
 
         expect(Sequelize).toHaveBeenCalledWith(uri, {
           logging: expect.any(Function),

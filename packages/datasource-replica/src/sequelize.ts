@@ -92,7 +92,7 @@ export async function createSequelize(logger: Logger, options: ReplicaDataSource
   const sequelize = await buildSequelizeInstance(options.cacheInto, logger, {
     tables: [],
     views: [],
-    version: 1,
+    version: 3,
     source: '@forestadmin/datasource-sql',
   });
 

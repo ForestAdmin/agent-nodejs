@@ -74,7 +74,7 @@ describe('Introspector > Integration', () => {
           const logger = jest.fn();
           const { tables, version } = await Introspector.introspect(sequelizeSchema1, logger);
 
-          expect(version).toEqual(1);
+          expect(version).toEqual(3);
           expect(tables).toEqual([
             {
               name: 'elements',
@@ -352,7 +352,7 @@ describe('Introspector > Integration', () => {
       const logger = jest.fn();
       const { tables, version } = await Introspector.introspect(sequelize, logger);
 
-      expect(version).toEqual(1);
+      expect(version).toEqual(3);
       expect(tables).toEqual([
         {
           name: 'elements',
