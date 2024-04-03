@@ -1,8 +1,8 @@
 import Introspector from './introspector';
-import { LegacyIntrospection } from './types';
+import { SupportedIntrospection } from './types';
 
 export default function listCollectionsFromIntrospection(
-  introspection: LegacyIntrospection,
+  introspection: SupportedIntrospection,
 ): string[] {
   if (!introspection) {
     return [];
