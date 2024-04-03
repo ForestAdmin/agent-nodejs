@@ -62,6 +62,7 @@ const mysqlSQLDialect = {
   integer: 'INT',
   text: 'TEXT',
   varchar: length => `VARCHAR(${length})`,
+  decimal: (precision: number, scale: number) => `DECIMAL(${precision},${scale})`,
   date: 'DATETIME',
   dropDb: (dbName: string) => `DROP DATABASE IF EXISTS \`${dbName}\``,
   decimalValue: (value: number) => value?.toFixed(2),
@@ -93,6 +94,7 @@ describe.each([
       integer: 'INTEGER',
       text: 'TEXT',
       varchar: length => `CHARACTER VARYING(${length})`,
+      decimal: (precision: number, scale: number) => `NUMERIC(${precision},${scale})`,
       date: 'TIMESTAMP WITH TIME ZONE',
       dropDb: (dbName: string) => `DROP DATABASE IF EXISTS "${dbName}"`,
       decimalValue: (value: number) => `${value}`,
@@ -118,6 +120,7 @@ describe.each([
       integer: 'INT',
       text: 'NVARCHAR(MAX)',
       varchar: length => `NVARCHAR(${length})`,
+      decimal: (precision: number, scale: number) => `DECIMAL(${precision},${scale})`,
       date: 'DATETIMEOFFSET',
       dropDb: (dbName: string) => `DROP DATABASE IF EXISTS [${dbName}]`,
       decimalValue: (value: number) => `${value}`,
@@ -167,6 +170,7 @@ describe.each([
       integer: 'INTEGER',
       text: 'TEXT',
       varchar: length => `VARCHAR(${length})`,
+      decimal: (precision: number, scale: number) => `DECIMAL(${precision},${scale})`,
       date: 'DATETIME',
       dropDb: () => null,
       decimalValue: (value: number) => `${value}`,
@@ -1010,6 +1014,155 @@ describe.each([
                     }),
                   ],
                 ]);
+              });
+
+              if (connectionDetails.supports.arrays) {
+                describe('array of enums', () => {
+                  it('should correctly detect array of enums', async () => {
+                    await connection.getQueryInterface().dropTable('elements');
+                    await connection.getQueryInterface().createTable('elements', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      mood: {
+                        type: DataTypes.ARRAY(
+                          DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                        ),
+                      },
+                    });
+
+                    const dialect = dialectFactory();
+
+                    const tableNames = [
+                      { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                    ];
+
+                    const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                    expect(tableColumns).toEqual([
+                      [
+                        expect.objectContaining({ name: 'id' }),
+                        expect.objectContaining({
+                          name: 'mood',
+                          ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
+                          type: 'ARRAY',
+                        }),
+                      ],
+                    ]);
+                  });
+
+                  // eslint-disable-next-line max-len
+                  it('should correctly detect array of enums when the table name contains uppercase chararacters', async () => {
+                    await connection.getQueryInterface().dropTable('importantElements');
+                    await connection.getQueryInterface().createTable('importantElements', {
+                      id: {
+                        type: DataTypes.INTEGER,
+                        primaryKey: true,
+                        autoIncrement: true,
+                      },
+                      mood: {
+                        type: DataTypes.ARRAY(
+                          DataTypes.ENUM('sad', 'ok', 'happy', 'bug,\'y"value'),
+                        ),
+                      },
+                    });
+
+                    const dialect = dialectFactory();
+
+                    const tableNames = [
+                      { schema: connectionDetails.defaultSchema, tableName: 'importantElements' },
+                    ];
+
+                    const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                    expect(tableColumns).toEqual([
+                      [
+                        expect.objectContaining({ name: 'id' }),
+                        expect.objectContaining({
+                          name: 'mood',
+                          ...dialectSql.enumType(['sad', 'ok', 'happy', 'bug,\'y"value']),
+                          type: 'ARRAY',
+                        }),
+                      ],
+                    ]);
+                  });
+                });
+              }
+            });
+          }
+
+          if (connectionDetails.supports.arrays) {
+            describe('array', () => {
+              describe('of integers', () => {
+                it('should correctly detect arrays of integers', async () => {
+                  await connection.getQueryInterface().dropTable('elements');
+                  await connection.getQueryInterface().createTable('elements', {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    values: {
+                      type: DataTypes.ARRAY(DataTypes.INTEGER),
+                    },
+                  });
+
+                  const dialect = dialectFactory();
+
+                  const tableNames = [
+                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                  ];
+
+                  const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                  expect(tableColumns).toEqual([
+                    [
+                      expect.objectContaining({ name: 'id' }),
+                      expect.objectContaining({
+                        name: 'values',
+                        type: 'ARRAY',
+                        elementType: dialectSql.integer,
+                      }),
+                    ],
+                  ]);
+                });
+              });
+
+              describe('of decimals', () => {
+                it('should correctly detect arrays of decimals', async () => {
+                  await connection.getQueryInterface().dropTable('elements');
+                  await connection.getQueryInterface().createTable('elements', {
+                    id: {
+                      type: DataTypes.INTEGER,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
+                    values: {
+                      type: DataTypes.ARRAY(DataTypes.DECIMAL(10, 2)),
+                    },
+                  });
+
+                  const dialect = dialectFactory();
+
+                  const tableNames = [
+                    { schema: connectionDetails.defaultSchema, tableName: 'elements' },
+                  ];
+
+                  const tableColumns = await dialect.listColumns(tableNames, connection);
+
+                  expect(tableColumns).toEqual([
+                    [
+                      expect.objectContaining({ name: 'id' }),
+                      expect.objectContaining({
+                        name: 'values',
+                        type: 'ARRAY',
+                        elementType: dialectSql.decimal(10, 2),
+                      }),
+                    ],
+                  ]);
+                });
               });
             });
           }

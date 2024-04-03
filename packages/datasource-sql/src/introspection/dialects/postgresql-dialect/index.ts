@@ -45,8 +45,8 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
     const conditions = `(${tableNames
       .map(
         (_, index) =>
-          `(c.table_schema = :schemaName${index}
-            AND c.table_name = :tableName${index}
+          `(columns.table_schema = :schemaName${index}
+            AND columns.table_name = :tableName${index}
             )`,
       )
       .join(' OR ')})`;
@@ -54,54 +54,90 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
     // Query inspired by Sequelize, but adapted for multiple tables
     // and support of multiple databases
     const query = `
-    SELECT 
-      c.table_schema as "Schema",
-      c.table_name as "Table",
-      c.column_name as "Field", 
-      pk.constraint_type as "Constraint",
-      c.column_default as "Default",
-      c.is_nullable as "Null", 
-      c.identity_generation as "Identity",
-      (CASE WHEN c.udt_name = 'hstore' THEN c.udt_name ELSE c.data_type END) 
-        || (CASE WHEN c.character_maximum_length IS NOT NULL 
-            THEN '(' || c.character_maximum_length || ')' 
-            ELSE '' END) as "Type", 
+    SELECT
+      "Schema",
+      "Table",
+      "Field",
+      "Constraint",
+      "Default",
+      "Null",
+      "Identity",
+      "Type",
+      "ElementType",
+      "Comment",
+      "TechnicalElementType",
       (SELECT array_agg(en.enumlabel) 
         FROM pg_catalog.pg_type t JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid 
-        WHERE t.typname = c.udt_name OR t.typname = e.udt_name
-      ) AS "Special",
-      (SELECT pgd.description 
-        FROM pg_catalog.pg_statio_all_tables AS st
-        INNER JOIN pg_catalog.pg_description pgd on (pgd.objoid=st.relid) 
-        WHERE c.ordinal_position=pgd.objsubid AND c.table_name=st.relname
-      ) AS "Comment",
-      e.data_type AS "ElementType",
-      e.udt_name AS "TechnicalElementType"
-      FROM 
-        information_schema.columns c 
-      LEFT JOIN (
-        SELECT tc.table_schema, tc.table_name, 
-        cu.column_name, tc.constraint_type 
-        FROM information_schema.TABLE_CONSTRAINTS tc 
-        JOIN information_schema.KEY_COLUMN_USAGE  cu 
-        ON tc.table_schema=cu.table_schema 
-          AND tc.table_name=cu.table_name 
-          AND tc.constraint_name=cu.constraint_name 
-          AND tc.constraint_type='PRIMARY KEY'
-          AND tc.constraint_catalog=:database
-      ) pk ON pk.table_schema=c.table_schema 
-        AND pk.table_name=c.table_name 
-        AND pk.column_name=c.column_name 
-      LEFT JOIN INFORMATION_SCHEMA.element_types e ON (
-        c.table_catalog = e.object_catalog AND
-        c.table_schema = e.object_schema AND
-        c.table_name = e.object_name AND
-        'TABLE' = e.object_type AND
-        c.dtd_identifier = e.collection_type_identifier
-      )
-      WHERE c.table_catalog = :database 
-        AND ${conditions}
-      ORDER BY c.table_schema, c.table_name, c.ordinal_position;
+        WHERE t.typname = udt_name OR t.typname = "TechnicalElementType"
+      ) AS "Special"
+      FROM (
+        SELECT       
+          *,
+          (CASE 
+            WHEN "ElementType" LIKE '"%"[]' 
+              THEN SUBSTRING("ElementType", 2, LENGTH("ElementType") - 4)
+            WHEN "ElementType" LIKE '%[]' 
+              THEN SUBSTRING("ElementType", 1, LENGTH("ElementType") - 2)
+            ELSE NULL 
+          END) AS "TechnicalElementType"
+        FROM (
+          SELECT 
+            columns.table_schema as "Schema",
+            columns.table_name as "Table",
+            columns.column_name as "Field", 
+            pk.constraint_type as "Constraint",
+            columns.column_default as "Default",
+            columns.is_nullable as "Null", 
+            columns.identity_generation as "Identity",
+            columns.udt_name as "udt_name",
+            (CASE 
+              WHEN columns.udt_name = 'hstore' 
+                THEN columns.udt_name 
+              ELSE columns.data_type
+            END)
+            || 
+            (CASE 
+              WHEN columns.character_maximum_length IS NOT NULL 
+              THEN '(' || columns.character_maximum_length || ')' 
+              ELSE '' 
+            END) as "Type", 
+            pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) AS "ElementType",
+            (SELECT pgd.description 
+              FROM pg_catalog.pg_statio_all_tables AS st
+              INNER JOIN pg_catalog.pg_description pgd on (pgd.objoid=st.relid) 
+              WHERE columns.ordinal_position=pgd.objsubid AND columns.table_name=st.relname
+            ) AS "Comment"
+          FROM 
+            information_schema.columns 
+          LEFT JOIN (
+            SELECT tc.table_schema, tc.table_name, 
+            cu.column_name, tc.constraint_type 
+            FROM information_schema.TABLE_CONSTRAINTS tc 
+            JOIN information_schema.KEY_COLUMN_USAGE  cu 
+            ON tc.table_schema=cu.table_schema 
+              AND tc.table_name=cu.table_name 
+              AND tc.constraint_name=cu.constraint_name 
+              AND tc.constraint_type='PRIMARY KEY'
+              AND tc.constraint_catalog=:database
+          ) pk ON pk.table_schema=columns.table_schema 
+            AND pk.table_name=columns.table_name 
+            AND pk.column_name=columns.column_name 
+          INNER JOIN pg_catalog.pg_namespace ON (
+            pg_namespace.nspname = columns.table_schema  
+          )
+          INNER JOIN pg_catalog.pg_class ON (
+            pg_class.relname = columns.table_name
+            AND pg_namespace.oid = pg_class.relnamespace
+          )
+          INNER JOIN pg_catalog.pg_attribute ON (
+            pg_class.oid = pg_attribute.attrelid
+            AND pg_attribute.attname = columns.column_name
+          )
+          WHERE columns.table_catalog = :database 
+            AND ${conditions}
+          ORDER BY columns.table_schema, columns.table_name, columns.ordinal_position
+        ) as raw_info
+      ) as with_technical_element_type;
     `;
 
     const replacements = tableNames.reduce(
@@ -151,17 +187,18 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
 
   private getColumnDescription(dbColumn: DBColumn): ColumnDescription {
     const type = dbColumn.Type.toUpperCase();
-    const elementType =
-      dbColumn.ElementType?.toUpperCase() === 'USER-DEFINED'
-        ? dbColumn.TechnicalElementType
-        : dbColumn.ElementType?.toUpperCase();
+
+    const special = parseArray(dbColumn.Special);
+
+    const elementType = dbColumn.TechnicalElementType || dbColumn.ElementType;
 
     const sequelizeColumn: SequelizeColumn = {
       type,
-      elementType,
+      // Don't change the casing of types when it's an enum
+      elementType: special ? elementType : elementType?.toUpperCase(),
       allowNull: dbColumn.Null === 'YES',
       comment: dbColumn.Comment,
-      special: parseArray(dbColumn.Special),
+      special,
       primaryKey: dbColumn.Constraint === 'PRIMARY KEY',
       defaultValue: dbColumn.Default,
       // Supabase databases do not expose a default value for auto-increment columns

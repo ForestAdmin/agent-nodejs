@@ -109,6 +109,7 @@ export default class SqlTypeConverter {
       case 'REAL':
         return 'REAL';
       case 'NUMERIC':
+      case this.typeStartsWith(upType, 'NUMERIC'):
       case this.typeContains(upType, 'DECIMAL'):
         return 'DECIMAL';
       case 'DOUBLE':
