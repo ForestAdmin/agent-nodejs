@@ -65,10 +65,17 @@ export default class PostgreSQLDialect implements IntrospectionDialect {
       "Type",
       "ElementType",
       "Comment",
-      "TechnicalElementType",
+      CASE WHEN SUBSTRING("TechnicalElementType", 1, LENGTH("Schema") + 1) = "Schema" || '.' 
+        THEN SUBSTRING("TechnicalElementType", LENGTH("Schema") + 2)
+        ELSE "TechnicalElementType"
+      END AS "TechnicalElementType",
       (SELECT array_agg(en.enumlabel) 
-        FROM pg_catalog.pg_type t JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid 
-        WHERE t.typname = udt_name OR t.typname = "TechnicalElementType"
+        FROM pg_catalog.pg_type t 
+        JOIN pg_catalog.pg_enum en ON t.oid = en.enumtypid 
+        INNER JOIN pg_catalog.pg_namespace ON pg_namespace.oid = t.typnamespace
+        WHERE (pg_namespace.nspname = "Schema" AND t.typname = udt_name) 
+          OR (pg_namespace.nspname = 'public' AND t.typname = "TechnicalElementType")
+          OR CONCAT(pg_namespace.nspname, '.', t.typname) = "TechnicalElementType"
       ) AS "Special"
       FROM (
         SELECT       

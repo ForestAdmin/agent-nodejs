@@ -145,7 +145,7 @@ describe('Integration > SqlTypeConverter', () => {
     'On $dialect',
     connectionDetails => {
       describe.each([undefined, ...(connectionDetails.supports.schemas ? ['test_schema'] : [])])(
-        `With schema=%S`,
+        `With schema=%s`,
         schema => {
           let sequelize: Sequelize;
           let dialect: IntrospectionDialect;
