@@ -1,9 +1,9 @@
 import Introspector from '../../src/introspection/introspector';
-import { LatestIntrospection, Table } from '../../src/introspection/types';
+import { Introspection, Introspection1, Table } from '../../src/introspection/types';
 
-const defaultIntrospection: LatestIntrospection = {
+const defaultIntrospection: Introspection = {
   source: '@forestadmin/datasource-sql',
-  version: 1,
+  version: 3,
   tables: [],
   views: [],
 };
@@ -33,7 +33,7 @@ describe('Introspector > Unit', () => {
 
         expect(result).toEqual({
           source: '@forestadmin/datasource-sql',
-          version: 1,
+          version: 3,
           tables: introspection,
           views: [],
         });
@@ -49,17 +49,16 @@ describe('Introspector > Unit', () => {
     describe('source', () => {
       describe('when the introspection does not contain the source', () => {
         it('should add the source and return the introspection', () => {
-          const introspection = {
+          const introspection: Introspection1 = {
             version: 1,
             tables: [],
-            views: [],
           };
 
           const result = Introspector.getIntrospectionInLatestFormat(introspection);
 
           expect(result).toEqual({
             source: '@forestadmin/datasource-sql',
-            version: 1,
+            version: 3,
             tables: [],
             views: [],
           });
@@ -86,9 +85,10 @@ describe('Introspector > Unit', () => {
         it('should throw an error', () => {
           expect(() => {
             Introspector.getIntrospectionInLatestFormat({
-              ...defaultIntrospection,
               source: '@forestadmin/datasource-sql',
-              version: 2,
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              version: 4,
             });
           }).toThrow(
             // eslint-disable-next-line max-len
@@ -98,15 +98,20 @@ describe('Introspector > Unit', () => {
       });
 
       describe('when the version is lower than the latest format version', () => {
-        it('should return the introspection', () => {
-          const introspection = {
-            ...defaultIntrospection,
-            version: 0,
+        it('should return the latest introspection format', () => {
+          const introspection: Introspection1 = {
+            tables: [],
+            version: 1,
           };
 
           const result = Introspector.getIntrospectionInLatestFormat(introspection);
 
-          expect(result).toEqual(introspection);
+          expect(result).toEqual({
+            source: '@forestadmin/datasource-sql',
+            version: 3,
+            tables: [],
+            views: [],
+          });
         });
       });
     });
