@@ -58,7 +58,7 @@ export type Table = {
   }[];
 };
 
-export type ObjectIntrospection = {
+export type Introspection = {
   tables: Table[];
   version: number;
   // Old versions of introspection did not have the source field
@@ -67,6 +67,6 @@ export type ObjectIntrospection = {
   views?: Table[];
 };
 
-export type LegacyIntrospection = ObjectIntrospection | Table[] | LatestIntrospection;
+export type LatestIntrospection = Required<Introspection>;
 
-export type LatestIntrospection = Required<ObjectIntrospection>;
+export type LegacyIntrospection = Introspection | Table[] | LatestIntrospection;

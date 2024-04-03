@@ -11,7 +11,7 @@ import {
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from './type-overrides';
-import { LatestIntrospection, LegacyIntrospection, ObjectIntrospection, Table } from './types';
+import { Introspection, LatestIntrospection, LegacyIntrospection, Table } from './types';
 
 export default class Introspector {
   static readonly FORMAT_VERSION = 1;
@@ -84,7 +84,7 @@ export default class Introspector {
     }
 
     return {
-      ...(introspection as ObjectIntrospection),
+      ...(introspection as Introspection),
       source: introspection.source || this.SOURCE,
       views: introspection.views || [],
     };

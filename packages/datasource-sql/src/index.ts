@@ -9,7 +9,12 @@ import ConnectionOptions from './connection/connection-options';
 import SqlDatasource from './decorators/sql-datasource';
 import Introspector from './introspection/introspector';
 import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
-import { LatestIntrospection, LegacyIntrospection, Table } from './introspection/types';
+import {
+  Introspection,
+  LatestIntrospection,
+  LegacyIntrospection,
+  Table,
+} from './introspection/types';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
@@ -86,11 +91,5 @@ export async function preprocessOptions(
 }
 
 export * from './connection/errors';
-export type {
-  PlainConnectionOptionsOrUri as ConnectionOptions,
-  Table,
-  SslMode,
-  LegacyIntrospection as Introspection,
-  LatestIntrospection,
-};
+export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode, Introspection };
 export { listCollectionsFromIntrospection };
