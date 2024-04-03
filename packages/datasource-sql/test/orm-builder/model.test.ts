@@ -1,6 +1,6 @@
 import { Sequelize, UUIDV4 } from 'sequelize';
 
-import { ColumnType, LatestIntrospection, Table } from '../../src/introspection/types';
+import { ColumnType, Introspection, Table } from '../../src/introspection/types';
 import ModelBuilder from '../../src/orm-builder/model';
 
 const baseColumn = {
@@ -13,10 +13,10 @@ const baseColumn = {
   isLiteralDefaultValue: false,
 };
 
-const defaultIntrospection: LatestIntrospection = {
+const defaultIntrospection: Introspection = {
   tables: [],
   views: [],
-  version: 1,
+  version: 3,
   source: '@forestadmin/datasource-sql',
 };
 
@@ -38,7 +38,7 @@ describe('ModelBuilder', () => {
       ModelBuilder.defineModels(sequelize, () => {}, {
         tables,
         views: [],
-        version: 1,
+        version: 3,
         source: '@forestadmin/datasource-sql',
       }),
     ).toThrow();
