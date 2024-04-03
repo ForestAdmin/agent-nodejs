@@ -477,7 +477,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         jest.spyOn(Introspector, 'introspect').mockResolvedValue({
           tables: [],
           views: [],
-          version: 1,
+          version: 3,
           source: '@forestadmin/datasource-sql',
         });
         const sequelize = await buildSequelizeInstance(
