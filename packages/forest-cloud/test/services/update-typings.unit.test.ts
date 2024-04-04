@@ -15,8 +15,11 @@ describe('update-typings', () => {
     jest.restoreAllMocks();
   });
 
+  type Exit = (_code?: number | undefined) => never;
+
   function setup() {
-    const introspection = Symbol('introspection') as unknown as Table[];
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as unknown as Exit);
+    const introspection = { tables: [] } as unknown as Table[];
     const datasource = Symbol('datasource') as unknown as () => any;
     const agentMock = {
       addDataSource: jest.fn(),
@@ -41,11 +44,12 @@ describe('update-typings', () => {
       datasource,
       distPathManager,
       bootstrapPathManager,
+      exitSpy,
     };
   }
 
   describe('updateTypings', () => {
-    it('should create an agent and generate typings from introspection', () => {
+    it('should create an agent and generate typings from introspection', async () => {
       const {
         introspection,
         createAgentSpy,
@@ -53,8 +57,9 @@ describe('update-typings', () => {
         agentMock,
         bootstrapPathManager,
         datasource,
+        exitSpy,
       } = setup();
-      updateTypings(introspection, bootstrapPathManager);
+      await updateTypings(introspection, bootstrapPathManager);
       expect(createAgentSpy).toHaveBeenCalledWith({
         authSecret: 'a'.repeat(64),
         envSecret: 'a'.repeat(64),
@@ -73,6 +78,8 @@ describe('update-typings', () => {
         bootstrapPathManager.typingsDuringBootstrap,
         3,
       );
+      expect(exitSpy).toHaveBeenCalled();
+      expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
 
