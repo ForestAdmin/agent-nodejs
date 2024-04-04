@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.12.2...@forestadmin/datasource-sql@1.12.3) (2024-04-04)
+
+
+### Bug Fixes
+
+* change introspection type to avoid breaking change ([#1095](https://github.com/ForestAdmin/agent-nodejs/issues/1095)) ([42777a0](https://github.com/ForestAdmin/agent-nodejs/commit/42777a0b4fc3e922e9fba45e121cfca48ae89628))
+
 ## @forestadmin/datasource-sql [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.12.1...@forestadmin/datasource-sql@1.12.2) (2024-04-03)
 
 
