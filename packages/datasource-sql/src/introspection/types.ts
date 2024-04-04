@@ -76,6 +76,8 @@ export type Introspection3 = {
   version: 3;
 };
 
-export type Introspection = Introspection3;
+export type LatestIntrospection = Introspection3;
 
-export type LegacyIntrospection = Table[] | Introspection1 | Introspection2 | Introspection3;
+export type Introspection = Introspection1 | Introspection2 | Introspection3;
+
+export type SupportedIntrospection = Table[] | Introspection;

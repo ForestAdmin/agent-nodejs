@@ -4,12 +4,16 @@ import { ModelAttributeColumnOptions } from 'sequelize/types/model';
 import { Literal } from 'sequelize/types/utils';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
-import { Introspection, Table } from '../introspection/types';
+import { LatestIntrospection, Table } from '../introspection/types';
 
 type TableOrView = Table & { view?: boolean };
 
 export default class ModelBuilder {
-  static defineModels(sequelize: Sequelize, logger: Logger, introspection: Introspection): void {
+  static defineModels(
+    sequelize: Sequelize,
+    logger: Logger,
+    introspection: LatestIntrospection,
+  ): void {
     for (const table of introspection.tables) {
       this.defineModelFromTable(sequelize, logger, table);
     }

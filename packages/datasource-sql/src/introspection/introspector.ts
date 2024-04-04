@@ -11,7 +11,7 @@ import {
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from './type-overrides';
-import { Introspection, LegacyIntrospection, Table } from './types';
+import { Introspection, LatestIntrospection, SupportedIntrospection, Table } from './types';
 
 export default class Introspector {
   static readonly FORMAT_VERSION = 3;
@@ -20,8 +20,8 @@ export default class Introspector {
   static async migrateOrIntrospect(
     sequelize: Sequelize,
     logger?: Logger,
-    introspection?: LegacyIntrospection,
-  ): Promise<Introspection> {
+    introspection?: SupportedIntrospection,
+  ): Promise<LatestIntrospection> {
     const latestIntrospection = this.getIntrospectionInLatestFormat(introspection);
 
     if (latestIntrospection) return latestIntrospection;
@@ -29,7 +29,7 @@ export default class Introspector {
     return this.introspect(sequelize, logger);
   }
 
-  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<Introspection> {
+  static async introspect(sequelize: Sequelize, logger?: Logger): Promise<LatestIntrospection> {
     const dialect = introspectionDialectFactory(sequelize.getDialect() as Dialect);
     const tableNames = await this.getTableNames(dialect, sequelize as SequelizeWithOptions);
     const tables = await this.getTables(dialect, tableNames, sequelize, logger);
@@ -41,8 +41,8 @@ export default class Introspector {
   }
 
   static getIntrospectionInLatestFormat(
-    introspection?: LegacyIntrospection,
-  ): Introspection | undefined {
+    introspection?: SupportedIntrospection,
+  ): LatestIntrospection | undefined {
     if (!introspection) return undefined;
     const version = this.getProperty<number>(introspection, 'version');
     const source = this.getProperty<string>(introspection, 'source');
@@ -71,8 +71,8 @@ export default class Introspector {
   }
 
   private static migrateIntrospectionInLatestFormat(
-    introspection?: LegacyIntrospection,
-  ): Introspection | undefined {
+    introspection?: SupportedIntrospection,
+  ): LatestIntrospection | undefined {
     if (!introspection) return undefined;
 
     // First version of introspection: just an array of tables
@@ -90,7 +90,7 @@ export default class Introspector {
       views: this.getProperty(introspection, 'views') || [],
       source: this.SOURCE,
       version: this.FORMAT_VERSION,
-    } as Introspection;
+    } as LatestIntrospection;
   }
 
   /** Get names of all tables in the public schema of the db */
@@ -325,7 +325,7 @@ export default class Introspector {
     );
   }
 
-  private static getProperty<T>(introspection: LegacyIntrospection, property: string): T {
+  private static getProperty<T>(introspection: SupportedIntrospection, property: string): T {
     if (!Array.isArray(introspection) && property in introspection) {
       return introspection[property];
     }

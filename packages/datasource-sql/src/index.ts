@@ -9,7 +9,12 @@ import ConnectionOptions from './connection/connection-options';
 import SqlDatasource from './decorators/sql-datasource';
 import Introspector from './introspection/introspector';
 import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
-import { Introspection, LegacyIntrospection, Table } from './introspection/types';
+import {
+  Introspection,
+  LatestIntrospection,
+  SupportedIntrospection,
+  Table,
+} from './introspection/types';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 
@@ -32,8 +37,8 @@ export async function introspect(
 async function buildModelsAndRelations(
   sequelize: Sequelize,
   logger: Logger,
-  introspection: LegacyIntrospection,
-): Promise<Introspection> {
+  introspection: SupportedIntrospection,
+): Promise<LatestIntrospection> {
   try {
     const latestIntrospection = await Introspector.migrateOrIntrospect(
       sequelize,
@@ -53,7 +58,7 @@ async function buildModelsAndRelations(
 export async function buildSequelizeInstance(
   uriOrOptions: PlainConnectionOptionsOrUri,
   logger: Logger,
-  introspection?: LegacyIntrospection,
+  introspection?: SupportedIntrospection,
 ): Promise<Sequelize> {
   const options = new ConnectionOptions(uriOrOptions, logger);
   const sequelize = await connect(options);
@@ -64,7 +69,7 @@ export async function buildSequelizeInstance(
 
 export function createSqlDataSource(
   uriOrOptions: PlainConnectionOptionsOrUri,
-  options?: { introspection?: LegacyIntrospection },
+  options?: { introspection?: SupportedIntrospection },
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const sequelize = await connect(new ConnectionOptions(uriOrOptions, logger));
