@@ -6,6 +6,16 @@ import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import { defaultEnvs } from '../../src/services/environment-variables';
 
 describe('bootstrap command', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest
+      .spyOn(process, 'exit')
+      .mockImplementation((() => {}) as unknown as (_code?: number | undefined) => never);
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const removePotentialFolderWithSameProjectName = async (
     bootstrapPathManager: BootstrapPathManager,
   ) => {
