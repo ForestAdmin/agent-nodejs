@@ -1,4 +1,8 @@
+import type { Introspection as DataSourceMongoIntrospection } from '@forestadmin/datasource-mongo';
+import type { SupportedIntrospection as DataSourceSQLIntrospection } from '@forestadmin/datasource-sql';
+
 import { AgentOptions, createAgent } from '@forestadmin/agent';
+import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
 import path from 'path';
 
@@ -27,7 +31,13 @@ function loadCustomization(agent: Agent, builtCodePath: string): void {
   }
 }
 
-function buildAgent(introspection: Table[]) {
+function isDatasourceMongoIntrospection(
+  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
+): introspection is DataSourceMongoIntrospection {
+  return 'source' in introspection && introspection.source === '@forestadmin/datasource-mongo';
+}
+
+function buildAgent(introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection) {
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -35,9 +45,19 @@ function buildAgent(introspection: Table[]) {
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
-  agent.addDataSource(
-    createSqlDataSource({ dialect: 'sqlite', storage: ':memory:' }, { introspection }),
-  );
+
+  if (isDatasourceMongoIntrospection(introspection)) {
+    agent.addDataSource(
+      createMongoDataSource(
+        { uri: 'mongodb://dummy-uri', dataSource: { flattenMode: 'auto' } },
+        { introspection },
+      ),
+    );
+  } else {
+    agent.addDataSource(
+      createSqlDataSource({ dialect: 'sqlite', storage: ':memory:' }, { introspection }),
+    );
+  }
 
   return agent;
 }
@@ -48,6 +68,7 @@ export async function updateTypings(
 ): Promise<void> {
   const agent = buildAgent(introspection);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsDuringBootstrap, 3);
+  process.exit(0);
 }
 
 export async function updateTypingsWithCustomizations(

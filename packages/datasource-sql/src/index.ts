@@ -91,5 +91,11 @@ export async function preprocessOptions(
 }
 
 export * from './connection/errors';
-export type { PlainConnectionOptionsOrUri as ConnectionOptions, Table, SslMode, Introspection };
+export type {
+  PlainConnectionOptionsOrUri as ConnectionOptions,
+  Table,
+  SslMode,
+  Introspection,
+  SupportedIntrospection,
+};
 export { listCollectionsFromIntrospection };
