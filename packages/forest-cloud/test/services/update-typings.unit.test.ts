@@ -14,11 +14,14 @@ describe('update-typings', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
   });
-
-  type Exit = (_code?: number | undefined) => never;
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   function setup() {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as unknown as Exit);
+    const exitSpy = jest
+      .spyOn(process, 'exit')
+      .mockImplementation((() => {}) as unknown as (_code?: number | undefined) => never);
     const introspection = { tables: [] } as unknown as Table[];
     const datasource = Symbol('datasource') as unknown as () => any;
     const agentMock = {
