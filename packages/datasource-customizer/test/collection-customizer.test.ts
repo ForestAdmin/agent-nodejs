@@ -837,4 +837,52 @@ describe('Builder > Collection', () => {
       expect(self).toEqual(customizer);
     });
   });
+
+  describe('overrideCreate', () => {
+    it('should add the handler to the stack', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.override.getCollection('authors'), 'addCreateHandler');
+
+      const handler = async () => [];
+
+      const self = customizer.overrideCreate(handler);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(handler);
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('overrideUpdate', () => {
+    it('should add the handler to the stack', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.override.getCollection('authors'), 'addUpdateHandler');
+
+      const handler = async () => {};
+
+      const self = customizer.overrideUpdate(handler);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(handler);
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('overrideDelete', () => {
+    it('should add the handler to the stack', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.override.getCollection('authors'), 'addDeleteHandler');
+
+      const handler = async () => {};
+
+      const self = customizer.overrideDelete(handler);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(handler);
+      expect(self).toEqual(customizer);
+    });
+  });
 });
