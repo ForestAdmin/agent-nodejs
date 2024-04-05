@@ -1,4 +1,5 @@
 import AdmZip from 'adm-zip';
+import FormData from 'form-data';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -13,8 +14,20 @@ const createFakeZip = async (distPathManager: DistPathManager) => {
   await zip.writeZipPromise(zipPath, { overwrite: true });
 };
 
+jest.mock('form-data');
+
 describe('publish command', () => {
   async function setupTest(options?): Promise<MakeCommandsForTests> {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      callback(null, { statusCode: 204 });
+
+      return null;
+    });
+
     const setup = setupCommandArguments(options);
 
     await fs.rm(setup.distPathManager.zip, { force: true, recursive: true });
@@ -115,6 +128,35 @@ describe('publish command', () => {
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.fail('An error occurred'),
+        cmd.spinner.stop(),
+      ]);
+    });
+  });
+
+  describe('when an error occurred during upload process', () => {
+    it('should display an error', async () => {
+      const subscribeToCodeCustomization = jest
+        .fn()
+        .mockRejectedValue(new Error('An error occurred'));
+      const setup = await setupTest({ subscribeToCodeCustomization });
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        callback(null, { statusCode: 403, statusMessage: 'Forbidden' });
+
+        return null;
+      });
+
+      const cmd = new CommandTester(setup, ['publish']);
+      await cmd.run();
+
+      expect(cmd.outputs).toEqual([
+        cmd.spinner.start('Publishing code customizations'),
+        cmd.spinner.start('Publishing code customizations'),
+        cmd.spinner.fail('Publish failed: Forbidden'),
         cmd.spinner.stop(),
       ]);
     });
