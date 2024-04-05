@@ -1,3 +1,14 @@
+## example [1.8.4](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.8.3...example@1.8.4) (2024-04-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.38.9
+* **@forestadmin/datasource-dummy:** upgraded to 1.1.10
+
 ## example [1.8.3](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.8.2...example@1.8.3) (2024-04-04)
 
 
