@@ -35,7 +35,7 @@ export default async function publish(
     const { url, fields } = await httpServer.postUploadRequest(buffer.byteLength);
 
     const form = new FormData();
-    form.append('key', getKeyFromPolicy(fields.Policy));
+    form.append('key', fields.key || getKeyFromPolicy(fields.Policy));
     Object.entries(fields).forEach(([field, value]) => {
       form.append(field, value);
     });
@@ -43,8 +43,15 @@ export default async function publish(
 
     await new Promise((resolve, reject) => {
       form.submit(url, (err, res) => {
-        if (err) reject(err);
-        resolve(res);
+        if (err) {
+          reject(err);
+        }
+
+        if (res.statusCode === 200 || res.statusCode === 204) {
+          resolve(res.statusCode);
+        }
+
+        reject(new Error(res.statusMessage));
       });
     });
 
