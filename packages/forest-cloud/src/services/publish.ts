@@ -38,6 +38,7 @@ export default async function publish(
     // The key could either be in the fields or in the fields.Policy
     form.append('key', fields.key || getKeyFromPolicy(fields.Policy));
     Object.entries(fields).forEach(([field, value]) => {
+      // Doesn't append it twice
       if (field !== 'key') {
         form.append(field, value);
       }
