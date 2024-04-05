@@ -57,7 +57,7 @@ describe('publish', () => {
     jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      callback();
+      callback(null, { statusCode: 204 });
 
       return null;
     });
