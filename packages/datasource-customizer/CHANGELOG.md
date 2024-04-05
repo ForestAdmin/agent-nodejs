@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.6...@forestadmin/datasource-customizer@1.44.0) (2024-04-05)
+
+
+### Features
+
+* **datasource-customizer:** add override decorator ([#814](https://github.com/ForestAdmin/agent-nodejs/issues/814)) ([21ffef7](https://github.com/ForestAdmin/agent-nodejs/commit/21ffef7381151250abebbcea0db58afce302baa7))
+
 ## @forestadmin/datasource-customizer [1.43.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.5...@forestadmin/datasource-customizer@1.43.6) (2024-03-14)
 
 
