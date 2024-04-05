@@ -1,10 +1,10 @@
 {
   "name": "@forestadmin/forest-cloud",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
-    "@forestadmin/agent": "1.38.8",
-    "@forestadmin/datasource-customizer": "1.43.6",
+    "@forestadmin/agent": "1.38.9",
+    "@forestadmin/datasource-customizer": "1.44.0",
     "@forestadmin/datasource-sql": "1.12.3",
     "adm-zip": "^0.5.10",
     "apollo-cache-inmemory": "^1.6.6",
