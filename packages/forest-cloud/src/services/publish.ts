@@ -35,9 +35,12 @@ export default async function publish(
     const { url, fields } = await httpServer.postUploadRequest(buffer.byteLength);
 
     const form = new FormData();
+    // The key could either be in the fields or in the fields.Policy
     form.append('key', fields.key || getKeyFromPolicy(fields.Policy));
     Object.entries(fields).forEach(([field, value]) => {
-      form.append(field, value);
+      if (field !== 'key') {
+        form.append(field, value);
+      }
     });
     form.append('file', buffer);
 
