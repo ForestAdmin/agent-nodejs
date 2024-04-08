@@ -145,7 +145,7 @@ describe('publish', () => {
       mockToBuffer.mockReturnValue({ byteLength: 101 });
 
       jest.mocked(FormData.prototype.submit).mockImplementation((_url, callback) => {
-        callback?.(new Error('S3 bucket not found'), null);
+        callback?.(new Error('S3 bucket not found'), {} as IncomingMessage);
 
         return {} as ClientRequest;
       });
