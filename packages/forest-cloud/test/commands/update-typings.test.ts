@@ -7,16 +7,6 @@ import { setupCommandArguments } from './utils';
 import DistPathManager from '../../src/services/dist-path-manager';
 
 describe('update-typings command', () => {
-  beforeEach(() => {
-    jest.restoreAllMocks();
-    jest
-      .spyOn(process, 'exit')
-      .mockImplementation((() => {}) as unknown as (_code?: number | undefined) => never);
-  });
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   describe('with a datasource sql introspection', () => {
     it('should update the typings from the introspection provided by the forest server', async () => {
       const getIntrospection = jest.fn().mockResolvedValue([

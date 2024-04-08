@@ -14,15 +14,9 @@ describe('update-typings', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
   });
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
 
   function setup() {
-    const exitSpy = jest
-      .spyOn(process, 'exit')
-      .mockImplementation((() => {}) as unknown as (_code?: number | undefined) => never);
-    const introspection = { tables: [] } as unknown as Table[];
+    const introspection = Symbol('introspection') as unknown as Table[];
     const datasource = Symbol('datasource') as unknown as () => any;
     const agentMock = {
       addDataSource: jest.fn(),
@@ -47,7 +41,6 @@ describe('update-typings', () => {
       datasource,
       distPathManager,
       bootstrapPathManager,
-      exitSpy,
     };
   }
 
@@ -60,7 +53,6 @@ describe('update-typings', () => {
         agentMock,
         bootstrapPathManager,
         datasource,
-        exitSpy,
       } = setup();
       await updateTypings(introspection, bootstrapPathManager);
       expect(createAgentSpy).toHaveBeenCalledWith({
@@ -81,8 +73,6 @@ describe('update-typings', () => {
         bootstrapPathManager.typingsDuringBootstrap,
         3,
       );
-      expect(exitSpy).toHaveBeenCalled();
-      expect(exitSpy).toHaveBeenCalledWith(0);
     });
   });
 

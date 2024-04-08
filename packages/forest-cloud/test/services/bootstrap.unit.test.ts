@@ -22,19 +22,8 @@ jest.mock('../../src/services/update-typings', () => {
 });
 
 describe('bootstrap', () => {
-  beforeEach(() => {
-    jest.restoreAllMocks();
-  });
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   const setupMocks = (introspection: Table[]) => {
     jest.resetAllMocks();
-
-    jest
-      .spyOn(process, 'exit')
-      .mockImplementation((() => {}) as unknown as (_code?: number | undefined) => never);
     jest.spyOn(fs, 'existsSync').mockReturnValue(false);
     const writeFileSpy = jest.spyOn(fsP, 'writeFile');
     jest.spyOn(fsP, 'readFile').mockImplementation(async () => {
