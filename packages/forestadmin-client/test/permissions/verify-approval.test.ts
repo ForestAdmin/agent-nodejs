@@ -14,11 +14,9 @@ import verifyAndExtractApproval from '../../src/permissions/verify-approval';
  * }
  */
 const TOKEN =
-  // eslint-disable-next-line max-len
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImlkIjoiZm9yZXN0LXRlc3Qtb2sifX0.9m5q7pCqFCzRESPsv9ITsx2a2Gndx80s_fd6v9j3Dlc';
 
 const EXPIRED_TOKEN =
-  // eslint-disable-next-line max-len
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImlkIjoiZm9yZXN0LXRlc3Qtb2sifSwiZXhwIjoxNTE2MjM5MDIyfQ.7t9zLeE_wffl6j6cb6EbAQj02eYDZ1IQ5fPJeT1sNzo';
 
 describe('verifyAndExtractApproval', () => {

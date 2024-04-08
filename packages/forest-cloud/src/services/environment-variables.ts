@@ -103,7 +103,6 @@ export function validateEnvironmentVariables(env: EnvironmentVariables): void {
 
   if (typeof env.FOREST_ENV_SECRET !== 'string' || !/^[0-9a-f]{64}$/.test(env.FOREST_ENV_SECRET)) {
     throw new BusinessError(
-      // eslint-disable-next-line max-len
       'FOREST_ENV_SECRET is invalid. Please check your .env file.\n\tYou can retrieve its value from environment settings on Forest Admin.',
     );
   }

@@ -307,7 +307,6 @@ describe('UpdateRelationRoute', () => {
         expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'owner');
       });
 
-      // eslint-disable-next-line max-len
       test('should not remove the association on the new record to avoid errors with notNull constraints', async () => {
         const { services, dataSource, options, owners } = setupWithOneToOneRelation();
 

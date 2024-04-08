@@ -26,7 +26,6 @@ describe('handleErrors', () => {
       const error = new ConnectionError(new Error('Connection timed out'));
 
       expect(() => handleErrors(error, optionsWithOnlyDatabase)).toThrow(
-        // eslint-disable-next-line max-len
         'Unable to connect to the given uri: postgres://localhost:5432/db.\n' +
           'Connection error: Connection timed out',
       );
@@ -50,7 +49,6 @@ describe('handleErrors', () => {
           const error = new ProxyForwardError('Socket closed', 'localhost:5432');
 
           expect(() => handleErrors(error, optionsWithDatabaseAndProxyAndSsh)).toThrow(
-            // eslint-disable-next-line max-len
             'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: localhost:5432',
           );
         });
@@ -73,7 +71,6 @@ describe('handleErrors', () => {
       const error = new SshConnectError('Socket closed', 'localhost:1083');
 
       expect(() => handleErrors(error, optionsWithDatabaseAndProxyAndSsh)).toThrow(
-        // eslint-disable-next-line max-len
         'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: localhost:1083',
       );
     });
@@ -83,7 +80,6 @@ describe('handleErrors', () => {
         const error = new SshForwardError('Socket closed', 'localhost:1083');
 
         expect(() => handleErrors(error, optionsWithDatabaseAndProxyAndSsh)).toThrow(
-          // eslint-disable-next-line max-len
           'Unable to connect to the given uri: localhost:1083',
         );
       });
@@ -95,7 +91,6 @@ describe('handleErrors', () => {
       const error = new ConnectionError(new Error('Connection timed out'));
 
       expect(() => handleErrors(error, optionsWithOnlyDatabase)).toThrow(
-        // eslint-disable-next-line max-len
         'Unable to connect to the given uri: postgres://localhost:5432/db.\nConnection error: Connection timed out',
       );
     });

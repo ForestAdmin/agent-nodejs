@@ -102,7 +102,6 @@ describe('bootstrap', () => {
             ),
           ).rejects.toEqual(
             new BusinessError(
-              // eslint-disable-next-line max-len
               'Bootstrap failed: Failed.\nPlease remove "forest-cloud" folder and re-run bootstrap command.',
             ),
           );

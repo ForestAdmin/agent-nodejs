@@ -1053,7 +1053,6 @@ describe.each([
                     ]);
                   });
 
-                  // eslint-disable-next-line max-len
                   it('should correctly detect array of enums when the table name contains uppercase chararacters', async () => {
                     await connection.getQueryInterface().dropTable('importantElements');
                     await connection.getQueryInterface().createTable('importantElements', {

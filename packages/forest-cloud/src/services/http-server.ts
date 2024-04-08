@@ -142,7 +142,6 @@ export default class HttpServer {
     return (
       await handledAxios<{ logs: Log[] }>(
         {
-          // eslint-disable-next-line max-len
           url: `${base}?limit=${limit}&from=${from}&to=${to}&order-by-recent-first=${orderByRecentFirst}`,
           method: 'GET',
           headers: this.headers,

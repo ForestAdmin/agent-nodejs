@@ -106,7 +106,6 @@ describe('TTL Cache', () => {
   });
 
   describe('behavior', () => {
-    // eslint-disable-next-line max-len
     it('should not throw an error when fetching while clearing (non-regression test for #860rch4bz)', async () => {
       jest.useFakeTimers();
 

@@ -15,7 +15,6 @@ describe('logs command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.stop(),
         cmd.spinner.fail(
-          // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
         cmd.spinner.stop(),
@@ -35,7 +34,6 @@ describe('logs command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.stop(),
         cmd.spinner.fail(
-          // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
         cmd.spinner.stop(),
@@ -55,7 +53,6 @@ describe('logs command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.stop(),
         cmd.spinner.fail(
-          // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `logs --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
         cmd.spinner.stop(),
@@ -85,7 +82,6 @@ describe('logs command', () => {
         cmd.spinner.stop(),
         cmd.spinner.warn('No logs found in the last month'),
         cmd.logger.log(
-          // eslint-disable-next-line max-len
           'By default, the last 30 logs from the past month are displayed. To see more logs or change the time range, use --help for all options',
         ),
         cmd.spinner.stop(),
@@ -107,7 +103,6 @@ describe('logs command', () => {
       expect(cmd.outputs).toEqual(
         expect.arrayContaining([
           cmd.spinner.warn(
-            // eslint-disable-next-line max-len
             'Your version of @forestadmin/forest-cloud is outdated. Latest version is 1.0.1.\nPlease update it.',
           ),
         ]),
@@ -129,7 +124,6 @@ describe('logs command', () => {
         cmd.spinner.stop(),
         cmd.spinner.warn('No logs found in the last month'),
         cmd.logger.log(
-          // eslint-disable-next-line max-len
           'By default, the last 30 logs from the past month are displayed. To see more logs or change the time range, use --help for all options',
         ),
         cmd.spinner.stop(),
@@ -154,10 +148,7 @@ describe('logs command', () => {
         expect(cmd.outputs).toEqual([
           cmd.spinner.start('Fetching logs'),
           cmd.spinner.stop(),
-          cmd.spinner.warn(
-            // eslint-disable-next-line max-len
-            'No logs found since "2021-05-01T00:00:00Z"',
-          ),
+          cmd.spinner.warn('No logs found since "2021-05-01T00:00:00Z"'),
           cmd.logger.log('To see more logs or change the time range, use --help for all options'),
           cmd.spinner.stop(),
         ]);
@@ -186,7 +177,6 @@ describe('logs command', () => {
         cmd.logger.warn('a-message').prefixed('3'),
         cmd.logger.log('a-message').prefixed('4'),
         cmd.spinner.succeed(
-          // eslint-disable-next-line max-len
           'Requested 30 logs in the last month but only 3 were found\nYou have received logs from 2 to 4',
         ),
         cmd.spinner.stop(),
@@ -210,7 +200,6 @@ describe('logs command', () => {
           cmd.spinner.info('...you have probably more logs...'),
           cmd.logger.log('a-message').prefixed('3'),
           cmd.spinner.succeed(
-            // eslint-disable-next-line max-len
             'Requested 30 logs in the last month but only 1 were found\nYou have received logs from 3 to 3',
           ),
           cmd.spinner.stop(),
@@ -301,7 +290,6 @@ describe('logs command', () => {
           cmd.logger.info('a-message').prefixed('2'),
           cmd.spinner.info('...you have probably more logs...'),
           cmd.spinner.succeed(
-            // eslint-disable-next-line max-len
             'Requested 30 logs since "2021-05-01T00:00:00Z" but only 1 were found\nYou have received logs from 2 to 2',
           ),
           cmd.spinner.stop(),
@@ -317,7 +305,6 @@ describe('logs command', () => {
 
           expect(cmd.outputs).toEqual([
             cmd.spinner.fail(
-              // eslint-disable-next-line max-len
               'The --from (-f) option must be a valid timestamp. You must enter a date (e.g: 2021-01-01T00:00:00.000Z) or match a relative date (e.g. now-1d)',
             ),
             cmd.spinner.stop(),
@@ -334,7 +321,6 @@ describe('logs command', () => {
 
           expect(cmd.outputs).toEqual([
             cmd.spinner.fail(
-              // eslint-disable-next-line max-len
               'The --from (-f) option must be a valid timestamp. You must enter a date (e.g: 2021-01-01T00:00:00.000Z) or match a relative date (e.g. now-1d)',
             ),
             cmd.spinner.stop(),
@@ -350,7 +336,6 @@ describe('logs command', () => {
 
             expect(cmd.outputs).toEqual([
               cmd.spinner.fail(
-                // eslint-disable-next-line max-len
                 'The --from (-f) option must be a valid timestamp. You must enter a date (e.g: 2021-01-01T00:00:00.000Z) or match a relative date (e.g. now-1d)',
               ),
               cmd.spinner.stop(),
@@ -436,7 +421,6 @@ describe('logs command', () => {
           cmd.logger.info('a-message').prefixed('2'),
           cmd.spinner.info('...you have probably more logs...'),
           cmd.spinner.succeed(
-            // eslint-disable-next-line max-len
             'Requested 30 logs until "2021-05-01T00:00:00Z" but only 1 were found\nYou have received logs from 2 to 2',
           ),
           cmd.spinner.stop(),
@@ -452,7 +436,6 @@ describe('logs command', () => {
 
           expect(cmd.outputs).toEqual([
             cmd.spinner.fail(
-              // eslint-disable-next-line max-len
               'The --to (-t) option must be a valid timestamp. You must enter a date (e.g: 2021-01-01T00:00:00.000Z) ormatch a relative date (e.g. now-1d)',
             ),
             cmd.spinner.stop(),
@@ -469,7 +452,6 @@ describe('logs command', () => {
 
           expect(cmd.outputs).toEqual([
             cmd.spinner.fail(
-              // eslint-disable-next-line max-len
               'The --to (-t) option must be a valid timestamp. You must enter a date (e.g: 2021-01-01T00:00:00.000Z) ormatch a relative date (e.g. now-1d)',
             ),
             cmd.spinner.stop(),
@@ -485,7 +467,6 @@ describe('logs command', () => {
 
             expect(cmd.outputs).toEqual([
               cmd.spinner.fail(
-                // eslint-disable-next-line max-len
                 'The --to (-t) option must be a valid timestamp. You must enter a date (e.g: 2021-01-01T00:00:00.000Z) ormatch a relative date (e.g. now-1d)',
               ),
               cmd.spinner.stop(),
@@ -577,7 +558,6 @@ describe('logs command', () => {
           cmd.logger.info('a-message').prefixed('2'),
           cmd.spinner.info('...you have probably more logs...'),
           cmd.spinner.succeed(
-            // eslint-disable-next-line max-len
             'Requested 30 logs between "2021-05-01T00:00:00Z" and "2021-05-02T00:00:00Z" but only 1 were found\nYou have received logs from 2 to 2',
           ),
           cmd.spinner.stop(),

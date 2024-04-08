@@ -64,7 +64,6 @@ describe('publish command', () => {
         cmd.spinner.warn('There is already deployed customization code on your project'),
         cmd.spinner.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
         cmd.spinner.info(
-          // eslint-disable-next-line max-len
           'For the next time, you can publish your customizations with the --force option to skip this step',
         ),
         cmd.spinner.stop(),
