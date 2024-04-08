@@ -44,7 +44,6 @@ describe('Services > ModelCustomizations > Actions > ExecuteUpdateRecord', () =>
 
           expect(result).toStrictEqual({
             message:
-              // eslint-disable-next-line max-len
               'The no-code action <strong>myAction</strong> cannot be triggered due to a misconfiguration. Please contact your administrator.<br/>(BusinessError: Managed error)',
             type: 'Error',
           });
@@ -62,7 +61,6 @@ describe('Services > ModelCustomizations > Actions > ExecuteUpdateRecord', () =>
 
           expect(result).toStrictEqual({
             message:
-              // eslint-disable-next-line max-len
               'The no-code action <strong>myAction</strong> cannot be triggered due to a misconfiguration. Please contact your administrator.',
             type: 'Error',
           });

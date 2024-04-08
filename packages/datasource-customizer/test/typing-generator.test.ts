@@ -1,4 +1,4 @@
-/* eslint-disable max-len,jest/expect-expect */
+/* eslint-disable jest/expect-expect */
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import TypingGenerator from '../src/typing-generator';

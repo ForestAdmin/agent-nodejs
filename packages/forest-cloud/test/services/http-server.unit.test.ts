@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import * as axios from 'axios';
 import fs from 'fs';
 
@@ -82,7 +81,6 @@ describe('http-server', () => {
           jest.mocked(axios.default).mockRejectedValue(error);
           await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
             new BusinessError(
-              // eslint-disable-next-line max-len
               "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\n You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'",
             ),
           );
@@ -101,7 +99,6 @@ describe('http-server', () => {
           jest.mocked(axios.default).mockRejectedValue(error);
           await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
             new BusinessError(
-              // eslint-disable-next-line max-len
               "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\n You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'",
             ),
           );
@@ -228,7 +225,6 @@ describe('http-server', () => {
 
       expect(axios.default).toHaveBeenCalled();
       expect(axios.default).toHaveBeenCalledWith({
-        // eslint-disable-next-line max-len
         url: 'server-url/api/full-hosted-agent/logs?limit=10&from=now-1h&to=now&order-by-recent-first=true',
         method: 'GET',
         headers: {

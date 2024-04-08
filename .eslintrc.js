@@ -71,12 +71,6 @@ module.exports = {
     // Allow methods that do not use `this` (notably private methods)
     'class-methods-use-this': 'off',
 
-    // Allow imports/exports to go over the max line length
-    "max-len": [
-      "error",
-      { "code": 100, "ignorePattern": "^(import|export) .*", "ignoreUrls": true }
-    ],
-
     // Allow for-of loops
     'no-restricted-syntax': ['error', 'ForInStatement', 'LabeledStatement', 'WithStatement'],
 

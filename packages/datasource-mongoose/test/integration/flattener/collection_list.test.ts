@@ -244,7 +244,6 @@ describe('Complex flattening', () => {
         expect(records).toEqual([{ _id: expect.any(String), address: { city: 'Paris' } }]);
       });
 
-      // eslint-disable-next-line max-len
       it('should not return the record when only asking the flattened field that does not exist', async () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {
@@ -261,7 +260,6 @@ describe('Complex flattening', () => {
         expect(records).toEqual([]);
       });
 
-      // eslint-disable-next-line max-len
       it('should return the record when asking the flattened field that exists', async () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {
@@ -283,7 +281,6 @@ describe('Complex flattening', () => {
         expect(records).toEqual([{ city: null }]);
       });
 
-      // eslint-disable-next-line max-len
       it('should return the record with nested field when asking a null field from an existing flattened field', async () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {
@@ -305,7 +302,6 @@ describe('Complex flattening', () => {
         expect(records).toEqual([{ name: 'Renault', address: { city: null } }]);
       });
 
-      // eslint-disable-next-line max-len
       it('should return null when asking null deep flattened field that not exist', async () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {
@@ -327,7 +323,6 @@ describe('Complex flattening', () => {
         expect(records).toEqual([{ name: 'dog', image: { metadata: null } }]);
       });
 
-      // eslint-disable-next-line max-len
       it('should return the record when asking null deep flattened field that exist', async () => {
         connection = await setupFlattener('collection_flattener_list');
         const dataSource = new MongooseDatasource(connection, {

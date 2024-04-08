@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable max-len */
 import FormData from 'form-data';
 import { ClientRequest, IncomingMessage } from 'node:http';
 import { afterEach } from 'node:test';

@@ -24,7 +24,6 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
       // server or network error. We don't want the application to crash.
       this.options.logger(
         'Warn',
-        // eslint-disable-next-line max-len
         `Error while registering the authentication client. Authentication might not work: ${e.message}`,
       );
     }

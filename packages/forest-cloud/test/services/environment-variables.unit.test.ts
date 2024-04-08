@@ -218,7 +218,6 @@ describe('environment-variables', () => {
               TOKEN_PATH: '',
             }),
           ).toThrow(
-            // eslint-disable-next-line max-len
             'FOREST_ENV_SECRET is invalid. Please check your .env file.\n\tYou can retrieve its value from environment settings on Forest Admin.',
           );
         });
@@ -236,7 +235,6 @@ describe('environment-variables', () => {
               TOKEN_PATH: '',
             }),
           ).toThrow(
-            // eslint-disable-next-line max-len
             'FOREST_ENV_SECRET is invalid. Please check your .env file.\n\tYou can retrieve its value from environment settings on Forest Admin.',
           );
         });

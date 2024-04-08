@@ -84,7 +84,6 @@ describe('flattenJsonColumn', () => {
         .customizeCollection('book', book => book.use(flattenJsonColumn, options))
         .getDataSource(logger),
     ).rejects.toThrow(
-      // eslint-disable-next-line max-len
       'options.columnType must be defined as json object representing a subset of the shape of the data in the json column.',
     );
   });

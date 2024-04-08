@@ -572,7 +572,6 @@ describe('ActionDecorator', () => {
   });
 
   describe('hasFieldChanged', () => {
-    // eslint-disable-next-line max-len
     test(`should add watchChange property to fields that need to trigger a recompute on change`, async () => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',
