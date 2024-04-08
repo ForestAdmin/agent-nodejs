@@ -6,6 +6,7 @@ import { Sequelize } from 'sequelize';
 
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';
+import SequelizeFactory from './connection/sequelize-factory';
 import SqlDatasource from './decorators/sql-datasource';
 import Introspector from './introspection/introspector';
 import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
@@ -53,6 +54,17 @@ async function buildModelsAndRelations(
     await sequelize?.close();
     throw error;
   }
+}
+
+export async function buildDisconnectedSequelizeInstance(
+  introspection: SupportedIntrospection,
+  logger: Logger,
+): Promise<Sequelize> {
+  const options = new ConnectionOptions({ dialect: 'sqlite', sslMode: 'disabled' }, logger);
+  const sequelize = SequelizeFactory.build(await options.buildSequelizeCtorOptions());
+  await buildModelsAndRelations(sequelize, logger, introspection);
+
+  return sequelize;
 }
 
 export async function buildSequelizeInstance(
