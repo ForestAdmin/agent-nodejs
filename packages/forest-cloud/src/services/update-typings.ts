@@ -52,7 +52,7 @@ async function buildAgent(
 
   if (isDatasourceMongoIntrospection(introspection)) {
     const mongoose = buildDisconnectedMongooseInstance(introspection);
-    agent.addDataSource(createMongooseDataSource(mongoose));
+    agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }));
   } else {
     const sequelize = await buildDisconnectedSequelizeInstance(introspection, null);
     agent.addDataSource(createSequelizeDataSource(sequelize));
