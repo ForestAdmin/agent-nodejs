@@ -90,7 +90,6 @@ export default class TypingGenerator {
           collection.name.slice(1).replace(/(_|-)[a-z]/g, match => match.slice(1).toUpperCase());
 
         return [
-          // eslint-disable-next-line max-len
           `export type ${name}Customizer = CollectionCustomizer<Schema, '${collection.name}'>;`,
           `export type ${name}Record = TPartialRow<Schema, '${collection.name}'>;`,
           `export type ${name}ConditionTree = TConditionTree<Schema, '${collection.name}'>;`,

@@ -8,6 +8,7 @@ import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
 import OperatorsEquivalenceCollectionDecorator from './operators-equivalence/collection';
+import OverrideCollectionDecorator from './override/collection';
 import PublicationDataSourceDecorator from './publication/datasource';
 import RelationCollectionDecorator from './relation/collection';
 import RenameFieldCollectionDecorator from './rename-field/collection';
@@ -37,6 +38,7 @@ export default class DecoratorsStack {
   validation: DataSourceDecorator<ValidationCollectionDecorator>;
   write: WriteDataSourceDecorator;
   dataSource: DataSource;
+  override: DataSourceDecorator<OverrideCollectionDecorator>;
 
   private customizations: Array<(logger: Logger) => Promise<void>> = [];
 
@@ -45,6 +47,7 @@ export default class DecoratorsStack {
 
     /* eslint-disable no-multi-assign */
     // Step 0: Do not query datasource when we know the result with yield an empty set.
+    last = this.override = new DataSourceDecorator(last, OverrideCollectionDecorator);
     last = new DataSourceDecorator(last, EmptyCollectionDecorator);
     last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
 

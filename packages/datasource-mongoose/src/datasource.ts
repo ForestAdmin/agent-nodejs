@@ -21,7 +21,7 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
         'Warn',
         'Using unspecified flattenMode. ' +
           'Please refer to the documentation to update your code:\n' +
-          'https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/provided-data-sources/mongoose', // eslint-disable-line max-len
+          'https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/provided-data-sources/mongoose',
       );
     }
 

@@ -173,7 +173,6 @@ describe('bootstrap command', () => {
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.stop(),
         cmd.spinner.fail(
-          // eslint-disable-next-line max-len
           'Your forest env secret is missing. Please provide it with the `bootstrap --env-secret <your-secret-key>` command or add it to your .env file or in environment variables.',
         ),
         cmd.spinner.stop(),

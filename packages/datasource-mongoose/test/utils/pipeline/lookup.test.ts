@@ -184,7 +184,6 @@ describe('LookupGenerator', () => {
       ]);
     });
 
-    // eslint-disable-next-line max-len
     it('should load the editor country meta length (double relation with doubly nested field)', () => {
       const projection = new Projection(
         'editor__manyToOne:country__manyToOne:meta@@@meta@@@length',

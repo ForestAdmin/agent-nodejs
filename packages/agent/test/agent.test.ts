@@ -126,7 +126,6 @@ describe('Agent', () => {
       expect(getDataSourceCalledAfterUseCalled).toBe(true);
     });
 
-    // eslint-disable-next-line max-len
     test("should add the customizer's factory as a datasource for the nocode customizer", async () => {
       mockCustomizer.getFactory.mockReturnValueOnce('factory');
 

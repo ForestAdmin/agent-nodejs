@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import { DataTypes, Sequelize, literal } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';

@@ -158,7 +158,6 @@ describe('Introspection > Structure', () => {
           ]);
         });
 
-        // eslint-disable-next-line max-len
         it('should consider the field as a reference candidate when containing a UUID', async () => {
           const uuid = randomUUID();
           const { connection } = setupConnectionMock([
@@ -189,7 +188,6 @@ describe('Introspection > Structure', () => {
           ]);
         });
 
-        // eslint-disable-next-line max-len
         it('should not consider the field as a reference candidate when containing a long value', async () => {
           const longValue = new Array(37).fill('a').join(''); // 37 characters
           const { connection } = setupConnectionMock([

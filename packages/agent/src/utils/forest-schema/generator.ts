@@ -15,7 +15,7 @@ export default class SchemaGenerator {
   }
 
   static buildMetadata(features: Record<string, string> | null): Pick<ForestSchema, 'meta'> {
-    const { version } = require('../../../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require,max-len
+    const { version } = require('../../../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require
 
     return {
       meta: {

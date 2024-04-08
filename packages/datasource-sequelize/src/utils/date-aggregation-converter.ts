@@ -56,7 +56,6 @@ export default class DateAggregationConverter {
         throw new Error(`Unknown Date operation: "${operation}"`);
     }
 
-    // eslint-disable-next-line max-len
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/cast-and-convert-transact-sql?redirectedfrom=MSDN&view=sql-server-ver15
     return this.fn('CONVERT', this.literal('varchar(10)'), dateToConvert, 23);
   }

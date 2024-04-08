@@ -45,7 +45,6 @@ describe('when proxy socks configuration is provided', () => {
       });
 
       await expect(() => connect(options)).rejects.toThrow(
-        // eslint-disable-next-line max-len
         'Your proxy has encountered an error. Unable to connect to the given uri: BADHOST:1083',
       );
     });

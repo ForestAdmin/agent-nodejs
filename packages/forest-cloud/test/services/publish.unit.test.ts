@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import FormData from 'form-data';
+import { ClientRequest, IncomingMessage } from 'node:http';
 import { afterEach } from 'node:test';
 
 import DistPathManager from '../../src/services/dist-path-manager';
@@ -15,24 +17,43 @@ jest.mock('adm-zip', () => ({
 }));
 jest.mock('form-data');
 
-const setup = () => {
-  const presignedPost = {
-    url: 'https://s3.eu-west-3.amazonaws.com/forestadmin-platform-cloud-customization-test',
-    fields: {
-      bucket: 'forestadmin-platform-cloud-customization-test',
-      'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
-      'X-Amz-Credential': 'AKI?../request',
-      'X-Amz-Date': '20240116T091247Z',
-      Policy: `eyJleHBpcmF0aW9uIjoiMjAyNC0wMS0yM1QxMTowNzowNVoiLCJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJ
+const setup = (oldPresignedPost = false) => {
+  const presignedPost = oldPresignedPost
+    ? {
+        url: 'https://s3.eu-west-3.amazonaws.com/forestadmin-platform-cloud-customization-test',
+        fields: {
+          bucket: 'forestadmin-platform-cloud-customization-test',
+          'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+          'X-Amz-Credential': 'AKI?../request',
+          'X-Amz-Date': '20240116T091247Z',
+          Policy: `eyJleHBpcmF0aW9uIjoiMjAyNC0wMS0yM1QxMTowNzowNVoiLCJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJ
         mb3Jlc3RhZG1pbi1wbGF0Zm9ybS1jbG91ZC1jdXN0b21pemF0aW9uLXRlc3QtdzEifSxbInN0YXJ0cy13aXRoIiwiJ
         GtleSIsImNsb3VkXzc2L2NvZGVfY3VzdG9taXphdGlvbi56aXAiXSxbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwwLDE
         wNDg1NzYwXSx7ImJ1Y2tldCI6ImZvcmVzdGFkbWluLXBsYXRmb3JtLWNsb3VkLWN1c3RvbWl6YXRpb24tdGVzdC13M
         SJ9LHsiWC1BbXotQWxnb3JpdGhtIjoiQVdTNC1ITUFDLVNIQTI1NiJ9LHsiWC1BbXotQ3JlZGVudGlhbCI6IkFLSUF
         VUkVWSUNSQ0FBSkJDUDVFLzIwMjQwMTIzL2V1LXdlc3QtMS9zMy9hd3M0X3JlcXVlc3QifSx7IlgtQW16LURhdGUiO
         iIyMDI0MDEyM1QxMTAyMDVaIn1dfQ==`,
-      'X-Amz-Signature': 'c5...84',
-    },
-  };
+          'X-Amz-Signature': 'c5...84',
+        },
+      }
+    : {
+        url: 'https://forestadmin-platform-cloud-customization-test.s3.eu-west-3.amazonaws.com/',
+        fields: {
+          bucket: 'forestadmin-platform-cloud-customization-test',
+          key: 'cloud_76/code_customization.zip',
+          'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+          'X-Amz-Credential': 'AKI?../request',
+          'X-Amz-Date': '20240116T091247Z',
+          Policy: `eyJleHBpcmF0aW9uIjoiMjAyNC0wMS0yM1QxMTowNzowNVoiLCJjb25kaXRpb25zIjpbeyJidWNrZXQiOiJ
+          mb3Jlc3RhZG1pbi1wbGF0Zm9ybS1jbG91ZC1jdXN0b21pemF0aW9uLXRlc3QtdzEifSxbInN0YXJ0cy13aXRoIiwiJ
+          GtleSIsImNsb3VkXzc2L2NvZGVfY3VzdG9taXphdGlvbi56aXAiXSxbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwwLDE
+          wNDg1NzYwXSx7ImJ1Y2tldCI6ImZvcmVzdGFkbWluLXBsYXRmb3JtLWNsb3VkLWN1c3RvbWl6YXRpb24tdGVzdC13M
+          SJ9LHsiWC1BbXotQWxnb3JpdGhtIjoiQVdTNC1ITUFDLVNIQTI1NiJ9LHsiWC1BbXotQ3JlZGVudGlhbCI6IkFLSUF
+          VUkVWSUNSQ0FBSkJDUDVFLzIwMjQwMTIzL2V1LXdlc3QtMS9zMy9hd3M0X3JlcXVlc3QifSx7IlgtQW16LURhdGUiO
+          iIyMDI0MDEyM1QxMTAyMDVaIn1dfQ==`,
+          'X-Amz-Signature': 'c5...84',
+        },
+      };
   const httpServer = {
     postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
     postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'subscriptionId' }),
@@ -48,39 +69,57 @@ describe('publish', () => {
     jest.resetAllMocks();
   });
 
-  it('should upload the zip to S3 then ask for publication', async () => {
-    const { httpServer, presignedPost, distPathManager } = setup();
+  describe('publish', () => {
+    it.each([true, false])(
+      'should upload the zip to S3 then ask for publication',
+      async oldPresignedPost => {
+        const { httpServer, presignedPost, distPathManager } = setup(oldPresignedPost);
 
-    mockToBuffer.mockReturnValue({ byteLength: 101 });
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      callback();
+        jest.mocked(FormData.prototype.append).mockClear();
+        mockToBuffer.mockReturnValue({ byteLength: 101 });
 
-      return null;
-    });
+        jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+          callback?.(null, { statusCode: 204 } as IncomingMessage);
 
-    const result = await publish(httpServer, distPathManager);
+          return {} as ClientRequest;
+        });
 
-    expect(result).toStrictEqual('subscriptionId');
+        const result = await publish(httpServer, distPathManager);
 
-    expect(httpServer.postUploadRequest).toHaveBeenCalled();
-    expect(httpServer.postUploadRequest).toHaveBeenCalledWith(101);
+        expect(result).toStrictEqual('subscriptionId');
 
-    expect(FormData).toHaveBeenCalled();
-    expect(FormData.prototype.append).toHaveBeenCalledTimes(8);
+        expect(httpServer.postUploadRequest).toHaveBeenCalled();
+        expect(httpServer.postUploadRequest).toHaveBeenCalledWith(101);
 
-    // order of properties is important in the form data, at least the file needs to be last
-    const orderInForm = ['key', ...Object.keys(presignedPost.fields), 'file'];
-    orderInForm.forEach((key, index) => {
-      expect(jest.mocked(FormData.prototype.append).mock.calls[index][0]).toEqual(key);
-    });
+        expect(FormData).toHaveBeenCalled();
+        expect(FormData.prototype.append).toHaveBeenCalledTimes(8);
 
-    expect(FormData.prototype.submit).toHaveBeenCalledWith(presignedPost.url, expect.any(Function));
+        // order of properties is important in the form data, at least the file needs to be last
+        const orderInForm = [
+          'key',
+          'bucket',
+          'X-Amz-Algorithm',
+          'X-Amz-Credential',
+          'X-Amz-Date',
+          'Policy',
+          'X-Amz-Signature',
+          'file',
+        ];
+        orderInForm.forEach((key, index) => {
+          expect(jest.mocked(FormData.prototype.append).mock.calls[index][0]).toEqual(key);
+        });
+        expect(jest.mocked(FormData.prototype.append).mock.calls[0][1]).toEqual(
+          'cloud_76/code_customization.zip',
+        );
 
-    expect(httpServer.postPublish).toHaveBeenCalled();
+        expect(FormData.prototype.submit).toHaveBeenCalledWith(
+          presignedPost.url,
+          expect.any(Function),
+        );
+
+        expect(httpServer.postPublish).toHaveBeenCalled();
+      },
+    );
   });
 
   describe('when an error occurs while reading zip file', () => {
@@ -104,8 +143,10 @@ describe('publish', () => {
 
       mockToBuffer.mockReturnValue({ byteLength: 101 });
 
-      jest.mocked(FormData.prototype.submit).mockImplementation(() => {
-        throw new Error('S3 bucket not found');
+      jest.mocked(FormData.prototype.submit).mockImplementation((_url, callback) => {
+        callback?.(new Error('S3 bucket not found'), {} as IncomingMessage);
+
+        return {} as ClientRequest;
       });
 
       await expect(publish(httpServer, distPathManager)).rejects.toThrow(

@@ -385,7 +385,6 @@ describe('Builder > Collection', () => {
 
       expect(loggerMock).toHaveBeenCalledWith(
         'Error',
-        // eslint-disable-next-line max-len
         "Computed field 'authors.no_dependency_field' must have the 'dependencies' parameter defined",
       );
     });
@@ -834,6 +833,54 @@ describe('Builder > Collection', () => {
 
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith('Before', 'List', hookHandler);
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('overrideCreate', () => {
+    it('should add the handler to the stack', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.override.getCollection('authors'), 'addCreateHandler');
+
+      const handler = async () => [];
+
+      const self = customizer.overrideCreate(handler);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(handler);
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('overrideUpdate', () => {
+    it('should add the handler to the stack', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.override.getCollection('authors'), 'addUpdateHandler');
+
+      const handler = async () => {};
+
+      const self = customizer.overrideUpdate(handler);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(handler);
+      expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('overrideDelete', () => {
+    it('should add the handler to the stack', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.override.getCollection('authors'), 'addDeleteHandler');
+
+      const handler = async () => {};
+
+      const self = customizer.overrideDelete(handler);
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(handler);
       expect(self).toEqual(customizer);
     });
   });

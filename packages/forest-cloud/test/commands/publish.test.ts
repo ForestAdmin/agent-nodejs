@@ -1,5 +1,7 @@
 import AdmZip from 'adm-zip';
+import FormData from 'form-data';
 import fs from 'fs/promises';
+import { ClientRequest, IncomingMessage } from 'http';
 import path from 'path';
 
 import CommandTester from './command-tester';
@@ -13,8 +15,16 @@ const createFakeZip = async (distPathManager: DistPathManager) => {
   await zip.writeZipPromise(zipPath, { overwrite: true });
 };
 
+jest.mock('form-data');
+
 describe('publish command', () => {
   async function setupTest(options?): Promise<MakeCommandsForTests> {
+    jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+      callback?.(null, { statusCode: 204 } as IncomingMessage);
+
+      return {} as ClientRequest;
+    });
+
     const setup = setupCommandArguments(options);
 
     await fs.rm(setup.distPathManager.zip, { force: true, recursive: true });
@@ -54,7 +64,6 @@ describe('publish command', () => {
         cmd.spinner.warn('There is already deployed customization code on your project'),
         cmd.spinner.info('Last code pushed yesterday, by John Doe (johndoad@forestadmin.com)'),
         cmd.spinner.info(
-          // eslint-disable-next-line max-len
           'For the next time, you can publish your customizations with the --force option to skip this step',
         ),
         cmd.spinner.stop(),
@@ -115,6 +124,31 @@ describe('publish command', () => {
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.start('Publishing code customizations'),
         cmd.spinner.fail('An error occurred'),
+        cmd.spinner.stop(),
+      ]);
+    });
+  });
+
+  describe('when an error occurred during upload process', () => {
+    it('should display an error', async () => {
+      const subscribeToCodeCustomization = jest
+        .fn()
+        .mockRejectedValue(new Error('An error occurred'));
+      const setup = await setupTest({ subscribeToCodeCustomization });
+
+      jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+        callback?.(null, { statusCode: 403, statusMessage: 'Forbidden' } as IncomingMessage);
+
+        return {} as ClientRequest;
+      });
+
+      const cmd = new CommandTester(setup, ['publish']);
+      await cmd.run();
+
+      expect(cmd.outputs).toEqual([
+        cmd.spinner.start('Publishing code customizations'),
+        cmd.spinner.start('Publishing code customizations'),
+        cmd.spinner.fail('Publish failed: Forbidden'),
         cmd.spinner.stop(),
       ]);
     });

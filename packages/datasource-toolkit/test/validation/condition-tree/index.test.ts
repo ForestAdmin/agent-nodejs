@@ -215,7 +215,6 @@ describe('ConditionTreeValidation', () => {
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
           "The given operator 'Contains' is not allowed with the columnType schema: 'Number'.\n" +
             'The allowed types are: ' +
-            // eslint-disable-next-line max-len
             '[Blank,Equal,Missing,NotEqual,Present,In,NotIn,IncludesAll,IncludesNone,GreaterThan,LessThan]',
         );
       });
