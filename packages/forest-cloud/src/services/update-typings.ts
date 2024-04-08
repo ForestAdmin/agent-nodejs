@@ -2,8 +2,10 @@ import type { Introspection as DataSourceMongoIntrospection } from '@forestadmin
 import type { SupportedIntrospection as DataSourceSQLIntrospection } from '@forestadmin/datasource-sql';
 
 import { AgentOptions, createAgent } from '@forestadmin/agent';
-import { createMongoDataSource } from '@forestadmin/datasource-mongo';
-import { Table, createSqlDataSource } from '@forestadmin/datasource-sql';
+import { buildDisconnectedMongooseInstance } from '@forestadmin/datasource-mongo';
+import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
+import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { Table, buildDisconnectedSequelizeInstance } from '@forestadmin/datasource-sql';
 import path from 'path';
 
 import { throwIfNoBuiltCode } from './access-file';
@@ -37,7 +39,9 @@ function isDatasourceMongoIntrospection(
   return 'source' in introspection && introspection.source === '@forestadmin/datasource-mongo';
 }
 
-function buildAgent(introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection) {
+async function buildAgent(
+  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
+) {
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -47,16 +51,11 @@ function buildAgent(introspection: DataSourceSQLIntrospection | DataSourceMongoI
   const agent = createAgent(agentOptions);
 
   if (isDatasourceMongoIntrospection(introspection)) {
-    agent.addDataSource(
-      createMongoDataSource(
-        { uri: 'mongodb://dummy-uri', dataSource: { flattenMode: 'auto' } },
-        { introspection },
-      ),
-    );
+    const mongoose = buildDisconnectedMongooseInstance(introspection);
+    agent.addDataSource(createMongooseDataSource(mongoose));
   } else {
-    agent.addDataSource(
-      createSqlDataSource({ dialect: 'sqlite', storage: ':memory:' }, { introspection }),
-    );
+    const sequelize = await buildDisconnectedSequelizeInstance(introspection, null);
+    agent.addDataSource(createSequelizeDataSource(sequelize));
   }
 
   return agent;
@@ -66,9 +65,8 @@ export async function updateTypings(
   introspection: Table[],
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
-  const agent = buildAgent(introspection);
+  const agent = await buildAgent(introspection);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsDuringBootstrap, 3);
-  process.exit(0);
 }
 
 export async function updateTypingsWithCustomizations(
@@ -78,7 +76,7 @@ export async function updateTypingsWithCustomizations(
 ): Promise<void> {
   const builtCodePath = path.resolve(distPathManager.distCodeCustomizations);
   await throwIfNoBuiltCode(builtCodePath);
-  const agent = buildAgent(introspection);
+  const agent = await buildAgent(introspection);
   loadCustomization(agent, builtCodePath);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typings, 3);
 }

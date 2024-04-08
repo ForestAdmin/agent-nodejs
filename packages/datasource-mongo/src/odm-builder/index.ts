@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Connection, Schema } from 'mongoose';
+import { Connection, Mongoose, Schema } from 'mongoose';
 
 import { ModelAnalysis, ModelDefinition, PrimitiveDefinition } from '../introspection/types';
 
@@ -14,7 +14,7 @@ export default class OdmBuilder {
     ObjectId: Schema.Types.ObjectId,
   };
 
-  static defineModels(connection: Connection, study: ModelDefinition[]) {
+  static defineModels(connection: Connection | Mongoose, study: ModelDefinition[]) {
     for (const collection of study) {
       const definition = this.buildDefinition(collection.analysis);
       connection.model(collection.name, new Schema(definition), collection.name);
