@@ -16,7 +16,7 @@ describe('update-typings', () => {
   });
 
   function setup() {
-    const introspection = Symbol('introspection') as unknown as Table[];
+    const introspection = {} as unknown as Table[];
     const datasource = Symbol('datasource') as unknown as () => any;
     const agentMock = {
       addDataSource: jest.fn(),
