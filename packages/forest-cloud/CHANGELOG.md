@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.7.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.7.9...@forestadmin/forest-cloud@1.7.10) (2024-04-08)
+
+
+### Bug Fixes
+
+* **forest-cloud:** display an error on upload errors ([#1098](https://github.com/ForestAdmin/agent-nodejs/issues/1098)) ([98e0710](https://github.com/ForestAdmin/agent-nodejs/commit/98e0710d6cde2d3d20c414ec93fd1f2ce63e1dad))
+
 ## @forestadmin/forest-cloud [1.7.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.7.8...@forestadmin/forest-cloud@1.7.9) (2024-04-08)
 
 
