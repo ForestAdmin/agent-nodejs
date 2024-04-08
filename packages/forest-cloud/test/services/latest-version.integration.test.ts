@@ -5,7 +5,7 @@ describe('Services > Internal > latestVersion', () => {
     it('should return a valid version number', async () => {
       const version = await latestVersion('@forestadmin/agent');
 
-      expect(version).toMatch(/^[0-9]+\.[0-9]+\.[0-9]$/);
+      expect(version).toMatch(/^[0-9]+\.[0-9]+\.[0-9]+$/);
     }, 30_000);
   });
 
