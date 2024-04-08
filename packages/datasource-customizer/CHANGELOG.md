@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.44.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.44.0...@forestadmin/datasource-customizer@1.44.1) (2024-04-08)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** correct confusing type when using addExternalRelation ([#1099](https://github.com/ForestAdmin/agent-nodejs/issues/1099)) ([34e27ab](https://github.com/ForestAdmin/agent-nodejs/commit/34e27ab4ef827a4c79ac11e078dca0d47a03145f))
+
 # @forestadmin/datasource-customizer [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.43.6...@forestadmin/datasource-customizer@1.44.0) (2024-04-05)
 
 
