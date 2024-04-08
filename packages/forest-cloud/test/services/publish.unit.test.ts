@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable max-len */
 import FormData from 'form-data';
+import { ClientRequest, IncomingMessage } from 'node:http';
 import { afterEach } from 'node:test';
 
 import DistPathManager from '../../src/services/dist-path-manager';
@@ -77,12 +78,11 @@ describe('publish', () => {
 
         jest.mocked(FormData.prototype.append).mockClear();
         mockToBuffer.mockReturnValue({ byteLength: 101 });
-        // @ts-ignore
-        jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
-          // @ts-ignore
-          callback(null, { statusCode: 204 });
 
-          return null;
+        jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
+          callback?.(null, { statusCode: 204 } as IncomingMessage);
+
+          return {} as ClientRequest;
         });
 
         const result = await publish(httpServer, distPathManager);
@@ -143,12 +143,11 @@ describe('publish', () => {
       const { httpServer, distPathManager } = setup();
 
       mockToBuffer.mockReturnValue({ byteLength: 101 });
-      // @ts-ignore
-      jest.mocked(FormData.prototype.submit).mockImplementation((_url, callback) => {
-        // @ts-ignore
-        callback(new Error('S3 bucket not found'));
 
-        return null;
+      jest.mocked(FormData.prototype.submit).mockImplementation((_url, callback) => {
+        callback?.(new Error('S3 bucket not found'), null);
+
+        return {} as ClientRequest;
       });
 
       await expect(publish(httpServer, distPathManager)).rejects.toThrow(

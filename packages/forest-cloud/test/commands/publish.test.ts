@@ -1,6 +1,7 @@
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
 import fs from 'fs/promises';
+import { ClientRequest, IncomingMessage } from 'http';
 import path from 'path';
 
 import CommandTester from './command-tester';
@@ -18,14 +19,10 @@ jest.mock('form-data');
 
 describe('publish command', () => {
   async function setupTest(options?): Promise<MakeCommandsForTests> {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      callback(null, { statusCode: 204 });
+      callback?.(null, { statusCode: 204 } as IncomingMessage);
 
-      return null;
+      return {} as ClientRequest;
     });
 
     const setup = setupCommandArguments(options);
@@ -140,14 +137,10 @@ describe('publish command', () => {
         .mockRejectedValue(new Error('An error occurred'));
       const setup = await setupTest({ subscribeToCodeCustomization });
 
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       jest.mocked(FormData.prototype.submit).mockImplementation((url, callback) => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        callback(null, { statusCode: 403, statusMessage: 'Forbidden' });
+        callback?.(null, { statusCode: 403, statusMessage: 'Forbidden' } as IncomingMessage);
 
-        return null;
+        return {} as ClientRequest;
       });
 
       const cmd = new CommandTester(setup, ['publish']);
