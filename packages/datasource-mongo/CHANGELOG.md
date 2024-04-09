@@ -1,3 +1,18 @@
+# @forestadmin/datasource-mongo [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.1.1...@forestadmin/datasource-mongo@1.2.0) (2024-04-09)
+
+
+### Features
+
+* support mongodb cloud customizations ([#1097](https://github.com/ForestAdmin/agent-nodejs/issues/1097)) ([65ce409](https://github.com/ForestAdmin/agent-nodejs/commit/65ce409f1d107c62a42f483033ee1eae6536f7ca))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.0
+
 ## @forestadmin/datasource-mongo [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.1.0...@forestadmin/datasource-mongo@1.1.1) (2024-03-29)
 
 
