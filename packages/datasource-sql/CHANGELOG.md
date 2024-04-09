@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.12.3...@forestadmin/datasource-sql@1.13.0) (2024-04-09)
+
+
+### Features
+
+* support mongodb cloud customizations ([#1097](https://github.com/ForestAdmin/agent-nodejs/issues/1097)) ([65ce409](https://github.com/ForestAdmin/agent-nodejs/commit/65ce409f1d107c62a42f483033ee1eae6536f7ca))
+
 ## @forestadmin/datasource-sql [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.12.2...@forestadmin/datasource-sql@1.12.3) (2024-04-04)
 
 
