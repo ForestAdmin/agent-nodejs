@@ -6,6 +6,9 @@
     "@forestadmin/agent": "1.38.10",
     "@forestadmin/datasource-customizer": "1.44.1",
     "@forestadmin/datasource-sql": "1.12.3",
+    "@forestadmin/datasource-mongo": "1.1.1",
+    "@forestadmin/datasource-mongoose": "^1.6.7",
+    "@forestadmin/datasource-sequelize": "^1.8.0",
     "adm-zip": "^0.5.10",
     "apollo-cache-inmemory": "^1.6.6",
     "apollo-client": "^2.6.10",
@@ -19,7 +22,6 @@
     "graphql-tag": "^2.12.6",
     "joi": "^17.12.2",
     "ora": "^3.2.0",
-    "sqlite3": "^5.1.7",
     "subscriptions-transport-ws": "^0.9.19",
     "ws": "^8.16.0"
   },

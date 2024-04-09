@@ -1,5 +1,5 @@
 import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
-import { Connection, Model } from 'mongoose';
+import { Connection, Model, Mongoose } from 'mongoose';
 
 import MongooseCollection from './collection';
 import MongooseSchema from './mongoose/schema';
@@ -9,7 +9,11 @@ import OptionsParser from './utils/options';
 import RelationGenerator from './utils/schema/relations';
 
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
-  constructor(connection: Connection, options: MongooseOptions = {}, logger: Logger = null) {
+  constructor(
+    connection: Connection | Mongoose,
+    options: MongooseOptions = {},
+    logger: Logger = null,
+  ) {
     super();
 
     if (options && !options.flattenMode) {

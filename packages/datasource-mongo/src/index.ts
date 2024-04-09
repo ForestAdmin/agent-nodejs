@@ -1,10 +1,9 @@
 import type { Introspection } from './introspection/types';
 import type { ConnectionParams, IntrospectorParams, MongoDatasourceParams } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
-import type { Connection } from 'mongoose';
 
 import { MongooseDatasource } from '@forestadmin/datasource-mongoose';
-import mongoose from 'mongoose';
+import mongoose, { Connection, Mongoose } from 'mongoose';
 
 import Introspector from './introspection/introspector';
 import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
@@ -54,6 +53,13 @@ export async function buildMongooseInstance(
   }
 
   return connection;
+}
+
+export function buildDisconnectedMongooseInstance(introspection: Introspection): Mongoose {
+  const mongooseInstance = new Mongoose();
+  OdmBuilder.defineModels(mongooseInstance, introspection.models);
+
+  return mongooseInstance;
 }
 
 export function createMongoDataSource(

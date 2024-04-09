@@ -32,7 +32,7 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
       - name: Install & Bootstrap
         run: yarn && yarn bootstrap --ci
       - name: Build
@@ -89,7 +89,7 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
           fail-on-cache-miss: true
       - name: Restore build from cache
         uses: actions/cache/restore@v3
@@ -142,7 +142,7 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
           fail-on-cache-miss: true
       - name: Restore build from cache
         uses: actions/cache/restore@v3
@@ -184,7 +184,7 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
           fail-on-cache-miss: true
       - name: Restore build from cache
         uses: actions/cache/restore@v3
