@@ -1,3 +1,20 @@
+# @forestadmin/forest-cloud [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.7.10...@forestadmin/forest-cloud@1.8.0) (2024-04-09)
+
+
+### Features
+
+* support mongodb cloud customizations ([#1097](https://github.com/ForestAdmin/agent-nodejs/issues/1097)) ([65ce409](https://github.com/ForestAdmin/agent-nodejs/commit/65ce409f1d107c62a42f483033ee1eae6536f7ca))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.13.0
+* **@forestadmin/datasource-mongo:** upgraded to 1.2.0
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.0
+
 ## @forestadmin/forest-cloud [1.7.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.7.9...@forestadmin/forest-cloud@1.7.10) (2024-04-08)
 
 
