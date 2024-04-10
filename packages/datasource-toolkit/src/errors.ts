@@ -14,6 +14,7 @@ export class UnprocessableError extends BusinessError {}
 export class ForbiddenError extends BusinessError {}
 
 export class IntrospectionFormatError extends Error {
+  public readonly type = 'IntrospectionFormatError';
   constructor(sourcePackageName: '@forestadmin/datasource-sql' | '@forestadmin/datasource-mongo') {
     const message =
       `This version of introspection is newer than this package version. ` +
