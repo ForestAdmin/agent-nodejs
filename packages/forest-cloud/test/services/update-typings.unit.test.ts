@@ -9,6 +9,7 @@ import { buildDisconnectedMongooseInstance } from '@forestadmin/datasource-mongo
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { buildDisconnectedSequelizeInstance } from '@forestadmin/datasource-sql';
+import { BusinessError, IntrospectionFormatError } from '@forestadmin/datasource-toolkit';
 import path from 'path';
 
 import { throwIfNoBuiltCode } from '../../src/services/access-file';
@@ -59,6 +60,58 @@ describe('update-typings', () => {
 
     return { agent, sequelize, dataSourceSQL, dataSourceMongo, mongoose };
   }
+
+  describe('if an error occurs', () => {
+    describe('if the error is unexpected', () => {
+      it('should rethrow it', async () => {
+        const introspection: DataSourceMongoIntrospection = {
+          models: [],
+          source: '@forestadmin/datasource-mongo',
+          version: 123,
+        };
+
+        const bootstrapPathManager = {
+          typingsDuringBootstrap: 'typingsDuringBootstrap',
+        } as BootstrapPathManager;
+
+        const error = new Error('Some random error occured');
+        jest.mocked(buildDisconnectedMongooseInstance).mockImplementation(() => {
+          throw error;
+        });
+
+        await expect(
+          updateTypings(introspection as DataSourceMongoIntrospection, bootstrapPathManager),
+        ).rejects.toEqual(error);
+      });
+    });
+
+    describe('if the error is IntrospectionFormatError', () => {
+      it('should map it to a business error', async () => {
+        const introspection: DataSourceMongoIntrospection = {
+          models: [],
+          source: '@forestadmin/datasource-mongo',
+          version: 123,
+        };
+
+        const bootstrapPathManager = {
+          typingsDuringBootstrap: 'typingsDuringBootstrap',
+        } as BootstrapPathManager;
+
+        const error = new IntrospectionFormatError('@forestadmin/datasource-mongo');
+        jest.mocked(buildDisconnectedMongooseInstance).mockImplementation(() => {
+          throw error;
+        });
+
+        await expect(
+          updateTypings(introspection as DataSourceMongoIntrospection, bootstrapPathManager),
+        ).rejects.toEqual(
+          new BusinessError(
+            `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
+          ),
+        );
+      });
+    });
+  });
 
   describe('updateTypings', () => {
     describe('with an introspection from a SQL datasource', () => {

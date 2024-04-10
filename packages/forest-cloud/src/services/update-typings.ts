@@ -12,6 +12,7 @@ import { throwIfNoBuiltCode } from './access-file';
 import BootstrapPathManager from './bootstrap-path-manager';
 import DistPathManager from './dist-path-manager';
 import loadCustomization from './load-customization';
+import { BusinessError } from '../errors';
 
 function isDatasourceMongoIntrospection(
   introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
@@ -30,12 +31,24 @@ async function buildAgent(
   };
   const agent = createAgent(agentOptions);
 
-  if (isDatasourceMongoIntrospection(introspection)) {
-    const mongoose = buildDisconnectedMongooseInstance(introspection);
-    agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }));
-  } else {
-    const sequelize = await buildDisconnectedSequelizeInstance(introspection, null);
-    agent.addDataSource(createSequelizeDataSource(sequelize));
+  try {
+    if (isDatasourceMongoIntrospection(introspection)) {
+      const mongoose = buildDisconnectedMongooseInstance(introspection);
+      agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }));
+    } else {
+      const sequelize = await buildDisconnectedSequelizeInstance(introspection, null);
+      agent.addDataSource(createSequelizeDataSource(sequelize));
+    }
+  } catch (e) {
+    const error = e as Error;
+
+    if ('type' in error && error.type === 'IntrospectionFormatError') {
+      throw new BusinessError(
+        `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
+      );
+    }
+
+    throw error;
   }
 
   return agent;

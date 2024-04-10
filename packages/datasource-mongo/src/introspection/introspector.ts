@@ -1,3 +1,5 @@
+import { IntrospectionFormatError } from '@forestadmin/datasource-toolkit';
+
 import ReferenceCandidateFinder from './reference-candidates-finder';
 import ReferenceCandidateVerifier from './reference-candidates-verifier';
 import Structure from './structure';
@@ -57,10 +59,7 @@ export default class Introspector {
     }
 
     if (introspection.version > this.FORMAT_VERSION) {
-      throw new Error(
-        'This version of introspection is newer than this package version. ' +
-          'Please update @forestadmin/datasource-mongo',
-      );
+      throw new IntrospectionFormatError(this.SOURCE);
     }
   }
 
