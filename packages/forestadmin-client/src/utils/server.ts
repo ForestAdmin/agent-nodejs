@@ -27,7 +27,7 @@ export default class ServerUtils {
       return response.body;
     } catch (error) {
       if (error.timeout) {
-        throw new Error('The request to ForestAdmin server has timeout');
+        throw new Error('The request to Forest Admin server has timeout');
       }
 
       this.handleResponseError(error);
@@ -37,7 +37,7 @@ export default class ServerUtils {
   private static handleResponseError(e: Error): void {
     if (/certificate/i.test(e.message)) {
       throw new Error(
-        'ForestAdmin server TLS certificate cannot be verified. ' +
+        'Forest Admin server TLS certificate cannot be verified. ' +
           'Please check that your system time is set properly. ' +
           `Original error: ${e.message}`,
       );
@@ -49,12 +49,13 @@ export default class ServerUtils {
 
       // 0 == offline, 502 == bad gateway from proxy
       if (status === 0 || status === 502) {
-        throw new Error('Failed to reach ForestAdmin server. Are you online?');
+        throw new Error('Failed to reach Forest Admin server. Are you online?');
       }
 
       if (status === 404) {
         throw new Error(
-          'ForestAdmin server failed to find the project related to the envSecret you configured.' +
+          'Forest Admin server failed to find the' +
+            ' project related to the envSecret you configured.' +
             ' Can you check that you copied it properly in the Forest initialization?',
         );
       }
@@ -70,7 +71,7 @@ export default class ServerUtils {
       if (message) throw new Error(message);
 
       throw new Error(
-        'An unexpected error occurred while contacting the ForestAdmin server. ' +
+        'An unexpected error occurred while contacting the Forest Admin server. ' +
           'Please contact support@forestadmin.com for further investigations.',
       );
     }
