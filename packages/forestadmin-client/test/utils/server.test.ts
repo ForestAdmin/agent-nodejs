@@ -40,7 +40,7 @@ describe('ServerUtils', () => {
       .reply(404, { error: 'what is this env secret?' });
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
-      'ForestAdmin server failed to find the project related to the envSecret you configured.' +
+      'Forest Admin server failed to find the project related to the envSecret you configured.' +
         ' Can you check that you copied it properly in the Forest initialization?',
     );
   });
@@ -60,7 +60,7 @@ describe('ServerUtils', () => {
     nock(options.forestServerUrl).get('/endpoint').reply(418, { error: 'i am a teapot' });
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
-      'An unexpected error occurred while contacting the ForestAdmin server. ' +
+      'An unexpected error occurred while contacting the Forest Admin server. ' +
         'Please contact support@forestadmin.com for further investigations.',
     );
   });
@@ -69,7 +69,7 @@ describe('ServerUtils', () => {
     nock(options.forestServerUrl).get('/endpoint').reply(502, { error: 'bad proxy' });
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
-      'Failed to reach ForestAdmin server. Are you online?',
+      'Failed to reach Forest Admin server. Are you online?',
     );
   });
 
@@ -79,7 +79,7 @@ describe('ServerUtils', () => {
       .replyWithError(new Error('Certificate is invalid'));
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
-      'ForestAdmin server TLS certificate cannot be verified. ' +
+      'Forest Admin server TLS certificate cannot be verified. ' +
         'Please check that your system time is set properly. ' +
         'Original error: Certificate is invalid',
     );
@@ -112,7 +112,7 @@ describe('ServerUtils', () => {
         '',
         100, // maxTimeAllowed to respond
       ),
-    ).rejects.toThrow('The request to ForestAdmin server has timeout');
+    ).rejects.toThrow('The request to Forest Admin server has timeout');
   });
 
   describe('when the server send back a message', () => {
