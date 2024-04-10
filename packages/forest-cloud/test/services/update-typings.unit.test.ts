@@ -81,7 +81,7 @@ describe('update-typings', () => {
 
         await expect(
           updateTypings(introspection as DataSourceMongoIntrospection, bootstrapPathManager),
-        ).rejects.toBe(error);
+        ).rejects.toEqual(error);
       });
     });
 
@@ -104,7 +104,7 @@ describe('update-typings', () => {
 
         await expect(
           updateTypings(introspection as DataSourceMongoIntrospection, bootstrapPathManager),
-        ).rejects.toBe(
+        ).rejects.toEqual(
           new BusinessError(
             `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
           ),
