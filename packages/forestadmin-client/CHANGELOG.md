@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.26.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.26.1...@forestadmin/forestadmin-client@1.26.2) (2024-04-10)
+
+
+### Bug Fixes
+
+* spacing in error message ([#1102](https://github.com/ForestAdmin/agent-nodejs/issues/1102)) ([d094821](https://github.com/ForestAdmin/agent-nodejs/commit/d094821efb3b85220a3a42778229b9d08ad0addc))
+
 ## @forestadmin/forestadmin-client [1.26.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.26.0...@forestadmin/forestadmin-client@1.26.1) (2024-04-10)
 
 
