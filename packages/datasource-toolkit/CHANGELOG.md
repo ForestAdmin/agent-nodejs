@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.32.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.2...@forestadmin/datasource-toolkit@1.32.3) (2024-04-10)
+
+
+### Bug Fixes
+
+* improve error message in the case of outdated introspection ([#1101](https://github.com/ForestAdmin/agent-nodejs/issues/1101)) ([ab1bb87](https://github.com/ForestAdmin/agent-nodejs/commit/ab1bb87a5efe73d41a56bc9ecefea63e631fa41e))
+
 ## @forestadmin/datasource-toolkit [1.32.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.1...@forestadmin/datasource-toolkit@1.32.2) (2024-03-14)
 
 
