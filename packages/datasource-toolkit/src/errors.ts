@@ -12,3 +12,12 @@ export class BusinessError extends Error {
 export class ValidationError extends BusinessError {}
 export class UnprocessableError extends BusinessError {}
 export class ForbiddenError extends BusinessError {}
+
+export class IntrospectionFormatError extends Error {
+  constructor(sourcePackageName: '@forestadmin/datasource-sql' | '@forestadmin/datasource-mongo') {
+    const message =
+      `This version of introspection is newer than this package version. ` +
+      `Please update ${sourcePackageName}`;
+    super(message);
+  }
+}

@@ -1,4 +1,4 @@
-import { Logger } from '@forestadmin/datasource-toolkit';
+import { IntrospectionFormatError, Logger } from '@forestadmin/datasource-toolkit';
 import { Dialect, Sequelize } from 'sequelize';
 
 import introspectionDialectFactory from './dialects/dialect-factory';
@@ -54,10 +54,7 @@ export default class Introspector {
         - datasource-sql should be updated in the local repository
           of the client. He should be prompted to update forest-cloud.
       */
-      throw new Error(
-        'This version of introspection is newer than this package version. ' +
-          'Please update @forestadmin/datasource-sql',
-      );
+      throw new IntrospectionFormatError(this.SOURCE);
     }
 
     if (source && source !== this.SOURCE) {
