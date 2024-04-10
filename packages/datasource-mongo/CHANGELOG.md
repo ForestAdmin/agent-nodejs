@@ -1,3 +1,19 @@
+## @forestadmin/datasource-mongo [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.2.0...@forestadmin/datasource-mongo@1.2.1) (2024-04-10)
+
+
+### Bug Fixes
+
+* improve error message in the case of outdated introspection ([#1101](https://github.com/ForestAdmin/agent-nodejs/issues/1101)) ([ab1bb87](https://github.com/ForestAdmin/agent-nodejs/commit/ab1bb87a5efe73d41a56bc9ecefea63e631fa41e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.32.3
+
 # @forestadmin/datasource-mongo [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.1.1...@forestadmin/datasource-mongo@1.2.0) (2024-04-09)
 
 
