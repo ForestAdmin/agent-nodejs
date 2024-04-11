@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { BusinessError, IntrospectionFormatError } from '../src/errors';
 
 describe('errors', () => {
@@ -36,6 +37,18 @@ describe('errors', () => {
       it('should set the data to undefined by default', () => {
         const error = new BusinessError('test');
         expect(error.data).toBeUndefined();
+      });
+    });
+
+    describe('isOfType', () => {
+      it('should return true when the error is of the given type', () => {
+        const error = new BusinessError('test');
+        expect(BusinessError.isOfType(error, BusinessError)).toBeTruthy();
+      });
+
+      it('should return false when the error is not of the given type', () => {
+        const error = new Error('test');
+        expect(BusinessError.isOfType(error, BusinessError)).toBeFalsy();
       });
     });
   });
