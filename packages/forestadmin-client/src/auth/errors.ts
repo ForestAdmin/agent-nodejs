@@ -16,6 +16,4 @@ export class AuthenticationError extends Error {
   }
 }
 
-export class ForbiddenError extends Error {
-  public readonly code: number = 403;
-}
+export class ForbiddenError extends Error {}
