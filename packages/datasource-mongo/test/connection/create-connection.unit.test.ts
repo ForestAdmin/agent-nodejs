@@ -103,6 +103,23 @@ describe('createConnection', () => {
         await expect(createConnection(params)).rejects.toThrow(ConnectionError);
       });
 
+      it('should rethrow other errors', async () => {
+        const { ssh, connection } = setupMocks({ isSshActive });
+
+        const params: ConnectionParams = {
+          uri: 'mongodb://localhost:27017',
+          connection: {
+            dbName: 'test',
+            ssh,
+          },
+        };
+
+        const error = new Error('error message');
+        jest.mocked(connection).asPromise.mockRejectedValue(error);
+
+        await expect(createConnection(params)).rejects.toThrow(error);
+      });
+
       it('should throw the error with the uri, without password', async () => {
         const { ssh, connection } = setupMocks({ isSshActive });
 
