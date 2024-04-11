@@ -1,5 +1,6 @@
 import superagent, { ResponseError } from 'superagent';
 
+import { ForbiddenError } from '..';
 import { ForestAdminClientOptionsWithDefaults } from '../types';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
@@ -50,6 +51,10 @@ export default class ServerUtils {
       // 0 == offline, 502 == bad gateway from proxy
       if (status === 0 || status === 502) {
         throw new Error('Failed to reach Forest Admin server. Are you online?');
+      }
+
+      if (status === 403) {
+        throw new ForbiddenError(message);
       }
 
       if (status === 404) {

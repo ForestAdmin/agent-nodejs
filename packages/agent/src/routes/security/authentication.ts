@@ -1,5 +1,5 @@
 import { ValidationError } from '@forestadmin/datasource-toolkit';
-import { AuthenticationError } from '@forestadmin/forestadmin-client';
+import { AuthenticationError, ForbiddenError } from '@forestadmin/forestadmin-client';
 import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
 import { Context, Next } from 'koa';
@@ -81,6 +81,16 @@ export default class Authentication extends BaseRoute {
     try {
       await next();
     } catch (e) {
+      if (e instanceof ForbiddenError) {
+        context.response.status = 403;
+        context.response.body = {
+          error: 403,
+          error_description: e.message,
+        };
+
+        return;
+      }
+
       if (e instanceof AuthenticationError) {
         context.response.status = 401;
         context.response.body = {

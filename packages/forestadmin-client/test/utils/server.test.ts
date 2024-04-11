@@ -1,5 +1,6 @@
 import nock from 'nock';
 
+import { ForbiddenError } from '../../src';
 import ServerUtils from '../../src/utils/server';
 
 const options = { envSecret: '123', forestServerUrl: 'http://forestadmin-server.com' };
@@ -32,6 +33,16 @@ describe('ServerUtils', () => {
     );
 
     expect(result).toStrictEqual({ data: 'ok' });
+  });
+
+  it('should throw a ForbiddenError if the server returns a 403', async () => {
+    nock(options.forestServerUrl)
+      .get('/endpoint')
+      .reply(403, { errors: [{ detail: 'project access forbidden' }] });
+
+    await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toEqual(
+      new ForbiddenError('project access forbidden'),
+    );
   });
 
   it('should fail if project does not exists', async () => {
