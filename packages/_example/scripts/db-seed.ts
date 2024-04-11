@@ -4,9 +4,8 @@ import { faker } from '@faker-js/faker';
 import { Connection, Schema } from 'mongoose';
 import { Sequelize } from 'sequelize';
 
-import initMsSql from './mssql-init';
-import sequelizeMariaDb from './sequelize-mariadb';
 import mongoose from '../src/connections/mongoose';
+import sequelizeMariaDb from '../src/connections/sequelize-mariadb';
 import sequelizeMsSql from '../src/connections/sequelize-mssql';
 import sequelizeMySql from '../src/connections/sequelize-mysql';
 import sequelizePostgres from '../src/connections/sequelize-postgres';
@@ -191,8 +190,9 @@ async function createDvdRentalsRecords(
   await Promise.all([
     connection.model('dvd').bulkCreate(dvdRecords),
     connection.model('rental').bulkCreate(rentalRecords),
-    connection.model('dvd_rental').bulkCreate(dvdRentalRecords),
   ]);
+
+  await connection.model('dvd_rental').bulkCreate(dvdRentalRecords);
 }
 
 async function clearDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
@@ -212,10 +212,15 @@ async function closeDatabases(mongooseInstance: Connection, sequelizeInstances: 
 }
 
 async function seedData() {
-  const sequelizeInstances = [sequelizeMsSql, sequelizeMySql, sequelizePostgres, sequelizeMariaDb];
+  const sequelizeInstances = [
+    sequelizeMsSql,
+    sequelizeMySql,
+    sequelizePostgres,
+    sequelizeMariaDb,
+    sequelizeMsSql,
+  ];
 
   try {
-    await initMsSql();
     await clearDatabases(mongoose, sequelizeInstances);
 
     const ownerRecords = await createOwnerRecords(sequelizePostgres);
@@ -225,6 +230,11 @@ async function seedData() {
     await createSaleRecords(mongoose, accounts);
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
     await createReviewRecords(sequelizePostgres, storeRecords);
+
+    await sequelizeMariaDb.query(`
+      CREATE OR REPLACE VIEW active_cards AS
+      SELECT * FROM card WHERE is_active = 1
+    `);
   } catch (error) {
     console.error('---------------');
     console.error('The seed failed');
@@ -237,6 +247,6 @@ async function seedData() {
 
 (async () => {
   console.log(`Beginning seed...`);
-
   await seedData();
+  console.log(`Seed completed! 🌱`);
 })();
