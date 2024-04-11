@@ -124,6 +124,25 @@ describe('Datasource Mongo', () => {
       describe('in case of error', () => {
         it('should throw an error when the ssh host is wrong', async () => {
           const privateKey = await readFile(path.resolve(__dirname, 'ssh-config', 'id_rsa'));
+
+          await expect(
+            buildMongooseInstance({
+              uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies?authSource=admin',
+              connection: {
+                ssh: {
+                  host: 'wrong-host',
+                  port: 2223,
+                  username: 'forest',
+                  privateKey,
+                },
+              },
+            }),
+          ).rejects.toThrow(SshConnectError);
+        });
+
+        it('should throw an error with the righ url', async () => {
+          const privateKey = await readFile(path.resolve(__dirname, 'ssh-config', 'id_rsa'));
+
           await expect(
             buildMongooseInstance({
               uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies?authSource=admin',
@@ -137,7 +156,7 @@ describe('Datasource Mongo', () => {
               },
             }),
           ).rejects.toThrow(
-            new SshConnectError('getaddrinfo ENOTFOUND wrong-host', 'ssh://forest@wrong-host:2223'),
+            'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: ssh://forest@wrong-host:2223',
           );
         });
 
