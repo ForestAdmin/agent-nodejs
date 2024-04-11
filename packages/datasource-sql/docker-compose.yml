@@ -82,7 +82,7 @@ services:
       - PROXY_PASSWORD=password
 
   ssh-server:
-    image: lscr.io/linuxserver/openssh-server:latest
+    image: lscr.io/linuxserver/openssh-server:version-9.6_p1-r0-ls152
     container_name: ssh_server
     environment:
       - PUID=1000
@@ -91,6 +91,7 @@ services:
       - PUBLIC_KEY_FILE=/config/id_rsa.pub # path to the public key file inside the container
       - USER_NAME=forest
       - DOCKER_MODS=linuxserver/mods:openssh-server-ssh-tunnel # enable AllowTcpForwarding here
+      - LOG_STDOUT=true
     volumes:
       - ./test/ssh-config:/config
     ports:

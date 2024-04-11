@@ -15,7 +15,8 @@
     "@forestadmin/datasource-mongoose": "1.7.1",
     "@forestadmin/datasource-toolkit": "1.32.3",
     "json-stringify-pretty-compact": "^3.0.0",
-    "mongoose": "^7.0.1"
+    "mongoose": "^7.0.1",
+    "tunnel-ssh": "^5.1.2"
   },
   "files": [
     "dist/**/*.js",

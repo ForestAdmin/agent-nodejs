@@ -9,3 +9,19 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: forest
       MONGO_INITDB_ROOT_PASSWORD: secret
+
+  ssh-server:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: ssh_server_mongo
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - PUBLIC_KEY_FILE=/config/id_rsa.pub # path to the public key file inside the container
+      - USER_NAME=forest
+      - DOCKER_MODS=linuxserver/mods:openssh-server-ssh-tunnel # enable AllowTcpForwarding here
+      - LOG_STDOUT=true
+    volumes:
+      - ./test/ssh-config:/config
+    ports:
+      - '2223:2222'

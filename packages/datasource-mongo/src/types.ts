@@ -1,6 +1,8 @@
 import type { MongooseOptions as DataSourceMongooseOptions } from '@forestadmin/datasource-mongoose';
 import type { ConnectOptions } from 'mongoose';
 
+import { SshOptions } from 'tunnel-ssh';
+
 /** Options for the introspection */
 export type IntrospectionOptions = {
   /**
@@ -43,7 +45,7 @@ export type ConnectionParams = {
   /**
    * Connection options that (will be passed to mongoose)
    */
-  connection?: ConnectOptions;
+  connection?: ConnectOptions & { ssh?: SshOptions };
 };
 
 export type IntrospectorParams = ConnectionParams & {
