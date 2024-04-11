@@ -106,7 +106,7 @@ describe('Datasource Mongo', () => {
           connection: {
             ssh: {
               host: '127.0.0.1',
-              port: 2223,
+              port: 2224,
               username: 'forest',
               privateKey,
             },
@@ -131,7 +131,7 @@ describe('Datasource Mongo', () => {
               connection: {
                 ssh: {
                   host: 'wrong-host',
-                  port: 2223,
+                  port: 2224,
                   username: 'forest',
                   privateKey,
                 },
@@ -149,14 +149,14 @@ describe('Datasource Mongo', () => {
               connection: {
                 ssh: {
                   host: 'wrong-host',
-                  port: 2223,
+                  port: 2224,
                   username: 'forest',
                   privateKey,
                 },
               },
             }),
           ).rejects.toThrow(
-            'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: ssh://forest@wrong-host:2223',
+            'Your ssh connection has encountered an error. Unable to connect to the given ssh uri: ssh://forest@wrong-host:2224',
           );
         });
 
@@ -168,7 +168,7 @@ describe('Datasource Mongo', () => {
               connection: {
                 ssh: {
                   host: '127.0.0.1',
-                  port: 2223,
+                  port: 2224,
                   username: 'forest',
                   privateKey,
                 },
@@ -190,7 +190,7 @@ describe('Datasource Mongo', () => {
               connection: {
                 ssh: {
                   host: '127.0.0.1',
-                  port: 2223,
+                  port: 2224,
                   username: 'forest',
                   privateKey,
                 },
