@@ -58,7 +58,7 @@ async function createMongooseConnection(
   }
 }
 
-async function connectTroughSSH(params: ConnectionParams): Promise<Connection> {
+async function createMongooseConnectionTroughSSH(params: ConnectionParams): Promise<Connection> {
   const { uri, connection } = params;
   const { ssh, ...mongooseOptions } = connection ?? {};
 
@@ -95,7 +95,7 @@ export default async function createConnection(params: ConnectionParams): Promis
   const { ssh, ...mongooseOptions } = connection ?? {};
 
   if (ssh) {
-    return connectTroughSSH(params);
+    return createMongooseConnectionTroughSSH(params);
   }
 
   return createMongooseConnection(uri, mongooseOptions);
