@@ -140,7 +140,7 @@ describe('Datasource Mongo', () => {
           ).rejects.toThrow(SshConnectError);
         });
 
-        it('should throw an error with the righ url', async () => {
+        it('should throw an error with the right url', async () => {
           const privateKey = await readFile(path.resolve(__dirname, 'ssh-config', 'id_rsa'));
 
           await expect(
