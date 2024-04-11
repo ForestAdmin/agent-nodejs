@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.38.12...@forestadmin/agent@1.39.0) (2024-04-11)
+
+
+### Features
+
+* improve forbidden error handling ([#1104](https://github.com/ForestAdmin/agent-nodejs/issues/1104)) ([6e5cf71](https://github.com/ForestAdmin/agent-nodejs/commit/6e5cf71fb4988afcded2e8ed6db7b86d714eef06))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.27.0
+
 ## @forestadmin/agent [1.38.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.38.11...@forestadmin/agent@1.38.12) (2024-04-10)
 
 
