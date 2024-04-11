@@ -1,4 +1,4 @@
-import { AuthenticationError } from '@forestadmin/forestadmin-client';
+import { AuthenticationError, ForbiddenError } from '@forestadmin/forestadmin-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { errors } from 'openid-client';
 
@@ -183,6 +183,33 @@ describe('Authentication', () => {
             error: 'invalid_request',
             error_description: 'Invalid request',
             state: '123',
+          });
+        });
+
+        test('returns a translated error if it is ForbiddenError', async () => {
+          route.setupRoutes(router);
+
+          const getMock = router.get as jest.Mock;
+
+          const errorHandler = getMock.mock.calls[0][1];
+          const callbackHandler = getMock.mock.calls[0][2];
+
+          const context = createMockContext({
+            customProperties: { query: { state: '{"renderingId": 1}' } },
+          });
+
+          jest
+            .spyOn(options.forestAdminClient.authService, 'generateTokens')
+            .mockRejectedValue(new ForbiddenError('access denied'));
+
+          await errorHandler(context, async () => {
+            await callbackHandler(context);
+          });
+
+          expect(context.response.status).toEqual(403);
+          expect(context.response.body).toEqual({
+            error: 403,
+            error_description: 'access denied',
           });
         });
 

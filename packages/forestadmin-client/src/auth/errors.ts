@@ -1,6 +1,6 @@
+/* eslint-disable max-classes-per-file */
 import type { errors } from 'openid-client';
 
-// eslint-disable-next-line import/prefer-default-export
 export class AuthenticationError extends Error {
   public readonly description: string;
   public readonly state: string;
@@ -14,4 +14,8 @@ export class AuthenticationError extends Error {
     this.code = e.error;
     this.stack = e.stack;
   }
+}
+
+export class ForbiddenError extends Error {
+  public readonly code: number = 403;
 }
