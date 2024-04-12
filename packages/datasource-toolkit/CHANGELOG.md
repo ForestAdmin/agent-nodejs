@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.3...@forestadmin/datasource-toolkit@1.33.0) (2024-04-12)
+
+
+### Features
+
+* **datasource-mongo:** add support for ssh tunnelling ([#1103](https://github.com/ForestAdmin/agent-nodejs/issues/1103)) ([d518e65](https://github.com/ForestAdmin/agent-nodejs/commit/d518e6536f2329503dfbc2eef6747c02b8995b87))
+
 ## @forestadmin/datasource-toolkit [1.32.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.2...@forestadmin/datasource-toolkit@1.32.3) (2024-04-10)
 
 
