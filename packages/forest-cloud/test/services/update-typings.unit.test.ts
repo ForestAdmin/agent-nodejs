@@ -70,11 +70,13 @@ describe('update-typings', () => {
           version: 123,
         };
 
+        setupMocks();
+
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        const error = new Error('Some random error occured');
+        const error = new Error('Some random error occurred');
         jest.mocked(buildDisconnectedMongooseInstance).mockImplementation(() => {
           throw error;
         });

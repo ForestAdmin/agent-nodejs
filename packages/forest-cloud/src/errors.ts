@@ -1,5 +1,7 @@
 /* eslint-disable max-classes-per-file */
-export class BusinessError extends Error {}
+import { BusinessError } from '@forestadmin/datasource-toolkit';
+
+export { BusinessError };
 export class ValidationError extends BusinessError {}
 export class CustomizationError extends BusinessError {
   constructor(message: string, stack?: string) {

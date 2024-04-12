@@ -1,8 +1,9 @@
 /* eslint-disable max-classes-per-file */
+import { BusinessError } from '@forestadmin/datasource-toolkit';
 
 export type ErrorSource = 'Proxy' | 'Database' | 'Ssh';
 
-abstract class BaseError extends Error {
+abstract class BaseError extends BusinessError {
   abstract readonly source: ErrorSource;
   readonly debugUri: string;
   readonly details: string;
@@ -10,7 +11,6 @@ abstract class BaseError extends Error {
   protected constructor(message: string, debugUri: string, details?: string) {
     super(details ? `${message}\n${details}` : message);
 
-    this.name = this.constructor.name;
     this.details = details;
     this.debugUri = debugUri;
   }

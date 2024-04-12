@@ -6,6 +6,7 @@ import { buildDisconnectedMongooseInstance } from '@forestadmin/datasource-mongo
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { buildDisconnectedSequelizeInstance } from '@forestadmin/datasource-sql';
+import { IntrospectionFormatError } from '@forestadmin/datasource-toolkit';
 import path from 'path';
 
 import { throwIfNoBuiltCode } from './access-file';
@@ -42,13 +43,13 @@ async function buildAgent(
   } catch (e) {
     const error = e as Error;
 
-    if ('type' in error && error.type === 'IntrospectionFormatError') {
+    if (BusinessError.isOfType(error, IntrospectionFormatError)) {
       throw new BusinessError(
         `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
       );
     }
 
-    throw error;
+    throw e;
   }
 
   return agent;

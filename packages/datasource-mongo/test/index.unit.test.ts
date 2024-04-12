@@ -1,14 +1,15 @@
-import mongoose, { Connection } from 'mongoose';
+import type { Connection } from 'mongoose';
 
 import { IntrospectorParams, buildMongooseInstance, introspect } from '../src';
+import createConnection from '../src/connection/create-connection';
 import Introspector from '../src/introspection/introspector';
 import { Introspection } from '../src/introspection/types';
 import OdmBuilder from '../src/odm-builder';
 
-jest.mock('mongoose');
 jest.mock('@forestadmin/datasource-mongoose');
 jest.mock('../src/introspection/introspector');
 jest.mock('../src/odm-builder');
+jest.mock('../src/connection/create-connection');
 
 describe('DatasourceMongo', () => {
   beforeEach(() => {
@@ -23,7 +24,7 @@ describe('DatasourceMongo', () => {
       }),
       close: jest.fn(),
     };
-    jest.mocked(mongoose.createConnection).mockReturnValue(connection as unknown as Connection);
+    jest.mocked(createConnection).mockResolvedValue(connection as unknown as Connection);
 
     return { db, connection };
   }
@@ -55,7 +56,7 @@ describe('DatasourceMongo', () => {
         const result = await introspect(params);
 
         expect(result).toBe(introspection);
-        expect(mongoose.createConnection).toHaveBeenCalledWith(params.uri, params.connection);
+        expect(createConnection).toHaveBeenCalledWith(params);
         expect(Introspector.introspect).toHaveBeenCalledWith(db, params.introspection);
       });
 
@@ -124,7 +125,7 @@ describe('DatasourceMongo', () => {
       const result = await buildMongooseInstance(params, introspection);
 
       expect(result).toBe(connection);
-      expect(mongoose.createConnection).toHaveBeenCalledWith(params.uri, params.connection);
+      expect(createConnection).toHaveBeenCalledWith(params);
     });
 
     it('should not close the connection if everything went well', async () => {
@@ -205,7 +206,7 @@ describe('DatasourceMongo', () => {
 
         await buildMongooseInstance(params, introspection);
 
-        expect(mongoose.createConnection).toHaveBeenCalledWith(params.uri, params.connection);
+        expect(createConnection).toHaveBeenCalledWith(params);
         expect(OdmBuilder.defineModels).toHaveBeenCalledWith(connection, introspection.models);
       });
 
@@ -268,7 +269,7 @@ describe('DatasourceMongo', () => {
 
         await buildMongooseInstance(params);
 
-        expect(mongoose.createConnection).toHaveBeenCalledWith(params.uri, params.connection);
+        expect(createConnection).toHaveBeenCalledWith(params);
         expect(Introspector.introspect).toHaveBeenCalledWith(db, params.introspection);
         expect(OdmBuilder.defineModels).toHaveBeenCalledWith(connection, introspection.models);
       });
