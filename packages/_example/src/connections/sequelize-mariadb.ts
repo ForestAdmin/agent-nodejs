@@ -48,9 +48,4 @@ const customer = sequelize.define(
 card.belongsTo(customer);
 customer.hasMany(card);
 
-sequelize.query(`
-  CREATE VIEW active_cards AS
-  SELECT * FROM card WHERE is_active = 1
-`);
-
 export default sequelize;
