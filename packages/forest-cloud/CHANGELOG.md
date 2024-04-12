@@ -1,3 +1,24 @@
+# @forestadmin/forest-cloud [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.8.3...@forestadmin/forest-cloud@1.9.0) (2024-04-12)
+
+
+### Features
+
+* **datasource-mongo:** add support for ssh tunnelling ([#1103](https://github.com/ForestAdmin/agent-nodejs/issues/1103)) ([d518e65](https://github.com/ForestAdmin/agent-nodejs/commit/d518e6536f2329503dfbc2eef6747c02b8995b87))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.39.1
+* **@forestadmin/datasource-customizer:** upgraded to 1.44.3
+* **@forestadmin/datasource-mongo:** upgraded to 1.3.0
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.2
+* **@forestadmin/datasource-sequelize:** upgraded to 1.8.2
+* **@forestadmin/datasource-sql:** upgraded to 1.14.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.33.0
+
 ## @forestadmin/forest-cloud [1.8.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.8.2...@forestadmin/forest-cloud@1.8.3) (2024-04-11)
 
 
