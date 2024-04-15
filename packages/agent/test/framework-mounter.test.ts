@@ -26,8 +26,6 @@ describe('Builder > Agent', () => {
   describe('standalone mode', () => {
     describe('when starting the agent is a success', () => {
       it('should send a response', async () => {
-        expect.assertions(1);
-
         const mounter = new FrameworkMounter('my-api', logger);
         mounter.mountOnStandaloneServer(9997, 'localhost');
 
@@ -45,34 +43,38 @@ describe('Builder > Agent', () => {
 
     describe('when the agent is not started', () => {
       it('should throw an error', async () => {
-        expect.assertions(1);
-
         const mounter = new FrameworkMounter('my-api', logger);
         mounter.mountOnStandaloneServer(9994, 'localhost');
 
-        await expect(() => superagent.get('http://localhost:9994/my-api/forest')).rejects.toThrow();
+        await expect(() =>
+          superagent.get('http://localhost:9994/my-api/forest').timeout(100),
+        ).rejects.toThrow();
+      });
+
+      it('should not throw an error to call stop', async () => {
+        expect.assertions(0);
+        const mounter = new FrameworkMounter('my-api', logger);
+        mounter.mountOnStandaloneServer(9994, 'localhost');
+
         await mounter.stop();
       });
     });
 
     describe('when starting the agent fails', () => {
       it('should throw an error catchable', async () => {
-        expect.assertions(1);
-
         const mounter = new FrameworkMounter('my-api', logger);
         const mounter2 = new FrameworkMounter('my-api', logger);
 
         try {
-          mounter.mountOnStandaloneServer(9997, 'localhost');
-          // @ts-expect-error: testing a protected method
-          await mounter.mount(router);
-          // throw error on start by mount two servers on the same port
-          mounter2.mountOnStandaloneServer(9997, 'localhost');
-          // @ts-expect-error: testing a protected method
-          await mounter2.mount(router);
-        } catch (e) {
-          // eslint-disable-next-line jest/no-conditional-expect
-          expect(e.message).toContain('9997');
+          await expect(async () => {
+            mounter.mountOnStandaloneServer(9997, 'localhost');
+            // @ts-expect-error: testing a protected method
+            await mounter.mount(router);
+            // throw error on start by mount two servers on the same port
+            mounter2.mountOnStandaloneServer(9997, 'localhost');
+            // @ts-expect-error: testing a protected method
+            await mounter2.mount(router);
+          }).rejects.toThrow('9997');
         } finally {
           await mounter.stop();
           await mounter2.stop();
