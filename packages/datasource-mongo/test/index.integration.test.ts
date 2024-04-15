@@ -2,7 +2,12 @@ import { readFile } from 'fs/promises';
 import mongoose, { Schema } from 'mongoose';
 import path from 'path';
 
-import { Introspection, buildDisconnectedMongooseInstance, buildMongooseInstance } from '../src';
+import {
+  Introspection,
+  buildDisconnectedMongooseInstance,
+  buildMongooseInstance,
+  createMongoDataSource,
+} from '../src';
 import { ConnectionError, SshConnectError } from '../src/errors';
 
 describe('Datasource Mongo', () => {
@@ -206,6 +211,24 @@ describe('Datasource Mongo', () => {
             ),
           );
         });
+      });
+    });
+  });
+
+  describe('createMongoDataSource', () => {
+    describe('with a direct connection', () => {
+      it('should work to connect to the admin DB and flatten relationships', async () => {
+        // Bug with collections having a dot in their name
+        const factory = createMongoDataSource({
+          uri: 'mongodb://forest:secret@localhost:27017/admin?authSource=admin',
+          dataSource: {
+            flattenMode: 'auto',
+          },
+        });
+
+        const dataSource = await factory(() => {});
+
+        expect(dataSource.collections).toHaveLength(3);
       });
     });
   });
