@@ -56,21 +56,22 @@ export default class FrameworkMounter {
             'Info',
             `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
           );
+
+          this.onStop.push(async () => {
+            await new Promise<void>((resolveStop, rejectStop) => {
+              server.close((err: any) => {
+                if (err) {
+                  rejectStop(err);
+                } else {
+                  resolveStop();
+                }
+              });
+            });
+          });
+
           resolve();
         });
         server.on('error', reject);
-      });
-    });
-
-    this.onStop.push(async () => {
-      await new Promise<void>((resolve, reject) => {
-        server.close((err: any) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
       });
     });
 
