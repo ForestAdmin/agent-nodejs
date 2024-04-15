@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.9.1...@forestadmin/forest-cloud@1.9.2) (2024-04-15)
+
+
+### Bug Fixes
+
+* **security:** patch mysql2 dependency vulnerabilities ([#1108](https://github.com/ForestAdmin/agent-nodejs/issues/1108)) ([c31854b](https://github.com/ForestAdmin/agent-nodejs/commit/c31854b4c15886e8cecf7ba771cd2534cf20e54c))
+
 ## @forestadmin/forest-cloud [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.9.0...@forestadmin/forest-cloud@1.9.1) (2024-04-15)
 
 
