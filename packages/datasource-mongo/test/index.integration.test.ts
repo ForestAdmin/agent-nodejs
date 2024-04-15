@@ -220,7 +220,7 @@ describe('Datasource Mongo', () => {
       it('should work to connect to the admin DB and flatten relationships', async () => {
         // Bug with collections having a dot in their name
         const factory = createMongoDataSource({
-          uri: 'mongodb://forest:secret@localhost:27017/admin?authSource=admin',
+          uri: 'mongodb://forest:secret@127.0.0.1:27017/admin?authSource=admin',
           dataSource: {
             flattenMode: 'auto',
           },
