@@ -63,7 +63,15 @@ export default class FrameworkMounter {
     });
 
     this.onStop.push(async () => {
-      server.close();
+      await new Promise<void>((resolve, reject) => {
+        server.close((err: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
     });
 
     return this;
