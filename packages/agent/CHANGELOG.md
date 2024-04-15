@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.39.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.39.1...@forestadmin/agent@1.39.2) (2024-04-15)
+
+
+### Bug Fixes
+
+* wait the server to be closed when calling agent.close ([#1107](https://github.com/ForestAdmin/agent-nodejs/issues/1107)) ([cc44b7e](https://github.com/ForestAdmin/agent-nodejs/commit/cc44b7e90e5241dc6fa40cc21fb781ec1bbacee2))
+
 ## @forestadmin/agent [1.39.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.39.0...@forestadmin/agent@1.39.1) (2024-04-12)
 
 
