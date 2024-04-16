@@ -1,3 +1,18 @@
+## @forestadmin/datasource-mongo [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.0...@forestadmin/datasource-mongo@1.3.1) (2024-04-16)
+
+
+### Bug Fixes
+
+* **mongoose:** error when flattening collections with a dot in their name ([#1109](https://github.com/ForestAdmin/agent-nodejs/issues/1109)) ([6b803ba](https://github.com/ForestAdmin/agent-nodejs/commit/6b803ba50253712b41505e474b7bd7fc8c5ba840))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.3
+
 # @forestadmin/datasource-mongo [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.2.1...@forestadmin/datasource-mongo@1.3.0) (2024-04-12)
 
 
