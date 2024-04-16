@@ -38,7 +38,7 @@ describe('MongooseCollection', () => {
     });
   });
 
-  it("should escape collection names even qwhen they don't have a prefix", () => {
+  it("should escape collection names even when they don't have a prefix", () => {
     const mockedConnection = { models: {} } as Connection;
     const dataSource = new MongooseDatasource(mockedConnection);
 
