@@ -9,7 +9,7 @@ describe('Datasource Mongo', () => {
   describe('buildMongooseInstance', () => {
     beforeEach(async () => {
       const connection = await mongoose.createConnection(
-        'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
+        'mongodb://forest:secret@127.0.0.1:27017/movies-ssh?authSource=admin',
       );
 
       connection.dropDatabase();
@@ -29,7 +29,7 @@ describe('Datasource Mongo', () => {
       it('should connect to the database and define the models', async () => {
         const privateKey = await readFile(path.resolve(__dirname, 'ssh-config', 'id_rsa'));
         const connection = await buildMongooseInstance({
-          uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies?authSource=admin',
+          uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies-ssh?authSource=admin',
           connection: {
             ssh: {
               host: '127.0.0.1',
@@ -54,7 +54,7 @@ describe('Datasource Mongo', () => {
 
           await expect(
             buildMongooseInstance({
-              uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies?authSource=admin',
+              uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies-ssh?authSource=admin',
               connection: {
                 ssh: {
                   host: 'wrong-host',
@@ -72,7 +72,7 @@ describe('Datasource Mongo', () => {
 
           await expect(
             buildMongooseInstance({
-              uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies?authSource=admin',
+              uri: 'mongodb://forest:secret@forest_datasource_mongo_test:27017/movies-ssh?authSource=admin',
               connection: {
                 ssh: {
                   host: 'wrong-host',
@@ -91,7 +91,7 @@ describe('Datasource Mongo', () => {
           const privateKey = await readFile(path.resolve(__dirname, 'ssh-config', 'id_rsa'));
           await expect(
             buildMongooseInstance({
-              uri: 'mongodb://forest:FAKE@forest_datasource_mongo_test:27017/movies?authSource=admin',
+              uri: 'mongodb://forest:FAKE@forest_datasource_mongo_test:27017/movies-ssh?authSource=admin',
               connection: {
                 ssh: {
                   host: '127.0.0.1',
@@ -103,7 +103,7 @@ describe('Datasource Mongo', () => {
             }),
           ).rejects.toThrow(
             new ConnectionError(
-              'mongodb://forest:***@forest_datasource_mongo_test:27017/movies?authSource=admin',
+              'mongodb://forest:***@forest_datasource_mongo_test:27017/movies-ssh?authSource=admin',
               'Authentication failed.',
             ),
           );
@@ -113,7 +113,7 @@ describe('Datasource Mongo', () => {
           const privateKey = await readFile(path.resolve(__dirname, 'ssh-config', 'id_rsa'));
           await expect(
             buildMongooseInstance({
-              uri: 'mongodb://forest:secret@invalid_host:27017/movies?authSource=admin',
+              uri: 'mongodb://forest:secret@invalid_host:27017/movies-ssh?authSource=admin',
               connection: {
                 ssh: {
                   host: '127.0.0.1',
@@ -128,7 +128,7 @@ describe('Datasource Mongo', () => {
             }),
           ).rejects.toThrow(
             new ConnectionError(
-              'mongodb://forest:***@invalid_host:27017/movies?authSource=admin',
+              'mongodb://forest:***@invalid_host:27017/movies-ssh?authSource=admin',
               'Server selection timed out after 10 ms',
             ),
           );
