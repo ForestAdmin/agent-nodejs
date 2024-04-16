@@ -37,4 +37,17 @@ describe('MongooseCollection', () => {
       segments: [],
     });
   });
+
+  it("should escape collection names even when they don't have a prefix", () => {
+    const mockedConnection = { models: {} } as Connection;
+    const dataSource = new MongooseDatasource(mockedConnection);
+
+    const systemUsersModel = model('system.users', new Schema({ aField: { type: Number } }));
+
+    const mongooseCollection = new MongooseCollection(dataSource, systemUsersModel, [
+      { prefix: null, asFields: [], asModels: [] },
+    ]);
+
+    expect(mongooseCollection.name).toEqual('system_users');
+  });
 });
