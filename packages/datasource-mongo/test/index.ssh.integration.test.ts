@@ -136,4 +136,8 @@ describe('Datasource Mongo', () => {
       });
     });
   });
+
+  // Because of a bug inside the package tunnel-ssh, an error is thrown during the last test of this file.
+  // It needs to be remain the last executed test of this suite, otherwise any test added after this one
+  // will fail.
 });
