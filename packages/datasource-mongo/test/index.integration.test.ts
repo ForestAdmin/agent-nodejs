@@ -111,18 +111,38 @@ describe('Datasource Mongo', () => {
         connection.dropDatabase();
 
         try {
-          const movieSchema = new Schema({ title: String });
-          const Movie = connection.model('Movies', movieSchema);
-          await new Movie({ title: 'Inception' }).save();
+          const movieSchema = new Schema({
+            title: String,
+            actors: [{ name: String }],
+          });
+          const Movie = connection.model('Super.Movies', movieSchema);
+          await new Movie({
+            title: 'Inception',
+            actors: [
+              {
+                name: 'Leonardo DiCaprio',
+              },
+              {
+                name: 'Elliot Page',
+              },
+              {
+                name: 'Marion Cotillard',
+              },
+            ],
+          }).save();
         } finally {
           await connection.close(true);
         }
       });
 
-      it('should work to connect to the admin DB and flatten relationships', async () => {
+      afterEach(async () => {
+        await mongoose.disconnect();
+      });
+
+      it('should work to connect to the DB with collection names using dots and flatten relationships', async () => {
         // Bug with collections having a dot in their name
         const factory = createMongoDataSource({
-          uri: 'mongodb://forest:secret@127.0.0.1:27017/admin?authSource=admin',
+          uri: 'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
           dataSource: {
             flattenMode: 'auto',
           },
@@ -130,7 +150,10 @@ describe('Datasource Mongo', () => {
 
         const dataSource = await factory(() => {});
 
-        expect(dataSource.collections).toHaveLength(3);
+        expect(dataSource.collections).toHaveLength(2);
+        expect(dataSource.collections.map(c => c.name)).toEqual(
+          expect.arrayContaining(['super_movies', 'super_movies_actors']),
+        );
       });
     });
   });
