@@ -48,7 +48,7 @@
     "test": "jest",
     "test:coverage": "yarn test --coverage"
   },
-  "workspaces":  [
+  "workspaces": [
     "packages/*",
     "!packages/_example/*"
   ]
