@@ -33,16 +33,6 @@
     "superagent": "^8.0.6",
     "tedious": "^15.1.2"
   },
-  "workspaces": {
-    "nohoist": [
-      "sqlite3",
-      "mariadb",
-      "mongoose",
-      "mysql2",
-      "pg",
-      "express"
-    ]
-  },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",

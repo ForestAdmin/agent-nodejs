@@ -52,7 +52,6 @@
     "packages": [
       "packages/*",
       "!packages/_example/*"
-    ],
-    "nohoist": ["**/sqlite3"]
+    ]
   }
 }

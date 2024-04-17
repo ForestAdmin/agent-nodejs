@@ -30,10 +30,5 @@
     "croner": "^6.0.6",
     "sequelize": "^6.28.0",
     "sqlite3": "^5.1.7"
-  },
-  "workspaces": {
-    "nohoist": [
-      "sqlite3"
-    ]
   }
 }
