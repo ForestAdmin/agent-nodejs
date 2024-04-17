@@ -28,7 +28,6 @@
     "@forestadmin/datasource-sql": "1.14.0",
     "@forestadmin/datasource-toolkit": "1.33.0",
     "croner": "^6.0.6",
-    "sequelize": "^6.28.0",
-    "sqlite3": "^5.1.7"
+    "sequelize": "^6.28.0"
   }
 }
