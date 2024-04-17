@@ -6,7 +6,7 @@ describe('index', () => {
     it('should not be able to load the SQLITE3 module', () => {
       // We want to make sure that the sqlite3 module is not installed
       // even as a dev dependency for another package.
-      // eslint-disable-next-line global-require
+      // eslint-disable-next-line global-require, import/no-extraneous-dependencies
       expect(() => require('sqlite3')).toThrow();
     });
   });

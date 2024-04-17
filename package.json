@@ -48,8 +48,11 @@
     "test": "jest",
     "test:coverage": "yarn test --coverage"
   },
-  "workspaces": [
-    "packages/*",
-    "!packages/_example/*"
-  ]
+  "workspaces": {
+    "packages": [
+      "packages/*",
+      "!packages/_example/*"
+    ],
+    "nohoist": ["**/sqlite3"]
+  }
 }
