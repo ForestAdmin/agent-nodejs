@@ -60,7 +60,10 @@ export async function buildDisconnectedSequelizeInstance(
   introspection: SupportedIntrospection,
   logger: Logger,
 ): Promise<Sequelize> {
-  const options = new ConnectionOptions({ dialect: 'sqlite', sslMode: 'disabled' }, logger);
+  const options = new ConnectionOptions(
+    { dialect: 'sqlite', sslMode: 'disabled', dialectModule: {} },
+    logger,
+  );
   const sequelize = SequelizeFactory.build(await options.buildSequelizeCtorOptions());
   await buildModelsAndRelations(sequelize, logger, introspection);
 
