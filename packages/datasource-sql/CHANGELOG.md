@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.14.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.0...@forestadmin/datasource-sql@1.14.1) (2024-04-17)
+
+
+### Bug Fixes
+
+* **cloud:** error because of missing sqlite3 dependency ([#1112](https://github.com/ForestAdmin/agent-nodejs/issues/1112)) ([2f57d0c](https://github.com/ForestAdmin/agent-nodejs/commit/2f57d0c0ecb835affb7539ee118901d3095520f4))
+
 # @forestadmin/datasource-sql [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.13.1...@forestadmin/datasource-sql@1.14.0) (2024-04-12)
 
 
