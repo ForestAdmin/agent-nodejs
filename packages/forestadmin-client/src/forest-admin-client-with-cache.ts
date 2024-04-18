@@ -11,6 +11,7 @@ import { RawTree } from './permissions/types';
 import verifyAndExtractApproval from './permissions/verify-approval';
 import SchemaService from './schema';
 import { ForestSchema } from './schema/types';
+import { ForestSchemaV2 } from './schema/types-v2';
 import {
   ForestAdminAuthServiceInterface,
   ForestAdminClient,
@@ -32,7 +33,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly modelCustomizationService: ModelCustomizationService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
-  ) {}
+  ) { }
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
     return verifyAndExtractApproval(signedParameters, this.options.envSecret);
@@ -44,6 +45,10 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     return this.schemaService.postSchema(schema);
+  }
+
+  async postSchemaV2(schema: ForestSchemaV2) {
+    return this.schemaService.postSchemaV2(schema);
   }
 
   public async getScope({

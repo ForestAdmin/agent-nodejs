@@ -15,10 +15,20 @@ export type DataSourceSchema = {
 export type CollectionSchema = {
   actions: { [actionName: string]: ActionSchema };
   charts: string[];
-  countable: boolean;
   fields: { [fieldName: string]: FieldSchema };
-  searchable: boolean;
   segments: string[];
+
+  // collection capabilities
+  // it should be in the form of 'canSomething' but countable & searchable already exists
+  // because I'm lazy, I'm so sorry for 'chartable' 😅
+  listable: boolean;
+  creatable: boolean;
+  updatable: boolean;
+  deletable: boolean;
+  chartable: boolean;
+  searchable: boolean;
+  countable: boolean;
+  supportNativeQuery: boolean;
 };
 
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;

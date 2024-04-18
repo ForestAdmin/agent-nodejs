@@ -1,0 +1,1922 @@
+{
+  "collections": [
+    {
+      "name": "account",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "avatar",
+          "type": "String",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "validations": [
+            {
+              "type": "is like",
+              "value": "/^data:.*;base64,.*/",
+              "message": "Value must match /^data:.*;base64,.*/"
+            }
+          ]
+        },
+        {
+          "name": "firstname",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "lastname",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "storeId",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "name": "address",
+          "type": "OneToOne",
+          "foreignCollection": "account_address",
+          "originKey": "parentId",
+          "originKeyTarget": "_id"
+        },
+        {
+          "name": "bills",
+          "type": "OneToMany",
+          "foreignCollection": "account_bills",
+          "originKey": "parentId",
+          "originKeyTarget": "_id"
+        },
+        {
+          "name": "store",
+          "type": "ManyToOne",
+          "foreignCollection": "store",
+          "foreignKey": "storeId",
+          "foreignKeyTarget": "id"
+        }
+      ]
+    },
+    {
+      "name": "account_address",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "city",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "country",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "parentId",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "streetName",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "streetNumber",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "name": "parent",
+          "type": "ManyToOne",
+          "foreignCollection": "account",
+          "foreignKey": "parentId",
+          "foreignKeyTarget": "_id"
+        }
+      ]
+    },
+    {
+      "name": "account_bills",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {
+          "name": "issueDate",
+          "type": "Date",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Today",
+            "Yesterday",
+            "PreviousMonth",
+            "PreviousQuarter",
+            "PreviousWeek",
+            "PreviousYear",
+            "PreviousMonthToDate",
+            "PreviousQuarterToDate",
+            "PreviousWeekToDate",
+            "PreviousXDaysToDate",
+            "PreviousXDays",
+            "PreviousYearToDate",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "Before",
+            "After",
+            "AfterXHoursAgo",
+            "BeforeXHoursAgo",
+            "Future",
+            "Past"
+          ]
+        },
+        {
+          "name": "parentId",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "name": "items",
+          "type": "OneToMany",
+          "foreignCollection": "account_bills_items",
+          "originKey": "parentId",
+          "originKeyTarget": "_id"
+        },
+        {
+          "name": "parent",
+          "type": "ManyToOne",
+          "foreignCollection": "account",
+          "foreignKey": "parentId",
+          "foreignKeyTarget": "_id"
+        }
+      ]
+    },
+    {
+      "name": "account_bills_items",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {
+          "name": "importance",
+          "type": "Enum",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "enumerations": ["high", "low", "medium"]
+        },
+        {
+          "name": "parentId",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "name": "parent",
+          "type": "ManyToOne",
+          "foreignCollection": "account_bills",
+          "foreignKey": "parentId",
+          "foreignKeyTarget": "_id"
+        }
+      ]
+    },
+    {
+      "name": "active_cards",
+      "fields": [
+        {
+          "name": "card_number",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false,
+          "prefillFormValue": 1111222233334444
+        },
+        {
+          "name": "card_type",
+          "type": "Enum",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "enumerations": ["american express", "mastercard", "visa"],
+          "isWritable": false,
+          "prefillFormValue": "visa"
+        },
+        {
+          "name": "customer_id",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false,
+          "prefillFormValue": 0,
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "is_active",
+          "type": "Boolean",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "isWritable": false,
+          "prefillFormValue": false
+        }
+      ]
+    },
+    {
+      "name": "card",
+      "fields": [
+        {
+          "name": "card_number",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "prefillFormValue": 1111222233334444
+        },
+        {
+          "name": "card_type",
+          "type": "Enum",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "enumerations": ["american express", "mastercard", "visa"],
+          "prefillFormValue": "visa"
+        },
+        {
+          "name": "customer_id",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "is_active",
+          "type": "Boolean",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "prefillFormValue": false
+        }
+      ],
+      "relations": [
+        {
+          "name": "customer",
+          "type": "ManyToOne",
+          "foreignCollection": "customer",
+          "foreignKey": "customer_id",
+          "foreignKeyTarget": "id"
+        }
+      ],
+      "actions": [
+        {
+          "id": "card-0-test-file",
+          "name": "test file",
+          "scope": "global",
+          "endpoint": "/forest/_actions/card/0/test-file",
+          "isDynamicForm": true
+        }
+      ]
+    },
+    {
+      "name": "comment",
+      "fields": [
+        {"name": "body", "type": "String", "filterOperators": []},
+        {"name": "email", "type": "String", "filterOperators": []},
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": ["Equal", "Blank", "Missing", "In"]
+        },
+        {"name": "name", "type": "String", "filterOperators": []},
+        {"name": "postId", "type": "Number", "filterOperators": ["Equal", "Blank", "Missing", "In"]}
+      ],
+      "relations": [
+        {
+          "name": "post",
+          "type": "ManyToOne",
+          "foreignCollection": "post",
+          "foreignKey": "postId",
+          "foreignKeyTarget": "id"
+        }
+      ],
+      "canCreate": false,
+      "canUpdate": false,
+      "canDelete": false
+    },
+    {
+      "name": "customer",
+      "fields": [
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Today",
+            "Yesterday",
+            "PreviousMonth",
+            "PreviousQuarter",
+            "PreviousWeek",
+            "PreviousYear",
+            "PreviousMonthToDate",
+            "PreviousQuarterToDate",
+            "PreviousWeekToDate",
+            "PreviousXDaysToDate",
+            "PreviousXDays",
+            "PreviousYearToDate",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "Before",
+            "After",
+            "AfterXHoursAgo",
+            "BeforeXHoursAgo",
+            "Future",
+            "Past"
+          ]
+        },
+        {
+          "name": "firstName",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [
+            {"type": "is present", "message": "Field is required"},
+            {
+              "type": "is longer than",
+              "value": 2,
+              "message": "Value must be longer than 2 characters"
+            },
+            {
+              "type": "is shorter than",
+              "value": 13,
+              "message": "Value must be shorter than 13 characters"
+            },
+            {"type": "contains", "value": "Romain", "message": "Value must contain 'Romain'"}
+          ]
+        },
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "prefillFormValue": "customer#"
+        },
+        {
+          "name": "updatedAt",
+          "type": "Date",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Today",
+            "Yesterday",
+            "PreviousMonth",
+            "PreviousQuarter",
+            "PreviousWeek",
+            "PreviousYear",
+            "PreviousMonthToDate",
+            "PreviousQuarterToDate",
+            "PreviousWeekToDate",
+            "PreviousXDaysToDate",
+            "PreviousXDays",
+            "PreviousYearToDate",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "Before",
+            "After",
+            "AfterXHoursAgo",
+            "BeforeXHoursAgo",
+            "Future",
+            "Past"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "name": "rentals",
+          "type": "OneToMany",
+          "foreignCollection": "rental",
+          "originKey": "customerId",
+          "originKeyTarget": "id"
+        }
+      ]
+    },
+    {
+      "name": "dev_xp_members",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dvd",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "numberOfRentals",
+          "type": "Number",
+          "filterOperators": [],
+          "isWritable": false,
+          "isSortable": false
+        },
+        {
+          "name": "rentalPriceInDollar",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "storeId",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        }
+      ],
+      "relations": [
+        {
+          "name": "rentals",
+          "type": "ManyToMany",
+          "foreignCollection": "rental",
+          "throughCollection": "dvd_rental",
+          "originKey": "dvdId",
+          "originKeyTarget": "id",
+          "foreignKey": "rentalId",
+          "foreignKeyTarget": "id"
+        },
+        {
+          "name": "store",
+          "type": "ManyToOne",
+          "foreignCollection": "store",
+          "foreignKey": "storeId",
+          "foreignKeyTarget": "id"
+        }
+      ],
+      "actions": [
+        {
+          "id": "dvd-0-increase-the-rental-price",
+          "name": "Increase the rental price",
+          "scope": "bulk",
+          "endpoint": "/forest/_actions/dvd/0/increase-the-rental-price",
+          "fields": [
+            {"isRequired": true, "name": "percentage", "type": "Number", "prefillValue": 10}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dvd_rental",
+      "fields": [
+        {
+          "name": "dvdId",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {
+          "name": "rentalId",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "name": "dvd",
+          "type": "ManyToOne",
+          "foreignCollection": "dvd",
+          "foreignKey": "dvdId",
+          "foreignKeyTarget": "id"
+        },
+        {
+          "name": "rental",
+          "type": "ManyToOne",
+          "foreignCollection": "rental",
+          "foreignKey": "rentalId",
+          "foreignKeyTarget": "id"
+        }
+      ]
+    },
+    {
+      "name": "owner",
+      "fields": [
+        {
+          "name": "firstName",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {"name": "fullName", "type": "String", "filterOperators": []},
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "lastName",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        }
+      ],
+      "relations": [
+        {
+          "name": "posts",
+          "type": "OneToMany",
+          "foreignCollection": "post",
+          "originKey": "userId",
+          "originKeyTarget": "id"
+        },
+        {
+          "name": "stores",
+          "type": "OneToMany",
+          "foreignCollection": "store",
+          "originKey": "ownerId",
+          "originKeyTarget": "id"
+        }
+      ]
+    },
+    {
+      "name": "post",
+      "fields": [
+        {"name": "body", "type": "String", "filterOperators": []},
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "IncludesAll",
+            "IncludesNone",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {"name": "title", "type": "String", "filterOperators": []},
+        {"name": "userId", "type": "Number", "filterOperators": ["Equal", "Blank", "Missing", "In"]}
+      ],
+      "relations": [
+        {
+          "name": "comments",
+          "type": "OneToMany",
+          "foreignCollection": "comment",
+          "originKey": "postId",
+          "originKeyTarget": "id"
+        },
+        {
+          "name": "owner",
+          "type": "ManyToOne",
+          "foreignCollection": "owner",
+          "foreignKey": "userId",
+          "foreignKeyTarget": "id"
+        }
+      ],
+      "canCreate": false,
+      "canUpdate": false,
+      "canDelete": false
+    },
+    {
+      "name": "rental",
+      "fields": [
+        {
+          "name": "customerId",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "numberOfDays",
+          "type": "Number",
+          "filterOperators": ["GreaterThan"],
+          "isWritable": false
+        }
+      ],
+      "relations": [
+        {
+          "name": "customer",
+          "type": "ManyToOne",
+          "foreignCollection": "customer",
+          "foreignKey": "customerId",
+          "foreignKeyTarget": "id"
+        },
+        {
+          "name": "dvds",
+          "type": "ManyToMany",
+          "foreignCollection": "dvd",
+          "throughCollection": "dvd_rental",
+          "originKey": "rentalId",
+          "originKeyTarget": "id",
+          "foreignKey": "dvdId",
+          "foreignKeyTarget": "id"
+        }
+      ],
+      "segments": [{"id": "rental.More than 50 Days", "name": "More than 50 Days"}]
+    },
+    {
+      "name": "review",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "message",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "storeId",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        }
+      ],
+      "relations": [
+        {
+          "name": "store",
+          "type": "ManyToOne",
+          "foreignCollection": "store",
+          "foreignKey": "storeId",
+          "foreignKeyTarget": "id"
+        }
+      ]
+    },
+    {
+      "name": "review_owner",
+      "fields": [
+        {
+          "name": "message",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ]
+        },
+        {
+          "name": "owner_id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "review_id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        }
+      ]
+    },
+    {
+      "name": "sales",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "couponUsed",
+          "type": "Boolean",
+          "filterOperators": ["Equal", "NotEqual", "Present", "Blank", "Missing", "In", "NotIn"],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "customer@@@accountNumber",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "customer@@@age",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "customer@@@email",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "customer@@@gender",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "customer@@@satisfaction",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "purchaseMethod",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "saleDate",
+          "type": "Date",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Today",
+            "Yesterday",
+            "PreviousMonth",
+            "PreviousQuarter",
+            "PreviousWeek",
+            "PreviousYear",
+            "PreviousMonthToDate",
+            "PreviousQuarterToDate",
+            "PreviousWeekToDate",
+            "PreviousXDaysToDate",
+            "PreviousXDays",
+            "PreviousYearToDate",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "Before",
+            "After",
+            "AfterXHoursAgo",
+            "BeforeXHoursAgo",
+            "Future",
+            "Past"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "storeLocation",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        }
+      ],
+      "relations": [
+        {
+          "name": "customerAccount",
+          "type": "ManyToOne",
+          "foreignCollection": "account",
+          "foreignKey": "customer@@@accountNumber",
+          "foreignKeyTarget": "_id"
+        },
+        {
+          "name": "saleItems",
+          "type": "OneToMany",
+          "foreignCollection": "sales_saleItems",
+          "originKey": "parentId",
+          "originKeyTarget": "_id"
+        }
+      ]
+    },
+    {
+      "name": "sales_saleItems",
+      "fields": [
+        {
+          "name": "_id",
+          "type": "String",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "parentId",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "Match",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "price",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {
+          "name": "quantity",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {"name": "tags", "type": ["String"], "filterOperators": [], "isSortable": false}
+      ],
+      "relations": [
+        {
+          "name": "parent",
+          "type": "ManyToOne",
+          "foreignCollection": "sales",
+          "foreignKey": "parentId",
+          "foreignKeyTarget": "_id"
+        }
+      ]
+    },
+    {
+      "name": "store",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Number",
+          "isPrimaryKey": true,
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "isWritable": false
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "NotContains",
+            "NotIContains",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn",
+            "StartsWith",
+            "EndsWith",
+            "Contains",
+            "IStartsWith",
+            "IEndsWith",
+            "IContains",
+            "Like",
+            "ILike"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        },
+        {"name": "ownerFullName", "type": "String", "filterOperators": []},
+        {
+          "name": "ownerId",
+          "type": "Number",
+          "filterOperators": [
+            "Equal",
+            "NotEqual",
+            "LessThan",
+            "GreaterThan",
+            "Present",
+            "Blank",
+            "Missing",
+            "In",
+            "NotIn"
+          ],
+          "validations": [{"type": "is present", "message": "Field is required"}]
+        }
+      ],
+      "relations": [
+        {
+          "name": "accounts",
+          "type": "OneToMany",
+          "foreignCollection": "account",
+          "originKey": "storeId",
+          "originKeyTarget": "id"
+        },
+        {
+          "name": "dvds",
+          "type": "OneToMany",
+          "foreignCollection": "dvd",
+          "originKey": "storeId",
+          "originKeyTarget": "id"
+        },
+        {
+          "name": "owner",
+          "type": "ManyToOne",
+          "foreignCollection": "owner",
+          "foreignKey": "ownerId",
+          "foreignKeyTarget": "id"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "liana": "forest-nodejs-agent",
+    "liana_version": "1.39.2",
+    "liana_features": null,
+    "stack": {"engine": "nodejs", "engine_version": "18.14.0"}
+  }
+}

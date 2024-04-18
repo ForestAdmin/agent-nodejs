@@ -13,3 +13,4 @@ export * from '@forestadmin/datasource-customizer';
 
 // export is necessary for the agent-generator package
 export { default as SchemaGenerator } from './utils/forest-schema/generator';
+export { default as SchemaGeneratorV2 } from './utils/forest-schema/generator-v2';

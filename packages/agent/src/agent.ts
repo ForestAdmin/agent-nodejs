@@ -22,6 +22,7 @@ import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
+import SchemaGeneratorV2 from './utils/forest-schema/generator-v2';
 import OptionsValidator from './utils/options-validator';
 
 /**
@@ -215,7 +216,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const dataSource = await this.nocodeCustomizer.getDataSource(logger);
     const [router] = await Promise.all([
       this.getRouter(dataSource),
-      this.sendSchema(dataSource),
+      // this.sendSchema(dataSource),
+      this.sendSchemaV2(dataSource),
       !isProduction && typingsPath
         ? this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger)
         : Promise.resolve(),
@@ -261,5 +263,38 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Send schema to forest servers
     await this.options.forestAdminClient.postSchema({ ...schema, meta });
+  }
+
+  /**
+   * Send the schema v2 to forest admin server
+   */
+  private async sendSchemaV2(dataSource: DataSource): Promise<void> {
+    const { schemaPath, skipSchemaUpdate } = this.options;
+
+    // skipSchemaUpdate is mainly used in cloud version
+    if (skipSchemaUpdate) {
+      this.options.logger(
+        'Warn',
+        'Schema update was skipped (caused by options.skipSchemaUpdate=true)',
+      );
+
+      return;
+    }
+
+    const { meta } = SchemaGeneratorV2.buildMetadata(this.customizationService.buildFeatures());
+
+    // When using experimental no-code features even in production we need to build a new schema
+    const schema = await SchemaGeneratorV2.buildSchema(dataSource);
+
+    let pretty = stringify({ ...schema, meta }, { maxLength: 100 });
+    await writeFile(`${schemaPath.split('.json')[0]}_v2_full.json`, pretty, { encoding: 'utf-8' });
+
+    // minimizing it
+    const minimizedSchema = SchemaGeneratorV2.minimizeSchema(schema);
+    pretty = stringify({ ...minimizedSchema, meta }, { maxLength: 100 });
+    await writeFile(`${schemaPath.split('.json')[0]}_v2.json`, pretty, { encoding: 'utf-8' });
+
+    // Send schema to forest servers
+    await this.options.forestAdminClient.postSchemaV2({ ...minimizedSchema, meta });
   }
 }

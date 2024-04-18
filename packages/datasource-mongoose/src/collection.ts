@@ -42,7 +42,21 @@ export default class MongooseCollection extends BaseCollection {
     const { prefix } = stack[stack.length - 1];
     const name = escape(prefix ? `${model.modelName}.${prefix}` : model.modelName);
 
-    super(name, dataSource, { mongoose: model.base, model });
+    super(
+      name,
+      dataSource,
+      { mongoose: model.base, model },
+      {
+        canChart: true,
+        canCount: true,
+        canCreate: true,
+        canDelete: true,
+        canList: true,
+        canNativeQuery: true,
+        canSearch: true,
+        canUpdate: true,
+      },
+    );
 
     this.model = model;
     this.stack = stack;

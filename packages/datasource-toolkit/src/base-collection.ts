@@ -9,23 +9,63 @@ import Projection from './interfaces/query/projection';
 import { RecordData } from './interfaces/record';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
+export type CollectionCapabilities = {
+  canList: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canChart: boolean;
+  canCount: boolean;
+  canNativeQuery: boolean;
+  canSearch: boolean;
+};
+
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource;
   readonly name: string;
   readonly schema: CollectionSchema;
   readonly nativeDriver: unknown;
 
-  constructor(name: string, datasource: DataSource, nativeDriver: unknown = null) {
+  constructor(
+    name: string,
+    datasource: DataSource,
+    nativeDriver: unknown = null,
+    collectionCapabilitiesP: CollectionCapabilities = null,
+  ) {
     this.dataSource = datasource;
     this.name = name;
     this.nativeDriver = nativeDriver;
+
+    let collectionCapabilities = null;
+
+    if (collectionCapabilitiesP === null) {
+      collectionCapabilities = {
+        canChart: true,
+        canCount: true,
+        canCreate: true,
+        canDelete: true,
+        canList: true,
+        canNativeQuery: !!nativeDriver,
+        canSearch: true,
+        canUpdate: true,
+      };
+    } else {
+      collectionCapabilities = collectionCapabilitiesP;
+    }
+
     this.schema = {
       actions: {},
       charts: [],
-      countable: false,
       fields: {},
-      searchable: false,
       segments: [],
+      searchable: false,
+      chartable: collectionCapabilities.canChart,
+      listable: collectionCapabilities.canList,
+      creatable: collectionCapabilities.canCreate,
+      updatable: collectionCapabilities.canUpdate,
+      deletable: collectionCapabilities.canDelete,
+      countable: collectionCapabilities.canCount,
+      supportNativeQuery: collectionCapabilities.canNativeQuery,
     };
   }
 

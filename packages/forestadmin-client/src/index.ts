@@ -64,6 +64,7 @@ export default function createForestAdminClient(
 
 export * from './charts/types';
 export * from './schema/types';
+export * from './schema/types-v2';
 export * from './model-customizations/types';
 
 export { default as ContextVariablesInjector } from './utils/context-variables-injector';

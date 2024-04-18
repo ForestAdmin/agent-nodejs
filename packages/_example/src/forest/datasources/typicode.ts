@@ -18,9 +18,18 @@ import superagent from 'superagent';
 
 class TypicodeCollection extends BaseCollection {
   logger: Logger;
-
   constructor(name: string, logger: Logger) {
-    super(name, null);
+    // super(name, null); // also works
+    super(name, null, null, {
+      canChart: true,
+      canCount: true,
+      canCreate: false,
+      canDelete: false,
+      canList: true,
+      canNativeQuery: false,
+      canSearch: true,
+      canUpdate: false,
+    });
 
     this.logger = logger;
     this.enableCount();

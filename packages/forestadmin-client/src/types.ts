@@ -16,6 +16,7 @@ import {
   UserPermissionV4,
 } from './permissions/types';
 import { ForestSchema } from './schema/types';
+import { ForestSchemaV2 } from './schema/types-v2';
 import ContextVariables, { RequestContextVariables } from './utils/context-variables';
 
 export type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
@@ -56,6 +57,7 @@ export interface ForestAdminClient {
   getIpWhitelistConfiguration(): Promise<IpWhitelistConfiguration>;
 
   postSchema(schema: ForestSchema): Promise<boolean>;
+  postSchemaV2(schema: ForestSchemaV2);
 
   getScope(params: {
     renderingId: number | string;

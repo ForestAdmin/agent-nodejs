@@ -155,13 +155,19 @@ export default class ModelToCollectionSchemaConverter {
     return {
       actions: {},
       charts: [],
-      countable: true,
       fields: {
         ...this.convertAttributes(model.name, model.getAttributes(), logger),
         ...this.convertAssociations(model.name, model.associations, logger),
       },
       searchable: false,
       segments: [],
+      countable: true,
+      chartable: true,
+      creatable: true,
+      deletable: true,
+      listable: true,
+      support_native_query: false,
+      updatable: true,
     };
   }
 }

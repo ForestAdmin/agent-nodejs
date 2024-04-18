@@ -61,3 +61,5 @@ export { default as CollectionUtils } from './utils/collection';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
 export { default as Deferred } from './deferred';
+
+export { CollectionCapabilities } from './base-collection';
