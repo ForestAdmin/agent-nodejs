@@ -25,9 +25,16 @@ export default class OptionsParser {
   }
 
   private static getAutoFlattenOptions(schema: MongooseSchema): FlattenOptions {
+    const forbiddenPaths = schema.listPathsMatching((_, s) => !this.canBeFlattened(s));
+
     // Split on all arrays of objects and arrays of references.
     const asModels = schema
-      .listPathsMatching((_, s) => s.isArray && (!s.isLeaf || s.schemaNode?.options?.ref))
+      .listPathsMatching(
+        (field, s) =>
+          s.isArray &&
+          (!s.isLeaf || s.schemaNode?.options?.ref) &&
+          !forbiddenPaths.some(p => field === p || field.startsWith(`${p}.`)),
+      )
       .sort();
 
     // flatten all fields which are nested
@@ -39,10 +46,26 @@ export default class OptionsParser {
           : acc;
       }, field.split('.').length);
 
-      return !asModels.includes(field) && pathSchema.isLeaf && minDistance > 1;
+      return (
+        !asModels.includes(field) &&
+        pathSchema.isLeaf &&
+        minDistance > 1 &&
+        !forbiddenPaths.some(p => field.startsWith(`${p}.`))
+      );
     });
 
-    return { asFields, asModels };
+    return {
+      asFields,
+      asModels,
+    };
+  }
+
+  private static canBeFlattened(schema: MongooseSchema): boolean {
+    if (schema.isLeaf) return true;
+
+    const subFields = Object.keys(schema.fields);
+
+    return !subFields.includes('');
   }
 
   private static getManualFlattenOptions(

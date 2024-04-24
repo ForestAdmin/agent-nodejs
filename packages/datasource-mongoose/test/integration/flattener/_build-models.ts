@@ -1,8 +1,16 @@
 import { Schema, createConnection } from 'mongoose';
 
-export default async function setupFlattener(dbName = 'test') {
+export async function setupConnection(dbName = 'test') {
   const connectionString = 'mongodb://root:password@localhost:27019';
-  const connection = createConnection(connectionString, { dbName });
+  const connection = await createConnection(connectionString, { dbName, authSource: 'admin' });
+
+  await connection.dropDatabase();
+
+  return connection;
+}
+
+export default async function setupFlattener(dbName = 'test') {
+  const connection = await setupConnection(dbName);
 
   connection.model(
     'cars',
@@ -57,8 +65,6 @@ export default async function setupFlattener(dbName = 'test') {
       },
     }),
   );
-
-  await connection.dropDatabase();
 
   return connection;
 }

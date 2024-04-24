@@ -49,15 +49,20 @@ export default class MongooseSchema {
   ): string[] {
     if (this.isLeaf) return [];
 
-    return Object.keys(this.fields).flatMap(field => {
-      const schema = this.getSubSchema(field);
-      const subPrefix = `${prefix ? `${prefix}.` : ''}${field}`;
-      const subFields = schema
-        .listPathsMatching(handle, subPrefix)
-        .map(subField => `${field}.${subField}`);
+    return (
+      Object.keys(this.fields)
+        // Empty property names are allowed in mongoose, but cannot be supported
+        .filter(Boolean)
+        .flatMap(field => {
+          const schema = this.getSubSchema(field);
+          const subPrefix = `${prefix ? `${prefix}.` : ''}${field}`;
+          const subFields = schema
+            .listPathsMatching(handle, subPrefix)
+            .map(subField => `${field}.${subField}`);
 
-      return handle(subPrefix, schema) ? [field, ...subFields] : subFields;
-    });
+          return handle(subPrefix, schema) ? [field, ...subFields] : subFields;
+        })
+    );
   }
 
   /**
