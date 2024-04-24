@@ -6,7 +6,7 @@ import {
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import mongoose, { Connection, Schema, Types } from 'mongoose';
+import mongoose, { Connection, Schema, Types, mongo } from 'mongoose';
 
 import setupFlattener, { setupConnection } from './_build-models';
 import MongooseDatasource from '../../../src/datasource';
@@ -248,45 +248,178 @@ describe('create collection', () => {
   });
 
   describe('Auto flattening', () => {
-    beforeEach(async () => {
-      connection = await setupConnection('collection_flattener_create_auto');
-      connection.model(
-        'things',
-        new Schema({
-          _id: { type: mongoose.mongo.ObjectId, required: true },
-          props: {
-            foo: { type: String, required: true },
-            '': { type: String, required: true },
-          },
-        }),
-      );
+    describe('with flattened fields', () => {
+      beforeEach(async () => {
+        connection = await setupConnection('collection_flattener_create_auto');
+
+        connection.model(
+          'things',
+          new Schema({
+            _id: { type: mongoose.mongo.ObjectId, required: true },
+            props: {
+              foo: { type: String, required: true },
+              '': { type: String, required: true },
+            },
+          }),
+        );
+      });
+
+      it('should correctly create the datasource', async () => {
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'auto',
+        });
+
+        expect(dataSource.collections).toHaveLength(1);
+      });
+
+      it('should not flatten the property with empty string as key', async () => {
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'auto',
+        });
+
+        await connection.model('things').create({
+          _id: new mongoose.mongo.ObjectId(),
+          props: { foo: 'bar', '': 'baz' },
+        });
+
+        const [thing] = await dataSource
+          .getCollection('things')
+          .list(caller, new PaginatedFilter({}), new Projection('_id', 'props'));
+
+        expect(thing).toEqual({
+          _id: expect.any(String),
+          props: { foo: 'bar', '': 'baz' },
+        });
+      });
     });
 
-    it('should correctly create the datasource', async () => {
-      const dataSource = new MongooseDatasource(connection, {
-        flattenMode: 'auto',
+    describe('with flattened models', () => {
+      beforeEach(async () => {
+        connection = await setupConnection('collection_flattener_create_auto');
+
+        connection.model(
+          'things',
+          new Schema({
+            _id: { type: mongoose.mongo.ObjectId, required: true },
+            children: [
+              new Schema({
+                _id: { type: mongoose.mongo.ObjectId, required: true },
+                title: { type: String, required: true },
+              }),
+            ],
+          }),
+        );
       });
 
-      expect(dataSource.collections).toHaveLength(1);
+      it('should create a model for the nested collection', async () => {
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'auto',
+        });
+
+        await connection.model('things').create({
+          _id: new mongoose.mongo.ObjectId(),
+          children: [
+            { _id: new mongoose.mongo.ObjectId(), title: 'foo' },
+            { _id: new mongoose.mongo.ObjectId(), title: 'bar' },
+          ],
+        });
+
+        expect(dataSource.collections).toHaveLength(2);
+        expect(dataSource.collections.map(c => c.name)).toEqual(
+          expect.arrayContaining(['things', 'things_children']),
+        );
+      });
+
+      it('should allow to query the nested collection', async () => {
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'auto',
+        });
+
+        await connection.model('things').create({
+          _id: new mongoose.mongo.ObjectId(),
+          children: [{ _id: new mongoose.mongo.ObjectId(), title: 'foo' }],
+        });
+
+        const [child] = await dataSource
+          .getCollection('things_children')
+          .list(caller, new PaginatedFilter({}), new Projection('_id', 'title'));
+
+        expect(child).toEqual({
+          _id: expect.any(String),
+          title: 'foo',
+        });
+      });
     });
 
-    it('should not flatten the property with empty string as key', async () => {
-      const dataSource = new MongooseDatasource(connection, {
-        flattenMode: 'auto',
+    describe('with flattened models inside flattened fields in flattened models', () => {
+      beforeEach(async () => {
+        connection = await setupConnection('collection_flattener_create_auto');
+
+        connection.model(
+          'things',
+          new Schema({
+            _id: { type: mongo.ObjectId, required: true },
+            layouts: [
+              {
+                layout: {
+                  children: [
+                    {
+                      name: { type: String, required: true },
+                    },
+                  ],
+                },
+                name: { type: String, required: true },
+              },
+            ],
+          }),
+        );
       });
 
-      await connection.model('things').create({
-        _id: new mongoose.mongo.ObjectId(),
-        props: { foo: 'bar', '': 'baz' },
+      it('should create a model for the nested collections', async () => {
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'auto',
+        });
+
+        expect(dataSource.collections).toHaveLength(3);
+        expect(dataSource.collections.map(c => c.name)).toEqual(
+          expect.arrayContaining(['things', 'things_layouts', 'things_layouts_layout_children']),
+        );
       });
 
-      const [thing] = await dataSource
-        .getCollection('things')
-        .list(caller, new PaginatedFilter({}), new Projection('_id', 'props'));
+      it('should allow to query the nested collections', async () => {
+        const dataSource = new MongooseDatasource(connection, {
+          flattenMode: 'auto',
+        });
 
-      expect(thing).toEqual({
-        _id: expect.any(String),
-        props: { foo: 'bar', '': 'baz' },
+        await connection.model('things').create({
+          _id: new mongoose.mongo.ObjectId(),
+          layouts: [
+            {
+              layout: {
+                children: [{ name: 'foo' }],
+              },
+              name: 'bar',
+            },
+          ],
+        });
+
+        const [layout] = await dataSource
+          .getCollection('things_layouts')
+          .list(caller, new PaginatedFilter({}), new Projection('_id', 'name'));
+
+        expect(layout).toEqual({
+          _id: expect.any(String),
+          name: 'bar',
+        });
+
+        const [child] = await dataSource
+          .getCollection('things_layouts_layout_children')
+          .list(caller, new PaginatedFilter({}), new Projection('_id', 'name'));
+
+        expect(child).toEqual({
+          _id: expect.any(String),
+          name: 'foo',
+        });
       });
     });
   });
