@@ -68,10 +68,6 @@ export default class OptionsParser {
     return !subFields.includes('');
   }
 
-  private static isChildOf(fieldPath: string, parentPaths: string[]): boolean {
-    return parentPaths.some(p => fieldPath.startsWith(`${p}.`));
-  }
-
   private static getManualFlattenOptions(
     schema: MongooseSchema,
     options: ManualFlattenOptions,
