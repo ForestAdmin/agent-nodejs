@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.7.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.4...@forestadmin/datasource-mongoose@1.7.5) (2024-04-24)
+
+
+### Bug Fixes
+
+* **mongoose:** error when applying auto flattening on deeply nested collections ([#1114](https://github.com/ForestAdmin/agent-nodejs/issues/1114)) ([426a6ae](https://github.com/ForestAdmin/agent-nodejs/commit/426a6aec84da3e9b4b25d5e951dece91fbe6806a))
+
 ## @forestadmin/datasource-mongoose [1.7.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.3...@forestadmin/datasource-mongoose@1.7.4) (2024-04-24)
 
 
