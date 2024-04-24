@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.7.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.3...@forestadmin/datasource-mongoose@1.7.4) (2024-04-24)
+
+
+### Bug Fixes
+
+* **mongoose:** max call stack size error when using auto flattening with empty property names ([#1113](https://github.com/ForestAdmin/agent-nodejs/issues/1113)) ([ae096d1](https://github.com/ForestAdmin/agent-nodejs/commit/ae096d1c3dd4935fa5e22d80de3672159c64fbb5))
+
 ## @forestadmin/datasource-mongoose [1.7.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.2...@forestadmin/datasource-mongoose@1.7.3) (2024-04-16)
 
 
