@@ -50,10 +50,12 @@ export function recursiveDelete(target: any, path: string): void {
     const prefix = path.substring(0, index);
     const suffix = path.substring(index + 1);
 
-    recursiveDelete(target[prefix], suffix);
+    if (Object.prototype.hasOwnProperty.call(target, prefix)) {
+      recursiveDelete(target[prefix], suffix);
 
-    if (Object.keys(target[prefix]).length === 0) {
-      delete target[prefix];
+      if (Object.keys(target[prefix]).length === 0) {
+        delete target[prefix];
+      }
     }
   } else {
     delete target[path];
