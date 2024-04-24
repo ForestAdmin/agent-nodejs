@@ -10,7 +10,6 @@ import mongoose, { Connection, Schema, Types } from 'mongoose';
 
 import setupFlattener, { setupConnection } from './_build-models';
 import MongooseDatasource from '../../../src/datasource';
-import ProjectionGenerator from '../../../src/utils/pipeline/projection';
 
 describe('create collection', () => {
   const caller = factories.caller.build();
