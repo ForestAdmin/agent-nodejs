@@ -32,6 +32,35 @@ export default class FilterGenerator {
     return pipeline;
   }
 
+  static listRelationsUsedInFilter(filter: PaginatedFilter): Set<string> {
+    const fields = new Set<string>();
+
+    if (filter?.sort) {
+      filter.sort.forEach(s => {
+        this.listPaths(s.field).forEach(field => fields.add(field));
+      });
+    }
+
+    this.listFieldsUsedInFilterTree(filter?.conditionTree, fields);
+
+    return fields;
+  }
+
+  private static listFieldsUsedInFilterTree(tree: ConditionTree, fields: Set<string>) {
+    if (tree instanceof ConditionTreeBranch) {
+      tree.conditions.forEach(condition => this.listFieldsUsedInFilterTree(condition, fields));
+    } else if (tree instanceof ConditionTreeLeaf && tree.field.includes(':')) {
+      this.listPaths(tree.field).forEach(field => fields.add(field));
+    }
+  }
+
+  private static listPaths(field: string): string[] {
+    const parts = field.split(':');
+    const parentPaths = parts.slice(0, -1).map((_, index) => parts.slice(0, index + 1).join('.'));
+
+    return parentPaths;
+  }
+
   private static computeMatch(
     model: Model<unknown>,
     stack: Stack,

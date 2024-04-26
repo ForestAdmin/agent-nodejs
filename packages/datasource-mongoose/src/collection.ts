@@ -300,11 +300,22 @@ export default class MongooseCollection extends BaseCollection {
     filter: PaginatedFilter,
     lookupProjection: Projection,
   ): PipelineStage[] {
+    const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
+
     return [
       ...ReparentGenerator.reparent(this.model, this.stack),
       ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
-      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection),
+      // For performance reasons, we want to only include the relationships that are used in filters
+      // before applying the filters
+      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection, {
+        include: fieldsUsedInFilters,
+      }),
       ...FilterGenerator.filter(this.model, this.stack, filter),
+      // Here are the remaining relationships that are not used in filters. For performance reasons
+      // they are computed after the filters.
+      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection, {
+        exclude: fieldsUsedInFilters,
+      }),
     ];
   }
 

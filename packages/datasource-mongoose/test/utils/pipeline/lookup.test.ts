@@ -57,28 +57,28 @@ describe('LookupGenerator', () => {
 
     it('should crash when non-existent relations are asked for', () => {
       const projection = new Projection('myAuthor:firstname');
-      const generator = () => LookupGenerator.lookup(books, stack, projection);
+      const generator = () => LookupGenerator.lookup(books, stack, projection, {});
 
       expect(generator).toThrow("Unexpected relation: 'myAuthor'");
     });
 
     it('should do nothing with projection that only contains columns', () => {
       const projection = new Projection('title');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([]);
     });
 
     it('should do nothing with projection that only contains fake relations', () => {
       const projection = new Projection('author:firstname');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([]);
     });
 
     it('should load the editor (relation)', () => {
       const projection = new Projection('editor__manyToOne:firstname');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -95,7 +95,7 @@ describe('LookupGenerator', () => {
 
     it('should load the editor (relation) with nested fields', () => {
       const projection = new Projection('editor__manyToOne:address@@@city');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -115,9 +115,79 @@ describe('LookupGenerator', () => {
       ]);
     });
 
+    describe('include', () => {
+      it('should return the nested field if the parent is included', () => {
+        const projection = new Projection('editor__manyToOne:address@@@city');
+        const pipeline = LookupGenerator.lookup(books, stack, projection, {
+          include: new Set(['editor__manyToOne']),
+        });
+
+        expect(pipeline).toStrictEqual([
+          {
+            $lookup: {
+              as: 'editor__manyToOne',
+              foreignField: '_id',
+              from: 'editors',
+              localField: 'editor',
+            },
+          },
+          { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
+          {
+            $addFields: {
+              'editor__manyToOne.address@@@city': '$editor__manyToOne.address.city',
+            },
+          },
+        ]);
+      });
+
+      it('should not add the nested field ifthe parent is not included', () => {
+        const projection = new Projection('editor__manyToOne:address@@@city');
+        const pipeline = LookupGenerator.lookup(books, stack, projection, {
+          include: new Set([]),
+        });
+
+        expect(pipeline).toStrictEqual([]);
+      });
+    });
+
+    describe('exclude', () => {
+      it('should not add the nested field if the parent is excluded', () => {
+        const projection = new Projection('editor__manyToOne:address@@@city');
+        const pipeline = LookupGenerator.lookup(books, stack, projection, {
+          exclude: new Set(['editor__manyToOne']),
+        });
+
+        expect(pipeline).toStrictEqual([]);
+      });
+
+      it('should return the nested field if the parent is not excluded', () => {
+        const projection = new Projection('editor__manyToOne:address@@@city');
+        const pipeline = LookupGenerator.lookup(books, stack, projection, {
+          exclude: new Set([]),
+        });
+
+        expect(pipeline).toStrictEqual([
+          {
+            $lookup: {
+              as: 'editor__manyToOne',
+              foreignField: '_id',
+              from: 'editors',
+              localField: 'editor',
+            },
+          },
+          { $unwind: { path: '$editor__manyToOne', preserveNullAndEmptyArrays: true } },
+          {
+            $addFields: {
+              'editor__manyToOne.address@@@city': '$editor__manyToOne.address.city',
+            },
+          },
+        ]);
+      });
+    });
+
     it('should load the editor (relation) with doubly nested fields', () => {
       const projection = new Projection('editor__manyToOne:address@@@meta@@@length');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -139,7 +209,7 @@ describe('LookupGenerator', () => {
 
     it('should load the editor country capital (double relation with nested field)', () => {
       const projection = new Projection('editor__manyToOne:country__manyToOne:meta@@@capital');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -188,7 +258,7 @@ describe('LookupGenerator', () => {
       const projection = new Projection(
         'editor__manyToOne:country__manyToOne:meta@@@meta@@@length',
       );
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -235,7 +305,7 @@ describe('LookupGenerator', () => {
 
     it('should load the author country (relation within fake relation)', () => {
       const projection = new Projection('author:country__manyToOne:name');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -257,7 +327,7 @@ describe('LookupGenerator', () => {
 
     it('should load the editor country (nested relation)', () => {
       const projection = new Projection('editor__manyToOne:country__manyToOne:name');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -295,7 +365,7 @@ describe('LookupGenerator', () => {
 
     it('should load the author country (relation)', () => {
       const projection = new Projection('country__manyToOne:firstname');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
@@ -312,7 +382,7 @@ describe('LookupGenerator', () => {
 
     it('should load the editor (relation within fake relation)', () => {
       const projection = new Projection('parent:editor__manyToOne:firstname');
-      const pipeline = LookupGenerator.lookup(books, stack, projection);
+      const pipeline = LookupGenerator.lookup(books, stack, projection, {});
 
       expect(pipeline).toStrictEqual([
         {
