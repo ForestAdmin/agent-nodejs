@@ -227,4 +227,66 @@ describe('MongooseCollection', () => {
       },
     ]);
   });
+
+  it('should sort by nested relation', async () => {
+    connection = await setupWithManyToOneRelation('collection_m2o_list');
+    const dataSource = new MongooseDatasource(connection);
+    const store = dataSource.getCollection('store');
+    const owner = dataSource.getCollection('owner');
+    const address = dataSource.getCollection('address');
+
+    const addressRecordA = { _id: new Types.ObjectId().toString(), name: 'A' };
+    const addressRecordB = { _id: new Types.ObjectId().toString(), name: 'B' };
+    await address.create(factories.caller.build(), [addressRecordA, addressRecordB]);
+
+    const storeRecordA = {
+      _id: new Types.ObjectId().toString(),
+      name: 'A',
+      addressId: addressRecordA._id,
+    };
+    const storeRecordB = {
+      _id: new Types.ObjectId().toString(),
+      name: 'B',
+      addressId: addressRecordB._id,
+    };
+    await store.create(factories.caller.build(), [storeRecordA, storeRecordB]);
+
+    const ownerRecordA = {
+      _id: new Types.ObjectId().toString(),
+      storeId: storeRecordA._id,
+      name: 'owner with the store address A',
+    };
+    const ownerRecordB = {
+      _id: new Types.ObjectId().toString(),
+      storeId: storeRecordB._id,
+      name: 'owner with the store address B',
+    };
+    await owner.create(factories.caller.build(), [ownerRecordA, ownerRecordB]);
+
+    const expectedOwner = await owner.list(
+      factories.caller.build(),
+      factories.filter.build({
+        sort: new Sort({ field: 'storeId__manyToOne:addressId__manyToOne:name', ascending: false }),
+      }),
+      new Projection(
+        '_id',
+        'storeId',
+        'name',
+        'storeId__manyToOne:_id',
+        'storeId__manyToOne:name',
+        'storeId__manyToOne:addressId',
+        'storeId__manyToOne:addressId__manyToOne:_id',
+        'storeId__manyToOne:addressId__manyToOne:name',
+      ),
+    );
+
+    expect(expectedOwner).toEqual([
+      expect.objectContaining({
+        name: 'owner with the store address B',
+      }),
+      expect.objectContaining({
+        name: 'owner with the store address A',
+      }),
+    ]);
+  });
 });

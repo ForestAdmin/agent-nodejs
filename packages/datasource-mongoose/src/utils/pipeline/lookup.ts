@@ -4,12 +4,22 @@ import { Model, PipelineStage } from 'mongoose';
 import MongooseSchema, { SchemaNode } from '../../mongoose/schema';
 import { Stack } from '../../types';
 
+export type LookupOptions = {
+  include?: Set<string>;
+  exclude?: Set<string>;
+};
+
 /**
  * Transform a forest admin projection into a mongo pipeline that performs the lookups
  * and transformations to target them
  */
 export default class LookupGenerator {
-  static lookup(model: Model<unknown>, stack: Stack, projection: Projection): PipelineStage[] {
+  static lookup(
+    model: Model<unknown>,
+    stack: Stack,
+    projection: Projection,
+    options: LookupOptions,
+  ): PipelineStage[] {
     const schemaStack = stack.reduce(
       (acc, _, index) => {
         return [
@@ -25,6 +35,7 @@ export default class LookupGenerator {
       null,
       schemaStack.map(s => s.fields),
       projection,
+      options,
     );
   }
 
@@ -33,13 +44,16 @@ export default class LookupGenerator {
     currentPath: string,
     schemaStack: SchemaNode[],
     projection: Projection,
+    options: LookupOptions,
   ): PipelineStage[] {
     const pipeline = [];
     const $addFields = {};
 
     for (const [name, subProjection] of Object.entries(projection.relations)) {
-      pipeline.push(...this.lookupRelation(models, currentPath, schemaStack, name, subProjection));
-      Object.assign($addFields, this.addFields(name, subProjection));
+      pipeline.push(
+        ...this.lookupRelation(models, currentPath, schemaStack, name, subProjection, options),
+      );
+      Object.assign($addFields, this.addFields(name, subProjection, options));
     }
 
     if (Object.keys($addFields).length) pipeline.push({ $addFields });
@@ -50,7 +64,14 @@ export default class LookupGenerator {
   /**
    * $addFields aliases are needed in the case of relations with nested fields
    */
-  private static addFields(name: string, subProjection: Projection): Record<string, string> {
+  private static addFields(
+    name: string,
+    subProjection: Projection,
+    options: LookupOptions,
+  ): Record<string, string> {
+    if (options.include && !options.include.has(name)) return {};
+    if (options.exclude?.has(name)) return {};
+
     return subProjection
       .filter(field => field.includes('@@@'))
       .map(fieldName => `${name}.${fieldName.replace(/:/, '.')}`)
@@ -67,11 +88,15 @@ export default class LookupGenerator {
     schemaStack: SchemaNode[],
     name: string,
     subProjection: Projection,
+    options: LookupOptions,
   ): PipelineStage[] {
     const as = currentPath ? `${currentPath}.${name}` : name;
 
     const lastSchema = schemaStack[schemaStack.length - 1];
     const previousSchemas = schemaStack.slice(0, schemaStack.length - 1);
+
+    if (options.exclude?.has(as)) return [];
+    if (options.include && !options.include.has(as)) return [];
 
     // Native many to one relation
     if (name.endsWith('__manyToOne')) {
@@ -90,18 +115,24 @@ export default class LookupGenerator {
         { $unwind: { path: `$${as}`, preserveNullAndEmptyArrays: true } },
 
         // Recurse to get relations of relations
-        ...this.lookupProjection(models, as, [...schemaStack, subSchema], subProjection),
+        ...this.lookupProjection(models, as, [...schemaStack, subSchema], subProjection, options),
       ];
     }
 
     // Inverse of fake relation
     if (name === 'parent' && previousSchemas.length) {
-      return this.lookupProjection(models, as, previousSchemas, subProjection);
+      return this.lookupProjection(models, as, previousSchemas, subProjection, options);
     }
 
     // Fake relation
     if (lastSchema[name]) {
-      return this.lookupProjection(models, as, [...schemaStack, lastSchema[name]], subProjection);
+      return this.lookupProjection(
+        models,
+        as,
+        [...schemaStack, lastSchema[name]],
+        subProjection,
+        options,
+      );
     }
 
     // We should have handled all possible cases.
