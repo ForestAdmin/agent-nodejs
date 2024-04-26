@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.7.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.5...@forestadmin/datasource-mongoose@1.7.6) (2024-04-26)
+
+
+### Performance Improvements
+
+* **mongoose:** speed up queries with relationships by filtering before retrieving relations ([#1116](https://github.com/ForestAdmin/agent-nodejs/issues/1116)) ([ff0bfc9](https://github.com/ForestAdmin/agent-nodejs/commit/ff0bfc99d3e8952851b3901fa63c86e1f0615ac1))
+
 ## @forestadmin/datasource-mongoose [1.7.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.4...@forestadmin/datasource-mongoose@1.7.5) (2024-04-24)
 
 
