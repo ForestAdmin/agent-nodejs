@@ -303,8 +303,9 @@ export default class MongooseCollection extends BaseCollection {
     return [
       ...ReparentGenerator.reparent(this.model, this.stack),
       ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
-      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection),
+      // Filter should occur before lookup for performance reasons (otherwise we are retrieving relationships that will be filtered out anyway)
       ...FilterGenerator.filter(this.model, this.stack, filter),
+      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection),
     ];
   }
 
