@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.39.2...@forestadmin/agent@1.40.0) (2024-04-29)
+
+
+### Features
+
+* **agent:** allow parsing multiple sorting fields ([#1117](https://github.com/ForestAdmin/agent-nodejs/issues/1117)) ([e1cd78b](https://github.com/ForestAdmin/agent-nodejs/commit/e1cd78b0c4fe567d15fe8b0670917dbd936a7bf7))
+
 ## @forestadmin/agent [1.39.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.39.1...@forestadmin/agent@1.39.2) (2024-04-15)
 
 
