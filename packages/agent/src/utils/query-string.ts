@@ -183,10 +183,12 @@ export default class QueryStringParser {
     try {
       if (!sortString) return SortFactory.byPrimaryKeys(collection);
 
-      const sort = new Sort({
-        field: sortString.replace(/^-/, '').replace('.', ':'),
-        ascending: !sortString.startsWith('-'),
-      });
+      const sort = new Sort(
+        ...sortString.split(',').map((sortChunk: string) => ({
+          field: sortChunk.replace(/^-/, '').replace('.', ':'),
+          ascending: !sortChunk.startsWith('-'),
+        })),
+      );
 
       SortValidator.validate(collection, sort);
 

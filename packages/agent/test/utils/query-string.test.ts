@@ -518,5 +518,32 @@ describe('QueryStringParser', () => {
 
       expect(fn).toThrow('Invalid sort: -fieldThatDoNotExist');
     });
+
+    describe('when sending multiple sort', () => {
+      test('should return the sort clauses', () => {
+        const context = createMockContext({
+          customProperties: { query: { sort: 'name,-id' } },
+        });
+
+        const sort = QueryStringParser.parseSort(collectionSimple, context);
+
+        expect(sort).toEqual([
+          { field: 'name', ascending: true },
+          { field: 'id', ascending: false },
+        ]);
+      });
+
+      describe('when one of the sorting field is invalid', () => {
+        it('should throw a ValidationError', () => {
+          const context = createMockContext({
+            customProperties: { query: { sort: 'name,-fieldThatDoesNotExist' } },
+          });
+
+          const fn = () => QueryStringParser.parseSort(collectionSimple, context);
+
+          expect(fn).toThrow('Invalid sort: name,-fieldThatDoesNotExist');
+        });
+      });
+    });
   });
 });
