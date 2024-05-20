@@ -71,7 +71,8 @@ export { default as ContextVariables } from './utils/context-variables';
 export { default as ChartHandler } from './charts/chart-handler';
 export { default as ForestAdminClientWithCache } from './forest-admin-client-with-cache';
 export { default as buildApplicationServices } from './build-application-services';
-
+export { HttpOptions } from './permissions/forest-http-api';
+export { default as ForestHttpApi } from './permissions/forest-http-api';
 // export is necessary for the agent-generator package
 export { default as SchemaService } from './schema';
 
