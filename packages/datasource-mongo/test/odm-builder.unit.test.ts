@@ -1,19 +1,19 @@
-import { Connection } from 'mongoose';
+import { Connection, Schema } from 'mongoose';
 
 import { ModelDefinition } from '../src/introspection/types';
 import OrmBuilder from '../src/odm-builder/index';
 
 jest.mock('mongoose', () => {
-  const Schema = jest.fn().mockImplementation(arg => arg);
+  const SchemaMocked = jest.fn().mockImplementation(arg => arg);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (Schema as any).Types = {
+  (SchemaMocked as any).Types = {
     Mixed: Symbol('Mixed'),
     ObjectId: Symbol('ObjectId'),
     Binary: Symbol('Binary'),
   };
 
-  return { Schema };
+  return { Schema: SchemaMocked };
 });
 
 describe('odm builder', () => {
@@ -51,15 +51,15 @@ describe('odm builder', () => {
       expect(connection.model).toHaveBeenCalledWith(
         'books',
         {
-          _id: { required: true, type: String },
-          author: { required: true, type: String, ref: 'authors' },
-          tags: [{ required: true, type: String }],
+          _id: { required: true, type: String, auto: false },
+          author: { required: true, type: String, ref: 'authors', auto: false },
+          tags: [{ required: true, type: String, auto: false }],
         },
         'books',
       );
       expect(connection.model).toHaveBeenCalledWith(
         'authors',
-        { _id: { required: true, type: String } },
+        { _id: { required: true, type: String, auto: false } },
         'authors',
       );
     });
@@ -85,8 +85,8 @@ describe('odm builder', () => {
       expect(connection.model).toHaveBeenCalledWith(
         'books',
         {
-          _id: { required: true, type: String },
-          title: { required: false, type: String },
+          _id: { required: true, type: String, auto: false },
+          title: { required: false, type: String, auto: false },
         },
         'books',
       );
@@ -117,8 +117,8 @@ describe('odm builder', () => {
       expect(connection.model).toHaveBeenCalledWith(
         'books',
         {
-          _id: { required: true, type: String },
-          tags: [{ required: true, type: String }],
+          _id: { required: true, type: String, auto: false },
+          tags: [{ required: true, type: String, auto: false }],
         },
         'books',
       );
@@ -152,13 +152,130 @@ describe('odm builder', () => {
       expect(connection.model).toHaveBeenCalledWith(
         'books',
         {
-          _id: { required: true, type: String },
+          _id: { required: true, type: String, auto: false },
           details: {
-            title: { required: true, type: String },
-            pages: { required: true, type: Number },
+            title: { required: true, type: String, auto: false },
+            pages: { required: true, type: Number, auto: false },
           },
         },
         'books',
+      );
+    });
+  });
+
+  describe('with ids', () => {
+    it('should declare the field as auto and not required', () => {
+      const connection = { model: jest.fn() } as unknown as Connection;
+      const books: ModelDefinition = {
+        name: 'books',
+        analysis: {
+          type: 'object',
+          nullable: false,
+          object: {
+            _id: { type: 'ObjectId', nullable: false },
+            title: { type: 'string', nullable: false },
+          },
+        },
+      };
+
+      OrmBuilder.defineModels(connection, [books]);
+
+      expect(connection.model).toHaveBeenCalledWith(
+        'books',
+        {
+          _id: { required: false, type: Schema.Types.ObjectId, auto: true },
+          title: { required: true, type: String, auto: false },
+        },
+        'books',
+      );
+    });
+
+    it('should declare the field as required and not auto if the type is not objectId', () => {
+      const connection = { model: jest.fn() } as unknown as Connection;
+      const books: ModelDefinition = {
+        name: 'books',
+        analysis: {
+          type: 'object',
+          nullable: false,
+          object: {
+            _id: { type: 'string', nullable: false },
+            title: { type: 'string', nullable: false },
+          },
+        },
+      };
+
+      OrmBuilder.defineModels(connection, [books]);
+
+      expect(connection.model).toHaveBeenCalledWith(
+        'books',
+        {
+          _id: { required: true, type: String, auto: false },
+          title: { required: true, type: String, auto: false },
+        },
+        'books',
+      );
+    });
+  });
+
+  describe('with __v', () => {
+    it('should not declare the __v field', () => {
+      const connection = { model: jest.fn() } as unknown as Connection;
+      const books: ModelDefinition = {
+        name: 'books',
+        analysis: {
+          type: 'object',
+          nullable: false,
+          object: {
+            _id: { type: 'string', nullable: false },
+            __v: { type: 'number', nullable: false },
+          },
+        },
+      };
+
+      OrmBuilder.defineModels(connection, [books]);
+
+      expect(connection.model).toHaveBeenCalledWith(
+        'books',
+        {
+          _id: { required: true, type: String, auto: false },
+        },
+        'books',
+      );
+      expect(Schema).toHaveBeenCalledWith(
+        { _id: { required: true, type: String, auto: false } },
+        {
+          versionKey: '__v',
+        },
+      );
+    });
+
+    it('should not use the versionKey if __v is not present', () => {
+      const connection = { model: jest.fn() } as unknown as Connection;
+      const books: ModelDefinition = {
+        name: 'books',
+        analysis: {
+          type: 'object',
+          nullable: false,
+          object: {
+            _id: { type: 'string', nullable: false },
+          },
+        },
+      };
+
+      OrmBuilder.defineModels(connection, [books]);
+
+      expect(connection.model).toHaveBeenCalledWith(
+        'books',
+        {
+          _id: { required: true, type: String, auto: false },
+        },
+        'books',
+      );
+      expect(Schema).toHaveBeenCalledWith(
+        { _id: { required: true, type: String, auto: false } },
+        {
+          versionKey: false,
+        },
       );
     });
   });
