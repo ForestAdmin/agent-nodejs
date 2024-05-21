@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongo [1.3.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.4...@forestadmin/datasource-mongo@1.3.5) (2024-05-21)
+
+
+### Bug Fixes
+
+* **datasource-mongo:** validation error when creating a new record, due to _id and __v being required ([#1122](https://github.com/ForestAdmin/agent-nodejs/issues/1122)) ([9fe9207](https://github.com/ForestAdmin/agent-nodejs/commit/9fe9207abbabe702f5e6d4b03bf1fb42b82bf752))
+
 ## @forestadmin/datasource-mongo [1.3.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.3...@forestadmin/datasource-mongo@1.3.4) (2024-04-26)
 
 
