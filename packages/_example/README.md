@@ -11,9 +11,9 @@ This package serves as an example agent for Forest Admin. Its purpose is to demo
    Clone the whole repository and navigate into the `agent-nodejs` directory. Run the following commands to install all dependencies and auto-link all packages:
 
     ```bash
-    yarn && yarn bootstrap
+    yarn
     ```
-    
+
     Start building the project and watch for changes:
 
     ```bash
@@ -21,7 +21,7 @@ This package serves as an example agent for Forest Admin. Its purpose is to demo
     ```
 
    Then, navigate to the `_example` directory:
-   
+
     ```bash
     cd packages/_example
     ```
@@ -41,7 +41,7 @@ This package serves as an example agent for Forest Admin. Its purpose is to demo
 
 3. **Configure the Agent**
 
-   Create a copy of the `.env.example` file and rename it to `.env`. Configure the agent by providing necessary credentials in the `.env` file.
+   Create a copy of the `.env.example` file and rename it to `.env`. Configure the agent by providing the necessary credentials in the `.env` file.
 
 ## Running the Agent
 
