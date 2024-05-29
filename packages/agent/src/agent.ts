@@ -35,10 +35,10 @@ import OptionsValidator from './utils/options-validator';
  *  .start();
  */
 export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter {
-  private options: AgentOptionsWithDefaults;
-  private customizer: DataSourceCustomizer<S>;
-  private nocodeCustomizer: DataSourceCustomizer<S>;
-  private customizationService: CustomizationService;
+  protected options: AgentOptionsWithDefaults;
+  protected customizer: DataSourceCustomizer<S>;
+  protected nocodeCustomizer: DataSourceCustomizer<S>;
+  protected customizationService: CustomizationService;
 
   /**
    * Create a new Agent Builder.
@@ -189,7 +189,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Create an http handler which can respond to all queries which are expected from an agent.
    */
-  private async getRouter(dataSource: DataSource): Promise<Router> {
+  protected async getRouter(dataSource: DataSource): Promise<Router> {
     // Bootstrap app
     const services = makeServices(this.options);
     const routes = makeRoutes(dataSource, this.options, services);
@@ -204,7 +204,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return router;
   }
 
-  private async buildRouterAndSendSchema(): Promise<Router> {
+  protected async buildRouterAndSendSchema(): Promise<Router> {
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations
