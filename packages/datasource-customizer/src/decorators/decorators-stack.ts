@@ -18,6 +18,7 @@ import SegmentCollectionDecorator from './segment/collection';
 import SortEmulateCollectionDecorator from './sort-emulate/collection';
 import ValidationCollectionDecorator from './validation/collection';
 import WriteDataSourceDecorator from './write/datasource';
+import { MissingCollectionError } from '../errors';
 
 export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
@@ -96,13 +97,21 @@ export default class DecoratorsStack {
    * This method will be called recursively and clears the queue at each recursion to ensure
    * that all customizations are applied in the right order.
    */
-  async applyQueuedCustomizations(logger: Logger): Promise<void> {
+  async applyQueuedCustomizations(logger: Logger, isProduction = false): Promise<void> {
     const queuedCustomizations = this.customizations.slice();
     this.customizations.length = 0;
 
     while (queuedCustomizations.length) {
-      await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
-      await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
+      try {
+        await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
+        await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
+      } catch (e) {
+        if (e instanceof MissingCollectionError && isProduction) {
+          logger('Warn', e.message);
+        } else {
+          throw e;
+        }
+      }
     }
   }
 }
