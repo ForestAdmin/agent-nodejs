@@ -212,7 +212,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
-    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+    const dataSource = await this.nocodeCustomizer.getDataSource(logger, isProduction);
     const [router] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),

@@ -6,6 +6,8 @@ import {
   DataSourceSchema,
 } from '@forestadmin/datasource-toolkit';
 
+import { MissingCollectionError } from '../errors';
+
 export default class CompositeDatasource<T extends Collection = Collection>
   implements DataSource<T>
 {
@@ -28,7 +30,7 @@ export default class CompositeDatasource<T extends Collection = Collection>
       }
     }
 
-    throw new Error(
+    throw new MissingCollectionError(
       `Collection '${name}' not found. List of available collections: ${this.collections
         .map(c => c.name)
         .sort()

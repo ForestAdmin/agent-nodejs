@@ -167,14 +167,14 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     return this;
   }
 
-  async getDataSource(logger: Logger): Promise<DataSource> {
-    await this.stack.applyQueuedCustomizations(logger);
+  async getDataSource(logger: Logger, isProduction = false): Promise<DataSource> {
+    await this.stack.applyQueuedCustomizations(logger, isProduction);
 
     return this.stack.dataSource;
   }
 
   getFactory(): DataSourceFactory {
-    return async (logger: Logger) => this.getDataSource(logger);
+    return async (logger: Logger, isProduction = false) => this.getDataSource(logger, isProduction);
   }
 
   async updateTypesOnFileSystem(
