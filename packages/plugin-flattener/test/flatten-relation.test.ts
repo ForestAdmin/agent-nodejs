@@ -1,6 +1,7 @@
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { ColumnSchema } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+import { MissingFieldError } from '@forestadmin/datasource-toolkit/src';
 
 import flattenRelation from '../src/flatten-relation';
 
@@ -249,7 +250,7 @@ describe('flattenRelation', () => {
               book.use(flattenRelation, { relationName: 'owner', include: ['doesNotExist'] }),
             )
             .getDataSource(logger),
-        ).rejects.toThrow('Field doesNotExist not found in collection owner');
+        ).rejects.toThrow(new MissingFieldError('doesNotExist', 'owner'));
       });
     });
   });
