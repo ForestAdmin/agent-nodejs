@@ -3,6 +3,7 @@ import {
   ColumnSchema,
   DataSource,
   DataSourceDecorator,
+  MissingFieldError,
   Page,
   PaginatedFilter,
   Projection,
@@ -94,7 +95,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   test('emulateFieldSorting() should throw if the field does not exists', () => {
     expect(() => newBooks.emulateFieldSorting('__dontExist')).toThrow(
-      "Column not found: 'books.__dontExist'",
+      new MissingFieldError('__dontExist', 'books'),
     );
   });
 
