@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import { ColumnSchema, ConditionTreeLeaf, Sort } from '@forestadmin/datasource-toolkit';
+import {
+  ColumnSchema,
+  ConditionTreeLeaf,
+  MissingFieldError,
+  Sort,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import {
@@ -323,7 +328,7 @@ describe('Builder > Collection', () => {
 
         customizer.importField('translatorName', { path: 'doesNotExistPath' });
         await expect(dsc.getDataSource(logger)).rejects.toThrow(
-          'Field doesNotExistPath not found in collection authors',
+          new MissingFieldError('doesNotExistPath', 'authors'),
         );
       });
     });
