@@ -4,6 +4,7 @@ import {
   ConditionTreeLeaf,
   DataSource,
   DataSourceDecorator,
+  MissingFieldError,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -115,7 +116,7 @@ describe('OperatorsEmulateCollectionDecorator', () => {
 
     test('emulateFieldOperator() should throw if the field does not exists', () => {
       expect(() => newBooks.emulateFieldOperator('__dontExist', 'Equal')).toThrow(
-        "Column not found: 'books.__dontExist'",
+        new MissingFieldError('__dontExist', 'books'),
       );
     });
 
