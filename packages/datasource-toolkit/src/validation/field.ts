@@ -1,6 +1,6 @@
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { ValidationError } from '../errors';
+import { MissingFieldError, ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 
@@ -12,7 +12,7 @@ export default class FieldValidator {
       const schema = collection.schema.fields[field];
 
       if (!schema) {
-        throw new ValidationError(`Column not found: '${collection.name}.${field}'`);
+        throw new MissingFieldError(field, collection.name);
       }
 
       if (schema.type !== 'Column') {

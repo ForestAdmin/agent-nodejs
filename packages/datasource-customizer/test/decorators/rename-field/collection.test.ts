@@ -6,6 +6,7 @@ import {
   DataSource,
   DataSourceDecorator,
   Filter,
+  MissingFieldError,
   PaginatedFilter,
   Projection,
   Sort,
@@ -131,13 +132,13 @@ describe('RenameFieldCollectionDecorator', () => {
 
   test('should throw when renaming a field which does not exists', () => {
     expect(() => newPersons.renameField('unknown', 'somethingnew')).toThrow(
-      `No such field 'unknown'`,
+      new MissingFieldError('unknown'),
     );
   });
 
   test('should throw when renaming a field using an older name', () => {
     newPersons.renameField('id', 'key');
-    expect(() => newPersons.renameField('id', 'primaryKey')).toThrow(`No such field 'id'`);
+    expect(() => newPersons.renameField('id', 'primaryKey')).toThrow(new MissingFieldError('id'));
   });
 
   test('should throw when renaming with a name including space', () => {

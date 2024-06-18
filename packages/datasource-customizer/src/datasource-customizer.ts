@@ -16,6 +16,10 @@ import { TCollectionName, TSchema } from './templates';
 import { DataSourceOptions, Plugin } from './types';
 import TypingGenerator from './typing-generator';
 
+export type Options = {
+  catchMissingSchemaElementErrors?: boolean;
+};
+
 /**
  * Allow to create a new Forest Admin agent from scratch.
  * Builds the application by composing and configuring all the collection decorators.
@@ -46,9 +50,9 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     );
   }
 
-  constructor() {
+  constructor(options?: Options) {
     this.compositeDataSource = new CompositeDatasource<Collection>();
-    this.stack = new DecoratorsStack(this.compositeDataSource);
+    this.stack = new DecoratorsStack(this.compositeDataSource, options);
   }
 
   /**
@@ -159,7 +163,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    *
    * dataSourceCustomizer.use(advancedExportPlugin, { format: 'xlsx' });
    */
-  use<Options>(plugin: Plugin<Options>, options?: Options): this {
+  use<TOptions>(plugin: Plugin<TOptions>, options?: TOptions): this {
     this.stack.queueCustomization(async () => {
       await plugin(this, null, options);
     });

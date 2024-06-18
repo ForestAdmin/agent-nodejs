@@ -7,6 +7,7 @@ import {
   DataSourceDecorator,
   Filter,
   ManyToManySchema,
+  MissingFieldError,
   PaginatedFilter,
   Projection,
   Sort,
@@ -165,7 +166,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: 'passports',
             originKey: '__nonExisting__',
           }),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
+        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
       });
     });
 
@@ -282,7 +283,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: '__nonExisting__',
           }),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
+        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
       });
     });
 
@@ -350,7 +351,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: '__nonExisting__',
             throughCollection: 'passports',
           } as ManyToManySchema),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
+        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
       });
 
       test('should throw with a non existent fk', () => {
@@ -362,7 +363,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: 'passports',
           } as ManyToManySchema),
-        ).toThrow("Column not found: 'passports.__nonExisting__'");
+        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
       });
     });
 

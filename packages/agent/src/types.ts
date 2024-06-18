@@ -24,6 +24,12 @@ export type AgentOptions = {
     updateRecordCustomActions?: boolean;
   };
   maxBodySize?: string;
+  /**
+   * If true, the agent will not throw an error when a customization error occurs,
+   * because of a missing collection for example.
+   * @default false
+   */
+  catchMissingSchemaElementErrors?: boolean;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

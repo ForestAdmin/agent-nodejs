@@ -21,4 +21,5 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   typingsPath: null,
   experimental: {},
   maxBodySize: '50mb',
+  catchMissingSchemaElementErrors: false,
 }));

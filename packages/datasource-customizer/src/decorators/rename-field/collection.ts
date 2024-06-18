@@ -8,6 +8,7 @@ import {
   FieldSchema,
   FieldValidator,
   Filter,
+  MissingFieldError,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -30,7 +31,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
   /** Rename a field from the collection */
   renameField(currentName: string, newName: string): void {
     if (!this.schema.fields[currentName]) {
-      throw new Error(`No such field '${currentName}'`);
+      throw new MissingFieldError(currentName);
     }
 
     let initialName = currentName;

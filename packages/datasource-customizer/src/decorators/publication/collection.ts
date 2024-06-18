@@ -3,6 +3,7 @@ import {
   CollectionDecorator,
   CollectionSchema,
   FieldSchema,
+  MissingFieldError,
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -19,7 +20,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     const field = this.childCollection.schema.fields[name];
 
     if (!field) {
-      throw new Error(`No such field '${name}'`);
+      throw new MissingFieldError(name, this.childCollection.name);
     }
 
     if (SchemaUtils.isPrimaryKey(this.childCollection.schema, name)) {

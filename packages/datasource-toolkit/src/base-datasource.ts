@@ -1,3 +1,4 @@
+import { MissingCollectionError } from './errors';
 import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
 import { Collection, DataSource } from './interfaces/collection';
@@ -18,7 +19,7 @@ export default class BaseDataSource<T extends Collection = Collection> implement
     const collection = this._collections[name];
 
     if (collection === undefined) {
-      throw new Error(
+      throw new MissingCollectionError(
         `Collection '${name}' not found. List of available collections: ${Object.keys(
           this._collections,
         )
