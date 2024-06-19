@@ -17,13 +17,13 @@ function makeMockDataSource(): jest.Mocked<DataSource> {
 
 describe('DecoratorsStack', () => {
   describe('applyQueuedCustomizations', () => {
-    describe('when catchMissingSchemaElementErrors is false', () => {
+    describe('when ignoreMissingSchemaElementErrors  is false', () => {
       it('should throw an error when a customization fails', async () => {
         const logger = jest.fn();
         const customization = jest.fn().mockRejectedValue(new Error('Customization failed'));
 
         const stack = new DecoratorsStack(makeMockDataSource(), {
-          catchMissingSchemaElementErrors: false,
+          ignoreMissingSchemaElementErrors: false,
         });
         stack.queueCustomization(customization);
 
@@ -33,14 +33,14 @@ describe('DecoratorsStack', () => {
       });
     });
 
-    describe('when catchMissingSchemaElementErrors is true', () => {
+    describe('when ignoreMissingSchemaElementErrors  is true', () => {
       it('should log an error when a customization fails with a MissingCollectionError', async () => {
         const logger = jest.fn();
         const error = new MissingCollectionError('Customization failed');
         const customization = jest.fn().mockRejectedValue(error);
 
         const stack = new DecoratorsStack(makeMockDataSource(), {
-          catchMissingSchemaElementErrors: true,
+          ignoreMissingSchemaElementErrors: true,
         });
         stack.queueCustomization(customization);
 
@@ -56,7 +56,7 @@ describe('DecoratorsStack', () => {
         const customization2 = jest.fn();
 
         const stack = new DecoratorsStack(makeMockDataSource(), {
-          catchMissingSchemaElementErrors: true,
+          ignoreMissingSchemaElementErrors: true,
         });
         stack.queueCustomization(customization1);
         stack.queueCustomization(customization2);
@@ -73,7 +73,7 @@ describe('DecoratorsStack', () => {
         const customization = jest.fn().mockRejectedValue(error);
 
         const stack = new DecoratorsStack(makeMockDataSource(), {
-          catchMissingSchemaElementErrors: true,
+          ignoreMissingSchemaElementErrors: true,
         });
         stack.queueCustomization(customization);
 

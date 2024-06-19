@@ -29,7 +29,7 @@ export type AgentOptions = {
    * because of a missing collection for example.
    * @default false
    */
-  catchMissingSchemaElementErrors?: boolean;
+  ignoreMissingSchemaElementErrors?: boolean;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

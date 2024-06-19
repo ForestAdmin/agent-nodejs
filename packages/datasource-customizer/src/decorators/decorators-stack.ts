@@ -25,7 +25,7 @@ import ValidationCollectionDecorator from './validation/collection';
 import WriteDataSourceDecorator from './write/datasource';
 
 export type Options = {
-  catchMissingSchemaElementErrors?: boolean;
+  ignoreMissingSchemaElementErrors?: boolean;
 };
 
 export default class DecoratorsStack {
@@ -95,7 +95,7 @@ export default class DecoratorsStack {
     this.dataSource = last;
 
     this.options = {
-      catchMissingSchemaElementErrors: false,
+      ignoreMissingSchemaElementErrors: false,
       ...(options || {}),
     };
   }
@@ -122,7 +122,7 @@ export default class DecoratorsStack {
         await firstInQueue(logger); // eslint-disable-line no-await-in-loop
       } catch (e) {
         if (
-          this.options.catchMissingSchemaElementErrors &&
+          this.options.ignoreMissingSchemaElementErrors &&
           e instanceof MissingSchemaElementError
         ) {
           logger('Warn', e.message, e);

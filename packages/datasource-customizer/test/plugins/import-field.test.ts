@@ -41,7 +41,7 @@ describe('importField', () => {
   it('should throw a MissingFieldError when the field does not exist', async () => {
     const { dataSource } = setupMocks();
     const dataSourceCustomizer = new DataSourceCustomizer({
-      catchMissingSchemaElementErrors: false,
+      ignoreMissingSchemaElementErrors: false,
     });
     dataSourceCustomizer.addDataSource(async () => dataSource);
 

@@ -17,7 +17,7 @@ import { DataSourceOptions, Plugin } from './types';
 import TypingGenerator from './typing-generator';
 
 export type Options = {
-  catchMissingSchemaElementErrors?: boolean;
+  ignoreMissingSchemaElementErrors?: boolean;
 };
 
 /**

@@ -8,7 +8,7 @@ jest.mock('../src/decorators/composite-datasource');
 describe('DatasourceCustomizer', () => {
   describe('constructor', () => {
     it('should pass the options to the decorators stack', () => {
-      const options = { catchMissingSchemaElementErrors: true };
+      const options = { ignoreMissingSchemaElementErrors: true };
 
       // eslint-disable-next-line no-new
       new DataSourceCustomizer(options);

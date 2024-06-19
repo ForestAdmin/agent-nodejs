@@ -299,15 +299,15 @@ describe('Agent', () => {
   });
 
   describe('Datasource customizer', () => {
-    it.each([true, false])('should set catchMissingSchemaElementErrors to %s', async value => {
+    it.each([true, false])('should set ignoreMissingSchemaElementErrors  to %s', async value => {
       const options = factories.forestAdminHttpDriverOptions.build();
 
       // eslint-disable-next-line no-new
-      new Agent({ ...options, catchMissingSchemaElementErrors: value });
+      new Agent({ ...options, ignoreMissingSchemaElementErrors: value });
 
       expect(DataSourceCustomizer).toHaveBeenCalledWith(
         expect.objectContaining({
-          catchMissingSchemaElementErrors: value,
+          ignoreMissingSchemaElementErrors: value,
         }),
       );
     });
@@ -317,7 +317,7 @@ describe('Agent', () => {
         const options = factories.forestAdminHttpDriverOptions.build();
 
         // eslint-disable-next-line no-new
-        const agent = new Agent({ ...options, catchMissingSchemaElementErrors: value });
+        const agent = new Agent({ ...options, ignoreMissingSchemaElementErrors: value });
 
         jest.clearAllMocks();
 
@@ -325,7 +325,7 @@ describe('Agent', () => {
 
         expect(DataSourceCustomizer).toHaveBeenCalledWith(
           expect.objectContaining({
-            catchMissingSchemaElementErrors: value,
+            ignoreMissingSchemaElementErrors: value,
           }),
         );
       });
