@@ -1,4 +1,4 @@
-import { Collection } from '@forestadmin/datasource-toolkit';
+import { Collection, MissingCollectionError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import CompositeDataSource from '../../src/decorators/composite-datasource';
@@ -76,7 +76,9 @@ describe('CompositeDataSource', () => {
       compositeDataSource.addDataSource(aDataSource);
 
       expect(() => compositeDataSource.getCollection('missing')).toThrow(
-        "Collection 'missing' not found. List of available collections: collection1",
+        new MissingCollectionError(
+          "Collection 'missing' not found. List of available collections: collection1",
+        ),
       );
     });
   });

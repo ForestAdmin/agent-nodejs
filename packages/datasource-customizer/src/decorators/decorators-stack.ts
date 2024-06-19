@@ -1,4 +1,9 @@
-import { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
+import {
+  DataSource,
+  DataSourceDecorator,
+  Logger,
+  MissingSchemaElementError,
+} from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
 import BinaryCollectionDecorator from './binary/collection';
@@ -18,6 +23,10 @@ import SegmentCollectionDecorator from './segment/collection';
 import SortEmulateCollectionDecorator from './sort-emulate/collection';
 import ValidationCollectionDecorator from './validation/collection';
 import WriteDataSourceDecorator from './write/datasource';
+
+export type Options = {
+  ignoreMissingSchemaElementErrors?: boolean;
+};
 
 export default class DecoratorsStack {
   action: DataSourceDecorator<ActionCollectionDecorator>;
@@ -41,8 +50,9 @@ export default class DecoratorsStack {
   override: DataSourceDecorator<OverrideCollectionDecorator>;
 
   private customizations: Array<(logger: Logger) => Promise<void>> = [];
+  private options: Required<Options>;
 
-  constructor(dataSource: DataSource) {
+  constructor(dataSource: DataSource, options?: Options) {
     let last: DataSource = dataSource;
 
     /* eslint-disable no-multi-assign */
@@ -83,6 +93,11 @@ export default class DecoratorsStack {
     /* eslint-enable no-multi-assign */
 
     this.dataSource = last;
+
+    this.options = {
+      ignoreMissingSchemaElementErrors: false,
+      ...(options || {}),
+    };
   }
 
   queueCustomization(customization: (logger: Logger) => Promise<void>): void {
@@ -101,7 +116,21 @@ export default class DecoratorsStack {
     this.customizations.length = 0;
 
     while (queuedCustomizations.length) {
-      await queuedCustomizations.shift()(logger); // eslint-disable-line no-await-in-loop
+      const firstInQueue = queuedCustomizations.shift();
+
+      try {
+        await firstInQueue(logger); // eslint-disable-line no-await-in-loop
+      } catch (e) {
+        if (
+          this.options.ignoreMissingSchemaElementErrors &&
+          e instanceof MissingSchemaElementError
+        ) {
+          logger('Warn', e.message, e);
+        } else {
+          throw e;
+        }
+      }
+
       await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
     }
   }

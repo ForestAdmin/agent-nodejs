@@ -1,4 +1,4 @@
-import { ColumnSchema, RecordUtils } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, MissingFieldError, RecordUtils } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizer from '../collection-customizer';
 import DataSourceCustomizer from '../datasource-customizer';
@@ -20,7 +20,7 @@ export default async function importField<
       const fieldSchema = collection.schema.fields[field];
 
       if (fieldSchema === undefined) {
-        throw new Error(`Field ${field} not found in collection ${collection.name}`);
+        throw new MissingFieldError(field, memo.collection);
       }
 
       if (fieldSchema.type === 'Column') return { schema: fieldSchema };

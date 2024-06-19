@@ -10,6 +10,7 @@ import {
   ConditionTreeLeaf,
   DataSourceDecorator,
   Filter,
+  MissingFieldError,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -173,7 +174,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     const column = owner.schema.fields[name];
 
     if (!column || column.type !== 'Column') {
-      throw new Error(`Column not found: '${owner.name}.${name}'`);
+      throw new MissingFieldError(name, owner.name);
     }
 
     if (!column.filterOperators?.has('In')) {

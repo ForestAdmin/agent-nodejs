@@ -35,3 +35,13 @@ export class IntrospectionFormatError extends BusinessError {
     return this.name;
   }
 }
+
+export class MissingSchemaElementError extends ValidationError {}
+
+export class MissingCollectionError extends MissingSchemaElementError {}
+
+export class MissingFieldError extends MissingSchemaElementError {
+  constructor(field: string, collection?: string) {
+    super(`Field "${field}" not found${collection ? ` in collection "${collection}"` : ''}.`);
+  }
+}

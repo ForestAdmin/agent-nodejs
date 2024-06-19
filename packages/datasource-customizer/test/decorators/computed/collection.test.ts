@@ -3,6 +3,7 @@ import {
   Collection,
   DataSource,
   DataSourceDecorator,
+  MissingFieldError,
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
@@ -102,7 +103,7 @@ describe('ComputedDecorator', () => {
         dependencies: ['__nonExisting__'],
         getValues: () => Promise.reject(),
       });
-    }).toThrow("Column not found: 'books.__nonExisting__'");
+    }).toThrow(new MissingFieldError('__nonExisting__', 'books'));
   });
 
   test('should throw if defining a field with invalid dependencies', () => {

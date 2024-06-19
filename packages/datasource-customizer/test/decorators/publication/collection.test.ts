@@ -1,4 +1,4 @@
-import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource, MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
@@ -86,7 +86,7 @@ describe('PublicationCollectionDecorator', () => {
 
   test('should throw when hiding a field which does not exists', () => {
     expect(() => newPersons.changeFieldVisibility('unknown', false)).toThrow(
-      `No such field 'unknown'`,
+      new MissingFieldError('unknown', 'persons'),
     );
   });
 

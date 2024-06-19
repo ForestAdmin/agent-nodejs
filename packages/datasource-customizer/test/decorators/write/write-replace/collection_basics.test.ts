@@ -1,4 +1,4 @@
-import { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, DataSource, MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDecorator from '../../../../src/decorators/write/write-replace/collection';
@@ -24,7 +24,7 @@ describe('WriteDecorator > When their are no relations', () => {
     const decorator = new WriteDecorator(collection, dataSource);
 
     expect(() => decorator.replaceFieldWriting('inexistant', () => ({}))).toThrow(
-      "Column not found: 'books.inexistant'",
+      new MissingFieldError('inexistant', 'books'),
     );
   });
 

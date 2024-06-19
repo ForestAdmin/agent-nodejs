@@ -1,5 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import * as factories from './__factories__';
+import { MissingCollectionError } from '../src';
 import BaseDataSource from '../src/base-datasource';
 import { Collection } from '../src/interfaces/collection';
 
@@ -40,7 +41,9 @@ describe('BaseDataSource', () => {
       const dataSource = new DataSourceWithCollection();
 
       expect(() => dataSource.getCollection('__no_such_collection__')).toThrow(
-        "Collection '__no_such_collection__' not found.",
+        new MissingCollectionError(
+          "Collection '__no_such_collection__' not found. List of available collections: __collection__",
+        ),
       );
     });
 

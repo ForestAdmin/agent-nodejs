@@ -1,3 +1,4 @@
+import { MissingFieldError } from '../../../src';
 import FieldValidator from '../../../src/validation/field';
 import * as factories from '../../__factories__';
 
@@ -32,7 +33,7 @@ describe('FieldValidator', () => {
 
     test('should throw if the field does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
-        "Column not found: 'cars.__not_defined'",
+        new MissingFieldError('__not_defined', 'cars'),
       );
     });
 
