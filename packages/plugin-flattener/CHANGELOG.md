@@ -1,3 +1,19 @@
+# @forestadmin/plugin-flattener [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.1.4...@forestadmin/plugin-flattener@1.2.0) (2024-06-19)
+
+
+### Features
+
+* don't throw an error when adding a customization on a missing collection or field if catchMissingSchemaElementErrors is true ([#1128](https://github.com/ForestAdmin/agent-nodejs/issues/1128)) ([249589c](https://github.com/ForestAdmin/agent-nodejs/commit/249589cab78326a26149e5e354a9a8ea220d203d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.34.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.45.0
+
 ## @forestadmin/plugin-flattener [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.1.3...@forestadmin/plugin-flattener@1.1.4) (2024-04-12)
 
 
