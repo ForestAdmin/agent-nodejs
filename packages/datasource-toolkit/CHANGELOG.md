@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.33.0...@forestadmin/datasource-toolkit@1.34.0) (2024-06-19)
+
+
+### Features
+
+* don't throw an error when adding a customization on a missing collection or field if catchMissingSchemaElementErrors is true ([#1128](https://github.com/ForestAdmin/agent-nodejs/issues/1128)) ([249589c](https://github.com/ForestAdmin/agent-nodejs/commit/249589cab78326a26149e5e354a9a8ea220d203d))
+
 # @forestadmin/datasource-toolkit [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.32.3...@forestadmin/datasource-toolkit@1.33.0) (2024-04-12)
 
 
