@@ -94,5 +94,10 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales);
+    .customizeCollection('sales', customizeSales)
+    .customizeCollection('rpc_card', collection => {
+      collection.addManyToOneRelation('customer', 'customer', {
+        foreignKey: 'customer_id',
+      });
+    });
 }

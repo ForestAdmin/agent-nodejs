@@ -155,13 +155,6 @@ export type RpcCardFilter = TPaginatedFilter<Schema, 'rpc_card'>;
 export type RpcCardSortClause = TSortClause<Schema, 'rpc_card'>;
 export type RpcCardAggregation = TAggregation<Schema, 'rpc_card'>;
 
-export type RpcCustomerCustomizer = CollectionCustomizer<Schema, 'rpc_customer'>;
-export type RpcCustomerRecord = TPartialRow<Schema, 'rpc_customer'>;
-export type RpcCustomerConditionTree = TConditionTree<Schema, 'rpc_customer'>;
-export type RpcCustomerFilter = TPaginatedFilter<Schema, 'rpc_customer'>;
-export type RpcCustomerSortClause = TSortClause<Schema, 'rpc_customer'>;
-export type RpcCustomerAggregation = TAggregation<Schema, 'rpc_customer'>;
-
 
 export type Schema = {
   'account': {
@@ -520,7 +513,7 @@ export type Schema = {
       'is_active': boolean | null;
     };
     nested: {
-      'customer': Schema['rpc_customer']['plain'] & Schema['rpc_customer']['nested'];
+      'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
     };
     flat: {
       'customer:createdAt': string;
@@ -530,18 +523,6 @@ export type Schema = {
       'customer:name': string | null;
       'customer:updatedAt': string;
     };
-  };
-  'rpc_customer': {
-    plain: {
-      'createdAt': string;
-      'deletedAt': string | null;
-      'firstName': string;
-      'id': number;
-      'name': string | null;
-      'updatedAt': string;
-    };
-    nested: {};
-    flat: {};
   };
   'sales': {
     plain: {

@@ -4,22 +4,22 @@ import dotenv from 'dotenv';
 
 import makeAgent from './forest/agent';
 import startExpress from './frameworks/express-v4';
-import startFastifyV2 from './frameworks/fastify-v2';
-import startFastifyV3 from './frameworks/fastify-v3';
-import startKoa from './frameworks/koa-v2';
-import startNestExpressV8 from './frameworks/nest-express-v8';
-import startNestFastifyV8 from './frameworks/nest-fastify-v8';
+// import startFastifyV2 from './frameworks/fastify-v2';
+// import startFastifyV3 from './frameworks/fastify-v3';
+// import startKoa from './frameworks/koa-v2';
+// import startNestExpressV8 from './frameworks/nest-express-v8';
+// import startNestFastifyV8 from './frameworks/nest-fastify-v8';
 
 dotenv.config();
 
 export default async () => {
   // Create customer apps
   const expressAppV4 = startExpress();
-  const koaAppV2 = startKoa();
-  const fastifyAppV2 = startFastifyV2();
-  const fastifyAppV3 = startFastifyV3();
-  const nestExpressV8 = await startNestExpressV8();
-  const nestFastifyV8 = await startNestFastifyV8();
+  // const koaAppV2 = startKoa();
+  // const fastifyAppV2 = startFastifyV2();
+  // const fastifyAppV3 = startFastifyV3();
+  // const nestExpressV8 = await startNestExpressV8();
+  // const nestFastifyV8 = await startNestFastifyV8();
 
   const rpcAgent = createRpcAgent({
     authSecret: process.env.FOREST_AUTH_SECRET,
@@ -28,7 +28,9 @@ export default async () => {
     isProduction: false,
     loggerLevel: 'Info',
   })
-    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
+    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'), {
+      exclude: ['customer'],
+    })
     .customizeCollection('card', collection => {
       collection
         .addSegment('rpc', { field: 'card_type', operator: 'Equal', value: 'visa' })
@@ -52,11 +54,11 @@ export default async () => {
 
   // Run the servers!
   expressAppV4.listen(Number(process.env.HTTP_PORT_EXPRESS));
-  koaAppV2.listen(Number(process.env.HTTP_PORT_KOA));
-  await fastifyAppV2.listen(Number(process.env.HTTP_PORT_FASTIFY_V2));
-  await fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
-  await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
-  await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
+  // koaAppV2.listen(Number(process.env.HTTP_PORT_KOA));
+  // await fastifyAppV2.listen(Number(process.env.HTTP_PORT_FASTIFY_V2));
+  // await fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
+  // await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
+  // await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
 
   await rpcAgent.start();
 
