@@ -19,6 +19,14 @@ import DissociateDeleteRelated from './modification/dissociate-delete-related';
 import Update from './modification/update';
 import UpdateField from './modification/update-field';
 import UpdateRelation from './modification/update-relation';
+import RpcActionRoute from './rpc/action';
+import RpcAggregateRoute from './rpc/aggregate';
+import RpcChartRoute from './rpc/chart';
+import RpcCreateRoute from './rpc/create';
+import RpcDeleteRoute from './rpc/delete';
+import RpcListRoute from './rpc/list';
+import RpcSchemaRoute from './rpc/schema';
+import RpcUpdateRoute from './rpc/update';
 import Authentication from './security/authentication';
 import IpWhitelist from './security/ip-whitelist';
 import ScopeInvalidation from './security/scope-invalidation';
@@ -55,6 +63,15 @@ export const RELATED_ROUTES_CTOR = [
   ListRelated,
 ];
 export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
+export const RPC_COLLECTION_ROUTES_CTOR = [
+  RpcListRoute,
+  RpcCreateRoute,
+  RpcUpdateRoute,
+  RpcDeleteRoute,
+  RpcAggregateRoute,
+  RpcChartRoute,
+  RpcActionRoute,
+];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
@@ -136,6 +153,24 @@ function getActionRoutes(
   return routes;
 }
 
+function getRpcCollectionsRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  const routes: BaseRoute[] = [];
+
+  dataSource.collections.forEach(collection => {
+    routes.push(
+      ...RPC_COLLECTION_ROUTES_CTOR.map(
+        Route => new Route(services, options, dataSource, collection.name),
+      ),
+    );
+  });
+
+  return routes;
+}
+
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
@@ -147,6 +182,21 @@ export default function makeRoutes(
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
+  ];
+
+  // Ensure routes and middlewares are loaded in the right order.
+  return routes.sort((a, b) => a.type - b.type);
+}
+
+export function makeRpcRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  const routes = [
+    ...getRootRoutes(options, services),
+    new RpcSchemaRoute(services, options, dataSource),
+    ...getRpcCollectionsRoutes(dataSource, options, services),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.

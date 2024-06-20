@@ -1,0 +1,31 @@
+{
+  "name": "@forestadmin/datasource-rpc",
+  "version": "1.1.13",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-rpc"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-customizer": "1.44.3",
+    "@forestadmin/datasource-toolkit": "1.33.0",
+    "superagent": "^8.0.6",
+    "jsonwebtoken": "^9.0.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  }
+}
