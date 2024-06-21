@@ -25,4 +25,15 @@ describe('listCollectionsFromIntrospection', () => {
 
     expect(result).toEqual(['table1', 'table2']);
   });
+
+  it('should not forget views', () => {
+    const introspection = {
+      tables: [{ name: 'table1' }, { name: 'table2' }],
+      views: [{ name: 'view1' }, { name: 'view2' }],
+    } as SupportedIntrospection;
+
+    const result = listCollectionsFromIntrospection(introspection);
+
+    expect(result).toEqual(['table1', 'table2', 'view1', 'view2']);
+  });
 });
