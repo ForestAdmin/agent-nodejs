@@ -39,6 +39,25 @@ describe('Builder > Agent', () => {
           await mounter.stop();
         }
       });
+
+      describe('when a port is not provided or 0', () => {
+        it.each([undefined, 0])('should use a random PORT when %s', async port => {
+          const mounter = new FrameworkMounter('my-api', logger);
+          mounter.mountOnStandaloneServer(port, 'localhost');
+
+          try {
+            // @ts-expect-error: testing a protected method
+            await mounter.mount(router);
+
+            const response = await superagent.get(
+              `http://localhost:${mounter.standaloneServerPort}/my-api/forest`,
+            );
+            expect(response.body).toStrictEqual({ error: null, message: 'Agent is running' });
+          } finally {
+            await mounter.stop();
+          }
+        });
+      });
     });
 
     describe('when the agent is not started', () => {
