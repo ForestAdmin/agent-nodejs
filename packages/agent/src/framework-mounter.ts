@@ -4,11 +4,14 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { createServer } from 'http';
 import Koa from 'koa';
+import net from 'net';
 import path from 'path';
 
 import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
+  public standaloneServerPort: number;
+
   private readonly onFirstStart: (() => Promise<void>)[] = [];
   private readonly onEachStart: ((router: Router) => Promise<void>)[] = [];
   private readonly onStop: (() => Promise<void>)[] = [];
@@ -42,19 +45,24 @@ export default class FrameworkMounter {
   /**
    * Expose the agent on a given port and host
    * @param port port that should be used, defaults to 3351 or to the `PORT` environment variable.
+   * O will be set a random available port and the port will be available in the `standaloneServerPort` property.
    * @param host host that should be used, default to the unspecified IPv6 address (::) when IPv6
    *  is available, or the unspecified IPv4 address (0.0.0.0) otherwise.
    */
   mountOnStandaloneServer(port?: number, host?: string): this {
-    const chosenPort = port || Number(process.env.PORT) || 3351;
+    const portFromEnv = Number(process.env.PORT) || undefined;
+    const chosenPort = port ?? portFromEnv ?? 3351;
     const server = createServer(this.getConnectCallback(true));
 
     this.onFirstStart.push(() => {
       return new Promise<void>((resolve, reject) => {
         server.listen(chosenPort, host, () => {
+          this.standaloneServerPort = (server.address() as net.AddressInfo).port;
           this.logger(
             'Info',
-            `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${port})`,
+            `Successfully mounted on Standalone server (http://${host ?? '0.0.0.0'}:${
+              this.standaloneServerPort
+            })`,
           );
 
           this.onStop.push(async () => {
