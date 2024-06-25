@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.41.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.0...@forestadmin/agent@1.41.1) (2024-06-25)
+
+
+### Bug Fixes
+
+* when customer passes 0 as port on standalone server it was considered as undefined instead of generating a random available port ([#1131](https://github.com/ForestAdmin/agent-nodejs/issues/1131)) ([95b7316](https://github.com/ForestAdmin/agent-nodejs/commit/95b73166d4a20e9cce19f820432b291dc0ef4021))
+
 # @forestadmin/agent [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.40.1...@forestadmin/agent@1.41.0) (2024-06-19)
 
 
