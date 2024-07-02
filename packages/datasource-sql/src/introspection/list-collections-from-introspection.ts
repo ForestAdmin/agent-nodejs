@@ -8,5 +8,9 @@ export default function listCollectionsFromIntrospection(
     return [];
   }
 
-  return Introspector.getIntrospectionInLatestFormat(introspection).tables.map(table => table.name);
+  const introspectionLatestFormat = Introspector.getIntrospectionInLatestFormat(introspection);
+
+  return [...introspectionLatestFormat.tables, ...introspectionLatestFormat.views].map(
+    tableOrView => tableOrView.name,
+  );
 }
