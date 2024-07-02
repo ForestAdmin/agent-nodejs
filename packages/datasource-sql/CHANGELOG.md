@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.14.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.2...@forestadmin/datasource-sql@1.14.3) (2024-07-02)
+
+
+### Bug Fixes
+
+* views should be present in the list of collections ([#1130](https://github.com/ForestAdmin/agent-nodejs/issues/1130)) ([23ab59e](https://github.com/ForestAdmin/agent-nodejs/commit/23ab59ee59a44640d05bb69cb5a026dec9824963))
+
 ## @forestadmin/datasource-sql [1.14.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.1...@forestadmin/datasource-sql@1.14.2) (2024-06-19)
 
 

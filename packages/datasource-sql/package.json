@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-sql",
-  "version": "1.14.2",
+  "version": "1.14.3",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
