@@ -13,7 +13,7 @@ jest.mock('mongoose', () => {
     Binary: Symbol('Binary'),
   };
 
-  return { Schema: SchemaMocked };
+  return { Schema: SchemaMocked, version: '7' };
 });
 
 describe('odm builder', () => {
