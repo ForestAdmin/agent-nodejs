@@ -1,9 +1,9 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
-import { createRpcDataSource } from '@forestadmin/datasource-rpc';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
+import { createRpcDataSource } from '@forestadmin-experimental/datasource-rpc';
 
 import customizeAccount from './customizations/account';
 import customizeCard from './customizations/card';
