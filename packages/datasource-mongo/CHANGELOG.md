@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongo [1.3.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.6...@forestadmin/datasource-mongo@1.3.7) (2024-07-04)
+
+
+### Bug Fixes
+
+* **mongo:** mongo datasource throws an error during introspection with mongoose 6 as dependency ([#1133](https://github.com/ForestAdmin/agent-nodejs/issues/1133)) ([a6dd1e9](https://github.com/ForestAdmin/agent-nodejs/commit/a6dd1e99added4763dc670c1a50d5999c02eabf6))
+
 ## @forestadmin/datasource-mongo [1.3.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.5...@forestadmin/datasource-mongo@1.3.6) (2024-06-19)
 
 
