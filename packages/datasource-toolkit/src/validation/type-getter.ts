@@ -52,7 +52,9 @@ export default class TypeGetter {
       BigInt(value);
 
       return true;
-    } catch (e) {}
+    } catch (e) {
+      /* empty */
+    }
 
     return false;
   }
