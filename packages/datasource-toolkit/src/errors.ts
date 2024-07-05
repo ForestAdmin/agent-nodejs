@@ -19,8 +19,10 @@ export class BusinessError extends Error {
 }
 
 export class ValidationError extends BusinessError {}
+export class BadRequestError extends BusinessError {}
 export class UnprocessableError extends BusinessError {}
 export class ForbiddenError extends BusinessError {}
+export class NotFoundError extends BusinessError {}
 
 export class IntrospectionFormatError extends BusinessError {
   constructor(sourcePackageName: '@forestadmin/datasource-sql' | '@forestadmin/datasource-mongo') {

@@ -1,6 +1,8 @@
 import {
+  BadRequestError,
   BusinessError,
   ForbiddenError,
+  NotFoundError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -44,12 +46,25 @@ export default class ErrorHandling extends BaseRoute {
   }
 
   private getErrorStatus(error: Error): number {
-    if (error instanceof ValidationError) return HttpCode.BadRequest;
-    if (error instanceof ForbiddenError) return HttpCode.Forbidden;
-    if (error instanceof UnprocessableError) return HttpCode.Unprocessable;
     if (error instanceof HttpError) return error.status;
 
-    return HttpCode.InternalServerError;
+    switch (true) {
+      case BusinessError.isOfType(error, ValidationError):
+      case BusinessError.isOfType(error, BadRequestError):
+        return HttpCode.BadRequest;
+
+      case BusinessError.isOfType(error, UnprocessableError):
+        return HttpCode.Unprocessable;
+
+      case BusinessError.isOfType(error, ForbiddenError):
+        return HttpCode.Forbidden;
+
+      case BusinessError.isOfType(error, NotFoundError):
+        return HttpCode.NotFound;
+
+      default:
+        return HttpCode.InternalServerError;
+    }
   }
 
   private getErrorMessage(error: Error): string {
