@@ -1,3 +1,5 @@
+import { createRpcAgent } from '@forestadmin/agent';
+import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import dotenv from 'dotenv';
 
 import makeAgent from './forest/agent';
@@ -19,15 +21,34 @@ export default async () => {
   const nestExpressV8 = await startNestExpressV8();
   const nestFastifyV8 = await startNestFastifyV8();
 
-  // Make and mount agent.
-  const agent = makeAgent()
-    .mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE))
-    .mountOnExpress(expressAppV4)
-    .mountOnKoa(koaAppV2)
-    .mountOnFastify(fastifyAppV2)
-    .mountOnFastify(fastifyAppV3)
-    .mountOnNestJs(nestExpressV8)
-    .mountOnNestJs(nestFastifyV8);
+  const rpcAgent = createRpcAgent({
+    authSecret: process.env.FOREST_AUTH_SECRET,
+    envSecret: process.env.FOREST_ENV_SECRET,
+    forestServerUrl: process.env.FOREST_SERVER_URL,
+    isProduction: false,
+    loggerLevel: 'Info',
+  })
+    .addDataSource(createSqlDataSource('mariadb://example:password@localhost:3808/example'))
+    .customizeCollection('card', collection => {
+      collection
+        .addSegment('rpc', { field: 'card_type', operator: 'Equal', value: 'visa' })
+        .addChart('test chart', (context, resultbuilder) => {
+          return resultbuilder.value(3);
+        })
+        .addAction('rpc', {
+          scope: 'Global',
+          form: [
+            {
+              label: 'test',
+              type: 'String',
+            },
+          ],
+          execute: (context, resultbuilder) => {
+            return resultbuilder.success('au top ca marche');
+          },
+        });
+    })
+    .mountOnExpress(expressAppV4);
 
   // Run the servers!
   expressAppV4.listen(Number(process.env.HTTP_PORT_EXPRESS));
@@ -36,6 +57,11 @@ export default async () => {
   await fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
   await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
   await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
+
+  await rpcAgent.start();
+
+  // Make and mount agent.
+  const agent = makeAgent().mountOnStandaloneServer(Number(process.env.HTTP_PORT_STANDALONE));
 
   // We can start agent later.
   await agent.start();

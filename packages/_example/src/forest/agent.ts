@@ -1,6 +1,7 @@
 import { AgentOptions, createAgent } from '@forestadmin/agent';
 import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
+import { createRpcDataSource } from '@forestadmin/datasource-rpc';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
@@ -28,7 +29,7 @@ export default function makeAgent() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Info',
+    loggerLevel: 'Debug',
     typingsPath: 'src/forest/typings.ts',
   };
 
@@ -65,6 +66,15 @@ export default function makeAgent() {
       }),
       {
         exclude: ['accounts', 'accounts_bills', 'accounts_bills_items'],
+      },
+    )
+    .addDataSource(
+      createRpcDataSource({
+        uri: 'http://localhost:3352',
+        authSecret: process.env.FOREST_AUTH_SECRET,
+      }),
+      {
+        rename: name => `rpc_${name}`,
       },
     )
     .addChart('numRentals', async (context, resultBuilder) => {
