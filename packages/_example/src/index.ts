@@ -1,5 +1,5 @@
-import { createRpcAgent } from '@forestadmin/agent';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
+import { createRpcAgent } from '@forestadmin-experimental/rpc-agent';
 import dotenv from 'dotenv';
 
 import makeAgent from './forest/agent';
