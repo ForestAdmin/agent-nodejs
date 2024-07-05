@@ -56,7 +56,7 @@ export const RELATED_ROUTES_CTOR = [
 ];
 export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 
-export function getRootRoutes(options: Options, services: Services): BaseRoute[] {
+function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
 }
 
