@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.9.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.9.16...@forestadmin/forest-cloud@1.9.17) (2024-07-05)
+
+
+### Bug Fixes
+
+* **forest-cloud:** error after publishing a code customization ([#1136](https://github.com/ForestAdmin/agent-nodejs/issues/1136)) ([1ecbecc](https://github.com/ForestAdmin/agent-nodejs/commit/1ecbecc162f48cf4aeef5e52c05398b4c15da1af))
+
 ## @forestadmin/forest-cloud [1.9.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.9.15...@forestadmin/forest-cloud@1.9.16) (2024-07-04)
 
 
