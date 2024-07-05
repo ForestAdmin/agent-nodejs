@@ -221,5 +221,18 @@ describe('eventSubscriber', () => {
       expect(jest.mocked(ApolloClient.prototype.stop)).toHaveBeenCalled();
       expect(mockSubscriptionClientClose).toHaveBeenCalled();
     });
+
+    describe('when an error occurs', () => {
+      it('should do nothing', async () => {
+        const subscriber = new EventSubscriber('subscriptionUrl', 'bearerToken');
+        jest.mocked(ApolloClient.prototype.stop).mockImplementation(() => {
+          throw new Error('Error when closing');
+        });
+
+        subscriber.destroy();
+
+        expect(jest.mocked(ApolloClient.prototype.stop)).toHaveBeenCalled();
+      });
+    });
   });
 });

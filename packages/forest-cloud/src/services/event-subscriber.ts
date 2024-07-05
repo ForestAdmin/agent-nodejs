@@ -77,9 +77,13 @@ export default class EventSubscriber {
   }
 
   destroy() {
-    this.failureSubscription?.unsubscribe();
-    this.deployedSubscription?.unsubscribe();
-    this.client.stop();
-    this.subscriptionClient.close();
+    try {
+      this.failureSubscription?.unsubscribe();
+      this.deployedSubscription?.unsubscribe();
+      this.client.stop();
+      this.subscriptionClient.close();
+    } catch (e) {
+      /* do nothing */
+    }
   }
 }
