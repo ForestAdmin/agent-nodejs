@@ -18,7 +18,7 @@ import bodyParser from 'koa-bodyparser';
 
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
-import makeServices from './services';
+import makeServices, { ForestAdminHttpDriverServices } from './services';
 import CustomizationService from './services/model-customizations/customization';
 import { AgentOptions, AgentOptionsWithDefaults } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
@@ -186,13 +186,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
+    return makeRoutes(dataSource, this.options, services);
+  }
+
   /**
    * Create an http handler which can respond to all queries which are expected from an agent.
    */
-  protected async getRouter(dataSource: DataSource): Promise<Router> {
+  private async getRouter(dataSource: DataSource): Promise<Router> {
     // Bootstrap app
     const services = makeServices(this.options);
-    const routes = makeRoutes(dataSource, this.options, services);
+    const routes = this.getRoutes(dataSource, services);
     await Promise.all(routes.map(route => route.bootstrap()));
 
     // Build router
@@ -204,7 +208,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return router;
   }
 
-  protected async buildRouterAndSendSchema(): Promise<Router> {
+  private async buildRouterAndSendSchema(): Promise<Router> {
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations
@@ -227,7 +231,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Send the apimap to forest admin server
    */
-  private async sendSchema(dataSource: DataSource): Promise<void> {
+  protected async sendSchema(dataSource: DataSource): Promise<void> {
     const { schemaPath, skipSchemaUpdate, isProduction, experimental } = this.options;
 
     // skipSchemaUpdate is mainly used in cloud version

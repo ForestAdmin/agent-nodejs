@@ -15,8 +15,8 @@ export * from '@forestadmin/datasource-customizer';
 export { default as SchemaGenerator } from './utils/forest-schema/generator';
 
 // export for rpc agent
-export { default as makeServices, ForestAdminHttpDriverServices } from './services';
+export { ForestAdminHttpDriverServices } from './services';
 export { default as BaseRoute } from './routes/base-route';
 export { default as CollectionRoute } from './routes/collection-route';
-export { getRootRoutes } from './routes';
 export { default as QueryStringParser } from './utils/query-string';
+export { ROOT_ROUTES_CTOR } from './routes';
