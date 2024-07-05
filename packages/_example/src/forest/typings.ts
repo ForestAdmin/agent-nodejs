@@ -134,27 +134,6 @@ export type SalesSaleItemsFilter = TPaginatedFilter<Schema, 'sales_saleItems'>;
 export type SalesSaleItemsSortClause = TSortClause<Schema, 'sales_saleItems'>;
 export type SalesSaleItemsAggregation = TAggregation<Schema, 'sales_saleItems'>;
 
-export type RpcActiveCardsCustomizer = CollectionCustomizer<Schema, 'rpc_active_cards'>;
-export type RpcActiveCardsRecord = TPartialRow<Schema, 'rpc_active_cards'>;
-export type RpcActiveCardsConditionTree = TConditionTree<Schema, 'rpc_active_cards'>;
-export type RpcActiveCardsFilter = TPaginatedFilter<Schema, 'rpc_active_cards'>;
-export type RpcActiveCardsSortClause = TSortClause<Schema, 'rpc_active_cards'>;
-export type RpcActiveCardsAggregation = TAggregation<Schema, 'rpc_active_cards'>;
-
-export type RpcBinsCustomizer = CollectionCustomizer<Schema, 'rpc_bins'>;
-export type RpcBinsRecord = TPartialRow<Schema, 'rpc_bins'>;
-export type RpcBinsConditionTree = TConditionTree<Schema, 'rpc_bins'>;
-export type RpcBinsFilter = TPaginatedFilter<Schema, 'rpc_bins'>;
-export type RpcBinsSortClause = TSortClause<Schema, 'rpc_bins'>;
-export type RpcBinsAggregation = TAggregation<Schema, 'rpc_bins'>;
-
-export type RpcCardCustomizer = CollectionCustomizer<Schema, 'rpc_card'>;
-export type RpcCardRecord = TPartialRow<Schema, 'rpc_card'>;
-export type RpcCardConditionTree = TConditionTree<Schema, 'rpc_card'>;
-export type RpcCardFilter = TPaginatedFilter<Schema, 'rpc_card'>;
-export type RpcCardSortClause = TSortClause<Schema, 'rpc_card'>;
-export type RpcCardAggregation = TAggregation<Schema, 'rpc_card'>;
-
 
 export type Schema = {
   'account': {
@@ -482,46 +461,6 @@ export type Schema = {
       'store:owner:fullName': string | null;
       'store:owner:id': number;
       'store:owner:lastName': string;
-    };
-  };
-  'rpc_active_cards': {
-    plain: {
-      'card_number': number | null;
-      'card_type': 'american express' | 'mastercard' | 'visa' | null;
-      'customer_id': number | null;
-      'id': number;
-      'is_active': boolean | null;
-    };
-    nested: {};
-    flat: {};
-  };
-  'rpc_bins': {
-    plain: {
-      'createdAt': string;
-      'id': string;
-      'updatedAt': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'rpc_card': {
-    plain: {
-      'card_number': number | null;
-      'card_type': 'american express' | 'mastercard' | 'visa' | null;
-      'customer_id': number | null;
-      'id': number;
-      'is_active': boolean | null;
-    };
-    nested: {
-      'customer': Schema['customer']['plain'] & Schema['customer']['nested'];
-    };
-    flat: {
-      'customer:createdAt': string;
-      'customer:deletedAt': string | null;
-      'customer:firstName': string;
-      'customer:id': number;
-      'customer:name': string | null;
-      'customer:updatedAt': string;
     };
   };
   'sales': {

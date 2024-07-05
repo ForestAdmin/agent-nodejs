@@ -3,7 +3,6 @@ import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
-import { createRpcDataSource } from '@forestadmin-experimental/datasource-rpc';
 
 import customizeAccount from './customizations/account';
 import customizeCard from './customizations/card';
@@ -29,7 +28,7 @@ export default function makeAgent() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Debug',
+    loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
   };
 
@@ -68,15 +67,6 @@ export default function makeAgent() {
         exclude: ['accounts', 'accounts_bills', 'accounts_bills_items'],
       },
     )
-    .addDataSource(
-      createRpcDataSource({
-        uri: 'http://localhost:3352',
-        authSecret: process.env.FOREST_AUTH_SECRET,
-      }),
-      {
-        rename: name => `rpc_${name}`,
-      },
-    )
     .addChart('numRentals', async (context, resultBuilder) => {
       const rentals = context.dataSource.getCollection('rental');
       const rows = await rentals.aggregate({}, { operation: 'Count' });
@@ -94,10 +84,5 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales)
-    .customizeCollection('rpc_card', collection => {
-      collection.addManyToOneRelation('customer', 'customer', {
-        foreignKey: 'customer_id',
-      });
-    });
+    .customizeCollection('sales', customizeSales);
 }
