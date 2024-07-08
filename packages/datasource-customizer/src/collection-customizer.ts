@@ -585,7 +585,7 @@ export default class CollectionCustomizer<
    * @param handler the new behavior for the create operation
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks/collection-override#custom-create-operation Documentation Link}
    * @example
-   * .replaceCreate(async (context) => {
+   * .overrideCreate(async (context) => {
    *   const { data } = context;
    *   const record = await createRecord(data);
    *   return [record];
