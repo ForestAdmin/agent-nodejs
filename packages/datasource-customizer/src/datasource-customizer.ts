@@ -52,13 +52,13 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
     );
   }
 
-  constructor(options: Options = { strategy: 'Normal' }) {
+  constructor(options?: Options) {
     this.compositeDataSource = new CompositeDatasource<Collection>();
 
     this.stack = new {
       NoCode: DecoratorsStackNoCode,
       Normal: DecoratorsStack,
-    }[options.strategy](this.compositeDataSource, options);
+    }[options?.strategy ?? 'Normal'](this.compositeDataSource, options);
   }
 
   /**
