@@ -49,18 +49,25 @@ export default class ErrorHandling extends BaseRoute {
     if (error instanceof HttpError) return error.status;
 
     switch (true) {
+      case error instanceof ValidationError:
       case BusinessError.isOfType(error, ValidationError):
+      case error instanceof BadRequestError:
       case BusinessError.isOfType(error, BadRequestError):
         return HttpCode.BadRequest;
 
-      case BusinessError.isOfType(error, UnprocessableError):
-        return HttpCode.Unprocessable;
-
+      case error instanceof ForbiddenError:
       case BusinessError.isOfType(error, ForbiddenError):
         return HttpCode.Forbidden;
 
+      case error instanceof NotFoundError:
       case BusinessError.isOfType(error, NotFoundError):
         return HttpCode.NotFound;
+
+      case error instanceof UnprocessableError:
+      case BusinessError.isOfType(error, UnprocessableError):
+      case error instanceof BusinessError:
+      case BusinessError.isOfType(error, BusinessError):
+        return HttpCode.Unprocessable;
 
       default:
         return HttpCode.InternalServerError;
@@ -68,13 +75,13 @@ export default class ErrorHandling extends BaseRoute {
   }
 
   private getErrorMessage(error: Error): string {
-    if (error instanceof HttpError || error instanceof BusinessError) {
-      return error.message;
-    }
-
     if (this.options.customizeErrorMessage) {
       const message = this.options.customizeErrorMessage(error);
       if (message) return message;
+    }
+
+    if (error.message) {
+      return error.message;
     }
 
     return 'Unexpected error';

@@ -13,7 +13,7 @@ export class BusinessError extends Error {
    * packages versions as dependencies of different packages.
    * So this function is a workaround to check if an error is of a specific type.
    */
-  static isOfType(error: Error, ErrorConstructor: new (...args: any[]) => Error): boolean {
+  static isOfType(error: Error, ErrorConstructor: new (...args: never[]) => Error): boolean {
     return error.name === ErrorConstructor.name;
   }
 }

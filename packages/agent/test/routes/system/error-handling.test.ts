@@ -138,7 +138,6 @@ describe('ErrorHandling', () => {
           await handleError.call(route, context, next);
 
           expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
-          expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
           expect(context.response.body).toStrictEqual({
             errors: [
               {
@@ -158,7 +157,7 @@ describe('ErrorHandling', () => {
         test('it should not add anything to prevent information leak', async () => {
           const context = createMockContext();
 
-          const fakeErrorFromDependency = new Error('message');
+          const fakeErrorFromDependency = new Error('a custom message');
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           fakeErrorFromDependency.data = {
@@ -174,7 +173,7 @@ describe('ErrorHandling', () => {
           expect(context.response.body).toStrictEqual({
             errors: [
               {
-                detail: 'Unexpected error',
+                detail: 'a custom message',
                 name: 'Error',
                 status: 500,
               },
