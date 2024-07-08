@@ -618,7 +618,7 @@ export default class CollectionCustomizer<
    * @param handler the new behavior for the delete operation
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks/collection-override#custom-delete-operation Documentation Link}
    * @example
-   * .replaceDelete(async (context) => {
+   * .overrideDelete(async (context) => {
    *   const { filter } = context;
    *   await deleteRecord(filter);
    * });
