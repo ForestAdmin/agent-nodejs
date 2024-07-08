@@ -580,18 +580,49 @@ export default class CollectionCustomizer<
     });
   }
 
+  /**
+   * Replace the default create operation
+   * @param handler the new behavior for the create operation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks/collection-override#custom-create-operation Documentation Link}
+   * @example
+   * .overrideCreate(async (context) => {
+   *   const { data } = context;
+   *   const record = await createRecord(data);
+   *   return [record];
+   * });
+   */
   overrideCreate(handler: CreateOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.override.getCollection(this.name).addCreateHandler(handler);
     });
   }
 
+  /**
+   * Replace the default update operation
+   * @param handler the new behavior for the update operation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks/collection-override#custom-update-operation Documentation Link}
+   * @example
+   * .overrideUpdate(async (context) => {
+   *   const { filter, patch } = context;
+   *   await updateRecord(filter, patch);
+   * });
+   */
   overrideUpdate(handler: UpdateOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.override.getCollection(this.name).addUpdateHandler(handler);
     });
   }
 
+  /**
+   * Replace the default delete operation
+   * @param handler the new behavior for the delete operation
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks/collection-override#custom-delete-operation Documentation Link}
+   * @example
+   * .overrideDelete(async (context) => {
+   *   const { filter } = context;
+   *   await deleteRecord(filter);
+   * });
+   */
   overrideDelete(handler: DeleteOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.override.getCollection(this.name).addDeleteHandler(handler);
