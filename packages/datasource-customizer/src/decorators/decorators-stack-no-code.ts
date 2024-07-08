@@ -12,9 +12,9 @@ export default class DecoratorsStackNoCode extends DecoratorsStackBase {
     // It's actually the initial stack in this case. :)
     let last: DataSource = dataSource;
 
-    /* eslint-disable no-multi-assign */
-    // Step 0: Do not query datasource when we know the result with yield an empty set.
+    // We only need those for the No Code use cases.
 
+    /* eslint-disable no-multi-assign */
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
