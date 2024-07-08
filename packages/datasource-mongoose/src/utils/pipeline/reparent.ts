@@ -74,11 +74,22 @@ export default class ReparentGenerator {
   }
 
   static unflatten(asFields: string[]): PipelineStage[] {
-    return asFields.length
-      ? [
-          { $addFields: Object.fromEntries(asFields.map(f => [f.replace(/\./g, '@@@'), `$${f}`])) },
-          { $project: Object.fromEntries(asFields.map(f => [f, 0])) },
-        ]
-      : [];
+    if (asFields.length === 0) {
+      return [];
+    }
+
+    const unflattenResults = [];
+    const addFields = asFields.map(f => [f.replace(/\./g, '@@@'), `$${f}`]);
+    // DocumentDB limits the addFields stage to 30 fields.
+    const chunkSize = 30;
+
+    for (let i = 0; i < addFields.length; i += chunkSize) {
+      const chunk = addFields.slice(i, i + chunkSize);
+      unflattenResults.push({ $addFields: Object.fromEntries(chunk) });
+    }
+
+    unflattenResults.push({ $project: Object.fromEntries(asFields.map(f => [f, 0])) });
+
+    return unflattenResults;
   }
 }
