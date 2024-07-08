@@ -13,7 +13,7 @@ import { BinaryMode } from './decorators/binary/types';
 import { CollectionChartDefinition } from './decorators/chart/types';
 import { ComputedDefinition } from './decorators/computed/types';
 import mapDeprecated from './decorators/computed/utils/map-deprecated';
-import DecoratorsStack from './decorators/decorators-stack';
+import DecoratorsStackBase from './decorators/decorators-stack-base';
 import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
 import { OperatorDefinition } from './decorators/operators-emulate/types';
 import {
@@ -42,14 +42,18 @@ export default class CollectionCustomizer<
   N extends TCollectionName<S> = TCollectionName<S>,
 > {
   private readonly dataSourceCustomizer: DataSourceCustomizer<S>;
-  private readonly stack: DecoratorsStack;
+  private readonly stack: DecoratorsStackBase;
   readonly name: string;
 
   get schema(): CollectionSchema {
     return this.stack.validation.getCollection(this.name).schema;
   }
 
-  constructor(dataSourceCustomizer: DataSourceCustomizer<S>, stack: DecoratorsStack, name: string) {
+  constructor(
+    dataSourceCustomizer: DataSourceCustomizer<S>,
+    stack: DecoratorsStackBase,
+    name: string,
+  ) {
     this.dataSourceCustomizer = dataSourceCustomizer;
     this.name = name;
     this.stack = stack;

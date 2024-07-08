@@ -1,14 +1,10 @@
-import {
-  DataSource,
-  DataSourceDecorator,
-  Logger,
-  MissingSchemaElementError,
-} from '@forestadmin/datasource-toolkit';
+import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
 import BinaryCollectionDecorator from './binary/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
+import DecoratorsStackBase, { Options } from './decorators-stack-base';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
@@ -24,35 +20,10 @@ import SortEmulateCollectionDecorator from './sort-emulate/collection';
 import ValidationCollectionDecorator from './validation/collection';
 import WriteDataSourceDecorator from './write/datasource';
 
-export type Options = {
-  ignoreMissingSchemaElementErrors?: boolean;
-};
-
-export default class DecoratorsStack {
-  action: DataSourceDecorator<ActionCollectionDecorator>;
-  binary: DataSourceDecorator<BinaryCollectionDecorator>;
-  chart: ChartDataSourceDecorator;
-  earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
-  earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  hook: DataSourceDecorator<HookCollectionDecorator>;
-  lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
-  lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
-  publication: PublicationDataSourceDecorator;
-  relation: DataSourceDecorator<RelationCollectionDecorator>;
-  renameField: DataSourceDecorator<RenameFieldCollectionDecorator>;
-  schema: DataSourceDecorator<SchemaCollectionDecorator>;
-  search: DataSourceDecorator<SearchCollectionDecorator>;
-  segment: DataSourceDecorator<SegmentCollectionDecorator>;
-  sortEmulate: DataSourceDecorator<SortEmulateCollectionDecorator>;
-  validation: DataSourceDecorator<ValidationCollectionDecorator>;
-  write: WriteDataSourceDecorator;
-  dataSource: DataSource;
-  override: DataSourceDecorator<OverrideCollectionDecorator>;
-
-  private customizations: Array<(logger: Logger) => Promise<void>> = [];
-  private options: Required<Options>;
-
+export default class DecoratorsStack extends DecoratorsStackBase {
   constructor(dataSource: DataSource, options?: Options) {
+    super();
+
     let last: DataSource = dataSource;
 
     /* eslint-disable no-multi-assign */
@@ -92,46 +63,6 @@ export default class DecoratorsStack {
     last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
     /* eslint-enable no-multi-assign */
 
-    this.dataSource = last;
-
-    this.options = {
-      ignoreMissingSchemaElementErrors: false,
-      ...(options || {}),
-    };
-  }
-
-  queueCustomization(customization: (logger: Logger) => Promise<void>): void {
-    this.customizations.push(customization);
-  }
-
-  /**
-   * Apply all customizations
-   * Plugins may queue new customizations, or call other plugins which will queue customizations.
-   *
-   * This method will be called recursively and clears the queue at each recursion to ensure
-   * that all customizations are applied in the right order.
-   */
-  async applyQueuedCustomizations(logger: Logger): Promise<void> {
-    const queuedCustomizations = this.customizations.slice();
-    this.customizations.length = 0;
-
-    while (queuedCustomizations.length) {
-      const firstInQueue = queuedCustomizations.shift();
-
-      try {
-        await firstInQueue(logger); // eslint-disable-line no-await-in-loop
-      } catch (e) {
-        if (
-          this.options.ignoreMissingSchemaElementErrors &&
-          e instanceof MissingSchemaElementError
-        ) {
-          logger('Warn', e.message, e);
-        } else {
-          throw e;
-        }
-      }
-
-      await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
-    }
+    this.finalizeStackSetup(last, options);
   }
 }
