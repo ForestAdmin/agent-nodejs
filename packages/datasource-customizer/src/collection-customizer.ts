@@ -602,7 +602,7 @@ export default class CollectionCustomizer<
    * @param handler the new behavior for the update operation
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/hooks/collection-override#custom-update-operation Documentation Link}
    * @example
-   * .replaceUpdate(async (context) => {
+   * .overrideUpdate(async (context) => {
    *   const { filter, patch } = context;
    *   await updateRecord(filter, patch);
    * });
