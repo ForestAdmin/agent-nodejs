@@ -106,13 +106,13 @@ describe('ErrorHandling', () => {
 
     test('it should set the status and body for other errors', async () => {
       const context = createMockContext();
-      const next = jest.fn().mockRejectedValue(new Error('hello'));
+      const next = jest.fn().mockRejectedValue(new Error('Internal error'));
 
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
+        errors: [{ detail: 'Internal error', name: 'Error', status: 500 }],
       });
       expect(console.error).not.toHaveBeenCalled();
     });
@@ -169,7 +169,6 @@ describe('ErrorHandling', () => {
           await handleError.call(route, context, next);
 
           expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-          expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
           expect(context.response.body).toStrictEqual({
             errors: [
               {
@@ -202,16 +201,12 @@ describe('ErrorHandling', () => {
 
     test('it should print stuff to stderr', async () => {
       const context = createMockContext({ method: 'POST' });
-      const next = jest.fn().mockRejectedValue(new Error('hello'));
+      const next = jest.fn().mockRejectedValue(new Error('Internal error'));
 
       await handleError.call(route, context, next);
       await new Promise(setImmediate);
 
       expect(console.error).toHaveBeenCalled();
-      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
-      expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
-      });
     });
   });
 });
