@@ -216,7 +216,9 @@ describe('BaseCollection', () => {
     test('it always throws', async () => {
       const collection = new ConcreteCollection();
 
-      await expect(collection.execute(factories.caller.build(), 'someAction')).rejects.toThrow();
+      await expect(
+        collection.execute(factories.caller.build(), 'someAction', {}),
+      ).rejects.toThrow();
     });
   });
 
@@ -224,7 +226,9 @@ describe('BaseCollection', () => {
     test('it always throws', async () => {
       const collection = new ConcreteCollection();
 
-      await expect(collection.renderChart(factories.caller.build(), 'someChart')).rejects.toThrow();
+      await expect(
+        collection.renderChart(factories.caller.build(), 'someChart', [1]),
+      ).rejects.toThrow();
     });
   });
 
@@ -232,7 +236,9 @@ describe('BaseCollection', () => {
     test('it return an empty form', async () => {
       const collection = new ConcreteCollection();
 
-      await expect(collection.getForm()).resolves.toStrictEqual([]);
+      await expect(
+        collection.getForm(factories.caller.build(), 'someAction'),
+      ).resolves.toStrictEqual([]);
     });
   });
 });

@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ActionField, ActionResult } from './interfaces/action';
 import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
-import { Collection, DataSource } from './interfaces/collection';
+import { Collection, DataSource, GetFormMetas } from './interfaces/collection';
 import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
 import PaginatedFilter from './interfaces/query/filter/paginated';
 import Filter from './interfaces/query/filter/unpaginated';
 import Projection from './interfaces/query/projection';
-import { RecordData } from './interfaces/record';
+import { CompositeId, RecordData } from './interfaces/record';
 import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
@@ -90,15 +91,26 @@ export default abstract class BaseCollection implements Collection {
     limit?: number,
   ): Promise<AggregateResult[]>;
 
-  async execute(caller: Caller, name: string): Promise<ActionResult> {
+  async execute(
+    caller: Caller,
+    name: string,
+    formValues: RecordData,
+    filter?: Filter,
+  ): Promise<ActionResult> {
     throw new Error(`Action ${name} is not implemented.`);
   }
 
-  async getForm(): Promise<ActionField[]> {
+  async getForm(
+    caller: Caller,
+    name: string,
+    formValues?: RecordData,
+    filter?: Filter,
+    metas?: GetFormMetas,
+  ): Promise<ActionField[]> {
     return [];
   }
 
-  async renderChart(caller: Caller, name: string): Promise<Chart> {
+  async renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart> {
     throw new Error(`Chart ${name} is not implemented.`);
   }
 }
