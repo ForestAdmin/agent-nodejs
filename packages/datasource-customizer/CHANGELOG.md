@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.45.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.1...@forestadmin/datasource-customizer@1.45.2) (2024-07-09)
+
+
+### Bug Fixes
+
+* **customizer-stack:** reduce customizer stack to avoid issues ([#1139](https://github.com/ForestAdmin/agent-nodejs/issues/1139)) ([b13965f](https://github.com/ForestAdmin/agent-nodejs/commit/b13965ff18fc1070df60de07e9a5235ce6f546a4))
+
 ## @forestadmin/datasource-customizer [1.45.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.0...@forestadmin/datasource-customizer@1.45.1) (2024-07-09)
 
 
