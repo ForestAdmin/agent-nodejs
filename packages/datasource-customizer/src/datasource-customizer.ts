@@ -10,6 +10,7 @@ import CollectionCustomizer from './collection-customizer';
 import { DataSourceChartDefinition } from './decorators/chart/types';
 import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
+import DecoratorsStackNoCode from './decorators/decorators-stack-no-code';
 import PublicationDataSourceDecorator from './decorators/publication/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
 import { TCollectionName, TSchema } from './templates';
@@ -18,6 +19,7 @@ import TypingGenerator from './typing-generator';
 
 export type Options = {
   ignoreMissingSchemaElementErrors?: boolean;
+  strategy?: 'Normal' | 'NoCode';
 };
 
 /**
@@ -52,7 +54,11 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
 
   constructor(options?: Options) {
     this.compositeDataSource = new CompositeDatasource<Collection>();
-    this.stack = new DecoratorsStack(this.compositeDataSource, options);
+
+    this.stack = new {
+      NoCode: DecoratorsStackNoCode,
+      Normal: DecoratorsStack,
+    }[options?.strategy ?? 'Normal'](this.compositeDataSource, options);
   }
 
   /**
