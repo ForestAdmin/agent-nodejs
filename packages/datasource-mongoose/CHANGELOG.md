@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.7.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.8...@forestadmin/datasource-mongoose@1.7.9) (2024-07-09)
+
+
+### Bug Fixes
+
+* **documentDB:** prevent field addition from flattener to exceed 30 fields to meet with DocumentDB limitation ([#1140](https://github.com/ForestAdmin/agent-nodejs/issues/1140)) ([10d4e67](https://github.com/ForestAdmin/agent-nodejs/commit/10d4e67fbd049befab80ab89adb95a0001e569a8))
+
 ## @forestadmin/datasource-mongoose [1.7.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.7...@forestadmin/datasource-mongoose@1.7.8) (2024-07-09)
 
 
