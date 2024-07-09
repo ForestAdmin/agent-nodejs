@@ -1,6 +1,8 @@
 import {
+  BadRequestError,
   BusinessError,
   ForbiddenError,
+  NotFoundError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -44,22 +46,42 @@ export default class ErrorHandling extends BaseRoute {
   }
 
   private getErrorStatus(error: Error): number {
-    if (error instanceof ValidationError) return HttpCode.BadRequest;
-    if (error instanceof ForbiddenError) return HttpCode.Forbidden;
-    if (error instanceof UnprocessableError) return HttpCode.Unprocessable;
     if (error instanceof HttpError) return error.status;
 
-    return HttpCode.InternalServerError;
+    switch (true) {
+      case error instanceof ValidationError:
+      case BusinessError.isOfType(error, ValidationError):
+      case error instanceof BadRequestError:
+      case BusinessError.isOfType(error, BadRequestError):
+        return HttpCode.BadRequest;
+
+      case error instanceof ForbiddenError:
+      case BusinessError.isOfType(error, ForbiddenError):
+        return HttpCode.Forbidden;
+
+      case error instanceof NotFoundError:
+      case BusinessError.isOfType(error, NotFoundError):
+        return HttpCode.NotFound;
+
+      case error instanceof UnprocessableError:
+      case BusinessError.isOfType(error, UnprocessableError):
+      case error instanceof BusinessError:
+      case BusinessError.isOfType(error, BusinessError):
+        return HttpCode.Unprocessable;
+
+      default:
+        return HttpCode.InternalServerError;
+    }
   }
 
   private getErrorMessage(error: Error): string {
-    if (error instanceof HttpError || error instanceof BusinessError) {
-      return error.message;
-    }
-
     if (this.options.customizeErrorMessage) {
       const message = this.options.customizeErrorMessage(error);
       if (message) return message;
+    }
+
+    if (error.message) {
+      return error.message;
     }
 
     return 'Unexpected error';

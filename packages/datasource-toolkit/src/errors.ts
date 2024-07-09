@@ -13,14 +13,16 @@ export class BusinessError extends Error {
    * packages versions as dependencies of different packages.
    * So this function is a workaround to check if an error is of a specific type.
    */
-  static isOfType(error: Error, ErrorConstructor: new (...args: any[]) => Error): boolean {
+  static isOfType(error: Error, ErrorConstructor: new (...args: never[]) => Error): boolean {
     return error.name === ErrorConstructor.name;
   }
 }
 
 export class ValidationError extends BusinessError {}
+export class BadRequestError extends BusinessError {}
 export class UnprocessableError extends BusinessError {}
 export class ForbiddenError extends BusinessError {}
+export class NotFoundError extends BusinessError {}
 
 export class IntrospectionFormatError extends BusinessError {
   constructor(sourcePackageName: '@forestadmin/datasource-sql' | '@forestadmin/datasource-mongo') {
