@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.41.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.2...@forestadmin/agent@1.41.3) (2024-07-09)
+
+
+### Bug Fixes
+
+* **customizer-stack:** reduce customizer stack to avoid issues ([#1139](https://github.com/ForestAdmin/agent-nodejs/issues/1139)) ([b13965f](https://github.com/ForestAdmin/agent-nodejs/commit/b13965ff18fc1070df60de07e9a5235ce6f546a4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.45.2
+
 ## @forestadmin/agent [1.41.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.1...@forestadmin/agent@1.41.2) (2024-07-09)
 
 
