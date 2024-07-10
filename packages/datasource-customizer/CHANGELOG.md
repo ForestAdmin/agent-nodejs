@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.45.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.2...@forestadmin/datasource-customizer@1.45.3) (2024-07-10)
+
+
+### Bug Fixes
+
+* **override-create:** clean returned records by removing unknown fields ([#1141](https://github.com/ForestAdmin/agent-nodejs/issues/1141)) ([b05f5c5](https://github.com/ForestAdmin/agent-nodejs/commit/b05f5c513913e30b9b280fc33eb6dbeda7d69763))
+
 ## @forestadmin/datasource-customizer [1.45.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.1...@forestadmin/datasource-customizer@1.45.2) (2024-07-09)
 
 
