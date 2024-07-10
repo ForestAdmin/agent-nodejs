@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.8.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.4...@forestadmin/datasource-sequelize@1.8.5) (2024-07-10)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** returns all records when NotIn is given with empty array ([#1142](https://github.com/ForestAdmin/agent-nodejs/issues/1142)) ([3b313ff](https://github.com/ForestAdmin/agent-nodejs/commit/3b313ffb36b3db2917632b51d8bde23d198a78cb))
+
 ## @forestadmin/datasource-sequelize [1.8.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.3...@forestadmin/datasource-sequelize@1.8.4) (2024-07-09)
 
 
