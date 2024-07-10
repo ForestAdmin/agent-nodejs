@@ -1,4 +1,11 @@
-import { Caller, CollectionDecorator, Filter, RecordData } from '@forestadmin/datasource-toolkit';
+import {
+  Caller,
+  CollectionDecorator,
+  Filter,
+  RecordData,
+  SchemaUtils,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 
 import {
   CreateOverrideCustomizationContext,
@@ -16,7 +23,10 @@ export default class OverrideCollectionDecorator extends CollectionDecorator {
     if (this.createHandler) {
       const context = new CreateOverrideCustomizationContext(this.childCollection, caller, data);
 
-      return this.createHandler(context);
+      const records = await this.createHandler(context);
+      this.cleanRecordsInPlace(records);
+
+      return records;
     }
 
     return super.create(caller, data);
@@ -57,5 +67,29 @@ export default class OverrideCollectionDecorator extends CollectionDecorator {
 
   addDeleteHandler(handler: UpdateOverrideHandler) {
     this.deleteHandler = handler;
+  }
+
+  /* Avoid copying the records to keep the same reference and avoid performance issues */
+  private cleanRecordsInPlace(records?: RecordData[]) {
+    if (!Array.isArray(records)) {
+      throw new ValidationError(`The records must be an array of objects`);
+    }
+
+    records.forEach(result => {
+      let hasPrimaryKey = false;
+      Object.keys(result).forEach(key => {
+        const field = this.schema.fields[key];
+
+        if (!field || field.type !== 'Column') {
+          delete result[key];
+        } else if (SchemaUtils.isPrimaryKey(this.schema, key)) {
+          hasPrimaryKey = true;
+        }
+      });
+
+      if (!hasPrimaryKey) {
+        throw new ValidationError(`The record does not contain any primary key field`);
+      }
+    });
   }
 }
