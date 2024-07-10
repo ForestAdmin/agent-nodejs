@@ -353,7 +353,7 @@ describe('Utils > QueryConverter', () => {
             [
               'mariadb',
               {
-                attribute: { fn: 'BINARY', args: [{ col: '__field_1__' }] },
+                attribute: { fn: 'BINARY', args: [{ col: 'model.__field_1__' }] },
                 comparator: 'LIKE',
                 logic: 'VaLuE',
               },
@@ -362,7 +362,7 @@ describe('Utils > QueryConverter', () => {
             [
               'mysql',
               {
-                attribute: { fn: 'BINARY', args: [{ col: '__field_1__' }] },
+                attribute: { fn: 'BINARY', args: [{ col: 'model.__field_1__' }] },
                 comparator: 'LIKE',
                 logic: 'VaLuE',
               },
@@ -384,7 +384,7 @@ describe('Utils > QueryConverter', () => {
             [
               'mssql',
               {
-                attribute: { fn: 'LOWER', args: [{ col: '__field_1__' }] },
+                attribute: { fn: 'LOWER', args: [{ col: 'model.__field_1__' }] },
                 comparator: 'LIKE',
                 logic: 'value',
               },
