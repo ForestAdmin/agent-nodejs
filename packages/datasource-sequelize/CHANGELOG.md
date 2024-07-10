@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.8.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.5...@forestadmin/datasource-sequelize@1.8.6) (2024-07-10)
+
+
+### Bug Fixes
+
+* get rid of 'ambiguous column name' error when searching on collection with relationships ([#1143](https://github.com/ForestAdmin/agent-nodejs/issues/1143)) ([029bed9](https://github.com/ForestAdmin/agent-nodejs/commit/029bed9468bb584547bcfbff7e6a0d8d6b9c8e1b))
+
 ## @forestadmin/datasource-sequelize [1.8.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.4...@forestadmin/datasource-sequelize@1.8.5) (2024-07-10)
 
 
