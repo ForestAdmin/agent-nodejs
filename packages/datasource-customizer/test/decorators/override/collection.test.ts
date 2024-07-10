@@ -23,6 +23,7 @@ describe('OverrideCollectionDecorator', () => {
           id: factories.columnSchema.uuidPrimaryKey().build(),
           description: factories.columnSchema.build(),
           amountInEur: factories.columnSchema.build(),
+          relation: factories.manyToManySchema.build(),
         },
       }),
     });
@@ -88,11 +89,11 @@ describe('OverrideCollectionDecorator', () => {
     });
   });
 
-  describe('when seting up override', () => {
+  describe('when setting up override', () => {
     describe('on create', () => {
       test('it should call the handler', async () => {
         const spy = jest.spyOn(transactions, 'create');
-        const handler = jest.fn();
+        const handler = jest.fn().mockResolvedValue([]);
 
         const currentCaller = factories.caller.build();
         const currentData = [factories.recordData.build()];
@@ -111,6 +112,83 @@ describe('OverrideCollectionDecorator', () => {
         const handlerArguments = handler.mock.calls[0][0];
         expect(handlerArguments.caller).toEqual(context.caller);
         expect(handlerArguments.data).toEqual(context.data);
+      });
+
+      describe.each([undefined, null, 'aValue', ''])(
+        'when the handler returns %p',
+        handlerValue => {
+          it('should throw an error with a specific message', async () => {
+            const handler = jest.fn().mockResolvedValue(handlerValue);
+
+            const currentCaller = factories.caller.build();
+            const currentData = [factories.recordData.build()];
+            // eslint-disable-next-line no-new
+            new CreateOverrideCustomizationContext(transactions, currentCaller, currentData);
+
+            decoratedTransactions.addCreateHandler(handler);
+            await expect(() =>
+              decoratedTransactions.create(currentCaller, currentData),
+            ).rejects.toThrow('The records must be an array of objects');
+
+            expect(handler).toHaveBeenCalledTimes(1);
+          });
+        },
+      );
+
+      describe('when the handler does not return a primary key in each record', () => {
+        it('should throw an error', async () => {
+          const handler = jest.fn().mockResolvedValue([{ id: 'valid' }, { noId: 1 }]);
+
+          const currentCaller = factories.caller.build();
+          const currentData = [factories.recordData.build()];
+          // eslint-disable-next-line no-new
+          new CreateOverrideCustomizationContext(transactions, currentCaller, currentData);
+
+          decoratedTransactions.addCreateHandler(handler);
+          await expect(() =>
+            decoratedTransactions.create(currentCaller, currentData),
+          ).rejects.toThrow('The record does not contain any primary key field');
+
+          expect(handler).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('when the handler returns an unknown field', () => {
+        it('should remove the unknown field of the record', async () => {
+          const handler = jest
+            .fn()
+            .mockResolvedValue([{ id: 1, notExistInSchema: 'value', description: 'describe' }]);
+
+          const currentCaller = factories.caller.build();
+          const currentData = [factories.recordData.build()];
+          // eslint-disable-next-line no-new
+          new CreateOverrideCustomizationContext(transactions, currentCaller, currentData);
+
+          decoratedTransactions.addCreateHandler(handler);
+          const records = await decoratedTransactions.create(currentCaller, currentData);
+
+          expect(records[0].notExistInSchema).toBeUndefined();
+          expect(records).toEqual([{ id: 1, description: 'describe' }]);
+        });
+      });
+
+      describe('when the handler returns a relation field', () => {
+        it('should remove the relation field of the record', async () => {
+          const handler = jest
+            .fn()
+            .mockResolvedValue([{ id: 1, notExistInSchema: 'value', relation: 'describe' }]);
+
+          const currentCaller = factories.caller.build();
+          const currentData = [factories.recordData.build()];
+          // eslint-disable-next-line no-new
+          new CreateOverrideCustomizationContext(transactions, currentCaller, currentData);
+
+          decoratedTransactions.addCreateHandler(handler);
+          const records = await decoratedTransactions.create(currentCaller, currentData);
+
+          expect(records[0].notExistInSchema).toBeUndefined();
+          expect(records).toEqual([{ id: 1 }]);
+        });
       });
     });
 
