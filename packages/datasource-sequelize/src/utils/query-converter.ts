@@ -169,6 +169,9 @@ export default class QueryConverter {
     const op = not ? 'NOT LIKE' : 'LIKE';
     let condition: WhereOptions;
 
+    // using safeField in fn that will be injected literally inside the query
+    const safeField = unAmbigousField(this.model, field, true);
+
     if (caseSensitive) {
       if (this.dialect === 'sqlite') {
         const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
@@ -179,7 +182,7 @@ export default class QueryConverter {
           value.replace(/%/g, '*').replace(/_/g, '?'),
         );
       } else if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
-        condition = this.where(this.fn('BINARY', this.col(field)), op, value);
+        condition = this.where(this.fn('BINARY', this.col(safeField)), op, value);
       } else {
         condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
       }
@@ -194,7 +197,7 @@ export default class QueryConverter {
     ) {
       condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
     } else {
-      condition = this.where(this.fn('LOWER', this.col(field)), op, value.toLocaleLowerCase());
+      condition = this.where(this.fn('LOWER', this.col(safeField)), op, value.toLocaleLowerCase());
     }
 
     return not ? { [Op.or]: [condition, { [colName]: { [Op.is]: null } }] } : condition;

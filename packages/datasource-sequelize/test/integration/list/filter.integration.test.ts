@@ -38,19 +38,33 @@ describe('Filter tests on collection', () => {
       let collection: SequelizeCollection;
 
       beforeAll(async () => {
-        sequelize.define('User', {
+        const user = sequelize.define('User', {
           name: {
             type: DataTypes.TEXT,
             allowNull: true,
           },
         });
 
+        const company = sequelize.define('Company', {
+          name: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+          },
+        });
+
+        user.belongsTo(company);
+
         await sequelize.sync({ force: true });
 
+        await sequelize.models.Company.bulkCreate([
+          { name: 'Forest', id: 1 },
+          { name: 'Evil Corp', id: 2 },
+        ]);
+
         await sequelize.models.User.bulkCreate([
-          { name: 'John Doe' },
-          { name: 'Jane Doe' },
-          { name: 'john Smith' },
+          { name: 'John Doe', company_id: 1 },
+          { name: 'Jane Doe', company_id: 1 },
+          { name: 'john Smith', company_id: 2 },
           { name: null },
         ]);
 
@@ -65,7 +79,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'Like', 'John%'),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -81,7 +95,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'ILike', 'John%'),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -100,7 +114,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotContains', 'John'),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -120,7 +134,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotIContains', 'John'),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -139,7 +153,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'Present', null),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -159,7 +173,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'Missing', null),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(expect.arrayContaining([expect.objectContaining({ name: null })]));
@@ -173,7 +187,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'Equal', 'John Doe'),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -189,7 +203,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotEqual', 'John Doe'),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).not.toEqual(
@@ -205,7 +219,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotEqual', null),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).not.toEqual(
@@ -229,7 +243,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'In', ['John Doe', 'Jane Doe']),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).toEqual(
@@ -254,7 +268,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotIn', ['John Doe', 'Jane Doe']),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).not.toEqual(
@@ -275,7 +289,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotIn', [null]),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).not.toEqual(
@@ -297,7 +311,7 @@ describe('Filter tests on collection', () => {
             new PaginatedFilter({
               conditionTree: new ConditionTreeLeaf('name', 'NotIn', [null, 'John Doe']),
             }),
-            new Projection('name'),
+            new Projection('name', 'Company:id'),
           );
 
           expect(result).not.toEqual(
