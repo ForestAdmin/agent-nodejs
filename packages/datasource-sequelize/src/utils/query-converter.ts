@@ -167,6 +167,7 @@ export default class QueryConverter {
     const op = not ? 'NOT LIKE' : 'LIKE';
     let condition: WhereOptions;
 
+    // using safeField in fn that will be injected literally inside the query
     const safeField = unAmbigousField(this.model, field, true);
 
     if (caseSensitive) {
