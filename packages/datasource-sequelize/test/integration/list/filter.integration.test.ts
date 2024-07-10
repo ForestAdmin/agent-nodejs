@@ -315,6 +315,18 @@ describe('Filter tests on collection', () => {
             ]),
           );
         });
+
+        it('should return all lines when empty array is passed', async () => {
+          const result = await collection.list(
+            caller,
+            new PaginatedFilter({
+              conditionTree: new ConditionTreeLeaf('name', 'NotIn', []),
+            }),
+            new Projection('name'),
+          );
+
+          expect(result.length).toBe(4);
+        });
       });
     });
 

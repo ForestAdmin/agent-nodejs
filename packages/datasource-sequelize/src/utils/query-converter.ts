@@ -152,6 +152,8 @@ export default class QueryConverter {
       };
     }
 
+    if (valueAsArray.length === 0) return { [colName]: { [Op.notIn]: [] } };
+
     return {
       [Op.or]: [{ [colName]: { [Op.notIn]: valueAsArray } }, { [colName]: { [Op.is]: null } }],
     };
