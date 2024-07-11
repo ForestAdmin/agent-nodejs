@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.8.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.7...@forestadmin/datasource-sequelize@1.8.8) (2024-07-11)
+
+
+### Bug Fixes
+
+* **query converter:** handle already safe fields ([#1145](https://github.com/ForestAdmin/agent-nodejs/issues/1145)) ([c5fb326](https://github.com/ForestAdmin/agent-nodejs/commit/c5fb32618158ae1ed6430a063d8d9b538b84a27b))
+
 ## @forestadmin/datasource-sequelize [1.8.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.6...@forestadmin/datasource-sequelize@1.8.7) (2024-07-11)
 
 
