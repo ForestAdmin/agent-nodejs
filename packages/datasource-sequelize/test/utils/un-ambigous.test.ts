@@ -94,4 +94,36 @@ describe('Utils > unAmbigousField', () => {
       });
     });
   });
+
+  describe('with an already safe field', () => {
+    const relationSetup = () => {
+      const { sequelize, model } = setup();
+
+      const relation = sequelize.define('relation', {
+        relationField: {
+          field: '__relation__field',
+          type: DataTypes.STRING,
+        },
+      });
+      model.hasMany(relation);
+
+      const nestedRelation = sequelize.define('nestedRelation', {
+        nestedRelationField: {
+          field: '__nested__relation__field',
+          type: DataTypes.STRING,
+        },
+      });
+      relation.belongsTo(nestedRelation);
+
+      return { sequelize, model, relation };
+    };
+
+    it('should return safe field', () => {
+      const { model } = relationSetup();
+
+      expect(unAmbigousField(model, 'relations.__relation__field')).toStrictEqual(
+        'relations.__relation__field',
+      );
+    });
+  });
 });
