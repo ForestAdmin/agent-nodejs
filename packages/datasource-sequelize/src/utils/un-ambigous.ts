@@ -6,11 +6,14 @@ export default function unAmbigousField(
   field: string,
   unAmbigous = false,
 ) {
+  const isSafe = field.includes('.');
   const isRelation = field.includes(':');
 
   let safeField: string;
 
-  if (isRelation) {
+  if (isSafe) {
+    safeField = field;
+  } else if (isRelation) {
     const paths = field.split(':');
     const relationFieldName = paths.pop();
     const fieldName = paths
