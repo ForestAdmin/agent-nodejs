@@ -152,7 +152,13 @@ export default class Introspector {
 
     const [tableIndexes, references] = await Promise.all([
       queryInterface.showIndex(tableIdentifierForQuery),
-      this.getTableReferences(dialect, tableIdentifier, tableIdentifierForQuery, queryInterface),
+      this.getTableReferences(
+        dialect,
+        tableIdentifier,
+        tableIdentifierForQuery,
+        queryInterface,
+        logger,
+      ),
     ]);
 
     const columns = await Promise.all(
@@ -184,27 +190,50 @@ export default class Introspector {
     tableIdentifier: SequelizeTableIdentifier,
     tableIdentifierForQuery: SequelizeTableIdentifier,
     queryInterface: QueryInterfaceExt,
+    logger: Logger,
   ) {
     const tableReferences = await dialect.getForeignKeyReferencesForTable(
       tableIdentifierForQuery,
       queryInterface,
     );
+    const processedTableReferences = tableReferences.map(tableReference => ({
+      ...tableReference,
+      tableName:
+        typeof tableReference.tableName === 'string'
+          ? tableReference.tableName
+          : // On SQLite, the query interface returns an object with a tableName property
+            tableReference.tableName.tableName,
+      composite:
+        tableReferences.filter(
+          reference => reference.constraintName === tableReference.constraintName,
+        ).length > 1,
+    }));
 
-    return tableReferences
-      .map(tableReference => ({
-        ...tableReference,
-        tableName:
-          typeof tableReference.tableName === 'string'
-            ? tableReference.tableName
-            : // On SQLite, the query interface returns an object with a tableName property
-              tableReference.tableName.tableName,
-      }))
-      .filter(
-        // There is a bug right now with sequelize on postgresql: returned association
-        // are not filtered on the schema. So we have to filter them manually.
-        // Should be fixed with Sequelize v7
-        r => r.tableName === tableIdentifier.tableName && r.tableSchema === tableIdentifier.schema,
+    const compositeRelations = processedTableReferences
+      .filter(processedTableReference => processedTableReference.composite)
+      .map(processedTableReference => processedTableReference.constraintName)
+      .filter((constraint, index, array) => array.indexOf(constraint) === index);
+
+    if (compositeRelations.length) {
+      // sequelize does not support composite keys https://github.com/sequelize/sequelize/issues/311
+      // so the agent does not either
+      logger?.(
+        'Warn',
+        `Composite relations are not supported. skipping '${compositeRelations.join("','")}' on '${
+          tableIdentifierForQuery.tableName
+        }'`,
       );
+    }
+
+    return processedTableReferences.filter(
+      // There is a bug right now with sequelize on postgresql: returned association
+      // are not filtered on the schema. So we have to filter them manually.
+      // Should be fixed with Sequelize v7
+      r =>
+        r.tableName === tableIdentifier.tableName &&
+        r.tableSchema === tableIdentifier.schema &&
+        !r.composite,
+    );
   }
 
   private static async getColumn(
