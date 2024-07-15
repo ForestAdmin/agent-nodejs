@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.34.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.2...@forestadmin/datasource-toolkit@1.34.3) (2024-07-15)
+
+
+### Bug Fixes
+
+* **errors:** prevent error information leak and guaranty cross packages instanceof errors ([#1147](https://github.com/ForestAdmin/agent-nodejs/issues/1147)) ([355b494](https://github.com/ForestAdmin/agent-nodejs/commit/355b494f7dbc62d429a609f2a1aef17bda344813))
+
 ## @forestadmin/datasource-toolkit [1.34.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.1...@forestadmin/datasource-toolkit@1.34.2) (2024-07-11)
 
 
