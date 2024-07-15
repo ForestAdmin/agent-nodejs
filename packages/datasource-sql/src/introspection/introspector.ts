@@ -197,7 +197,8 @@ export default class Introspector {
             tableReference.tableName.tableName,
       composite:
         tableReferences.filter(
-          reference => reference.constraintName === tableReference.constraintName,
+          reference =>
+            reference.constraintName && reference.constraintName === tableReference.constraintName,
         ).length > 1,
     }));
 
