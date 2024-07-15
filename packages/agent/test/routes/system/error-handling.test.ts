@@ -1,5 +1,7 @@
 import {
+  BadRequestError,
   ForbiddenError,
+  NotFoundError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -78,6 +80,32 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
+    test('it should set the status and body for bad request errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new BadRequestError('message'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.BadRequest);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'message', name: 'BadRequestError', status: 400 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
+    test('it should set the status and body for unprocessable errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new UnprocessableError('message'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'message', name: 'UnprocessableError', status: 422 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
     test('it should set the status and body for forbidden errors', async () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new ForbiddenError('forbidden'));
@@ -91,28 +119,30 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
-    test('it should set the status and body for unprocessable errors', async () => {
+    test('it should set the status and body for not found errors', async () => {
       const context = createMockContext();
-      const next = jest.fn().mockRejectedValue(new UnprocessableError('unprocessable'));
+      const next = jest.fn().mockRejectedValue(new NotFoundError('message'));
 
       await handleError.call(route, context, next);
 
-      expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
+      expect(context.response.status).toStrictEqual(HttpCode.NotFound);
       expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'unprocessable', name: 'UnprocessableError', status: 422 }],
+        errors: [{ detail: 'message', name: 'NotFoundError', status: 404 }],
       });
       expect(console.error).not.toHaveBeenCalled();
     });
 
-    test('it should set the status and body for other errors', async () => {
+    test('it should set the status and body for other errors and prevent information leak', async () => {
       const context = createMockContext();
-      const next = jest.fn().mockRejectedValue(new Error('Internal error'));
+      const next = jest
+        .fn()
+        .mockRejectedValue(new Error('Internal error with important data that should not leak'));
 
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'Internal error', name: 'Error', status: 500 }],
+        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
       });
       expect(console.error).not.toHaveBeenCalled();
     });
@@ -172,7 +202,7 @@ describe('ErrorHandling', () => {
           expect(context.response.body).toStrictEqual({
             errors: [
               {
-                detail: 'a custom message',
+                detail: 'Unexpected error',
                 name: 'Error',
                 status: 500,
               },
@@ -207,6 +237,30 @@ describe('ErrorHandling', () => {
       await new Promise(setImmediate);
 
       expect(console.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('guaranty cross packages instanceof errors workaround', () => {
+    describe('when using extended errors', () => {
+      test('it should be detected correctly', async () => {
+        const extendedError = new FakePayloadError('message');
+
+        expect(extendedError.baseBusinessErrorName).toStrictEqual('ForbiddenError');
+        expect(extendedError.isBusinessError).toBeTrue();
+      });
+    });
+
+    test.each([
+      { Error: ValidationError, errorName: 'ValidationError' },
+      { Error: BadRequestError, errorName: 'BadRequestError' },
+      { Error: UnprocessableError, errorName: 'UnprocessableError' },
+      { Error: ForbiddenError, errorName: 'ForbiddenError' },
+      { Error: NotFoundError, errorName: 'NotFoundError' },
+    ])('should have the right baseBusinessErrorName', ({ Error, errorName }) => {
+      const extendedError = new Error('message');
+
+      expect(extendedError.baseBusinessErrorName).toStrictEqual(errorName);
+      expect(extendedError.isBusinessError).toBeTrue();
     });
   });
 });

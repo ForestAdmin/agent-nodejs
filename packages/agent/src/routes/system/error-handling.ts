@@ -80,7 +80,12 @@ export default class ErrorHandling extends BaseRoute {
       if (message) return message;
     }
 
-    if (error.message) {
+    if (
+      (error instanceof HttpError ||
+        error instanceof BusinessError ||
+        (error as BusinessError).isBusinessError) &&
+      error.message
+    ) {
       return error.message;
     }
 
