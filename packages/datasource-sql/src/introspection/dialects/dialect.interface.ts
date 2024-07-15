@@ -1,11 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-import {
-  QueryInterfaceExt,
-  SequelizeColumn,
-  SequelizeReference,
-  SequelizeTableIdentifier,
-} from '../type-overrides';
+import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
 
 export type ColumnDescription = Omit<SequelizeColumn, 'defaultValue'> & {
   name: string;
@@ -24,8 +19,4 @@ export default interface IntrospectionDialect {
 
   getDefaultSchema(sequelize: Sequelize): string;
   getTableIdentifier(tableIdentifier: SequelizeTableIdentifier): SequelizeTableIdentifier;
-  getForeignKeyReferencesForTable(
-    tableIdentifierForQuery: SequelizeTableIdentifier,
-    queryInterface: QueryInterfaceExt,
-  ): Promise<SequelizeReference[]>;
 }

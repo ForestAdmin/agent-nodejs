@@ -152,13 +152,7 @@ export default class Introspector {
 
     const [tableIndexes, references] = await Promise.all([
       queryInterface.showIndex(tableIdentifierForQuery),
-      this.getTableReferences(
-        dialect,
-        tableIdentifier,
-        tableIdentifierForQuery,
-        queryInterface,
-        logger,
-      ),
+      this.getTableReferences(tableIdentifier, tableIdentifierForQuery, queryInterface, logger),
     ]);
 
     const columns = await Promise.all(
@@ -186,15 +180,13 @@ export default class Introspector {
   }
 
   private static async getTableReferences(
-    dialect: IntrospectionDialect,
     tableIdentifier: SequelizeTableIdentifier,
     tableIdentifierForQuery: SequelizeTableIdentifier,
     queryInterface: QueryInterfaceExt,
     logger: Logger,
   ) {
-    const tableReferences = await dialect.getForeignKeyReferencesForTable(
+    const tableReferences = await queryInterface.getForeignKeyReferencesForTable(
       tableIdentifierForQuery,
-      queryInterface,
     );
     const processedTableReferences = tableReferences.map(tableReference => ({
       ...tableReference,

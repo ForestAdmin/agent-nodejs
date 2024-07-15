@@ -2,9 +2,7 @@ import { QueryTypes, Sequelize } from 'sequelize';
 
 import parseArray from './parse-array';
 import {
-  QueryInterfaceExt,
   SequelizeColumn,
-  SequelizeReference,
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from '../../type-overrides';
@@ -26,49 +24,6 @@ type DBColumn = {
 };
 
 export default class PostgreSQLDialect implements IntrospectionDialect {
-  async getForeignKeyReferencesForTable(
-    tableIdentifierForQuery: SequelizeTableIdentifier,
-    queryInterface: QueryInterfaceExt,
-  ): Promise<SequelizeReference[]> {
-    // the native sequelize method getForeignKeyReferencesForTable does not work for pg in the case of
-    // composite foreign keys
-    // we need to use the pg_catalog because the information_schema cannot attribute the right fks
-    // https://app.clickup.com/t/86bzfe8w6
-    const result = await queryInterface.sequelize.query<SequelizeReference>(
-      `
-SELECT distinct  
-tc.constraint_name as "constraintName",
-tc.constraint_schema as "constraintSchema",
-tc.constraint_catalog as "constraintCatalog",
-tc.table_name as "tableName",
-tc.table_schema as "tableSchema",
-tc.table_catalog as "tableCatalog",
-tc.initially_deferred as "initiallyDeferred",
-tc.is_deferrable as "isDeferrable",
-origin.attname as "columnName",
-ccu.table_schema  AS "referencedTableSchema",
-ccu.table_catalog  AS "referencedTableCatalog",
-ccu.table_name  AS "referencedTableName",
-ccu.column_name AS "referencedColumnName" 
-FROM   pg_catalog.pg_constraint c
-inner join pg_catalog.pg_attribute origin on origin.attrelid = c.conrelid and origin.attnum = any(c.conkey)
-inner join pg_catalog.pg_attribute target on target.attrelid = c.conrelid and target.attnum = any(c.confkey)
-inner join information_schema.table_constraints AS tc on constraint_type = 'FOREIGN KEY' AND tc.table_name = :tableName AND tc.table_catalog = :database
-JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name and target.attname  = ccu.column_name 
-where origin.attnum = target.attnum
-      `,
-      {
-        type: QueryTypes.SELECT,
-        replacements: {
-          ...tableIdentifierForQuery,
-          database: queryInterface.sequelize.config.database,
-        },
-      },
-    );
-
-    return result;
-  }
-
   getDefaultSchema(): string {
     return 'public';
   }

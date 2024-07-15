@@ -1,12 +1,7 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import {
-  QueryInterfaceExt,
-  SequelizeReference,
-  SequelizeTableIdentifier,
-  SequelizeWithOptions,
-} from '../type-overrides';
+import { SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
 
 type DBColumn = {
   cid: number;
@@ -18,13 +13,6 @@ type DBColumn = {
 };
 
 export default class SQLiteDialect implements IntrospectionDialect {
-  async getForeignKeyReferencesForTable(
-    tableIdentifierForQuery: SequelizeTableIdentifier,
-    queryInterface: QueryInterfaceExt,
-  ): Promise<SequelizeReference[]> {
-    return queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery);
-  }
-
   getDefaultSchema(): string {
     return undefined;
   }

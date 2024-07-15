@@ -1,13 +1,7 @@
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import {
-  QueryInterfaceExt,
-  SequelizeColumn,
-  SequelizeReference,
-  SequelizeTableIdentifier,
-  SequelizeWithOptions,
-} from '../type-overrides';
+import { SequelizeColumn, SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
 
 type DBColumn = {
   Schema: string;
@@ -22,13 +16,6 @@ type DBColumn = {
   Comment: string;
 };
 export default class MsSQLDialect implements IntrospectionDialect {
-  async getForeignKeyReferencesForTable(
-    tableIdentifierForQuery: SequelizeTableIdentifier,
-    queryInterface: QueryInterfaceExt,
-  ): Promise<SequelizeReference[]> {
-    return queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery);
-  }
-
   getDefaultSchema(): string {
     return 'dbo';
   }

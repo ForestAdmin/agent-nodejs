@@ -2,7 +2,6 @@ import { QueryTypes, Sequelize } from 'sequelize';
 
 import parseEnum from './parse-enum';
 import {
-  QueryInterfaceExt,
   SequelizeColumn,
   SequelizeReference,
   SequelizeTableIdentifier,
@@ -22,13 +21,6 @@ export type MySQLDBColumn = {
 };
 
 export default class MySQLDialect implements IntrospectionDialect {
-  async getForeignKeyReferencesForTable(
-    tableIdentifierForQuery: SequelizeTableIdentifier,
-    queryInterface: QueryInterfaceExt,
-  ): Promise<SequelizeReference[]> {
-    return queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery);
-  }
-
   getDefaultSchema(sequelize: Sequelize): string {
     return sequelize.getDatabaseName();
   }
