@@ -211,4 +211,15 @@ describe('ErrorHandling', () => {
       expect(console.error).toHaveBeenCalled();
     });
   });
+
+  describe('guaranty cross packages instanceof errors workaround', () => {
+    describe('when using extended errors', () => {
+      test('it should be detected correctly', async () => {
+        const extendedError = new FakePayloadError('message');
+
+        expect(extendedError.baseBusinessErrorName).toStrictEqual('ForbiddenError');
+        expect(extendedError.isBusinessError).toBeTrue();
+      });
+    });
+  });
 });
