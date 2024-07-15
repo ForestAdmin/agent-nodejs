@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.41.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.5...@forestadmin/agent@1.41.6) (2024-07-15)
+
+
+### Bug Fixes
+
+* **errors:** prevent error information leak and guaranty cross packages instanceof errors ([#1147](https://github.com/ForestAdmin/agent-nodejs/issues/1147)) ([355b494](https://github.com/ForestAdmin/agent-nodejs/commit/355b494f7dbc62d429a609f2a1aef17bda344813))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.45.5
+* **@forestadmin/datasource-toolkit:** upgraded to 1.34.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.27.6
+
 ## @forestadmin/agent [1.41.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.4...@forestadmin/agent@1.41.5) (2024-07-11)
 
 
