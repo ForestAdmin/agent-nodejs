@@ -104,15 +104,17 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
-    test('it should set the status and body for other errors', async () => {
+    test('it should set the status and body for other errors and prevent information leak', async () => {
       const context = createMockContext();
-      const next = jest.fn().mockRejectedValue(new Error('Internal error'));
+      const next = jest
+        .fn()
+        .mockRejectedValue(new Error('Internal error with important data that should not leak'));
 
       await handleError.call(route, context, next);
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'Internal error', name: 'Error', status: 500 }],
+        errors: [{ detail: 'Unexpected error', name: 'Error', status: 500 }],
       });
       expect(console.error).not.toHaveBeenCalled();
     });
@@ -172,7 +174,7 @@ describe('ErrorHandling', () => {
           expect(context.response.body).toStrictEqual({
             errors: [
               {
-                detail: 'a custom message',
+                detail: 'Unexpected error',
                 name: 'Error',
                 status: 500,
               },
