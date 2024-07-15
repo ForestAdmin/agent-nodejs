@@ -28,31 +28,31 @@ export class BusinessError extends Error {
 export class ValidationError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
     super(message, data, name);
-    this.baseBusinessErrorName = this.constructor.name;
+    this.baseBusinessErrorName = 'ValidationError';
   }
 }
 export class BadRequestError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
     super(message, data, name);
-    this.baseBusinessErrorName = this.constructor.name;
+    this.baseBusinessErrorName = 'BadRequestError';
   }
 }
 export class UnprocessableError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
     super(message, data, name);
-    this.baseBusinessErrorName = this.constructor.name;
+    this.baseBusinessErrorName = 'UnprocessableError';
   }
 }
 export class ForbiddenError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
     super(message, data, name);
-    this.baseBusinessErrorName = this.constructor.name;
+    this.baseBusinessErrorName = 'ForbiddenError';
   }
 }
 export class NotFoundError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
     super(message, data, name);
-    this.baseBusinessErrorName = this.constructor.name;
+    this.baseBusinessErrorName = 'NotFoundError';
   }
 }
 
@@ -62,7 +62,7 @@ export class IntrospectionFormatError extends BusinessError {
       `This version of introspection is newer than this package version. ` +
       `Please update ${sourcePackageName}`;
     super(message);
-    this.baseBusinessErrorName = this.constructor.name;
+    this.baseBusinessErrorName = 'IntrospectionFormatError';
   }
 
   /** @deprecated use name instead */
