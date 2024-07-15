@@ -249,5 +249,18 @@ describe('ErrorHandling', () => {
         expect(extendedError.isBusinessError).toBeTrue();
       });
     });
+
+    test.each([
+      { Error: ValidationError, errorName: 'ValidationError' },
+      { Error: BadRequestError, errorName: 'BadRequestError' },
+      { Error: UnprocessableError, errorName: 'UnprocessableError' },
+      { Error: ForbiddenError, errorName: 'ForbiddenError' },
+      { Error: NotFoundError, errorName: 'NotFoundError' },
+    ])('should have the right baseBusinessErrorName', ({ Error, errorName }) => {
+      const extendedError = new Error('message');
+
+      expect(extendedError.baseBusinessErrorName).toStrictEqual(errorName);
+      expect(extendedError.isBusinessError).toBeTrue();
+    });
   });
 });
