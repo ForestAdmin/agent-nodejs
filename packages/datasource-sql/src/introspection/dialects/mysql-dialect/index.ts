@@ -3,7 +3,6 @@ import { QueryTypes, Sequelize } from 'sequelize';
 import parseEnum from './parse-enum';
 import {
   SequelizeColumn,
-  SequelizeReference,
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from '../../type-overrides';
