@@ -1,5 +1,7 @@
 import {
+  BadRequestError,
   ForbiddenError,
+  NotFoundError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -78,6 +80,32 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
+    test('it should set the status and body for bad request errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new BadRequestError('message'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.BadRequest);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'message', name: 'BadRequestError', status: 400 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
+    test('it should set the status and body for unprocessable errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new UnprocessableError('message'));
+
+      await handleError.call(route, context, next);
+
+      expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'message', name: 'UnprocessableError', status: 422 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
     test('it should set the status and body for forbidden errors', async () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new ForbiddenError('forbidden'));
@@ -91,15 +119,15 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
-    test('it should set the status and body for unprocessable errors', async () => {
+    test('it should set the status and body for not found errors', async () => {
       const context = createMockContext();
-      const next = jest.fn().mockRejectedValue(new UnprocessableError('unprocessable'));
+      const next = jest.fn().mockRejectedValue(new NotFoundError('message'));
 
       await handleError.call(route, context, next);
 
-      expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
+      expect(context.response.status).toStrictEqual(HttpCode.NotFound);
       expect(context.response.body).toStrictEqual({
-        errors: [{ detail: 'unprocessable', name: 'UnprocessableError', status: 422 }],
+        errors: [{ detail: 'message', name: 'NotFoundError', status: 404 }],
       });
       expect(console.error).not.toHaveBeenCalled();
     });
