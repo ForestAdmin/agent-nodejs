@@ -5,6 +5,7 @@ import {
   Collection,
   CollectionDecorator,
   CollectionSchema,
+  CollectionUtils,
   ColumnSchema,
   ConditionTree,
   ConditionTreeLeaf,
@@ -218,19 +219,44 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     if (!this.relations[prefix]) {
       result = (await relation.rewriteLeaf(caller, leaf.unnest())).nest(prefix);
     } else if (schema.type === 'ManyToOne') {
-      const records = await relation.list(
-        caller,
-        new Filter({ conditionTree: leaf.unnest() }),
-        new Projection(schema.foreignKeyTarget),
-      );
+      const leafSchema = CollectionUtils.getFieldSchema(
+        relation,
+        leaf.unnest().field,
+      ) as ColumnSchema;
 
-      result = new ConditionTreeLeaf(schema.foreignKey, 'In', [
-        ...new Set(
-          records
-            .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
-            .filter(v => v !== null),
-        ),
-      ]);
+      if (leaf.operator === 'NotEqual' && leafSchema.filterOperators.has('NotIn')) {
+        // Possible optimization NotEqual
+        // We compute the inverse list and use NotIn to build the relation with the target
+
+        console.log(leaf.unnest().inverse());
+        const records = await relation.list(
+          caller,
+          new Filter({ conditionTree: leaf.unnest().inverse() }),
+          new Projection(schema.foreignKeyTarget),
+        );
+
+        result = new ConditionTreeLeaf(schema.foreignKey, 'NotIn', [
+          ...new Set(
+            records
+              .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
+              .filter(v => v !== null),
+          ),
+        ]);
+      } else {
+        const records = await relation.list(
+          caller,
+          new Filter({ conditionTree: leaf.unnest() }),
+          new Projection(schema.foreignKeyTarget),
+        );
+
+        result = new ConditionTreeLeaf(schema.foreignKey, 'In', [
+          ...new Set(
+            records
+              .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
+              .filter(v => v !== null),
+          ),
+        ]);
+      }
     } else if (schema.type === 'OneToOne') {
       const records = await relation.list(
         caller,
