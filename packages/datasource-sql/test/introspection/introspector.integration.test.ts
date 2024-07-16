@@ -1,5 +1,3 @@
-import { table } from 'console';
-import exp from 'constants';
 import { DataTypes, Sequelize, literal } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
