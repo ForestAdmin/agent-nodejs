@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.34.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.3...@forestadmin/datasource-toolkit@1.34.4) (2024-07-16)
+
+
+### Bug Fixes
+
+* **validation:** support bigint format ([#1135](https://github.com/ForestAdmin/agent-nodejs/issues/1135)) ([f27ae70](https://github.com/ForestAdmin/agent-nodejs/commit/f27ae70cd7a1463936bb889a2d2918b05c49523b))
+
 ## @forestadmin/datasource-toolkit [1.34.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.2...@forestadmin/datasource-toolkit@1.34.3) (2024-07-15)
 
 
