@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.14.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.10...@forestadmin/datasource-sql@1.14.11) (2024-07-16)
+
+
+### Bug Fixes
+
+* remove composite keys relations as they are not supported ([#1134](https://github.com/ForestAdmin/agent-nodejs/issues/1134)) ([d3e55d9](https://github.com/ForestAdmin/agent-nodejs/commit/d3e55d9e62ff69af9b0d454a25b7cfa48afc2774))
+
 ## @forestadmin/datasource-sql [1.14.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.9...@forestadmin/datasource-sql@1.14.10) (2024-07-16)
 
 
