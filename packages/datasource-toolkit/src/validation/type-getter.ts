@@ -41,7 +41,22 @@ export default class TypeGetter {
 
     if (TypeGetter.isPoint(value, typeContext)) return 'Point';
 
+    // BigInt
+    if (typeContext === 'Number' && TypeGetter.isBigInt(value)) return typeContext;
+
     return 'String';
+  }
+
+  private static isBigInt(value: string): boolean {
+    try {
+      BigInt(value);
+
+      return true;
+    } catch (e) {
+      /* empty */
+    }
+
+    return false;
   }
 
   private static isValidDate(value: string): boolean {

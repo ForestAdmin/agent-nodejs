@@ -103,6 +103,13 @@ describe('TypeGetter', () => {
         });
       });
 
+      describe('when the given context is a BigInt', () => {
+        it('should return the expected type', () => {
+          // In reality this should return the proper type BigInt (one day)
+          expect(TypeGetter.get('9007199254740991867', 'Number')).toEqual('Number');
+        });
+      });
+
       describe('when it is not an uuid or a number', () => {
         it('should return the expected type', () => {
           expect(TypeGetter.get('a string', 'String')).toEqual('String');

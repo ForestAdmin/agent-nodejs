@@ -14,6 +14,18 @@ describe('on field of type number', () => {
     ).not.toThrow();
   });
 
+  test('valid value type should not throw error (string number)', () => {
+    expect(() =>
+      FieldValidator.validateValue(
+        'number',
+        factories.columnSchema.build({
+          columnType: 'Number',
+        }),
+        1,
+      ),
+    ).not.toThrow();
+  });
+
   test('invalid value type should throw error', () => {
     expect(() =>
       FieldValidator.validateValue(
@@ -21,7 +33,7 @@ describe('on field of type number', () => {
         factories.columnSchema.build({
           columnType: 'Number',
         }),
-        '1',
+        'not a number',
       ),
     ).toThrow();
   });
