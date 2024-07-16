@@ -214,42 +214,29 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     if (schema.type === 'Column') return leaf;
 
     const relation = this.dataSource.getCollection(schema.foreignCollection);
-    let result = leaf as ConditionTree;
+    const result = leaf as ConditionTree;
 
     if (!this.relations[prefix]) {
-      result = (await relation.rewriteLeaf(caller, leaf.unnest())).nest(prefix);
-    } else if (schema.type === 'ManyToOne') {
+      return (await relation.rewriteLeaf(caller, leaf.unnest())).nest(prefix);
+    }
+
+    if (schema.type === 'ManyToOne') {
       const leafSchema = CollectionUtils.getFieldSchema(
-        relation,
-        leaf.unnest().field,
+        this.childCollection,
+        schema.foreignKey,
       ) as ColumnSchema;
 
-      if (leaf.operator === 'NotEqual' && leafSchema.filterOperators.has('NotIn')) {
+      if (leafSchema.filterOperators.has('NotIn') && leaf.operator === 'NotEqual') {
         // Possible optimization NotEqual
         // We compute the inverse list and use NotIn to build the relation with the target
 
-        console.log(leaf.unnest().inverse());
         const records = await relation.list(
           caller,
           new Filter({ conditionTree: leaf.unnest().inverse() }),
           new Projection(schema.foreignKeyTarget),
         );
 
-        result = new ConditionTreeLeaf(schema.foreignKey, 'NotIn', [
-          ...new Set(
-            records
-              .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
-              .filter(v => v !== null),
-          ),
-        ]);
-      } else {
-        const records = await relation.list(
-          caller,
-          new Filter({ conditionTree: leaf.unnest() }),
-          new Projection(schema.foreignKeyTarget),
-        );
-
-        result = new ConditionTreeLeaf(schema.foreignKey, 'In', [
+        return new ConditionTreeLeaf(schema.foreignKey, 'NotIn', [
           ...new Set(
             records
               .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
@@ -257,14 +244,36 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
           ),
         ]);
       }
-    } else if (schema.type === 'OneToOne') {
+
+      if (!leafSchema.filterOperators.has('NotIn') && leaf.operator === 'NotEqual') {
+        console.warn(
+          `Performances could be improved by implementing the NotIn operator on ${schema.foreignKey} (use replaceFieldOperator)`,
+        );
+      }
+
+      const records = await relation.list(
+        caller,
+        new Filter({ conditionTree: leaf.unnest() }),
+        new Projection(schema.foreignKeyTarget),
+      );
+
+      return new ConditionTreeLeaf(schema.foreignKey, 'In', [
+        ...new Set(
+          records
+            .map(record => RecordUtils.getFieldValue(record, schema.foreignKeyTarget))
+            .filter(v => v !== null),
+        ),
+      ]);
+    }
+
+    if (schema.type === 'OneToOne') {
       const records = await relation.list(
         caller,
         new Filter({ conditionTree: leaf.unnest() }),
         new Projection(schema.originKey),
       );
 
-      result = new ConditionTreeLeaf(schema.originKeyTarget, 'In', [
+      return new ConditionTreeLeaf(schema.originKeyTarget, 'In', [
         ...new Set(
           records
             .map(record => RecordUtils.getFieldValue(record, schema.originKey))
