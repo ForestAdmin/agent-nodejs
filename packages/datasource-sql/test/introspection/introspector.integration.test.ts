@@ -1,3 +1,5 @@
+import { table } from 'console';
+import exp from 'constants';
 import { DataTypes, Sequelize, literal } from 'sequelize';
 
 import Introspector from '../../src/introspection/introspector';
@@ -383,6 +385,62 @@ describe('Introspector > Integration', () => {
       ]);
 
       expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('should not introspect composite key relations', async () => {
+      await sequelize.query(`
+CREATE TABLE "TableA" (
+    "type" TEXT NOT NULL,
+    "fieldA" TEXT NOT NULL,
+    "fieldB" TEXT NOT NULL,
+    PRIMARY KEY ("type", "fieldA")
+);
+CREATE TABLE "TableB" (
+    "type" TEXT NOT NULL,
+    "fieldA" TEXT NOT NULL,
+    "fieldB" TEXT NOT NULL,
+    PRIMARY KEY ("type", "fieldA")
+);
+
+CREATE TABLE "TableC" (
+    "type" TEXT NOT NULL,
+    "fieldA" TEXT NOT NULL,
+    "fieldB" TEXT NOT NULL,
+    PRIMARY KEY ("type")
+);
+
+ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey_composite" FOREIGN KEY ("type", "fieldA") REFERENCES "TableB"("type", "fieldA");
+ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "TableC"("type");
+
+      `);
+
+      const logger = jest.fn();
+      const { tables } = await Introspector.introspect(sequelize, logger);
+
+      expect(tables).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'TableA',
+            columns: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'type',
+                constraints: [
+                  {
+                    table: 'TableC',
+                    column: 'type',
+                  },
+                ],
+              }),
+            ]),
+          }),
+        ]),
+      );
+
+      expect(logger).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        "Composite relations are not supported. skipping 'A_fkey_composite' on 'TableA'",
+      );
     });
   });
 });
