@@ -1,3 +1,10 @@
+## @forestadmin/plugin-aws-s3 [1.3.80](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.79...@forestadmin/plugin-aws-s3@1.3.80) (2024-07-19)
+
+
+### Bug Fixes
+
+* s3 plugin not correctly displaying images ([#1151](https://github.com/ForestAdmin/agent-nodejs/issues/1151)) ([f88a19e](https://github.com/ForestAdmin/agent-nodejs/commit/f88a19e254d1e2fc95772e27866d689c974ca262))
+
 ## @forestadmin/plugin-aws-s3 [1.3.79](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.78...@forestadmin/plugin-aws-s3@1.3.79) (2024-07-16)
 
 
