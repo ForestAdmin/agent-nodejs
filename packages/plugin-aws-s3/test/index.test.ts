@@ -14,7 +14,7 @@ const mockSign = jest.fn();
 jest.mock('@aws-sdk/client-s3', () => ({
   S3Client: jest
     .fn()
-    .mockImplementation(opt => ({ send: mockSend, config: { region: opt.region } })),
+    .mockImplementation(opt => ({ send: mockSend, config: { region: async () => opt.region } })),
 
   // Mock those to the identity function as they are just factories
   DeleteObjectCommand: jest.fn().mockImplementation(r => ({ type: 'DeleteObject', ...r })),

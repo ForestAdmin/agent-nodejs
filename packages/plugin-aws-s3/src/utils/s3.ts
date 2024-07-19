@@ -27,8 +27,8 @@ export default class Client {
     });
   }
 
-  getPublicUrl(key: string): string {
-    return `https://${this.bucket}.s3.${this.client.config.region}.amazonaws.com/${key}`;
+  async getPublicUrl(key: string): Promise<string> {
+    return `https://${this.bucket}.s3.${await this.client.config.region()}.amazonaws.com/${key}`;
   }
 
   async getSignedUrl(key: string): Promise<string> {
