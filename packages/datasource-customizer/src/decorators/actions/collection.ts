@@ -67,12 +67,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
 
     // Convert DynamicField to ActionField in successive steps.
-    let dynamicFields: DynamicField[] =
-      typeof action.form === 'function'
-        ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicField[])(
-            context,
-          )
-        : action.form.map(c => ({ ...c }));
+    let dynamicFields: DynamicField[] = this.isHandler(action.form)
+      ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicField[])(context)
+      : action.form.map(c => ({ ...c }));
 
     if (metas?.searchField) {
       // in the case of a search hook,
@@ -103,10 +100,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it.
       const isDynamic =
-        typeof form === 'function' ||
+        this.isHandler(form) ||
         form?.some(
           field =>
-            Object.values(field).some(value => typeof value === 'function') ||
+            Object.values(field).some(value => this.isHandler(value)) ||
             // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
             (field.type.includes('File') && field.defaultValue),
         );
