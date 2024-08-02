@@ -76,7 +76,7 @@ export default class ConditionTreeParser {
       return 'Number';
     }
 
-    if (filter.operator === 'In') {
+    if (filter.operator === 'In' || filter.operator === 'NotIn') {
       return [fieldSchema.columnType];
     }
 
