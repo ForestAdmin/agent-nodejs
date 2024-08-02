@@ -207,7 +207,7 @@ describe('logs command', () => {
       });
     });
 
-    describe('when the n option is given', () => {
+    describe('when the --tail (-n) option is given', () => {
       describe('when given a float instead of integer', () => {
         it('should display a fail message', async () => {
           const setup = setupCommandArguments();
@@ -263,6 +263,28 @@ describe('logs command', () => {
           orderByRecentFirst: true,
           to: 'now',
         });
+      });
+
+      it('should not display the "more logs" message at the end', async () => {
+        const getLogs = jest
+          .fn()
+          .mockResolvedValue([{ timestamp: '2', message: 'a-message', level: 'Info' }]);
+        const setup = setupCommandArguments({ getLogs });
+
+        const cmd = new CommandTester(setup, ['logs', '--tail', '1']);
+        await cmd.run();
+
+        expect(cmd.outputs).toEqual([
+          cmd.spinner.start('Fetching logs'),
+          cmd.spinner.stop(),
+          cmd.spinner.info('...you have probably more logs...'),
+          cmd.logger.info('a-message').prefixed('2'),
+          cmd.spinner.succeed(
+            'Requested 1 log in the last month\nYou have received logs from 2 to 2\n',
+          ),
+          cmd.logger.log('To see more logs or change the time range, use --help for all options'),
+          cmd.spinner.stop(),
+        ]);
       });
     });
 

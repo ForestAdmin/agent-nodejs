@@ -153,7 +153,7 @@ export default (program: Command, context: MakeCommands) => {
           if (logs?.length > 0) {
             spinner.info('...you have probably more logs...');
             logs.forEach(log => displayLog(logger, log));
-            if (isRunningWithOptions(options)) spinner.info('...you have probably more logs...');
+            if (options.from || options.to) spinner.info('...you have probably more logs...');
 
             const pluralize = tail > 1 ? 's' : '';
             const baseMessage = `Requested ${tail} log${pluralize} ${message}`;
