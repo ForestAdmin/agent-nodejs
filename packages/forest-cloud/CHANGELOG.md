@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.9.27...@forestadmin/forest-cloud@1.10.0) (2024-08-02)
+
+
+### Features
+
+* **cli-cloud:** when tail option is given does not display "more logs" message at the end ([#1152](https://github.com/ForestAdmin/agent-nodejs/issues/1152)) ([0c8b6b8](https://github.com/ForestAdmin/agent-nodejs/commit/0c8b6b881b530fb04ab90a06ed63238d7fb8f390))
+
 ## @forestadmin/forest-cloud [1.9.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.9.26...@forestadmin/forest-cloud@1.9.27) (2024-07-16)
 
 
