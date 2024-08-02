@@ -23,6 +23,7 @@ describe('FrontendFilterableUtils', () => {
           'Present',
           'Blank',
           'In',
+          'NotIn',
           'StartsWith',
           'EndsWith',
           'Contains',
