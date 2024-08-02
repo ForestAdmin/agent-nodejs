@@ -105,6 +105,8 @@ export default class EmptyCollectionDecorator extends CollectionDecorator {
         valuesByField[field] = valuesByField[field].includes(value) ? [value] : [];
       } else if (valuesByField[field] && operator === 'In') {
         valuesByField[field] = valuesByField[field].filter(v => (value as unknown[]).includes(v));
+      } else if (valuesByField[field] && operator === 'NotIn') {
+        valuesByField[field] = valuesByField[field].filter(v => !(value as unknown[]).includes(v));
       }
     }
 
