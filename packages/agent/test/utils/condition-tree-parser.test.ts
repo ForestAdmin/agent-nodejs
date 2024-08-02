@@ -113,7 +113,7 @@ describe('ConditionTreeParser', () => {
       value: 'id1,id2 ,  id3',
     });
 
-    expect(tree).toStrictEqual(new ConditionTreeLeaf('id', 'In', ['id1', 'id2', 'id3']));
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('id', 'NotIn', ['id1', 'id2', 'id3']));
 
     const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
       field: 'id',
@@ -121,7 +121,9 @@ describe('ConditionTreeParser', () => {
       value: ['id1', 'id2', 'id3'],
     });
 
-    expect(treeWithArray).toStrictEqual(new ConditionTreeLeaf('id', 'In', ['id1', 'id2', 'id3']));
+    expect(treeWithArray).toStrictEqual(
+      new ConditionTreeLeaf('id', 'NotIn', ['id1', 'id2', 'id3']),
+    );
   });
 
   test('should work with not_in and number', () => {
@@ -131,7 +133,7 @@ describe('ConditionTreeParser', () => {
       value: '1, 2, 3 , invalid',
     });
 
-    expect(tree).toStrictEqual(new ConditionTreeLeaf('number', 'In', [1, 2, 3]));
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('number', 'NotIn', [1, 2, 3]));
 
     const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
       field: 'number',
@@ -139,7 +141,7 @@ describe('ConditionTreeParser', () => {
       value: [1, 2, 3, 'invalid'],
     });
 
-    expect(treeWithArray).toStrictEqual(new ConditionTreeLeaf('number', 'In', [1, 2, 3]));
+    expect(treeWithArray).toStrictEqual(new ConditionTreeLeaf('number', 'NotIn', [1, 2, 3]));
   });
 
   test('should work with not_in and boolean', () => {
@@ -150,7 +152,7 @@ describe('ConditionTreeParser', () => {
     });
 
     expect(tree).toStrictEqual(
-      new ConditionTreeLeaf('boolean', 'In', [true, false, false, true, false]),
+      new ConditionTreeLeaf('boolean', 'NotIn', [true, false, false, true, false]),
     );
 
     const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
@@ -160,7 +162,7 @@ describe('ConditionTreeParser', () => {
     });
 
     expect(treeWithArray).toStrictEqual(
-      new ConditionTreeLeaf('boolean', 'In', [true, false, false, true, false]),
+      new ConditionTreeLeaf('boolean', 'NotIn', [true, false, false, true, false]),
     );
   });
 

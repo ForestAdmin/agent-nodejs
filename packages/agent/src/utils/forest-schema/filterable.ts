@@ -28,18 +28,19 @@ export default class FrontendFilterableUtils {
     Boolean: FrontendFilterableUtils.baseOperators,
     Date: FrontendFilterableUtils.dateOperators,
     Dateonly: FrontendFilterableUtils.dateOperators,
-    Enum: [...FrontendFilterableUtils.baseOperators, 'In'],
-    Number: [...FrontendFilterableUtils.baseOperators, 'In', 'GreaterThan', 'LessThan'],
+    Enum: [...FrontendFilterableUtils.baseOperators, 'In', 'NotIn'],
+    Number: [...FrontendFilterableUtils.baseOperators, 'In', 'NotIn', 'GreaterThan', 'LessThan'],
     String: [
       ...FrontendFilterableUtils.baseOperators,
       'In',
+      'NotIn',
       'StartsWith',
       'EndsWith',
       'Contains',
       'NotContains',
     ],
     Time: [...FrontendFilterableUtils.baseOperators, 'GreaterThan', 'LessThan'],
-    Uuid: FrontendFilterableUtils.baseOperators,
+    Uuid: [...FrontendFilterableUtils.baseOperators, 'In', 'NotIn'],
   };
 
   /**
