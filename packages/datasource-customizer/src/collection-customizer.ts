@@ -92,7 +92,8 @@ export default class CollectionCustomizer<
    *
    * @param name the name of the field that will be created on the collection
    * @param options options to import the field
-   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#moving-fields Documentation Link}
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-remove#moving-fields Documentation Link}
+   *
    * @example
    * .importField('authorName', { path: 'author:fullName' })
    */
@@ -104,7 +105,7 @@ export default class CollectionCustomizer<
    * Rename fields from the exported schema.
    * @param currentName the current name of the field or the relation in a given collection
    * @param newName the new name of the field or the relation
-   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-remove#renaming-and-removing-fields Documentation Link}
    * @example
    * .renameField('currentFieldOrRelationName', 'newFieldOrRelationName')
    */
@@ -117,7 +118,7 @@ export default class CollectionCustomizer<
   /**
    * Remove fields from the exported schema (they will still be usable within the agent).
    * @param names the names of the field or the relation
-   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-delete#renaming-and-removing-fields Documentation Link}
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/fields/import-rename-remove#renaming-and-removing-fields Documentation Link}
    * @example
    * .removeField('fieldNameToRemove', 'relationNameToRemove');
    */
