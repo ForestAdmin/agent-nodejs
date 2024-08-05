@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.46.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.46.0...@forestadmin/datasource-customizer@1.46.1) (2024-08-05)
+
+
+### Bug Fixes
+
+* update outdated links in jsdoc ([#1149](https://github.com/ForestAdmin/agent-nodejs/issues/1149)) ([81cd9d4](https://github.com/ForestAdmin/agent-nodejs/commit/81cd9d447cb4a6059a20706ffa22b140bcf1f5d7))
+
 # @forestadmin/datasource-customizer [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.6...@forestadmin/datasource-customizer@1.46.0) (2024-08-05)
 
 
