@@ -16,7 +16,10 @@ export interface BaseAction<
 > {
   generateFile?: boolean;
   scope: Scope;
-  form?: DynamicField<Context>[];
+  form?:
+    | DynamicField<Context>[]
+    | ((context: ActionContext<TSchema, string>) => DynamicField<Context>[])
+    | ((context: ActionContext<TSchema, string>) => Promise<DynamicField<Context>[]>);
   execute(
     context: Context,
     resultBuilder: ResultBuilder,
