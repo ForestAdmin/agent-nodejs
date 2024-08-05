@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.6...@forestadmin/datasource-customizer@1.46.0) (2024-08-05)
+
+
+### Features
+
+* **action:** allow dynamic form ([#915](https://github.com/ForestAdmin/agent-nodejs/issues/915)) ([5327460](https://github.com/ForestAdmin/agent-nodejs/commit/5327460b765ad3dcf7c6eb2ce0500ee74365d6da))
+
 ## @forestadmin/datasource-customizer [1.45.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.45.5...@forestadmin/datasource-customizer@1.45.6) (2024-07-16)
 
 
