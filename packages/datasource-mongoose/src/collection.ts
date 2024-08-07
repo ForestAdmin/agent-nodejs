@@ -301,24 +301,48 @@ export default class MongooseCollection extends BaseCollection {
     lookupProjection: Projection,
   ): PipelineStage[] {
     const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
-    const relationsUsedInSort = FilterGenerator.listRelationsUsedInSort(filter);
+
+    const [preSortAndPaginate, sortAndPaginatePostFiltering, sortAndPaginateAll] =
+      FilterGenerator.sortAndPaginateStages(this.model, filter);
+
+    const reparentStages = ReparentGenerator.reparent(this.model, this.stack);
+    const addVirtualStages = VirtualFieldsGenerator.addVirtual(
+      this.model,
+      this.stack,
+      lookupProjection,
+    );
+    // For performance reasons, we want to only include the relationships that are used in filters
+    // before applying the filters
+    const lookupUsedInFiltersStage = LookupGenerator.lookup(
+      this.model,
+      this.stack,
+      lookupProjection,
+      {
+        include: fieldsUsedInFilters,
+      },
+    );
+    const filterStage = FilterGenerator.filter(this.model, this.stack, filter);
+
+    // Here are the remaining relationships that are not used in filters. For performance reasons
+    // they are computed after the filters.
+    const lookupNotFilteredStage = LookupGenerator.lookup(
+      this.model,
+      this.stack,
+      lookupProjection,
+      {
+        exclude: fieldsUsedInFilters,
+      },
+    );
 
     const pipeline = [
-      ...FilterGenerator.sortAndPaginate(filter, { exclude: relationsUsedInSort }),
-      ...ReparentGenerator.reparent(this.model, this.stack),
-      ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
-      // For performance reasons, we want to only include the relationships that are used in filters
-      // before applying the filters
-      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection, {
-        include: fieldsUsedInFilters,
-      }),
-      ...FilterGenerator.filter(this.model, this.stack, filter),
-      // Here are the remaining relationships that are not used in filters. For performance reasons
-      // they are computed after the filters.
-      ...LookupGenerator.lookup(this.model, this.stack, lookupProjection, {
-        exclude: fieldsUsedInFilters,
-      }),
-      ...FilterGenerator.sortAndPaginate(filter, { include: relationsUsedInSort }),
+      ...preSortAndPaginate,
+      ...reparentStages,
+      ...addVirtualStages,
+      ...lookupUsedInFiltersStage,
+      ...filterStage,
+      ...sortAndPaginatePostFiltering,
+      ...lookupNotFilteredStage,
+      ...sortAndPaginateAll,
     ];
 
     return pipeline;

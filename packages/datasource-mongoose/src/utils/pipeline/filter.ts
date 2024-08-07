@@ -16,27 +16,39 @@ const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static sortAndPaginate(
-    filter: PaginatedFilter,
-    matchList: { include?: Set<string>; exclude?: Set<string> },
-  ): PipelineStage[] {
-    const sort = this.computeSort(
-      filter?.sort?.filter(
-        field =>
-          (matchList.include && matchList.include.has(field.field.split(':')[0])) ||
-          (matchList.exclude && !matchList.exclude.has(field.field.split(':')[0])),
-      ) as PaginatedFilter['sort'],
+  static sortAndPaginateStages(model: Model<unknown>, filter: PaginatedFilter): PipelineStage[][] {
+    const sort = this.computeSort(filter?.sort);
+
+    const sortAndLimitStages: PipelineStage[] = [];
+
+    if (filter.page?.skip !== undefined) sortAndLimitStages.push({ $skip: filter.page.skip });
+    if (filter.page?.limit !== undefined) sortAndLimitStages.push({ $limit: filter.page.limit });
+
+    if (!sort) return [sortAndLimitStages, [], []];
+
+    sortAndLimitStages.push({ $sort: sort });
+
+    const allSortCriteriaNative = !Object.keys(sort).find(
+      key => !Object.keys(model.schema.paths).includes(key),
     );
 
-    const pipeline = [];
-    if (sort) pipeline.push({ $sort: sort });
+    const allConditionTreeKeysNative = !(filter.conditionTree?.projection || []).find(
+      key => !Object.keys(model.schema.paths).includes(key),
+    );
 
-    if (sort) {
-      if (filter?.page?.skip !== undefined) pipeline.push({ $skip: filter.page.skip });
-      if (filter?.page?.limit !== undefined) pipeline.push({ $limit: filter.page.limit });
+    if (allSortCriteriaNative && !filter.conditionTree) {
+      // if sort applies to native fields and no filters are applied (very common case)
+      // we apply pre-sort + limit at the beginning of the pipeline (to improve perf)
+      return [sortAndLimitStages, [], []];
     }
 
-    return pipeline;
+    if (allSortCriteriaNative && allConditionTreeKeysNative) {
+      // if filters apply to native fields only, we can apply the sort right after filtering
+      return [[], sortAndLimitStages, []];
+    }
+
+    // if sorting apply to relations, it is safer to do it at the end of the pipeline
+    return [[], [], sortAndLimitStages];
   }
 
   static filter(model: Model<unknown>, stack: Stack, filter: PaginatedFilter): PipelineStage[] {
