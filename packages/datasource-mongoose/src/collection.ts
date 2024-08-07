@@ -301,8 +301,10 @@ export default class MongooseCollection extends BaseCollection {
     lookupProjection: Projection,
   ): PipelineStage[] {
     const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
+    const relationsUsedInSort = FilterGenerator.listRelationsUsedInSort(filter);
 
-    return [
+    const pipeline = [
+      ...FilterGenerator.sortAndPaginate(filter, { exclude: relationsUsedInSort }),
       ...ReparentGenerator.reparent(this.model, this.stack),
       ...VirtualFieldsGenerator.addVirtual(this.model, this.stack, lookupProjection),
       // For performance reasons, we want to only include the relationships that are used in filters
@@ -316,7 +318,10 @@ export default class MongooseCollection extends BaseCollection {
       ...LookupGenerator.lookup(this.model, this.stack, lookupProjection, {
         exclude: fieldsUsedInFilters,
       }),
+      ...FilterGenerator.sortAndPaginate(filter, { include: relationsUsedInSort }),
     ];
+
+    return pipeline;
   }
 
   private async handleValidationError<T>(callback: () => Promise<T>): Promise<T> {

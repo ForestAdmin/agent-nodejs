@@ -16,23 +16,42 @@ const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static filter(model: Model<unknown>, stack: Stack, filter: PaginatedFilter): PipelineStage[] {
-    const fields = new Set<string>();
-    const tree = filter?.conditionTree;
-    const match = this.computeMatch(model, stack, tree, fields);
-    const sort = this.computeSort(filter?.sort);
+  static sortAndPaginate(
+    filter: PaginatedFilter,
+    matchList: { include?: Set<string>; exclude?: Set<string> },
+  ): PipelineStage[] {
+    const sort = this.computeSort(
+      filter?.sort?.filter(
+        field =>
+          (matchList.include && matchList.include.has(field.field.split(':')[0])) ||
+          (matchList.exclude && !matchList.exclude.has(field.field.split(':')[0])),
+      ) as PaginatedFilter['sort'],
+    );
 
     const pipeline = [];
-    if (fields.size) pipeline.push(this.computeFields(fields));
-    if (match) pipeline.push({ $match: match });
     if (sort) pipeline.push({ $sort: sort });
-    if (filter?.page?.skip !== undefined) pipeline.push({ $skip: filter.page.skip });
-    if (filter?.page?.limit !== undefined) pipeline.push({ $limit: filter.page.limit });
+
+    if (sort) {
+      if (filter?.page?.skip !== undefined) pipeline.push({ $skip: filter.page.skip });
+      if (filter?.page?.limit !== undefined) pipeline.push({ $limit: filter.page.limit });
+    }
 
     return pipeline;
   }
 
-  static listRelationsUsedInFilter(filter: PaginatedFilter): Set<string> {
+  static filter(model: Model<unknown>, stack: Stack, filter: PaginatedFilter): PipelineStage[] {
+    const fields = new Set<string>();
+    const tree = filter?.conditionTree;
+    const match = this.computeMatch(model, stack, tree, fields);
+
+    const pipeline = [];
+    if (fields.size) pipeline.push(this.computeFields(fields));
+    if (match) pipeline.push({ $match: match });
+
+    return pipeline;
+  }
+
+  static listRelationsUsedInSort(filter: PaginatedFilter): Set<string> {
     const fields = new Set<string>();
 
     if (filter?.sort) {
@@ -41,7 +60,13 @@ export default class FilterGenerator {
       });
     }
 
-    this.listFieldsUsedInFilterTree(filter?.conditionTree, fields);
+    return fields;
+  }
+
+  static listRelationsUsedInFilter(filter: PaginatedFilter): Set<string> {
+    const fields = new Set<string>();
+
+    this.listFieldsUsedInFilterTree(filter?.conditionTree, this.listRelationsUsedInSort(filter));
 
     return fields;
   }
