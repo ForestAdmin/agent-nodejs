@@ -334,7 +334,7 @@ export default class MongooseCollection extends BaseCollection {
       },
     );
 
-    const pipeline = [
+    return [
       ...preSortAndPaginate,
       ...reparentStages,
       ...addVirtualStages,
@@ -344,8 +344,6 @@ export default class MongooseCollection extends BaseCollection {
       ...lookupNotFilteredStage,
       ...sortAndPaginateAll,
     ];
-
-    return pipeline;
   }
 
   private async handleValidationError<T>(callback: () => Promise<T>): Promise<T> {
