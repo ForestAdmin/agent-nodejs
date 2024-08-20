@@ -18,7 +18,7 @@ describe('http-server', () => {
     describe('if it is not an axios error', () => {
       it('should throw a business error with details', async () => {
         jest.mocked(axios.default).mockRejectedValue(new Error('Some generic error'));
-        await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+        await expect(httpServer.getDatasources()).rejects.toStrictEqual(
           new BusinessError(
             'Failed to retrieve database schema from Forest Admin server: Some generic error',
           ),
@@ -31,7 +31,7 @@ describe('http-server', () => {
         // @ts-expect-error
         error.code = 'ERR_INVALID_CHAR';
         jest.mocked(axios.default).mockRejectedValue(error);
-        await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+        await expect(httpServer.getDatasources()).rejects.toStrictEqual(
           new BusinessError(
             `Invalid character in header content ["Authorization"]\nYour authentication token seems incorrect. You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'`,
           ),
@@ -46,7 +46,7 @@ describe('http-server', () => {
         // @ts-ignore
         error.response = { data: { errors: [{ detail: 'some details', status: 123 }] } };
         jest.mocked(axios.default).mockRejectedValue(error);
-        await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+        await expect(httpServer.getDatasources()).rejects.toStrictEqual(
           new BusinessError(
             'Failed to retrieve database schema from Forest Admin server: \n🚨 some details',
           ),
@@ -63,7 +63,7 @@ describe('http-server', () => {
             data: { errors: [{ detail: 'some details' }] },
           };
           jest.mocked(axios.default).mockRejectedValue(error);
-          await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+          await expect(httpServer.getDatasources()).rejects.toStrictEqual(
             new ValidationError('🚨 some details'),
           );
         });
@@ -79,7 +79,7 @@ describe('http-server', () => {
             data: { errors: [{ detail: 'some details' }] },
           };
           jest.mocked(axios.default).mockRejectedValue(error);
-          await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+          await expect(httpServer.getDatasources()).rejects.toStrictEqual(
             new BusinessError(
               "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\n You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'",
             ),
@@ -97,7 +97,7 @@ describe('http-server', () => {
             data: { errors: [{ detail: 'some details' }] },
           };
           jest.mocked(axios.default).mockRejectedValue(error);
-          await expect(httpServer.getIntrospection()).rejects.toStrictEqual(
+          await expect(httpServer.getDatasources()).rejects.toStrictEqual(
             new BusinessError(
               "Failed to retrieve database schema from Forest Admin server: \n🚨 some details\n You can try to login again by running 'npx @forestadmin/forest-cloud@latest login'",
             ),
@@ -107,11 +107,11 @@ describe('http-server', () => {
     });
   });
 
-  describe('getIntrospection', () => {
+  describe('getDatasources', () => {
     it('should get the introspection from axios call', async () => {
       const data = Symbol('data');
       jest.mocked(axios.default).mockResolvedValue({ data });
-      expect(await httpServer.getIntrospection()).toBe(data);
+      expect(await httpServer.getDatasources()).toBe(data);
       expect(axios.default).toHaveBeenCalled();
       expect(axios.default).toHaveBeenCalledWith({
         headers: {
@@ -120,7 +120,7 @@ describe('http-server', () => {
           'forest-secret-key': 'sk',
         },
         method: 'GET',
-        url: 'server-url/api/full-hosted-agent/introspection',
+        url: 'server-url/api/full-hosted-agent/forest-cloud/datasources',
       });
     });
   });

@@ -39,7 +39,9 @@ describe('bootstrap', () => {
     } as unknown as fs.WriteStream);
     const httpServer = new HttpServer('', '', '');
     const path = new BootstrapPathManager('/tmp', '/my/home/directory');
-    jest.spyOn(httpServer, 'getIntrospection').mockResolvedValue(introspection);
+    jest
+      .spyOn(httpServer, 'getDatasources')
+      .mockResolvedValue([{ introspection, datasourceSuffix: '_BI' }]);
     HttpServer.downloadCloudCustomizerTemplate = jest.fn();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -169,7 +171,10 @@ describe('bootstrap', () => {
               `.replace(/\s/g, ''),
         );
         expect(updateTypings).toHaveBeenCalled();
-        expect(updateTypings).toHaveBeenCalledWith(introspection, path);
+        expect(updateTypings).toHaveBeenCalledWith(
+          [{ introspection, datasourceSuffix: '_BI' }],
+          path,
+        );
       });
     });
   });

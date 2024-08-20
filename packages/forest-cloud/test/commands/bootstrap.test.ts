@@ -27,27 +27,32 @@ describe('bootstrap command', () => {
           ...defaultEnvs,
         });
 
-      const getIntrospection = jest.fn().mockResolvedValue([
+      const getDatasources = jest.fn().mockResolvedValue([
         {
-          name: 'forestCollection',
-          schema: 'public',
-          columns: [
+          datasourceSuffix: '_abc123',
+          introspection: [
             {
-              type: { type: 'scalar', subType: 'NUMBER' },
-              autoIncrement: true,
-              defaultValue: null,
-              isLiteralDefaultValue: true,
-              name: 'id',
-              allowNull: false,
-              primaryKey: true,
-              constraints: [],
+              name: 'forestCollection',
+              schema: 'public',
+              columns: [
+                {
+                  type: { type: 'scalar', subType: 'NUMBER' },
+                  autoIncrement: true,
+                  defaultValue: null,
+                  isLiteralDefaultValue: true,
+                  name: 'id',
+                  allowNull: false,
+                  primaryKey: true,
+                  constraints: [],
+                },
+              ],
+              unique: [['id'], ['title']],
             },
           ],
-          unique: [['id'], ['title']],
         },
       ]);
 
-      const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
+      const setup = setupCommandArguments({ getDatasources, getEnvironmentVariables });
       await removePotentialFolderWithSameProjectName(setup.bootstrapPathManager);
 
       const cmd = new CommandTester(setup, [
@@ -101,9 +106,9 @@ describe('bootstrap command', () => {
           NODE_TLS_REJECT_UNAUTHORIZED: '0',
         });
 
-      const getIntrospection = jest.fn().mockResolvedValue([]);
+      const getDatasources = jest.fn().mockResolvedValue([]);
 
-      const setup = setupCommandArguments({ getIntrospection, getEnvironmentVariables });
+      const setup = setupCommandArguments({ getDatasources, getEnvironmentVariables });
       await removePotentialFolderWithSameProjectName(setup.bootstrapPathManager);
 
       const cmd = new CommandTester(setup, [

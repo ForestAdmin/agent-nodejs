@@ -70,6 +70,8 @@ describe('update-typings', () => {
           version: 123,
         };
 
+        const datasources = [{ introspection, datasourceSuffix: '_abc' }];
+
         setupMocks();
 
         const bootstrapPathManager = {
@@ -81,9 +83,7 @@ describe('update-typings', () => {
           throw error;
         });
 
-        await expect(
-          updateTypings(introspection as DataSourceMongoIntrospection, bootstrapPathManager),
-        ).rejects.toEqual(error);
+        await expect(updateTypings(datasources, bootstrapPathManager)).rejects.toEqual(error);
       });
     });
 
@@ -94,6 +94,7 @@ describe('update-typings', () => {
           source: '@forestadmin/datasource-mongo',
           version: 123,
         };
+        const datasources = [{ introspection, datasourceSuffix: '_abc' }];
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
@@ -104,9 +105,7 @@ describe('update-typings', () => {
           throw error;
         });
 
-        await expect(
-          updateTypings(introspection as DataSourceMongoIntrospection, bootstrapPathManager),
-        ).rejects.toEqual(
+        await expect(updateTypings(datasources, bootstrapPathManager)).rejects.toEqual(
           new BusinessError(
             `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
           ),
@@ -117,24 +116,24 @@ describe('update-typings', () => {
 
   describe('updateTypings', () => {
     describe('with an introspection from a SQL datasource', () => {
-      function generateIntrospection() {
-        return {
+      function generateDatasources() {
+        const introspection = {
           source: '@forestadmin/datasource-sequelize',
           version: 1,
           tables: [],
         } as DataSourceSQLIntrospection;
+
+        return [{ introspection, datasourceSuffix: '_abc' }];
       }
 
       it('should create the agent with fake options', async () => {
         setupMocks();
 
-        const introspection = generateIntrospection();
-
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        await updateTypings(introspection, bootstrapPathManager);
+        await updateTypings(generateDatasources(), bootstrapPathManager);
 
         expect(createAgent).toHaveBeenCalledWith({
           authSecret: 'a'.repeat(64),
@@ -147,53 +146,60 @@ describe('update-typings', () => {
       it('should create and add a fake SQL datasource', async () => {
         const { agent, sequelize, dataSourceSQL } = setupMocks();
 
-        const introspection = generateIntrospection();
+        const datasources = generateDatasources();
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        await updateTypings(introspection, bootstrapPathManager);
+        await updateTypings(generateDatasources(), bootstrapPathManager);
 
-        expect(buildDisconnectedSequelizeInstance).toHaveBeenCalledWith(introspection, null);
+        expect(buildDisconnectedSequelizeInstance).toHaveBeenCalledWith(
+          datasources[0].introspection,
+          null,
+        );
         expect(createSequelizeDataSource).toHaveBeenCalledWith(sequelize);
-        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceSQL);
+        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceSQL, {
+          rename: expect.any(Function),
+        });
       });
 
       it('should update the types', async () => {
         const { agent } = setupMocks();
 
-        const introspection = generateIntrospection();
+        const datasources = generateDatasources();
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        await updateTypings(introspection, bootstrapPathManager);
+        await updateTypings(datasources, bootstrapPathManager);
 
         expect(agent.updateTypesOnFileSystem).toHaveBeenCalledWith('typingsDuringBootstrap', 3);
       });
     });
 
     describe('with an introspection from a Mongo datasource', () => {
-      function generateIntrospection() {
-        return {
+      function generateDatasources() {
+        const introspection = {
           source: '@forestadmin/datasource-mongo',
           version: 1,
           models: [],
         } as DataSourceMongoIntrospection;
+
+        return [{ introspection, datasourceSuffix: '_abc' }];
       }
 
       it('should create the agent with fake options', async () => {
         setupMocks();
 
-        const introspection = generateIntrospection();
+        const datasources = generateDatasources();
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        await updateTypings(introspection, bootstrapPathManager);
+        await updateTypings(datasources, bootstrapPathManager);
 
         expect(createAgent).toHaveBeenCalledWith({
           authSecret: 'a'.repeat(64),
@@ -206,29 +212,36 @@ describe('update-typings', () => {
       it('should create and add a fake Mongo datasource', async () => {
         const { agent, dataSourceMongo, mongoose } = setupMocks();
 
-        const introspection = generateIntrospection();
+        const datasources = generateDatasources();
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        await updateTypings(introspection, bootstrapPathManager);
+        await updateTypings(datasources, bootstrapPathManager);
 
-        expect(buildDisconnectedMongooseInstance).toHaveBeenCalledWith(introspection);
-        expect(createMongooseDataSource).toHaveBeenCalledWith(mongoose, { flattenMode: 'auto' });
-        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceMongo);
+        expect(buildDisconnectedMongooseInstance).toHaveBeenCalledWith(
+          datasources[0].introspection,
+        );
+
+        expect(createMongooseDataSource).toHaveBeenCalledWith(mongoose, {
+          flattenMode: 'auto',
+        });
+        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceMongo, {
+          rename: expect.any(Function),
+        });
       });
 
       it('should update the types', async () => {
         const { agent } = setupMocks();
 
-        const introspection = generateIntrospection();
+        const datasources = generateDatasources();
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
         } as BootstrapPathManager;
 
-        await updateTypings(introspection, bootstrapPathManager);
+        await updateTypings(datasources, bootstrapPathManager);
 
         expect(agent.updateTypesOnFileSystem).toHaveBeenCalledWith('typingsDuringBootstrap', 3);
       });
@@ -251,23 +264,27 @@ describe('update-typings', () => {
         tables: [],
       } as DataSourceSQLIntrospection;
 
+      const datasourcesSQL = [{ introspection: introspectionSQL, datasourceSuffix: '-123' }];
+
       const introspectionMongo = {
         source: '@forestadmin/datasource-mongo',
         version: 1,
         models: [],
       } as DataSourceMongoIntrospection;
 
-      return { distPathManager, bootstrapPathManager, introspectionSQL, introspectionMongo };
+      const datasourcesMongo = [{ introspection: introspectionMongo, datasourceSuffix: '-456' }];
+
+      return { distPathManager, bootstrapPathManager, datasourcesSQL, datasourcesMongo };
     }
 
     it('should throw if there is no built code', async () => {
       jest.mocked(path.resolve).mockReturnValue('builtCodePath');
       jest.mocked(throwIfNoBuiltCode).mockRejectedValue(new Error('No built code'));
 
-      const { distPathManager, bootstrapPathManager, introspectionSQL } = setupParams();
+      const { distPathManager, bootstrapPathManager, datasourcesSQL } = setupParams();
 
       await expect(
-        updateTypingsWithCustomizations(introspectionSQL, distPathManager, bootstrapPathManager),
+        updateTypingsWithCustomizations(datasourcesSQL, distPathManager, bootstrapPathManager),
       ).rejects.toEqual(new Error('No built code'));
 
       expect(throwIfNoBuiltCode).toHaveBeenCalledWith('builtCodePath');
@@ -276,13 +293,13 @@ describe('update-typings', () => {
 
     describe('with a SQL introspection', () => {
       it('should build the agent with a SQL datasource', async () => {
-        const { distPathManager, bootstrapPathManager, introspectionSQL } = setupParams();
+        const { distPathManager, bootstrapPathManager, datasourcesSQL } = setupParams();
         const { sequelize, agent, dataSourceSQL } = setupMocks();
 
         jest.mocked(throwIfNoBuiltCode).mockResolvedValue(undefined);
 
         await updateTypingsWithCustomizations(
-          introspectionSQL,
+          datasourcesSQL,
           distPathManager,
           bootstrapPathManager,
         );
@@ -294,21 +311,26 @@ describe('update-typings', () => {
           isProduction: false,
         });
 
-        expect(buildDisconnectedSequelizeInstance).toHaveBeenCalledWith(introspectionSQL, null);
+        expect(buildDisconnectedSequelizeInstance).toHaveBeenCalledWith(
+          datasourcesSQL[0].introspection,
+          null,
+        );
         expect(createSequelizeDataSource).toHaveBeenCalledWith(sequelize);
-        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceSQL);
+        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceSQL, {
+          rename: expect.any(Function),
+        });
       });
     });
 
     describe('with a Mongo introspection', () => {
       it('should build the agent with a Mongo datasource', async () => {
-        const { distPathManager, bootstrapPathManager, introspectionMongo } = setupParams();
+        const { distPathManager, bootstrapPathManager, datasourcesMongo } = setupParams();
         const { mongoose, agent, dataSourceMongo } = setupMocks();
 
         jest.mocked(throwIfNoBuiltCode).mockResolvedValue(undefined);
 
         await updateTypingsWithCustomizations(
-          introspectionMongo,
+          datasourcesMongo,
           distPathManager,
           bootstrapPathManager,
         );
@@ -320,21 +342,25 @@ describe('update-typings', () => {
           isProduction: false,
         });
 
-        expect(buildDisconnectedMongooseInstance).toHaveBeenCalledWith(introspectionMongo);
+        expect(buildDisconnectedMongooseInstance).toHaveBeenCalledWith(
+          datasourcesMongo[0].introspection,
+        );
         expect(createMongooseDataSource).toHaveBeenCalledWith(mongoose, { flattenMode: 'auto' });
-        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceMongo);
+        expect(agent.addDataSource).toHaveBeenCalledWith(dataSourceMongo, {
+          rename: expect.any(Function),
+        });
       });
     });
 
     it('should load the customizations and write types', async () => {
-      const { distPathManager, bootstrapPathManager, introspectionSQL } = setupParams();
+      const { distPathManager, bootstrapPathManager, datasourcesMongo } = setupParams();
       const { agent } = setupMocks();
 
       jest.mocked(path.resolve).mockReturnValue('builtCodePath');
       jest.mocked(throwIfNoBuiltCode).mockResolvedValue(undefined);
 
       await updateTypingsWithCustomizations(
-        introspectionSQL,
+        datasourcesMongo,
         distPathManager,
         bootstrapPathManager,
       );
