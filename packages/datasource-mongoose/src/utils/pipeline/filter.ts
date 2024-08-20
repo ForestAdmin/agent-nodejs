@@ -78,7 +78,13 @@ export default class FilterGenerator {
   static listRelationsUsedInFilter(filter: PaginatedFilter): Set<string> {
     const fields = new Set<string>();
 
-    this.listFieldsUsedInFilterTree(filter?.conditionTree, this.listRelationsUsedInSort(filter));
+    if (filter?.sort) {
+      filter.sort.forEach(s => {
+        this.listPaths(s.field).forEach(field => fields.add(field));
+      });
+    }
+
+    this.listFieldsUsedInFilterTree(filter?.conditionTree, fields);
 
     return fields;
   }
