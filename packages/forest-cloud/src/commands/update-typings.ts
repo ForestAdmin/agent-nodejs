@@ -36,13 +36,9 @@ export default (program: Command, context: MakeCommands) => {
         );
         validateEnvironmentVariables(vars);
 
-        const introspections = await buildHttpServer(vars).getDatasources();
+        const datasources = await buildHttpServer(vars).getDatasources();
 
-        await updateTypingsWithCustomizations(
-          introspections,
-          distPathManager,
-          bootstrapPathManager,
-        );
+        await updateTypingsWithCustomizations(datasources, distPathManager, bootstrapPathManager);
         logger.spinner.succeed('Your typings have been updated');
       }),
     );
