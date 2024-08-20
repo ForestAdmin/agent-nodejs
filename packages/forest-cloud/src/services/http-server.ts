@@ -3,6 +3,7 @@ import * as axios from 'axios';
 import * as fs from 'fs';
 
 import latestVersion from './latest-version';
+import { Datasources } from './update-typings';
 import { BusinessError, ValidationError } from '../errors';
 import { CodeCustomizationDetails, Log } from '../types';
 
@@ -72,10 +73,10 @@ export default class HttpServer {
     });
   }
 
-  async getIntrospection(): Promise<Table[]> {
+  async getDatasources(): Promise<Datasources> {
     return handledAxios(
       {
-        url: `${this.serverUrl}/api/full-hosted-agent/introspection`,
+        url: `${this.serverUrl}/api/full-hosted-agent/forest-cloud/datasources`,
         method: 'GET',
         headers: this.headers,
       },

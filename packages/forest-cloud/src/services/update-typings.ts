@@ -21,9 +21,12 @@ function isDatasourceMongoIntrospection(
   return 'source' in introspection && introspection.source === '@forestadmin/datasource-mongo';
 }
 
-async function buildAgent(
-  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
-) {
+export type Datasources = Array<{
+  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection;
+  datasourceSuffix: string;
+}>;
+
+async function buildAgent(datasources: Datasources) {
   const agentOptions: AgentOptions = {
     authSecret: 'a'.repeat(64),
     envSecret: 'a'.repeat(64),
@@ -31,46 +34,58 @@ async function buildAgent(
     isProduction: false,
   };
   const agent = createAgent(agentOptions);
+  await Promise.all(
+    datasources.map(async datasource => {
+      try {
+        const rename = (oldName: string) => `${oldName}${datasource.datasourceSuffix || ''}`;
 
-  try {
-    if (isDatasourceMongoIntrospection(introspection)) {
-      const mongoose = buildDisconnectedMongooseInstance(introspection);
-      agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }));
-    } else {
-      const sequelize = await buildDisconnectedSequelizeInstance(introspection, null);
-      agent.addDataSource(createSequelizeDataSource(sequelize));
-    }
-  } catch (e) {
-    const error = e as Error;
+        if (isDatasourceMongoIntrospection(datasource.introspection)) {
+          const mongoose = buildDisconnectedMongooseInstance(datasource.introspection);
+          agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }), {
+            rename,
+          });
+        } else {
+          const sequelize = await buildDisconnectedSequelizeInstance(
+            datasource.introspection,
+            null,
+          );
+          agent.addDataSource(createSequelizeDataSource(sequelize), {
+            rename,
+          });
+        }
+      } catch (e) {
+        const error = e as Error;
 
-    if (BusinessError.isOfType(error, IntrospectionFormatError)) {
-      throw new BusinessError(
-        `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
-      );
-    }
+        if (BusinessError.isOfType(error, IntrospectionFormatError)) {
+          throw new BusinessError(
+            `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
+          );
+        }
 
-    throw e;
-  }
+        throw e;
+      }
+    }),
+  );
 
   return agent;
 }
 
 export async function updateTypings(
-  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
+  datasources: Datasources,
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
-  const agent = await buildAgent(introspection);
+  const agent = await buildAgent(datasources);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsDuringBootstrap, 3);
 }
 
 export async function updateTypingsWithCustomizations(
-  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
+  datasources: Datasources,
   distPathManager: DistPathManager,
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
   const builtCodePath = path.resolve(distPathManager.distCodeCustomizations);
   await throwIfNoBuiltCode(builtCodePath);
-  const agent = await buildAgent(introspection);
+  const agent = await buildAgent(datasources);
   loadCustomization(agent, builtCodePath);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typings, 3);
 }
