@@ -87,7 +87,7 @@ describe('FilterGenerator', () => {
         const filter = new PaginatedFilter({ page: new Page(100, 150) });
 
         const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-        expect(pipeline[0]).toStrictEqual([{ $skip: 100 }, { $limit: 150 }]);
+        expect(pipeline).toStrictEqual([[{ $skip: 100 }, { $limit: 150 }], [], []]);
       });
     });
 
@@ -99,7 +99,7 @@ describe('FilterGenerator', () => {
           });
 
           const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-          expect(pipeline[0]).toStrictEqual([{ $sort: { 'author.firstname': 1 } }]);
+          expect(pipeline).toStrictEqual([[{ $sort: { 'author.firstname': 1 } }], [], []]);
         });
       });
 
