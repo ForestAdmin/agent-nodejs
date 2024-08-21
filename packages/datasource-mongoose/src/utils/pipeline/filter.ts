@@ -16,7 +16,7 @@ const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
 
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static sortAndPaginateStages(model: Model<unknown>, filter: PaginatedFilter): PipelineStage[][] {
+  static sortAndPaginate(model: Model<unknown>, filter: PaginatedFilter): PipelineStage[][] {
     const sort = this.computeSort(filter?.sort);
 
     const sortAndLimitStages: PipelineStage[] = [];
@@ -61,18 +61,6 @@ export default class FilterGenerator {
     if (match) pipeline.push({ $match: match });
 
     return pipeline;
-  }
-
-  static listRelationsUsedInSort(filter: PaginatedFilter): Set<string> {
-    const fields = new Set<string>();
-
-    if (filter?.sort) {
-      filter.sort.forEach(s => {
-        this.listPaths(s.field).forEach(field => fields.add(field));
-      });
-    }
-
-    return fields;
   }
 
   static listRelationsUsedInFilter(filter: PaginatedFilter): Set<string> {

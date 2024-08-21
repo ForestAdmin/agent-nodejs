@@ -86,19 +86,44 @@ describe('FilterGenerator', () => {
       it('should generate the relevant pipeline', () => {
         const filter = new PaginatedFilter({ page: new Page(100, 150) });
 
-        const pipeline = FilterGenerator.filter(model, stack, filter);
-        expect(pipeline).toStrictEqual([{ $skip: 100 }, { $limit: 150 }]);
+        const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+        expect(pipeline[0]).toStrictEqual([{ $skip: 100 }, { $limit: 150 }]);
       });
     });
 
     describe('Sort', () => {
-      it('should generate the relevant pipeline', () => {
-        const filter = new PaginatedFilter({
-          sort: new Sort({ field: 'author:firstname', ascending: true }),
-        });
+      describe('if sort is done on native field', () => {
+        it('should generate the relevant pipeline on the first stage', () => {
+          const filter = new PaginatedFilter({
+            sort: new Sort({ field: 'author:firstname', ascending: true }),
+          });
 
-        const pipeline = FilterGenerator.filter(model, stack, filter);
-        expect(pipeline).toStrictEqual([{ $sort: { 'author.firstname': 1 } }]);
+          const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+          expect(pipeline[0]).toStrictEqual([{ $sort: { 'author.firstname': 1 } }]);
+        });
+      });
+
+      describe('if filtering is applied', () => {
+        it('should generate the relevant pipeline on second stage', () => {
+          const filter = new PaginatedFilter({
+            sort: new Sort({ field: 'author:firstname', ascending: true }),
+          });
+          filter.conditionTree = new ConditionTreeBranch('And', []);
+
+          const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+          expect(pipeline).toStrictEqual([[], [{ $sort: { 'author.firstname': 1 } }], []]);
+        });
+      });
+
+      describe('if sort criteria is not on a native field', () => {
+        it('should generate the relevant pipeline on second stage', () => {
+          const filter = new PaginatedFilter({
+            sort: new Sort({ field: 'hello', ascending: true }),
+          });
+
+          const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+          expect(pipeline).toStrictEqual([[], [], [{ $sort: { hello: 1 } }]]);
+        });
       });
     });
   });

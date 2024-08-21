@@ -303,7 +303,7 @@ export default class MongooseCollection extends BaseCollection {
     const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
 
     const [preSortAndPaginate, sortAndPaginatePostFiltering, sortAndPaginateAll] =
-      FilterGenerator.sortAndPaginateStages(this.model, filter);
+      FilterGenerator.sortAndPaginate(this.model, filter);
 
     const reparentStages = ReparentGenerator.reparent(this.model, this.stack);
     const addVirtualStages = VirtualFieldsGenerator.addVirtual(
