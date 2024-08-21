@@ -70,7 +70,7 @@ describe('update-typings', () => {
           version: 123,
         };
 
-        const datasources = [{ introspection, datasourceSuffix: '_abc' }];
+        const datasources = [{ introspection, datasourceSuffix: '_abc', datasourceId: 123 }];
 
         setupMocks();
 
@@ -94,7 +94,7 @@ describe('update-typings', () => {
           source: '@forestadmin/datasource-mongo',
           version: 123,
         };
-        const datasources = [{ introspection, datasourceSuffix: '_abc' }];
+        const datasources = [{ introspection, datasourceSuffix: '_abc', datasourceId: 123 }];
 
         const bootstrapPathManager = {
           typingsDuringBootstrap: 'typingsDuringBootstrap',
@@ -123,7 +123,7 @@ describe('update-typings', () => {
           tables: [],
         } as DataSourceSQLIntrospection;
 
-        return [{ introspection, datasourceSuffix: '_abc' }];
+        return [{ introspection, datasourceSuffix: '_abc', datasourceId: 123 }];
       }
 
       it('should create the agent with fake options', async () => {
@@ -187,7 +187,7 @@ describe('update-typings', () => {
           models: [],
         } as DataSourceMongoIntrospection;
 
-        return [{ introspection, datasourceSuffix: '_abc' }];
+        return [{ introspection, datasourceSuffix: '_abc', datasourceId: 123 }];
       }
 
       it('should create the agent with fake options', async () => {
@@ -264,7 +264,9 @@ describe('update-typings', () => {
         tables: [],
       } as DataSourceSQLIntrospection;
 
-      const datasourcesSQL = [{ introspection: introspectionSQL, datasourceSuffix: '-123' }];
+      const datasourcesSQL = [
+        { introspection: introspectionSQL, datasourceSuffix: '-123', datasourceId: 123 },
+      ];
 
       const introspectionMongo = {
         source: '@forestadmin/datasource-mongo',
@@ -272,7 +274,9 @@ describe('update-typings', () => {
         models: [],
       } as DataSourceMongoIntrospection;
 
-      const datasourcesMongo = [{ introspection: introspectionMongo, datasourceSuffix: '-456' }];
+      const datasourcesMongo = [
+        { introspection: introspectionMongo, datasourceSuffix: '-456', datasourceId: 456 },
+      ];
 
       return { distPathManager, bootstrapPathManager, datasourcesSQL, datasourcesMongo };
     }
