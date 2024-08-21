@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.7.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.12...@forestadmin/datasource-mongoose@1.7.13) (2024-08-21)
+
+
+### Performance Improvements
+
+* improve mongodb collection page load time ([#1154](https://github.com/ForestAdmin/agent-nodejs/issues/1154)) ([33cc718](https://github.com/ForestAdmin/agent-nodejs/commit/33cc71861520ba9489fe7ad0bffc50b493715a7e))
+
 ## @forestadmin/datasource-mongoose [1.7.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.11...@forestadmin/datasource-mongoose@1.7.12) (2024-07-16)
 
 
