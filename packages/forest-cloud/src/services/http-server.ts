@@ -1,4 +1,3 @@
-import { Table } from '@forestadmin/datasource-sql';
 import * as axios from 'axios';
 import * as fs from 'fs';
 
