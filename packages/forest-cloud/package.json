@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/forest-cloud",
-  "version": "1.10.2",
+  "version": "2.0.0",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
     "@forestadmin/agent": "1.41.9",
