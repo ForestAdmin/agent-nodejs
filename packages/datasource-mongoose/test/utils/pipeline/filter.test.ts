@@ -104,14 +104,32 @@ describe('FilterGenerator', () => {
       });
 
       describe('if filtering is applied', () => {
-        it('should generate the relevant pipeline on second stage', () => {
-          const filter = new PaginatedFilter({
-            sort: new Sort({ field: 'author:firstname', ascending: true }),
-          });
-          filter.conditionTree = new ConditionTreeBranch('And', []);
+        describe('if filtering is on a native field', () => {
+          it('should generate the relevant pipeline on first stage', () => {
+            const filter = new PaginatedFilter({
+              sort: new Sort({ field: 'author:firstname', ascending: true }),
+            });
+            filter.conditionTree = new ConditionTreeBranch('And', [
+              new ConditionTreeLeaf('title', 'Equal', 'Lord of the Rings'),
+            ]);
 
-          const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-          expect(pipeline).toStrictEqual([[], [{ $sort: { 'author.firstname': 1 } }], []]);
+            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+            expect(pipeline).toStrictEqual([[], [{ $sort: { 'author.firstname': 1 } }], []]);
+          });
+        });
+
+        describe('if filtering is not on a native field', () => {
+          it('should generate the relevant pipeline on third stage', () => {
+            const filter = new PaginatedFilter({
+              sort: new Sort({ field: 'author:firstname', ascending: true }),
+            });
+            filter.conditionTree = new ConditionTreeBranch('And', [
+              new ConditionTreeLeaf('editor', 'Equal', 'Folio'),
+            ]);
+
+            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+            expect(pipeline).toStrictEqual([[], [], [{ $sort: { 'author.firstname': 1 } }]]);
+          });
         });
       });
 
