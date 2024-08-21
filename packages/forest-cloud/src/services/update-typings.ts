@@ -24,7 +24,39 @@ function isDatasourceMongoIntrospection(
 export type Datasources = Array<{
   introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection;
   datasourceSuffix: string;
+  datasourceId: number;
 }>;
+
+async function addDatasourceToAgent(
+  agent: ReturnType<typeof createAgent>,
+  datasource: Datasources[number],
+) {
+  try {
+    const rename = (oldName: string) => `${oldName}${datasource.datasourceSuffix || ''}`;
+
+    if (isDatasourceMongoIntrospection(datasource.introspection)) {
+      const mongoose = buildDisconnectedMongooseInstance(datasource.introspection);
+      agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }), {
+        rename,
+      });
+    } else {
+      const sequelize = await buildDisconnectedSequelizeInstance(datasource.introspection, null);
+      agent.addDataSource(createSequelizeDataSource(sequelize), {
+        rename,
+      });
+    }
+  } catch (e) {
+    const error = e as Error;
+
+    if (BusinessError.isOfType(error, IntrospectionFormatError)) {
+      throw new BusinessError(
+        `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
+      );
+    }
+
+    throw e;
+  }
+}
 
 async function buildAgent(datasources: Datasources) {
   const agentOptions: AgentOptions = {
@@ -35,36 +67,9 @@ async function buildAgent(datasources: Datasources) {
   };
   const agent = createAgent(agentOptions);
   await Promise.all(
-    datasources.map(async datasource => {
-      try {
-        const rename = (oldName: string) => `${oldName}${datasource.datasourceSuffix || ''}`;
-
-        if (isDatasourceMongoIntrospection(datasource.introspection)) {
-          const mongoose = buildDisconnectedMongooseInstance(datasource.introspection);
-          agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }), {
-            rename,
-          });
-        } else {
-          const sequelize = await buildDisconnectedSequelizeInstance(
-            datasource.introspection,
-            null,
-          );
-          agent.addDataSource(createSequelizeDataSource(sequelize), {
-            rename,
-          });
-        }
-      } catch (e) {
-        const error = e as Error;
-
-        if (BusinessError.isOfType(error, IntrospectionFormatError)) {
-          throw new BusinessError(
-            `The version of this CLI is out of date from the version of your cloud agent.\nPlease update @forestadmin/forest-cloud.`,
-          );
-        }
-
-        throw e;
-      }
-    }),
+    datasources
+      .sort((a, b) => a.datasourceId - b.datasourceId)
+      .map(async datasource => addDatasourceToAgent(agent, datasource)),
   );
 
   return agent;
