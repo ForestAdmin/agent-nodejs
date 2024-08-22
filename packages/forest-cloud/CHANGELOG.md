@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.10.3...@forestadmin/forest-cloud@1.11.0) (2024-08-22)
+
+
+### Features
+
+* forest cloud supports multiple introspections and suffixes ([#1155](https://github.com/ForestAdmin/agent-nodejs/issues/1155)) ([3fcd9f9](https://github.com/ForestAdmin/agent-nodejs/commit/3fcd9f9bfeef0307a7c62e31e0895da8767b1b2f))
+
 ## @forestadmin/forest-cloud [1.10.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.10.2...@forestadmin/forest-cloud@1.10.3) (2024-08-21)
 
 
