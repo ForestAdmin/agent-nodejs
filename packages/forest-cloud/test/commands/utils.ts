@@ -39,7 +39,7 @@ export const setupCommandArguments = (
     getLastPublishedCodeDetails: jest.Mock;
     getEnvironmentVariables: jest.Mock;
     login: jest.Mock;
-    getIntrospection: jest.Mock;
+    getDatasources: jest.Mock;
     subscribeToCodeCustomization: jest.Mock;
     getLatestVersion: jest.Mock;
     getCurrentVersion: jest.Mock;
@@ -54,7 +54,7 @@ export const setupCommandArguments = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const buildHttpServer = (vars: EnvironmentVariables) => {
     return {
-      getIntrospection: options?.getIntrospection || jest.fn().mockResolvedValue([]),
+      getDatasources: options?.getDatasources || jest.fn().mockResolvedValue([]),
       postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'aSubscriptionId' }),

@@ -59,9 +59,9 @@ export default async function bootstrap(
     if (!fs.existsSync(paths.env)) await generateDotEnv(vars, paths);
     await fsP.writeFile(paths.index, await fsP.readFile(paths.indexTemplate));
 
-    const introspection = await httpServer.getIntrospection();
+    const datasources = await httpServer.getDatasources();
 
-    await updateTypings(introspection, paths);
+    await updateTypings(datasources, paths);
   } catch (error) {
     const potentialErrorMessage = await tryToClearBootstrap(paths);
     throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage || ''}`);

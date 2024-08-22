@@ -21,24 +21,29 @@ function isDatasourceMongoIntrospection(
   return 'source' in introspection && introspection.source === '@forestadmin/datasource-mongo';
 }
 
-async function buildAgent(
-  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
-) {
-  const agentOptions: AgentOptions = {
-    authSecret: 'a'.repeat(64),
-    envSecret: 'a'.repeat(64),
-    loggerLevel: 'Error',
-    isProduction: false,
-  };
-  const agent = createAgent(agentOptions);
+export type Datasources = Array<{
+  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection;
+  datasourceSuffix: string;
+  datasourceId: number;
+}>;
 
+async function addDatasourceToAgent(
+  agent: ReturnType<typeof createAgent>,
+  datasource: Datasources[number],
+) {
   try {
-    if (isDatasourceMongoIntrospection(introspection)) {
-      const mongoose = buildDisconnectedMongooseInstance(introspection);
-      agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }));
+    const rename = (oldName: string) => `${oldName}${datasource.datasourceSuffix || ''}`;
+
+    if (isDatasourceMongoIntrospection(datasource.introspection)) {
+      const mongoose = buildDisconnectedMongooseInstance(datasource.introspection);
+      agent.addDataSource(createMongooseDataSource(mongoose, { flattenMode: 'auto' }), {
+        rename,
+      });
     } else {
-      const sequelize = await buildDisconnectedSequelizeInstance(introspection, null);
-      agent.addDataSource(createSequelizeDataSource(sequelize));
+      const sequelize = await buildDisconnectedSequelizeInstance(datasource.introspection, null);
+      agent.addDataSource(createSequelizeDataSource(sequelize), {
+        rename,
+      });
     }
   } catch (e) {
     const error = e as Error;
@@ -51,26 +56,41 @@ async function buildAgent(
 
     throw e;
   }
+}
+
+async function buildAgent(datasources: Datasources) {
+  const agentOptions: AgentOptions = {
+    authSecret: 'a'.repeat(64),
+    envSecret: 'a'.repeat(64),
+    loggerLevel: 'Error',
+    isProduction: false,
+  };
+  const agent = createAgent(agentOptions);
+  await Promise.all(
+    datasources
+      .sort((a, b) => a.datasourceId - b.datasourceId)
+      .map(async datasource => addDatasourceToAgent(agent, datasource)),
+  );
 
   return agent;
 }
 
 export async function updateTypings(
-  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
+  datasources: Datasources,
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
-  const agent = await buildAgent(introspection);
+  const agent = await buildAgent(datasources);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typingsDuringBootstrap, 3);
 }
 
 export async function updateTypingsWithCustomizations(
-  introspection: DataSourceSQLIntrospection | DataSourceMongoIntrospection,
+  datasources: Datasources,
   distPathManager: DistPathManager,
   bootstrapPathManager: BootstrapPathManager,
 ): Promise<void> {
   const builtCodePath = path.resolve(distPathManager.distCodeCustomizations);
   await throwIfNoBuiltCode(builtCodePath);
-  const agent = await buildAgent(introspection);
+  const agent = await buildAgent(datasources);
   loadCustomization(agent, builtCodePath);
   await agent.updateTypesOnFileSystem(bootstrapPathManager.typings, 3);
 }
