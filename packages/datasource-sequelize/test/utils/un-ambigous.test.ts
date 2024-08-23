@@ -22,6 +22,12 @@ describe('Utils > unAmbigousField', () => {
       expect(unAmbigousField(model, 'aField')).toStrictEqual('__a__field');
     });
 
+    it('should handle a the real field and return it', () => {
+      const { model } = setup();
+
+      expect(unAmbigousField(model, '__a__field')).toStrictEqual('__a__field');
+    });
+
     it('should return unambigous field', () => {
       const { model } = setup();
 
