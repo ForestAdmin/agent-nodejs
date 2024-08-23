@@ -1,7 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ModelDefined } from 'sequelize/types';
 
+function getRealFieldName(model: ModelDefined<any, any>, fieldName: string) {
+  const fields = model.getAttributes();
+  const fieldModel = fields[fieldName]
+    ? fields[fieldName]
+    : Object.entries(fields)
+        .filter(([, value]) => value.field === fieldName)
+        .map(([, value]) => value)[0];
+
+  return fieldModel.field;
+}
+
 export default function unAmbigousField(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: ModelDefined<any, any>,
   field: string,
   unAmbigous = false,
@@ -16,12 +27,11 @@ export default function unAmbigousField(
   } else if (isRelation) {
     const paths = field.split(':');
     const relationFieldName = paths.pop();
-    const fieldName = paths
-      .reduce((acc, path) => acc.associations[path].target, model)
-      .getAttributes()[relationFieldName].field;
+    const relatedModel = paths.reduce((acc, path) => acc.associations[path].target, model);
+    const fieldName = getRealFieldName(relatedModel, relationFieldName);
     safeField = `${paths.join('.')}.${fieldName}`;
   } else {
-    safeField = model.getAttributes()[field].field;
+    safeField = getRealFieldName(model, field);
     if (unAmbigous) safeField = `${model.name}.${safeField}`;
   }
 
