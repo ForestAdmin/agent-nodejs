@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.8.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.10...@forestadmin/datasource-sequelize@1.8.11) (2024-08-23)
+
+
+### Bug Fixes
+
+* **query-converter:** handle renamed sequelize fields ([#1159](https://github.com/ForestAdmin/agent-nodejs/issues/1159)) ([35efb66](https://github.com/ForestAdmin/agent-nodejs/commit/35efb669813fe951d1c15f3c4d7ccedeebcdd35e))
+
 ## @forestadmin/datasource-sequelize [1.8.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.9...@forestadmin/datasource-sequelize@1.8.10) (2024-07-16)
 
 
