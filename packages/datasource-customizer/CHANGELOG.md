@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.47.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.46.1...@forestadmin/datasource-customizer@1.47.0) (2024-08-23)
+
+
+### Features
+
+* make throw error function available in all customization context ([#1160](https://github.com/ForestAdmin/agent-nodejs/issues/1160)) ([f45f442](https://github.com/ForestAdmin/agent-nodejs/commit/f45f442391aa501f327ea91705212c679a955402))
+
 ## @forestadmin/datasource-customizer [1.46.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.46.0...@forestadmin/datasource-customizer@1.46.1) (2024-08-05)
 
 
