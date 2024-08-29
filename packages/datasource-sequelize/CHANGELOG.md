@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.11...@forestadmin/datasource-sequelize@1.9.0) (2024-08-29)
+
+
+### Features
+
+* **sequelize:** introduce front validation mechanism and enhance current agent validation ([#1161](https://github.com/ForestAdmin/agent-nodejs/issues/1161)) ([22ff487](https://github.com/ForestAdmin/agent-nodejs/commit/22ff487326494b17888e3b9670919194f6ed737d))
+
 ## @forestadmin/datasource-sequelize [1.8.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.10...@forestadmin/datasource-sequelize@1.8.11) (2024-08-23)
 
 
