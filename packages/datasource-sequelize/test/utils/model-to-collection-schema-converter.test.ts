@@ -455,6 +455,14 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 operator: 'LessThan',
                 value: 2,
               },
+              {
+                operator: 'Contains',
+                value: 'ContainsThisString',
+              },
+              {
+                operator: 'Like',
+                value: '/^[a-z]+$/',
+              },
             ]),
             type: 'Column',
           },
@@ -481,6 +489,8 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               isBefore: '2022',
               min: 1,
               max: 2,
+              contains: 'ContainsThisString',
+              is: /^[a-z]+$/,
             },
           },
         },
