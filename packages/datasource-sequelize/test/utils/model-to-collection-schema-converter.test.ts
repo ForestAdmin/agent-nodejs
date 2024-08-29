@@ -405,5 +405,99 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         });
       });
     });
+
+    it('should convert all model validation', () => {
+      const { sequelize } = setup();
+
+      const schema: CollectionSchema = {
+        actions: {},
+        charts: [],
+        countable: true,
+        fields: expect.objectContaining({
+          myPk: {
+            columnType: 'Number',
+            filterOperators: TypeConverter.operatorsForColumnType('Number'),
+            isPrimaryKey: true,
+            isSortable: true,
+            validation: [],
+            type: 'Column',
+          },
+          myValue: {
+            columnType: 'String',
+            defaultValue: '__default__',
+            filterOperators: TypeConverter.operatorsForColumnType('String'),
+            isSortable: true,
+            validation: expect.arrayContaining([
+              {
+                operator: 'Present',
+              },
+              {
+                operator: 'LongerThan',
+                value: 3,
+              },
+              {
+                operator: 'ShorterThan',
+                value: 24,
+              },
+              {
+                operator: 'After',
+                value: '2012',
+              },
+              {
+                operator: 'Before',
+                value: '2022',
+              },
+              {
+                operator: 'GreaterThan',
+                value: 1,
+              },
+              {
+                operator: 'LessThan',
+                value: 2,
+              },
+              {
+                operator: 'Contains',
+                value: 'ContainsThisString',
+              },
+              {
+                operator: 'Like',
+                value: '/^[a-z]+$/',
+              },
+            ]),
+            type: 'Column',
+          },
+        }),
+        searchable: false,
+        segments: [],
+      };
+
+      const model = sequelize.define(
+        '__model__',
+        {
+          myPk: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+          },
+          myValue: {
+            type: DataTypes.STRING,
+            defaultValue: '__default__',
+            validate: {
+              notEmpty: true,
+              len: [3, 24],
+              equals: 'EqualsThisString',
+              isAfter: '2012',
+              isBefore: '2022',
+              min: 1,
+              max: 2,
+              contains: 'ContainsThisString',
+              is: /^[a-z]+$/,
+            },
+          },
+        },
+        { timestamps: true },
+      );
+
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
+    });
   });
 });
