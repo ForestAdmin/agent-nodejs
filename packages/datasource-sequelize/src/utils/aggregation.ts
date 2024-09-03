@@ -22,7 +22,19 @@ export default class AggregationUtils {
 
   private dateAggregationConverter: DateAggregationConverter;
 
-  readonly aggregateFieldName = '__aggregate__';
+  readonly _aggregateFieldName = '__aggregate__';
+  get aggregateFieldName() {
+    if (
+      (this.model.sequelize as unknown as { options: { minifyAliases: boolean } }).options
+        .minifyAliases
+    ) {
+      // when minifyAliases, sequelize uses _0 as column name instead of __aggregate__
+      // fixes https://app.clickup.com/t/86c04wd01
+      return '_0';
+    }
+
+    return this._aggregateFieldName;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(model: ModelDefined<any, any>) {
