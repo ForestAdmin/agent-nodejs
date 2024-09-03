@@ -1,3 +1,14 @@
+## @forestadmin/forest-cloud [1.11.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.3...@forestadmin/forest-cloud@1.11.4) (2024-09-03)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.9.1
+* **@forestadmin/datasource-sql:** upgraded to 1.14.14
+
 ## @forestadmin/forest-cloud [1.11.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.2...@forestadmin/forest-cloud@1.11.3) (2024-08-29)
 
 
