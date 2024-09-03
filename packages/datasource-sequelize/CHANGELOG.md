@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.0...@forestadmin/datasource-sequelize@1.9.1) (2024-09-03)
+
+
+### Bug Fixes
+
+* records count supports sequelize alias minifying ([#1163](https://github.com/ForestAdmin/agent-nodejs/issues/1163)) ([d3baf1d](https://github.com/ForestAdmin/agent-nodejs/commit/d3baf1d73739807075405eb265925f02f0aa5533))
+
 # @forestadmin/datasource-sequelize [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.8.11...@forestadmin/datasource-sequelize@1.9.0) (2024-08-29)
 
 
