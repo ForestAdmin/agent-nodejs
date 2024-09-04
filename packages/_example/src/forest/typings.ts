@@ -15,6 +15,48 @@ export type DevXpMembersFilter = TPaginatedFilter<Schema, 'dev_xp_members'>;
 export type DevXpMembersSortClause = TSortClause<Schema, 'dev_xp_members'>;
 export type DevXpMembersAggregation = TAggregation<Schema, 'dev_xp_members'>;
 
+export type BookingsCustomizer = CollectionCustomizer<Schema, 'bookings'>;
+export type BookingsRecord = TPartialRow<Schema, 'bookings'>;
+export type BookingsConditionTree = TConditionTree<Schema, 'bookings'>;
+export type BookingsFilter = TPaginatedFilter<Schema, 'bookings'>;
+export type BookingsSortClause = TSortClause<Schema, 'bookings'>;
+export type BookingsAggregation = TAggregation<Schema, 'bookings'>;
+
+export type CancellationCustomizer = CollectionCustomizer<Schema, 'cancellation'>;
+export type CancellationRecord = TPartialRow<Schema, 'cancellation'>;
+export type CancellationConditionTree = TConditionTree<Schema, 'cancellation'>;
+export type CancellationFilter = TPaginatedFilter<Schema, 'cancellation'>;
+export type CancellationSortClause = TSortClause<Schema, 'cancellation'>;
+export type CancellationAggregation = TAggregation<Schema, 'cancellation'>;
+
+export type DeparturesCustomizer = CollectionCustomizer<Schema, 'departures'>;
+export type DeparturesRecord = TPartialRow<Schema, 'departures'>;
+export type DeparturesConditionTree = TConditionTree<Schema, 'departures'>;
+export type DeparturesFilter = TPaginatedFilter<Schema, 'departures'>;
+export type DeparturesSortClause = TSortClause<Schema, 'departures'>;
+export type DeparturesAggregation = TAggregation<Schema, 'departures'>;
+
+export type ReservationsCustomizer = CollectionCustomizer<Schema, 'reservations'>;
+export type ReservationsRecord = TPartialRow<Schema, 'reservations'>;
+export type ReservationsConditionTree = TConditionTree<Schema, 'reservations'>;
+export type ReservationsFilter = TPaginatedFilter<Schema, 'reservations'>;
+export type ReservationsSortClause = TSortClause<Schema, 'reservations'>;
+export type ReservationsAggregation = TAggregation<Schema, 'reservations'>;
+
+export type TablethingCustomizer = CollectionCustomizer<Schema, 'tablething'>;
+export type TablethingRecord = TPartialRow<Schema, 'tablething'>;
+export type TablethingConditionTree = TConditionTree<Schema, 'tablething'>;
+export type TablethingFilter = TPaginatedFilter<Schema, 'tablething'>;
+export type TablethingSortClause = TSortClause<Schema, 'tablething'>;
+export type TablethingAggregation = TAggregation<Schema, 'tablething'>;
+
+export type TabletrucCustomizer = CollectionCustomizer<Schema, 'tabletruc'>;
+export type TabletrucRecord = TPartialRow<Schema, 'tabletruc'>;
+export type TabletrucConditionTree = TConditionTree<Schema, 'tabletruc'>;
+export type TabletrucFilter = TPaginatedFilter<Schema, 'tabletruc'>;
+export type TabletrucSortClause = TSortClause<Schema, 'tabletruc'>;
+export type TabletrucAggregation = TAggregation<Schema, 'tabletruc'>;
+
 export type CustomerCustomizer = CollectionCustomizer<Schema, 'customer'>;
 export type CustomerRecord = TPartialRow<Schema, 'customer'>;
 export type CustomerConditionTree = TConditionTree<Schema, 'customer'>;
@@ -275,6 +317,29 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'bookings': {
+    plain: {
+      'cancellation_id': number | null;
+      'created_at': string;
+      'id': number;
+      'name': string | null;
+    };
+    nested: {
+      'cancellation': Schema['cancellation']['plain'] & Schema['cancellation']['nested'];
+    };
+    flat: {
+      'cancellation:created_at': string;
+      'cancellation:id': number;
+    };
+  };
+  'cancellation': {
+    plain: {
+      'created_at': string;
+      'id': number;
+    };
+    nested: {};
+    flat: {};
+  };
   'card': {
     plain: {
       'card_number': number | null;
@@ -325,6 +390,15 @@ export type Schema = {
       'id': number;
       'name': string | null;
       'updatedAt': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'departures': {
+    plain: {
+      'created_at': string;
+      'id': number;
+      'name': string | null;
     };
     nested: {};
     flat: {};
@@ -440,6 +514,30 @@ export type Schema = {
       'customer:id': number;
       'customer:name': string | null;
       'customer:updatedAt': string;
+    };
+  };
+  'reservations': {
+    plain: {
+      'booking_id': number | null;
+      'created_at': string;
+      'departure_id': number | null;
+      'id': number;
+      'name': string | null;
+    };
+    nested: {
+      'booking': Schema['bookings']['plain'] & Schema['bookings']['nested'];
+      'departure': Schema['departures']['plain'] & Schema['departures']['nested'];
+    };
+    flat: {
+      'booking:cancellation_id': number | null;
+      'booking:created_at': string;
+      'booking:id': number;
+      'booking:name': string | null;
+      'departure:created_at': string;
+      'departure:id': number;
+      'departure:name': string | null;
+      'booking:cancellation:created_at': string;
+      'booking:cancellation:id': number;
     };
   };
   'review': {
@@ -561,5 +659,31 @@ export type Schema = {
       'owner:id': number;
       'owner:lastName': string;
     };
+  };
+  'tablething': {
+    plain: {
+      'created_at': string;
+      'id': number;
+      'name': string | null;
+      'newCol': string | null;
+      'truc_id': number | null;
+    };
+    nested: {
+      'truc': Schema['tabletruc']['plain'] & Schema['tabletruc']['nested'];
+    };
+    flat: {
+      'truc:created_at': string | null;
+      'truc:data': string | null;
+      'truc:id': number;
+    };
+  };
+  'tabletruc': {
+    plain: {
+      'created_at': string | null;
+      'data': string | null;
+      'id': number;
+    };
+    nested: {};
+    flat: {};
   };
 };

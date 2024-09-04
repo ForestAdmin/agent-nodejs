@@ -205,7 +205,44 @@ export type ActionFieldCheckboxGroupAll =
   | ActionFieldLimitedValue<'CheckboxGroup', 'StringList', string>
   | ActionFieldLimitedValue<'CheckboxGroup', 'NumberList', number>;
 
-export type ActionField = StrictUnion<
+type ActionLayoutElementPage = {
+  type: 'Layout';
+  widget: 'Page';
+  nextButtonLabel: string;
+  backButtonLabel: string;
+  elements: ActionFieldOrLayoutElement[];
+  watchChanges: boolean;
+};
+
+type ActionLayoutElementRow = {
+  type: 'Layout';
+  widget: 'Row';
+  fields: [ActionField, ActionField];
+  watchChanges: boolean;
+};
+
+type ActionLayoutElementSeparator = {
+  type: 'Layout';
+  widget: 'Separator';
+  watchChanges: boolean;
+};
+
+type ActionLayoutElementLabel = {
+  type: 'Layout';
+  widget: 'Label';
+  content: string;
+  watchChanges: boolean;
+};
+
+type ActionLayoutElement =
+  | ActionLayoutElementRow
+  | ActionLayoutElementSeparator
+  | ActionLayoutElementLabel;
+export type ActionLayoutElementOrPage = ActionLayoutElement | ActionLayoutElementPage;
+
+type ActionFieldOrLayoutElement = ActionField | ActionLayoutElement;
+
+export type ActionInputField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
@@ -229,6 +266,8 @@ export type ActionField = StrictUnion<
   | ActionFieldFilePicker
   | ActionFieldAddressAutocomplete
 >;
+
+export type ActionField = ActionInputField | ActionLayoutElementOrPage;
 
 export type ActionFieldWidget =
   | 'Dropdown'

@@ -83,6 +83,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 
     for (const field of fields) {
+      // eslint-disable-next-line no-continue
+      if (field.type === 'Layout') continue;
+
       // customer did not define a handler to rewrite the previous value => reuse current one.
       if (field.value === undefined) field.value = formValues[field.label];
 

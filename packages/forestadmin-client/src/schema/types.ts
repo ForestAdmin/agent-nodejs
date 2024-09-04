@@ -253,7 +253,59 @@ export type ForestServerActionFieldCheckboxGroup =
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldCheckboxGroupOptions<string>>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldCheckboxGroupOptions<number>>;
 
-export type ForestServerActionField =
+type ForestServerActionLayoutElementPage = {
+  type: 'Layout';
+  layoutWidget: {
+    name: 'page';
+    parameters: {
+      nextButtonLabel: string;
+      backButtonLabel: string;
+      elements: ForestServerActionFieldOrLayoutElement[];
+    };
+  };
+  hook: string;
+};
+
+type ForestServerActionLayoutElementRow = {
+  type: 'Layout';
+  layoutWidget: {
+    name: 'row';
+    parameters: { fields: [ForestServerActionInputField, ForestServerActionInputField] };
+  };
+  hook: string;
+};
+
+type ForestServerActionLayoutElementSeparator = {
+  type: 'Layout';
+  layoutWidget: {
+    name: 'separator';
+  };
+  hook: string;
+};
+
+type ForestServerActionLayoutElementLabel = {
+  type: 'Layout';
+  layoutWidget: {
+    name: 'label';
+    parameters: { content: string };
+  };
+  hook: string;
+};
+
+type ForestServerActionLayoutElement =
+  | ForestServerActionLayoutElementRow
+  | ForestServerActionLayoutElementSeparator
+  | ForestServerActionLayoutElementLabel;
+
+export type ForestServerActionLayoutElementOrPage =
+  | ForestServerActionLayoutElement
+  | ForestServerActionLayoutElementPage;
+
+export type ForestServerActionFieldOrLayoutElement =
+  | ForestServerActionInputField
+  | ForestServerActionLayoutElement;
+
+export type ForestServerActionInputField =
   | ForestServerActionFieldDropdown
   | ForestServerActionFieldRadioGroup
   | ForestServerActionFieldCheckboxGroup
@@ -273,6 +325,10 @@ export type ForestServerActionField =
   | ForestServerActionFieldCommon<'File' | ['File'], ForestServerActionFieldFilePickerOptions>
   | ForestServerActionFieldCommon<'Json', ForestServerActionFieldJsonEditorOptions>
   | ForestServerActionFieldCommon<'String', ForestServerActionFieldAddressAutocompleteOptions>;
+
+export type ForestServerActionField =
+  | ForestServerActionInputField
+  | ForestServerActionLayoutElementOrPage;
 
 export type ForestServerField = Partial<{
   field: string;

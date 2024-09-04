@@ -34,7 +34,11 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
-
+    .addDataSource(
+      createSqlDataSource(
+        'postgres://postgres.mdvbfrrifupdjukiqrtb:qI3iUbMd2O6ssYpY@aws-0-eu-west-2.pooler.supabase.com:5432/postgres',
+      ),
+    )
     .addDataSource(
       // Using an URI
       createSqlDataSource('mariadb://example:password@localhost:3808/example'),
@@ -84,5 +88,37 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales);
+    .customizeCollection('sales', customizeSales)
+    .customizeCollection('reservations', collection => {
+      collection.overrideCreate(async context => {
+        const { data } = context;
+
+        const record = await context.collection.create(data);
+        console.log('create reservation', JSON.stringify(record));
+
+        return record;
+      });
+
+      collection.addAction('action with form', {
+        scope: 'Bulk',
+        execute: (context, resultBuilder) => {
+          resultBuilder.success('ok');
+        },
+        form: [{ type: 'String', label: 'name', if: () => true }],
+      });
+
+      collection.addAction('static action with form', {
+        scope: 'Bulk',
+        execute: (context, resultBuilder) => {
+          resultBuilder.success('ok');
+        },
+        form: [{ type: 'String', label: 'name' }],
+      });
+
+      // collection.overrideUpdate(async context => {
+      //   const { filter, patch } = context;
+
+      //   await context.collection.update(filter, patch);
+      // });
+    });
 }
