@@ -77,7 +77,6 @@ export default class ModelToCollectionSchemaConverter {
     if (associations) {
       Object.entries(associations).forEach(([name, association]) => {
         try {
-          console.log(name);
           schemaAssociations[name] = this.convertAssociation(association);
         } catch (error) {
           logger?.('Warn', `Skipping association '${modelName}.${name}' (${error.message})`);
