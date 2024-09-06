@@ -80,8 +80,8 @@ describe('Sort', () => {
         const collectionWithCompositeId = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              id1: factories.columnSchema.uuidPrimaryKey().build(),
-              id2: factories.columnSchema.uuidPrimaryKey().build(),
+              id1: factories.columnSchema.numericPrimaryKey().build(),
+              id2: factories.columnSchema.numericPrimaryKey().build(),
             },
           }),
         });
@@ -94,13 +94,25 @@ describe('Sort', () => {
         const collectionWithSimpleId = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              id: factories.columnSchema.uuidPrimaryKey().build(),
+              id: factories.columnSchema.numericPrimaryKey().build(),
             },
           }),
         });
         expect(SortFactory.byPrimaryKeys(collectionWithSimpleId)).toEqual(
           new Sort({ field: 'id', ascending: true }),
         );
+      });
+
+      test('should not sort when primary keys are not sortable', () => {
+        const collectionWithCompositeId = factories.collection.build({
+          schema: factories.collectionSchema.build({
+            fields: {
+              id1: factories.columnSchema.uuidPrimaryKey().build(),
+              id2: factories.columnSchema.uuidPrimaryKey().build(),
+            },
+          }),
+        });
+        expect(SortFactory.byPrimaryKeys(collectionWithCompositeId)).toEqual(new Sort());
       });
     });
   });
