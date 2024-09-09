@@ -494,7 +494,7 @@ describe('QueryStringParser', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
-            id: factories.columnSchema.uuidPrimaryKey({ isSortable: false }).build(),
+            id: factories.columnSchema.uuidPrimaryKey().build({ isSortable: false }),
             name: factories.columnSchema.build(),
           },
           segments: ['fake-segment'],

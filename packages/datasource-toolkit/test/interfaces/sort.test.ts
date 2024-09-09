@@ -107,8 +107,8 @@ describe('Sort', () => {
         const collectionWithCompositeId = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              id1: factories.columnSchema.uuidPrimaryKey({ isSortable: false }).build(),
-              id2: factories.columnSchema.uuidPrimaryKey({ isSortable: false }).build(),
+              id1: factories.columnSchema.uuidPrimaryKey().build({ isSortable: false }),
+              id2: factories.columnSchema.uuidPrimaryKey().build({ isSortable: false }),
             },
           }),
         });

@@ -14,12 +14,12 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
     });
   }
 
-  uuidPrimaryKey({ isSortable } = { isSortable: true }): ColumnSchemaFactory {
+  uuidPrimaryKey(): ColumnSchemaFactory {
     return this.params({
       isPrimaryKey: true,
       type: 'Column',
       columnType: 'Uuid',
-      isSortable,
+      isSortable: true,
       filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE.Uuid),
     });
   }

@@ -111,7 +111,7 @@ describe('SchemaGeneratorFields > Many to Many', () => {
         enums: null,
         integration: null,
         isReadOnly: true,
-        isSortable: false,
+        isSortable: true,
         isVirtual: false,
       });
     });
