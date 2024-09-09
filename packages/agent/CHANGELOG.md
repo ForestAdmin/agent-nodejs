@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.41.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.10...@forestadmin/agent@1.41.11) (2024-09-09)
+
+
+### Bug Fixes
+
+* default sorting behaviour prevent sorting on unsortable fields ([#1164](https://github.com/ForestAdmin/agent-nodejs/issues/1164)) ([e0ae391](https://github.com/ForestAdmin/agent-nodejs/commit/e0ae3914fef4782b7e8c0b7cd3aed18e3fb2ee1c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.47.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.34.5
+* **@forestadmin/forestadmin-client:** upgraded to 1.27.8
+
 ## @forestadmin/agent [1.41.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.9...@forestadmin/agent@1.41.10) (2024-08-23)
 
 
