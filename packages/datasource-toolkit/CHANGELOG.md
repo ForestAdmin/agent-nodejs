@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.34.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.4...@forestadmin/datasource-toolkit@1.34.5) (2024-09-09)
+
+
+### Bug Fixes
+
+* default sorting behaviour prevent sorting on unsortable fields ([#1164](https://github.com/ForestAdmin/agent-nodejs/issues/1164)) ([e0ae391](https://github.com/ForestAdmin/agent-nodejs/commit/e0ae3914fef4782b7e8c0b7cd3aed18e3fb2ee1c))
+
 ## @forestadmin/datasource-toolkit [1.34.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.3...@forestadmin/datasource-toolkit@1.34.4) (2024-07-16)
 
 
