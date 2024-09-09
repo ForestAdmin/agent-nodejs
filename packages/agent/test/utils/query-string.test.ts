@@ -489,14 +489,50 @@ describe('QueryStringParser', () => {
   });
 
   describe('parseSort', () => {
-    test('should sort by pk ascending when not sort is given', () => {
+    test('should not sort when id is not sortable', () => {
+      const unsortablePk = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build({ isSortable: false }),
+            name: factories.columnSchema.build(),
+          },
+          segments: ['fake-segment'],
+        }),
+      });
+
       const context = createMockContext({
         customProperties: { query: {} },
       });
 
-      const sort = QueryStringParser.parseSort(collectionSimple, context);
+      const sort = QueryStringParser.parseSort(unsortablePk, context);
 
-      expect(sort).toEqual([{ field: 'id', ascending: true }]);
+      expect(sort).toEqual([]);
+    });
+
+    test('should sort by pk ascending when not sort is given', () => {
+      const collectionWithSortablePks = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            secondId: factories.columnSchema.numericPrimaryKey().build(),
+            name: factories.columnSchema.build(),
+          },
+          segments: ['fake-segment'],
+        }),
+      });
+
+      const context = createMockContext({
+        customProperties: { query: {} },
+      });
+
+      const sort = QueryStringParser.parseSort(collectionWithSortablePks, context);
+
+      expect(sort).toEqual([
+        { field: 'id', ascending: true },
+        { field: 'secondId', ascending: true },
+      ]);
     });
 
     test('should sort by the request field and order when given', () => {

@@ -9,6 +9,7 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
       isPrimaryKey: true,
       type: 'Column',
       columnType: 'Number',
+      isSortable: true,
       filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE.Number),
     });
   }
@@ -18,6 +19,7 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
       isPrimaryKey: true,
       type: 'Column',
       columnType: 'Uuid',
+      isSortable: true,
       filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE.Uuid),
     });
   }
@@ -26,6 +28,7 @@ export class ColumnSchemaFactory extends Factory<ColumnSchema> {
     return this.params({
       type: 'Column',
       columnType: 'String',
+      isSortable: true,
       filterOperators: new Set(MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE.String),
     });
   }
