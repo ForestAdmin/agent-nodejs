@@ -53,7 +53,7 @@ describe('Sort', () => {
 
   describe('nest', () => {
     test('should do nothing with null', () => {
-      expect(sort.nest(null)).toEqual(sort);
+      expect(sort.nest(null as never)).toEqual(sort);
     });
 
     test('should work with a prefix', () => {
@@ -107,8 +107,8 @@ describe('Sort', () => {
         const collectionWithCompositeId = factories.collection.build({
           schema: factories.collectionSchema.build({
             fields: {
-              id1: factories.columnSchema.uuidPrimaryKey().build(),
-              id2: factories.columnSchema.uuidPrimaryKey().build(),
+              id1: factories.columnSchema.uuidPrimaryKey({ isSortable: false }).build(),
+              id2: factories.columnSchema.uuidPrimaryKey({ isSortable: false }).build(),
             },
           }),
         });
