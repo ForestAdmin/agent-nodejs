@@ -22,7 +22,9 @@ export default class ForestValueConverter {
       const field = fields.find(f => f.label === key);
 
       // Skip fields from the default form
-      if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
+      if (
+        !SchemaGeneratorActions.defaultFields.map(f => f.type !== 'Layout' && f.field).includes(key)
+      ) {
         if (ActionFields.isCollectionField(field) && value) {
           const collection = dataSource.getCollection(field.collectionName);
 
@@ -50,7 +52,11 @@ export default class ForestValueConverter {
 
     for (const field of fields) {
       // Skip fields from the default form
-      if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(field.field)) {
+      if (
+        !SchemaGeneratorActions.defaultFields
+          .map(f => f.type !== 'Layout' && f.field)
+          .includes(field.field)
+      ) {
         if (field.reference && field.value) {
           const [collectionName] = field.reference.split('.');
           const collection = dataSource.getCollection(collectionName);
@@ -82,7 +88,9 @@ export default class ForestValueConverter {
 
     for (const [key, value] of Object.entries(rawData)) {
       // Skip fields from the default form
-      if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
+      if (
+        !SchemaGeneratorActions.defaultFields.map(f => f.type !== 'Layout' && f.field).includes(key)
+      ) {
         if (Array.isArray(value) && value.every(v => this.isDataUri(v))) {
           data[key] = value.map(uri => this.parseDataUri(uri));
         } else if (this.isDataUri(value)) {

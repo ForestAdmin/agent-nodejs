@@ -206,43 +206,39 @@ export type ActionFieldCheckboxGroupAll =
   | ActionFieldLimitedValue<'CheckboxGroup', 'NumberList', number>;
 
 type ActionLayoutElementPage = {
-  type: 'Layout';
-  widget: 'Page';
+  component: 'page';
   nextButtonLabel: string;
-  backButtonLabel: string;
-  elements: ActionFieldOrLayoutElement[];
-  watchChanges: boolean;
+  previousButtonLabel: string;
+  elements: ActionLayoutElement[];
 };
 
 type ActionLayoutElementRow = {
-  type: 'Layout';
-  widget: 'Row';
-  fields: [ActionField, ActionField];
-  watchChanges: boolean;
+  component: 'row';
+  fields: [ActionLayoutElementField, ActionLayoutElementField];
 };
 
 type ActionLayoutElementSeparator = {
-  type: 'Layout';
-  widget: 'Separator';
-  watchChanges: boolean;
+  component: 'separator';
 };
 
 type ActionLayoutElementLabel = {
-  type: 'Layout';
-  widget: 'Label';
+  component: 'label';
   content: string;
-  watchChanges: boolean;
 };
 
-type ActionLayoutElement =
+type ActionLayoutElementField = {
+  component: 'input';
+  fieldName: string;
+};
+
+export type ActionLayoutElement =
   | ActionLayoutElementRow
   | ActionLayoutElementSeparator
-  | ActionLayoutElementLabel;
+  | ActionLayoutElementLabel
+  | ActionLayoutElementField;
 export type ActionLayoutElementOrPage = ActionLayoutElement | ActionLayoutElementPage;
 
-type ActionFieldOrLayoutElement = ActionField | ActionLayoutElement;
-
-export type ActionInputField = StrictUnion<
+export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum
   | ActionFieldEnumList
@@ -266,8 +262,6 @@ export type ActionInputField = StrictUnion<
   | ActionFieldFilePicker
   | ActionFieldAddressAutocomplete
 >;
-
-export type ActionField = ActionInputField | ActionLayoutElementOrPage;
 
 export type ActionFieldWidget =
   | 'Dropdown'

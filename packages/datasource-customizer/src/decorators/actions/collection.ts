@@ -1,5 +1,7 @@
 import {
   ActionField,
+  ActionLayoutElement,
+  ActionLayoutElementOrPage,
   ActionResult,
   Caller,
   CollectionDecorator,
@@ -15,7 +17,13 @@ import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
-import { DynamicField, Handler, SearchOptionsHandler, ValueOrHandler } from './types/fields';
+import {
+  DynamicField,
+  DynamicFieldOrLayoutElementOrPage,
+  Handler,
+  SearchOptionsHandler,
+  ValueOrHandler,
+} from './types/fields';
 import { TSchema } from '../../templates';
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
@@ -57,19 +65,33 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     data?: RecordData,
     filter?: Filter,
     metas?: GetFormMetas,
-  ): Promise<ActionField[]> {
+  ): Promise<{ fields: ActionField[]; layout: ActionLayoutElementOrPage[] }> {
     const action = this.actions[name];
     if (!action) return this.childCollection.getForm(caller, name, data, filter, metas);
-    if (!action.form) return [];
+    if (!action.form) return { fields: [], layout: [] };
 
     const formValues = data ? { ...data } : {};
     const used = new Set<string>();
     const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
 
     // Convert DynamicField to ActionField in successive steps.
-    let dynamicFields: DynamicField[] = this.isHandler(action.form)
+    const rawFields: DynamicFieldOrLayoutElementOrPage[] = this.isHandler(action.form)
       ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicField[])(context)
       : action.form.map(c => ({ ...c }));
+
+    const layout: ActionLayoutElementOrPage[] = [];
+    let dynamicFields: DynamicField[] = [];
+
+    rawFields.forEach(field => {
+      const throwIfPage = layout[0] && layout[0].component !== 'page';
+      const throwIfNotPage = layout[0] && layout[0].component === 'page';
+      layout.push(
+        this.getFieldsAndLayoutFromSchema(dynamicFields, field, {
+          throwIfNotPage,
+          throwIfPage,
+        }),
+      );
+    });
 
     if (metas?.searchField) {
       // in the case of a search hook,
@@ -83,9 +105,6 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 
     for (const field of fields) {
-      // eslint-disable-next-line no-continue
-      if (field.type === 'Layout') continue;
-
       // customer did not define a handler to rewrite the previous value => reuse current one.
       if (field.value === undefined) field.value = formValues[field.label];
 
@@ -93,7 +112,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       field.watchChanges = used.has(field.label);
     }
 
-    return fields;
+    return { fields, layout };
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
@@ -106,9 +125,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         this.isHandler(form) ||
         form?.some(
           field =>
+            field.type === 'Layout' ||
             Object.values(field).some(value => this.isHandler(value)) ||
             // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
-            (field.type.includes('File') && field.defaultValue),
+            (field.type.includes('File') && (field as DynamicField).defaultValue),
         );
 
       newSchema.actions[name] = { scope, generateFile: !!generateFile, staticForm: !isDynamic };
@@ -130,6 +150,77 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       Bulk: ActionContext,
       Single: ActionContextSingle,
     }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
+  }
+
+  private getFieldsAndLayoutFromSchema(
+    allFields: DynamicField[],
+    fieldSchema: DynamicFieldOrLayoutElementOrPage,
+    options?: { throwIfPage?: boolean; throwIfNotPage?: boolean },
+  ): ActionLayoutElementOrPage {
+    if (fieldSchema.type !== 'Layout') {
+      allFields.push(fieldSchema);
+
+      return {
+        component: 'input',
+        fieldName: fieldSchema.label,
+      };
+    }
+
+    if (options?.throwIfNotPage && fieldSchema.component !== 'Page') {
+      throw new Error('Error getting action form: multipages form should only contain pages');
+    }
+
+    switch (fieldSchema.component) {
+      case 'Label':
+        return {
+          component: 'label',
+          content: fieldSchema.content,
+        };
+      case 'Separator':
+        return {
+          component: 'separator',
+        };
+      case 'Row':
+        if (fieldSchema.fields.length !== 2) {
+          throw new Error('Error getting action form: a row should contain 2 input fields');
+        }
+
+        allFields.push(fieldSchema.fields[0]);
+        allFields.push(fieldSchema.fields[1]);
+
+        return {
+          component: 'row',
+          fields: [
+            {
+              component: 'input',
+              fieldName: fieldSchema.fields[0].label,
+            },
+            {
+              component: 'input',
+              fieldName: fieldSchema.fields[1].label,
+            },
+          ],
+        };
+      case 'Page':
+        if (options?.throwIfPage) {
+          throw new Error(
+            'Error getting action form: pages cannot be added after fields or inside other pages',
+          );
+        }
+
+        return {
+          component: 'page',
+          previousButtonLabel: fieldSchema.previousButtonLabel,
+          nextButtonLabel: fieldSchema.nextButtonLabel,
+          elements: fieldSchema.elements.map(
+            element =>
+              this.getFieldsAndLayoutFromSchema(allFields, element, {
+                throwIfPage: true,
+              }) as ActionLayoutElement,
+          ),
+        };
+      default:
+    }
   }
 
   private async dropDefaults(

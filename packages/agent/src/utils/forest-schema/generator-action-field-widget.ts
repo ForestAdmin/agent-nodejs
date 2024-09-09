@@ -13,7 +13,6 @@ import {
   ActionFieldTextArea,
   ActionFieldTextInputList,
   ActionFieldUserDropdown,
-  ActionInputField,
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerActionFieldAddressAutocompleteOptions,
@@ -178,7 +177,7 @@ export default class GeneratorActionFieldWidget {
   }
 
   private static buildTextInputWidgetEdit(
-    field: ActionInputField,
+    field: ActionField,
   ): ForestServerActionFieldTextInputOptions {
     return {
       name: 'text editor',
@@ -189,7 +188,7 @@ export default class GeneratorActionFieldWidget {
   }
 
   private static buildDatePickerInputWidgetEdit(
-    field: ActionInputField,
+    field: ActionField,
   ): ForestServerActionFieldDatePickerInputOptions {
     return {
       name: 'date editor',

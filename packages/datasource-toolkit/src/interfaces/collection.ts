@@ -1,4 +1,4 @@
-import { ActionField, ActionResult } from './action';
+import { ActionField, ActionLayoutElementOrPage, ActionResult } from './action';
 import { Caller } from './caller';
 import { Chart } from './chart';
 import Aggregation, { AggregateResult } from './query/aggregation';
@@ -43,7 +43,7 @@ export interface Collection {
     formValues?: RecordData,
     filter?: Filter,
     metas?: GetFormMetas,
-  ): Promise<ActionField[]>;
+  ): Promise<{ fields: ActionField[]; layout: ActionLayoutElementOrPage[] }>;
 
   create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;
 

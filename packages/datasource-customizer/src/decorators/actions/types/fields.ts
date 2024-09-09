@@ -200,30 +200,27 @@ type CheckboxesFieldConfiguration<
 
 type LayoutFormElementPage<Context = unknown> = {
   type: 'Layout';
-  widget: 'Page';
+  component: 'Page';
   nextButtonLabel: string;
-  backButtonLabel: string;
+  previousButtonLabel: string;
   elements: DynamicFieldOrLayoutElement<Context>[];
-  defaultValue: undefined;
 };
 
 type LayoutFormElementRow<Context = unknown> = {
   type: 'Layout';
-  widget: 'Row';
+  component: 'Row';
   fields: DynamicField<Context>[];
-  defaultValue: undefined;
 };
 
 type LayoutFormElementSeparator = {
   type: 'Layout';
-  widget: 'Separator';
-  defaultValue: undefined;
+  component: 'Separator';
 };
 
 type LayoutFormElementLabel = {
   type: 'Layout';
-  widget: 'Label';
-  defaultValue: undefined;
+  component: 'Label';
+  content: string;
 };
 
 type LayoutFormElement = LayoutFormElementRow | LayoutFormElementSeparator | LayoutFormElementLabel;
