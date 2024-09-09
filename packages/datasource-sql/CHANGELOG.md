@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.14.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.14...@forestadmin/datasource-sql@1.14.15) (2024-09-09)
+
+
+### Bug Fixes
+
+* **datasource-sql:** handle timestamps of tables with underscored column names ([#1165](https://github.com/ForestAdmin/agent-nodejs/issues/1165)) ([bed5674](https://github.com/ForestAdmin/agent-nodejs/commit/bed5674d06f69a993b02c6e6aacd8e841061800d))
+
 ## @forestadmin/datasource-sql [1.14.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.13...@forestadmin/datasource-sql@1.14.14) (2024-09-03)
 
 
