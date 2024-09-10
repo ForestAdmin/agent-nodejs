@@ -8,12 +8,6 @@ import { LatestIntrospection, Table } from '../introspection/types';
 
 type TableOrView = Table & { view?: boolean };
 
-const createdAtFields = ['createdAt', 'created_at'];
-const updatedAtFields = ['updatedAt', 'updated_at'];
-const deletedAtFields = ['deletedAt', 'deleted_at'];
-
-const nonParanoidTimestampsField = [...createdAtFields, ...updatedAtFields];
-
 export default class ModelBuilder {
   static defineModels(
     sequelize: Sequelize,
@@ -71,8 +65,8 @@ export default class ModelBuilder {
 
     for (const column of table.columns) {
       const isExplicit =
-        !(hasTimestamps && nonParanoidTimestampsField.includes(column.name)) &&
-        !(isParanoid && deletedAtFields.includes(column.name));
+        !(hasTimestamps && (column.name === 'updatedAt' || column.name === 'createdAt')) &&
+        !(isParanoid && column.name === 'deletedAt');
       const type = SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name);
 
       if (column.defaultValue && column.isLiteralDefaultValue) {
@@ -156,12 +150,12 @@ export default class ModelBuilder {
 
   private static hasTimestamps(table: Table): boolean {
     return (
-      !!table.columns.find(c => createdAtFields.includes(c.name)) &&
-      !!table.columns.find(c => updatedAtFields.includes(c.name))
+      !!table.columns.find(c => c.name === 'createdAt') &&
+      !!table.columns.find(c => c.name === 'updatedAt')
     );
   }
 
   private static isParanoid(table: Table): boolean {
-    return !!table.columns.find(c => deletedAtFields.includes(c.name));
+    return !!table.columns.find(c => c.name === 'deletedAt');
   }
 }
