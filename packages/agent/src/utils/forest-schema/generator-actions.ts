@@ -51,24 +51,13 @@ export default class SchemaGeneratorActions {
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
     const slug = SchemaGeneratorActions.getActionSlug(name);
-    const form: {
-      fields: ForestServerActionField[];
-      layout?: ForestServerActionFormLayoutElement[];
-    } = {
-      fields: SchemaGeneratorActions.defaultFields,
-    };
+    let fields = SchemaGeneratorActions.defaultFields;
 
     if (schema.staticForm) {
       const rawForm = await collection.getForm(null, name, null, null);
-      const fieldsAndLayout = SchemaGeneratorActions.extractFieldsAndLayout(rawForm);
+      fields = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, rawForm).fields;
 
-      form.fields = fieldsAndLayout.fields.map(field => {
-        const newField = SchemaGeneratorActions.buildFieldSchema(collection.dataSource, field);
-        newField.defaultValue = newField.value;
-        delete newField.value;
-
-        return newField;
-      });
+      SchemaGeneratorActions.setFieldsDefaultValue(fields);
     }
 
     return {
@@ -80,14 +69,29 @@ export default class SchemaGeneratorActions {
       httpMethod: 'POST',
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),
-      ...form,
+      fields,
       hooks: {
         load: !schema.staticForm,
-
         // Always registering the change hook has no consequences, even if we don't use it.
         change: ['changeHook'],
       },
     };
+  }
+
+  static buildFieldsAndLayout(dataSource: DataSource, form: ActionFormElement[]) {
+    const { fields, layout } = SchemaGeneratorActions.extractFieldsAndLayout(form);
+
+    return {
+      fields: fields.map(field => SchemaGeneratorActions.buildFieldSchema(dataSource, field)),
+      layout: layout.map(layoutElement => SchemaGeneratorActions.buildLayoutSchema(layoutElement)),
+    };
+  }
+
+  static setFieldsDefaultValue(fields: ForestServerActionField[]) {
+    fields.forEach(field => {
+      field.defaultValue = field.value;
+      delete field.value;
+    });
   }
 
   /** Build schema for given field */

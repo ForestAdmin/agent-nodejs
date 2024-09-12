@@ -167,14 +167,10 @@ export default class ActionRoute extends CollectionRoute {
       includeHiddenFields: false,
     });
 
-    const { fields, layout } = SchemaGeneratorActions.extractFieldsAndLayout(form);
-
-    context.response.body = {
-      fields: fields.map(field =>
-        SchemaGeneratorActions.buildFieldSchema(this.collection.dataSource, field),
-      ),
-      layout: layout.map(layoutElement => SchemaGeneratorActions.buildLayoutSchema(layoutElement)),
-    };
+    context.response.body = SchemaGeneratorActions.buildFieldsAndLayout(
+      this.collection.dataSource,
+      form,
+    );
   }
 
   private async middlewareCustomActionApprovalRequestData(context: Context, next: Next) {

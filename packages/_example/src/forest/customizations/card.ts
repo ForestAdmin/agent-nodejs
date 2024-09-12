@@ -99,7 +99,6 @@ export default (collection: CardCustomizer) =>
         // {
         //   type: 'Layout',
         //   component: 'Separator',
-        //   if: ctx => ctx.formValues.first_name === 'test',
         // },
         // {
         //   type: 'Layout',
@@ -121,7 +120,6 @@ export default (collection: CardCustomizer) =>
         // {
         //   type: 'Layout',
         //   component: 'Page',
-        //   // "if_": lambda ctx: ctx.form_values.get("Number of children") != 0,
         //   elements: [
         { type: 'Number', label: 'Number of children' },
         // {
@@ -140,7 +138,6 @@ export default (collection: CardCustomizer) =>
         // {
         //   type: 'Layout',
         //   component: 'Page',
-        //   // "if_": lambda ctx: ctx.form_values.get("Are they wise") is False,
         //   elements: [
         //     {
         //       type: 'Layout',

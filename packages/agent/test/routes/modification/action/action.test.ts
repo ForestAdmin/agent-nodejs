@@ -579,6 +579,23 @@ describe('ActionRoute', () => {
       });
     });
 
+    test('handleHook should generate a form with layout if some layout elements are present', async () => {
+      const context = createMockContext(baseContext);
+
+      dataSource.getCollection('books').getForm = jest.fn().mockResolvedValue([
+        { type: 'String', label: 'firstname' },
+        { type: 'Layout', component: 'Separator' },
+      ]);
+
+      // @ts-expect-error: test private method
+      await route.handleHook(context);
+
+      expect(context.response.body).toEqual({
+        fields: [{ field: 'firstname', type: 'String' }],
+        layout: [{ component: 'input', fieldId: 'firstname' }, { component: 'separator' }],
+      });
+    });
+
     test('handleHook should generate the form if called with changehook params', async () => {
       const context = createMockContext({
         ...baseContext,
