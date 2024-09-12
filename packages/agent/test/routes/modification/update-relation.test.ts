@@ -90,7 +90,12 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            timezone: 'Europe/Paris',
+            webAppURL: 'http://test.com/',
+          },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -132,7 +137,12 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            timezone: 'Europe/Paris',
+            webAppURL: 'http://test.com/',
+          },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -222,6 +232,7 @@ describe('UpdateRelationRoute', () => {
           email: 'john.doe@domain.com',
           requestId: expect.any(String),
           timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
         };
 
         expect(owners.aggregate).toHaveBeenCalledWith(
@@ -279,6 +290,7 @@ describe('UpdateRelationRoute', () => {
           email: 'john.doe@domain.com',
           requestId: expect.any(String),
           timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
         };
 
         expect(owners.aggregate).toHaveBeenCalledWith(
@@ -348,6 +360,7 @@ describe('UpdateRelationRoute', () => {
           email: 'john.doe@domain.com',
           requestId: expect.any(String),
           timezone: 'Europe/Paris',
+          webAppURL: 'http://test.com/',
         };
 
         expect(owners.aggregate).toHaveBeenCalledWith(

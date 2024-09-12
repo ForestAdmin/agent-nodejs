@@ -10,4 +10,5 @@ export type Caller = {
   tags: { [key: string]: string };
   permissionLevel: 'admin' | 'developer' | 'editor' | 'user';
   timezone: string;
+  webAppURL: URL;
 };
