@@ -51,24 +51,24 @@ export default class SchemaGeneratorActions {
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
     const slug = SchemaGeneratorActions.getActionSlug(name);
-    let fields = SchemaGeneratorActions.defaultFields;
-    let layout = [];
+    const form: {
+      fields: ForestServerActionField[];
+      layout?: ForestServerActionFormLayoutElement[];
+    } = {
+      fields: SchemaGeneratorActions.defaultFields,
+    };
 
     if (schema.staticForm) {
-      const form = await collection.getForm(null, name, null, null);
-      const fieldsAndLayout = SchemaGeneratorActions.extractFieldsAndLayout(form);
+      const rawForm = await collection.getForm(null, name, null, null);
+      const fieldsAndLayout = SchemaGeneratorActions.extractFieldsAndLayout(rawForm);
 
-      fields = fieldsAndLayout.fields.map(field => {
+      form.fields = fieldsAndLayout.fields.map(field => {
         const newField = SchemaGeneratorActions.buildFieldSchema(collection.dataSource, field);
         newField.defaultValue = newField.value;
         delete newField.value;
 
         return newField;
       });
-
-      layout = fieldsAndLayout.layout.map(layoutElement =>
-        SchemaGeneratorActions.buildLayoutSchema(layoutElement),
-      );
     }
 
     return {
@@ -80,8 +80,7 @@ export default class SchemaGeneratorActions {
       httpMethod: 'POST',
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),
-      fields,
-      layout,
+      ...form,
       hooks: {
         load: !schema.staticForm,
 

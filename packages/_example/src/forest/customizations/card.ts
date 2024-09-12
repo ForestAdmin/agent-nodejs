@@ -25,7 +25,7 @@ export default (collection: CardCustomizer) =>
         {
           type: 'Layout',
           component: 'Separator',
-          if: ctx => ctx.formValues.first_name === 'test',
+          if: ctx => ctx.formValues.first_name?.[0] === 'test',
         },
         // {
         //   type: 'Layout',
