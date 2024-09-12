@@ -42,6 +42,7 @@ export type ForestServerAction = {
   redirect: unknown;
   download: boolean;
   fields: ForestServerActionField[];
+  layout?: ForestServerActionFormLayoutElement[];
   hooks: {
     load: boolean;
     change: Array<unknown>;
@@ -252,6 +253,19 @@ export type ForestServerActionFieldRadioGroup =
 export type ForestServerActionFieldCheckboxGroup =
   | ForestServerActionFieldCommon<['String'], ForestServerActionFieldCheckboxGroupOptions<string>>
   | ForestServerActionFieldCommon<['Number'], ForestServerActionFieldCheckboxGroupOptions<number>>;
+
+type ForestServerActionFormElementSeparator = {
+  component: 'separator';
+};
+
+type ForestServerActionFormElementFieldReference = {
+  component: 'input';
+  fieldId: string;
+};
+
+export type ForestServerActionFormLayoutElement =
+  | ForestServerActionFormElementSeparator
+  | ForestServerActionFormElementFieldReference;
 
 export type ForestServerActionField =
   | ForestServerActionFieldDropdown

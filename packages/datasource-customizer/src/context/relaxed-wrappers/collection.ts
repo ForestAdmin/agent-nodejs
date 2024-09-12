@@ -1,5 +1,5 @@
 import {
-  ActionField,
+  ActionFormElement,
   ActionResult,
   Aggregation,
   Caller,
@@ -73,7 +73,11 @@ export default class RelaxedCollection<
     return this.collection.execute(this.caller, name, formValues, filterInstance);
   }
 
-  getForm(name: string, formValues?: RecordData, filter?: TFilter<S, N>): Promise<ActionField[]> {
+  getForm(
+    name: string,
+    formValues?: RecordData,
+    filter?: TFilter<S, N>,
+  ): Promise<ActionFormElement[]> {
     const filterInstance = this.buildFilter(filter);
 
     return this.collection.getForm(this.caller, name, formValues, filterInstance);

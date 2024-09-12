@@ -93,13 +93,15 @@ export default class ActionRoute extends CollectionRoute {
     // As forms are dynamic, we don't have any way to ensure that we're parsing the data correctly
     // => better send invalid data to the getForm() customer handler than to the execute() one.
     const unsafeData = ForestValueConverter.makeFormDataUnsafe(rawData);
-    const fields = await this.collection.getForm(
+    const form = await this.collection.getForm(
       caller,
       this.actionName,
       unsafeData,
       filterForCaller,
       { includeHiddenFields: true }, // during execute, we need all possible fields
     );
+
+    const { fields } = SchemaGeneratorActions.extractFieldsAndLayout(form);
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
@@ -158,17 +160,20 @@ export default class ActionRoute extends CollectionRoute {
 
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getRecordSelection(context);
-    const fields = await this.collection.getForm(caller, this.actionName, data, filter, {
+    const form = await this.collection.getForm(caller, this.actionName, data, filter, {
       changedField: body.data.attributes.changed_field,
       searchField: body.data.attributes.search_field,
       searchValues,
       includeHiddenFields: false,
     });
 
+    const { fields, layout } = SchemaGeneratorActions.extractFieldsAndLayout(form);
+
     context.response.body = {
       fields: fields.map(field =>
         SchemaGeneratorActions.buildFieldSchema(this.collection.dataSource, field),
       ),
+      layout: layout.map(layoutElement => SchemaGeneratorActions.buildLayoutSchema(layoutElement)),
     };
   }
 

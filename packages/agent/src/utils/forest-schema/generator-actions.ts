@@ -1,13 +1,18 @@
 import {
   ActionField,
-  ActionSchema,
+  ActionFormElement,
+  ActionLayoutElement,
   Collection,
   ColumnSchema,
   DataSource,
   PrimitiveTypes,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerAction, ForestServerActionField } from '@forestadmin/forestadmin-client';
+import {
+  ForestServerAction,
+  ForestServerActionField,
+  ForestServerActionFormLayoutElement,
+} from '@forestadmin/forestadmin-client';
 import path from 'path';
 
 import ActionFields from './action-fields';
@@ -46,7 +51,25 @@ export default class SchemaGeneratorActions {
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
     const slug = SchemaGeneratorActions.getActionSlug(name);
-    const fields = await SchemaGeneratorActions.buildFields(collection, name, schema);
+    let fields = SchemaGeneratorActions.defaultFields;
+    let layout = [];
+
+    if (schema.staticForm) {
+      const form = await collection.getForm(null, name, null, null);
+      const fieldsAndLayout = SchemaGeneratorActions.extractFieldsAndLayout(form);
+
+      fields = fieldsAndLayout.fields.map(field => {
+        const newField = SchemaGeneratorActions.buildFieldSchema(collection.dataSource, field);
+        newField.defaultValue = newField.value;
+        delete newField.value;
+
+        return newField;
+      });
+
+      layout = fieldsAndLayout.layout.map(layoutElement =>
+        SchemaGeneratorActions.buildLayoutSchema(layoutElement),
+      );
+    }
 
     return {
       id: `${collection.name}-${actionIndex}-${slug}`,
@@ -58,6 +81,7 @@ export default class SchemaGeneratorActions {
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),
       fields,
+      layout,
       hooks: {
         load: !schema.staticForm,
 
@@ -99,31 +123,50 @@ export default class SchemaGeneratorActions {
     return output as ForestServerActionField;
   }
 
-  private static async buildFields(
-    collection: Collection,
-    name: string,
-    schema: ActionSchema,
-  ): Promise<ForestServerActionField[]> {
-    // We want the schema to be generated on usage => send dummy schema
-    if (!schema.staticForm) {
-      return SchemaGeneratorActions.defaultFields;
+  static buildLayoutSchema(element: ActionLayoutElement): ForestServerActionFormLayoutElement {
+    switch (element.component) {
+      case 'Input':
+        return {
+          component: 'input',
+          fieldId: element.fieldId,
+        };
+      case 'Separator':
+      default:
+        return {
+          component: 'separator',
+        };
+    }
+  }
+
+  static extractFieldsAndLayout(formElements: ActionFormElement[]): {
+    fields: ActionField[];
+    layout: ActionLayoutElement[];
+  } {
+    let hasLayout = false;
+    const fields: ActionField[] = [];
+    let layout: ActionLayoutElement[] = [];
+
+    formElements.forEach(element => {
+      if (element.type === 'Layout') {
+        hasLayout = true;
+
+        if (element.component === 'Separator') {
+          layout.push(element);
+        }
+      } else {
+        fields.push(element);
+        layout.push({
+          type: 'Layout',
+          component: 'Input',
+          fieldId: element.label,
+        });
+      }
+    });
+
+    if (!hasLayout) {
+      layout = [];
     }
 
-    // Ask the action to generate a form
-    const fields = await collection.getForm(null, name);
-
-    if (fields) {
-      // When sending to server, we need to rename 'value' into 'defaultValue'
-      // otherwise, it does not gets applied 🤷‍♂️
-      return fields.map(field => {
-        const newField = SchemaGeneratorActions.buildFieldSchema(collection.dataSource, field);
-        newField.defaultValue = newField.value;
-        delete newField.value;
-
-        return newField;
-      });
-    }
-
-    return [];
+    return { fields, layout };
   }
 }
