@@ -162,7 +162,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     field: DynamicField,
     data: Record<string, unknown>,
   ): Promise<DynamicField> {
-    if (field.label === undefined) {
+    if (data[field.label] === undefined) {
       const defaultValue = await this.evaluate(context, null, field.defaultValue);
       data[field.label] = defaultValue;
     }

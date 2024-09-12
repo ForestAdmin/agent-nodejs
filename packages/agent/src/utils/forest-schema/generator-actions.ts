@@ -145,6 +145,8 @@ export default class SchemaGeneratorActions {
     const fields: ActionField[] = [];
     let layout: ActionLayoutElement[] = [];
 
+    if (!formElements) return { fields: [], layout: [] };
+
     formElements.forEach(element => {
       if (element.type === 'Layout') {
         hasLayout = true;

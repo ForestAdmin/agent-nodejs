@@ -573,7 +573,10 @@ describe('ActionRoute', () => {
         },
       );
 
-      expect(context.response.body).toEqual({ fields: [{ field: 'firstname', type: 'String' }] });
+      expect(context.response.body).toEqual({
+        fields: [{ field: 'firstname', type: 'String' }],
+        layout: [],
+      });
     });
 
     test('handleHook should generate the form if called with changehook params', async () => {
@@ -620,7 +623,10 @@ describe('ActionRoute', () => {
         },
       );
 
-      expect(context.response.body).toEqual({ fields: [{ field: 'firstname', type: 'String' }] });
+      expect(context.response.body).toEqual({
+        fields: [{ field: 'firstname', type: 'String' }],
+        layout: [],
+      });
     });
   });
 
