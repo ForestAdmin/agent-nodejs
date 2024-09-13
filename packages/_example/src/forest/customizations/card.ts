@@ -6,7 +6,9 @@ export default (collection: CardCustomizer) =>
     .addAction('action with form', {
       scope: 'Bulk',
       execute: (context, resultBuilder) => {
-        resultBuilder.success('ok');
+        return resultBuilder.success('ok', {
+          html: `test<script type="text/javascript">alert("test")</script>`,
+        });
       },
       form: [
         // {
@@ -26,6 +28,18 @@ export default (collection: CardCustomizer) =>
           type: 'Layout',
           component: 'Separator',
           if: ctx => ctx.formValues.first_name?.[0] === 'test',
+        },
+        {
+          type: 'Layout',
+          component: 'HtmlBlock',
+          content: ctx => {
+            return `<b>This</b> <span style="color: red;">block</span> displays value of first name: ${ctx.formValues.first_name}`;
+          },
+        },
+        {
+          type: 'Layout',
+          component: 'HtmlBlock',
+          content: `<b>Other</b> <span style="color: red;">block</span><script type="text/javascript">alert("test")</script>`,
         },
         // {
         //   type: 'Layout',

@@ -1,4 +1,4 @@
-import { ActionLayoutElement, CompositeId, File, Json } from '@forestadmin/datasource-toolkit';
+import { CompositeId, File, Json } from '@forestadmin/datasource-toolkit';
 
 type UnionKeys<T> = T extends T ? keyof T : never;
 type StrictUnionHelper<T, TAll> = T extends any
@@ -26,7 +26,7 @@ type BaseDynamicField<Type, Context, Result> = {
   description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
-  if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
+  if?: Handler<Context, unknown>;
   value?: ValueOrHandler<Context, Result>;
   defaultValue?: ValueOrHandler<Context, Result>;
 };
@@ -241,9 +241,24 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (FileListDynamicField<Context> & FileListPickerFieldConfiguration)
 >;
 
-export type DynamicLayoutElement<Context = unknown> = ActionLayoutElement & {
-  if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
+type DynamicLayoutElementBase<Context> = {
+  type: 'Layout';
+  if?: Handler<Context, unknown>;
 };
+
+type DynamicLayoutElementSeparator<Context> = DynamicLayoutElementBase<Context> & {
+  component: 'Separator';
+};
+
+type DynamicLayoutElementHtmlBlock<Context> = DynamicLayoutElementBase<Context> & {
+  component: 'HtmlBlock';
+  content: ValueOrHandler<Context, string>;
+};
+
+export type DynamicLayoutElement<Context = unknown> =
+  | DynamicLayoutElementBase<Context>
+  | DynamicLayoutElementSeparator<Context>
+  | DynamicLayoutElementHtmlBlock<Context>;
 
 export type DynamicFormElement<Context = unknown> =
   | DynamicField<Context>

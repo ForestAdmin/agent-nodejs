@@ -258,6 +258,11 @@ type ForestServerActionFormElementSeparator = {
   component: 'separator';
 };
 
+type ForestServerActionFormElementHtmlBlock = {
+  component: 'htmlBlock';
+  content: string;
+};
+
 type ForestServerActionFormElementFieldReference = {
   component: 'input';
   fieldId: string;
@@ -265,6 +270,7 @@ type ForestServerActionFormElementFieldReference = {
 
 export type ForestServerActionFormLayoutElement =
   | ForestServerActionFormElementSeparator
+  | ForestServerActionFormElementHtmlBlock
   | ForestServerActionFormElementFieldReference;
 
 export type ForestServerActionField =
