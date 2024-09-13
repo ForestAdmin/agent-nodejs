@@ -99,8 +99,6 @@ describe('RelationCollectionDecorator', () => {
         list: jest.fn().mockImplementation((_, filter, projection) => {
           let result = passportRecords.slice();
 
-          console.log('passportRecords', filter);
-
           if (filter?.conditionTree) {
             result = filter.conditionTree.apply(result, passports, 'Europe/Paris');
           }
@@ -131,8 +129,6 @@ describe('RelationCollectionDecorator', () => {
         }),
         list: jest.fn().mockImplementation((_, filter, projection) => {
           let result = personsRecords.slice();
-
-          console.log(filter);
 
           if (filter?.conditionTree) {
             result = filter.conditionTree.apply(result, persons, 'Europe/Paris');
