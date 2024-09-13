@@ -99,6 +99,8 @@ describe('RelationCollectionDecorator', () => {
         list: jest.fn().mockImplementation((_, filter, projection) => {
           let result = passportRecords.slice();
 
+          console.log('passportRecords', filter);
+
           if (filter?.conditionTree) {
             result = filter.conditionTree.apply(result, passports, 'Europe/Paris');
           }
@@ -129,6 +131,8 @@ describe('RelationCollectionDecorator', () => {
         }),
         list: jest.fn().mockImplementation((_, filter, projection) => {
           let result = personsRecords.slice();
+
+          console.log(filter);
 
           if (filter?.conditionTree) {
             result = filter.conditionTree.apply(result, persons, 'Europe/Paris');
@@ -571,6 +575,98 @@ describe('RelationCollectionDecorator', () => {
         },
         { personId: 203, name: 'Joseph P. Rodriguez', passport: null },
       ]);
+    });
+
+    describe('performances enhancement (operator: NotEqual)', () => {
+      describe('when NotIn filterOperator is available', () => {
+        test('should fetch fields from a many to one relation using NotIn', async () => {
+          const schema = passports.schema.fields.ownerId as ColumnSchema;
+          schema.filterOperators = new Set(['In', 'NotIn']);
+
+          newPassports.addRelation('owner', {
+            type: 'ManyToOne',
+            foreignCollection: 'persons',
+            foreignKey: 'ownerId',
+          });
+
+          const records = await newPassports.list(
+            factories.caller.build(),
+            new Filter({
+              conditionTree: new ConditionTreeLeaf('owner:name', 'NotEqual', 'Mae S. Waldron'),
+            }),
+            new Projection('passportId', 'owner:name'),
+          );
+
+          expect(records).toStrictEqual([
+            { passportId: 102, owner: { name: 'Sharon J. Whalen' } },
+            { passportId: 103, owner: null },
+          ]);
+
+          // Inverted condition NotEqual becomes Equal
+          expect(persons.list).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              conditionTree: { field: 'name', operator: 'Equal', value: 'Mae S. Waldron' },
+            }),
+            expect.anything(),
+          );
+
+          // Using NotIn match the previous inverted condition result
+          expect(passports.list).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              conditionTree: { field: 'ownerId', operator: 'NotIn', value: [202] },
+            }),
+            expect.anything(),
+          );
+        });
+      });
+    });
+
+    describe('when NotIn filterOperator is not available', () => {
+      test('should fetch fields from a many to one relation using In', async () => {
+        newPassports.addRelation('owner', {
+          type: 'ManyToOne',
+          foreignCollection: 'persons',
+          foreignKey: 'ownerId',
+        });
+
+        const logger = jest.spyOn(console, 'warn').mockImplementation();
+
+        const records = await newPassports.list(
+          factories.caller.build(),
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('owner:name', 'NotEqual', 'Mae S. Waldron'),
+          }),
+          new Projection('passportId', 'owner:name'),
+        );
+
+        // WARNING: Null results are not returned
+        expect(records).toStrictEqual([{ passportId: 102, owner: { name: 'Sharon J. Whalen' } }]);
+
+        expect(persons.list).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            conditionTree: { field: 'name', operator: 'NotEqual', value: 'Mae S. Waldron' },
+          }),
+          expect.anything(),
+        );
+
+        // Using IN match the previous condition result
+        expect(passports.list).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            conditionTree: { field: 'ownerId', operator: 'In', value: [201, 203] },
+          }),
+          expect.anything(),
+        );
+
+        expect(logger).toHaveBeenCalledWith(
+          'Performances could be improved by implementing the NotIn operator on ownerId (use replaceFieldOperator)',
+        );
+
+        logger.mockRestore();
+      });
     });
   });
 
