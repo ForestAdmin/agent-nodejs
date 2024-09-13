@@ -78,13 +78,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicFormElement[])(
           context,
         )
-      : action.form.map(c => ({ ...c }));
+      : await this.copyFields(action.form);
 
     if (metas?.searchField) {
       // in the case of a search hook,
       // we don't want to rebuild all the fields. only the one searched
       dynamicFields = [
-        dynamicFields.find(field => field.type !== 'Layout' && field.label === metas.searchField),
+        dynamicFields.find(field => field.type === 'Layout' || field.label === metas.searchField),
       ];
     }
 
@@ -143,15 +143,48 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
   }
 
+  private getSubElementsAttributeKey(field: DynamicFormElement): string | null {
+    if (field.type === 'Layout' && field.component === 'Row') return 'fields';
+
+    return null;
+  }
+
+  private async executeOnSubFields<T>(
+    field: DynamicFormElement,
+    handler: (subFields: DynamicFormElement[]) => T[] | Promise<T[]>,
+  ) {
+    const subElementsKey = this.getSubElementsAttributeKey(field);
+    if (!subElementsKey) return;
+    field[subElementsKey] = await handler(field[subElementsKey] || []);
+  }
+
+  private async copyFields(fields: DynamicFormElement[]) {
+    return Promise.all(
+      fields.map(async field => {
+        const fieldCopy: DynamicFormElement = { ...field };
+
+        await this.executeOnSubFields(field, subFields => this.copyFields(subFields));
+
+        return fieldCopy;
+      }),
+    );
+  }
+
   private async dropDefaults(
     context: ActionContext,
     fields: DynamicFormElement[],
     data: Record<string, unknown>,
   ): Promise<DynamicFormElement[]> {
     const promises = fields.map(async field => {
-      if (field.type === 'Layout') return field;
+      if (field.type !== 'Layout') {
+        return this.dropDefault(context, field, data);
+      }
 
-      return this.dropDefault(context, field, data);
+      await this.executeOnSubFields(field, subfields =>
+        this.dropDefaults(context, subfields, data),
+      );
+
+      return field;
     });
 
     return Promise.all(promises);
@@ -178,8 +211,33 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   ): Promise<DynamicFormElement[]> {
     // Remove fields which have falsy if
     const ifValues = await Promise.all(
-      fields.map(field => !field.if || this.evaluate(context, null, field.if)),
+      fields.map(async field => {
+        console.log(field);
+
+        if ((await this.evaluate(context, null, field.if)) === false) {
+          // drop element if condition returns false
+          console.log('hide element', JSON.stringify(field));
+
+          return false;
+        }
+
+        const subElementsKey = this.getSubElementsAttributeKey(field);
+
+        if (subElementsKey) {
+          field[subElementsKey] = await this.dropIfs(context, field[subElementsKey] || []);
+
+          // drop element if no subElement
+          if (field[subElementsKey].length === 0) {
+            console.log('hide element because no child', JSON.stringify(field));
+
+            return false;
+          }
+        }
+
+        return true;
+      }),
     );
+
     const newFields = fields.filter((_, index) => ifValues[index]);
     newFields.forEach(field => delete field.if);
 
@@ -192,6 +250,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     fields: DynamicFormElement[],
   ): Promise<ActionFormElement[]> {
     const newFields = fields.map(async (field): Promise<ActionFormElement> => {
+      await this.executeOnSubFields(field, subfields =>
+        this.dropDeferred(context, searchValues, subfields),
+      );
+
       const keys = Object.keys(field);
       const values = await Promise.all(
         Object.values(field).map(value => {
@@ -201,9 +263,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         }),
       );
 
-      return keys.reduce<ActionField>(
+      return keys.reduce<ActionFormElement>(
         (memo, key, index) => ({ ...memo, [key]: values[index] }),
-        {} as ActionField,
+        {} as ActionFormElement,
       );
     });
 

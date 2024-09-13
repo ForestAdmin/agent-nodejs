@@ -271,7 +271,7 @@ export type ActionFieldWidget =
   | 'FilePicker'
   | 'JsonEditor';
 
-type LayoutElementComponentType = 'Input' | 'Separator' | 'HtmlBlock';
+type LayoutElementComponentType = 'Input' | 'Separator' | 'HtmlBlock' | 'Row';
 
 interface ActionLayoutElementBase extends ActionFormElementBase {
   type: 'Layout';
@@ -286,7 +286,12 @@ interface LayoutElementHtmlBlock extends ActionLayoutElementBase {
   content: string;
 }
 
-interface LayoutElementInput extends ActionLayoutElementBase {
+interface LayoutElementRow extends ActionLayoutElementBase {
+  component: 'Row';
+  fields: LayoutElementInput[];
+}
+
+export interface LayoutElementInput extends ActionLayoutElementBase {
   component: 'Input';
   fieldId: string;
 }
@@ -294,6 +299,7 @@ interface LayoutElementInput extends ActionLayoutElementBase {
 export type ActionLayoutElement =
   | LayoutElementSeparator
   | LayoutElementHtmlBlock
+  | LayoutElementRow
   | LayoutElementInput;
 
 export type ActionFormElement = ActionLayoutElement | ActionField;

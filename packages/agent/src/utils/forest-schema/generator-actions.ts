@@ -5,12 +5,14 @@ import {
   Collection,
   ColumnSchema,
   DataSource,
+  LayoutElementInput,
   PrimitiveTypes,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerAction,
   ForestServerActionField,
+  ForestServerActionFormElementFieldReference,
   ForestServerActionFormLayoutElement,
 } from '@forestadmin/forestadmin-client';
 import path from 'path';
@@ -55,6 +57,7 @@ export default class SchemaGeneratorActions {
 
     if (schema.staticForm) {
       const rawForm = await collection.getForm(null, name, null, null);
+      console.log('rawForm', rawForm);
       fields = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, rawForm).fields;
 
       SchemaGeneratorActions.setFieldsDefaultValue(fields);
@@ -80,6 +83,8 @@ export default class SchemaGeneratorActions {
 
   static buildFieldsAndLayout(dataSource: DataSource, form: ActionFormElement[]) {
     const { fields, layout } = SchemaGeneratorActions.extractFieldsAndLayout(form);
+
+    console.log({ fields, layout });
 
     return {
       fields: fields.map(field => SchemaGeneratorActions.buildFieldSchema(dataSource, field)),
@@ -126,7 +131,14 @@ export default class SchemaGeneratorActions {
     return output as ForestServerActionField;
   }
 
-  static buildLayoutSchema(element: ActionLayoutElement): ForestServerActionFormLayoutElement {
+  static buildLayoutSchema(
+    element: ActionLayoutElement,
+    options?: { forceInput?: boolean },
+  ): ForestServerActionFormLayoutElement {
+    if (options?.forceInput) {
+      element.component = 'Input';
+    }
+
     switch (element.component) {
       case 'Input':
         return {
@@ -137,6 +149,18 @@ export default class SchemaGeneratorActions {
         return {
           component: 'htmlBlock',
           content: element.content,
+        };
+      case 'Row':
+        console.log('buildLayoutSchema (row)', element);
+
+        return {
+          component: 'row',
+          fields: element.fields.map(
+            field =>
+              SchemaGeneratorActions.buildLayoutSchema(field, {
+                forceInput: true,
+              }) as ForestServerActionFormElementFieldReference,
+          ),
         };
       case 'Separator':
       default:
@@ -159,16 +183,9 @@ export default class SchemaGeneratorActions {
     formElements.forEach(element => {
       if (element.type === 'Layout') {
         hasLayout = true;
-
-        layout.push(element);
-      } else {
-        fields.push(element);
-        layout.push({
-          type: 'Layout',
-          component: 'Input',
-          fieldId: element.label,
-        });
       }
+
+      layout.push(SchemaGeneratorActions.parseLayout(element, fields));
     });
 
     if (!hasLayout) {
@@ -176,5 +193,34 @@ export default class SchemaGeneratorActions {
     }
 
     return { fields, layout };
+  }
+
+  private static parseLayout(
+    element: ActionFormElement,
+    allFields: ActionField[],
+  ): ActionLayoutElement {
+    if (element.type === 'Layout') {
+      if (element.component === 'Row') {
+        const fields = element.fields.map(
+          field => SchemaGeneratorActions.parseLayout(field, allFields) as LayoutElementInput,
+        );
+
+        return {
+          type: 'Layout',
+          component: 'Row',
+          fields,
+        };
+      }
+
+      return element;
+    }
+
+    allFields.push(element);
+
+    return {
+      type: 'Layout',
+      component: 'Input',
+      fieldId: element.label,
+    };
   }
 }
