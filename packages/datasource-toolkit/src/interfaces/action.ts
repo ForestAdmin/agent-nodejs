@@ -51,7 +51,7 @@ export const ActionFieldTypeList = [
   'StringList',
 ] as const;
 
-export type ActionFieldType =
+type ActionFieldType =
   | 'Boolean'
   | 'Collection'
   | 'Date'
