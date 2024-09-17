@@ -64,6 +64,14 @@ export default (collection: CardCustomizer) =>
         },
         {
           type: 'Layout',
+          component: 'Separator',
+        },
+        {
+          type: 'Layout',
+          component: 'Separator',
+        },
+        {
+          type: 'Layout',
           component: 'Row',
           fields: [
             {

@@ -313,7 +313,7 @@ describe('SchemaGeneratorActions', () => {
                   watchChanges: false,
                 },
                 {
-                  label: 'description',
+                  label: 'address',
                   type: 'String',
                   watchChanges: false,
                 },
@@ -329,7 +329,7 @@ describe('SchemaGeneratorActions', () => {
 
       const schema = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, form);
 
-      expect(schema.fields.length).toEqual(2);
+      expect(schema.fields.length).toEqual(3);
       expect(schema.layout).toEqual([
         {
           component: 'input',
@@ -338,8 +338,17 @@ describe('SchemaGeneratorActions', () => {
         { component: 'separator' },
         { component: 'htmlBlock', content: 'some text content' },
         {
-          component: 'input',
-          fieldId: 'description',
+          component: 'row',
+          fields: [
+            {
+              component: 'input',
+              fieldId: 'description',
+            },
+            {
+              component: 'input',
+              fieldId: 'address',
+            },
+          ],
         },
       ]);
     });
