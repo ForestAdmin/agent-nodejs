@@ -134,10 +134,6 @@ describe('SchemaGeneratorActions', () => {
             watchChanges: false,
           },
           {
-            type: 'Layout',
-            component: 'Separator',
-          },
-          {
             label: 'inclusive gender',
             description: 'Choose None, Male, Female or Both',
             type: 'EnumList',
@@ -303,9 +299,25 @@ describe('SchemaGeneratorActions', () => {
               component: 'Separator',
             },
             {
-              label: 'description',
-              type: 'String',
-              watchChanges: false,
+              type: 'Layout',
+              component: 'HtmlBlock',
+              content: 'some text content',
+            },
+            {
+              type: 'Layout',
+              component: 'Row',
+              fields: [
+                {
+                  label: 'description',
+                  type: 'String',
+                  watchChanges: false,
+                },
+                {
+                  label: 'description',
+                  type: 'String',
+                  watchChanges: false,
+                },
+              ],
             },
           ],
         ),
@@ -324,6 +336,7 @@ describe('SchemaGeneratorActions', () => {
           fieldId: 'title',
         },
         { component: 'separator' },
+        { component: 'htmlBlock', content: 'some text content' },
         {
           component: 'input',
           fieldId: 'description',

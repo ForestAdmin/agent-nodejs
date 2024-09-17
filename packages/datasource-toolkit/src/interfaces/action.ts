@@ -20,7 +20,7 @@ export type File = {
 };
 
 export type ActionFormElementBase = {
-  type: ActionFieldType | LayoutElementType;
+  type: ActionFieldType | 'Layout';
 };
 
 export interface ActionFieldBase extends ActionFormElementBase {
@@ -34,24 +34,7 @@ export interface ActionFieldBase extends ActionFormElementBase {
   watchChanges: boolean;
 }
 
-export const ActionFieldTypeList = [
-  'Boolean',
-  'Collection',
-  'Date',
-  'Dateonly',
-  'Time',
-  'Enum',
-  'File',
-  'Json',
-  'Number',
-  'String',
-  'EnumList',
-  'FileList',
-  'NumberList',
-  'StringList',
-] as const;
-
-export type ActionFieldType =
+type ActionFieldType =
   | 'Boolean'
   | 'Collection'
   | 'Date'
@@ -66,8 +49,6 @@ export type ActionFieldType =
   | 'FileList'
   | 'NumberList'
   | 'StringList';
-
-export type LayoutElementType = 'Layout';
 
 interface ActionFieldLimitedValue<
   TWidget extends ActionFieldWidget,
@@ -271,22 +252,31 @@ export type ActionFieldWidget =
   | 'FilePicker'
   | 'JsonEditor';
 
-interface ActionLayoutElementBase<T extends string> extends ActionFormElementBase {
+interface ActionLayoutElementBase extends ActionFormElementBase {
   type: 'Layout';
-  component: T;
+  component: string;
+}
+interface LayoutElementSeparator extends ActionLayoutElementBase {
+  component: 'Separator';
 }
 
-type LayoutElementSeparator = ActionLayoutElementBase<'Separator'>;
-
-interface LayoutElementHtmlBlock extends ActionLayoutElementBase<'HtmlBlock'> {
+interface LayoutElementHtmlBlock extends ActionLayoutElementBase {
+  component: 'HtmlBlock';
   content: string;
 }
 
-interface LayoutElementRow extends ActionLayoutElementBase<'Row'> {
+interface LayoutElementRow extends ActionLayoutElementBase {
+  component: 'Row';
   fields: LayoutElementInput[];
 }
 
-export interface LayoutElementInput extends ActionLayoutElementBase<'Input'> {
+interface LayoutElementRowRecursive extends ActionLayoutElementBase {
+  component: 'Row';
+  fields: ActionField[];
+}
+
+export interface LayoutElementInput extends ActionLayoutElementBase {
+  component: 'Input';
   fieldId: string;
 }
 
@@ -296,7 +286,13 @@ export type ActionLayoutElement =
   | LayoutElementRow
   | LayoutElementInput;
 
-export type ActionFormElement = ActionLayoutElement | ActionField;
+export type ActionLayoutElementRecursive =
+  | LayoutElementSeparator
+  | LayoutElementHtmlBlock
+  | LayoutElementRowRecursive
+  | LayoutElementInput;
+
+export type ActionFormElement = ActionLayoutElementRecursive | ActionField;
 
 export type ActionForm = { fields: ActionField[]; layout: ActionLayoutElement[] };
 

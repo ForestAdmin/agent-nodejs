@@ -11,8 +11,13 @@ type TableOrView = Table & { view?: boolean };
 const createdAtFields = ['createdAt', 'created_at'];
 const updatedAtFields = ['updatedAt', 'updated_at'];
 const deletedAtFields = ['deletedAt', 'deleted_at'];
+const timestampFields = [...createdAtFields, ...updatedAtFields];
 
-const nonParanoidTimestampsField = [...createdAtFields, ...updatedAtFields];
+const autoTimestampFieldsMap = {
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+  deleted_at: 'deletedAt',
+};
 
 export default class ModelBuilder {
   static defineModels(
@@ -45,6 +50,7 @@ export default class ModelBuilder {
         timestamps: hasTimestamps,
         paranoid: isParanoid,
         schema: table.schema,
+        ...this.getAutoTimestampFieldsOverride(table),
       });
 
       // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys
@@ -71,8 +77,9 @@ export default class ModelBuilder {
 
     for (const column of table.columns) {
       const isExplicit =
-        !(hasTimestamps && nonParanoidTimestampsField.includes(column.name)) &&
+        !(hasTimestamps && timestampFields.includes(column.name)) &&
         !(isParanoid && deletedAtFields.includes(column.name));
+
       const type = SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name);
 
       if (column.defaultValue && column.isLiteralDefaultValue) {
@@ -163,5 +170,15 @@ export default class ModelBuilder {
 
   private static isParanoid(table: Table): boolean {
     return !!table.columns.find(c => deletedAtFields.includes(c.name));
+  }
+
+  private static getAutoTimestampFieldsOverride(table: Table) {
+    return table.columns
+      .filter(column => !!autoTimestampFieldsMap[column.name])
+      .reduce((acc, column) => {
+        acc[autoTimestampFieldsMap[column.name]] = column.name;
+
+        return acc;
+      }, {});
   }
 }

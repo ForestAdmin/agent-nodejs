@@ -1,3 +1,30 @@
+# @forestadmin/agent [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.12...@forestadmin/agent@1.42.0) (2024-09-17)
+
+
+### Features
+
+* add separator in action forms ([#1167](https://github.com/ForestAdmin/agent-nodejs/issues/1167)) ([7d61527](https://github.com/ForestAdmin/agent-nodejs/commit/7d615278b3897a8fbc60c5c6eaf6bb6cc53f7cef))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.48.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.35.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.28.0
+
+## @forestadmin/agent [1.41.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.11...@forestadmin/agent@1.41.12) (2024-09-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.47.2
+
 ## @forestadmin/agent [1.41.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.10...@forestadmin/agent@1.41.11) (2024-09-09)
 
 

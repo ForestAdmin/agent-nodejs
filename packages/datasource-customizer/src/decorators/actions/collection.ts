@@ -108,7 +108,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         this.isHandler(form) ||
         form?.some(
           field =>
-            field.type === 'Layout' ||
+            field.type === 'Layout' || // all forms containing some layout elements are handled as dynamic
             Object.values(field).some(value => this.isHandler(value)) ||
             // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
             (field.type.includes('File') && field.defaultValue),

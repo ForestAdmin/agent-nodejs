@@ -1,6 +1,21 @@
-import { ActionFieldTypeList } from '@forestadmin/datasource-toolkit';
-
 import ActionFields from '../../../src/utils/forest-schema/action-fields';
+
+const ActionFieldTypeList = [
+  'Boolean',
+  'Collection',
+  'Date',
+  'Dateonly',
+  'Time',
+  'Enum',
+  'File',
+  'Json',
+  'Number',
+  'String',
+  'EnumList',
+  'FileList',
+  'NumberList',
+  'StringList',
+] as const;
 
 describe('ActionFields', () => {
   describe('isCollectionField', () => {

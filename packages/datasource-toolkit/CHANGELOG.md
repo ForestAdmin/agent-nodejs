@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.5...@forestadmin/datasource-toolkit@1.35.0) (2024-09-17)
+
+
+### Features
+
+* add separator in action forms ([#1167](https://github.com/ForestAdmin/agent-nodejs/issues/1167)) ([7d61527](https://github.com/ForestAdmin/agent-nodejs/commit/7d615278b3897a8fbc60c5c6eaf6bb6cc53f7cef))
+
 ## @forestadmin/datasource-toolkit [1.34.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.4...@forestadmin/datasource-toolkit@1.34.5) (2024-09-09)
 
 
