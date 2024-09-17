@@ -57,7 +57,6 @@ export default class SchemaGeneratorActions {
 
     if (schema.staticForm) {
       const rawForm = await collection.getForm(null, name, null, null);
-      console.log('rawForm', rawForm);
       fields = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, rawForm).fields;
 
       SchemaGeneratorActions.setFieldsDefaultValue(fields);
@@ -83,8 +82,6 @@ export default class SchemaGeneratorActions {
 
   static buildFieldsAndLayout(dataSource: DataSource, form: ActionFormElement[]) {
     const { fields, layout } = SchemaGeneratorActions.extractFieldsAndLayout(form);
-
-    console.log({ fields, layout });
 
     return {
       fields: fields.map(field => SchemaGeneratorActions.buildFieldSchema(dataSource, field)),
@@ -151,8 +148,6 @@ export default class SchemaGeneratorActions {
           content: element.content,
         };
       case 'Row':
-        console.log('buildLayoutSchema (row)', element);
-
         return {
           component: 'row',
           fields: element.fields.map(

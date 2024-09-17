@@ -1,5 +1,4 @@
 import {
-  ActionField,
   ActionFormElement,
   ActionResult,
   Caller,
@@ -212,12 +211,8 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     // Remove fields which have falsy if
     const ifValues = await Promise.all(
       fields.map(async field => {
-        console.log(field);
-
         if ((await this.evaluate(context, null, field.if)) === false) {
           // drop element if condition returns false
-          console.log('hide element', JSON.stringify(field));
-
           return false;
         }
 
@@ -228,8 +223,6 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
           // drop element if no subElement
           if (field[subElementsKey].length === 0) {
-            console.log('hide element because no child', JSON.stringify(field));
-
             return false;
           }
         }
