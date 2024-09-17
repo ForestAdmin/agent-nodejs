@@ -100,6 +100,7 @@ describe('SchemaGeneratorActions', () => {
     test('should include a reference to the change hook', async () => {
       const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
       expect(schema.fields[0].hook).toEqual('changeHook');
+      expect(schema.layout).toEqual(undefined);
     });
   });
 
@@ -131,6 +132,10 @@ describe('SchemaGeneratorActions', () => {
             isReadOnly: false,
             value: null,
             watchChanges: false,
+          },
+          {
+            type: 'Layout',
+            component: 'Separator',
           },
           {
             label: 'inclusive gender',
@@ -177,6 +182,9 @@ describe('SchemaGeneratorActions', () => {
         type: ['Enum'],
         enums: ['Male', 'Female'],
       });
+
+      // no layout in schema, only in hooks response
+      expect(schema.layout).toEqual(undefined);
     });
   });
 
@@ -267,6 +275,60 @@ describe('SchemaGeneratorActions', () => {
           },
         },
       });
+    });
+  });
+
+  describe('buildFieldsAndLayout', () => {
+    it('should compute the schema of layout elements', async () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.buildWithAction(
+          'Update title',
+          {
+            scope: 'Single',
+            generateFile: false,
+            staticForm: true,
+          },
+          [
+            {
+              label: 'title',
+              description: 'updated title',
+              type: 'String',
+              isRequired: true,
+              isReadOnly: false,
+              value: null,
+              watchChanges: false,
+            },
+            {
+              type: 'Layout',
+              component: 'Separator',
+            },
+            {
+              label: 'description',
+              type: 'String',
+              watchChanges: false,
+            },
+          ],
+        ),
+      ]);
+
+      const collection = dataSource.getCollection('books');
+
+      const form = await collection.getForm(null, 'Update title');
+
+      const schema = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, form);
+
+      expect(schema.fields.length).toEqual(2);
+      expect(schema.layout).toEqual([
+        {
+          component: 'input',
+          fieldId: 'title',
+        },
+        { component: 'separator' },
+        {
+          component: 'input',
+          fieldId: 'description',
+        },
+      ]);
     });
   });
 });

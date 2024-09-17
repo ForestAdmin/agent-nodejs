@@ -19,15 +19,20 @@ export type File = {
   charset?: string;
 };
 
-export type ActionFieldBase = {
+export type ActionFormElementBase = {
+  type: ActionFieldType | LayoutElementType;
+};
+
+export interface ActionFieldBase extends ActionFormElementBase {
   type: ActionFieldType;
+  widget?: ActionFieldWidget;
   label: string;
   description?: string;
   isRequired?: boolean;
   isReadOnly?: boolean;
   value?: unknown;
   watchChanges: boolean;
-};
+}
 
 export const ActionFieldTypeList = [
   'Boolean',
@@ -46,110 +51,125 @@ export const ActionFieldTypeList = [
   'StringList',
 ] as const;
 
-export type ActionFieldType = (typeof ActionFieldTypeList)[number];
+type ActionFieldType =
+  | 'Boolean'
+  | 'Collection'
+  | 'Date'
+  | 'Dateonly'
+  | 'Time'
+  | 'Enum'
+  | 'File'
+  | 'Json'
+  | 'Number'
+  | 'String'
+  | 'EnumList'
+  | 'FileList'
+  | 'NumberList'
+  | 'StringList';
 
-type ActionFieldLimitedValue<
-  TWidget extends string,
+export type LayoutElementType = 'Layout';
+
+interface ActionFieldLimitedValue<
+  TWidget extends ActionFieldWidget,
   TType extends ActionFieldType = ActionFieldType,
   TValue = unknown,
-> = ActionFieldBase & {
+> extends ActionFieldBase {
   widget: TWidget;
   type: TType;
   options?: LimitedValuesOption<TValue>[];
-};
+}
 
-export type ActionFieldDropdown<
+export interface ActionFieldDropdown<
   TType extends ActionFieldType = ActionFieldType,
   TValue = unknown,
-> = ActionFieldBase &
-  ActionFieldLimitedValue<'Dropdown', TType, TValue> & {
-    search?: 'static' | 'disabled' | 'dynamic';
-    placeholder?: string;
-  };
+> extends ActionFieldLimitedValue<'Dropdown', TType, TValue> {
+  search?: 'static' | 'disabled' | 'dynamic';
+  placeholder?: string;
+}
 
-export type ActionFieldCheckbox = ActionFieldBase & {
+export interface ActionFieldCheckbox extends ActionFieldBase {
   type: 'Boolean';
   widget: 'Checkbox';
-};
+}
 
-export type ActionFieldEnum = ActionFieldBase & {
+export interface ActionFieldEnum extends ActionFieldBase {
   type: 'Enum';
   enumValues: string[];
-};
+}
 
-export type ActionFieldEnumList = ActionFieldBase & {
+export interface ActionFieldEnumList extends ActionFieldBase {
   type: 'EnumList';
   enumValues: string[];
-};
+}
 
-export type ActionFieldCollection = ActionFieldBase & {
+export interface ActionFieldCollection extends ActionFieldBase {
   type: 'Collection';
   collectionName: string;
-};
+}
 
-export type ActionFieldTextInput = ActionFieldBase & {
+export interface ActionFieldTextInput extends ActionFieldBase {
   type: 'String';
   widget: 'TextInput';
   placeholder?: string;
-};
+}
 
-export type ActionFieldDatePickerInput = ActionFieldBase & {
+export interface ActionFieldDatePickerInput extends ActionFieldBase {
   type: 'Date' | 'Dateonly' | 'String';
   widget: 'DatePicker';
   format?: string;
   min?: Date;
   max?: Date;
   placeholder?: string;
-};
+}
 
-export type ActionFieldFilePicker = ActionFieldBase & {
+export interface ActionFieldFilePicker extends ActionFieldBase {
   type: 'File' | 'FileList';
   widget: 'FilePicker';
   maxCount?: number;
   extensions?: string[];
   maxSizeMb?: number;
-};
+}
 
-export type ActionFieldTextInputList = ActionFieldBase & {
+export interface ActionFieldTextInputList extends ActionFieldBase {
   type: 'StringList';
   widget: 'TextInputList';
   placeholder?: string;
   enableReorder?: boolean;
   allowEmptyValues?: boolean;
   allowDuplicates?: boolean;
-};
+}
 
-export type ActionFieldTextArea = ActionFieldBase & {
+export interface ActionFieldTextArea extends ActionFieldBase {
   type: 'String';
   widget: 'TextArea';
   placeholder?: string;
   rows?: number;
-};
+}
 
-export type ActionFieldRichText = ActionFieldBase & {
+export interface ActionFieldRichText extends ActionFieldBase {
   type: 'String';
   widget: 'RichText';
   placeholder?: string;
-};
+}
 
-export type ActionFieldNumberInput = ActionFieldBase & {
+export interface ActionFieldNumberInput extends ActionFieldBase {
   type: 'Number';
   widget: 'NumberInput';
   placeholder?: string;
   min?: number;
   max?: number;
   step?: number;
-};
+}
 
-export type ActionFieldColorPicker = ActionFieldBase & {
+export interface ActionFieldColorPicker extends ActionFieldBase {
   type: 'String';
   widget: 'ColorPicker';
   placeholder?: string;
   enableOpacity?: boolean;
   quickPalette?: string[];
-};
+}
 
-export type ActionFieldNumberInputList = ActionFieldBase & {
+export interface ActionFieldNumberInputList extends ActionFieldBase {
   widget: 'NumberInputList';
   type: 'NumberList';
   placeholder?: string;
@@ -158,9 +178,9 @@ export type ActionFieldNumberInputList = ActionFieldBase & {
   min?: number;
   max?: number;
   step?: number;
-};
+}
 
-export type ActionFieldCurrencyInput = ActionFieldBase & {
+export interface ActionFieldCurrencyInput extends ActionFieldBase {
   type: 'Number';
   widget: 'CurrencyInput';
   placeholder?: string;
@@ -169,29 +189,29 @@ export type ActionFieldCurrencyInput = ActionFieldBase & {
   step?: number;
   currency: string;
   base?: 'Unit' | 'Cent';
-};
+}
 
-export type ActionFieldUserDropdown = ActionFieldBase & {
+export interface ActionFieldUserDropdown extends ActionFieldBase {
   type: 'String';
   widget: 'UserDropdown';
   placeholder?: string;
-};
+}
 
-export type ActionFieldTimePicker = ActionFieldBase & {
+export interface ActionFieldTimePicker extends ActionFieldBase {
   type: 'Time';
   widget: 'TimePicker';
-};
+}
 
-export type ActionFieldJsonEditor = ActionFieldBase & {
+export interface ActionFieldJsonEditor extends ActionFieldBase {
   type: 'Json';
   widget: 'JsonEditor';
-};
+}
 
-export type ActionFieldAddressAutocomplete = ActionFieldBase & {
+export interface ActionFieldAddressAutocomplete extends ActionFieldBase {
   type: 'String';
   widget: 'AddressAutocomplete';
   placeholder?: string;
-};
+}
 
 export type ActionFieldDropdownAll =
   | ActionFieldDropdown<'Date' | 'Dateonly' | 'Number' | 'String' | 'StringList', string>
@@ -242,6 +262,7 @@ export type ActionFieldWidget =
   | 'RichText'
   | 'NumberInput'
   | 'NumberInputList'
+  | 'CurrencyInput'
   | 'ColorPicker'
   | 'DatePicker'
   | 'AddressAutocomplete'
@@ -249,6 +270,27 @@ export type ActionFieldWidget =
   | 'TimePicker'
   | 'FilePicker'
   | 'JsonEditor';
+
+type LayoutElementComponentType = 'Input' | 'Separator';
+
+interface ActionLayoutElementBase extends ActionFormElementBase {
+  type: 'Layout';
+  component: LayoutElementComponentType;
+}
+interface LayoutElementSeparator extends ActionLayoutElementBase {
+  component: 'Separator';
+}
+
+export interface LayoutElementInput extends ActionLayoutElementBase {
+  component: 'Input';
+  fieldId: string;
+}
+
+export type ActionLayoutElement = LayoutElementSeparator | LayoutElementInput;
+
+export type ActionFormElement = ActionLayoutElement | ActionField;
+
+export type ActionForm = { fields: ActionField[]; layout: ActionLayoutElement[] };
 
 export type SuccessResult = {
   type: 'Success';

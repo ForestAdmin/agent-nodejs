@@ -1,4 +1,10 @@
-import { CompositeId, File, Json } from '@forestadmin/datasource-toolkit';
+import {
+  ActionLayoutElement,
+  CompositeId,
+  File,
+  Json,
+  LayoutElementInput,
+} from '@forestadmin/datasource-toolkit';
 
 type UnionKeys<T> = T extends T ? keyof T : never;
 type StrictUnionHelper<T, TAll> = T extends any
@@ -240,3 +246,14 @@ export type DynamicField<Context = unknown> = StrictUnion<
   | (StringListDynamicField<Context> & UserDropdownFieldConfiguration)
   | (FileListDynamicField<Context> & FileListPickerFieldConfiguration)
 >;
+
+export type DynamicLayoutElement<Context = unknown> = Exclude<
+  ActionLayoutElement,
+  LayoutElementInput
+> & {
+  if?: ((context: Context) => Promise<unknown>) | ((context: Context) => unknown);
+};
+
+export type DynamicFormElement<Context = unknown> =
+  | DynamicField<Context>
+  | DynamicLayoutElement<Context>;

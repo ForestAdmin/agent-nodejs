@@ -2,12 +2,16 @@
 import { Factory } from 'fishery';
 
 import collectionSchemaFactory from './schema/collection-schema';
-import { ActionField } from '../../src/interfaces/action';
+import { ActionFormElement } from '../../src/interfaces/action';
 import { Collection } from '../../src/interfaces/collection';
 import { ActionSchema } from '../../src/interfaces/schema';
 
 export class CollectionFactory extends Factory<Collection> {
-  buildWithAction(name: string, schema: ActionSchema, fields: ActionField[] = null): Collection {
+  buildWithAction(
+    name: string,
+    schema: ActionSchema,
+    fields: ActionFormElement[] = null,
+  ): Collection {
     return this.build({
       name: 'books',
       schema: collectionSchemaFactory.build({
