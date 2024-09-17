@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.48.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.47.2...@forestadmin/datasource-customizer@1.48.0) (2024-09-17)
+
+
+### Features
+
+* add separator in action forms ([#1167](https://github.com/ForestAdmin/agent-nodejs/issues/1167)) ([7d61527](https://github.com/ForestAdmin/agent-nodejs/commit/7d615278b3897a8fbc60c5c6eaf6bb6cc53f7cef))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.35.0
+
 ## @forestadmin/datasource-customizer [1.47.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.47.1...@forestadmin/datasource-customizer@1.47.2) (2024-09-16)
 
 
