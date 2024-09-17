@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.49.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.48.0...@forestadmin/datasource-customizer@1.49.0) (2024-09-17)
+
+
+### Features
+
+* add html block in action forms ([#1172](https://github.com/ForestAdmin/agent-nodejs/issues/1172)) ([4c67ccd](https://github.com/ForestAdmin/agent-nodejs/commit/4c67ccd71f5a818fc8891366f44f84d5208e15dc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.36.0
+
 # @forestadmin/datasource-customizer [1.48.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.47.2...@forestadmin/datasource-customizer@1.48.0) (2024-09-17)
 
 
