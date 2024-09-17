@@ -384,4 +384,52 @@ describe('ModelBuilder', () => {
       });
     });
   });
+
+  describe('when auto timestamp fields are in snake_case', () => {
+    it('should override the corresponding properties', () => {
+      const sequelize = new Sequelize('postgres://');
+      const columns = [
+        {
+          name: 'created_at',
+          allowNull: false,
+          autoIncrement: false,
+          primaryKey: false,
+          constraints: [],
+          defaultValue: null,
+          type: { type: 'scalar', subType: 'DATE' } as unknown as ColumnType,
+          isLiteralDefaultValue: false,
+        },
+        {
+          name: 'updated_at',
+          allowNull: false,
+          autoIncrement: false,
+          primaryKey: false,
+          constraints: [],
+          defaultValue: null,
+          type: { type: 'scalar', subType: 'DATE' } as unknown as ColumnType,
+          isLiteralDefaultValue: false,
+        },
+        {
+          name: 'deleted_at',
+          allowNull: false,
+          autoIncrement: false,
+          primaryKey: false,
+          constraints: [],
+          defaultValue: null,
+          type: { type: 'scalar', subType: 'DATE' } as unknown as ColumnType,
+          isLiteralDefaultValue: false,
+        },
+      ];
+      const tables = [{ columns, name: 'aModel', schema: undefined, unique: [] }] as Table[];
+
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
+
+      expect(sequelize.models.aModel).toBeDefined();
+      expect(sequelize.models.aModel.rawAttributes.created_at).toBeDefined();
+      expect(sequelize.models.aModel.rawAttributes.updated_at).toBeDefined();
+      expect(sequelize.models.aModel.rawAttributes.deleted_at).toBeDefined();
+      expect(sequelize.models.aModel.options.paranoid).toBeTruthy();
+      expect(sequelize.models.aModel.options.timestamps).toBeTruthy();
+    });
+  });
 });

@@ -1,3 +1,17 @@
+## @forestadmin/datasource-sql [1.14.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.17...@forestadmin/datasource-sql@1.14.18) (2024-09-11)
+
+
+### Bug Fixes
+
+* **datasource-sql:** support for paranoid tables with snake case timestamp fields ([#1170](https://github.com/ForestAdmin/agent-nodejs/issues/1170)) ([96b54f9](https://github.com/ForestAdmin/agent-nodejs/commit/96b54f9802171e460134e74626757f39590373ac))
+
+## @forestadmin/datasource-sql [1.14.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.16...@forestadmin/datasource-sql@1.14.17) (2024-09-10)
+
+
+### Reverts
+
+*  "fix(datasource-sql): handle timestamps of tables with underscored column names" ([#1169](https://github.com/ForestAdmin/agent-nodejs/issues/1169)) ([3b76e38](https://github.com/ForestAdmin/agent-nodejs/commit/3b76e3825056adbc55bb1a87d36c11a7d6135723))
+
 ## @forestadmin/datasource-sql [1.14.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.15...@forestadmin/datasource-sql@1.14.16) (2024-09-09)
 
 
