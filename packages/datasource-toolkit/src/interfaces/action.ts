@@ -34,23 +34,6 @@ export interface ActionFieldBase extends ActionFormElementBase {
   watchChanges: boolean;
 }
 
-export const ActionFieldTypeList = [
-  'Boolean',
-  'Collection',
-  'Date',
-  'Dateonly',
-  'Time',
-  'Enum',
-  'File',
-  'Json',
-  'Number',
-  'String',
-  'EnumList',
-  'FileList',
-  'NumberList',
-  'StringList',
-] as const;
-
 type ActionFieldType =
   | 'Boolean'
   | 'Collection'

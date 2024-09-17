@@ -256,7 +256,6 @@ type DynamicLayoutElementHtmlBlock<Context> = DynamicLayoutElementBase<Context> 
 };
 
 export type DynamicLayoutElement<Context = unknown> =
-  | DynamicLayoutElementBase<Context>
   | DynamicLayoutElementSeparator<Context>
   | DynamicLayoutElementHtmlBlock<Context>;
 
