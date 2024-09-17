@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.42.0...@forestadmin/agent@1.43.0) (2024-09-17)
+
+
+### Features
+
+* add html block in action forms ([#1172](https://github.com/ForestAdmin/agent-nodejs/issues/1172)) ([4c67ccd](https://github.com/ForestAdmin/agent-nodejs/commit/4c67ccd71f5a818fc8891366f44f84d5208e15dc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.49.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.36.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.29.0
+
 # @forestadmin/agent [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.41.12...@forestadmin/agent@1.42.0) (2024-09-17)
 
 
