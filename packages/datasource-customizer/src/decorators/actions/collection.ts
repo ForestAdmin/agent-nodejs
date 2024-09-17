@@ -77,7 +77,8 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicFormElement[])(
           context,
         )
-      : await this.copyFields(action.form);
+      : // copy fields to keep original object unchanged
+        await this.copyFields(action.form);
 
     if (metas?.searchField) {
       // in the case of a search hook,
@@ -92,15 +93,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
 
-    for (const field of fields) {
-      if (field.type !== 'Layout') {
-        // customer did not define a handler to rewrite the previous value => reuse current one.
-        if (field.value === undefined) field.value = formValues[field.label];
-
-        // fields that were accessed through the context.formValues.X getter should be watched.
-        field.watchChanges = used.has(field.label);
-      }
-    }
+    this.setWatchChangesOnFields(formValues, used, fields);
 
     return fields;
   }
@@ -142,16 +135,18 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
   }
 
-  private getSubElementsAttributeKey(field: DynamicFormElement): string | null {
+  private getSubElementsAttributeKey<T extends DynamicFormElement | ActionFormElement>(
+    field: T,
+  ): string | null {
     if (field.type === 'Layout' && field.component === 'Row') return 'fields';
 
     return null;
   }
 
-  private async executeOnSubFields<T>(
-    field: DynamicFormElement,
-    handler: (subFields: DynamicFormElement[]) => T[] | Promise<T[]>,
-  ) {
+  private async executeOnSubFields<
+    T extends DynamicFormElement | ActionFormElement,
+    U extends DynamicFormElement | ActionFormElement,
+  >(field: U, handler: (subFields: U[]) => T[] | Promise<T[]>) {
     const subElementsKey = this.getSubElementsAttributeKey(field);
     if (!subElementsKey) return;
     field[subElementsKey] = await handler(field[subElementsKey] || []);
@@ -263,6 +258,46 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     });
 
     return Promise.all(newFields);
+  }
+
+  private async setWatchChangesOnFields(
+    formValues: {
+      [x: string]: unknown;
+    },
+    used: Set<string>,
+    fields: ActionFormElement[],
+  ) {
+    return Promise.all(
+      fields.map(async field => {
+        if (field.type !== 'Layout') {
+          return this.setWatchChangesOnField(formValues, used, field);
+        }
+
+        await this.executeOnSubFields(field, subfields =>
+          this.setWatchChangesOnFields(formValues, used, subfields),
+        );
+
+        return field;
+      }),
+    );
+  }
+
+  private setWatchChangesOnField(
+    formValues: {
+      [x: string]: unknown;
+    },
+    used: Set<string>,
+    field: ActionFormElement,
+  ) {
+    if (field.type !== 'Layout') {
+      // customer did not define a handler to rewrite the previous value => reuse current one.
+      if (field.value === undefined) field.value = formValues[field.label];
+
+      // fields that were accessed through the context.formValues.X getter should be watched.
+      field.watchChanges = used.has(field.label);
+    }
+
+    return field;
   }
 
   private async evaluate<T>(

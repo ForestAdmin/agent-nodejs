@@ -79,7 +79,9 @@ export default (collection: CardCustomizer) =>
             {
               type: 'Number',
               label: 'field 3',
-              if: ctx => ['config 1', 'config 2'].includes(ctx.formValues['display fields']),
+              if: ctx =>
+                ['config 1', 'config 2'].includes(ctx.formValues['display fields']) &&
+                ctx.formValues['field 2'] === 3,
             },
           ],
         },
