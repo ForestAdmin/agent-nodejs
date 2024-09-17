@@ -205,6 +205,39 @@ export type ActionFieldCheckboxGroupAll =
   | ActionFieldLimitedValue<'CheckboxGroup', 'StringList', string>
   | ActionFieldLimitedValue<'CheckboxGroup', 'NumberList', number>;
 
+type ActionLayoutElementPage = {
+  component: 'page';
+  nextButtonLabel: string;
+  previousButtonLabel: string;
+  elements: ActionLayoutElement[];
+};
+
+type ActionLayoutElementRow = {
+  component: 'row';
+  fields: [ActionLayoutElementField, ActionLayoutElementField];
+};
+
+type ActionLayoutElementSeparator = {
+  component: 'separator';
+};
+
+type ActionLayoutElementLabel = {
+  component: 'label';
+  content: string;
+};
+
+type ActionLayoutElementField = {
+  component: 'input';
+  fieldName: string;
+};
+
+export type ActionLayoutElement =
+  | ActionLayoutElementRow
+  | ActionLayoutElementSeparator
+  | ActionLayoutElementLabel
+  | ActionLayoutElementField;
+export type ActionLayoutElementOrPage = ActionLayoutElement | ActionLayoutElementPage;
+
 export type ActionField = StrictUnion<
   | ActionFieldBase
   | ActionFieldEnum

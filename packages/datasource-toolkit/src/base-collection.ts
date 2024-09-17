@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ActionField, ActionResult } from './interfaces/action';
+import { ActionField, ActionLayoutElementOrPage, ActionResult } from './interfaces/action';
 import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
 import { Collection, DataSource, GetFormMetas } from './interfaces/collection';
@@ -106,8 +106,8 @@ export default abstract class BaseCollection implements Collection {
     formValues?: RecordData,
     filter?: Filter,
     metas?: GetFormMetas,
-  ): Promise<ActionField[]> {
-    return [];
+  ): Promise<{ fields: ActionField[]; layout: ActionLayoutElementOrPage[] }> {
+    return { fields: [], layout: [] };
   }
 
   async renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart> {

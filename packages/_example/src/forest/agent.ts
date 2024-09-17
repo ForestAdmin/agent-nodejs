@@ -34,7 +34,11 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
-
+    .addDataSource(
+      createSqlDataSource(
+        'postgres://postgres.mdvbfrrifupdjukiqrtb:qI3iUbMd2O6ssYpY@aws-0-eu-west-2.pooler.supabase.com:5432/postgres',
+      ),
+    )
     .addDataSource(
       // Using an URI
       createSqlDataSource('mariadb://example:password@localhost:3808/example'),
@@ -84,5 +88,99 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales);
+    .customizeCollection('sales', customizeSales)
+    .customizeCollection('reservations', collection => {
+      collection.overrideCreate(async context => {
+        const { data } = context;
+
+        const record = await context.collection.create(data);
+        console.log('create reservation', JSON.stringify(record));
+
+        return record;
+      });
+
+      collection.addAction('action with form', {
+        scope: 'Bulk',
+        execute: (context, resultBuilder) => {
+          resultBuilder.success('ok');
+        },
+        form: [
+          {
+            type: 'Layout',
+            component: 'Page',
+            nextButtonLabel: '==>',
+            previousButtonLabel: '<==',
+            elements: [
+              { type: 'String', label: 'first_name' },
+              {
+                type: 'Layout',
+                component: 'Separator',
+                // "if_": lambda ctx: ctx.form_values.get("Gender", "") in ["other", ""],
+              },
+              {
+                type: 'Layout',
+                component: 'Row',
+                fields: [
+                  { type: 'Enum', label: 'Gender', enumValues: ['M', 'F', 'other'] },
+                  {
+                    type: 'String',
+                    label: 'Gender_other',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'Layout',
+            component: 'Page',
+            // "if_": lambda ctx: ctx.form_values.get("Number of children") != 0,
+            elements: [
+              { type: 'Number', label: 'Number of children' },
+              {
+                type: 'Layout',
+                component: 'Row',
+                fields: [
+                  { type: 'Number', label: 'Age of older child' },
+                  { type: 'Number', label: 'Age of younger child' },
+                ],
+              },
+              { type: 'Boolean', label: 'Are they wise' },
+            ],
+            nextButtonLabel: '==>',
+            previousButtonLabel: '<==',
+          },
+          {
+            type: 'Layout',
+            component: 'Page',
+            // "if_": lambda ctx: ctx.form_values.get("Are they wise") is False,
+            elements: [
+              {
+                type: 'Layout',
+                component: 'Row',
+                fields: [
+                  { type: 'StringList', label: 'Why_its_your_fault' },
+                  { type: 'String', label: 'Why_its_their_fault', widget: 'TextArea' },
+                ],
+              },
+            ],
+            nextButtonLabel: '==>',
+            previousButtonLabel: '<==',
+          },
+        ],
+      });
+
+      collection.addAction('static action with form', {
+        scope: 'Bulk',
+        execute: (context, resultBuilder) => {
+          resultBuilder.success('ok');
+        },
+        form: [{ type: 'String', label: 'name' }],
+      });
+
+      // collection.overrideUpdate(async context => {
+      //   const { filter, patch } = context;
+
+      //   await context.collection.update(filter, patch);
+      // });
+    });
 }

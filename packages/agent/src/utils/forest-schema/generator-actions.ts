@@ -7,7 +7,11 @@ import {
   PrimitiveTypes,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerAction, ForestServerActionField } from '@forestadmin/forestadmin-client';
+import {
+  ForestServerAction,
+  ForestServerActionField,
+  ForestServerActionInputField,
+} from '@forestadmin/forestadmin-client';
 import path from 'path';
 
 import ActionFields from './action-fields';
@@ -68,7 +72,10 @@ export default class SchemaGeneratorActions {
   }
 
   /** Build schema for given field */
-  static buildFieldSchema(dataSource: DataSource, field: ActionField): ForestServerActionField {
+  static buildFieldSchema(
+    dataSource: DataSource,
+    field: ActionField,
+  ): ForestServerActionInputField {
     const { label, description, isRequired, isReadOnly, watchChanges, type } = field;
     const output = { description, isRequired, isReadOnly } as Record<string, unknown>;
 
@@ -96,7 +103,7 @@ export default class SchemaGeneratorActions {
 
     output.widgetEdit = GeneratorActionFieldWidget.buildWidgetOptions(field);
 
-    return output as ForestServerActionField;
+    return output as ForestServerActionInputField;
   }
 
   private static async buildFields(
@@ -110,13 +117,14 @@ export default class SchemaGeneratorActions {
     }
 
     // Ask the action to generate a form
-    const fields = await collection.getForm(null, name);
+    const { fields } = await collection.getForm(null, name);
 
     if (fields) {
       // When sending to server, we need to rename 'value' into 'defaultValue'
       // otherwise, it does not gets applied 🤷‍♂️
       return fields.map(field => {
         const newField = SchemaGeneratorActions.buildFieldSchema(collection.dataSource, field);
+
         newField.defaultValue = newField.value;
         delete newField.value;
 

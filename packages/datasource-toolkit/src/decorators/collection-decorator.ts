@@ -1,4 +1,4 @@
-import { ActionField, ActionResult } from '../interfaces/action';
+import { ActionField, ActionLayoutElementOrPage, ActionResult } from '../interfaces/action';
 import { Caller } from '../interfaces/caller';
 import { Chart } from '../interfaces/chart';
 import { Collection, DataSource, GetFormMetas } from '../interfaces/collection';
@@ -70,7 +70,7 @@ export default class CollectionDecorator implements Collection {
     data?: RecordData,
     filter?: Filter,
     metas?: GetFormMetas,
-  ): Promise<ActionField[]> {
+  ): Promise<{ fields: ActionField[]; layout: ActionLayoutElementOrPage[] }> {
     const refinedFilter = await this.refineFilter(caller, filter);
 
     return this.childCollection.getForm(caller, name, data, refinedFilter, metas);

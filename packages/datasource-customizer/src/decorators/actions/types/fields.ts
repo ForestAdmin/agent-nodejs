@@ -198,6 +198,40 @@ type CheckboxesFieldConfiguration<
   TValue = string,
 > = LimitedValueDynamicFieldConfiguration<Context, 'CheckboxGroup', TValue>;
 
+type LayoutFormElementPage<Context = unknown> = {
+  type: 'Layout';
+  component: 'Page';
+  nextButtonLabel: string;
+  previousButtonLabel: string;
+  elements: DynamicFieldOrLayoutElement<Context>[];
+};
+
+type LayoutFormElementRow<Context = unknown> = {
+  type: 'Layout';
+  component: 'Row';
+  fields: DynamicField<Context>[];
+};
+
+type LayoutFormElementSeparator = {
+  type: 'Layout';
+  component: 'Separator';
+};
+
+type LayoutFormElementLabel = {
+  type: 'Layout';
+  component: 'Label';
+  content: string;
+};
+
+type LayoutFormElement = LayoutFormElementRow | LayoutFormElementSeparator | LayoutFormElementLabel;
+type LayoutFormElementOrPage = LayoutFormElement | LayoutFormElementPage;
+
+type DynamicFieldOrLayoutElement<Context = unknown> = DynamicField<Context> | LayoutFormElement;
+
+export type DynamicFieldOrLayoutElementOrPage<Context = unknown> =
+  | DynamicField<Context>
+  | LayoutFormElementOrPage;
+
 export type DynamicField<Context = unknown> = StrictUnion<
   | BooleanDynamicField<Context>
   | (BooleanDynamicField<Context> & CheckboxDynamicFieldConfiguration)

@@ -15,7 +15,6 @@ import {
   ActionFieldUserDropdown,
 } from '@forestadmin/datasource-toolkit';
 import {
-  ForestServerActionField,
   ForestServerActionFieldAddressAutocompleteOptions,
   ForestServerActionFieldCheckboxGroupOptions,
   ForestServerActionFieldCheckboxOptions,
@@ -34,12 +33,15 @@ import {
   ForestServerActionFieldTextInputOptions,
   ForestServerActionFieldTimePickerOptions,
   ForestServerActionFieldUserDropdown,
+  ForestServerActionInputField,
 } from '@forestadmin/forestadmin-client';
 
 import ActionFields from './action-fields';
 
 export default class GeneratorActionFieldWidget {
-  static buildWidgetOptions(field: ActionField): ForestServerActionField['widgetEdit'] | undefined {
+  static buildWidgetOptions(
+    field: ActionField,
+  ): ForestServerActionInputField['widgetEdit'] | undefined {
     if (!ActionFields.hasWidget(field) || ['Collection', 'Enum', 'EnumList'].includes(field.type)) {
       return undefined;
     }
