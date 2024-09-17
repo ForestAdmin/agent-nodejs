@@ -281,7 +281,7 @@ interface LayoutElementSeparator extends ActionLayoutElementBase {
   component: 'Separator';
 }
 
-interface LayoutElementInput extends ActionLayoutElementBase {
+export interface LayoutElementInput extends ActionLayoutElementBase {
   component: 'Input';
   fieldId: string;
 }
