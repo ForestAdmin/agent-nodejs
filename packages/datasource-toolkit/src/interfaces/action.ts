@@ -254,11 +254,9 @@ export type ActionFieldWidget =
   | 'FilePicker'
   | 'JsonEditor';
 
-type LayoutElementComponentType = 'Input' | 'Separator' | 'HtmlBlock';
-
 interface ActionLayoutElementBase extends ActionFormElementBase {
   type: 'Layout';
-  component: LayoutElementComponentType;
+  component: string;
 }
 interface LayoutElementSeparator extends ActionLayoutElementBase {
   component: 'Separator';
