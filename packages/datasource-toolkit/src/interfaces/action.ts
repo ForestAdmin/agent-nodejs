@@ -34,23 +34,6 @@ export interface ActionFieldBase extends ActionFormElementBase {
   watchChanges: boolean;
 }
 
-export const ActionFieldTypeList = [
-  'Boolean',
-  'Collection',
-  'Date',
-  'Dateonly',
-  'Time',
-  'Enum',
-  'File',
-  'Json',
-  'Number',
-  'String',
-  'EnumList',
-  'FileList',
-  'NumberList',
-  'StringList',
-] as const;
-
 type ActionFieldType =
   | 'Boolean'
   | 'Collection'
@@ -271,22 +254,28 @@ export type ActionFieldWidget =
   | 'FilePicker'
   | 'JsonEditor';
 
-type LayoutElementComponentType = 'Input' | 'Separator';
-
 interface ActionLayoutElementBase extends ActionFormElementBase {
   type: 'Layout';
-  component: LayoutElementComponentType;
+  component: string;
 }
 interface LayoutElementSeparator extends ActionLayoutElementBase {
   component: 'Separator';
 }
 
-export interface LayoutElementInput extends ActionLayoutElementBase {
+interface LayoutElementHtmlBlock extends ActionLayoutElementBase {
+  component: 'HtmlBlock';
+  content: string;
+}
+
+interface LayoutElementInput extends ActionLayoutElementBase {
   component: 'Input';
   fieldId: string;
 }
 
-export type ActionLayoutElement = LayoutElementSeparator | LayoutElementInput;
+export type ActionLayoutElement =
+  | LayoutElementSeparator
+  | LayoutElementHtmlBlock
+  | LayoutElementInput;
 
 export type ActionFormElement = ActionLayoutElement | ActionField;
 

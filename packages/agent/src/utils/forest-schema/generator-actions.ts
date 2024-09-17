@@ -133,6 +133,11 @@ export default class SchemaGeneratorActions {
           component: 'input',
           fieldId: element.fieldId,
         };
+      case 'HtmlBlock':
+        return {
+          component: 'htmlBlock',
+          content: element.content,
+        };
       case 'Separator':
       default:
         return {
@@ -155,9 +160,7 @@ export default class SchemaGeneratorActions {
       if (element.type === 'Layout') {
         hasLayout = true;
 
-        if (element.component === 'Separator') {
-          layout.push(element);
-        }
+        layout.push(element);
       } else {
         fields.push(element);
         layout.push({
