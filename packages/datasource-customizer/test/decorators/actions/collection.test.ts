@@ -135,8 +135,8 @@ describe('ActionDecorator', () => {
           return resultBuilder.error('meeh');
         },
         form: [
-          { id: 'firstname', label: 'firstname', type: 'String' },
-          { id: 'lastname', label: 'lastname', type: 'String' },
+          { label: 'firstname', type: 'String' },
+          { label: 'lastname', type: 'String' },
         ],
       });
     });
@@ -609,14 +609,12 @@ describe('ActionDecorator', () => {
         execute: () => {},
         form: [
           {
-            id: 'default',
             label: 'default',
             type: 'String',
             defaultValue: 'hello',
             value: 'hello',
           },
           {
-            id: 'dynamic search',
             label: 'dynamic search',
             type: 'String',
             widget: 'Dropdown',
@@ -765,19 +763,19 @@ describe('ActionDecorator', () => {
             type: 'Layout',
             component: 'Row',
             fields: [
-              { id: 'firstname', label: 'firstname', type: 'String' },
-              { id: 'lastname', label: 'lastname', type: 'String' },
+              { label: 'firstname', type: 'String' },
+              { label: 'lastname', type: 'String' },
             ],
           },
           { type: 'Layout', component: 'Separator' },
-          { id: 'age', label: 'age', type: 'Number' },
+          { label: 'age', type: 'Number' },
+          { id: 'id-age', label: 'age', type: 'Number' },
           {
             type: 'Layout',
             component: 'Row',
             fields: [
-              { id: 'tel', label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
+              { label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
               {
-                id: 'email',
                 label: 'email',
                 type: 'String',
                 defaultValue: ctx => `${ctx.formValues.firstname}.${ctx.formValues.lastname}@`,
@@ -810,6 +808,7 @@ describe('ActionDecorator', () => {
         },
         { component: 'Separator', type: 'Layout' },
         { id: 'age', label: 'age', type: 'Number', value: undefined, watchChanges: true },
+        { id: 'id-age', label: 'age', type: 'Number', value: undefined, watchChanges: false },
         {
           component: 'Row',
           fields: [
