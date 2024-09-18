@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.36.0...@forestadmin/datasource-toolkit@1.37.0) (2024-09-18)
+
+
+### Features
+
+* add row in action forms ([#1173](https://github.com/ForestAdmin/agent-nodejs/issues/1173)) ([8770699](https://github.com/ForestAdmin/agent-nodejs/commit/87706996293e286846fdf5c7ae06e10f88e96176))
+
 # @forestadmin/datasource-toolkit [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.35.0...@forestadmin/datasource-toolkit@1.36.0) (2024-09-17)
 
 
