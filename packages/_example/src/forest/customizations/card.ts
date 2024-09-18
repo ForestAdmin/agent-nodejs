@@ -3,93 +3,109 @@ import { CardCustomizer } from '../typings';
 export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
-    .addAction('action with form', {
-      scope: 'Bulk',
+    .addAction('create new card', {
+      scope: 'Global',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok', {
           html: `test<script type="text/javascript">alert("test")</script>`,
         });
       },
       form: [
-        // {
-        //   type: 'Layout',
-        //   component: 'Page',
-        //   nextButtonLabel: '==>',
-        //   previousButtonLabel: '<==',
-        //   elements: [
         {
-          type: 'String',
-          label: 'display fields',
+          type: 'Number',
+          label: 'Customer',
           widget: 'Dropdown',
           search: 'dynamic',
-          options: (ctx, searchValue) => ['config 1', 'config 2', 'config 3'],
+          options: async (ctx, searchValue) => {
+            const results = await ctx.dataSource.getCollection('customer').list(
+              {
+                conditionTree: {
+                  aggregator: 'Or',
+                  conditions: [
+                    { field: 'name', operator: 'Match', value: searchValue },
+                    { field: 'firstName', operator: 'Match', value: searchValue },
+                  ],
+                },
+              },
+              ['id'],
+            );
+
+            return results.map(({ id }) => id);
+          },
+        },
+        {
+          type: 'String',
+          label: 'Plan',
+          widget: 'Dropdown',
+          options: ['Base', 'Gold', 'Black'],
         },
         {
           type: 'Layout',
           component: 'HtmlBlock',
           content: ctx => {
-            switch (ctx.formValues['display fields']) {
-              case 'config 1':
-                return `<h1>Should display:</h1>
+            switch (ctx.formValues.Plan) {
+              case 'Base':
+                return `<h1>Should setup:</h1>
                 <ul>
                   <li>separator</li>
-                  <li>field 0</li>
-                  <li>row 1, fields 1 and 2</li>
+                  <li>price</li>
+                  <li>max withdraw / max payment</li>
                 </ul>`;
-              case 'config 2':
-                return `<h1>Should display:</h1>
+              case 'Gold':
+                return `<h1>Should setup:</h1>
                 <ul>
-                  <li>row 1, fields 2 and 3</li>
-                  <li>row 2, fields 4 and 5</li>
+                  <li>max payment / Systematic check</li>
+                  <li>discount / discount months</li>
                 </ul>`;
-              case 'config 3':
-                return `<h1>Should display:</h1>
+              case 'Back':
+                return `<h1>Should setup:</h1>
                 <ul>
-                  <li>row 1, field 1</li>
+                  <li>max withdraw</li>
                 </ul>`;
               default:
-                return `Select a fields configuration`;
+                return `Select a card plan`;
             }
           },
         },
         {
           type: 'Layout',
           component: 'Separator',
-          if: ctx => ['config 1'].includes(ctx.formValues['display fields']),
+          if: ctx => ['Base'].includes(ctx.formValues.Plan),
         },
         {
-          type: 'String',
-          label: 'field 0',
-          if: ctx => ['config 1'].includes(ctx.formValues['display fields']),
+          type: 'Number',
+          label: 'price',
+          defaultValue: 40,
+          if: ctx => ['Base'].includes(ctx.formValues.Plan),
         },
         {
-          type: 'Layout',
-          component: 'Separator',
+          type: 'Number',
+          label: 'price',
+          defaultValue: 80,
+          if: ctx => ['Gold'].includes(ctx.formValues.Plan),
         },
-        {
-          type: 'Layout',
-          component: 'Separator',
-        },
+        { type: 'Layout', component: 'Separator' },
+        { type: 'Layout', component: 'HtmlBlock', content: '<h3>constraints:</h3>' },
         {
           type: 'Layout',
           component: 'Row',
           fields: [
             {
               type: 'Number',
-              label: 'field 1',
-              if: ctx => ['config 1', 'config 3'].includes(ctx.formValues['display fields']),
+              label: 'Max withdraw',
+              if: ctx => ['config 1', 'config 3'].includes(ctx.formValues.Plan),
             },
             {
               type: 'Number',
-              label: 'field 2',
-              if: ctx => ['config 1', 'config 2'].includes(ctx.formValues['display fields']),
+              label: 'Max payment',
+              if: ctx => ['config 1', 'config 2'].includes(ctx.formValues.Plan),
             },
             {
-              type: 'Number',
-              label: 'field 3',
+              type: 'Boolean',
+              label: 'Systematic check',
               if: ctx =>
-                ['config 1', 'config 2'].includes(ctx.formValues['display fields']) &&
-                ctx.formValues['field 2'] === 3,
+                ['config 1', 'config 2'].includes(ctx.formValues.Plan) &&
+                ctx.formValues['Max payment'] > 1000,
             },
           ],
         },
@@ -99,112 +115,15 @@ export default (collection: CardCustomizer) =>
           fields: [
             {
               type: 'Number',
-              label: 'field 4',
+              label: 'Discount',
               if: ctx => ['config 2'].includes(ctx.formValues['display fields']),
             },
             {
               type: 'Number',
-              label: 'field 5',
+              label: 'Discount months',
               if: ctx => ['config 2'].includes(ctx.formValues['display fields']),
             },
           ],
         },
-        // {
-        //   type: 'Layout',
-        //   component: 'Page',
-        //   // "if_": lambda ctx: ctx.form_values.get("Number of children") != 0,
-        //   elements: [
-        { type: 'Number', label: 'Number of children' },
-        { type: 'Boolean', label: 'Are they wise' },
-        //   ],
-        //   nextButtonLabel: '==>',
-        //   previousButtonLabel: '<==',
-        // },
-        // {
-        //   type: 'Layout',
-        //   component: 'Page',
-        //   // "if_": lambda ctx: ctx.form_values.get("Are they wise") is False,
-        //   elements: [
-        //     {
-        //       type: 'Layout',
-        //       component: 'Row',
-        //       fields: [
-        { type: 'StringList', label: 'Why_its_your_fault' },
-        { type: 'String', label: 'Why_its_their_fault', widget: 'TextArea' },
-        //         ],
-        //       },
-        //     ],
-        //     nextButtonLabel: '==>',
-        //     previousButtonLabel: '<==',
-        //   },
-      ],
-    })
-    .addAction('static action with form', {
-      scope: 'Bulk',
-      execute: (context, resultBuilder) => {
-        resultBuilder.success('ok');
-      },
-      form: [
-        // {
-        //   type: 'Layout',
-        //   component: 'Page',
-        //   nextButtonLabel: '==>',
-        //   previousButtonLabel: '<==',
-        //   elements: [
-        // {
-        //   type: 'Layout',
-        //   component: 'Separator',
-        // },
-        // {
-        //   type: 'Layout',
-        //   component: 'Row',
-        //   fields: [
-        {
-          type: 'Enum',
-          label: 'Gender',
-          enumValues: ['M', 'F', 'other'],
-        },
-        {
-          type: 'String',
-          label: 'Gender_other',
-        },
-        //   ],
-        // },
-        //   ],
-        // },
-        // {
-        //   type: 'Layout',
-        //   component: 'Page',
-        //   elements: [
-        { type: 'Number', label: 'Number of children' },
-        // {
-        //   type: 'Layout',
-        //   component: 'Row',
-        //   fields: [
-        { type: 'Number', label: 'Age of older child' },
-        { type: 'Number', label: 'Age of younger child' },
-        //   ],
-        // },
-        { type: 'Boolean', label: 'Are they wise' },
-        //   ],
-        //   nextButtonLabel: '==>',
-        //   previousButtonLabel: '<==',
-        // },
-        // {
-        //   type: 'Layout',
-        //   component: 'Page',
-        //   elements: [
-        //     {
-        //       type: 'Layout',
-        //       component: 'Row',
-        //       fields: [
-        { type: 'StringList', label: 'Why_its_your_fault' },
-        { type: 'String', label: 'Why_its_their_fault', widget: 'TextArea' },
-        //         ],
-        //       },
-        //     ],
-        //     nextButtonLabel: '==>',
-        //     previousButtonLabel: '<==',
-        //   },
       ],
     });

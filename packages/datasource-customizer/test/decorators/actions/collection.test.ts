@@ -684,4 +684,95 @@ describe('ActionDecorator', () => {
       ]);
     });
   });
+
+  describe('with a form with layout elements', () => {
+    test('should be flagged as dynamic form', () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          { label: 'firstname', type: 'String' },
+          { type: 'Layout', component: 'Separator' },
+          { label: 'lastname', type: 'String' },
+        ],
+      });
+
+      expect(newBooks.schema.actions['make photocopy']).toEqual({
+        scope: 'Single',
+        generateFile: false,
+        staticForm: false,
+      });
+    });
+
+    test('should compute the form recursively', async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          {
+            type: 'Layout',
+            component: 'Row',
+            fields: [
+              { label: 'firstname', type: 'String' },
+              { label: 'lastname', type: 'String' },
+            ],
+          },
+          { type: 'Layout', component: 'Separator' },
+          { label: 'age', type: 'Number' },
+          {
+            type: 'Layout',
+            component: 'Row',
+            fields: [
+              { label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
+              {
+                label: 'email',
+                type: 'String',
+                defaultValue: ctx => `${ctx.formValues.firstname}.${ctx.formValues.lastname}@`,
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await newBooks.getForm(null, 'make photocopy', null, null)).toEqual([
+        {
+          component: 'Row',
+          fields: [
+            { label: 'firstname', type: 'String', value: undefined, watchChanges: true },
+            { label: 'lastname', type: 'String', value: undefined, watchChanges: true },
+          ],
+          type: 'Layout',
+        },
+        { component: 'Separator', type: 'Layout' },
+        { label: 'age', type: 'Number', value: undefined, watchChanges: true },
+        {
+          component: 'Row',
+          fields: [
+            { label: 'email', type: 'String', value: 'undefined.undefined@', watchChanges: false },
+          ],
+          type: 'Layout',
+        },
+      ]);
+
+      expect(
+        await newBooks.getForm(null, 'make photocopy', { age: 25, lastname: 'smith' }, null),
+      ).toEqual(
+        expect.arrayContaining([
+          { label: 'age', type: 'Number', value: 25, watchChanges: true },
+          {
+            component: 'Row',
+            fields: [
+              { label: 'tel', type: 'Number', value: undefined, watchChanges: false },
+              { label: 'email', type: 'String', value: 'undefined.smith@', watchChanges: false },
+            ],
+            type: 'Layout',
+          },
+        ]),
+      );
+    });
+  });
 });
