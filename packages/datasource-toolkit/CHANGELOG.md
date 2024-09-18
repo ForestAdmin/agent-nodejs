@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.35.0...@forestadmin/datasource-toolkit@1.36.0) (2024-09-17)
+
+
+### Features
+
+* add html block in action forms ([#1172](https://github.com/ForestAdmin/agent-nodejs/issues/1172)) ([4c67ccd](https://github.com/ForestAdmin/agent-nodejs/commit/4c67ccd71f5a818fc8891366f44f84d5208e15dc))
+
 # @forestadmin/datasource-toolkit [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.34.5...@forestadmin/datasource-toolkit@1.35.0) (2024-09-17)
 
 

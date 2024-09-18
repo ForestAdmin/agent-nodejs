@@ -44,12 +44,6 @@ export default (collection: CardCustomizer) =>
           options: ['Base', 'Gold', 'Black'],
         },
         {
-          type: 'String',
-          label: 'Plan',
-          widget: 'Dropdown',
-          options: ['Base', 'Gold', 'Black'],
-        },
-        {
           type: 'Layout',
           component: 'HtmlBlock',
           content: ctx => {

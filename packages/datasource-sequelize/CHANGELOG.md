@@ -1,3 +1,13 @@
+## @forestadmin/datasource-sequelize [1.9.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.3...@forestadmin/datasource-sequelize@1.9.4) (2024-09-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.36.0
+
 ## @forestadmin/datasource-sequelize [1.9.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.2...@forestadmin/datasource-sequelize@1.9.3) (2024-09-17)
 
 
