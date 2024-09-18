@@ -100,7 +100,10 @@ export default class SchemaGeneratorActions {
   /** Build schema for given field */
   static buildFieldSchema(dataSource: DataSource, field: ActionField): ForestServerActionField {
     const { id, label, description, isRequired, isReadOnly, watchChanges, type } = field;
-    const output = { id, label, description, isRequired, isReadOnly } as Record<string, unknown>;
+    const output = { field: id, label, description, isRequired, isReadOnly } as Record<
+      string,
+      unknown
+    >;
 
     output.value = ForestValueConverter.valueToForest(field, field.value);
 

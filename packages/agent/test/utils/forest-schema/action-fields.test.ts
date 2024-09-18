@@ -22,6 +22,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is Collection', () => {
       const result = ActionFields.isCollectionField({
         type: 'Collection',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -34,6 +35,7 @@ describe('ActionFields', () => {
       type => {
         const result = ActionFields.isCollectionField({
           type,
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
         });
@@ -53,6 +55,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is Enum', () => {
       const result = ActionFields.isEnumField({
         type: 'Enum',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         enumValues: ['value1', 'value2'],
@@ -66,6 +69,7 @@ describe('ActionFields', () => {
       type => {
         const result = ActionFields.isEnumField({
           type,
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
         });
@@ -85,6 +89,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is EnumList', () => {
       const result = ActionFields.isEnumListField({
         type: 'EnumList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         enumValues: ['value1', 'value2'],
@@ -98,6 +103,7 @@ describe('ActionFields', () => {
       type => {
         const result = ActionFields.isEnumListField({
           type,
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
         });
@@ -117,6 +123,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is File', () => {
       const result = ActionFields.isFileField({
         type: 'File',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -129,6 +136,7 @@ describe('ActionFields', () => {
       type => {
         const result = ActionFields.isFileField({
           type,
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
         });
@@ -148,6 +156,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is FileList', () => {
       const result = ActionFields.isFileListField({
         type: 'FileList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -160,6 +169,7 @@ describe('ActionFields', () => {
       type => {
         const result = ActionFields.isFileListField({
           type,
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
         });
@@ -179,6 +189,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is Dropdown', () => {
       const result = ActionFields.isDropdownField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -190,6 +201,7 @@ describe('ActionFields', () => {
     it('should return false when the field type is not Dropdown', () => {
       const result = ActionFields.isDropdownField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -208,6 +220,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is RadioGroup', () => {
       const result = ActionFields.isRadioGroupField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'RadioGroup',
@@ -219,6 +232,7 @@ describe('ActionFields', () => {
     it('should return false when the field type is not RadioGroup', () => {
       const result = ActionFields.isRadioGroupField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -237,6 +251,7 @@ describe('ActionFields', () => {
     it('should return true when the field type is CheckboxGroup', () => {
       const result = ActionFields.isCheckboxGroupField({
         type: 'StringList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'CheckboxGroup',
@@ -248,6 +263,7 @@ describe('ActionFields', () => {
     it('should return false when the field type is not CheckboxGroup', () => {
       const result = ActionFields.isCheckboxGroupField({
         type: 'StringList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -266,6 +282,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a checkbox', () => {
       const result = ActionFields.isCheckboxField({
         type: 'Boolean',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Checkbox',
@@ -277,6 +294,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a checkbox', () => {
       const result = ActionFields.isCheckboxField({
         type: 'Boolean',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'TextInput' as any,
@@ -290,6 +308,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a text input', () => {
       const result = ActionFields.isTextInputField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'TextInput',
@@ -301,6 +320,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a text input', () => {
       const result = ActionFields.isTextInputField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -315,6 +335,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a text input list', () => {
       const result = ActionFields.isTextInputListField({
         type: 'StringList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'TextInputList',
@@ -326,6 +347,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a text input list', () => {
       const result = ActionFields.isTextInputListField({
         type: 'StringList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -340,6 +362,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a text area', () => {
       const result = ActionFields.isTextAreaField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'TextArea',
@@ -351,6 +374,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a text area', () => {
       const result = ActionFields.isTextAreaField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -371,6 +395,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a rich text', () => {
       const result = ActionFields.isRichTextField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'RichText',
@@ -382,6 +407,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a rich text', () => {
       const result = ActionFields.isRichTextField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -402,6 +428,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a number input', () => {
       const result = ActionFields.isNumberInputField({
         type: 'Number',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'NumberInput',
@@ -413,6 +440,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a number input', () => {
       const result = ActionFields.isNumberInputField({
         type: 'Number',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -433,6 +461,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a number list input', () => {
       const result = ActionFields.isNumberInputListField({
         type: 'NumberList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'NumberInputList',
@@ -444,6 +473,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a number list input', () => {
       const result = ActionFields.isNumberInputListField({
         type: 'NumberList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -464,6 +494,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a color input', () => {
       const result = ActionFields.isColorPickerField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'ColorPicker',
@@ -475,6 +506,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a color input', () => {
       const result = ActionFields.isColorPickerField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -495,6 +527,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a currency input', () => {
       const result = ActionFields.isCurrencyInputField({
         type: 'Number',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'CurrencyInput',
@@ -507,6 +540,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a currency input', () => {
       const result = ActionFields.isCurrencyInputField({
         type: 'Number',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -527,6 +561,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a json editor', () => {
       const result = ActionFields.isJsonEditorField({
         type: 'Json',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'JsonEditor',
@@ -538,6 +573,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a json editor', () => {
       const result = ActionFields.isJsonEditorField({
         type: 'Json',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown' as any,
@@ -557,6 +593,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a user input', () => {
       const result = ActionFields.isUserDropdownField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'UserDropdown',
@@ -569,6 +606,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not a user input', () => {
       const result = ActionFields.isUserDropdownField({
         type: 'Number',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -589,6 +627,7 @@ describe('ActionFields', () => {
     it('should return true if the field is an address autocomplete', () => {
       const result = ActionFields.isAddressAutocompleteField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'AddressAutocomplete',
@@ -600,6 +639,7 @@ describe('ActionFields', () => {
     it('should return false if the field is not an address autocomplete', () => {
       const result = ActionFields.isAddressAutocompleteField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown' as any,
@@ -619,6 +659,7 @@ describe('ActionFields', () => {
     it('should return true if the field is a file picker', () => {
       const result = ActionFields.isFilePickerField({
         type: 'File',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'FilePicker',
@@ -636,6 +677,7 @@ describe('ActionFields', () => {
     it('should return false when passing another type of widget', () => {
       const result = ActionFields.isFilePickerField({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown' as any,
@@ -649,6 +691,7 @@ describe('ActionFields', () => {
     it('should return true when the field has a widget', () => {
       const result = ActionFields.hasWidget({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         // @ts-expect-error widget could be anything at this point
@@ -661,6 +704,7 @@ describe('ActionFields', () => {
     it('should return false when the field has no widget', () => {
       const result = ActionFields.hasWidget({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
