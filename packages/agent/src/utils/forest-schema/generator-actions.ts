@@ -5,12 +5,14 @@ import {
   Collection,
   ColumnSchema,
   DataSource,
+  LayoutElementInput,
   PrimitiveTypes,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import {
   ForestServerAction,
   ForestServerActionField,
+  ForestServerActionFormElementFieldReference,
   ForestServerActionFormLayoutElement,
 } from '@forestadmin/forestadmin-client';
 import path from 'path';
@@ -126,7 +128,14 @@ export default class SchemaGeneratorActions {
     return output as ForestServerActionField;
   }
 
-  static buildLayoutSchema(element: ActionLayoutElement): ForestServerActionFormLayoutElement {
+  static buildLayoutSchema(
+    element: ActionLayoutElement,
+    options?: { forceInput?: boolean },
+  ): ForestServerActionFormLayoutElement {
+    if (options?.forceInput) {
+      element.component = 'Input';
+    }
+
     switch (element.component) {
       case 'Input':
         return {
@@ -137,6 +146,16 @@ export default class SchemaGeneratorActions {
         return {
           component: 'htmlBlock',
           content: element.content,
+        };
+      case 'Row':
+        return {
+          component: 'row',
+          fields: element.fields.map(
+            field =>
+              SchemaGeneratorActions.buildLayoutSchema(field, {
+                forceInput: true,
+              }) as ForestServerActionFormElementFieldReference,
+          ),
         };
       case 'Separator':
       default:
@@ -159,16 +178,9 @@ export default class SchemaGeneratorActions {
     formElements.forEach(element => {
       if (element.type === 'Layout') {
         hasLayout = true;
-
-        layout.push(element);
-      } else {
-        fields.push(element);
-        layout.push({
-          type: 'Layout',
-          component: 'Input',
-          fieldId: element.label,
-        });
       }
+
+      layout.push(SchemaGeneratorActions.parseLayout(element, fields));
     });
 
     if (!hasLayout) {
@@ -176,5 +188,34 @@ export default class SchemaGeneratorActions {
     }
 
     return { fields, layout };
+  }
+
+  private static parseLayout(
+    element: ActionFormElement,
+    allFields: ActionField[],
+  ): ActionLayoutElement {
+    if (element.type === 'Layout') {
+      if (element.component === 'Row') {
+        const fields = element.fields.map(
+          field => SchemaGeneratorActions.parseLayout(field, allFields) as LayoutElementInput,
+        );
+
+        return {
+          type: 'Layout',
+          component: 'Row',
+          fields,
+        };
+      }
+
+      return element;
+    }
+
+    allFields.push(element);
+
+    return {
+      type: 'Layout',
+      component: 'Input',
+      fieldId: element.label,
+    };
   }
 }

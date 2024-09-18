@@ -134,15 +134,6 @@ describe('SchemaGeneratorActions', () => {
             watchChanges: false,
           },
           {
-            type: 'Layout',
-            component: 'Separator',
-          },
-          {
-            type: 'Layout',
-            component: 'HtmlBlock',
-            content: 'some text content',
-          },
-          {
             label: 'inclusive gender',
             description: 'Choose None, Male, Female or Both',
             type: 'EnumList',
@@ -313,9 +304,20 @@ describe('SchemaGeneratorActions', () => {
               content: 'some text content',
             },
             {
-              label: 'description',
-              type: 'String',
-              watchChanges: false,
+              type: 'Layout',
+              component: 'Row',
+              fields: [
+                {
+                  label: 'description',
+                  type: 'String',
+                  watchChanges: false,
+                },
+                {
+                  label: 'address',
+                  type: 'String',
+                  watchChanges: false,
+                },
+              ],
             },
           ],
         ),
@@ -327,7 +329,7 @@ describe('SchemaGeneratorActions', () => {
 
       const schema = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, form);
 
-      expect(schema.fields.length).toEqual(2);
+      expect(schema.fields.length).toEqual(3);
       expect(schema.layout).toEqual([
         {
           component: 'input',
@@ -336,8 +338,17 @@ describe('SchemaGeneratorActions', () => {
         { component: 'separator' },
         { component: 'htmlBlock', content: 'some text content' },
         {
-          component: 'input',
-          fieldId: 'description',
+          component: 'row',
+          fields: [
+            {
+              component: 'input',
+              fieldId: 'description',
+            },
+            {
+              component: 'input',
+              fieldId: 'address',
+            },
+          ],
         },
       ]);
     });

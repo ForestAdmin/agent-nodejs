@@ -20,7 +20,7 @@ export type File = {
 };
 
 export type ActionFormElementBase = {
-  type: ActionFieldType | LayoutElementType;
+  type: ActionFieldType | 'Layout';
 };
 
 export interface ActionFieldBase extends ActionFormElementBase {
@@ -49,8 +49,6 @@ type ActionFieldType =
   | 'FileList'
   | 'NumberList'
   | 'StringList';
-
-export type LayoutElementType = 'Layout';
 
 interface ActionFieldLimitedValue<
   TWidget extends ActionFieldWidget,
@@ -267,7 +265,17 @@ interface LayoutElementHtmlBlock extends ActionLayoutElementBase {
   content: string;
 }
 
-interface LayoutElementInput extends ActionLayoutElementBase {
+interface LayoutElementRow extends ActionLayoutElementBase {
+  component: 'Row';
+  fields: LayoutElementInput[];
+}
+
+interface LayoutElementRowRecursive extends ActionLayoutElementBase {
+  component: 'Row';
+  fields: ActionField[];
+}
+
+export interface LayoutElementInput extends ActionLayoutElementBase {
   component: 'Input';
   fieldId: string;
 }
@@ -275,9 +283,16 @@ interface LayoutElementInput extends ActionLayoutElementBase {
 export type ActionLayoutElement =
   | LayoutElementSeparator
   | LayoutElementHtmlBlock
+  | LayoutElementRow
   | LayoutElementInput;
 
-export type ActionFormElement = ActionLayoutElement | ActionField;
+export type ActionLayoutElementRecursive =
+  | LayoutElementSeparator
+  | LayoutElementHtmlBlock
+  | LayoutElementRowRecursive
+  | LayoutElementInput;
+
+export type ActionFormElement = ActionLayoutElementRecursive | ActionField;
 
 export type ActionForm = { fields: ActionField[]; layout: ActionLayoutElement[] };
 

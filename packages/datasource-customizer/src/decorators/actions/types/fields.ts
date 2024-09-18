@@ -255,8 +255,14 @@ type DynamicLayoutElementHtmlBlock<Context> = DynamicLayoutElementBase<Context> 
   content: ValueOrHandler<Context, string>;
 };
 
+type DynamicLayoutElementRow<Context> = DynamicLayoutElementBase<Context> & {
+  component: 'Row';
+  fields: DynamicField<Context>[];
+};
+
 export type DynamicLayoutElement<Context = unknown> =
   | DynamicLayoutElementSeparator<Context>
+  | DynamicLayoutElementRow<Context>
   | DynamicLayoutElementHtmlBlock<Context>;
 
 export type DynamicFormElement<Context = unknown> =
