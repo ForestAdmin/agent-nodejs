@@ -299,7 +299,9 @@ describe('ActionRoute', () => {
             actions: { MySingleAction: { scope: 'Single' } },
             fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
           },
-          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+          getForm: jest
+            .fn()
+            .mockResolvedValue([{ type: 'String', label: 'firstname', id: 'firstname' }]),
           execute: jest.fn().mockResolvedValue({
             type: 'Error',
             message: 'the result does not matter',
@@ -574,7 +576,7 @@ describe('ActionRoute', () => {
       );
 
       expect(context.response.body).toEqual({
-        fields: [{ field: 'firstname', type: 'String' }],
+        fields: [{ field: 'firstname', type: 'String', label: 'firstname' }],
         layout: [],
       });
     });
@@ -583,7 +585,7 @@ describe('ActionRoute', () => {
       const context = createMockContext(baseContext);
 
       dataSource.getCollection('books').getForm = jest.fn().mockResolvedValue([
-        { type: 'String', label: 'firstname' },
+        { type: 'String', id: 'firstname', label: 'firstname' },
         { type: 'Layout', component: 'Separator' },
       ]);
 
@@ -591,7 +593,7 @@ describe('ActionRoute', () => {
       await route.handleHook(context);
 
       expect(context.response.body).toEqual({
-        fields: [{ field: 'firstname', type: 'String' }],
+        fields: [{ field: 'firstname', type: 'String', label: 'firstname' }],
         layout: [{ component: 'input', fieldId: 'firstname' }, { component: 'separator' }],
       });
     });
@@ -641,7 +643,7 @@ describe('ActionRoute', () => {
       );
 
       expect(context.response.body).toEqual({
-        fields: [{ field: 'firstname', type: 'String' }],
+        fields: [{ field: 'firstname', type: 'String', label: 'firstname' }],
         layout: [],
       });
     });
