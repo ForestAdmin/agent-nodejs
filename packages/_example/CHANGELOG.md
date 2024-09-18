@@ -1,3 +1,24 @@
+# example [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.8.47...example@1.9.0) (2024-09-18)
+
+
+### Features
+
+* add row in action forms ([#1173](https://github.com/ForestAdmin/agent-nodejs/issues/1173)) ([8770699](https://github.com/ForestAdmin/agent-nodejs/commit/87706996293e286846fdf5c7ae06e10f88e96176))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.44.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.1.28
+* **@forestadmin/datasource-mongo:** upgraded to 1.3.17
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.17
+* **@forestadmin/datasource-sequelize:** upgraded to 1.9.5
+* **@forestadmin/datasource-sql:** upgraded to 1.14.21
+* **@forestadmin/datasource-toolkit:** upgraded to 1.37.0
+
 ## example [1.8.47](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.8.46...example@1.8.47) (2024-09-17)
 
 

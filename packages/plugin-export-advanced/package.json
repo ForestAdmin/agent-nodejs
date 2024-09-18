@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-export-advanced",
-  "version": "1.0.98",
+  "version": "1.0.99",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -15,8 +15,8 @@
     "excel4node": "^1.8.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.49.0",
-    "@forestadmin/datasource-toolkit": "1.36.0"
+    "@forestadmin/datasource-customizer": "1.50.0",
+    "@forestadmin/datasource-toolkit": "1.37.0"
   },
   "files": [
     "dist/**/*.js",
