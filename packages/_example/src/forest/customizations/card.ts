@@ -88,6 +88,11 @@ export default (collection: CardCustomizer) =>
           defaultValue: 80,
           if: ctx => ['Gold'].includes(ctx.formValues.Plan),
         },
+        {
+          type: 'Number',
+          id: 'test-price',
+          label: 'price',
+        },
         { type: 'Layout', component: 'Separator' },
         { type: 'Layout', component: 'HtmlBlock', content: '<h3>constraints:</h3>' },
         {

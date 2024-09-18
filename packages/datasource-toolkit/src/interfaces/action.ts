@@ -26,6 +26,7 @@ export type ActionFormElementBase = {
 export interface ActionFieldBase extends ActionFormElementBase {
   type: ActionFieldType;
   widget?: ActionFieldWidget;
+  id: string;
   label: string;
   description?: string;
   isRequired?: boolean;

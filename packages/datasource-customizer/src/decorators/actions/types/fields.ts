@@ -22,6 +22,7 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
 
 type BaseDynamicField<Type, Context, Result> = {
   type: Type;
+  id?: string;
   label: string;
   description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;
@@ -267,4 +268,10 @@ export type DynamicLayoutElement<Context = unknown> =
 
 export type DynamicFormElement<Context = unknown> =
   | DynamicField<Context>
+  | DynamicLayoutElement<Context>;
+
+export type DynamicFieldWithId<Context = unknown> = DynamicField<Context> & { id: string };
+
+export type DynamicFormElementWithId<Context = unknown> =
+  | DynamicFieldWithId<Context>
   | DynamicLayoutElement<Context>;

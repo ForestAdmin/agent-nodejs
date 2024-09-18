@@ -29,6 +29,7 @@ export default class SchemaGeneratorActions {
   static defaultFields: ForestServerActionField[] = [
     {
       field: 'Loading...',
+      label: 'Loading...',
       type: 'String',
       isReadOnly: true,
       defaultValue: 'Form is loading',
@@ -98,10 +99,9 @@ export default class SchemaGeneratorActions {
 
   /** Build schema for given field */
   static buildFieldSchema(dataSource: DataSource, field: ActionField): ForestServerActionField {
-    const { label, description, isRequired, isReadOnly, watchChanges, type } = field;
-    const output = { description, isRequired, isReadOnly } as Record<string, unknown>;
+    const { id, label, description, isRequired, isReadOnly, watchChanges, type } = field;
+    const output = { id, label, description, isRequired, isReadOnly } as Record<string, unknown>;
 
-    output.field = label;
     output.value = ForestValueConverter.valueToForest(field, field.value);
 
     if (watchChanges) output.hook = 'changeHook';
@@ -215,7 +215,7 @@ export default class SchemaGeneratorActions {
     return {
       type: 'Layout',
       component: 'Input',
-      fieldId: element.label,
+      fieldId: element.id,
     };
   }
 }

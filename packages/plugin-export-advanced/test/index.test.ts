@@ -77,6 +77,7 @@ describe('plugin-export-advanced', () => {
 
       expect(form).toEqual([
         {
+          id: 'Filename',
           label: 'Filename',
           type: 'String',
           value: `books - ${new Date().toISOString().substring(0, 10)}`,
@@ -84,6 +85,7 @@ describe('plugin-export-advanced', () => {
         },
         {
           enumValues: ['.csv', '.xlsx', '.json'],
+          id: 'Format',
           label: 'Format',
           type: 'Enum',
           value: '.csv',
@@ -91,6 +93,7 @@ describe('plugin-export-advanced', () => {
         },
         {
           enumValues: ['id', 'title', 'author:id', 'author:fullname'],
+          id: 'Fields',
           label: 'Fields',
           type: 'EnumList',
           value: ['id', 'title', 'author:id', 'author:fullname'],

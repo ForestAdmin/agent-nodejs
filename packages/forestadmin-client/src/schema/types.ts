@@ -69,6 +69,7 @@ export type ForestServerActionFieldCommon<
   defaultValue: unknown;
   description: string | null;
   field: string;
+  label: string;
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
