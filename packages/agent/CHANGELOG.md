@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.43.0...@forestadmin/agent@1.44.0) (2024-09-18)
+
+
+### Features
+
+* add row in action forms ([#1173](https://github.com/ForestAdmin/agent-nodejs/issues/1173)) ([8770699](https://github.com/ForestAdmin/agent-nodejs/commit/87706996293e286846fdf5c7ae06e10f88e96176))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.50.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.37.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.30.0
+
 # @forestadmin/agent [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.42.0...@forestadmin/agent@1.43.0) (2024-09-17)
 
 
