@@ -135,8 +135,8 @@ describe('ActionDecorator', () => {
           return resultBuilder.error('meeh');
         },
         form: [
-          { label: 'firstname', type: 'String' },
-          { label: 'lastname', type: 'String' },
+          { id: 'firstname', label: 'firstname', type: 'String' },
+          { id: 'lastname', label: 'lastname', type: 'String' },
         ],
       });
     });
@@ -153,8 +153,13 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy', {});
 
       expect(fields).toEqual([
-        { label: 'firstname', type: 'String', watchChanges: false },
-        { label: 'lastname', type: 'String', watchChanges: false },
+        {
+          id: 'firstname',
+          label: 'firstname',
+          type: 'String',
+          watchChanges: false,
+        },
+        { id: 'lastname', label: 'lastname', type: 'String', watchChanges: false },
       ]);
     });
   });
@@ -265,12 +270,19 @@ describe('ActionDecorator', () => {
 
       expect(fields).toEqual([
         {
+          id: 'firstname',
           label: 'firstname',
           type: 'String',
           watchChanges: true,
           value: 'DynamicDefault',
         },
-        { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+        {
+          id: 'lastname',
+          label: 'lastname',
+          type: 'String',
+          isReadOnly: true,
+          watchChanges: false,
+        },
       ]);
     });
 
@@ -281,12 +293,14 @@ describe('ActionDecorator', () => {
 
       expect(fields).toEqual([
         {
+          id: 'firstname',
           label: 'firstname',
           type: 'String',
           watchChanges: true,
           value: 'DynamicDefault',
         },
         {
+          id: 'lastname',
           label: 'lastname',
           type: 'String',
           value: 'value',
@@ -302,8 +316,14 @@ describe('ActionDecorator', () => {
       });
 
       expect(fields).toEqual([
-        { label: 'firstname', type: 'String', watchChanges: true, value: null },
-        { label: 'lastname', type: 'String', isReadOnly: false, watchChanges: false },
+        { id: 'firstname', label: 'firstname', type: 'String', watchChanges: true, value: null },
+        {
+          id: 'lastname',
+          label: 'lastname',
+          type: 'String',
+          isReadOnly: false,
+          watchChanges: false,
+        },
       ]);
     });
 
@@ -313,8 +333,14 @@ describe('ActionDecorator', () => {
       });
 
       expect(fields).toEqual([
-        { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
-        { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+        { id: 'firstname', label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
+        {
+          id: 'lastname',
+          label: 'lastname',
+          type: 'String',
+          isReadOnly: true,
+          watchChanges: false,
+        },
       ]);
     });
 
@@ -331,8 +357,20 @@ describe('ActionDecorator', () => {
         );
 
         expect(fields).toEqual([
-          { label: 'firstname', type: 'String', watchChanges: true, value: 'John' },
-          { label: 'lastname', type: 'String', isReadOnly: true, watchChanges: false },
+          {
+            id: 'firstname',
+            label: 'firstname',
+            type: 'String',
+            watchChanges: true,
+            value: 'John',
+          },
+          {
+            id: 'lastname',
+            label: 'lastname',
+            type: 'String',
+            isReadOnly: true,
+            watchChanges: false,
+          },
         ]);
       });
     });
@@ -376,12 +414,13 @@ describe('ActionDecorator', () => {
       expect(fields).toHaveLength(2);
       expect(fields).toEqual([
         {
+          id: 'id',
           label: 'id',
           type: 'String',
           watchChanges: false,
           value: undefined,
         },
-        { label: 'title', type: 'String', watchChanges: false, value: undefined },
+        { id: 'title', label: 'title', type: 'String', watchChanges: false, value: undefined },
       ]);
     });
 
@@ -392,12 +431,14 @@ describe('ActionDecorator', () => {
 
       expect(fields).toEqual([
         {
+          id: 'id',
           label: 'id',
           type: 'String',
           watchChanges: false,
           value: undefined,
         },
         {
+          id: 'title',
           label: 'title',
           type: 'String',
           value: 'value',
@@ -443,6 +484,7 @@ describe('ActionDecorator', () => {
       );
       expect(fields).toEqual([
         {
+          id: 'firstname',
           label: 'firstname',
           type: 'String',
           value: 'DynamicDefault',
@@ -550,6 +592,7 @@ describe('ActionDecorator', () => {
         const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
         expect(fields).toEqual([
           {
+            id: 'lastname',
             label: 'lastname',
             type: 'String',
             watchChanges: false,
@@ -566,12 +609,14 @@ describe('ActionDecorator', () => {
         execute: () => {},
         form: [
           {
+            id: 'default',
             label: 'default',
             type: 'String',
             defaultValue: 'hello',
             value: 'hello',
           },
           {
+            id: 'dynamic search',
             label: 'dynamic search',
             type: 'String',
             widget: 'Dropdown',
@@ -596,6 +641,7 @@ describe('ActionDecorator', () => {
       );
       expect(fields).toStrictEqual([
         {
+          id: 'dynamic search',
           label: 'dynamic search',
           type: 'String',
           options: expect.arrayContaining(['123', 'user@domain.com']),
@@ -671,11 +717,13 @@ describe('ActionDecorator', () => {
       const fields = await newBooks.getForm(factories.caller.build(), 'make photocopy');
       expect(fields).toEqual([
         {
+          id: 'change',
           label: 'change',
           type: 'String',
           watchChanges: true,
         },
         {
+          id: 'to change',
           label: 'to change',
           type: 'String',
           isReadOnly: true,
@@ -717,18 +765,19 @@ describe('ActionDecorator', () => {
             type: 'Layout',
             component: 'Row',
             fields: [
-              { label: 'firstname', type: 'String' },
-              { label: 'lastname', type: 'String' },
+              { id: 'firstname', label: 'firstname', type: 'String' },
+              { id: 'lastname', label: 'lastname', type: 'String' },
             ],
           },
           { type: 'Layout', component: 'Separator' },
-          { label: 'age', type: 'Number' },
+          { id: 'age', label: 'age', type: 'Number' },
           {
             type: 'Layout',
             component: 'Row',
             fields: [
-              { label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
+              { id: 'tel', label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
               {
+                id: 'email',
                 label: 'email',
                 type: 'String',
                 defaultValue: ctx => `${ctx.formValues.firstname}.${ctx.formValues.lastname}@`,
@@ -742,17 +791,35 @@ describe('ActionDecorator', () => {
         {
           component: 'Row',
           fields: [
-            { label: 'firstname', type: 'String', value: undefined, watchChanges: true },
-            { label: 'lastname', type: 'String', value: undefined, watchChanges: true },
+            {
+              id: 'firstname',
+              label: 'firstname',
+              type: 'String',
+              value: undefined,
+              watchChanges: true,
+            },
+            {
+              id: 'lastname',
+              label: 'lastname',
+              type: 'String',
+              value: undefined,
+              watchChanges: true,
+            },
           ],
           type: 'Layout',
         },
         { component: 'Separator', type: 'Layout' },
-        { label: 'age', type: 'Number', value: undefined, watchChanges: true },
+        { id: 'age', label: 'age', type: 'Number', value: undefined, watchChanges: true },
         {
           component: 'Row',
           fields: [
-            { label: 'email', type: 'String', value: 'undefined.undefined@', watchChanges: false },
+            {
+              id: 'email',
+              label: 'email',
+              type: 'String',
+              value: 'undefined.undefined@',
+              watchChanges: false,
+            },
           ],
           type: 'Layout',
         },
@@ -762,12 +829,18 @@ describe('ActionDecorator', () => {
         await newBooks.getForm(null, 'make photocopy', { age: 25, lastname: 'smith' }, null),
       ).toEqual(
         expect.arrayContaining([
-          { label: 'age', type: 'Number', value: 25, watchChanges: true },
+          { id: 'age', label: 'age', type: 'Number', value: 25, watchChanges: true },
           {
             component: 'Row',
             fields: [
-              { label: 'tel', type: 'Number', value: undefined, watchChanges: false },
-              { label: 'email', type: 'String', value: 'undefined.smith@', watchChanges: false },
+              { id: 'tel', label: 'tel', type: 'Number', value: undefined, watchChanges: false },
+              {
+                id: 'email',
+                label: 'email',
+                type: 'String',
+                value: 'undefined.smith@',
+                watchChanges: false,
+              },
             ],
             type: 'Layout',
           },
