@@ -1,3 +1,14 @@
+## example [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.9.1...example@1.9.2) (2024-09-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.9.7
+* **@forestadmin/datasource-sql:** upgraded to 1.14.23
+
 ## example [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.9.0...example@1.9.1) (2024-09-19)
 
 
