@@ -269,9 +269,3 @@ export type DynamicLayoutElement<Context = unknown> =
 export type DynamicFormElement<Context = unknown> =
   | DynamicField<Context>
   | DynamicLayoutElement<Context>;
-
-export type DynamicFieldWithId<Context = unknown> = DynamicField<Context> & { id: string };
-
-export type DynamicFormElementWithId<Context = unknown> =
-  | DynamicFieldWithId<Context>
-  | DynamicLayoutElement<Context>;

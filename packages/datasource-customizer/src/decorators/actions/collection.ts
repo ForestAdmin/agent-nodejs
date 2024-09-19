@@ -16,14 +16,20 @@ import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
 import {
-  DynamicFieldWithId,
+  DynamicField,
   DynamicFormElement,
-  DynamicFormElementWithId,
+  DynamicLayoutElement,
   Handler,
   SearchOptionsHandler,
   ValueOrHandler,
 } from './types/fields';
 import { TSchema } from '../../templates';
+
+type DynamicFieldWithId<Context = unknown> = DynamicField<Context> & { id: string };
+
+type DynamicFormElementWithId<Context = unknown> =
+  | DynamicFieldWithId<Context>
+  | DynamicLayoutElement<Context>;
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
