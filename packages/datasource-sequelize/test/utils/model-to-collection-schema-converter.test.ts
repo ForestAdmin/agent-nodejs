@@ -536,7 +536,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         };
 
         const model = sequelize.define(
-          '__model_a__',
+          '__model__',
           {
             myPk: {
               type: DataTypes.INTEGER,
@@ -589,7 +589,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
         };
 
         const model = sequelize.define(
-          '__model_b__',
+          '__model__',
           {
             myPk: {
               type: DataTypes.INTEGER,
