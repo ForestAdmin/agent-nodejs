@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.9.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.5...@forestadmin/datasource-sequelize@1.9.6) (2024-09-19)
+
+
+### Bug Fixes
+
+* **sequelize:** model validation should handle correctly is validator ([#1176](https://github.com/ForestAdmin/agent-nodejs/issues/1176)) ([9d528f6](https://github.com/ForestAdmin/agent-nodejs/commit/9d528f6f9ac115d43d27cffc824f25dda9419376))
+
 ## @forestadmin/datasource-sequelize [1.9.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.4...@forestadmin/datasource-sequelize@1.9.5) (2024-09-18)
 
 
