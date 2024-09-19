@@ -297,7 +297,7 @@ export default class ModelToCollectionSchemaConverter {
         // Not sure about this behavior
         // value.forEach(v => {
         //   validations.push({
-        //     operator: 'Like',
+        //     operator: 'Match',
         //     value: v,
         //   });
         // });
