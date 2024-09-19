@@ -294,12 +294,13 @@ export default class ModelToCollectionSchemaConverter {
           value: value.toString(),
         });
       } else {
-        value.forEach(v => {
-          validations.push({
-            operator: 'Like',
-            value: v.toString(),
-          });
-        });
+        // Not sure about this behavior
+        // value.forEach(v => {
+        //   validations.push({
+        //     operator: 'Like',
+        //     value: v.toString(),
+        //   });
+        // });
       }
     }
 
