@@ -460,8 +460,8 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 value: 'ContainsThisString',
               },
               {
-                operator: 'Like',
-                value: '/^[a-z]+$/',
+                operator: 'Match',
+                value: /^[a-z]+$/,
               },
             ]),
             type: 'Column',
@@ -524,8 +524,8 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               isSortable: true,
               validation: expect.arrayContaining([
                 {
-                  operator: 'Like',
-                  value: '/^[a-z]+$/',
+                  operator: 'Match',
+                  value: /^[a-z]+$/,
                 },
               ]),
               type: 'Column',

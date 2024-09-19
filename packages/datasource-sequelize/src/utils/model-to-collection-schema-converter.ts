@@ -290,15 +290,15 @@ export default class ModelToCollectionSchemaConverter {
 
       if (!Array.isArray(value)) {
         validations.push({
-          operator: 'Like',
-          value: value.toString(),
+          operator: 'Match',
+          value,
         });
       } else {
         // Not sure about this behavior
         // value.forEach(v => {
         //   validations.push({
-        //     operator: 'Like',
-        //     value: v.toString(),
+        //     operator: 'Match',
+        //     value: v,
         //   });
         // });
       }
