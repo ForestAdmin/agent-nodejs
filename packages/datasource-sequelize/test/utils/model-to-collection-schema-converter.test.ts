@@ -499,5 +499,115 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
 
       expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
+
+    describe('is validator', () => {
+      it('should work with args definition', () => {
+        const { sequelize } = setup();
+
+        const schema: CollectionSchema = {
+          actions: {},
+          charts: [],
+          countable: true,
+          fields: expect.objectContaining({
+            myPk: {
+              columnType: 'Number',
+              filterOperators: TypeConverter.operatorsForColumnType('Number'),
+              isPrimaryKey: true,
+              isSortable: true,
+              validation: [],
+              type: 'Column',
+            },
+            myValue: {
+              columnType: 'String',
+              defaultValue: '__default__',
+              filterOperators: TypeConverter.operatorsForColumnType('String'),
+              isSortable: true,
+              validation: expect.arrayContaining([
+                {
+                  operator: 'Like',
+                  value: '/^[a-z]+$/',
+                },
+              ]),
+              type: 'Column',
+            },
+          }),
+          searchable: false,
+          segments: [],
+        };
+
+        const model = sequelize.define(
+          '__model__',
+          {
+            myPk: {
+              type: DataTypes.INTEGER,
+              primaryKey: true,
+            },
+            myValue: {
+              type: DataTypes.STRING,
+              defaultValue: '__default__',
+              validate: {
+                is: {
+                  args: /^[a-z]+$/,
+                  msg: 'MESSAGE_PROJECT_NAME_VALIDATION_ERROR_FORMAT',
+                },
+              },
+            },
+          },
+          { timestamps: true },
+        );
+
+        expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
+      });
+
+      it('should not handle array of regex', () => {
+        const { sequelize } = setup();
+
+        const schema: CollectionSchema = {
+          actions: {},
+          charts: [],
+          countable: true,
+          fields: expect.objectContaining({
+            myPk: {
+              columnType: 'Number',
+              filterOperators: TypeConverter.operatorsForColumnType('Number'),
+              isPrimaryKey: true,
+              isSortable: true,
+              validation: [],
+              type: 'Column',
+            },
+            myValue: {
+              columnType: 'String',
+              defaultValue: '__default__',
+              filterOperators: TypeConverter.operatorsForColumnType('String'),
+              isSortable: true,
+              validation: [],
+              type: 'Column',
+            },
+          }),
+          searchable: false,
+          segments: [],
+        };
+
+        const model = sequelize.define(
+          '__model__',
+          {
+            myPk: {
+              type: DataTypes.INTEGER,
+              primaryKey: true,
+            },
+            myValue: {
+              type: DataTypes.STRING,
+              defaultValue: '__default__',
+              validate: {
+                is: [/^[a-z]+$/],
+              },
+            },
+          },
+          { timestamps: true },
+        );
+
+        expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
+      });
+    });
   });
 });
