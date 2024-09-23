@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.37.0...@forestadmin/datasource-toolkit@1.38.0) (2024-09-23)
+
+
+### Features
+
+* add optional id in action form fields ([#1174](https://github.com/ForestAdmin/agent-nodejs/issues/1174)) ([f2db803](https://github.com/ForestAdmin/agent-nodejs/commit/f2db803cba2e29d1b92845c376874560783221da))
+
 # @forestadmin/datasource-toolkit [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.36.0...@forestadmin/datasource-toolkit@1.37.0) (2024-09-18)
 
 
