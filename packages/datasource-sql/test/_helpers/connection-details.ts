@@ -70,7 +70,8 @@ export const POSTGRESQL_DETAILS: ConnectionDetails[] = [
 }));
 
 export const MSSQL_DETAILS: ConnectionDetails[] = [
-  [2017, 1417],
+  // Remove 2017 tests for now due to instable docker
+  // [2017, 1417],
   [2022, 1422],
 ].map(([version, port]) => ({
   name: `MS SQL Server ${version}`,

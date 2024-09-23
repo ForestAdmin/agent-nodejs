@@ -272,13 +272,35 @@ export default class ModelToCollectionSchemaConverter {
     }
 
     if (attribute.validate.is) {
-      const value = attribute.validate.is;
+      let value;
 
-      if (!Array.isArray(attribute.validate.is)) {
-        validations.push({
-          operator: 'Like',
-          value: value.toString(),
+      if (
+        (
+          attribute.validate.is as {
+            args: string | RegExp | readonly (string | RegExp)[];
+          }
+        ).args
+      ) {
+        ({ args: value } = attribute.validate.is as {
+          args: string | RegExp | readonly (string | RegExp)[];
         });
+      } else {
+        value = attribute.validate.is;
+      }
+
+      if (!Array.isArray(value)) {
+        validations.push({
+          operator: 'Match',
+          value,
+        });
+      } else {
+        // Not sure about this behavior
+        // value.forEach(v => {
+        //   validations.push({
+        //     operator: 'Match',
+        //     value: v,
+        //   });
+        // });
       }
     }
 
