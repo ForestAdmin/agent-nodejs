@@ -43,6 +43,7 @@ describe('SchemaGeneratorActions', () => {
       },
       [
         {
+          id: 'label',
           label: 'label',
           description: 'email',
           type: 'String',
@@ -86,6 +87,7 @@ describe('SchemaGeneratorActions', () => {
       },
       [
         {
+          id: 'label',
           label: 'label',
           description: 'email',
           type: 'String',
@@ -115,6 +117,7 @@ describe('SchemaGeneratorActions', () => {
         },
         [
           {
+            id: 'author',
             label: 'author',
             description: 'choose an author',
             type: 'Collection',
@@ -125,6 +128,7 @@ describe('SchemaGeneratorActions', () => {
             collectionName: 'authors',
           },
           {
+            id: 'avatar',
             label: 'avatar',
             description: 'choose an avatar',
             type: 'File',
@@ -134,6 +138,7 @@ describe('SchemaGeneratorActions', () => {
             watchChanges: false,
           },
           {
+            id: 'inclusive gender',
             label: 'inclusive gender',
             description: 'Choose None, Male, Female or Both',
             type: 'EnumList',
@@ -162,6 +167,7 @@ describe('SchemaGeneratorActions', () => {
       // Relation to other collection
       expect(schema.fields[0]).toMatchObject({
         field: 'author',
+        label: 'author',
         reference: 'authors.primaryId',
         type: 'Uuid', // type of the pk
       });
@@ -196,6 +202,7 @@ describe('SchemaGeneratorActions', () => {
           },
           [
             {
+              id: 'title',
               label: 'title',
               description: 'updated title',
               type: 'String',
@@ -214,6 +221,7 @@ describe('SchemaGeneratorActions', () => {
 
       expect(schema.fields[0]).toEqual({
         field: 'title',
+        label: 'title',
         defaultValue: null,
         description: 'updated title',
         isReadOnly: false,
@@ -233,6 +241,7 @@ describe('SchemaGeneratorActions', () => {
           },
           [
             {
+              id: 'format',
               label: 'format',
               description: 'new format',
               type: 'String',
@@ -286,6 +295,7 @@ describe('SchemaGeneratorActions', () => {
           },
           [
             {
+              id: 'title',
               label: 'title',
               description: 'updated title',
               type: 'String',
@@ -308,11 +318,13 @@ describe('SchemaGeneratorActions', () => {
               component: 'Row',
               fields: [
                 {
+                  id: 'description',
                   label: 'description',
                   type: 'String',
                   watchChanges: false,
                 },
                 {
+                  id: 'address',
                   label: 'address',
                   type: 'String',
                   watchChanges: false,

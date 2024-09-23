@@ -18,11 +18,18 @@ import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './type
 import {
   DynamicField,
   DynamicFormElement,
+  DynamicLayoutElement,
   Handler,
   SearchOptionsHandler,
   ValueOrHandler,
 } from './types/fields';
 import { TSchema } from '../../templates';
+
+type DynamicFieldWithId<Context = unknown> = DynamicField<Context> & { id: string };
+
+type DynamicFormElementWithId<Context = unknown> =
+  | DynamicFieldWithId<Context>
+  | DynamicLayoutElement<Context>;
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
@@ -88,10 +95,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       ];
     }
 
-    dynamicFields = await this.dropDefaults(context, dynamicFields, formValues);
-    if (!metas?.includeHiddenFields) dynamicFields = await this.dropIfs(context, dynamicFields);
+    let dynamicFieldsWithId = await this.dropDefaultsAndSetId(context, dynamicFields, formValues);
 
-    const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFields);
+    if (!metas?.includeHiddenFields) {
+      dynamicFieldsWithId = await this.dropIfs(context, dynamicFieldsWithId);
+    }
+
+    const fields = await this.dropDeferred(context, metas?.searchValues, dynamicFieldsWithId);
 
     this.setWatchChangesOnFields(formValues, used, fields);
 
@@ -164,18 +174,20 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     );
   }
 
-  private async dropDefaults(
+  private async dropDefaultsAndSetId(
     context: ActionContext,
     fields: DynamicFormElement[],
     data: Record<string, unknown>,
-  ): Promise<DynamicFormElement[]> {
+  ): Promise<DynamicFormElementWithId[]> {
     const promises = fields.map(async field => {
       if (field.type !== 'Layout') {
-        return this.dropDefault(context, field, data);
+        field.id = field.id || field.label;
+
+        return this.dropDefault(context, field as DynamicFieldWithId, data);
       }
 
       await this.executeOnSubFields(field, subfields =>
-        this.dropDefaults(context, subfields, data),
+        this.dropDefaultsAndSetId(context, subfields, data),
       );
 
       return field;
@@ -186,12 +198,12 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private async dropDefault(
     context: ActionContext,
-    field: DynamicField,
+    field: DynamicFieldWithId,
     data: Record<string, unknown>,
-  ): Promise<DynamicField> {
-    if (data[field.label] === undefined) {
+  ): Promise<DynamicFieldWithId> {
+    if (data[field.id] === undefined) {
       const defaultValue = await this.evaluate(context, null, field.defaultValue);
-      data[field.label] = defaultValue;
+      data[field.id] = defaultValue;
     }
 
     delete field.defaultValue;
@@ -201,8 +213,8 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private async dropIfs(
     context: ActionContext,
-    fields: DynamicFormElement[],
-  ): Promise<DynamicFormElement[]> {
+    fields: DynamicFormElementWithId[],
+  ): Promise<DynamicFormElementWithId[]> {
     // Remove fields which have falsy if
     const ifValues = await Promise.all(
       fields.map(async field => {
@@ -235,7 +247,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   private async dropDeferred(
     context: ActionContext,
     searchValues: Record<string, string | null> | null,
-    fields: DynamicFormElement[],
+    fields: DynamicFormElementWithId[],
   ): Promise<ActionFormElement[]> {
     const newFields = fields.map(async (field): Promise<ActionFormElement> => {
       await this.executeOnSubFields(field, subfields =>
@@ -245,7 +257,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       const keys = Object.keys(field);
       const values = await Promise.all(
         Object.values(field).map(value => {
-          const searchValue = field.type === 'Layout' ? null : searchValues?.[field.label];
+          const searchValue = field.type === 'Layout' ? null : searchValues?.[field.id];
 
           return this.evaluate(context, searchValue, value);
         }),
@@ -291,10 +303,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   ) {
     if (field.type !== 'Layout') {
       // customer did not define a handler to rewrite the previous value => reuse current one.
-      if (field.value === undefined) field.value = formValues[field.label];
+      if (field.value === undefined) field.value = formValues[field.id];
 
       // fields that were accessed through the context.formValues.X getter should be watched.
-      field.watchChanges = used.has(field.label);
+      field.watchChanges = used.has(field.id);
     }
 
     return field;

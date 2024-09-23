@@ -22,6 +22,7 @@ export type ValueOrHandler<Context = unknown, Result = unknown> =
 
 type BaseDynamicField<Type, Context, Result> = {
   type: Type;
+  id?: string;
   label: string;
   description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;

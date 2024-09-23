@@ -25,6 +25,7 @@ describe('ForestValueConverter', () => {
     test('should unserialize ids', () => {
       const fields = [
         {
+          id: 'review',
           label: 'review',
           type: 'Collection' as const,
           watchChanges: false,
@@ -39,9 +40,9 @@ describe('ForestValueConverter', () => {
 
     test('should unserialize files when relevant', () => {
       const fields = [
-        { label: 'file', type: 'File' as const, watchChanges: false },
-        { label: 'file2', type: 'String' as const, watchChanges: false },
-        { label: 'file3', type: 'FileList' as const, watchChanges: false },
+        { id: 'file', label: 'file', type: 'File' as const, watchChanges: false },
+        { id: 'file2', label: 'file2', type: 'String' as const, watchChanges: false },
+        { id: 'file3', label: 'file3', type: 'FileList' as const, watchChanges: false },
       ];
 
       const data = {
@@ -188,6 +189,7 @@ describe('ForestValueConverter', () => {
   describe('valueToForest', () => {
     test('should check enums', () => {
       const field = {
+        id: 'label',
         label: 'label',
         type: 'Enum' as const,
         enumValues: ['a', 'b', 'c'],
@@ -200,6 +202,7 @@ describe('ForestValueConverter', () => {
 
     test('should check enum lists', () => {
       const field = {
+        id: 'label',
         label: 'label',
         type: 'EnumList' as const,
         enumValues: ['a', 'b', 'c'],
@@ -212,6 +215,7 @@ describe('ForestValueConverter', () => {
 
     test('should pack ids', () => {
       const field = {
+        id: 'label',
         label: 'label',
         type: 'Collection' as const,
         collectionName: 'reviews',
@@ -222,7 +226,12 @@ describe('ForestValueConverter', () => {
     });
 
     test('should make data uris', () => {
-      const field = { label: 'label', type: 'File' as const, watchChanges: false };
+      const field = {
+        id: 'label',
+        label: 'label',
+        type: 'File' as const,
+        watchChanges: false,
+      };
 
       expect(
         ForestValueConverter.valueToForest(field, {
@@ -233,7 +242,12 @@ describe('ForestValueConverter', () => {
     });
 
     test('should make data uris in lists', () => {
-      const field = { label: 'label', type: 'FileList' as const, watchChanges: false };
+      const field = {
+        id: 'label',
+        label: 'label',
+        type: 'FileList' as const,
+        watchChanges: false,
+      };
 
       expect(
         ForestValueConverter.valueToForest(field, [

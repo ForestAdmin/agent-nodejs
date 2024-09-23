@@ -19,7 +19,7 @@ export default class ForestValueConverter {
     const data = {};
 
     for (const [key, value] of Object.entries(rawData)) {
-      const field = fields.find(f => f.label === key);
+      const field = fields.find(f => f.id === key);
 
       // Skip fields from the default form
       if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {

@@ -5,6 +5,7 @@ describe('GeneratorActionFieldWidget', () => {
     it('should return null when field has no widget', () => {
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
       });
@@ -15,6 +16,7 @@ describe('GeneratorActionFieldWidget', () => {
     it('should return null when the field type is Collection', () => {
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'Collection',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -26,6 +28,7 @@ describe('GeneratorActionFieldWidget', () => {
     it('should return null when the field type is Enum', () => {
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'Enum',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -38,6 +41,7 @@ describe('GeneratorActionFieldWidget', () => {
     it('should return null when the field type is EnumList', () => {
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'EnumList',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'Dropdown',
@@ -51,6 +55,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'Dropdown',
@@ -81,6 +86,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should include the searchType="dynamic"', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'Dropdown',
@@ -105,6 +111,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid configuration with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'Dropdown',
@@ -128,6 +135,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'RadioGroup',
@@ -153,6 +161,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid configuration with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'RadioGroup',
@@ -173,6 +182,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'StringList',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'CheckboxGroup',
@@ -198,6 +208,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid configuration with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'StringList',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'CheckboxGroup',
@@ -218,6 +229,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Boolean',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'Checkbox',
@@ -234,6 +246,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should generate a default text input', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TextInput',
@@ -250,6 +263,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should add the placeholder if present', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TextInput',
@@ -269,6 +283,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'StringList',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TextInputList',
@@ -288,6 +303,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should pass the options to the widget', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'StringList',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TextInputList',
@@ -313,6 +329,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid and empty widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TextArea',
@@ -330,6 +347,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with placeholder', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TextArea',
@@ -347,6 +365,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should return a valid widget edit with rows', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'String',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'TextArea',
@@ -365,6 +384,7 @@ describe('GeneratorActionFieldWidget', () => {
           rows => {
             const result = GeneratorActionFieldWidget.buildWidgetOptions({
               type: 'String',
+              id: 'Label',
               label: 'Label',
               watchChanges: false,
               widget: 'TextArea',
@@ -382,6 +402,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should round the rows value', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'String',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'TextArea',
@@ -401,6 +422,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'RichText',
@@ -417,6 +439,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with placeholder', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'RichText',
@@ -435,6 +458,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Number',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'NumberInput',
@@ -454,6 +478,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with placeholder', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Number',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'NumberInput',
@@ -471,6 +496,7 @@ describe('GeneratorActionFieldWidget', () => {
         it.each([undefined, null, 'foo'])(`should return null when ${parameter} is %s`, value => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Number',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'NumberInput',
@@ -490,6 +516,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'NumberList',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'NumberInputList',
@@ -520,6 +547,7 @@ describe('GeneratorActionFieldWidget', () => {
         ({ property, value, resultProperty }) => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'NumberList',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'NumberInputList',
@@ -539,6 +567,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'ColorPicker',
@@ -559,6 +588,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Number',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'CurrencyInput',
@@ -582,6 +612,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should copy a valid value in parameters', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Number',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'CurrencyInput',
@@ -600,6 +631,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should ignore an invalid value and replace it by null', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Number',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'CurrencyInput',
@@ -619,6 +651,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should copy the placeholder', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Number',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'CurrencyInput',
@@ -640,6 +673,7 @@ describe('GeneratorActionFieldWidget', () => {
           base => {
             const result = GeneratorActionFieldWidget.buildWidgetOptions({
               type: 'Number',
+              id: 'Label',
               label: 'Label',
               watchChanges: false,
               widget: 'CurrencyInput',
@@ -662,6 +696,7 @@ describe('GeneratorActionFieldWidget', () => {
           base => {
             const result = GeneratorActionFieldWidget.buildWidgetOptions({
               type: 'Number',
+              id: 'Label',
               label: 'Label',
               watchChanges: false,
               widget: 'CurrencyInput',
@@ -682,6 +717,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should replace invalid values by Unit', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Number',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'CurrencyInput',
@@ -703,6 +739,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should copy a valid value in parameters', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Number',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'CurrencyInput',
@@ -720,6 +757,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should uppercase the currency', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Number',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'CurrencyInput',
@@ -739,6 +777,7 @@ describe('GeneratorActionFieldWidget', () => {
           currency => {
             const result = GeneratorActionFieldWidget.buildWidgetOptions({
               type: 'Number',
+              id: 'Label',
               label: 'Label',
               watchChanges: false,
               widget: 'CurrencyInput',
@@ -760,6 +799,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Date',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'DatePicker',
@@ -780,6 +820,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should copy a valid value in parameters', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Date',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'DatePicker',
@@ -800,6 +841,7 @@ describe('GeneratorActionFieldWidget', () => {
           const date = new Date('2000-02-01T00:01:01.001Z');
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Date',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'DatePicker',
@@ -817,6 +859,7 @@ describe('GeneratorActionFieldWidget', () => {
         it('should ignore an invalid value and replace it by null', () => {
           const result = GeneratorActionFieldWidget.buildWidgetOptions({
             type: 'Date',
+            id: 'Label',
             label: 'Label',
             watchChanges: false,
             widget: 'DatePicker',
@@ -837,6 +880,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Time',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'TimePicker',
@@ -853,6 +897,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'Json',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'JsonEditor',
@@ -869,6 +914,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'UserDropdown',
@@ -885,6 +931,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           placeholder: 'abc',
@@ -904,6 +951,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'AddressAutocomplete',
@@ -920,6 +968,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           placeholder: 'abc',
@@ -939,6 +988,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with default values', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'File',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'FilePicker',
@@ -958,6 +1008,7 @@ describe('GeneratorActionFieldWidget', () => {
       it('should return a valid widget edit with placeholder mapped in parameters', () => {
         const result = GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'File',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           widget: 'FilePicker',
@@ -982,6 +1033,7 @@ describe('GeneratorActionFieldWidget', () => {
       expect(() => {
         GeneratorActionFieldWidget.buildWidgetOptions({
           type: 'String',
+          id: 'Label',
           label: 'Label',
           watchChanges: false,
           // @ts-expect-error Unsupported widget
@@ -993,6 +1045,7 @@ describe('GeneratorActionFieldWidget', () => {
     it('should return a valid widget with all the properties', () => {
       const result = GeneratorActionFieldWidget.buildWidgetOptions({
         type: 'String',
+        id: 'Label',
         label: 'Label',
         watchChanges: false,
         widget: 'ColorPicker',
