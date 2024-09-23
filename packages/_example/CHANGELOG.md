@@ -1,3 +1,24 @@
+# example [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.9.2...example@1.10.0) (2024-09-23)
+
+
+### Features
+
+* add optional id in action form fields ([#1174](https://github.com/ForestAdmin/agent-nodejs/issues/1174)) ([f2db803](https://github.com/ForestAdmin/agent-nodejs/commit/f2db803cba2e29d1b92845c376874560783221da))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.45.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.1.29
+* **@forestadmin/datasource-mongo:** upgraded to 1.3.18
+* **@forestadmin/datasource-mongoose:** upgraded to 1.7.18
+* **@forestadmin/datasource-sequelize:** upgraded to 1.9.8
+* **@forestadmin/datasource-sql:** upgraded to 1.14.24
+* **@forestadmin/datasource-toolkit:** upgraded to 1.38.0
+
 ## example [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.9.1...example@1.9.2) (2024-09-19)
 
 
