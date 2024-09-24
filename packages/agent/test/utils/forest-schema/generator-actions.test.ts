@@ -9,6 +9,8 @@ describe('SchemaGeneratorActions', () => {
       scope: 'Single',
       generateFile: false,
       staticForm: true,
+      description: 'hello',
+      submitButtonLabel: 'here we go',
     });
 
     test('should generate schema correctly', async () => {
@@ -24,6 +26,8 @@ describe('SchemaGeneratorActions', () => {
         httpMethod: 'POST',
         redirect: null,
         type: 'single',
+        description: 'hello',
+        submitButtonLabel: 'here we go',
         hooks: {
           // No form => hooks are disabled
           load: false,
