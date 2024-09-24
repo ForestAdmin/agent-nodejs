@@ -19,9 +19,7 @@ import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './type
 import {
   DynamicField,
   DynamicForm,
-  DynamicFormElement,
   DynamicFormElementOrPage,
-  DynamicLayoutElementPage,
   Handler,
   SearchOptionsHandler,
   ValueOrHandler,
@@ -35,7 +33,7 @@ type DynamicFormElementWithId<Context = unknown> = DynamicFormElementOrPage<
   DynamicFieldWithId<Context>
 >;
 
-type GenericFormElement = DynamicFormElement | DynamicLayoutElementPage | ActionFormElement;
+type GenericFormElement = DynamicFormElementOrPage | ActionFormElement;
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;

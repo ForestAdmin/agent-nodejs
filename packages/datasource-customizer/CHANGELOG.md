@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.51.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.50.0...@forestadmin/datasource-customizer@1.51.0) (2024-09-23)
+
+
+### Features
+
+* add optional id in action form fields ([#1174](https://github.com/ForestAdmin/agent-nodejs/issues/1174)) ([f2db803](https://github.com/ForestAdmin/agent-nodejs/commit/f2db803cba2e29d1b92845c376874560783221da))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.38.0
+
 # @forestadmin/datasource-customizer [1.50.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.49.0...@forestadmin/datasource-customizer@1.50.0) (2024-09-18)
 
 
