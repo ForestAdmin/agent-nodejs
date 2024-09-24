@@ -8,7 +8,7 @@ export interface ComputedDefinition<
   N extends TCollectionName<S> = TCollectionName<S>,
 > {
   readonly columnType: ColumnType;
-  readonly dependencies: TFieldName<S, N>[];
+  readonly dependencies: [TFieldName<S, N>, ...TFieldName<S, N>[]];
   readonly defaultValue?: unknown;
   readonly enumValues?: string[];
 
