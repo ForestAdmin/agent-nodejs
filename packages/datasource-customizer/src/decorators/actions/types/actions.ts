@@ -1,6 +1,6 @@
 import { ActionResult, ActionScope } from '@forestadmin/datasource-toolkit';
 
-import { DynamicFormElement } from './fields';
+import { DynamicForm } from './fields';
 import { TCollectionName, TSchema } from '../../../templates';
 import ActionContext from '../context/base';
 import ActionContextSingle from '../context/single';
@@ -17,10 +17,8 @@ export interface BaseAction<
   generateFile?: boolean;
   scope: Scope;
   form?:
-    | DynamicFormElement<Context>[]
-    | ((
-        context: Context,
-      ) => Promise<DynamicFormElement<Context>[]> | DynamicFormElement<Context>[]);
+    | DynamicForm<Context>
+    | ((context: Context) => Promise<DynamicForm<Context>> | DynamicForm<Context>);
   execute(
     context: Context,
     resultBuilder: ResultBuilder,

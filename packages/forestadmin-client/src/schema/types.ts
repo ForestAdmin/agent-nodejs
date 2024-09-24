@@ -269,6 +269,13 @@ type ForestServerActionFormElementRow = {
   fields: ForestServerActionFormElementFieldReference[];
 };
 
+type ForestServerActionFormElementPage = {
+  component: 'page';
+  nextButtonLabel?: string;
+  previousButtonLabel?: string;
+  elements: ForestServerActionFormLayoutElement[];
+};
+
 export type ForestServerActionFormElementFieldReference = {
   component: 'input';
   fieldId: string;
@@ -278,7 +285,8 @@ export type ForestServerActionFormLayoutElement =
   | ForestServerActionFormElementSeparator
   | ForestServerActionFormElementHtmlBlock
   | ForestServerActionFormElementRow
-  | ForestServerActionFormElementFieldReference;
+  | ForestServerActionFormElementFieldReference
+  | ForestServerActionFormElementPage;
 
 export type ForestServerActionField =
   | ForestServerActionFieldDropdown

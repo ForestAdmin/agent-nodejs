@@ -133,10 +133,16 @@ export default class SchemaGeneratorActions {
 
   static buildLayoutSchema(
     element: ActionLayoutElement,
-    options?: { forceInput?: boolean },
+    options?: { forceInput?: boolean; preventPage?: boolean },
   ): ForestServerActionFormLayoutElement {
     if (options?.forceInput) {
       element.component = 'Input';
+    }
+
+    if (options?.preventPage && element.component === 'Page') {
+      return {
+        component: 'separator',
+      };
     }
 
     switch (element.component) {
@@ -158,6 +164,18 @@ export default class SchemaGeneratorActions {
               SchemaGeneratorActions.buildLayoutSchema(field, {
                 forceInput: true,
               }) as ForestServerActionFormElementFieldReference,
+          ),
+        };
+      case 'Page':
+        return {
+          component: 'page',
+          nextButtonLabel: element.nextButtonLabel,
+          previousButtonLabel: element.previousButtonLabel,
+          elements: element.elements.map(
+            subElement =>
+              SchemaGeneratorActions.buildLayoutSchema(subElement, {
+                preventPage: true,
+              }) as ForestServerActionFormLayoutElement,
           ),
         };
       case 'Separator':
@@ -183,7 +201,9 @@ export default class SchemaGeneratorActions {
         hasLayout = true;
       }
 
-      layout.push(SchemaGeneratorActions.parseLayout(element, fields));
+      const layoutElement = SchemaGeneratorActions.parseLayout(element, fields);
+      console.log(layoutElement);
+      layout.push(layoutElement);
     });
 
     if (!hasLayout) {
@@ -198,16 +218,21 @@ export default class SchemaGeneratorActions {
     allFields: ActionField[],
   ): ActionLayoutElement {
     if (element.type === 'Layout') {
-      if (element.component === 'Row') {
-        const fields = element.fields.map(
+      const subElementsKey = {
+        Row: 'fields',
+        Page: 'elements',
+      };
+
+      if (element.component === 'Row' || element.component === 'Page') {
+        const key = subElementsKey[element.component];
+        const subElements = element[key].map(
           field => SchemaGeneratorActions.parseLayout(field, allFields) as LayoutElementInput,
         );
 
         return {
-          type: 'Layout',
-          component: 'Row',
-          fields,
-        };
+          ...element,
+          [key]: subElements,
+        } as ActionLayoutElement;
       }
 
       return element;

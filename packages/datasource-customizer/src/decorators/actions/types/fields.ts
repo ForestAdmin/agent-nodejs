@@ -256,16 +256,37 @@ type DynamicLayoutElementHtmlBlock<Context> = DynamicLayoutElementBase<Context> 
   content: ValueOrHandler<Context, string>;
 };
 
-type DynamicLayoutElementRow<Context> = DynamicLayoutElementBase<Context> & {
+type DynamicLayoutElementRow<
+  Context,
+  FieldType = DynamicField<Context>,
+> = DynamicLayoutElementBase<Context> & {
   component: 'Row';
-  fields: DynamicField<Context>[];
+  fields: FieldType[];
 };
 
-export type DynamicLayoutElement<Context = unknown> =
+export type DynamicLayoutElementPage<
+  Context = unknown,
+  FieldType = DynamicField<Context>,
+> = DynamicLayoutElementBase<Context> & {
+  component: 'Page';
+  nextButtonLabel?: ValueOrHandler<Context, string>;
+  previousButtonLabel?: ValueOrHandler<Context, string>;
+  elements: DynamicFormElement<Context, FieldType>[];
+};
+
+export type DynamicLayoutElement<Context = unknown, FieldType = DynamicField<Context>> =
   | DynamicLayoutElementSeparator<Context>
-  | DynamicLayoutElementRow<Context>
+  | DynamicLayoutElementRow<Context, FieldType>
   | DynamicLayoutElementHtmlBlock<Context>;
 
-export type DynamicFormElement<Context = unknown> =
-  | DynamicField<Context>
-  | DynamicLayoutElement<Context>;
+export type DynamicFormElement<Context = unknown, FieldType = DynamicField<Context>> =
+  | FieldType
+  | DynamicLayoutElement<Context, FieldType>;
+
+export type DynamicFormElementOrPage<Context = unknown, FieldType = DynamicField<Context>> =
+  | DynamicFormElement<Context, FieldType>
+  | DynamicLayoutElementPage<Context, FieldType>;
+
+export type DynamicForm<Context = unknown> =
+  | DynamicFormElement<Context>[]
+  | DynamicLayoutElementPage<Context>[];
