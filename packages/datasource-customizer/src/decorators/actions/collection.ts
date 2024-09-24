@@ -84,10 +84,12 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
 
     // Convert DynamicField to ActionField in successive steps.
-    let dynamicFields: DynamicFormElementOrPage[] = this.isHandler(action.form)
+    let dynamicFields: DynamicForm = this.isHandler(action.form)
       ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicForm)(context)
       : // copy fields to keep original object unchanged
         await this.copyFields(action.form);
+
+    this.ensureFormIsCorrect(dynamicFields);
 
     if (metas?.searchField) {
       // in the case of a search hook,
@@ -108,6 +110,22 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     this.setWatchChangesOnFields(formValues, used, fields);
 
     return fields;
+  }
+
+  private ensureFormIsCorrect(form: DynamicForm) {
+    const multiPages = form[0].type === 'Layout' && form[0].component === 'Page';
+
+    form.forEach(element => {
+      const elementIsPage = element.type === 'Layout' && element.component === 'Page';
+
+      if (multiPages && !elementIsPage) {
+        throw new Error('Multipages forms can only have pages as root elements of the form array');
+      }
+
+      if (!multiPages && elementIsPage) {
+        throw new Error('Single page forms cannot have pages as root elements of the form array');
+      }
+    });
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {

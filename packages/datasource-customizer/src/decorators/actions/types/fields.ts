@@ -287,6 +287,7 @@ export type DynamicFormElementOrPage<Context = unknown, FieldType = DynamicField
   | DynamicFormElement<Context, FieldType>
   | DynamicLayoutElementPage<Context, FieldType>;
 
-export type DynamicForm<Context = unknown> =
-  | DynamicFormElement<Context>[]
-  | DynamicLayoutElementPage<Context>[];
+export type DynamicForm<Context = unknown> = DynamicFormElementOrPage<
+  Context,
+  DynamicField<Context>
+>[];
