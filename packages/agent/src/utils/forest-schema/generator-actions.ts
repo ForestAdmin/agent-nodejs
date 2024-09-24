@@ -73,6 +73,8 @@ export default class SchemaGeneratorActions {
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),
       fields,
+      description: schema.description,
+      submitButtonLabel: schema.submitButtonLabel,
       hooks: {
         load: !schema.staticForm,
         // Always registering the change hook has no consequences, even if we don't use it.

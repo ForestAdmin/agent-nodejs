@@ -16,6 +16,8 @@ export interface BaseAction<
 > {
   generateFile?: boolean;
   scope: Scope;
+  description?: string;
+  submitButtonLabel?: string;
   form?:
     | DynamicFormElement<Context>[]
     | ((
