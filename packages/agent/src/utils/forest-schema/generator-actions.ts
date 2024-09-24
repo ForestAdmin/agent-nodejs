@@ -202,7 +202,6 @@ export default class SchemaGeneratorActions {
       }
 
       const layoutElement = SchemaGeneratorActions.parseLayout(element, fields);
-      console.log(layoutElement);
       layout.push(layoutElement);
     });
 

@@ -113,7 +113,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   }
 
   private ensureFormIsCorrect(form: DynamicForm) {
-    const multiPages = form[0].type === 'Layout' && form[0].component === 'Page';
+    const multiPages = form[0]?.type === 'Layout' && form[0]?.component === 'Page';
 
     form.forEach(element => {
       const elementIsPage = element.type === 'Layout' && element.component === 'Page';
