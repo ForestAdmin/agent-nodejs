@@ -43,6 +43,8 @@ export type ForestServerAction = {
   download: boolean;
   fields: ForestServerActionField[];
   layout?: ForestServerActionFormLayoutElement[];
+  description?: string;
+  submitButtonLabel?: string;
   hooks: {
     load: boolean;
     change: Array<unknown>;

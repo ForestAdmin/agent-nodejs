@@ -6,6 +6,8 @@ export type ActionSchema = {
   scope: ActionScope;
   generateFile?: boolean;
   staticForm?: boolean;
+  description?: string;
+  submitButtonLabel?: string;
 };
 
 export type DataSourceSchema = {
