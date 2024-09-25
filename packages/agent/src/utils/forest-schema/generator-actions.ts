@@ -131,20 +131,7 @@ export default class SchemaGeneratorActions {
     return output as ForestServerActionField;
   }
 
-  static buildLayoutSchema(
-    element: ActionLayoutElement,
-    options?: { forceInput?: boolean; preventPage?: boolean },
-  ): ForestServerActionFormLayoutElement {
-    if (options?.forceInput) {
-      element.component = 'Input';
-    }
-
-    if (options?.preventPage && element.component === 'Page') {
-      return {
-        component: 'separator',
-      };
-    }
-
+  static buildLayoutSchema(element: ActionLayoutElement): ForestServerActionFormLayoutElement {
     switch (element.component) {
       case 'Input':
         return {
@@ -161,9 +148,9 @@ export default class SchemaGeneratorActions {
           component: 'row',
           fields: element.fields.map(
             field =>
-              SchemaGeneratorActions.buildLayoutSchema(field, {
-                forceInput: true,
-              }) as ForestServerActionFormElementFieldReference,
+              SchemaGeneratorActions.buildLayoutSchema(
+                field,
+              ) as ForestServerActionFormElementFieldReference,
           ),
         };
       case 'Page':
@@ -173,9 +160,9 @@ export default class SchemaGeneratorActions {
           previousButtonLabel: element.previousButtonLabel,
           elements: element.elements.map(
             subElement =>
-              SchemaGeneratorActions.buildLayoutSchema(subElement, {
-                preventPage: true,
-              }) as ForestServerActionFormLayoutElement,
+              SchemaGeneratorActions.buildLayoutSchema(
+                subElement,
+              ) as ForestServerActionFormLayoutElement,
           ),
         };
       case 'Separator':

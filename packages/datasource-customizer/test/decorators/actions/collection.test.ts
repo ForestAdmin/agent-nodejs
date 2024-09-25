@@ -1029,6 +1029,52 @@ describe('ActionDecorator', () => {
           },
         ]);
       });
+
+      test('should throw if there is pages in a single page form', async () => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: (context, resultBuilder) => {
+            return resultBuilder.error('meeh');
+          },
+          form: [
+            { label: 'age', type: 'Number' },
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [{ label: 'firstname', type: 'String' }],
+            },
+          ],
+        });
+
+        await expect(async () =>
+          newBooks.getForm(null, 'make photocopy', null, null),
+        ).rejects.toThrow(
+          new Error('Single page forms cannot have pages as root elements of the form array'),
+        );
+      });
+
+      test('should throw if there is other elements than pages in a multipages form', async () => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: (context, resultBuilder) => {
+            return resultBuilder.error('meeh');
+          },
+          form: [
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [{ label: 'firstname', type: 'String' }],
+            },
+            { label: 'age', type: 'Number' },
+          ],
+        });
+
+        await expect(async () =>
+          newBooks.getForm(null, 'make photocopy', null, null),
+        ).rejects.toThrow(
+          new Error('Multipages forms can only have pages as root elements of the form array'),
+        );
+      });
     });
   });
 });
