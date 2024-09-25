@@ -55,10 +55,16 @@ export default class SchemaGeneratorActions {
     // Generate url-safe friendly name (which won't be unique, but that's OK).
     const slug = SchemaGeneratorActions.getActionSlug(name);
     let fields = SchemaGeneratorActions.defaultFields;
+    let layout;
 
     if (schema.staticForm) {
       const rawForm = await collection.getForm(null, name, null, null);
-      fields = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, rawForm).fields;
+      const fieldsAndLayout = SchemaGeneratorActions.buildFieldsAndLayout(
+        collection.dataSource,
+        rawForm,
+      );
+      layout = fieldsAndLayout.layout.length ? { layout: fieldsAndLayout.layout } : {};
+      fields = fieldsAndLayout.fields;
 
       SchemaGeneratorActions.setFieldsDefaultValue(fields);
     }
@@ -73,6 +79,7 @@ export default class SchemaGeneratorActions {
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),
       fields,
+      ...layout,
       hooks: {
         load: !schema.staticForm,
         // Always registering the change hook has no consequences, even if we don't use it.
