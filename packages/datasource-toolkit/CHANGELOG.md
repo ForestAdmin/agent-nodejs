@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.38.0...@forestadmin/datasource-toolkit@1.39.0) (2024-09-25)
+
+
+### Features
+
+* add action description and submit label button ([#1178](https://github.com/ForestAdmin/agent-nodejs/issues/1178)) ([8257a91](https://github.com/ForestAdmin/agent-nodejs/commit/8257a9156c9f2914fda43116ab3b05d6c1957623))
+
 # @forestadmin/datasource-toolkit [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.37.0...@forestadmin/datasource-toolkit@1.38.0) (2024-09-23)
 
 
