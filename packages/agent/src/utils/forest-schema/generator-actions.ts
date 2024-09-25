@@ -63,6 +63,10 @@ export default class SchemaGeneratorActions {
       SchemaGeneratorActions.setFieldsDefaultValue(fields);
     }
 
+    if (schema.submitButtonLabel?.length > 50) {
+      throw new Error('Submit button label must have less than 50 characters');
+    }
+
     return {
       id: `${collection.name}-${actionIndex}-${slug}`,
       name,
