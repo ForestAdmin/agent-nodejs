@@ -185,11 +185,11 @@ export default class ModelToCollectionSchemaConverter {
       validations.push({
         operator: 'GreaterThan',
         value:
-          (
+          ((
             attribute.validate.min as {
               args: readonly [number];
             }
-          ).args || attribute.validate.min,
+          ).args?.[0] ?? (attribute.validate.min as number)) - 1,
       });
     }
 
@@ -197,11 +197,11 @@ export default class ModelToCollectionSchemaConverter {
       validations.push({
         operator: 'LessThan',
         value:
-          (
+          ((
             attribute.validate.max as {
               args: readonly [number];
             }
-          ).args || attribute.validate.max,
+          ).args?.[0] ?? (attribute.validate.max as number)) + 1,
       });
     }
 
