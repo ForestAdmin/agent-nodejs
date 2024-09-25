@@ -10,7 +10,7 @@ export type OneToManyEmbeddedDefinition<
   N extends TCollectionName<S> = TCollectionName<S>,
 > = {
   schema: Record<string, PrimitiveTypes>;
-  dependencies?: TFieldName<S, N>[];
+  dependencies?: [TFieldName<S, N>, ...TFieldName<S, N>[]];
   listRecords(
     record: TRow<S, N>,
     context: CollectionCustomizationContext<S, N>,
