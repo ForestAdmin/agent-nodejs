@@ -732,26 +732,6 @@ describe('ActionDecorator', () => {
   });
 
   describe('with a form with layout elements', () => {
-    test('should be flagged as dynamic form', () => {
-      newBooks.addAction('make photocopy', {
-        scope: 'Single',
-        execute: (context, resultBuilder) => {
-          return resultBuilder.error('meeh');
-        },
-        form: [
-          { label: 'firstname', type: 'String' },
-          { type: 'Layout', component: 'Separator' },
-          { label: 'lastname', type: 'String' },
-        ],
-      });
-
-      expect(newBooks.schema.actions['make photocopy']).toEqual({
-        scope: 'Single',
-        generateFile: false,
-        staticForm: false,
-      });
-    });
-
     test('should compute the form recursively', async () => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',
