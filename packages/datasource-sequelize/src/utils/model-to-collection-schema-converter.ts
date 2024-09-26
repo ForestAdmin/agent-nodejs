@@ -183,25 +183,25 @@ export default class ModelToCollectionSchemaConverter {
 
     if (attribute.validate.min || attribute.validate.min === 0) {
       validations.push({
-        operator: 'GreaterThan',
+        operator: 'GreaterThanEqual',
         value:
-          ((
+          (
             attribute.validate.min as {
               args: readonly [number];
             }
-          ).args?.[0] ?? (attribute.validate.min as number)) - 1,
+          ).args?.[0] ?? (attribute.validate.min as number),
       });
     }
 
     if (attribute.validate.max || attribute.validate.max === 0) {
       validations.push({
-        operator: 'LessThan',
+        operator: 'LessThanEqual',
         value:
-          ((
+          (
             attribute.validate.max as {
               args: readonly [number];
             }
-          ).args?.[0] ?? (attribute.validate.max as number)) + 1,
+          ).args?.[0] ?? (attribute.validate.max as number),
       });
     }
 

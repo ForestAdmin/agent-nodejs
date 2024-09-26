@@ -452,12 +452,12 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 value: '2022',
               },
               {
-                operator: 'GreaterThan',
-                value: 0,
+                operator: 'GreaterThanEqual',
+                value: 1,
               },
               {
-                operator: 'LessThan',
-                value: 3,
+                operator: 'LessThanEqual',
+                value: 2,
               },
               {
                 operator: 'Contains',

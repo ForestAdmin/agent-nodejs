@@ -173,8 +173,12 @@ export default class FilterGenerator {
     switch (operator) {
       case 'GreaterThan':
         return { $gt: formattedLeafValue };
+      case 'GreaterThanEqual':
+        return { $gte: formattedLeafValue };
       case 'LessThan':
         return { $lt: formattedLeafValue };
+      case 'LessThanEqual':
+        return { $lte: formattedLeafValue };
       case 'Equal':
         return { $eq: formattedLeafValue };
       case 'NotEqual':

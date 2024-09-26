@@ -5,6 +5,8 @@ export const uniqueOperators = [
   'NotEqual',
   'LessThan',
   'GreaterThan',
+  'LessThanEqual',
+  'GreaterThanEqual',
 
   // Strings
   'Match',

@@ -84,7 +84,17 @@ export default class ConditionTreeLeaf extends ConditionTree {
     const fieldValue = RecordUtils.getFieldValue(record, this.field);
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
     const supported = [
-      ...['In', 'Equal', 'LessThan', 'GreaterThan', 'Match', 'StartsWith', 'EndsWith'],
+      ...[
+        'In',
+        'Equal',
+        'LessThan',
+        'GreaterThan',
+        'LessThanEqual',
+        'GreaterThanEqual',
+        'Match',
+        'StartsWith',
+        'EndsWith',
+      ],
       ...[
         'LongerThan',
         'ShorterThan',
@@ -105,6 +115,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return fieldValue < this.value;
       case 'GreaterThan':
         return fieldValue > this.value;
+      case 'LessThanEqual':
+        return fieldValue <= this.value;
+      case 'GreaterThanEqual':
+        return fieldValue >= this.value;
       case 'Match':
         return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);
       case 'StartsWith':

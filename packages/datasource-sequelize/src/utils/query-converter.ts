@@ -67,6 +67,10 @@ export default class QueryConverter {
         return { [colName]: { [Op.lt]: value } };
       case operator === 'GreaterThan':
         return { [colName]: { [Op.gt]: value } };
+      case operator === 'LessThanEqual':
+        return { [colName]: { [Op.lte]: value } };
+      case operator === 'GreaterThanEqual':
+        return { [colName]: { [Op.gte]: value } };
 
       // Strings
       case operator === 'Like':
