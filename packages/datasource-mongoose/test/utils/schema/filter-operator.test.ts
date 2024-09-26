@@ -2,13 +2,25 @@ import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import FilterOperatorsGenerator from '../../../src/utils/schema/filter-operators';
 
+const supportedOperators: Operator[] = [
+  'Equal',
+  'NotEqual',
+  'Present',
+  'In',
+  'NotIn',
+  'GreaterThan',
+  'LessThan',
+  'GreaterThanEqual',
+  'LessThanEqual',
+];
+
 describe('FilterOperatorBuilder > getSupportedOperators', () => {
   const cases: Array<[PrimitiveTypes, Partial<Operator[]>]> = [
     ['Boolean', ['Equal', 'NotEqual', 'Present']],
-    ['Date', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'GreaterThan', 'LessThan']],
-    ['Dateonly', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'GreaterThan', 'LessThan']],
+    ['Date', supportedOperators],
+    ['Dateonly', supportedOperators],
     ['Enum', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn']],
-    ['Number', ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'GreaterThan', 'LessThan']],
+    ['Number', supportedOperators],
     [
       'String',
       ['Equal', 'NotEqual', 'Present', 'In', 'NotIn', 'Match', 'NotContains', 'NotIContains'],
