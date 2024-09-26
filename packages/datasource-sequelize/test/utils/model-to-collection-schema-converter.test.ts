@@ -492,7 +492,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               isAfter: '2012',
               isBefore: '2022',
               min: 1,
-              max: { args: [2], msg: 'Warning validation  message' },
+              max: { args: [2], msg: 'Warning validation message' },
               contains: 'ContainsThisString',
               is: /^[a-z]+$/,
             },
