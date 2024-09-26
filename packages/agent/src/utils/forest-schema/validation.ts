@@ -25,9 +25,7 @@ export default class FrontendValidationUtils {
   ] as const);
 
   /** This is the list of operators which are supported in the frontend implementation */
-  private static supported: Partial<
-    Record<Operator | 'GreaterThanEqual' | 'LessThanEqual', (v: Validation) => FrontendValidation>
-  > = {
+  private static supported: Partial<Record<Operator, (v: Validation) => FrontendValidation>> = {
     Present: () => ({ type: 'is present', message: 'Field is required' }),
     After: rule => ({
       type: 'is after',

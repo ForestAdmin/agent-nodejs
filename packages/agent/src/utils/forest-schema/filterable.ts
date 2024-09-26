@@ -29,14 +29,7 @@ export default class FrontendFilterableUtils {
     Date: FrontendFilterableUtils.dateOperators,
     Dateonly: FrontendFilterableUtils.dateOperators,
     Enum: [...FrontendFilterableUtils.baseOperators, 'In'],
-    Number: [
-      ...FrontendFilterableUtils.baseOperators,
-      'In',
-      'GreaterThan',
-      'GreaterThanEqual',
-      'LessThan',
-      'LessThanEqual',
-    ],
+    Number: [...FrontendFilterableUtils.baseOperators, 'In', 'GreaterThan', 'LessThan'],
     String: [
       ...FrontendFilterableUtils.baseOperators,
       'In',
@@ -45,13 +38,7 @@ export default class FrontendFilterableUtils {
       'Contains',
       'NotContains',
     ],
-    Time: [
-      ...FrontendFilterableUtils.baseOperators,
-      'GreaterThan',
-      'GreaterThanEqual',
-      'LessThan',
-      'LessThanEqual',
-    ],
+    Time: [...FrontendFilterableUtils.baseOperators, 'GreaterThan', 'LessThan'],
     Uuid: FrontendFilterableUtils.baseOperators,
   };
 

@@ -1,6 +1,7 @@
 import { Alternative } from '../equivalence';
 import ConditionTreeFactory from '../factory';
 import ConditionTree from '../nodes/base';
+import ConditionTreeBranch from '../nodes/branch';
 import ConditionTreeLeaf from '../nodes/leaf';
 import { Operator } from '../nodes/operators';
 
@@ -109,6 +110,26 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
             leaf.override({ operator: 'NotEqual', value: item }),
           ),
         ),
+    },
+  ],
+  LessThanEqual: [
+    {
+      dependsOn: ['LessThan', 'Equal'],
+      replacer: leaf =>
+        new ConditionTreeBranch('Or', [
+          new ConditionTreeLeaf(leaf.field, 'LessThan', leaf.value),
+          new ConditionTreeLeaf(leaf.field, 'Equal', leaf.value),
+        ]),
+    },
+  ],
+  GreaterThanEqual: [
+    {
+      dependsOn: ['GreaterThan', 'Equal'],
+      replacer: leaf =>
+        new ConditionTreeBranch('Or', [
+          new ConditionTreeLeaf(leaf.field, 'GreaterThan', leaf.value),
+          new ConditionTreeLeaf(leaf.field, 'Equal', leaf.value),
+        ]),
     },
   ],
 });
