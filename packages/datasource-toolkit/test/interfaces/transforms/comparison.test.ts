@@ -176,11 +176,11 @@ describe('ConditionTreeOperators > Comparison', () => {
     });
   });
 
-  describe('LessThanEqual', () => {
+  describe('LessThanOrEqual', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.LessThanEqual![0].replacer(
-          new ConditionTreeLeaf('column', 'LessThanEqual', 20),
+        alternatives.LessThanOrEqual![0].replacer(
+          new ConditionTreeLeaf('column', 'LessThanOrEqual', 20),
           'Europe/Paris',
         ),
       ).toEqual({
@@ -193,11 +193,11 @@ describe('ConditionTreeOperators > Comparison', () => {
     });
   });
 
-  describe('GreaterThanEqual', () => {
+  describe('GreaterThanOrEqual', () => {
     test('should be rewritten', () => {
       expect(
-        alternatives.GreaterThanEqual![0].replacer(
-          new ConditionTreeLeaf('column', 'GreaterThanEqual', 20),
+        alternatives.GreaterThanOrEqual![0].replacer(
+          new ConditionTreeLeaf('column', 'GreaterThanOrEqual', 20),
           'Europe/Paris',
         ),
       ).toEqual({

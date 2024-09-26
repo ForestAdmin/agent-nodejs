@@ -7,8 +7,8 @@ export default class FilterOperatorsGenerator {
   static readonly comparisonOperators: Partial<Operator[]> = [
     'GreaterThan',
     'LessThan',
-    'GreaterThanEqual',
-    'LessThanEqual',
+    'GreaterThanOrEqual',
+    'LessThanOrEqual',
   ];
 
   static getSupportedOperators(type: ColumnType): Set<Operator> {

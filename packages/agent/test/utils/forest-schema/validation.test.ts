@@ -56,8 +56,8 @@ describe('FrontendValidationUtils', () => {
         columnType: 'Number',
         validation: [
           { operator: 'Present' },
-          { operator: 'LessThanEqual', value: 34 },
-          { operator: 'GreaterThanEqual', value: 60 },
+          { operator: 'LessThanOrEqual', value: 34 },
+          { operator: 'GreaterThanOrEqual', value: 60 },
         ],
       }),
     );

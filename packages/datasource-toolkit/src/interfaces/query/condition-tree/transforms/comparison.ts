@@ -112,7 +112,7 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
         ),
     },
   ],
-  LessThanEqual: [
+  LessThanOrEqual: [
     {
       dependsOn: ['LessThan', 'Equal'],
       replacer: leaf =>
@@ -122,7 +122,7 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
         ]),
     },
   ],
-  GreaterThanEqual: [
+  GreaterThanOrEqual: [
     {
       dependsOn: ['GreaterThan', 'Equal'],
       replacer: leaf =>

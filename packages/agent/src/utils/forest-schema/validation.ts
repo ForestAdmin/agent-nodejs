@@ -47,7 +47,7 @@ export default class FrontendValidationUtils {
       value: rule.value,
       message: `Value must be greater than ${rule.value}`,
     }),
-    GreaterThanEqual: rule => ({
+    GreaterThanOrEqual: rule => ({
       type: 'is greater than or equal to',
       value: rule.value,
       message: `Value must be greater or equal to ${rule.value}`,
@@ -57,7 +57,7 @@ export default class FrontendValidationUtils {
       value: rule.value,
       message: `Value must be lower than ${rule.value}`,
     }),
-    LessThanEqual: rule => ({
+    LessThanOrEqual: rule => ({
       type: 'is less than or equal to',
       value: rule.value,
       message: `Value must be lower or equal to ${rule.value}`,
@@ -156,14 +156,14 @@ export default class FrontendValidationUtils {
   private static mergeInto(rule: Validation, newRule: Validation): void {
     if (
       rule.operator === 'GreaterThan' ||
-      rule.operator === 'GreaterThanEqual' ||
+      rule.operator === 'GreaterThanOrEqual' ||
       rule.operator === 'After' ||
       rule.operator === 'LongerThan'
     ) {
       rule.value = rule.value < newRule.value ? newRule.value : rule.value;
     } else if (
       rule.operator === 'LessThan' ||
-      rule.operator === 'LessThanEqual' ||
+      rule.operator === 'LessThanOrEqual' ||
       rule.operator === 'Before' ||
       rule.operator === 'ShorterThan'
     ) {

@@ -89,8 +89,8 @@ export default class ConditionTreeLeaf extends ConditionTree {
         'Equal',
         'LessThan',
         'GreaterThan',
-        'LessThanEqual',
-        'GreaterThanEqual',
+        'LessThanOrEqual',
+        'GreaterThanOrEqual',
         'Match',
         'StartsWith',
         'EndsWith',
@@ -115,9 +115,9 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return fieldValue < this.value;
       case 'GreaterThan':
         return fieldValue > this.value;
-      case 'LessThanEqual':
+      case 'LessThanOrEqual':
         return fieldValue <= this.value;
-      case 'GreaterThanEqual':
+      case 'GreaterThanOrEqual':
         return fieldValue >= this.value;
       case 'Match':
         return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);

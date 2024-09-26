@@ -10,8 +10,8 @@ const supportedOperators: Operator[] = [
   'NotIn',
   'GreaterThan',
   'LessThan',
-  'GreaterThanEqual',
-  'LessThanEqual',
+  'GreaterThanOrEqual',
+  'LessThanOrEqual',
 ];
 
 describe('FilterOperatorBuilder > getSupportedOperators', () => {

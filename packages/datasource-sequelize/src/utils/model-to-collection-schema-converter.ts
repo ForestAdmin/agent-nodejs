@@ -183,7 +183,7 @@ export default class ModelToCollectionSchemaConverter {
 
     if (attribute.validate.min || attribute.validate.min === 0) {
       validations.push({
-        operator: 'GreaterThanEqual',
+        operator: 'GreaterThanOrEqual',
         value:
           (
             attribute.validate.min as {
@@ -195,7 +195,7 @@ export default class ModelToCollectionSchemaConverter {
 
     if (attribute.validate.max || attribute.validate.max === 0) {
       validations.push({
-        operator: 'LessThanEqual',
+        operator: 'LessThanOrEqual',
         value:
           (
             attribute.validate.max as {

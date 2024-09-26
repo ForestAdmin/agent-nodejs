@@ -358,8 +358,8 @@ describe('ConditionTree', () => {
         new ConditionTreeLeaf('string', 'EndsWith', 'alue'),
         new ConditionTreeLeaf('number', 'GreaterThan', 9),
         new ConditionTreeLeaf('number', 'LessThan', 11),
-        new ConditionTreeLeaf('number', 'GreaterThanEqual', 10),
-        new ConditionTreeLeaf('number', 'LessThanEqual', 10),
+        new ConditionTreeLeaf('number', 'GreaterThanOrEqual', 10),
+        new ConditionTreeLeaf('number', 'LessThanOrEqual', 10),
       ]);
 
       expect(
