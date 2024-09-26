@@ -50,6 +50,36 @@ describe('FrontendValidationUtils', () => {
     ]);
   });
 
+  test('should work with supported handlers lte and gte (numbers)', () => {
+    const validationList = FrontendValidationUtils.convertValidationList(
+      factories.columnSchema.build({
+        columnType: 'Number',
+        validation: [
+          { operator: 'Present' },
+          { operator: 'LessThanEqual', value: 34 },
+          { operator: 'GreaterThanEqual', value: 60 },
+        ],
+      }),
+    );
+
+    expect(validationList).toStrictEqual([
+      {
+        message: 'Field is required',
+        type: 'is present',
+      },
+      {
+        message: 'Value must be lower or equal to 34',
+        type: 'is less than or equal to',
+        value: 34,
+      },
+      {
+        message: 'Value must be greater or equal to 60',
+        type: 'is greater than or equal to',
+        value: 60,
+      },
+    ]);
+  });
+
   test('should work with supported handlers (date)', () => {
     const validationList = FrontendValidationUtils.convertValidationList(
       factories.columnSchema.build({

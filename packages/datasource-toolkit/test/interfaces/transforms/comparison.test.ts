@@ -175,4 +175,38 @@ describe('ConditionTreeOperators > Comparison', () => {
       });
     });
   });
+
+  describe('LessThanEqual', () => {
+    test('should be rewritten', () => {
+      expect(
+        alternatives.LessThanEqual![0].replacer(
+          new ConditionTreeLeaf('column', 'LessThanEqual', 20),
+          'Europe/Paris',
+        ),
+      ).toEqual({
+        aggregator: 'Or',
+        conditions: [
+          { field: 'column', operator: 'LessThan', value: 20 },
+          { field: 'column', operator: 'Equal', value: 20 },
+        ],
+      });
+    });
+  });
+
+  describe('GreaterThanEqual', () => {
+    test('should be rewritten', () => {
+      expect(
+        alternatives.GreaterThanEqual![0].replacer(
+          new ConditionTreeLeaf('column', 'GreaterThanEqual', 20),
+          'Europe/Paris',
+        ),
+      ).toEqual({
+        aggregator: 'Or',
+        conditions: [
+          { field: 'column', operator: 'GreaterThan', value: 20 },
+          { field: 'column', operator: 'Equal', value: 20 },
+        ],
+      });
+    });
+  });
 });
