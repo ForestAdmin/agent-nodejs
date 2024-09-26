@@ -269,8 +269,8 @@ export type DynamicLayoutElementPage<
   FieldType = DynamicField<Context>,
 > = DynamicLayoutElementBase<Context> & {
   component: 'Page';
-  nextButtonLabel?: ValueOrHandler<Context, string>;
-  previousButtonLabel?: ValueOrHandler<Context, string>;
+  nextButtonLabel?: string;
+  previousButtonLabel?: string;
   elements: DynamicFormElement<Context, FieldType>[];
 };
 

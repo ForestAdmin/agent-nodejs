@@ -4,7 +4,7 @@ export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
     .addAction('static action with form', {
-      scope: 'Global',
+      scope: 'Single',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok');
       },
@@ -14,11 +14,12 @@ export default (collection: CardCustomizer) =>
           label: 'Plan',
           widget: 'Dropdown',
           options: ['Base', 'Gold', 'Black'],
+          isRequired: true,
         },
       ],
     })
     .addAction('create new card', {
-      scope: 'Global',
+      scope: 'Single',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok');
       },
@@ -32,6 +33,7 @@ export default (collection: CardCustomizer) =>
               label: 'Plan',
               widget: 'Dropdown',
               options: ['Base', 'Gold', 'Black'],
+              isRequired: true,
             },
             {
               type: 'Layout',
@@ -96,6 +98,7 @@ export default (collection: CardCustomizer) =>
               label: 'price',
               defaultValue: 80,
               if: ctx => ['Gold'].includes(ctx.formValues.Plan),
+              isRequired: true,
             },
             {
               type: 'Number',
