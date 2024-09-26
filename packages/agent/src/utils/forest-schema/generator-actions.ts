@@ -69,6 +69,10 @@ export default class SchemaGeneratorActions {
       SchemaGeneratorActions.setFieldsDefaultValue(fields);
     }
 
+    if (schema.submitButtonLabel?.length > 50) {
+      throw new Error('Submit button label must have less than 50 characters');
+    }
+
     return {
       id: `${collection.name}-${actionIndex}-${slug}`,
       name,
@@ -80,6 +84,8 @@ export default class SchemaGeneratorActions {
       download: Boolean(schema.generateFile),
       fields,
       ...layout,
+      description: schema.description,
+      submitButtonLabel: schema.submitButtonLabel,
       hooks: {
         load: !schema.staticForm,
         // Always registering the change hook has no consequences, even if we don't use it.

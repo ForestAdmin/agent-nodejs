@@ -9,6 +9,8 @@ describe('SchemaGeneratorActions', () => {
       scope: 'Single',
       generateFile: false,
       staticForm: true,
+      description: 'hello',
+      submitButtonLabel: 'here we go',
     });
 
     test('should generate schema correctly', async () => {
@@ -24,12 +26,30 @@ describe('SchemaGeneratorActions', () => {
         httpMethod: 'POST',
         redirect: null,
         type: 'single',
+        description: 'hello',
+        submitButtonLabel: 'here we go',
         hooks: {
           // No form => hooks are disabled
           load: false,
           change: ['changeHook'],
         },
       });
+    });
+  });
+
+  describe('With a long submit button label', () => {
+    const collection = factories.collection.buildWithAction('Send email', {
+      scope: 'Single',
+      generateFile: false,
+      staticForm: true,
+      description: 'hello',
+      submitButtonLabel: 'long'.repeat(40),
+    });
+
+    test('should throw an error', async () => {
+      await expect(SchemaGeneratorActions.buildSchema(collection, 'Send email')).rejects.toThrow(
+        new Error('Submit button label must have less than 50 characters'),
+      );
     });
   });
 

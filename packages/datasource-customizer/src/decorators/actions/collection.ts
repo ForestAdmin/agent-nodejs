@@ -111,9 +111,12 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const newSchema = { ...subSchema, actions: { ...subSchema.actions } };
 
-    for (const [name, { form, scope, generateFile }] of Object.entries(this.actions)) {
+    for (const [
+      name,
+      { form, scope, generateFile, description, submitButtonLabel },
+    ] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler
-      // as long as there is nothing dynamic in it.
+      // as long as there is nothing dynamic in it
       const isDynamic =
         this.isHandler(form) ||
         form?.some(
@@ -123,7 +126,13 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
             (field.type.includes('File') && (field as DynamicField).defaultValue),
         );
 
-      newSchema.actions[name] = { scope, generateFile: !!generateFile, staticForm: !isDynamic };
+      newSchema.actions[name] = {
+        scope,
+        generateFile: !!generateFile,
+        staticForm: !isDynamic,
+        description,
+        submitButtonLabel,
+      };
     }
 
     return newSchema;
