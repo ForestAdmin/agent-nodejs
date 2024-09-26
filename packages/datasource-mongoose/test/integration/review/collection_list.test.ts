@@ -162,6 +162,16 @@ describe('MongooseCollection', () => {
         [{ rating: 5 }],
       ],
       [
+        { value: 10, operator: 'GreaterThanOrEqual', field: 'rating' },
+        new Projection('rating'),
+        [{ rating: 10 }],
+      ],
+      [
+        { value: 5, operator: 'LessThanOrEqual', field: 'rating' },
+        new Projection('rating'),
+        [{ rating: 5 }],
+      ],
+      [
         { value: 10, operator: 'Equal', field: 'rating' },
         new Projection('rating'),
         [{ rating: 10 }],
