@@ -3,21 +3,6 @@ import { CardCustomizer } from '../typings';
 export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
-    .addAction('static action with form', {
-      scope: 'Single',
-      execute: (context, resultBuilder) => {
-        return resultBuilder.success('ok');
-      },
-      form: [
-        {
-          type: 'String',
-          label: 'Plan',
-          widget: 'Dropdown',
-          options: ['Base', 'Gold', 'Black'],
-          isRequired: true,
-        },
-      ],
-    })
     .addAction('create new card', {
       scope: 'Single',
       execute: (context, resultBuilder) => {
@@ -42,22 +27,22 @@ export default (collection: CardCustomizer) =>
                 switch (ctx.formValues.Plan) {
                   case 'Base':
                     return `<h1>Should setup:</h1>
-                <ul>
-                  <li>separator</li>
-                  <li>price</li>
-                  <li>max withdraw / max payment</li>
-                </ul>`;
+                            <ul>
+                              <li>separator</li>
+                              <li>price</li>
+                              <li>max withdraw / max payment</li>
+                            </ul>`;
                   case 'Gold':
                     return `<h1>Should setup:</h1>
-                <ul>
-                  <li>max payment / Systematic check (if max payment > 1000)</li>
-                  <li>discount / discount months</li>
-                </ul>`;
+                            <ul>
+                              <li>max payment / Systematic check (if max payment > 1000)</li>
+                              <li>discount / discount months</li>
+                            </ul>`;
                   case 'Back':
                     return `<h1>Should setup:</h1>
-                <ul>
-                  <li>max withdraw</li>
-                </ul>`;
+                            <ul>
+                              <li>max withdraw</li>
+                            </ul>`;
                   default:
                     return `Select a card plan`;
                 }

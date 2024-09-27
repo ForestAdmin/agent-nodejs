@@ -1030,7 +1030,7 @@ describe('ActionDecorator', () => {
         ]);
       });
 
-      test('should throw if there is pages in a single page form', async () => {
+      test('should throw if there is pages when the first element is not a page', async () => {
         newBooks.addAction('make photocopy', {
           scope: 'Single',
           execute: (context, resultBuilder) => {
@@ -1049,11 +1049,13 @@ describe('ActionDecorator', () => {
         await expect(async () =>
           newBooks.getForm(null, 'make photocopy', null, null),
         ).rejects.toThrow(
-          new Error('Single page forms cannot have pages as root elements of the form array'),
+          new Error(
+            `You cannot mix pages and other form elements in smart action 'make photocopy' form`,
+          ),
         );
       });
 
-      test('should throw if there is other elements than pages in a multipages form', async () => {
+      test('should throw if there is other elements than pages and the first element is a page', async () => {
         newBooks.addAction('make photocopy', {
           scope: 'Single',
           execute: (context, resultBuilder) => {
@@ -1072,7 +1074,9 @@ describe('ActionDecorator', () => {
         await expect(async () =>
           newBooks.getForm(null, 'make photocopy', null, null),
         ).rejects.toThrow(
-          new Error('Multipages forms can only have pages as root elements of the form array'),
+          new Error(
+            `You cannot mix pages and other form elements in smart action 'make photocopy' form`,
+          ),
         );
       });
     });

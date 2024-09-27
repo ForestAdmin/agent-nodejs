@@ -89,7 +89,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       : // copy fields to keep original object unchanged
         await this.copyFields(action.form);
 
-    this.ensureFormIsCorrect(dynamicFields);
+    this.ensureFormIsCorrect(dynamicFields, name);
 
     if (metas?.searchField) {
       // in the case of a search hook,
@@ -112,18 +112,16 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return fields;
   }
 
-  private ensureFormIsCorrect(form: DynamicForm) {
+  private ensureFormIsCorrect(form: DynamicForm, actionName: string) {
     const multiPages = form[0]?.type === 'Layout' && form[0]?.component === 'Page';
 
     form.forEach(element => {
       const elementIsPage = element.type === 'Layout' && element.component === 'Page';
 
-      if (multiPages && !elementIsPage) {
-        throw new Error('Multipages forms can only have pages as root elements of the form array');
-      }
-
-      if (!multiPages && elementIsPage) {
-        throw new Error('Single page forms cannot have pages as root elements of the form array');
+      if ((multiPages && !elementIsPage) || (!multiPages && elementIsPage)) {
+        throw new Error(
+          `You cannot mix pages and other form elements in smart action '${actionName}' form`,
+        );
       }
     });
   }

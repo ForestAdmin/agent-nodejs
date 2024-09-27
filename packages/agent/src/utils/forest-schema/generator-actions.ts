@@ -194,8 +194,7 @@ export default class SchemaGeneratorActions {
         hasLayout = true;
       }
 
-      const layoutElement = SchemaGeneratorActions.parseLayout(element, fields);
-      layout.push(layoutElement);
+      layout.push(SchemaGeneratorActions.parseLayout(element, fields));
     });
 
     if (!hasLayout) {
