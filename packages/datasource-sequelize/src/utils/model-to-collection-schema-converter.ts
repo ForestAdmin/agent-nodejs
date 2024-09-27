@@ -181,27 +181,27 @@ export default class ModelToCollectionSchemaConverter {
       return validations;
     }
 
-    if (attribute.validate.min) {
+    if (attribute.validate.min || attribute.validate.min === 0) {
       validations.push({
-        operator: 'GreaterThan',
+        operator: 'GreaterThanOrEqual',
         value:
           (
             attribute.validate.min as {
               args: readonly [number];
             }
-          ).args || attribute.validate.min,
+          ).args?.[0] ?? (attribute.validate.min as number),
       });
     }
 
-    if (attribute.validate.max) {
+    if (attribute.validate.max || attribute.validate.max === 0) {
       validations.push({
-        operator: 'LessThan',
+        operator: 'LessThanOrEqual',
         value:
           (
             attribute.validate.max as {
               args: readonly [number];
             }
-          ).args || attribute.validate.max,
+          ).args?.[0] ?? (attribute.validate.max as number),
       });
     }
 

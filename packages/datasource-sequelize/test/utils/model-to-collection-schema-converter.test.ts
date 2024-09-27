@@ -432,6 +432,10 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 operator: 'Present',
               },
               {
+                operator: 'Equal',
+                value: 'EqualsThisString',
+              },
+              {
                 operator: 'LongerThan',
                 value: 3,
               },
@@ -448,11 +452,11 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
                 value: '2022',
               },
               {
-                operator: 'GreaterThan',
+                operator: 'GreaterThanOrEqual',
                 value: 1,
               },
               {
-                operator: 'LessThan',
+                operator: 'LessThanOrEqual',
                 value: 2,
               },
               {
@@ -488,7 +492,7 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
               isAfter: '2012',
               isBefore: '2022',
               min: 1,
-              max: 2,
+              max: { args: [2], msg: 'Warning validation message' },
               contains: 'ContainsThisString',
               is: /^[a-z]+$/,
             },

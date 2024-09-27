@@ -28,7 +28,12 @@ describe('Utils > TypeConverter', () => {
   describe('operatorsForColumnType', () => {
     const presence = ['Present', 'Missing'] as const;
     const equality = ['Equal', 'NotEqual', 'In', 'NotIn'] as const;
-    const orderables = ['LessThan', 'GreaterThan'] as const;
+    const orderables = [
+      'LessThan',
+      'GreaterThan',
+      'LessThanOrEqual',
+      'GreaterThanOrEqual',
+    ] as const;
     const strings = ['Like', 'ILike', 'NotContains', 'NotIContains'] as const;
 
     it.each([

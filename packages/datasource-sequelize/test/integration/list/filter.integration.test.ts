@@ -43,6 +43,10 @@ describe('Filter tests on collection', () => {
             type: DataTypes.TEXT,
             allowNull: true,
           },
+          amount: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+          },
         });
 
         const company = sequelize.define('Company', {
@@ -62,9 +66,9 @@ describe('Filter tests on collection', () => {
         ]);
 
         await sequelize.models.User.bulkCreate([
-          { name: 'John Doe', company_id: 1 },
-          { name: 'Jane Doe', company_id: 1 },
-          { name: 'john Smith', company_id: 2 },
+          { name: 'John Doe', amount: 1, company_id: 1 },
+          { name: 'Jane Doe', amount: 10, company_id: 1 },
+          { name: 'john Smith', amount: 11, company_id: 2 },
           { name: null },
         ]);
 
@@ -340,6 +344,76 @@ describe('Filter tests on collection', () => {
           );
 
           expect(result.length).toBe(4);
+        });
+      });
+
+      describe('GreaterThan', () => {
+        it('should return lines equal the searched value', async () => {
+          const result = await collection.list(
+            caller,
+            new PaginatedFilter({
+              conditionTree: new ConditionTreeLeaf('amount', 'GreaterThan', 10),
+            }),
+            new Projection('name', 'Company:id'),
+          );
+
+          expect(result).toEqual(
+            expect.arrayContaining([expect.objectContaining({ name: 'john Smith' })]),
+          );
+        });
+      });
+
+      describe('GreaterThanOrEqual', () => {
+        it('should return lines equal the searched value', async () => {
+          const result = await collection.list(
+            caller,
+            new PaginatedFilter({
+              conditionTree: new ConditionTreeLeaf('amount', 'GreaterThanOrEqual', 10),
+            }),
+            new Projection('name', 'Company:id'),
+          );
+
+          expect(result).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ name: 'Jane Doe' }),
+              expect.objectContaining({ name: 'john Smith' }),
+            ]),
+          );
+        });
+      });
+
+      describe('LessThan', () => {
+        it('should return lines equal the searched value', async () => {
+          const result = await collection.list(
+            caller,
+            new PaginatedFilter({
+              conditionTree: new ConditionTreeLeaf('amount', 'LessThan', 10),
+            }),
+            new Projection('name', 'Company:id'),
+          );
+
+          expect(result).toEqual(
+            expect.arrayContaining([expect.objectContaining({ name: 'John Doe' })]),
+          );
+        });
+      });
+
+      describe('LessThanOrEqual', () => {
+        it('should return lines equal the searched value', async () => {
+          const result = await collection.list(
+            caller,
+            new PaginatedFilter({
+              conditionTree: new ConditionTreeLeaf('amount', 'LessThanOrEqual', 10),
+            }),
+            new Projection('name', 'Company:id'),
+          );
+
+          expect(result).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ name: 'John Doe' }),
+              expect.objectContaining({ name: 'Jane Doe' }),
+            ]),
+          );
         });
       });
     });
