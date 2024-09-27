@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.31.0...@forestadmin/forestadmin-client@1.32.0) (2024-09-25)
+
+
+### Features
+
+* add action description and submit label button ([#1178](https://github.com/ForestAdmin/agent-nodejs/issues/1178)) ([8257a91](https://github.com/ForestAdmin/agent-nodejs/commit/8257a9156c9f2914fda43116ab3b05d6c1957623))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.39.0
+
 # @forestadmin/forestadmin-client [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.30.0...@forestadmin/forestadmin-client@1.31.0) (2024-09-23)
 
 
