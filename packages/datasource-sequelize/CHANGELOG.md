@@ -1,3 +1,18 @@
+# @forestadmin/datasource-sequelize [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.9...@forestadmin/datasource-sequelize@1.10.0) (2024-09-27)
+
+
+### Features
+
+* support lte and gte operators ([#1184](https://github.com/ForestAdmin/agent-nodejs/issues/1184)) ([acd475e](https://github.com/ForestAdmin/agent-nodejs/commit/acd475e2b1363ec06e0f606c2db3c97a476978cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.40.0
+
 ## @forestadmin/datasource-sequelize [1.9.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.9.8...@forestadmin/datasource-sequelize@1.9.9) (2024-09-25)
 
 
