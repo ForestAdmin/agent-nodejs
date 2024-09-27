@@ -732,6 +732,37 @@ describe('ActionDecorator', () => {
   });
 
   describe('with a form with layout elements', () => {
+    test('nested dynamic elements should cause the form to be flagged as dynamic', () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: (context, resultBuilder) => {
+          return resultBuilder.error('meeh');
+        },
+        form: [
+          { label: 'firstname', type: 'String' },
+          { type: 'Layout', component: 'Separator' },
+          {
+            type: 'Layout',
+            component: 'Row',
+            fields: [
+              { label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
+              {
+                label: 'email',
+                type: 'String',
+                defaultValue: ctx => `${ctx.formValues.firstname}.${ctx.formValues.lastname}@`,
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(newBooks.schema.actions['make photocopy']).toEqual({
+        scope: 'Single',
+        generateFile: false,
+        staticForm: false,
+      });
+    });
+
     test('should compute the form recursively', async () => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',

@@ -108,6 +108,18 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return fields;
   }
 
+  private isFieldDynamic(field: DynamicFormElement): boolean {
+    if (field.childElements) {
+      if (field.childElements.some(innerField => this.isFieldDynamic(innerField))) return true;
+    }
+
+    return (
+      Object.values(field).some(value => this.isHandler(value)) ||
+      // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
+      (field.type.includes('File') && Boolean((field as DynamicField).defaultValue))
+    );
+  }
+
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const newSchema = { ...subSchema, actions: { ...subSchema.actions } };
 
@@ -117,14 +129,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     ] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it
-      const isDynamic =
-        this.isHandler(form) ||
-        form?.some(
-          field =>
-            Object.values(field).some(value => this.isHandler(value)) ||
-            // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
-            (field.type.includes('File') && (field as DynamicField).defaultValue),
-        );
+      const isDynamic = this.isHandler(form) || form?.some(this.isFieldDynamic);
 
       newSchema.actions[name] = {
         scope,
