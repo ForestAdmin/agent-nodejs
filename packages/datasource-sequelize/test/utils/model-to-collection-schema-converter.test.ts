@@ -504,6 +504,45 @@ describe('Utils > ModelToCollectionSchemaConverter', () => {
       expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
     });
 
+    it('should compute validation for required fields with default values', () => {
+      const { sequelize } = setup();
+
+      const schema: CollectionSchema = {
+        actions: {},
+        charts: [],
+        countable: true,
+        fields: expect.objectContaining({
+          myValue: expect.objectContaining({
+            columnType: 'String',
+            defaultValue: '__default__',
+            isSortable: true,
+            type: 'Column',
+            validation: [{ operator: 'Present' }],
+          }),
+        }),
+        searchable: false,
+        segments: [],
+      };
+
+      const model = sequelize.define(
+        '__model__',
+        {
+          myPk: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+          },
+          myValue: {
+            type: DataTypes.STRING,
+            defaultValue: '__default__',
+            allowNull: false,
+          },
+        },
+        { timestamps: true },
+      );
+
+      expect(ModelToCollectionSchemaConverter.convert(model, () => {})).toEqual(schema);
+    });
+
     describe('is validator', () => {
       it('should work with args definition', () => {
         const { sequelize } = setup();
