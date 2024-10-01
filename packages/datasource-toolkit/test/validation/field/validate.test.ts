@@ -12,6 +12,7 @@ describe('FieldValidator', () => {
             foreignCollection: 'owner',
             originKey: 'id',
           }),
+          drivers: factories.manyToManySchema.build(),
         },
       }),
     });
@@ -32,13 +33,13 @@ describe('FieldValidator', () => {
 
     test('should throw if the field does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
-        new MissingFieldError('__not_defined', 'cars'),
+        "Field 'cars.__not_defined' not found in the available list: [id,owner,drivers]",
       );
     });
 
     test('should throw if the relation does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined:id')).toThrow(
-        "Relation not found: 'cars.__not_defined'",
+        "Relation 'cars.__not_defined' not found in the available list: [owner,drivers]",
       );
     });
 
@@ -71,7 +72,13 @@ describe('FieldValidator', () => {
 
       test('should throw when the requested field is of type column', () => {
         expect(() => FieldValidator.validate(carsCollection, 'id:address')).toThrow(
-          "Unexpected field type: 'cars.id' (found 'Column' expected 'ManyToOne' or 'OneToOne')",
+          "Relation 'cars.id' not found in the available list: [owner,drivers]",
+        );
+      });
+
+      test('should throw when the requested field is a Many to Many', () => {
+        expect(() => FieldValidator.validate(carsCollection, 'drivers:address')).toThrow(
+          "Unexpected field type: 'cars.drivers' (found 'ManyToMany' expected 'ManyToOne' or 'OneToOne')",
         );
       });
     });

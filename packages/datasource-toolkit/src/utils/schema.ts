@@ -16,7 +16,7 @@ export default class SchemaUtils {
   ): void {
     if (schema.fields[fieldName]) {
       const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
-      throw new ValidationError(`Field '${path}' already defined in schema`);
+      throw new ValidationError(`Field '${path}' is already defined in schema`);
     }
   }
 
@@ -36,7 +36,7 @@ export default class SchemaUtils {
     if (!schema.fields[fieldName]) {
       const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
       throw new ValidationError(
-        `Field '${path}' not found in ${Object.keys(schema.fields)} schema`,
+        `Field '${path}' not found in the available list: [${Object.keys(schema.fields)}]`,
       );
     }
 
@@ -48,11 +48,13 @@ export default class SchemaUtils {
     fieldName: string,
     collectionName?: string,
   ): ColumnSchema {
-    const fields = Object.values(schema.fields).filter(field => field.type === 'Column');
+    const columns = Object.keys(schema.fields).filter(
+      name => schema.fields[name].type === 'Column',
+    );
 
-    if (!fields[fieldName]) {
+    if (!columns.find(name => name === fieldName)) {
       const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
-      throw new ValidationError(`Column '${path}' not found in ${Object.keys(fields)} schema`);
+      throw new ValidationError(`Column '${path}' not found in the available list: [${columns}]`);
     }
 
     return schema.fields[fieldName] as ColumnSchema;
@@ -63,11 +65,15 @@ export default class SchemaUtils {
     relationName: string,
     collectionName?: string,
   ): RelationSchema {
-    const relations = Object.values(schema.fields).filter(field => field.type !== 'Column');
+    const relations = Object.keys(schema.fields).filter(
+      name => schema.fields[name].type !== 'Column',
+    );
 
-    if (!relations[relationName]) {
+    if (!relations.find(name => name === relationName)) {
       const path = collectionName ? `${collectionName}.${relationName}` : relationName;
-      throw new ValidationError(`Relation '${path}' not found in ${Object.keys(relations)} schema`);
+      throw new ValidationError(
+        `Relation '${path}' not found in the available list: [${relations}]`,
+      );
     }
 
     return schema.fields[relationName] as RelationSchema;
