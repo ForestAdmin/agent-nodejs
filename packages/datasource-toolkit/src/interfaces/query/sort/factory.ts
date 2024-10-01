@@ -1,7 +1,6 @@
 import Sort from '.';
 import SchemaUtils from '../../../utils/schema';
 import { Collection } from '../../collection';
-import { ColumnSchema } from '../../schema';
 
 export default class SortFactory {
   static byPrimaryKeys(collection: Collection): Sort {

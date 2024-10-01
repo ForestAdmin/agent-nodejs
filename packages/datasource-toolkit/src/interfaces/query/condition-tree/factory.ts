@@ -5,7 +5,7 @@ import { Operator } from './nodes/operators';
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
 import { CompositeId, RecordData } from '../../record';
-import { CollectionSchema, ColumnSchema } from '../../schema';
+import { CollectionSchema } from '../../schema';
 
 export type GenericTreeBranch = { aggregator: Aggregator; conditions: Array<GenericTree> };
 export type GenericTreeLeaf = { field: string; operator: Operator; value?: unknown };

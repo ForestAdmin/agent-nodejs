@@ -3,7 +3,7 @@ import type {
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
 
-import { ColumnSchema, ColumnType, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { ColumnType, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import { makeCreateHook, makeField, makeUpdateHook, makeWriteHandler } from './customization';
 import { includeStrToPath, listPaths } from './helpers';
