@@ -10,7 +10,7 @@ import {
   PaginatedFilter,
   Projection,
   RecordData,
-  RelationSchema,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import computeFromRecords from './helpers/compute-fields';
@@ -28,7 +28,11 @@ export default class ComputedCollection extends CollectionDecorator {
     const index = path.indexOf(':');
     if (index === -1) return this.computeds[path];
 
-    const { foreignCollection } = this.schema.fields[path.substring(0, index)] as RelationSchema;
+    const { foreignCollection } = SchemaUtils.getRelation(
+      this.schema,
+      path.substring(0, index),
+      this.name,
+    );
     const association = this.dataSource.getCollection(foreignCollection);
 
     return association.getComputed(path.substring(index + 1));

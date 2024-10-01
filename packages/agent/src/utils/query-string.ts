@@ -8,6 +8,7 @@ import {
   Projection,
   ProjectionFactory,
   ProjectionValidator,
+  SchemaUtils,
   Sort,
   SortFactory,
   SortValidator,
@@ -54,11 +55,9 @@ export default class QueryStringParser {
       const { schema } = collection;
       const rootFields = fields.toString().split(',');
       const explicitRequest = rootFields.map(field => {
-        if (!schema.fields[field]) {
-          throw new ValidationError(`field not found '${collection.name}.${field}'`);
-        }
+        const columnOrRelation = SchemaUtils.getField(schema, field, collection.name);
 
-        return schema.fields[field].type === 'Column'
+        return columnOrRelation.type === 'Column'
           ? field
           : `${field}:${context.request.query[`fields[${field}]`]}`;
       });

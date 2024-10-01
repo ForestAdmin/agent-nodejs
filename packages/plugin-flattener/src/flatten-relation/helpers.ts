@@ -2,7 +2,8 @@ import type {
   CollectionCustomizer,
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
-import type { CollectionSchema, RelationSchema } from '@forestadmin/datasource-toolkit';
+
+import { CollectionSchema, RelationSchema } from '@forestadmin/datasource-toolkit';
 
 export function getColumns(schema: CollectionSchema): string[] {
   return Object.keys(schema.fields).filter(name => schema.fields[name].type === 'Column');

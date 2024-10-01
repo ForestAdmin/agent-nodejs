@@ -3,7 +3,6 @@ import {
   Collection,
   DataSource,
   DataSourceDecorator,
-  MissingFieldError,
   PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';

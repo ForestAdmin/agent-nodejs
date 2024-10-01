@@ -54,7 +54,7 @@ export default class Projection extends Array<string> {
     }
 
     for (const [relation, projection] of Object.entries(this.relations)) {
-      const schema = collection.schema.fields[relation] as RelationSchema;
+      const schema = SchemaUtils.getRelation(collection.schema, relation, collection.name);
       const association = collection.dataSource.getCollection(schema.foreignCollection);
       const projectionWithPk = projection.withPks(association).nest(relation);
 

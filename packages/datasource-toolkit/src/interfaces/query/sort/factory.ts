@@ -8,7 +8,7 @@ export default class SortFactory {
     return new Sort(
       ...SchemaUtils.getPrimaryKeys(collection.schema)
         .map(pk =>
-          (collection.schema.fields[pk] as ColumnSchema).isSortable
+          SchemaUtils.getColumn(collection.schema, pk, collection.name).isSortable
             ? {
                 field: pk,
                 ascending: true,

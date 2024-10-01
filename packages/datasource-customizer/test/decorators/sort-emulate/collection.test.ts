@@ -3,7 +3,6 @@ import {
   ColumnSchema,
   DataSource,
   DataSourceDecorator,
-  MissingFieldError,
   Page,
   PaginatedFilter,
   Projection,

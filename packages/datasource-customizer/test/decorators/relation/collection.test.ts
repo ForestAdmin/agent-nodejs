@@ -7,7 +7,6 @@ import {
   DataSourceDecorator,
   Filter,
   ManyToManySchema,
-  MissingFieldError,
   PaginatedFilter,
   Projection,
   Sort,

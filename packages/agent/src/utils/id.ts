@@ -1,6 +1,5 @@
 import {
   CollectionSchema,
-  ColumnSchema,
   CompositeId,
   FieldValidator,
   RecordData,
@@ -49,7 +48,7 @@ export default class IdUtils {
     }
 
     return pkNames.map((pkName, index) => {
-      const schemaField = schema.fields[pkName] as ColumnSchema;
+      const schemaField = SchemaUtils.getColumn(schema, pkName);
       const value = pkValues[index];
 
       const castedValue = schemaField.columnType === 'Number' ? Number(value) : value;

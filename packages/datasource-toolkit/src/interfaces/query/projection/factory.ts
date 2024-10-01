@@ -1,4 +1,5 @@
 import Projection from '.';
+import { SchemaUtils } from '../../../index';
 import { Collection } from '../../collection';
 
 export default class ProjectionFactory {
@@ -30,7 +31,7 @@ export default class ProjectionFactory {
   static columns(collection: Collection): Projection {
     return new Projection(
       ...Object.keys(collection.schema.fields).filter(
-        f => collection.schema.fields[f].type === 'Column',
+        f => SchemaUtils.getColumn(collection.schema, f, collection.name).type === 'Column',
       ),
     );
   }

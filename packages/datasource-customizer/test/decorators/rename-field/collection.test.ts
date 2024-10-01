@@ -6,7 +6,6 @@ import {
   DataSource,
   DataSourceDecorator,
   Filter,
-  MissingFieldError,
   PaginatedFilter,
   Projection,
   Sort,

@@ -1,5 +1,7 @@
 import type { TCollectionName, TSchema } from '@forestadmin/datasource-customizer';
 
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+
 import createField from './field/create-field';
 import makeFieldDeleteable from './field/make-field-deleteable';
 import makeFieldFilterable from './field/make-field-filterable';
@@ -19,7 +21,7 @@ export async function createFileField<
   if (!collection) throw new Error('createFileField can only be used on collections.');
   if (!options) throw new Error('Options must be provided.');
 
-  const sourceSchema = collection.schema.fields[options.fieldname];
+  const sourceSchema = SchemaUtils.getField(collection.schema, options.fieldname, collection.name);
 
   if (!sourceSchema || sourceSchema.type !== 'Column' || sourceSchema.columnType !== 'String') {
     const field = `${collection.name}.${options.fieldname}`;

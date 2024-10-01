@@ -2,12 +2,12 @@ import {
   Caller,
   CollectionDecorator,
   CollectionSchema,
-  ColumnSchema,
   DataSourceDecorator,
   FieldValidator,
   Filter,
   RecordData,
   RecordValidator,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import WriteCustomizationContext from './context';
@@ -32,7 +32,7 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
 
     for (const [fieldName, handler] of Object.entries(this.handlers)) {
       schema.fields[fieldName] = {
-        ...(schema.fields[fieldName] as ColumnSchema),
+        ...SchemaUtils.getColumn(schema, fieldName, this.name),
         isReadOnly: handler === null,
       };
     }
@@ -87,7 +87,7 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
     if (used.includes(key)) throw new Error(`Cycle detected: ${used.join(' -> ')}.`);
 
     const { record, action, caller } = context;
-    const schema = this.schema.fields[key];
+    const schema = SchemaUtils.getField(this.schema, key, this.name);
 
     // Handle Column fields.
     if (schema?.type === 'Column') {

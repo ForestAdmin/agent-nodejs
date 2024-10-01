@@ -1,5 +1,6 @@
 import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
-import type { ColumnSchema, RecordData } from '@forestadmin/datasource-toolkit';
+
+import { RecordData, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import { Configuration } from '../types';
 import { parseDataUri } from '../utils/data-uri';
@@ -24,7 +25,7 @@ export default function makeFieldWritable(
   collection: CollectionCustomizer,
   config: Configuration,
 ): void {
-  const schema = collection.schema.fields[config.sourcename] as ColumnSchema;
+  const schema = SchemaUtils.getColumn(collection.schema, config.sourcename, collection.name);
   if (schema.isReadOnly) return;
 
   collection.replaceFieldWriting(config.filename, async (value, context) => {

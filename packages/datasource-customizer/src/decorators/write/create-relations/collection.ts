@@ -6,6 +6,7 @@ import {
   ManyToOneSchema,
   OneToOneSchema,
   RecordData,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 type RecordWithIndex = { subRecord: RecordData; index: number };
@@ -19,7 +20,7 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
     // Step 2: Create the many-to-one relations, and put the foreign keys in the records
     await Promise.all(
       Object.entries(recordsByRelation)
-        .filter(([key]) => this.schema.fields[key].type === 'ManyToOne')
+        .filter(([key]) => SchemaUtils.getField(this.schema, key, this.name).type === 'ManyToOne')
         .map(([key, entries]) => this.createManyToOneRelation(caller, records, key, entries)),
     );
 
@@ -30,7 +31,7 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
     // Note: the createOneToOneRelation method modifies the recordsWithPk array in place!
     await Promise.all(
       Object.entries(recordsByRelation)
-        .filter(([key]) => this.schema.fields[key].type === 'OneToOne')
+        .filter(([key]) => SchemaUtils.getField(this.schema, key, this.name).type === 'OneToOne')
         .map(([key, entries]) => this.createOneToOneRelation(caller, recordsWithPk, key, entries)),
     );
 
@@ -42,7 +43,9 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
 
     for (const [index, record] of records.entries()) {
       for (const [key, subRecord] of Object.entries(record)) {
-        if (this.schema.fields[key].type !== 'Column') {
+        const field = SchemaUtils.getField(this.schema, key, this.name);
+
+        if (field.type !== 'Column') {
           recordsByRelation[key] ??= [];
           recordsByRelation[key].push({ subRecord, index });
           delete record[key];
@@ -59,7 +62,7 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
     key: string,
     entries: RecordWithIndex[],
   ): Promise<void> {
-    const schema = this.schema.fields[key] as ManyToOneSchema;
+    const schema = SchemaUtils.getRelation(this.schema, key, this.name) as ManyToOneSchema;
     const relation = this.dataSource.getCollection(schema.foreignCollection);
     const creations = entries.filter(({ index }) => !records[index][schema.foreignKey]);
     const updates = entries.filter(({ index }) => records[index][schema.foreignKey]);
@@ -94,7 +97,7 @@ export default class CreateRelationsCollectionDecorator extends CollectionDecora
     key: string,
     entries: RecordWithIndex[],
   ): Promise<void> {
-    const schema = this.schema.fields[key] as OneToOneSchema;
+    const schema = SchemaUtils.getRelation(this.schema, key, this.name) as OneToOneSchema;
     const relation = this.dataSource.getCollection(schema.foreignCollection);
 
     // Set origin key in the related record

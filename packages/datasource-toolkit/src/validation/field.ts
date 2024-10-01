@@ -1,6 +1,7 @@
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { MissingFieldError, ValidationError } from '../errors';
+import { ValidationError } from '../errors';
+import { SchemaUtils } from '../index';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 
@@ -9,11 +10,7 @@ export default class FieldValidator {
     const dotIndex = field.indexOf(':');
 
     if (dotIndex === -1) {
-      const schema = collection.schema.fields[field];
-
-      if (!schema) {
-        throw new MissingFieldError(field, collection.name);
-      }
+      const schema = SchemaUtils.getField(collection.schema, field, collection.name);
 
       if (schema.type !== 'Column') {
         throw new ValidationError(
@@ -27,11 +24,7 @@ export default class FieldValidator {
       }
     } else {
       const prefix = field.substring(0, dotIndex);
-      const schema = collection.schema.fields[prefix];
-
-      if (!schema) {
-        throw new ValidationError(`Relation not found: '${collection.name}.${prefix}'`);
-      }
+      const schema = SchemaUtils.getRelation(collection.schema, prefix, collection.name);
 
       if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') {
         throw new ValidationError(

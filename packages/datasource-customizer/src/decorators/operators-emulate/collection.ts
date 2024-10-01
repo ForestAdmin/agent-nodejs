@@ -12,7 +12,6 @@ import {
   FieldValidator,
   Operator,
   PaginatedFilter,
-  RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
@@ -40,7 +39,11 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     // Check that the collection can actually support our rewriting
     const pks = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
     pks.forEach(pk => {
-      const schema = this.childCollection.schema.fields[pk] as ColumnSchema;
+      const schema = SchemaUtils.getColumn(
+        this.childCollection.schema,
+        pk,
+        this.childCollection.name,
+      );
       const operators = schema.filterOperators;
 
       if (!operators?.has('Equal') || !operators?.has('In')) {
@@ -52,7 +55,11 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     });
 
     // Check that targeted field is valid
-    const field = this.childCollection.schema.fields[name] as ColumnSchema;
+    const field = SchemaUtils.getColumn(
+      this.childCollection.schema,
+      name,
+      this.childCollection.name,
+    );
     FieldValidator.validate(this, name);
     if (!field) throw new Error('Cannot replace operator for relation');
 
@@ -102,7 +109,7 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     // ConditionTree is targeting a field on another collection => recurse.
     if (leaf.field.includes(':')) {
       const [prefix] = leaf.field.split(':');
-      const schema = this.schema.fields[prefix] as RelationSchema;
+      const schema = SchemaUtils.getRelation(this.schema, prefix, this.name);
       const association = this.dataSource.getCollection(schema.foreignCollection);
       const associationLeaf = await leaf
         .unnest()
