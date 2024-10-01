@@ -76,3 +76,17 @@ export class IntrospectionFormatError extends BusinessError {
 export class MissingSchemaElementError extends ValidationError {}
 
 export class MissingCollectionError extends MissingSchemaElementError {}
+
+export class MissingFieldError extends MissingSchemaElementError {
+  constructor(options: {
+    typeOfField: 'Field' | 'Relation' | 'Column';
+    fieldName: string;
+    availableFields: string[];
+    collectionName?: string;
+  }) {
+    const { typeOfField, fieldName, availableFields, collectionName } = options;
+    const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
+
+    super(`${typeOfField} '${path}' not found in the available list: [${availableFields}]`);
+  }
+}

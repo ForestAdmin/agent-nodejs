@@ -1,7 +1,6 @@
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { ValidationError } from '../errors';
-import { SchemaUtils } from '../index';
+import { MissingFieldError, ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 
@@ -10,7 +9,16 @@ export default class FieldValidator {
     const dotIndex = field.indexOf(':');
 
     if (dotIndex === -1) {
-      const schema = SchemaUtils.getField(collection.schema, field, collection.name);
+      const schema = collection.schema.fields[field];
+
+      if (!schema) {
+        throw new MissingFieldError({
+          collectionName: collection.name,
+          typeOfField: 'Field',
+          fieldName: field,
+          availableFields: Object.keys(collection.schema.fields),
+        });
+      }
 
       if (schema.type !== 'Column') {
         throw new ValidationError(
@@ -24,7 +32,20 @@ export default class FieldValidator {
       }
     } else {
       const prefix = field.substring(0, dotIndex);
-      const schema = SchemaUtils.getRelation(collection.schema, prefix, collection.name);
+      const schema = collection.schema.fields[prefix];
+
+      if (!schema) {
+        throw new MissingFieldError({
+          collectionName: collection.name,
+          typeOfField: 'Relation',
+          fieldName: prefix,
+          availableFields: Object.keys(collection.schema.fields).filter(
+            name =>
+              collection.schema.fields[name].type === 'ManyToOne' ||
+              collection.schema.fields[name].type === 'OneToOne',
+          ),
+        });
+      }
 
       if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') {
         throw new ValidationError(

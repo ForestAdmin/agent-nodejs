@@ -48,7 +48,7 @@ export default abstract class BaseCollection implements Collection {
   }
 
   protected addField(name: string, schema: FieldSchema): void {
-    SchemaUtils.checkAlreadyDefinedField(this.schema, name, this.name);
+    SchemaUtils.throwIfAlreadyDefinedField(this.schema, name, this.name);
 
     this.schema.fields[name] = schema;
   }

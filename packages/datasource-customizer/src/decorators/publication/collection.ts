@@ -16,7 +16,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
 
   /** Show/hide fields from the schema */
   changeFieldVisibility(name: string, visible: boolean): void {
-    SchemaUtils.checkMissingField(this.childCollection.schema, name, this.childCollection.name);
+    SchemaUtils.throwIfMissingField(this.childCollection.schema, name, this.childCollection.name);
 
     if (SchemaUtils.isPrimaryKey(this.childCollection.schema, name)) {
       throw new Error(`Cannot hide primary key`);

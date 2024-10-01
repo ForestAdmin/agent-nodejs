@@ -1,4 +1,4 @@
-import { ValidationError } from '../errors';
+import { MissingFieldError } from '../errors';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -9,23 +9,34 @@ import {
 } from '../interfaces/schema';
 
 export default class SchemaUtils {
-  static checkAlreadyDefinedField(
+  static throwIfAlreadyDefinedField(
     schema: CollectionSchema,
     fieldName: string,
     collectionName?: string,
   ): void {
     if (schema.fields[fieldName]) {
-      const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
-      throw new ValidationError(`Field '${path}' is already defined in schema`);
+      throw new MissingFieldError({
+        typeOfField: 'Field',
+        fieldName,
+        availableFields: Object.keys(schema.fields),
+        collectionName,
+      });
     }
   }
 
-  static checkMissingField(
+  static throwIfMissingField(
     schema: CollectionSchema,
     fieldName: string,
     collectionName?: string,
   ): void {
-    SchemaUtils.getField(schema, fieldName, collectionName);
+    if (!schema.fields[fieldName]) {
+      throw new MissingFieldError({
+        typeOfField: 'Field',
+        fieldName,
+        availableFields: Object.keys(schema.fields),
+        collectionName,
+      });
+    }
   }
 
   static getField(
@@ -33,12 +44,7 @@ export default class SchemaUtils {
     fieldName: string,
     collectionName?: string,
   ): FieldSchema {
-    if (!schema.fields[fieldName]) {
-      const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
-      throw new ValidationError(
-        `Field '${path}' not found in the available list: [${Object.keys(schema.fields)}]`,
-      );
-    }
+    SchemaUtils.throwIfMissingField(schema, fieldName, collectionName);
 
     return schema.fields[fieldName];
   }
@@ -53,8 +59,12 @@ export default class SchemaUtils {
     );
 
     if (!columns.find(name => name === fieldName)) {
-      const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
-      throw new ValidationError(`Column '${path}' not found in the available list: [${columns}]`);
+      throw new MissingFieldError({
+        typeOfField: 'Column',
+        fieldName,
+        availableFields: columns,
+        collectionName,
+      });
     }
 
     return schema.fields[fieldName] as ColumnSchema;
@@ -70,10 +80,12 @@ export default class SchemaUtils {
     );
 
     if (!relations.find(name => name === relationName)) {
-      const path = collectionName ? `${collectionName}.${relationName}` : relationName;
-      throw new ValidationError(
-        `Relation '${path}' not found in the available list: [${relations}]`,
-      );
+      throw new MissingFieldError({
+        typeOfField: 'Relation',
+        fieldName: relationName,
+        availableFields: relations,
+        collectionName,
+      });
     }
 
     return schema.fields[relationName] as RelationSchema;

@@ -29,7 +29,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
 
   /** Rename a field from the collection */
   renameField(currentName: string, newName: string): void {
-    SchemaUtils.checkMissingField(this.schema, currentName, this.name);
+    SchemaUtils.throwIfMissingField(this.schema, currentName, this.name);
 
     let initialName = currentName;
 

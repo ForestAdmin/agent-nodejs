@@ -39,7 +39,7 @@ describe('FieldValidator', () => {
 
     test('should throw if the relation does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined:id')).toThrow(
-        "Relation 'cars.__not_defined' not found in the available list: [owner,drivers]",
+        "Relation 'cars.__not_defined' not found in the available list: [owner]",
       );
     });
 
@@ -72,7 +72,7 @@ describe('FieldValidator', () => {
 
       test('should throw when the requested field is of type column', () => {
         expect(() => FieldValidator.validate(carsCollection, 'id:address')).toThrow(
-          "Relation 'cars.id' not found in the available list: [owner,drivers]",
+          "Unexpected field type: 'cars.id' (found 'Column' expected 'ManyToOne' or 'OneToOne')",
         );
       });
 

@@ -16,7 +16,7 @@ export default class CollectionUtils {
     const index = path.indexOf(':');
 
     if (index === -1) {
-      SchemaUtils.checkMissingField(collection.schema, path, collection.name);
+      SchemaUtils.throwIfMissingField(collection.schema, path, collection.name);
 
       return fields[path];
     }
