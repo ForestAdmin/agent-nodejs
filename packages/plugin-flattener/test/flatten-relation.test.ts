@@ -249,7 +249,9 @@ describe('flattenRelation', () => {
               book.use(flattenRelation, { relationName: 'owner', include: ['doesNotExist'] }),
             )
             .getDataSource(logger),
-        ).rejects.toThrow(new MissingFieldError('doesNotExist', 'owner'));
+        ).rejects.toThrow(
+          "The 'owner.doesNotExist' field was not found. Available fields are: [bookId,countryId,country,name]. Please check if the field name is correct.",
+        );
       });
     });
   });

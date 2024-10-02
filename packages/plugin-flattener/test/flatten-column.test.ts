@@ -76,7 +76,9 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.doctor who?' cannot be flattened (not found).");
+    ).rejects.toThrow(
+      "The 'book.doctor who?' column was not found. Available columns are: [id,title,tags,author,meta]. Please check if the column name is correct.",
+    );
   });
 
   it('should throw when target is a primitive', async () => {
@@ -106,7 +108,9 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.myself' cannot be flattened (not a column).");
+    ).rejects.toThrow(
+      "The 'book.myself' column was not found. Available columns are: [id,title,tags,author,meta]. Please check if the column name is correct.",
+    );
   });
 
   it('should throw level is invalid', async () => {

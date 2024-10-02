@@ -155,7 +155,9 @@ describe('CollectionUtils', () => {
 
         expect(() =>
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'unknown:id'),
-        ).toThrow("Relation not found 'books.unknown'");
+        ).toThrow(
+          "The 'books.unknown' relation was not found. Available relations are: [author]. Please check if the relation name is correct.",
+        );
       });
 
       test('should throw if the field is missing', () => {
@@ -163,7 +165,9 @@ describe('CollectionUtils', () => {
 
         expect(() =>
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'author:something'),
-        ).toThrow(`Column not found 'persons.something'`);
+        ).toThrow(
+          `The 'persons.something' field was not found. Available fields are: [id]. Please check if the field name is correct.`,
+        );
       });
     });
   });

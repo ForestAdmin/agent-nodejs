@@ -33,13 +33,13 @@ describe('FieldValidator', () => {
 
     test('should throw if the field does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
-        "Field 'cars.__not_defined' not found in the available list: [id,owner,drivers]",
+        "The 'cars.__not_defined' field was not found. Available fields are: [id,owner,drivers]. Please check if the field name is correct.",
       );
     });
 
     test('should throw if the relation does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined:id')).toThrow(
-        "Relation 'cars.__not_defined' not found in the available list: [owner]",
+        "The 'cars.__not_defined' relation was not found. Available relations are: [owner]. Please check if the relation name is correct.",
       );
     });
 

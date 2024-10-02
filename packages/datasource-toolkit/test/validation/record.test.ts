@@ -16,7 +16,9 @@ describe('RecordValidator', () => {
         RecordValidator.validate(collection, {
           unknownField: 'this field is not defined in the collection',
         }),
-      ).toThrow('Unknown field "unknownField"');
+      ).toThrow(
+        "The 'a collection.unknownField' field was not found. Available fields are: [name]. Please check if the field name is correct.",
+      );
     });
   });
 
@@ -110,7 +112,9 @@ describe('RecordValidator', () => {
         RecordValidator.validate(dataSourceBook.getCollection('book'), {
           relation: { fieldNotExist: 'a name' },
         }),
-      ).toThrow('Unknown field "fieldNotExist');
+      ).toThrow(
+        "The 'owner.fieldNotExist' field was not found. Available fields are: [name]. Please check if the field name is correct.",
+      );
     });
 
     test('should throw an error when the relation is an empty object', () => {

@@ -87,6 +87,8 @@ export class MissingFieldError extends MissingSchemaElementError {
     const { typeOfField, fieldName, availableFields, collectionName } = options;
     const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
 
-    super(`${typeOfField} '${path}' not found in the available list: [${availableFields}]`);
+    super(
+      `The '${path}' ${typeOfField.toLowerCase()} was not found. Available ${typeOfField.toLowerCase()}s are: [${availableFields}]. Please check if the ${typeOfField.toLowerCase()} name is correct.`,
+    );
   }
 }

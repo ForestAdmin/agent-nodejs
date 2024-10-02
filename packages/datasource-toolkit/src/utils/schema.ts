@@ -96,13 +96,13 @@ export default class SchemaUtils {
   }
 
   static isPrimaryKey(schema: CollectionSchema, fieldName: string): boolean {
-    const field = this.getColumn(schema, fieldName);
+    const field = this.getField(schema, fieldName);
 
-    return field.isPrimaryKey;
+    return field.type === 'Column' && field.isPrimaryKey;
   }
 
   static isForeignKey(schema: CollectionSchema, name: string): boolean {
-    const field = this.getColumn(schema, name);
+    const field = this.getField(schema, name);
 
     return (
       field.type === 'Column' &&
