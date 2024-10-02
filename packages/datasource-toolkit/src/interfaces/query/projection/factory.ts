@@ -29,10 +29,6 @@ export default class ProjectionFactory {
   }
 
   static columns(collection: Collection): Projection {
-    return new Projection(
-      ...Object.keys(collection.schema.fields).filter(
-        f => SchemaUtils.getColumn(collection.schema, f, collection.name).type === 'Column',
-      ),
-    );
+    return new Projection(...SchemaUtils.getColumnNames(collection.schema));
   }
 }

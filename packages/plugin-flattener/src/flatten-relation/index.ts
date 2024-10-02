@@ -3,7 +3,9 @@ import type {
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
 
-import { getColumns, getRelation } from './helpers';
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+
+import { getRelation } from './helpers';
 
 /**
  * Import all fields of a relation in the current collection.
@@ -33,7 +35,9 @@ export default async function flattenRelation(
   const relation = getRelation(relationName, dataSource, collection);
   const foreignCollection = dataSource.getCollection(relation.foreignCollection);
 
-  const columns = new Set(include?.length > 0 ? include : getColumns(foreignCollection.schema));
+  const columns = new Set(
+    include?.length > 0 ? include : SchemaUtils.getColumnNames(foreignCollection.schema),
+  );
   exclude?.forEach(column => columns.delete(column));
 
   for (const column of columns) {

@@ -114,8 +114,6 @@ export default class WriteReplacerCollectionDecorator extends CollectionDecorato
 
       return { [key]: await relation.rewritePatch(caller, action, record[key]) };
     }
-
-    throw new Error(`Unknown field: "${key}"`);
   }
 
   /**

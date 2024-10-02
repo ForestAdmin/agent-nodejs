@@ -20,6 +20,8 @@ export default class SchemaUtils {
     fieldName: string,
     collectionName?: string,
   ): void {
+    SchemaUtils.throwIfAccessingFieldFromRelation(fieldName, collectionName);
+
     if (schema.fields[fieldName]) {
       throw new AlreadyDefinedFieldError({ fieldName, collectionName });
     }
@@ -58,9 +60,7 @@ export default class SchemaUtils {
   ): ColumnSchema {
     SchemaUtils.throwIfAccessingFieldFromRelation(fieldName, collectionName);
 
-    const columns = Object.keys(schema.fields).filter(
-      name => schema.fields[name].type === 'Column',
-    );
+    const columns = SchemaUtils.getColumnNames(schema);
 
     if (!columns.find(name => name === fieldName)) {
       throw new MissingColumnError({ fieldName, availableFields: columns, collectionName });
@@ -126,6 +126,12 @@ export default class SchemaUtils {
     }
 
     return relationFieldSchema as ManyToManySchema | OneToManySchema;
+  }
+
+  static getColumnNames(schema: CollectionSchema): string[] {
+    return Object.keys(schema.fields).filter(
+      name => SchemaUtils.getField(schema, name).type === 'Column',
+    );
   }
 
   private static throwIfAccessingFieldFromRelation(

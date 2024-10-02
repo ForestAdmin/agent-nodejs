@@ -111,11 +111,7 @@ export default class SchemaGeneratorFields {
 
     if (relation.type === 'OneToMany') {
       targetName = relation.originKeyTarget;
-      targetField = SchemaUtils.getColumn(
-        foreignCollection.schema,
-        targetName,
-        foreignCollection.name,
-      );
+      targetField = SchemaUtils.getColumn(collection.schema, targetName, collection.name);
 
       const originKey = SchemaUtils.getColumn(
         foreignCollection.schema,
@@ -178,7 +174,11 @@ export default class SchemaGeneratorFields {
       relation.originKeyTarget,
       collection.name,
     );
-    const keyField = SchemaUtils.getColumn(collection.schema, relation.originKey, collection.name);
+    const keyField = SchemaUtils.getColumn(
+      foreignCollection.schema,
+      relation.originKey,
+      foreignCollection.name,
+    );
 
     return {
       ...baseSchema,

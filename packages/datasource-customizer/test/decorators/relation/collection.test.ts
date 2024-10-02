@@ -8,7 +8,6 @@ import {
   Filter,
   ManyToManySchema,
   MissingColumnError,
-  MissingFieldError,
   PaginatedFilter,
   Projection,
   Sort,
@@ -284,7 +283,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: '__nonExisting__',
           }),
-        ).toThrow(MissingFieldError);
+        ).toThrow(MissingColumnError);
       });
     });
 
@@ -352,7 +351,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: '__nonExisting__',
             throughCollection: 'passports',
           } as ManyToManySchema),
-        ).toThrow(MissingFieldError);
+        ).toThrow(MissingColumnError);
       });
 
       test('should throw with a non existent fk', () => {
@@ -364,7 +363,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: 'passports',
           } as ManyToManySchema),
-        ).toThrow(MissingFieldError);
+        ).toThrow(MissingColumnError);
       });
     });
 

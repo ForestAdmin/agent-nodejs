@@ -1,4 +1,8 @@
-import { ConditionTreeFactory, ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  MissingRelationError,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import Chart from '../../../src/routes/access/chart';
@@ -913,11 +917,7 @@ describe('ChartRoute', () => {
               ...defaultContext,
             });
 
-            await expect(chart.handleChart(context)).rejects.toThrow(
-              new ValidationError(
-                'Failed to generate leaderboard chart: parameters do not match pre-requisites',
-              ),
-            );
+            await expect(chart.handleChart(context)).rejects.toThrow(MissingRelationError);
           });
         });
       });

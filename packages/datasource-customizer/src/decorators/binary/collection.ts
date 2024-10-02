@@ -41,7 +41,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   private useHexConversion: Map<string, boolean> = new Map();
 
   setBinaryMode(name: string, type: BinaryMode): void {
-    const field = SchemaUtils.getField(this.childCollection.schema, this.childCollection.name);
+    const field = SchemaUtils.getField(
+      this.childCollection.schema,
+      name,
+      this.childCollection.name,
+    );
 
     if (type !== 'datauri' && type !== 'hex') {
       throw new Error('Invalid binary mode');
