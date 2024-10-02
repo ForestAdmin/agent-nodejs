@@ -92,3 +92,14 @@ export class MissingFieldError extends MissingSchemaElementError {
     );
   }
 }
+
+export class AlreadyDefinedFieldError extends ValidationError {
+  constructor(options: { fieldName: string; collectionName?: string }) {
+    const { fieldName, collectionName } = options;
+    const path = collectionName ? `${collectionName}.${fieldName}` : fieldName;
+
+    super(
+      `The '${path}' field is already defined. Please check if the field name is correct and unique.`,
+    );
+  }
+}

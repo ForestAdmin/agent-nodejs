@@ -102,7 +102,9 @@ describe('SegmentCollectionDecorator', () => {
             factories.caller.build(),
             factories.filter.build({ segment: 'segmentName' }),
           ),
-        ).rejects.toThrow("Column not found 'books.do not exists'");
+        ).rejects.toThrow(
+          "The 'books.do not exists' field was not found. Available fields are: [name]. Please check if the field name is correct.",
+        );
 
         expect(conditionTreeGenerator).toHaveBeenCalled();
       });

@@ -1,4 +1,4 @@
-import { MissingFieldError } from '../errors';
+import { AlreadyDefinedFieldError, MissingFieldError } from '../errors';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -15,12 +15,7 @@ export default class SchemaUtils {
     collectionName?: string,
   ): void {
     if (schema.fields[fieldName]) {
-      throw new MissingFieldError({
-        typeOfField: 'Field',
-        fieldName,
-        availableFields: Object.keys(schema.fields),
-        collectionName,
-      });
+      throw new AlreadyDefinedFieldError({ fieldName, collectionName });
     }
   }
 
