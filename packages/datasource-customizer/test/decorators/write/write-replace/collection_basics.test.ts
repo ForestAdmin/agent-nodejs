@@ -24,7 +24,7 @@ describe('WriteDecorator > When their are no relations', () => {
     const decorator = new WriteDecorator(collection, dataSource);
 
     expect(() => decorator.replaceFieldWriting('inexistant', () => ({}))).toThrow(
-      new MissingFieldError('inexistant', 'books'),
+      MissingFieldError,
     );
   });
 

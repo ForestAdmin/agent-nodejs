@@ -39,11 +39,11 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     // Check that the collection can actually support our rewriting
     const pks = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
     pks.forEach(pk => {
-      const schema = SchemaUtils.getColumn(
+      const schema = SchemaUtils.getField(
         this.childCollection.schema,
         pk,
         this.childCollection.name,
-      );
+      ) as ColumnSchema;
       const operators = schema.filterOperators;
 
       if (!operators?.has('Equal') || !operators?.has('In')) {
@@ -55,13 +55,8 @@ export default class OperatorsEmulateCollectionDecorator extends CollectionDecor
     });
 
     // Check that targeted field is valid
-    const field = SchemaUtils.getColumn(
-      this.childCollection.schema,
-      name,
-      this.childCollection.name,
-    );
+    SchemaUtils.throwIfMissingField(this.childCollection.schema, name, this.childCollection.name);
     FieldValidator.validate(this, name);
-    if (!field) throw new Error('Cannot replace operator for relation');
 
     // Mark the field operator as replaced.
     if (!this.fields.has(name)) this.fields.set(name, new Map());

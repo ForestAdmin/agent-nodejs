@@ -1,4 +1,10 @@
-import { AlreadyDefinedFieldError, MissingFieldError } from '../errors';
+import {
+  AlreadyDefinedFieldError,
+  MissingColumnError,
+  MissingFieldError,
+  MissingRelationError,
+  RelationFieldAccessDeniedError,
+} from '../errors';
 import {
   CollectionSchema,
   ColumnSchema,
@@ -24,9 +30,10 @@ export default class SchemaUtils {
     fieldName: string,
     collectionName?: string,
   ): void {
+    SchemaUtils.throwIfAccessingFieldFromRelation(fieldName, collectionName);
+
     if (!schema.fields[fieldName]) {
       throw new MissingFieldError({
-        typeOfField: 'Field',
         fieldName,
         availableFields: Object.keys(schema.fields),
         collectionName,
@@ -49,17 +56,14 @@ export default class SchemaUtils {
     fieldName: string,
     collectionName?: string,
   ): ColumnSchema {
+    SchemaUtils.throwIfAccessingFieldFromRelation(fieldName, collectionName);
+
     const columns = Object.keys(schema.fields).filter(
       name => schema.fields[name].type === 'Column',
     );
 
     if (!columns.find(name => name === fieldName)) {
-      throw new MissingFieldError({
-        typeOfField: 'Column',
-        fieldName,
-        availableFields: columns,
-        collectionName,
-      });
+      throw new MissingColumnError({ fieldName, availableFields: columns, collectionName });
     }
 
     return schema.fields[fieldName] as ColumnSchema;
@@ -70,13 +74,14 @@ export default class SchemaUtils {
     relationName: string,
     collectionName?: string,
   ): RelationSchema {
+    SchemaUtils.throwIfAccessingFieldFromRelation(relationName, collectionName);
+
     const relations = Object.keys(schema.fields).filter(
       name => schema.fields[name].type !== 'Column',
     );
 
     if (!relations.find(name => name === relationName)) {
-      throw new MissingFieldError({
-        typeOfField: 'Relation',
+      throw new MissingRelationError({
         fieldName: relationName,
         availableFields: relations,
         collectionName,
@@ -121,5 +126,14 @@ export default class SchemaUtils {
     }
 
     return relationFieldSchema as ManyToManySchema | OneToManySchema;
+  }
+
+  private static throwIfAccessingFieldFromRelation(
+    fieldName: string,
+    collectionName?: string,
+  ): void {
+    if (fieldName.includes(':')) {
+      throw new RelationFieldAccessDeniedError({ fieldName, collectionName });
+    }
   }
 }

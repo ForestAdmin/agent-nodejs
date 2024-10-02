@@ -1,3 +1,4 @@
+import { MissingFieldError } from '../../src';
 import RecordValidator from '../../src/validation/record';
 import * as factories from '../__factories__';
 
@@ -16,9 +17,7 @@ describe('RecordValidator', () => {
         RecordValidator.validate(collection, {
           unknownField: 'this field is not defined in the collection',
         }),
-      ).toThrow(
-        "The 'a collection.unknownField' field was not found. Available fields are: [name]. Please check if the field name is correct.",
-      );
+      ).toThrow(MissingFieldError);
     });
   });
 
@@ -112,9 +111,7 @@ describe('RecordValidator', () => {
         RecordValidator.validate(dataSourceBook.getCollection('book'), {
           relation: { fieldNotExist: 'a name' },
         }),
-      ).toThrow(
-        "The 'owner.fieldNotExist' field was not found. Available fields are: [name]. Please check if the field name is correct.",
-      );
+      ).toThrow(MissingFieldError);
     });
 
     test('should throw an error when the relation is an empty object', () => {

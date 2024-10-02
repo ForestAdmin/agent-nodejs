@@ -1,6 +1,6 @@
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
-import { MissingFieldError, ValidationError } from '../errors';
+import { MissingFieldError, MissingRelationError, ValidationError } from '../errors';
 import { Collection } from '../interfaces/collection';
 import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 
@@ -14,7 +14,6 @@ export default class FieldValidator {
       if (!schema) {
         throw new MissingFieldError({
           collectionName: collection.name,
-          typeOfField: 'Field',
           fieldName: field,
           availableFields: Object.keys(collection.schema.fields),
         });
@@ -35,9 +34,8 @@ export default class FieldValidator {
       const schema = collection.schema.fields[prefix];
 
       if (!schema) {
-        throw new MissingFieldError({
+        throw new MissingRelationError({
           collectionName: collection.name,
-          typeOfField: 'Relation',
           fieldName: prefix,
           availableFields: Object.keys(collection.schema.fields).filter(
             name =>

@@ -1,3 +1,4 @@
+import { MissingFieldError } from '../../../src';
 import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
 import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeValidator from '../../../src/validation/condition-tree';
@@ -58,7 +59,7 @@ describe('ConditionTreeValidation', () => {
         });
 
         expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-          "Column not found 'a collection.fieldDoesNotExistInSchema'",
+          MissingFieldError,
         );
       });
 
@@ -133,7 +134,7 @@ describe('ConditionTreeValidation', () => {
           });
 
           expect(() => ConditionTreeValidator.validate(conditionTree, collection)).toThrow(
-            "Column not found 'a collection.fieldDoesNotExistInSchema'",
+            MissingFieldError,
           );
         });
       });

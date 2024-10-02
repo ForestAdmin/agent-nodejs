@@ -1,3 +1,4 @@
+import { MissingFieldError, MissingRelationError } from '../../../src';
 import FieldValidator from '../../../src/validation/field';
 import * as factories from '../../__factories__';
 
@@ -33,13 +34,13 @@ describe('FieldValidator', () => {
 
     test('should throw if the field does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined')).toThrow(
-        "The 'cars.__not_defined' field was not found. Available fields are: [id,owner,drivers]. Please check if the field name is correct.",
+        MissingFieldError,
       );
     });
 
     test('should throw if the relation does not exists', () => {
       expect(() => FieldValidator.validate(carsCollection, '__not_defined:id')).toThrow(
-        "The 'cars.__not_defined' relation was not found. Available relations are: [owner]. Please check if the relation name is correct.",
+        MissingRelationError,
       );
     });
 

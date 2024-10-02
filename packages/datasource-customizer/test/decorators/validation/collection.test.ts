@@ -1,4 +1,10 @@
-import { Collection, DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import {
+  Collection,
+  DataSource,
+  DataSourceDecorator,
+  MissingFieldError,
+  RelationFieldAccessDeniedError,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ValidationDecorator from '../../../src/decorators/validation/collection';
@@ -49,7 +55,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   test('addValidation() should throw if the field does not exists', () => {
     expect(() => newBooks.addValidation('__dontExist', { operator: 'Present' })).toThrow(
-      new MissingFieldError('__dontExist', 'books'),
+      MissingFieldError,
     );
   });
 
@@ -67,7 +73,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
   test('addValidation() should throw if the field is in a relation', () => {
     expect(() => newBooks.addValidation('author:firstName', { operator: 'Present' })).toThrow(
-      'Cannot add validators on a relation, use the foreign key instead',
+      RelationFieldAccessDeniedError,
     );
   });
 

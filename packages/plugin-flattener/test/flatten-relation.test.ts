@@ -1,5 +1,5 @@
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { ColumnSchema } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import flattenRelation from '../src/flatten-relation';
@@ -249,9 +249,7 @@ describe('flattenRelation', () => {
               book.use(flattenRelation, { relationName: 'owner', include: ['doesNotExist'] }),
             )
             .getDataSource(logger),
-        ).rejects.toThrow(
-          "The 'owner.doesNotExist' field was not found. Available fields are: [bookId,countryId,country,name]. Please check if the field name is correct.",
-        );
+        ).rejects.toThrow(MissingFieldError);
       });
     });
   });
