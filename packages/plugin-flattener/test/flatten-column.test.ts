@@ -1,5 +1,5 @@
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { DataSource, Projection } from '@forestadmin/datasource-toolkit';
+import { DataSource, MissingColumnError, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import flattenColumn from '../src/flatten-column';
@@ -76,7 +76,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.doctor who?' cannot be flattened (not found).");
+    ).rejects.toThrow(MissingColumnError);
   });
 
   it('should throw when target is a primitive', async () => {
@@ -106,7 +106,7 @@ describe('flattenColumn', () => {
       customizer
         .customizeCollection('book', book => book.use(flattenColumn, options))
         .getDataSource(logger),
-    ).rejects.toThrow("'book.myself' cannot be flattened (not a column).");
+    ).rejects.toThrow(MissingColumnError);
   });
 
   it('should throw level is invalid', async () => {

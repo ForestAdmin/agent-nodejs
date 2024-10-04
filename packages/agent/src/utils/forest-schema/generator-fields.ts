@@ -9,7 +9,6 @@ import {
   OneToManySchema,
   OneToOneSchema,
   PrimitiveTypes,
-  RelationSchema,
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -28,7 +27,7 @@ export default class SchemaGeneratorFields {
   };
 
   static buildSchema(collection: Collection, name: string): ForestServerField {
-    const { type } = collection.schema.fields[name];
+    const { type } = SchemaUtils.getField(collection.schema, name, collection.name);
 
     let schema: ForestServerField;
 
@@ -58,7 +57,7 @@ export default class SchemaGeneratorFields {
   }
 
   private static buildColumnSchema(collection: Collection, name: string): ForestServerField {
-    const column = collection.schema.fields[name] as ColumnSchema;
+    const column = SchemaUtils.getColumn(collection.schema, name, collection.name);
     ColumnSchemaValidator.validate(column, name);
 
     const isForeignKey = SchemaUtils.isForeignKey(collection.schema, name);
@@ -112,17 +111,33 @@ export default class SchemaGeneratorFields {
 
     if (relation.type === 'OneToMany') {
       targetName = relation.originKeyTarget;
-      targetField = collection.schema.fields[targetName] as ColumnSchema;
+      targetField = SchemaUtils.getColumn(collection.schema, targetName, collection.name);
 
-      const originKey = foreignCollection.schema.fields[relation.originKey] as ColumnSchema;
+      const originKey = SchemaUtils.getColumn(
+        foreignCollection.schema,
+        relation.originKey,
+        foreignCollection.name,
+      );
       isReadOnly = originKey.isReadOnly;
     } else {
       targetName = relation.foreignKeyTarget;
-      targetField = foreignCollection.schema.fields[targetName] as ColumnSchema;
+      targetField = SchemaUtils.getColumn(
+        foreignCollection.schema,
+        targetName,
+        foreignCollection.name,
+      );
 
-      const throughSchema = collection.dataSource.getCollection(relation.throughCollection).schema;
-      const foreignKey = throughSchema.fields[relation.foreignKey] as ColumnSchema;
-      const originKey = throughSchema.fields[relation.originKey] as ColumnSchema;
+      const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
+      const foreignKey = SchemaUtils.getColumn(
+        throughCollection.schema,
+        relation.foreignKey,
+        throughCollection.name,
+      );
+      const originKey = SchemaUtils.getColumn(
+        throughCollection.schema,
+        relation.originKey,
+        throughCollection.name,
+      );
       isReadOnly = originKey.isReadOnly || foreignKey.isReadOnly;
     }
 
@@ -154,8 +169,16 @@ export default class SchemaGeneratorFields {
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ): ForestServerField {
-    const targetField = collection.schema.fields[relation.originKeyTarget] as ColumnSchema;
-    const keyField = foreignCollection.schema.fields[relation.originKey] as ColumnSchema;
+    const targetField = SchemaUtils.getColumn(
+      collection.schema,
+      relation.originKeyTarget,
+      collection.name,
+    );
+    const keyField = SchemaUtils.getColumn(
+      foreignCollection.schema,
+      relation.originKey,
+      foreignCollection.name,
+    );
 
     return {
       ...baseSchema,
@@ -177,7 +200,7 @@ export default class SchemaGeneratorFields {
     foreignCollection: Collection,
     baseSchema: ForestServerField,
   ): ForestServerField {
-    const keyField = collection.schema.fields[relation.foreignKey] as ColumnSchema;
+    const keyField = SchemaUtils.getColumn(collection.schema, relation.foreignKey, collection.name);
 
     return {
       ...baseSchema,
@@ -197,7 +220,7 @@ export default class SchemaGeneratorFields {
   }
 
   private static buildRelationSchema(collection: Collection, name: string): ForestServerField {
-    const relation = collection.schema.fields[name] as RelationSchema;
+    const relation = SchemaUtils.getRelation(collection.schema, name, collection.name);
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
 
     const relationSchema = {

@@ -1,4 +1,4 @@
-import { Collection } from '@forestadmin/datasource-toolkit';
+import { Collection, MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteReplacerCollectionDecorator from '../../../../src/decorators/write/write-replace/collection';
@@ -155,7 +155,7 @@ describe('WriteDecorator > Simple structure', () => {
     decorator.replaceFieldWriting('age', () => ({ author: 'Asimov' }));
 
     await expect(decorator.update(caller, filter, { age: '10' })).rejects.toThrow(
-      'Unknown field: "author"',
+      MissingFieldError,
     );
   });
 
@@ -163,7 +163,7 @@ describe('WriteDecorator > Simple structure', () => {
     decorator.replaceFieldWriting('age', () => ({ author: { lastname: 'Asimov' } }));
 
     await expect(decorator.update(caller, filter, { age: '10' })).rejects.toThrow(
-      'Unknown field: "author"',
+      MissingFieldError,
     );
   });
 

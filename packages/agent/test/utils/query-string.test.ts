@@ -157,7 +157,7 @@ describe('QueryStringParser', () => {
             const fn = () => QueryStringParser.parseProjection(collectionSimple, context);
 
             expect(fn).toThrow(
-              "Invalid projection: field not found 'books.field-that-do-not-exist'",
+              "Invalid projection: The 'books.field-that-do-not-exist' field was not found. Available fields are: [id,name]. Please check if the field name is correct.",
             );
           });
         });

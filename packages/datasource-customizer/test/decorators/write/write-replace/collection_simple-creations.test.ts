@@ -1,4 +1,4 @@
-import { Collection } from '@forestadmin/datasource-toolkit';
+import { Collection, MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDataSourceDecorator from '../../../../src/decorators/write/datasource';
@@ -160,17 +160,13 @@ describe('WriteDecorator > Create with no relations', () => {
     test('when the handler returns non existent fields', async () => {
       decorator.replaceFieldWriting('age', () => ({ author: 'Asimov' }));
 
-      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(
-        'Unknown field: "author"',
-      );
+      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(MissingFieldError);
     });
 
     test('when the handler returns non existent relations', async () => {
       decorator.replaceFieldWriting('age', () => ({ author: { lastname: 'Asimov' } }));
 
-      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(
-        'Unknown field: "author"',
-      );
+      await expect(decorator.create(caller, [{ age: '10' }])).rejects.toThrow(MissingFieldError);
     });
 
     test('if the customer attemps to update the patch in the handler', async () => {

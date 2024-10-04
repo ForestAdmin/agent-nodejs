@@ -8,11 +8,10 @@ import {
   FieldSchema,
   FieldValidator,
   Filter,
-  MissingFieldError,
   PaginatedFilter,
   Projection,
   RecordData,
-  RelationSchema,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 /**
@@ -30,9 +29,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
 
   /** Rename a field from the collection */
   renameField(currentName: string, newName: string): void {
-    if (!this.schema.fields[currentName]) {
-      throw new MissingFieldError(currentName);
-    }
+    SchemaUtils.throwIfMissingField(this.schema, currentName, this.name);
 
     let initialName = currentName;
 
@@ -152,7 +149,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
       const dotIndex = childPath.indexOf(':');
       const childField = childPath.substring(0, dotIndex);
       const thisField = this.fromChildCollection[childField] ?? childField;
-      const schema = this.schema.fields[thisField] as RelationSchema;
+      const schema = SchemaUtils.getRelation(this.schema, thisField, this.name);
       const relation = this.dataSource.getCollection(schema.foreignCollection);
 
       return `${thisField}:${relation.pathFromChildCollection(childPath.substring(dotIndex + 1))}`;
@@ -166,7 +163,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
     if (thisPath.includes(':')) {
       const dotIndex = thisPath.indexOf(':');
       const thisField = thisPath.substring(0, dotIndex);
-      const schema = this.schema.fields[thisField] as RelationSchema;
+      const schema = SchemaUtils.getRelation(this.schema, thisField, this.name);
       const relation = this.dataSource.getCollection(schema.foreignCollection);
       const childField = this.toChildCollection[thisField] ?? thisField;
 
@@ -194,7 +191,7 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
 
     for (const [childField, value] of Object.entries(childRecord)) {
       const thisField = this.fromChildCollection[childField] ?? childField;
-      const fieldSchema = schema.fields[thisField];
+      const fieldSchema = SchemaUtils.getField(schema, thisField, this.name);
 
       // Perform the mapping, recurse for relations.
       if (fieldSchema.type === 'Column') {

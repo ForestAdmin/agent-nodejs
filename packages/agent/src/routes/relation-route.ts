@@ -1,4 +1,4 @@
-import { Collection, DataSource, RelationSchema } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import CollectionRoute from './collection-route';
 import { ForestAdminHttpDriverServices } from '../services';
@@ -8,7 +8,11 @@ export default abstract class RelationRoute extends CollectionRoute {
   protected readonly relationName: string;
 
   protected get foreignCollection(): Collection {
-    const schema = this.collection.schema.fields[this.relationName] as RelationSchema;
+    const schema = SchemaUtils.getRelation(
+      this.collection.schema,
+      this.relationName,
+      this.collection.name,
+    );
 
     return this.collection.dataSource.getCollection(schema.foreignCollection);
   }

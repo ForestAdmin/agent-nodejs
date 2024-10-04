@@ -53,6 +53,6 @@ describe('importField', () => {
         path: 'INVALID',
         name: 'NOPE',
       }),
-    ).rejects.toThrow(new MissingFieldError('INVALID', 'collection1'));
+    ).rejects.toThrow(MissingFieldError);
   });
 });

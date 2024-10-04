@@ -1,16 +1,17 @@
 import type TriggerSyncDataSourceDecorator from './data-source';
 import type { TFilter, TPaginatedFilter } from '@forestadmin/datasource-customizer';
-import type {
+
+import {
   AggregateResult,
   Aggregation,
   Caller,
+  CollectionDecorator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-
-import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
 
 export default class SyncCollectionDecorator extends CollectionDecorator {
   override dataSource: TriggerSyncDataSourceDecorator;
@@ -137,7 +138,11 @@ export default class SyncCollectionDecorator extends CollectionDecorator {
 
   private getCollectionFromPath(path: string): string {
     const [prefix, suffix] = path.split(/:(.*)/);
-    const schema = this.childCollection.schema.fields[prefix];
+    const schema = SchemaUtils.getField(
+      this.childCollection.schema,
+      prefix,
+      this.childCollection.name,
+    );
 
     // FIXME need to handle many to many relationships here
     // the through table is not included, and it should be

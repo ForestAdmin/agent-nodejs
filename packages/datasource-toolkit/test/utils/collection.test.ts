@@ -1,3 +1,4 @@
+import { MissingFieldError, MissingRelationError } from '../../src';
 import Aggregation from '../../src/interfaces/query/aggregation';
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
@@ -155,7 +156,7 @@ describe('CollectionUtils', () => {
 
         expect(() =>
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'unknown:id'),
-        ).toThrow("Relation not found 'books.unknown'");
+        ).toThrow(MissingRelationError);
       });
 
       test('should throw if the field is missing', () => {
@@ -163,7 +164,7 @@ describe('CollectionUtils', () => {
 
         expect(() =>
           CollectionUtils.getFieldSchema(dataSource.getCollection('books'), 'author:something'),
-        ).toThrow(`Column not found 'persons.something'`);
+        ).toThrow(MissingFieldError);
       });
     });
   });

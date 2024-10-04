@@ -8,6 +8,7 @@ import {
   PaginatedFilter,
   Projection,
   RecordData,
+  RelationFieldAccessDeniedError,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
@@ -116,7 +117,7 @@ describe('OperatorsEmulateCollectionDecorator', () => {
 
     test('emulateFieldOperator() should throw if the field does not exists', () => {
       expect(() => newBooks.emulateFieldOperator('__dontExist', 'Equal')).toThrow(
-        new MissingFieldError('__dontExist', 'books'),
+        MissingFieldError,
       );
     });
 
@@ -128,7 +129,7 @@ describe('OperatorsEmulateCollectionDecorator', () => {
 
     test('emulateFieldOperator() should throw if the field is in a relation', () => {
       expect(() => newBooks.emulateFieldOperator('author:firstName', 'Equal')).toThrow(
-        'Cannot replace operator for relation',
+        RelationFieldAccessDeniedError,
       );
     });
 

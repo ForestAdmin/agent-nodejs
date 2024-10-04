@@ -5,7 +5,7 @@ import { Operator } from './nodes/operators';
 import RecordUtils from '../../../utils/record';
 import SchemaUtils from '../../../utils/schema';
 import { CompositeId, RecordData } from '../../record';
-import { CollectionSchema, ColumnSchema } from '../../schema';
+import { CollectionSchema } from '../../schema';
 
 export type GenericTreeBranch = { aggregator: Aggregator; conditions: Array<GenericTree> };
 export type GenericTreeLeaf = { field: string; operator: Operator; value?: unknown };
@@ -29,7 +29,7 @@ export default class ConditionTreeFactory {
     }
 
     for (const name of primaryKeyNames) {
-      const operators = (schema.fields[name] as ColumnSchema).filterOperators;
+      const operators = SchemaUtils.getColumn(schema, name).filterOperators;
 
       if (!operators?.has('Equal') || !operators?.has('In')) {
         throw new Error(`Field '${name}' must support operators: ['Equal', 'In']`);

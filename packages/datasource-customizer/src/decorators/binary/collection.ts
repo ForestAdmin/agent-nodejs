@@ -41,7 +41,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   private useHexConversion: Map<string, boolean> = new Map();
 
   setBinaryMode(name: string, type: BinaryMode): void {
-    const field = this.childCollection.schema.fields[name];
+    const field = SchemaUtils.getField(
+      this.childCollection.schema,
+      name,
+      this.childCollection.name,
+    );
 
     if (type !== 'datauri' && type !== 'hex') {
       throw new Error('Invalid binary mode');
@@ -150,7 +154,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
   private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTree> {
     const [prefix, suffix] = leaf.field.split(/:(.*)/);
-    const schema = this.childCollection.schema.fields[prefix];
+    const schema = SchemaUtils.getField(
+      this.childCollection.schema,
+      prefix,
+      this.childCollection.name,
+    );
 
     if (schema.type !== 'Column') {
       const conditionTree = await this.dataSource
@@ -177,7 +185,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
   private async convertValue(toBackend: boolean, path: string, value: unknown): Promise<unknown> {
     const [prefix, suffix] = path.split(/:(.*)/);
-    const schema = this.childCollection.schema.fields[prefix];
+    const schema = SchemaUtils.getField(
+      this.childCollection.schema,
+      prefix,
+      this.childCollection.name,
+    );
 
     if (schema.type !== 'Column') {
       const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
