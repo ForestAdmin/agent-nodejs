@@ -26,6 +26,8 @@ export default class AgentCustomizationContext<S extends TSchema = TSchema> {
     return Object.freeze(this._caller);
   }
 
+  async sendNotification(payload) {}
+
   /**
    * Stop hooks execution and send Validation error to the UI
    * @param message the validation error message
