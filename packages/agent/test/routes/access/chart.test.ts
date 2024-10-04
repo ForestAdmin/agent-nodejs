@@ -75,6 +75,8 @@ describe('ChartRoute', () => {
               originKey: 'authorId',
               originKeyTarget: 'id',
             }),
+            manyToOneRelation: factories.manyToOneSchema.build(),
+            oneToOneRelation: factories.oneToOneSchema.build(),
           },
         }),
       }),
@@ -896,7 +898,7 @@ describe('ChartRoute', () => {
           });
         });
 
-        describe('when relation field is invalid', () => {
+        describe('when relation field is missing', () => {
           test('it should throw an error', async () => {
             jest.spyOn(dataSource.getCollection('persons'), 'aggregate').mockResolvedValueOnce([
               { value: 1234, group: { id: 2 } },
@@ -919,6 +921,33 @@ describe('ChartRoute', () => {
 
             await expect(chart.handleChart(context)).rejects.toThrow(MissingRelationError);
           });
+        });
+
+        describe('when the given relation is not allowed', () => {
+          test.each(['manyToOneRelation', 'oneToOneRelation'])(
+            'should throw an error when the relation is %s',
+            async relationType => {
+              const chart = new Chart(services, options, dataSource, 'persons');
+
+              const chartRequest = {
+                type: 'Leaderboard',
+                aggregator: 'Sum',
+                aggregateFieldName: 'id',
+                sourceCollectionName: 'persons',
+                labelFieldName: 'id',
+                relationshipFieldName: relationType,
+                limit: 2,
+              };
+              const context = createMockContext({
+                requestBody: chartRequest,
+                ...defaultContext,
+              });
+
+              await expect(chart.handleChart(context)).rejects.toThrow(
+                'Failed to generate leaderboard chart: parameters do not match pre-requisites',
+              );
+            },
+          );
         });
       });
     });

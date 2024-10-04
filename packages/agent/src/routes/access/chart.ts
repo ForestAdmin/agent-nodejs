@@ -238,6 +238,10 @@ export default class ChartRoute extends CollectionRoute {
         value: row.value as number,
       }));
     }
+
+    throw new ValidationError(
+      `Failed to generate leaderboard chart: parameters do not match pre-requisites`,
+    );
   }
 
   private async computeValue(context: Context, filter: Filter): Promise<number> {
