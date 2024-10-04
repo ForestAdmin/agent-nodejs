@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.40.0...@forestadmin/datasource-toolkit@1.41.0) (2024-10-04)
+
+
+### Features
+
+* **schema:** send a clear message when user wants to access to an unknown field ([#1186](https://github.com/ForestAdmin/agent-nodejs/issues/1186)) ([016aedd](https://github.com/ForestAdmin/agent-nodejs/commit/016aedd2e42c9424a531bea1370bc901126d535a))
+
 # @forestadmin/datasource-toolkit [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.39.0...@forestadmin/datasource-toolkit@1.40.0) (2024-09-27)
 
 
