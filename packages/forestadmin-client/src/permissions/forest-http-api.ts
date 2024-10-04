@@ -9,6 +9,17 @@ import {
 } from '../types';
 import ServerUtils from '../utils/server';
 
+export type NotificationFromAgent = {
+  payload: {
+    refresh?: { collectionName: string; recordIds?: string[] };
+    message?: { type: 'success' | 'info' | 'warning' | 'error'; text: string };
+  };
+  target: {
+    roles: string[];
+    team: string;
+  };
+};
+
 export type HttpOptions = Pick<
   ForestAdminClientOptionsWithDefaults,
   'envSecret' | 'forestServerUrl'
@@ -36,5 +47,9 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
 
   makeAuthService(options: Required<ForestAdminClientOptions>): ForestAdminAuthServiceInterface {
     return new AuthService(options);
+  }
+
+  async notifyFromAgent(options: HttpOptions, payload: NotificationFromAgent) {
+    await ServerUtils.query(options, 'post', `/liana/notifications-from-agent`, {}, payload);
   }
 }
