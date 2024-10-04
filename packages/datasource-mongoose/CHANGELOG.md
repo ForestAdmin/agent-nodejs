@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.0...@forestadmin/datasource-mongoose@1.8.1) (2024-10-04)
+
+
+### Bug Fixes
+
+* **mongoose:** apply sort on all pages instead of the current page ([#1188](https://github.com/ForestAdmin/agent-nodejs/issues/1188)) ([434d183](https://github.com/ForestAdmin/agent-nodejs/commit/434d1832e519dc410120a590cd2d7fcacc582c74))
+
 # @forestadmin/datasource-mongoose [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.19...@forestadmin/datasource-mongoose@1.8.0) (2024-09-27)
 
 
