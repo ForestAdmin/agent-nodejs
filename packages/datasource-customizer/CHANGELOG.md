@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.55.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.54.1...@forestadmin/datasource-customizer@1.55.0) (2024-10-07)
+
+
+### Features
+
+* support static action forms with layout ([#1182](https://github.com/ForestAdmin/agent-nodejs/issues/1182)) ([92011d8](https://github.com/ForestAdmin/agent-nodejs/commit/92011d86b4e10dacf5783725cd864a31c7ce8fe5))
+
 ## @forestadmin/datasource-customizer [1.54.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.54.0...@forestadmin/datasource-customizer@1.54.1) (2024-10-07)
 
 
