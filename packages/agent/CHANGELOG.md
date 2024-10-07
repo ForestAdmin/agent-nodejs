@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.50.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.49.1...@forestadmin/agent@1.50.0) (2024-10-07)
+
+
+### Features
+
+* support static action forms with layout ([#1182](https://github.com/ForestAdmin/agent-nodejs/issues/1182)) ([92011d8](https://github.com/ForestAdmin/agent-nodejs/commit/92011d86b4e10dacf5783725cd864a31c7ce8fe5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.0
+
 ## @forestadmin/agent [1.49.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.49.0...@forestadmin/agent@1.49.1) (2024-10-07)
 
 
