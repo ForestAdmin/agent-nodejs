@@ -3,7 +3,7 @@ import { CardCustomizer } from '../typings';
 export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
-    .addAction('create new card', {
+    .addAction('Create new card', {
       scope: 'Global',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok');
@@ -15,7 +15,8 @@ export default (collection: CardCustomizer) =>
           elements: [
             {
               type: 'String',
-              label: 'Plan',
+              label: 'Credit card plan',
+              id: 'Plan',
               widget: 'Dropdown',
               options: ['Base', 'Gold', 'Black'],
               isRequired: true,
@@ -32,7 +33,7 @@ export default (collection: CardCustomizer) =>
 
                 switch (ctx.formValues.Plan) {
                   case 'Base':
-                    info = `<li>separator</li>
+                    info = `
                             <li>price</li>
                             <li>max withdraw / max payment</li>`;
                     break;
@@ -46,9 +47,11 @@ export default (collection: CardCustomizer) =>
                   default:
                 }
 
-                return `<h1>The <b>${ctx.formValues.Plan}</b> plan requires the following info to be provided:</h1>
+                return `
+                  <h3>The <b>${ctx.formValues.Plan}</b> plan requires the following info to be provided:</h3>
                   <ul>${info}</ul>
-                  You will be asked to provide them in the next pages`;
+                  <p>You will be asked to provide them in the next pages</p>
+                  `;
               },
             },
           ],
@@ -79,11 +82,6 @@ export default (collection: CardCustomizer) =>
               type: 'Number',
               label: 'price',
               defaultValue: 40,
-            },
-            {
-              type: 'Number',
-              id: 'test-price',
-              label: 'price',
             },
             { type: 'Layout', component: 'Separator' },
             { type: 'Layout', component: 'HtmlBlock', content: '<h3>constraints:</h3>' },
@@ -120,7 +118,7 @@ export default (collection: CardCustomizer) =>
                   widget: 'NumberInput',
                   min: 0,
                   max: 1,
-                  description: ctx => `${ctx.formValues.Discount * 100}%`,
+                  description: ctx => `${(ctx.formValues.Discount || 0) * 100}%`,
                   if: ctx => ['Gold'].includes(ctx.formValues.Plan),
                 },
                 {
