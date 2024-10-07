@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.49.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.48.0...@forestadmin/agent@1.49.0) (2024-10-07)
+
+
+### Features
+
+* add pages in action forms ([#1179](https://github.com/ForestAdmin/agent-nodejs/issues/1179)) ([0b2dc0a](https://github.com/ForestAdmin/agent-nodejs/commit/0b2dc0a0d20b0f762aeb9eb6674693e05fd386c2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.54.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.34.0
+
 # @forestadmin/agent [1.48.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.47.0...@forestadmin/agent@1.48.0) (2024-10-04)
 
 
