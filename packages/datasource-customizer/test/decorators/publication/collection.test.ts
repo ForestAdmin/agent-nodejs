@@ -85,9 +85,7 @@ describe('PublicationCollectionDecorator', () => {
   });
 
   test('should throw when hiding a field which does not exists', () => {
-    expect(() => newPersons.changeFieldVisibility('unknown', false)).toThrow(
-      new MissingFieldError('unknown', 'persons'),
-    );
+    expect(() => newPersons.changeFieldVisibility('unknown', false)).toThrow(MissingFieldError);
   });
 
   test('should throw when hiding the primary key', () => {

@@ -123,7 +123,7 @@ describe('BaseCollection', () => {
 
     it('should prevent instanciation when adding field with duplicated name', () => {
       expect(() => new DuplicatedFieldErrorCollection()).toThrow(
-        'Field "__duplicated__" already defined in collection',
+        "The 'books.__duplicated__' field is already defined. Please check if the field name is correct and unique.",
       );
     });
 

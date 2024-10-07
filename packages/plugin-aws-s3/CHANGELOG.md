@@ -1,3 +1,30 @@
+# @forestadmin/plugin-aws-s3 [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.91...@forestadmin/plugin-aws-s3@1.4.0) (2024-10-04)
+
+
+### Features
+
+* **schema:** send a clear message when user wants to access to an unknown field ([#1186](https://github.com/ForestAdmin/agent-nodejs/issues/1186)) ([016aedd](https://github.com/ForestAdmin/agent-nodejs/commit/016aedd2e42c9424a531bea1370bc901126d535a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.41.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.53.0
+
+## @forestadmin/plugin-aws-s3 [1.3.91](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.90...@forestadmin/plugin-aws-s3@1.3.91) (2024-09-27)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.52.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.40.0
+
 ## @forestadmin/plugin-aws-s3 [1.3.90](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.3.89...@forestadmin/plugin-aws-s3@1.3.90) (2024-09-25)
 
 

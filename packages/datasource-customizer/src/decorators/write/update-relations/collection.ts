@@ -7,21 +7,26 @@ import {
   OneToOneSchema,
   Projection,
   RecordData,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 export default class UpdateRelationCollectionDecorator extends CollectionDecorator {
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     // Step 1: Perform the normal update
-    if (Object.keys(patch).some(key => this.schema.fields[key].type === 'Column')) {
+    const patches = Object.keys(patch);
+
+    if (patches.some(key => SchemaUtils.getField(this.schema, key, this.name).type === 'Column')) {
       const patchWithoutRelations = Object.keys(patch).reduce((memo, key) => {
-        return this.schema.fields[key].type === 'Column' ? { ...memo, [key]: patch[key] } : memo;
+        return SchemaUtils.getField(this.schema, key, this.name).type === 'Column'
+          ? { ...memo, [key]: patch[key] }
+          : memo;
       }, {});
 
       await this.childCollection.update(caller, filter, patchWithoutRelations);
     }
 
     // Step 2: Perform additional updates for relations
-    if (Object.keys(patch).some(key => this.schema.fields[key].type !== 'Column')) {
+    if (patches.some(key => SchemaUtils.getField(this.schema, key, this.name).type !== 'Column')) {
       // Fetch the records that will be updated, to know which relations need to be created/updated
       const projection = this.buildProjection(patch);
       const records = await this.list(caller, filter, projection);
@@ -29,7 +34,7 @@ export default class UpdateRelationCollectionDecorator extends CollectionDecorat
       // Perform the updates for each relation
       await Promise.all(
         Object.keys(patch)
-          .filter(key => this.schema.fields[key].type !== 'Column')
+          .filter(key => SchemaUtils.getField(this.schema, key, this.name).type !== 'Column')
           .map(key => this.createOrUpdateRelation(caller, records, key, patch[key])),
       );
     }
@@ -45,7 +50,7 @@ export default class UpdateRelationCollectionDecorator extends CollectionDecorat
     let projection = new Projection().withPks(this);
 
     for (const key of Object.keys(patch)) {
-      const schema = this.schema.fields[key];
+      const schema = SchemaUtils.getField(this.schema, key, this.name);
 
       if (schema.type !== 'Column') {
         const relation = this.dataSource.getCollection(schema.foreignCollection);
@@ -74,7 +79,9 @@ export default class UpdateRelationCollectionDecorator extends CollectionDecorat
     key: string,
     patch: RecordData,
   ): Promise<void> {
-    const schema = this.schema.fields[key] as ManyToOneSchema | OneToOneSchema;
+    const schema = SchemaUtils.getRelation(this.schema, key, this.name) as
+      | ManyToOneSchema
+      | OneToOneSchema;
     const relation = this.dataSource.getCollection(schema.foreignCollection);
     const creates = records.filter(r => r[key] === null);
     const updates = records.filter(r => r[key] !== null);

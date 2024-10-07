@@ -16,17 +16,13 @@ export default class CollectionUtils {
     const index = path.indexOf(':');
 
     if (index === -1) {
-      if (!fields[path]) throw new Error(`Column not found '${collection.name}.${path}'`);
+      SchemaUtils.throwIfMissingField(collection.schema, path, collection.name);
 
       return fields[path];
     }
 
     const associationName = path.substring(0, index);
-    const schema = fields[associationName] as RelationSchema;
-
-    if (!schema) {
-      throw new Error(`Relation not found '${collection.name}.${associationName}'`);
-    }
+    const schema = SchemaUtils.getRelation(collection.schema, associationName, collection.name);
 
     if (schema.type !== 'ManyToOne' && schema.type !== 'OneToOne') {
       throw new Error(
@@ -41,7 +37,7 @@ export default class CollectionUtils {
   }
 
   static getInverseRelation(collection: Collection, relationName: string): string {
-    const relation = collection.schema.fields[relationName] as RelationSchema;
+    const relation = SchemaUtils.getRelation(collection.schema, relationName, collection.name);
     const foreignCollection = collection.dataSource.getCollection(relation.foreignCollection);
     const inverse = Object.entries(foreignCollection.schema.fields).find(
       ([, field]: [string, RelationSchema]) => {
@@ -73,7 +69,7 @@ export default class CollectionUtils {
   }
 
   static getThroughOrigin(collection: Collection, relationName: string): string {
-    const relation = collection.schema.fields[relationName];
+    const relation = SchemaUtils.getRelation(collection.schema, relationName, collection.name);
     if (relation.type !== 'ManyToMany') throw new Error('Relation must be many to many');
 
     const throughCollection = collection.dataSource.getCollection(relation.throughCollection);
@@ -92,7 +88,7 @@ export default class CollectionUtils {
   }
 
   static getThroughTarget(collection: Collection, relationName: string): string {
-    const relation = collection.schema.fields[relationName];
+    const relation = SchemaUtils.getRelation(collection.schema, relationName, collection.name);
     if (relation.type !== 'ManyToMany') throw new Error('Relation must be many to many');
 
     const throughCollection = collection.dataSource.getCollection(relation.throughCollection);

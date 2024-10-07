@@ -5,6 +5,7 @@ import {
   ConditionTreeLeaf,
   Operator,
   Page,
+  PaginatedFilter,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
@@ -91,6 +92,34 @@ describe('MongooseCollection', () => {
     });
   });
 
+  describe('page & sort', () => {
+    describe('when a user wants to sort records on all pages', () => {
+      it('sort must be applied on all pages', async () => {
+        connection = await setupReview('collection_review_list');
+        const dataSource = new MongooseDatasource(connection);
+        const review = dataSource.getCollection('review');
+        await review.create(factories.caller.build(), [
+          { message: 'A' },
+          { message: 'B' },
+          { message: 'C' },
+          { message: 'D' },
+        ]);
+
+        const filter = new PaginatedFilter({
+          page: new Page(0, 2),
+          sort: new Sort({ field: 'message', ascending: false }),
+        });
+        const records = await review.list(
+          factories.caller.build(),
+          filter,
+          new Projection('message'),
+        );
+
+        expect(records).toEqual([{ message: 'D' }, { message: 'C' }]);
+      });
+    });
+  });
+
   describe('projection', () => {
     it('should return the given record with the given projection', async () => {
       connection = await setupReview('collection_review_list');
@@ -158,6 +187,16 @@ describe('MongooseCollection', () => {
       ],
       [
         { value: 9, operator: 'LessThan', field: 'rating' },
+        new Projection('rating'),
+        [{ rating: 5 }],
+      ],
+      [
+        { value: 10, operator: 'GreaterThanOrEqual', field: 'rating' },
+        new Projection('rating'),
+        [{ rating: 10 }],
+      ],
+      [
+        { value: 5, operator: 'LessThanOrEqual', field: 'rating' },
         new Projection('rating'),
         [{ rating: 5 }],
       ],

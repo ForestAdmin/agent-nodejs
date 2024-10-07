@@ -337,6 +337,7 @@ describe('ConditionTree', () => {
       const collection = factories.collection.build({
         schema: factories.collectionSchema.build({
           fields: {
+            number: factories.columnSchema.build({ columnType: 'Number' }),
             string: factories.columnSchema.build({ columnType: 'String' }),
             array: factories.columnSchema.build({ columnType: ['String'] }),
           },
@@ -355,10 +356,18 @@ describe('ConditionTree', () => {
         new ConditionTreeLeaf('string', 'ShorterThan', 999),
         new ConditionTreeLeaf('string', 'StartsWith', 'valu'),
         new ConditionTreeLeaf('string', 'EndsWith', 'alue'),
+        new ConditionTreeLeaf('number', 'GreaterThan', 9),
+        new ConditionTreeLeaf('number', 'LessThan', 11),
+        new ConditionTreeLeaf('number', 'GreaterThanOrEqual', 10),
+        new ConditionTreeLeaf('number', 'LessThanOrEqual', 10),
       ]);
 
       expect(
-        allConditions.match({ string: 'value', array: ['value'] }, collection, 'Europe/Paris'),
+        allConditions.match(
+          { number: 10, string: 'value', array: ['value'] },
+          collection,
+          'Europe/Paris',
+        ),
       ).toBeTruthy();
     });
 

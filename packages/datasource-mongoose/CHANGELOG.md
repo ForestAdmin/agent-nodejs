@@ -1,3 +1,35 @@
+## @forestadmin/datasource-mongoose [1.8.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.1...@forestadmin/datasource-mongoose@1.8.2) (2024-10-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.41.0
+
+## @forestadmin/datasource-mongoose [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.0...@forestadmin/datasource-mongoose@1.8.1) (2024-10-04)
+
+
+### Bug Fixes
+
+* **mongoose:** apply sort on all pages instead of the current page ([#1188](https://github.com/ForestAdmin/agent-nodejs/issues/1188)) ([434d183](https://github.com/ForestAdmin/agent-nodejs/commit/434d1832e519dc410120a590cd2d7fcacc582c74))
+
+# @forestadmin/datasource-mongoose [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.19...@forestadmin/datasource-mongoose@1.8.0) (2024-09-27)
+
+
+### Features
+
+* support lte and gte operators ([#1184](https://github.com/ForestAdmin/agent-nodejs/issues/1184)) ([acd475e](https://github.com/ForestAdmin/agent-nodejs/commit/acd475e2b1363ec06e0f606c2db3c97a476978cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.40.0
+
 ## @forestadmin/datasource-mongoose [1.7.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.7.18...@forestadmin/datasource-mongoose@1.7.19) (2024-09-25)
 
 

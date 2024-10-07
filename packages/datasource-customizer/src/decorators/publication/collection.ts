@@ -3,7 +3,6 @@ import {
   CollectionDecorator,
   CollectionSchema,
   FieldSchema,
-  MissingFieldError,
   RecordData,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
@@ -17,11 +16,7 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
 
   /** Show/hide fields from the schema */
   changeFieldVisibility(name: string, visible: boolean): void {
-    const field = this.childCollection.schema.fields[name];
-
-    if (!field) {
-      throw new MissingFieldError(name, this.childCollection.name);
-    }
+    SchemaUtils.throwIfMissingField(this.childCollection.schema, name, this.childCollection.name);
 
     if (SchemaUtils.isPrimaryKey(this.childCollection.schema, name)) {
       throw new Error(`Cannot hide primary key`);
@@ -63,7 +58,11 @@ export default class PublicationCollectionDecorator extends CollectionDecorator 
     if (this.blacklist.has(name)) return false;
 
     // Implicitly hidden
-    const field = this.childCollection.schema.fields[name];
+    const field = SchemaUtils.getField(
+      this.childCollection.schema,
+      name,
+      this.childCollection.name,
+    );
 
     if (field.type === 'ManyToOne') {
       return (

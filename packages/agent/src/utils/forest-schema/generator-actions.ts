@@ -3,7 +3,6 @@ import {
   ActionFormElement,
   ActionLayoutElement,
   Collection,
-  ColumnSchema,
   DataSource,
   LayoutElementInput,
   PrimitiveTypes,
@@ -118,7 +117,7 @@ export default class SchemaGeneratorActions {
     if (ActionFields.isCollectionField(field)) {
       const collection = dataSource.getCollection(field.collectionName);
       const [pk] = SchemaUtils.getPrimaryKeys(collection.schema);
-      const pkSchema = collection.schema.fields[pk] as ColumnSchema;
+      const pkSchema = SchemaUtils.getColumn(collection.schema, pk, collection.name);
 
       output.type = pkSchema.columnType;
       output.reference = `${collection.name}.${pk}`;

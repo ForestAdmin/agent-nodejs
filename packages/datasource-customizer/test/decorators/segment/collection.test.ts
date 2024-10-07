@@ -1,4 +1,4 @@
-import { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import { Collection, DataSource, MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
@@ -102,7 +102,7 @@ describe('SegmentCollectionDecorator', () => {
             factories.caller.build(),
             factories.filter.build({ segment: 'segmentName' }),
           ),
-        ).rejects.toThrow("Column not found 'books.do not exists'");
+        ).rejects.toThrow(MissingFieldError);
 
         expect(conditionTreeGenerator).toHaveBeenCalled();
       });

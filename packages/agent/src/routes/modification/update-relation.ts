@@ -9,6 +9,7 @@ import {
   Filter,
   ManyToOneSchema,
   OneToOneSchema,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
@@ -29,7 +30,11 @@ export default class UpdateRelation extends RelationRoute {
   public async handleUpdateRelationRoute(context: Context): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = context.request.body as any;
-    const relation = this.collection.schema.fields[this.relationName];
+    const relation = SchemaUtils.getRelation(
+      this.collection.schema,
+      this.relationName,
+      this.collection.name,
+    );
     const caller = QueryStringParser.parseCaller(context);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 

@@ -1,9 +1,9 @@
 import {
   CollectionSchema,
   CollectionUtils,
-  ColumnSchema,
   Logger,
   Operator,
+  SchemaUtils,
   allowedOperatorsForColumnType,
 } from '@forestadmin/datasource-toolkit';
 
@@ -458,7 +458,7 @@ export default class CollectionCustomizer<
   emulateFieldFiltering(name: TColumnName<S, N>): this {
     return this.pushCustomization(async () => {
       const collection = this.stack.lateOpEmulate.getCollection(this.name);
-      const field = collection.schema.fields[name] as ColumnSchema;
+      const field = SchemaUtils.getColumn(collection.schema, name, collection.name);
 
       if (typeof field.columnType === 'string') {
         const operators = allowedOperatorsForColumnType[field.columnType];

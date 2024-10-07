@@ -1,3 +1,28 @@
+## @forestadmin/forestadmin-client [1.33.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.33.0...@forestadmin/forestadmin-client@1.33.1) (2024-10-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.41.0
+
+# @forestadmin/forestadmin-client [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.32.0...@forestadmin/forestadmin-client@1.33.0) (2024-09-27)
+
+
+### Features
+
+* support lte and gte operators ([#1184](https://github.com/ForestAdmin/agent-nodejs/issues/1184)) ([acd475e](https://github.com/ForestAdmin/agent-nodejs/commit/acd475e2b1363ec06e0f606c2db3c97a476978cc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.40.0
+
 # @forestadmin/forestadmin-client [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.31.0...@forestadmin/forestadmin-client@1.32.0) (2024-09-25)
 
 

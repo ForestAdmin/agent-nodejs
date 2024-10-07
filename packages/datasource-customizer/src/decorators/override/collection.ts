@@ -78,6 +78,7 @@ export default class OverrideCollectionDecorator extends CollectionDecorator {
     records.forEach(result => {
       let hasPrimaryKey = false;
       Object.keys(result).forEach(key => {
+        // don't use SchemaUtils.getField util because if the field does not exist, we remove it.
         const field = this.schema.fields[key];
 
         if (!field || field.type !== 'Column') {

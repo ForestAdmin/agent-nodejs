@@ -94,9 +94,7 @@ describe('SortEmulationDecoratorCollection', () => {
   });
 
   test('emulateFieldSorting() should throw if the field does not exists', () => {
-    expect(() => newBooks.emulateFieldSorting('__dontExist')).toThrow(
-      new MissingFieldError('__dontExist', 'books'),
-    );
+    expect(() => newBooks.emulateFieldSorting('__dontExist')).toThrow(MissingFieldError);
   });
 
   test('emulateFieldSorting() should throw if the field is a relation', () => {

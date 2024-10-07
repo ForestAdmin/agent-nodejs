@@ -137,7 +137,7 @@ describe('OverrideCollectionDecorator', () => {
 
       describe('when the handler does not return a primary key in each record', () => {
         it('should throw an error', async () => {
-          const handler = jest.fn().mockResolvedValue([{ id: 'valid' }, { noId: 1 }]);
+          const handler = jest.fn().mockResolvedValue([{ id: 'valid' }, { description: 1 }]);
 
           const currentCaller = factories.caller.build();
           const currentData = [factories.recordData.build()];

@@ -3,7 +3,7 @@ import type {
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
 
-import { ColumnSchema, ColumnType } from '@forestadmin/datasource-toolkit';
+import { ColumnType, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import flattenColumn from '../flatten-column';
 
@@ -71,7 +71,7 @@ export default function flattenJsonColumn(
   if (!collection) throw new Error('This plugin can only be called when customizing collections.');
 
   const errorMessage = `'${collection.name}.${options.columnName} cannot be flattened`;
-  const schema = collection.schema.fields[options.columnName] as ColumnSchema;
+  const schema = SchemaUtils.getColumn(collection.schema, options.columnName, collection.name);
 
   if (schema?.columnType !== 'Json') {
     throw new Error(

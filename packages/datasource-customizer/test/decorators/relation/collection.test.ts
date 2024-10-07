@@ -7,7 +7,7 @@ import {
   DataSourceDecorator,
   Filter,
   ManyToManySchema,
-  MissingFieldError,
+  MissingColumnError,
   PaginatedFilter,
   Projection,
   Sort,
@@ -166,7 +166,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: 'passports',
             originKey: '__nonExisting__',
           }),
-        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
+        ).toThrow(MissingColumnError);
       });
     });
 
@@ -283,7 +283,7 @@ describe('RelationCollectionDecorator', () => {
             foreignCollection: 'persons',
             foreignKey: '__nonExisting__',
           }),
-        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
+        ).toThrow(MissingColumnError);
       });
     });
 
@@ -351,7 +351,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: '__nonExisting__',
             throughCollection: 'passports',
           } as ManyToManySchema),
-        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
+        ).toThrow(MissingColumnError);
       });
 
       test('should throw with a non existent fk', () => {
@@ -363,7 +363,7 @@ describe('RelationCollectionDecorator', () => {
             originKey: 'ownerId',
             throughCollection: 'passports',
           } as ManyToManySchema),
-        ).toThrow(new MissingFieldError('__nonExisting__', 'passports'));
+        ).toThrow(MissingColumnError);
       });
     });
 

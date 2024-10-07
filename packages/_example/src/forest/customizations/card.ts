@@ -3,8 +3,8 @@ import { CardCustomizer } from '../typings';
 export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
-    .addAction('create new card', {
-      scope: 'Single',
+    .addAction('Create new card', {
+      scope: 'Global',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok');
       },
@@ -15,7 +15,8 @@ export default (collection: CardCustomizer) =>
           elements: [
             {
               type: 'String',
-              label: 'Plan',
+              label: 'Credit card plan',
+              id: 'Plan',
               widget: 'Dropdown',
               options: ['Base', 'Gold', 'Black'],
               isRequired: true,
@@ -24,28 +25,33 @@ export default (collection: CardCustomizer) =>
               type: 'Layout',
               component: 'HtmlBlock',
               content: ctx => {
+                if (!ctx.formValues.Plan) {
+                  return 'Please select a card Plan';
+                }
+
+                let info = '';
+
                 switch (ctx.formValues.Plan) {
                   case 'Base':
-                    return `<h1>Should setup:</h1>
-                            <ul>
-                              <li>separator</li>
-                              <li>price</li>
-                              <li>max withdraw / max payment</li>
-                            </ul>`;
+                    info = `
+                            <li>price</li>
+                            <li>max withdraw / max payment</li>`;
+                    break;
                   case 'Gold':
-                    return `<h1>Should setup:</h1>
-                            <ul>
-                              <li>max payment / Systematic check (if max payment > 1000)</li>
-                              <li>discount / discount months</li>
-                            </ul>`;
-                  case 'Back':
-                    return `<h1>Should setup:</h1>
-                            <ul>
-                              <li>max withdraw</li>
-                            </ul>`;
+                    info = `<li>max payment / Systematic check (if max payment > 1000)</li>
+                            <li>discount / discount months</li>`;
+                    break;
+                  case 'Black':
+                    info = `<li>max withdraw</li>`;
+                    break;
                   default:
-                    return `Select a card plan`;
                 }
+
+                return `
+                  <h3>The <b>${ctx.formValues.Plan}</b> plan requires the following info to be provided:</h3>
+                  <ul>${info}</ul>
+                  <p>You will be asked to provide them in the next pages</p>
+                  `;
               },
             },
           ],
@@ -59,14 +65,14 @@ export default (collection: CardCustomizer) =>
             {
               type: 'Layout',
               component: 'HtmlBlock',
-              content: 'this is an empty page',
+              content: 'This is an empty page',
             },
           ],
         },
         {
           type: 'Layout',
           component: 'Page',
-          elements: [], // this page should be trimmed and not shown in the final form
+          elements: [], // this empty page will be trimmed and not shown in the final form
         },
         {
           type: 'Layout',
@@ -76,19 +82,6 @@ export default (collection: CardCustomizer) =>
               type: 'Number',
               label: 'price',
               defaultValue: 40,
-              if: ctx => ['Base'].includes(ctx.formValues.Plan),
-            },
-            {
-              type: 'Number',
-              label: 'price',
-              defaultValue: 80,
-              if: ctx => ['Gold'].includes(ctx.formValues.Plan),
-              isRequired: true,
-            },
-            {
-              type: 'Number',
-              id: 'test-price',
-              label: 'price',
             },
             { type: 'Layout', component: 'Separator' },
             { type: 'Layout', component: 'HtmlBlock', content: '<h3>constraints:</h3>' },
@@ -122,11 +115,20 @@ export default (collection: CardCustomizer) =>
                 {
                   type: 'Number',
                   label: 'Discount',
+                  widget: 'NumberInput',
+                  min: 0,
+                  max: 1,
+                  description: ctx => `${(ctx.formValues.Discount || 0) * 100}%`,
                   if: ctx => ['Gold'].includes(ctx.formValues.Plan),
                 },
                 {
                   type: 'Number',
-                  label: 'Discount months',
+                  widget: 'NumberInput',
+                  label: 'Discount duration',
+                  min: 1,
+                  step: 1,
+                  max: 12,
+                  description: 'How long should the discount apply for (in month)',
                   if: ctx => ['Gold'].includes(ctx.formValues.Plan),
                 },
               ],

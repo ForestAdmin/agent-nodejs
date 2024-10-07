@@ -4,7 +4,12 @@ export default class FilterOperatorsGenerator {
   static readonly defaultOperators: Partial<Operator[]> = ['Equal', 'NotEqual', 'Present'];
   static readonly inOperators: Partial<Operator[]> = ['In', 'NotIn'];
   static readonly stringOperators: Partial<Operator[]> = ['Match', 'NotContains', 'NotIContains'];
-  static readonly comparisonOperators: Partial<Operator[]> = ['GreaterThan', 'LessThan'];
+  static readonly comparisonOperators: Partial<Operator[]> = [
+    'GreaterThan',
+    'LessThan',
+    'GreaterThanOrEqual',
+    'LessThanOrEqual',
+  ];
 
   static getSupportedOperators(type: ColumnType): Set<Operator> {
     if (!(type instanceof Array) && type instanceof Object) {

@@ -21,12 +21,12 @@ export default class FilterGenerator {
 
     const sortAndLimitStages: PipelineStage[] = [];
 
+    if (sort) sortAndLimitStages.push({ $sort: sort });
+
     if (filter.page?.skip !== undefined) sortAndLimitStages.push({ $skip: filter.page.skip });
     if (filter.page?.limit !== undefined) sortAndLimitStages.push({ $limit: filter.page.limit });
 
     if (!sort) return [sortAndLimitStages, [], []];
-
-    sortAndLimitStages.push({ $sort: sort });
 
     const allSortCriteriaNative = !Object.keys(sort).find(
       key => !Object.keys(model.schema.paths).includes(key),
@@ -173,8 +173,12 @@ export default class FilterGenerator {
     switch (operator) {
       case 'GreaterThan':
         return { $gt: formattedLeafValue };
+      case 'GreaterThanOrEqual':
+        return { $gte: formattedLeafValue };
       case 'LessThan':
         return { $lt: formattedLeafValue };
+      case 'LessThanOrEqual':
+        return { $lte: formattedLeafValue };
       case 'Equal':
         return { $eq: formattedLeafValue };
       case 'NotEqual':

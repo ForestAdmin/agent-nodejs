@@ -5,6 +5,7 @@ import {
   ConditionTreeLeaf,
   DataSource,
   Filter,
+  MissingFieldError,
   Page,
   PaginatedFilter,
   Projection,
@@ -168,7 +169,7 @@ describe('RelaxedWrappers', () => {
     test('should validate patch operation before forwarding update', async () => {
       await expect(() =>
         relaxed.update({ segment: 'some_segment' }, { nonexistingField: 'newValue' }),
-      ).toThrow('Unknown field "nonexistingField"');
+      ).toThrow(MissingFieldError);
 
       expect(collection.update).not.toHaveBeenCalled();
     });
