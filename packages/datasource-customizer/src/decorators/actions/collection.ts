@@ -150,7 +150,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     ] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it
-      const isDynamic = this.isHandler(form) || form?.some(this.isFieldDynamic);
+      const isDynamic = this.isHandler(form) || form?.some(this.isFieldDynamic.bind(this));
 
       newSchema.actions[name] = {
         scope,
