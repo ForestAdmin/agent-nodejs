@@ -9,6 +9,7 @@ import {
   FieldValidator,
   Filter,
   RecordData,
+  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -20,7 +21,7 @@ export default class ValidationDecorator extends CollectionDecorator {
   addValidation(name: string, validation: ValidationRule): void {
     FieldValidator.validate(this, name);
 
-    const field = this.childCollection.schema.fields[name] as ColumnSchema;
+    const field = SchemaUtils.getColumn(this.schema, name, this.name);
 
     if (field?.type !== 'Column') {
       throw new Error('Cannot add validators on a relation, use the foreign key instead');
@@ -49,7 +50,7 @@ export default class ValidationDecorator extends CollectionDecorator {
     const schema = { ...subSchema, fields: { ...subSchema.fields } };
 
     for (const [name, rules] of Object.entries(this.validation)) {
-      const field = { ...schema.fields[name] } as ColumnSchema;
+      const field = { ...SchemaUtils.getColumn(schema, name) };
       field.validation = [...(field.validation ?? []), ...rules];
       schema.fields[name] = field;
     }

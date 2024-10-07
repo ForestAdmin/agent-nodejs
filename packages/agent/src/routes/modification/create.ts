@@ -7,7 +7,6 @@ import {
   ManyToOneSchema,
   RecordData,
   RecordValidator,
-  RelationSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
@@ -43,7 +42,7 @@ export default class CreateRoute extends CollectionRoute {
     const relations: Record<string, RecordData> = {};
 
     const promises = Object.entries(record).map(async ([field, value]) => {
-      const schema = this.collection.schema.fields[field];
+      const schema = SchemaUtils.getField(this.collection.schema, field, this.collection.name);
 
       if (schema?.type === 'OneToOne' || schema?.type === 'ManyToOne') {
         relations[field] = this.getRelationRecord(field, value as CompositeId);
@@ -87,7 +86,7 @@ export default class CreateRoute extends CollectionRoute {
     const caller = QueryStringParser.parseCaller(context);
 
     const promises = Object.entries(relations).map(async ([field, linked]) => {
-      const relation = this.collection.schema.fields[field];
+      const relation = SchemaUtils.getRelation(this.collection.schema, field, this.collection.name);
       if (linked === null || relation.type !== 'OneToOne') return;
 
       // Permissions
@@ -121,7 +120,7 @@ export default class CreateRoute extends CollectionRoute {
   private getRelationRecord(field: string, id: CompositeId): RecordData {
     if (id === null) return null;
 
-    const schema = this.collection.schema.fields[field] as RelationSchema;
+    const schema = SchemaUtils.getRelation(this.collection.schema, field, this.collection.name);
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
     const pkName = SchemaUtils.getPrimaryKeys(foreignCollection.schema);
 
@@ -136,7 +135,11 @@ export default class CreateRoute extends CollectionRoute {
     if (id === null) return null;
 
     const caller = QueryStringParser.parseCaller(context);
-    const schema = this.collection.schema.fields[field] as ManyToOneSchema;
+    const schema = SchemaUtils.getRelation(
+      this.collection.schema,
+      field,
+      this.collection.name,
+    ) as ManyToOneSchema;
     const foreignCollection = this.dataSource.getCollection(schema.foreignCollection);
 
     return CollectionUtils.getValue(foreignCollection, caller, id, schema.foreignKeyTarget);

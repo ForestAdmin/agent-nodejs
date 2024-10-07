@@ -1,4 +1,4 @@
-import { Projection, RelationSchema } from '@forestadmin/datasource-toolkit';
+import { Projection, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import ComputedCollection from '../collection';
 
@@ -6,7 +6,7 @@ export default function rewriteField(collection: ComputedCollection, path: strin
   // Projection is targeting a field on another collection => recurse.
   if (path.includes(':')) {
     const [prefix] = path.split(':');
-    const schema = collection.schema.fields[prefix] as RelationSchema;
+    const schema = SchemaUtils.getRelation(collection.schema, prefix, collection.name);
     const association = collection.dataSource.getCollection(schema.foreignCollection);
 
     return new Projection(path)

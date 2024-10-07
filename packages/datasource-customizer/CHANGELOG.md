@@ -1,3 +1,33 @@
+# @forestadmin/datasource-customizer [1.54.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.53.0...@forestadmin/datasource-customizer@1.54.0) (2024-10-07)
+
+
+### Features
+
+* add pages in action forms ([#1179](https://github.com/ForestAdmin/agent-nodejs/issues/1179)) ([0b2dc0a](https://github.com/ForestAdmin/agent-nodejs/commit/0b2dc0a0d20b0f762aeb9eb6674693e05fd386c2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+
+# @forestadmin/datasource-customizer [1.53.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.52.1...@forestadmin/datasource-customizer@1.53.0) (2024-10-04)
+
+
+### Features
+
+* **schema:** send a clear message when user wants to access to an unknown field ([#1186](https://github.com/ForestAdmin/agent-nodejs/issues/1186)) ([016aedd](https://github.com/ForestAdmin/agent-nodejs/commit/016aedd2e42c9424a531bea1370bc901126d535a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.41.0
+
 ## @forestadmin/datasource-customizer [1.52.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.52.0...@forestadmin/datasource-customizer@1.52.1) (2024-09-27)
 
 

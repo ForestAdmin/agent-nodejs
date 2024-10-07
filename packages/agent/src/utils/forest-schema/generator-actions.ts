@@ -3,7 +3,6 @@ import {
   ActionFormElement,
   ActionLayoutElement,
   Collection,
-  ColumnSchema,
   DataSource,
   LayoutElementInput,
   PrimitiveTypes,
@@ -125,7 +124,7 @@ export default class SchemaGeneratorActions {
     if (ActionFields.isCollectionField(field)) {
       const collection = dataSource.getCollection(field.collectionName);
       const [pk] = SchemaUtils.getPrimaryKeys(collection.schema);
-      const pkSchema = collection.schema.fields[pk] as ColumnSchema;
+      const pkSchema = SchemaUtils.getColumn(collection.schema, pk, collection.name);
 
       output.type = pkSchema.columnType;
       output.reference = `${collection.name}.${pk}`;
@@ -144,14 +143,7 @@ export default class SchemaGeneratorActions {
     return output as ForestServerActionField;
   }
 
-  static buildLayoutSchema(
-    element: ActionLayoutElement,
-    options?: { forceInput?: boolean },
-  ): ForestServerActionFormLayoutElement {
-    if (options?.forceInput) {
-      element.component = 'Input';
-    }
-
+  static buildLayoutSchema(element: ActionLayoutElement): ForestServerActionFormLayoutElement {
     switch (element.component) {
       case 'Input':
         return {
@@ -168,9 +160,21 @@ export default class SchemaGeneratorActions {
           component: 'row',
           fields: element.fields.map(
             field =>
-              SchemaGeneratorActions.buildLayoutSchema(field, {
-                forceInput: true,
-              }) as ForestServerActionFormElementFieldReference,
+              SchemaGeneratorActions.buildLayoutSchema(
+                field,
+              ) as ForestServerActionFormElementFieldReference,
+          ),
+        };
+      case 'Page':
+        return {
+          component: 'page',
+          nextButtonLabel: element.nextButtonLabel,
+          previousButtonLabel: element.previousButtonLabel,
+          elements: element.elements.map(
+            subElement =>
+              SchemaGeneratorActions.buildLayoutSchema(
+                subElement,
+              ) as ForestServerActionFormLayoutElement,
           ),
         };
       case 'Separator':
@@ -211,16 +215,21 @@ export default class SchemaGeneratorActions {
     allFields: ActionField[],
   ): ActionLayoutElement {
     if (element.type === 'Layout') {
-      if (element.component === 'Row') {
-        const fields = element.fields.map(
+      const subElementsKey = {
+        Row: 'fields',
+        Page: 'elements',
+      };
+
+      if (element.component === 'Row' || element.component === 'Page') {
+        const key = subElementsKey[element.component];
+        const subElements = element[key].map(
           field => SchemaGeneratorActions.parseLayout(field, allFields) as LayoutElementInput,
         );
 
         return {
-          type: 'Layout',
-          component: 'Row',
-          fields,
-        };
+          ...element,
+          [key]: subElements,
+        } as ActionLayoutElement;
       }
 
       return element;

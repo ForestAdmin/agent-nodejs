@@ -650,6 +650,66 @@ describe('ActionDecorator', () => {
         },
       ]);
     });
+
+    test(`it should work inside a row inside a page`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: () => {},
+        form: [
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              {
+                type: 'Layout',
+                component: 'Row',
+                fields: [
+                  {
+                    label: 'default',
+                    type: 'String',
+                    defaultValue: 'hello',
+                    value: 'hello',
+                  },
+                  {
+                    label: 'dynamic search',
+                    type: 'String',
+                    widget: 'Dropdown',
+                    search: 'dynamic',
+                    options: (context, searchValue) => {
+                      return [searchValue, context.caller.email];
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        {},
+        undefined,
+        {
+          changedField: '',
+          searchField: 'dynamic search',
+          searchValues: { 'dynamic search': '123' },
+        },
+      );
+      expect(fields).toStrictEqual([
+        {
+          id: 'dynamic search',
+          label: 'dynamic search',
+          type: 'String',
+          options: expect.arrayContaining(['123', 'user@domain.com']),
+          search: 'dynamic',
+          value: undefined,
+          watchChanges: false,
+          widget: 'Dropdown',
+        },
+      ]);
+    });
   });
 
   describe('changedField', () => {
@@ -856,6 +916,240 @@ describe('ActionDecorator', () => {
           },
         ]),
       );
+    });
+
+    describe('with pages', () => {
+      test('should compute the form recursively', async () => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: (context, resultBuilder) => {
+            return resultBuilder.error('meeh');
+          },
+          form: [
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [
+                {
+                  type: 'Layout',
+                  component: 'Row',
+                  fields: [
+                    { label: 'firstname', type: 'String' },
+                    { label: 'lastname', type: 'String' },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [
+                { type: 'Layout', component: 'Separator' },
+                { label: 'age', type: 'Number' },
+              ],
+            },
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [
+                { id: 'id-age', label: 'age', type: 'Number' },
+                {
+                  type: 'Layout',
+                  component: 'Row',
+                  fields: [
+                    { label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
+                    {
+                      label: 'email',
+                      type: 'String',
+                      defaultValue: ctx =>
+                        `${ctx.formValues.firstname}.${ctx.formValues.lastname}@`,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await newBooks.getForm(null, 'make photocopy', null, null)).toEqual([
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              {
+                component: 'Row',
+                fields: [
+                  {
+                    id: 'firstname',
+                    label: 'firstname',
+                    type: 'String',
+                    value: undefined,
+                    watchChanges: true,
+                  },
+                  {
+                    id: 'lastname',
+                    label: 'lastname',
+                    type: 'String',
+                    value: undefined,
+                    watchChanges: true,
+                  },
+                ],
+                type: 'Layout',
+              },
+            ],
+          },
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              { component: 'Separator', type: 'Layout' },
+              { id: 'age', label: 'age', type: 'Number', value: undefined, watchChanges: true },
+            ],
+          },
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              { id: 'id-age', label: 'age', type: 'Number', value: undefined, watchChanges: false },
+              {
+                component: 'Row',
+                fields: [
+                  {
+                    id: 'email',
+                    label: 'email',
+                    type: 'String',
+                    value: 'undefined.undefined@',
+                    watchChanges: false,
+                  },
+                ],
+                type: 'Layout',
+              },
+            ],
+          },
+        ]);
+
+        expect(
+          await newBooks.getForm(null, 'make photocopy', { age: 25, lastname: 'smith' }, null),
+        ).toEqual([
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              {
+                component: 'Row',
+                fields: [
+                  {
+                    id: 'firstname',
+                    label: 'firstname',
+                    type: 'String',
+                    value: undefined,
+                    watchChanges: true,
+                  },
+                  {
+                    id: 'lastname',
+                    label: 'lastname',
+                    type: 'String',
+                    value: 'smith',
+                    watchChanges: true,
+                  },
+                ],
+                type: 'Layout',
+              },
+            ],
+          },
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              { component: 'Separator', type: 'Layout' },
+              { id: 'age', label: 'age', type: 'Number', value: 25, watchChanges: true },
+            ],
+          },
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              {
+                id: 'id-age',
+                label: 'age',
+                type: 'Number',
+                value: undefined,
+                watchChanges: false,
+              },
+              {
+                component: 'Row',
+                fields: [
+                  {
+                    id: 'tel',
+                    label: 'tel',
+                    type: 'Number',
+                    value: undefined,
+                    watchChanges: false,
+                  },
+                  {
+                    id: 'email',
+                    label: 'email',
+                    type: 'String',
+                    value: 'undefined.smith@',
+                    watchChanges: false,
+                  },
+                ],
+                type: 'Layout',
+              },
+            ],
+          },
+        ]);
+      });
+
+      test('should throw if there is pages when the first element is not a page', async () => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: (context, resultBuilder) => {
+            return resultBuilder.error('meeh');
+          },
+          form: [
+            { label: 'age', type: 'Number' },
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [{ label: 'firstname', type: 'String' }],
+            },
+          ],
+        });
+
+        await expect(async () =>
+          newBooks.getForm(null, 'make photocopy', null, null),
+        ).rejects.toThrow(
+          new Error(
+            `You cannot mix pages and other form elements in smart action 'make photocopy' form`,
+          ),
+        );
+      });
+
+      test('should throw if there is other elements than pages and the first element is a page', async () => {
+        newBooks.addAction('make photocopy', {
+          scope: 'Single',
+          execute: (context, resultBuilder) => {
+            return resultBuilder.error('meeh');
+          },
+          form: [
+            {
+              type: 'Layout',
+              component: 'Page',
+              elements: [{ label: 'firstname', type: 'String' }],
+            },
+            { label: 'age', type: 'Number' },
+          ],
+        });
+
+        await expect(async () =>
+          newBooks.getForm(null, 'make photocopy', null, null),
+        ).rejects.toThrow(
+          new Error(
+            `You cannot mix pages and other form elements in smart action 'make photocopy' form`,
+          ),
+        );
+      });
     });
   });
 });

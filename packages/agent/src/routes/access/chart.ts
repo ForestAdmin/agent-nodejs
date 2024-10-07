@@ -8,7 +8,7 @@ import {
   DateOperation,
   Filter,
   FilterFactory,
-  RelationSchema,
+  SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import {
@@ -187,8 +187,11 @@ export default class ChartRoute extends CollectionRoute {
     context: Context,
   ): Promise<Array<{ key: string; value: number }>> {
     const body = <LeaderboardChart>context.request.body;
-    const field = this.collection.schema.fields[body.relationshipFieldName] as RelationSchema;
-
+    const field = SchemaUtils.getRelation(
+      this.collection.schema,
+      body.relationshipFieldName,
+      this.collection.name,
+    );
     let collection: string;
     let filter: Filter;
     let aggregation: Aggregation;

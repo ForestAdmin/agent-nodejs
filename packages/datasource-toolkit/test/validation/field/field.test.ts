@@ -1,4 +1,4 @@
-import { MissingFieldError } from '../../../src/errors';
+import { MissingFieldError } from '../../../src';
 import FieldValidator from '../../../src/validation/field';
 import * as factories from '../../__factories__';
 
@@ -24,8 +24,6 @@ describe('FieldValidator', () => {
       },
     });
 
-    expect(() => FieldValidator.validate(collection, 'INVALID')).toThrow(
-      new MissingFieldError('INVALID', 'collection1'),
-    );
+    expect(() => FieldValidator.validate(collection, 'INVALID')).toThrow(MissingFieldError);
   });
 });

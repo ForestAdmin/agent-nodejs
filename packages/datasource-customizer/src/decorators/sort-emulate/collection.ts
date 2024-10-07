@@ -12,7 +12,7 @@ import {
   Projection,
   RecordData,
   RecordUtils,
-  RelationSchema,
+  SchemaUtils,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
@@ -133,7 +133,7 @@ export default class SortEmulate extends CollectionDecorator {
     // Order by is targeting a field on another collection => recurse.
     if (clause.field.includes(':')) {
       const [prefix] = clause.field.split(':');
-      const schema = this.schema.fields[prefix] as RelationSchema;
+      const schema = SchemaUtils.getRelation(this.schema, prefix, this.name);
       const association = this.dataSource.getCollection(schema.foreignCollection);
 
       return new Sort(clause)
@@ -158,7 +158,11 @@ export default class SortEmulate extends CollectionDecorator {
     const index = path.indexOf(':');
     if (index === -1) return this.sorts.has(path);
 
-    const { foreignCollection } = this.schema.fields[path.substring(0, index)] as RelationSchema;
+    const { foreignCollection } = SchemaUtils.getRelation(
+      this.schema,
+      path.substring(0, index),
+      this.name,
+    );
     const association = this.dataSource.getCollection(foreignCollection);
 
     return association.isEmulated(path.substring(index + 1));

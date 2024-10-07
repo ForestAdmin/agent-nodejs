@@ -3,7 +3,7 @@ import type {
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
 
-import { ColumnSchema, ColumnType } from '@forestadmin/datasource-toolkit';
+import { ColumnType, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import { makeCreateHook, makeField, makeUpdateHook, makeWriteHandler } from './customization';
 import { includeStrToPath, listPaths } from './helpers';
@@ -20,7 +20,7 @@ export type FlattenColumnOptions = {
 function optionsToPaths(collection: CollectionCustomizer, options: FlattenColumnOptions): string[] {
   const { columnName, include, exclude, level, columnType } = options;
   const errorMessage = `'${collection.name}.${columnName}' cannot be flattened`;
-  const schema = collection.schema.fields[options.columnName];
+  const schema = SchemaUtils.getColumn(collection.schema, columnName, collection.name);
 
   if (!schema) throw new Error(`${errorMessage} (not found).`);
   if (schema.type !== 'Column') throw new Error(`${errorMessage} (not a column).`);
@@ -70,7 +70,7 @@ export default async function flattenColumn(
   if (!collection) throw new Error('This plugin can only be called when customizing collections.');
 
   const paths = optionsToPaths(collection, options);
-  const schema = collection.schema.fields[options.columnName] as ColumnSchema;
+  const schema = SchemaUtils.getColumn(collection.schema, options.columnName, collection.name);
 
   // Add fields that reads the value from the deeply nested column
   for (const path of paths) {

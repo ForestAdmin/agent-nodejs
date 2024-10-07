@@ -271,9 +271,23 @@ interface LayoutElementRow extends ActionLayoutElementBase {
   fields: LayoutElementInput[];
 }
 
-interface LayoutElementRowRecursive extends ActionLayoutElementBase {
+interface LayoutElementPage extends ActionLayoutElementBase {
+  component: 'Page';
+  nextButtonLabel?: string;
+  previousButtonLabel?: string;
+  elements: ActionLayoutElement[];
+}
+
+interface LayoutElementRowWithField extends ActionLayoutElementBase {
   component: 'Row';
   fields: ActionField[];
+}
+
+export interface LayoutElementPageWithField extends ActionLayoutElementBase {
+  component: 'Page';
+  nextButtonLabel?: string;
+  previousButtonLabel?: string;
+  elements: ActionLayoutElementWithField[];
 }
 
 export interface LayoutElementInput extends ActionLayoutElementBase {
@@ -285,17 +299,21 @@ export type ActionLayoutElement =
   | LayoutElementSeparator
   | LayoutElementHtmlBlock
   | LayoutElementRow
+  | LayoutElementPage
   | LayoutElementInput;
 
-export type ActionLayoutElementRecursive =
+export type ActionLayoutElementWithField =
   | LayoutElementSeparator
   | LayoutElementHtmlBlock
-  | LayoutElementRowRecursive
-  | LayoutElementInput;
+  | LayoutElementRowWithField
+  | ActionField;
 
-export type ActionFormElement = ActionLayoutElementRecursive | ActionField;
+export type ActionFormElement = ActionLayoutElementWithField | LayoutElementPageWithField;
 
-export type ActionForm = { fields: ActionField[]; layout: ActionLayoutElement[] };
+export type ActionForm = {
+  fields: ActionField[];
+  layout: ActionLayoutElement[];
+};
 
 export type SuccessResult = {
   type: 'Success';

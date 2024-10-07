@@ -11,7 +11,6 @@ import {
   ConditionTreeLeaf,
   DataSourceDecorator,
   Filter,
-  MissingFieldError,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -160,8 +159,8 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     RelationCollectionDecorator.checkColumn(owner, keyName);
     RelationCollectionDecorator.checkColumn(targetOwner, targetName);
 
-    const key = owner.schema.fields[keyName] as ColumnSchema;
-    const target = targetOwner.schema.fields[targetName] as ColumnSchema;
+    const key = SchemaUtils.getColumn(owner.schema, keyName, owner.name);
+    const target = SchemaUtils.getColumn(targetOwner.schema, targetName, targetOwner.name);
 
     if (key.columnType !== target.columnType) {
       throw new Error(
@@ -172,11 +171,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
   }
 
   private static checkColumn(owner: Collection, name: string): void {
-    const column = owner.schema.fields[name];
-
-    if (!column || column.type !== 'Column') {
-      throw new MissingFieldError(name, owner.name);
-    }
+    const column = SchemaUtils.getColumn(owner.schema, name, owner.name);
 
     if (!column.filterOperators?.has('In')) {
       throw new Error(`Column does not support the In operator: '${owner.name}.${name}'`);
@@ -185,7 +180,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
 
   private rewriteField(field: string): string[] {
     const prefix = field.split(':').shift();
-    const schema = this.schema.fields[prefix];
+    const schema = SchemaUtils.getField(this.schema, prefix, this.name);
     if (schema.type === 'Column') return [field];
 
     const relation = this.dataSource.getCollection(schema.foreignCollection);
@@ -210,7 +205,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
 
   private async rewriteLeaf(caller: Caller, leaf: ConditionTreeLeaf): Promise<ConditionTree> {
     const prefix = leaf.field.split(':').shift();
-    const schema = this.schema.fields[prefix];
+    const schema = SchemaUtils.getField(this.schema, prefix, this.name);
     if (schema.type === 'Column') return leaf;
 
     const relation = this.dataSource.getCollection(schema.foreignCollection);
@@ -303,7 +298,7 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     name: string,
     projection: Projection,
   ): Promise<void> {
-    const schema = this.schema.fields[name] as RelationSchema;
+    const schema = SchemaUtils.getRelation(this.schema, name, this.name);
     const association = this.dataSource.getCollection(schema.foreignCollection);
 
     if (!this.relations[name]) {

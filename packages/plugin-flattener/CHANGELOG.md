@@ -1,3 +1,30 @@
+## @forestadmin/plugin-flattener [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.3.0...@forestadmin/plugin-flattener@1.3.1) (2024-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.54.0
+
+# @forestadmin/plugin-flattener [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.2.17...@forestadmin/plugin-flattener@1.3.0) (2024-10-04)
+
+
+### Features
+
+* **schema:** send a clear message when user wants to access to an unknown field ([#1186](https://github.com/ForestAdmin/agent-nodejs/issues/1186)) ([016aedd](https://github.com/ForestAdmin/agent-nodejs/commit/016aedd2e42c9424a531bea1370bc901126d535a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.41.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.53.0
+
 ## @forestadmin/plugin-flattener [1.2.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-flattener@1.2.16...@forestadmin/plugin-flattener@1.2.17) (2024-09-27)
 
 

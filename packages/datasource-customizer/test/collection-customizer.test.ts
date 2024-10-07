@@ -327,9 +327,7 @@ describe('Builder > Collection', () => {
         const { dsc, customizer } = await setup();
 
         customizer.importField('translatorName', { path: 'doesNotExistPath' });
-        await expect(dsc.getDataSource(logger)).rejects.toThrow(
-          new MissingFieldError('doesNotExistPath', 'authors'),
-        );
+        await expect(dsc.getDataSource(logger)).rejects.toThrow(MissingFieldError);
       });
     });
   });

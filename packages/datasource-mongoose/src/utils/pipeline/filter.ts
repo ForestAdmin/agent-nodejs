@@ -21,12 +21,12 @@ export default class FilterGenerator {
 
     const sortAndLimitStages: PipelineStage[] = [];
 
+    if (sort) sortAndLimitStages.push({ $sort: sort });
+
     if (filter.page?.skip !== undefined) sortAndLimitStages.push({ $skip: filter.page.skip });
     if (filter.page?.limit !== undefined) sortAndLimitStages.push({ $limit: filter.page.limit });
 
     if (!sort) return [sortAndLimitStages, [], []];
-
-    sortAndLimitStages.push({ $sort: sort });
 
     const allSortCriteriaNative = !Object.keys(sort).find(
       key => !Object.keys(model.schema.paths).includes(key),

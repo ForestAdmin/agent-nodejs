@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { SchemaUtils } from './index';
 import { ActionField, ActionResult } from './interfaces/action';
 import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
@@ -47,9 +48,7 @@ export default abstract class BaseCollection implements Collection {
   }
 
   protected addField(name: string, schema: FieldSchema): void {
-    const fieldSchema = this.schema.fields[name];
-
-    if (fieldSchema !== undefined) throw new Error(`Field "${name}" already defined in collection`);
+    SchemaUtils.throwIfAlreadyDefinedField(this.schema, name, this.name);
 
     this.schema.fields[name] = schema;
   }
