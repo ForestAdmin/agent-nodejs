@@ -94,9 +94,9 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     if (metas?.searchField) {
       // in the case of a search hook,
       // we don't want to rebuild all the fields. only the one searched
-      dynamicFields = [
-        dynamicFields.find(field => field.type === 'Layout' || field.label === metas.searchField),
-      ] as DynamicForm;
+      dynamicFields = dynamicFields
+        .map(field => this.getSearchedField(field, metas.searchField))
+        .filter(Boolean);
     }
 
     let dynamicFieldsWithId = await this.dropDefaultsAndSetId(context, dynamicFields, formValues);
@@ -170,6 +170,27 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       Bulk: ActionContext,
       Single: ActionContextSingle,
     }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
+  }
+
+  private getSearchedField(element: DynamicFormElementOrPage, search: string): DynamicField | null {
+    const subElementsKey = this.getSubElementsAttributeKey(element);
+
+    if (subElementsKey) {
+      return (
+        element[subElementsKey]
+          .map(subElement => this.getSearchedField(subElement, search))
+          .filter(Boolean)[0] || null
+      );
+    }
+
+    const field = element as DynamicField;
+    const returnThisField = field.id ? search === field.id : search === field.label;
+
+    if (returnThisField) {
+      return field;
+    }
+
+    return null;
   }
 
   private getSubElementsAttributeKey<T extends GenericFormElement>(field: T): string | null {

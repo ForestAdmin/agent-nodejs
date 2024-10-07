@@ -650,6 +650,66 @@ describe('ActionDecorator', () => {
         },
       ]);
     });
+
+    test(`it should work inside a row inside a page`, async () => {
+      newBooks.addAction('make photocopy', {
+        scope: 'Single',
+        execute: () => {},
+        form: [
+          {
+            type: 'Layout',
+            component: 'Page',
+            elements: [
+              {
+                type: 'Layout',
+                component: 'Row',
+                fields: [
+                  {
+                    label: 'default',
+                    type: 'String',
+                    defaultValue: 'hello',
+                    value: 'hello',
+                  },
+                  {
+                    label: 'dynamic search',
+                    type: 'String',
+                    widget: 'Dropdown',
+                    search: 'dynamic',
+                    options: (context, searchValue) => {
+                      return [searchValue, context.caller.email];
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const fields = await newBooks.getForm(
+        factories.caller.build(),
+        'make photocopy',
+        {},
+        undefined,
+        {
+          changedField: '',
+          searchField: 'dynamic search',
+          searchValues: { 'dynamic search': '123' },
+        },
+      );
+      expect(fields).toStrictEqual([
+        {
+          id: 'dynamic search',
+          label: 'dynamic search',
+          type: 'String',
+          options: expect.arrayContaining(['123', 'user@domain.com']),
+          search: 'dynamic',
+          value: undefined,
+          watchChanges: false,
+          widget: 'Dropdown',
+        },
+      ]);
+    });
   });
 
   describe('changedField', () => {
