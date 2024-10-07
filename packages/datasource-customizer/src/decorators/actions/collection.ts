@@ -19,6 +19,7 @@ import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './type
 import {
   DynamicField,
   DynamicForm,
+  DynamicFormElement,
   DynamicFormElementOrPage,
   Handler,
   SearchOptionsHandler,
@@ -113,8 +114,10 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
   }
 
   private isFieldDynamic(field: DynamicFormElement): boolean {
-    if (field.childElements) {
-      if (field.childElements.some(innerField => this.isFieldDynamic(innerField))) return true;
+    const key = this.getSubElementsAttributeKey(field);
+
+    if (key && field[key]) {
+      if (field[key].some(innerField => this.isFieldDynamic(innerField))) return true;
     }
 
     return (
