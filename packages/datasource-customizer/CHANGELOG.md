@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.54.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.54.0...@forestadmin/datasource-customizer@1.54.1) (2024-10-07)
+
+
+### Bug Fixes
+
+* search hook with layout ([#1187](https://github.com/ForestAdmin/agent-nodejs/issues/1187)) ([e75a06e](https://github.com/ForestAdmin/agent-nodejs/commit/e75a06ed221696d90036f5585b5eb8c7849642fd))
+
 # @forestadmin/datasource-customizer [1.54.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.53.0...@forestadmin/datasource-customizer@1.54.0) (2024-10-07)
 
 
