@@ -384,5 +384,125 @@ describe('SchemaGeneratorActions', () => {
         },
       ]);
     });
+
+    describe('with pages', () => {
+      it('should compute the schema of layout elements recursively', async () => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.buildWithAction(
+            'Update title',
+            {
+              scope: 'Single',
+              generateFile: false,
+              staticForm: true,
+            },
+            [
+              {
+                type: 'Layout',
+                component: 'Page',
+                elements: [
+                  {
+                    id: 'title',
+                    label: 'title',
+                    description: 'updated title',
+                    type: 'String',
+                    isRequired: true,
+                    isReadOnly: false,
+                    value: null,
+                    watchChanges: false,
+                  },
+                ],
+              },
+              {
+                type: 'Layout',
+                component: 'Page',
+                previousButtonLabel: 'previous page',
+                nextButtonLabel: 'next page',
+                elements: [
+                  {
+                    type: 'Layout',
+                    component: 'Separator',
+                  },
+                  {
+                    type: 'Layout',
+                    component: 'HtmlBlock',
+                    content: 'some text content',
+                  },
+                ],
+              },
+              {
+                type: 'Layout',
+                component: 'Page',
+                elements: [
+                  {
+                    type: 'Layout',
+                    component: 'Row',
+                    fields: [
+                      {
+                        id: 'description',
+                        label: 'description',
+                        type: 'String',
+                        watchChanges: false,
+                      },
+                      {
+                        id: 'address',
+                        label: 'address',
+                        type: 'String',
+                        watchChanges: false,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          ),
+        ]);
+
+        const collection = dataSource.getCollection('books');
+
+        const form = await collection.getForm(null, 'Update title');
+
+        const schema = SchemaGeneratorActions.buildFieldsAndLayout(collection.dataSource, form);
+
+        expect(schema.fields.length).toEqual(3);
+        expect(schema.layout).toEqual([
+          {
+            component: 'page',
+            elements: [
+              {
+                component: 'input',
+                fieldId: 'title',
+              },
+            ],
+          },
+          {
+            component: 'page',
+            nextButtonLabel: 'next page',
+            previousButtonLabel: 'previous page',
+            elements: [
+              { component: 'separator' },
+              { component: 'htmlBlock', content: 'some text content' },
+            ],
+          },
+          {
+            component: 'page',
+            elements: [
+              {
+                component: 'row',
+                fields: [
+                  {
+                    component: 'input',
+                    fieldId: 'description',
+                  },
+                  {
+                    component: 'input',
+                    fieldId: 'address',
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
+      });
+    });
   });
 });

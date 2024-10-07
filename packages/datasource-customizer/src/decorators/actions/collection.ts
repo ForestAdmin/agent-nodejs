@@ -7,6 +7,7 @@ import {
   DataSourceDecorator,
   Filter,
   GetFormMetas,
+  LayoutElementPageWithField,
   PlainFilter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
@@ -17,8 +18,8 @@ import ResultBuilder from './result-builder';
 import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
 import {
   DynamicField,
-  DynamicFormElement,
-  DynamicLayoutElement,
+  DynamicForm,
+  DynamicFormElementOrPage,
   Handler,
   SearchOptionsHandler,
   ValueOrHandler,
@@ -27,9 +28,12 @@ import { TSchema } from '../../templates';
 
 type DynamicFieldWithId<Context = unknown> = DynamicField<Context> & { id: string };
 
-type DynamicFormElementWithId<Context = unknown> =
-  | DynamicFieldWithId<Context>
-  | DynamicLayoutElement<Context>;
+type DynamicFormElementWithId<Context = unknown> = DynamicFormElementOrPage<
+  Context,
+  DynamicFieldWithId<Context>
+>;
+
+type GenericFormElement = DynamicFormElementOrPage | ActionFormElement;
 
 export default class ActionCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<ActionCollectionDecorator>;
@@ -80,19 +84,19 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
 
     // Convert DynamicField to ActionField in successive steps.
-    let dynamicFields: DynamicFormElement[] = this.isHandler(action.form)
-      ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicFormElement[])(
-          context,
-        )
+    let dynamicFields: DynamicForm = this.isHandler(action.form)
+      ? await (action.form as (context: ActionContext<TSchema, string>) => DynamicForm)(context)
       : // copy fields to keep original object unchanged
         await this.copyFields(action.form);
+
+    this.ensureFormIsCorrect(dynamicFields, name);
 
     if (metas?.searchField) {
       // in the case of a search hook,
       // we don't want to rebuild all the fields. only the one searched
       dynamicFields = [
         dynamicFields.find(field => field.type === 'Layout' || field.label === metas.searchField),
-      ];
+      ] as DynamicForm;
     }
 
     let dynamicFieldsWithId = await this.dropDefaultsAndSetId(context, dynamicFields, formValues);
@@ -106,6 +110,20 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     this.setWatchChangesOnFields(formValues, used, fields);
 
     return fields;
+  }
+
+  private ensureFormIsCorrect(form: DynamicForm, actionName: string) {
+    const multiPages = form[0]?.type === 'Layout' && form[0]?.component === 'Page';
+
+    form.forEach(element => {
+      const elementIsPage = element.type === 'Layout' && element.component === 'Page';
+
+      if ((multiPages && !elementIsPage) || (!multiPages && elementIsPage)) {
+        throw new Error(
+          `You cannot mix pages and other form elements in smart action '${actionName}' form`,
+        );
+      }
+    });
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
@@ -154,27 +172,26 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
   }
 
-  private getSubElementsAttributeKey<T extends DynamicFormElement | ActionFormElement>(
-    field: T,
-  ): string | null {
+  private getSubElementsAttributeKey<T extends GenericFormElement>(field: T): string | null {
     if (field.type === 'Layout' && field.component === 'Row') return 'fields';
+    if (field.type === 'Layout' && field.component === 'Page') return 'elements';
 
     return null;
   }
 
   private async executeOnSubFields<
-    T extends DynamicFormElement | ActionFormElement,
-    U extends DynamicFormElement | ActionFormElement,
-  >(field: U, handler: (subFields: U[]) => T[] | Promise<T[]>) {
+    Result extends GenericFormElement,
+    Input extends GenericFormElement,
+  >(field: Input, handler: (subFields: Input[]) => Result[] | Promise<Result[]>) {
     const subElementsKey = this.getSubElementsAttributeKey(field);
     if (!subElementsKey) return;
     field[subElementsKey] = await handler(field[subElementsKey] || []);
   }
 
-  private async copyFields(fields: DynamicFormElement[]) {
+  private async copyFields(fields: DynamicFormElementOrPage[]) {
     return Promise.all(
       fields.map(async field => {
-        const fieldCopy: DynamicFormElement = { ...field };
+        const fieldCopy: DynamicFormElementOrPage = { ...field };
 
         await this.executeOnSubFields(field, subFields => this.copyFields(subFields));
 
@@ -185,7 +202,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
   private async dropDefaultsAndSetId(
     context: ActionContext,
-    fields: DynamicFormElement[],
+    fields: DynamicFormElementOrPage[],
     data: Record<string, unknown>,
   ): Promise<DynamicFormElementWithId[]> {
     const promises = fields.map(async field => {
@@ -199,7 +216,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         this.dropDefaultsAndSetId(context, subfields, data),
       );
 
-      return field;
+      return field as DynamicFormElementWithId;
     });
 
     return Promise.all(promises);
@@ -258,25 +275,27 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     searchValues: Record<string, string | null> | null,
     fields: DynamicFormElementWithId[],
   ): Promise<ActionFormElement[]> {
-    const newFields = fields.map(async (field): Promise<ActionFormElement> => {
-      await this.executeOnSubFields(field, subfields =>
-        this.dropDeferred(context, searchValues, subfields),
-      );
+    const newFields = fields.map(
+      async (field): Promise<ActionFormElement | LayoutElementPageWithField> => {
+        await this.executeOnSubFields(field, subfields =>
+          this.dropDeferred(context, searchValues, subfields),
+        );
 
-      const keys = Object.keys(field);
-      const values = await Promise.all(
-        Object.values(field).map(value => {
-          const searchValue = field.type === 'Layout' ? null : searchValues?.[field.id];
+        const keys = Object.keys(field);
+        const values = await Promise.all(
+          Object.values(field).map(value => {
+            const searchValue = field.type === 'Layout' ? null : searchValues?.[field.id];
 
-          return this.evaluate(context, searchValue, value);
-        }),
-      );
+            return this.evaluate(context, searchValue, value);
+          }),
+        );
 
-      return keys.reduce<ActionFormElement>(
-        (memo, key, index) => ({ ...memo, [key]: values[index] }),
-        {} as ActionFormElement,
-      );
-    });
+        return keys.reduce<ActionFormElement>(
+          (memo, key, index) => ({ ...memo, [key]: values[index] }),
+          {} as ActionFormElement,
+        );
+      },
+    );
 
     return Promise.all(newFields);
   }
