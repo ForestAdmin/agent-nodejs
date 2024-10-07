@@ -19,6 +19,7 @@ import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './type
 import {
   DynamicField,
   DynamicForm,
+  DynamicFormElement,
   DynamicFormElementOrPage,
   Handler,
   SearchOptionsHandler,
@@ -112,6 +113,20 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     return fields;
   }
 
+  private isFieldDynamic(field: DynamicFormElement): boolean {
+    const key = this.getSubElementsAttributeKey(field);
+
+    if (key && field[key]) {
+      if (field[key].some(innerField => this.isFieldDynamic(innerField))) return true;
+    }
+
+    return (
+      Object.values(field).some(value => this.isHandler(value)) ||
+      // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
+      (field.type.includes('File') && Boolean((field as DynamicField).defaultValue))
+    );
+  }
+
   private ensureFormIsCorrect(form: DynamicForm, actionName: string) {
     const multiPages = form[0]?.type === 'Layout' && form[0]?.component === 'Page';
 
@@ -135,15 +150,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     ] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it
-      const isDynamic =
-        this.isHandler(form) ||
-        form?.some(
-          field =>
-            field.type === 'Layout' || // all forms containing some layout elements are handled as dynamic
-            Object.values(field).some(value => this.isHandler(value)) ||
-            // A field with a hardcoded file should not be sent to the apimap. it is marked dynamic
-            (field.type.includes('File') && field.defaultValue),
-        );
+      const isDynamic = this.isHandler(form) || form?.some(this.isFieldDynamic.bind(this));
 
       newSchema.actions[name] = {
         scope,

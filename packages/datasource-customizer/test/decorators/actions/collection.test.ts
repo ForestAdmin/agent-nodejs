@@ -792,7 +792,7 @@ describe('ActionDecorator', () => {
   });
 
   describe('with a form with layout elements', () => {
-    test('should be flagged as dynamic form', () => {
+    test('nested dynamic elements should cause the form to be flagged as dynamic', () => {
       newBooks.addAction('make photocopy', {
         scope: 'Single',
         execute: (context, resultBuilder) => {
@@ -801,7 +801,18 @@ describe('ActionDecorator', () => {
         form: [
           { label: 'firstname', type: 'String' },
           { type: 'Layout', component: 'Separator' },
-          { label: 'lastname', type: 'String' },
+          {
+            type: 'Layout',
+            component: 'Row',
+            fields: [
+              { label: 'tel', type: 'Number', if: ctx => ctx.formValues.age > 18 },
+              {
+                label: 'email',
+                type: 'String',
+                defaultValue: ctx => `${ctx.formValues.firstname}.${ctx.formValues.lastname}@`,
+              },
+            ],
+          },
         ],
       });
 

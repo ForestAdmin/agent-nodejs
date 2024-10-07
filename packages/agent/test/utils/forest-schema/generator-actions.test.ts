@@ -303,6 +303,128 @@ describe('SchemaGeneratorActions', () => {
     });
   });
 
+  describe('with layout elements', () => {
+    const collection: Collection = factories.collection.buildWithAction(
+      'Send {} email',
+      {
+        scope: 'Single',
+        generateFile: false,
+        staticForm: true,
+      },
+
+      [
+        {
+          id: 'title',
+          label: 'title',
+          description: 'updated title',
+          type: 'String',
+          isRequired: true,
+          isReadOnly: false,
+          value: null,
+          watchChanges: false,
+        },
+        {
+          type: 'Layout',
+          component: 'Separator',
+        },
+        {
+          type: 'Layout',
+          component: 'HtmlBlock',
+          content: 'some text content',
+        },
+        {
+          type: 'Layout',
+          component: 'Row',
+          fields: [
+            {
+              id: 'description',
+              label: 'description',
+              type: 'String',
+              watchChanges: false,
+            },
+            {
+              id: 'address',
+              label: 'address',
+              type: 'String',
+              watchChanges: false,
+            },
+          ],
+        },
+      ],
+    );
+
+    test('should generate schema correctly', async () => {
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send {} email');
+
+      // Invariants should be correctly set
+      expect(schema).toMatchObject({
+        baseUrl: null,
+        httpMethod: 'POST',
+        redirect: null,
+        hooks: {
+          change: ['changeHook'],
+        },
+      });
+
+      // Load hook should be enabled
+
+      // Slug should be generated from the name to yield an unique URL
+      expect(schema).toHaveProperty('layout', [
+        { component: 'input', fieldId: 'title' },
+        { component: 'separator' },
+        { component: 'htmlBlock', content: 'some text content' },
+        {
+          component: 'row',
+          fields: [
+            { component: 'input', fieldId: 'description' },
+            { component: 'input', fieldId: 'address' },
+          ],
+        },
+      ]);
+      expect(schema).toHaveProperty('endpoint', '/forest/_actions/books/0/send-email');
+    });
+  });
+
+  describe('without layout elements', () => {
+    const collection: Collection = factories.collection.buildWithAction(
+      'Send {} email',
+      {
+        scope: 'Single',
+        generateFile: false,
+        staticForm: true,
+      },
+
+      [
+        {
+          id: 'title',
+          label: 'title',
+          description: 'updated title',
+          type: 'String',
+          isRequired: true,
+          isReadOnly: false,
+          value: null,
+          watchChanges: false,
+        },
+      ],
+    );
+
+    test('should generate schema correctly and omit the layout prop', async () => {
+      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send {} email');
+
+      // Invariants should be correctly set
+      expect(schema).toMatchObject({
+        baseUrl: null,
+        httpMethod: 'POST',
+        redirect: null,
+        hooks: {
+          change: ['changeHook'],
+        },
+      });
+
+      expect(schema).not.toHaveProperty('layout');
+    });
+  });
+
   describe('buildFieldsAndLayout', () => {
     it('should compute the schema of layout elements', async () => {
       const dataSource = factories.dataSource.buildWithCollections([
