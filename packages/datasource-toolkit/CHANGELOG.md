@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.41.0...@forestadmin/datasource-toolkit@1.42.0) (2024-10-07)
+
+
+### Features
+
+* add pages in action forms ([#1179](https://github.com/ForestAdmin/agent-nodejs/issues/1179)) ([0b2dc0a](https://github.com/ForestAdmin/agent-nodejs/commit/0b2dc0a0d20b0f762aeb9eb6674693e05fd386c2))
+
 # @forestadmin/datasource-toolkit [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.40.0...@forestadmin/datasource-toolkit@1.41.0) (2024-10-04)
 
 
