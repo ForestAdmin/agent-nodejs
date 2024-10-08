@@ -35,7 +35,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     const filter = await this.getBaseForeignFilter(context);
 
     if (isDeleteMode) {
-      await this.services.authorization.assertCanDelete(context, this.collection.name);
+      await this.services.authorization.assertCanDelete(context, this.foreignCollection.name);
     } else {
       await this.services.authorization.assertCanEdit(context, this.collection.name);
     }
