@@ -263,7 +263,7 @@ describe('DissociateDeleteRelatedRoute', () => {
 
         await count.handleDissociateDeleteRelatedRoute(context);
 
-        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
+        expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'bookPersons');
       });
     });
 

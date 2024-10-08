@@ -103,7 +103,7 @@ describe('DissociateDeleteRelatedRoute > dissociate', () => {
         { bookId: null },
       );
       expect(context.response.status).toEqual(HttpCode.NoContent);
-      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'bookPersons');
     });
 
     describe('when all records mode is activated', () => {

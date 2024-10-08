@@ -37,7 +37,7 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
     if (isDeleteMode) {
       await this.services.authorization.assertCanDelete(context, this.foreignCollection.name);
     } else {
-      await this.services.authorization.assertCanEdit(context, this.collection.name);
+      await this.services.authorization.assertCanEdit(context, this.foreignCollection.name);
     }
 
     // Dissociating a one to many or many many is quite a different job => delegate
