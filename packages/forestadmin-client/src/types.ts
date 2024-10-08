@@ -161,4 +161,5 @@ export interface ForestAdminServerInterface {
   getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
+  notifyFromAgent: (...args) => Promise<void>;
 }
