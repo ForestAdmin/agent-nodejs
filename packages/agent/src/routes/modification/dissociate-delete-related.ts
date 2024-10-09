@@ -28,13 +28,17 @@ export default class DissociateDeleteRelatedRoute extends RelationRoute {
   }
 
   public async handleDissociateDeleteRelatedRoute(context: Context): Promise<void> {
-    await this.services.authorization.assertCanDelete(context, this.collection.name);
-
     // Parse route params
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const isDeleteMode = Boolean(context.request.query?.delete);
     const caller = QueryStringParser.parseCaller(context);
     const filter = await this.getBaseForeignFilter(context);
+
+    if (isDeleteMode) {
+      await this.services.authorization.assertCanDelete(context, this.foreignCollection.name);
+    } else {
+      await this.services.authorization.assertCanEdit(context, this.foreignCollection.name);
+    }
 
     // Dissociating a one to many or many many is quite a different job => delegate
     const relation = SchemaUtils.getToManyRelation(this.collection.schema, this.relationName);
