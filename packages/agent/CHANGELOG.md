@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.50.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.0...@forestadmin/agent@1.50.1) (2024-10-09)
+
+
+### Bug Fixes
+
+* **permissions:** properly check permissions when dissociating or deleting related resources ([#1190](https://github.com/ForestAdmin/agent-nodejs/issues/1190)) ([211fd1f](https://github.com/ForestAdmin/agent-nodejs/commit/211fd1f77c4f519271e09826ff63f7ad160c144e))
+
 # @forestadmin/agent [1.50.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.49.1...@forestadmin/agent@1.50.0) (2024-10-07)
 
 
