@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.42.0...@forestadmin/datasource-toolkit@1.42.1) (2024-10-10)
+
+
+### Bug Fixes
+
+* missing exported type ([#1192](https://github.com/ForestAdmin/agent-nodejs/issues/1192)) ([7e26bd9](https://github.com/ForestAdmin/agent-nodejs/commit/7e26bd9a3fd7a3333d3620a8701e70a63e51720e))
+
 # @forestadmin/datasource-toolkit [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.41.0...@forestadmin/datasource-toolkit@1.42.0) (2024-10-07)
 
 
