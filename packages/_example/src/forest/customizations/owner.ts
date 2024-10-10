@@ -25,7 +25,7 @@ export default (collection: OwnerCustomizer) =>
       },
       submitButtonLabel: '🫵 Customizable button 🫵',
       description:
-        'This is a super action to show the <span style:"color: red;">form customizations</span> 🎉',
+        'This is a <strong style="font-size: large;">super</strong> action to show the <span style="color: red;">form customizations</span> 🎉',
       form: [
         {
           // identity
@@ -87,9 +87,10 @@ export default (collection: OwnerCustomizer) =>
                     context.formValues.lastName,
                 ),
               content: context => `
-              <p>You are ${{ M: '🚹', F: '🚺', other: '⚧️??' }[context.formValues.gender]} <b>${
-                context.formValues?.firstName
-              } ${context.formValues.lastName}</b></p>
+              <h1>To summarize:</h1>
+              <p>You are <b>${context.formValues?.firstName} ${context.formValues.lastName}</b>; ${
+                { M: '🚹', F: '🚺', other: '⚧️' }[context.formValues.gender]
+              } ${context.formValues.genderOther ? ` (${context.formValues.genderOther})` : ''}</p>
             `,
             },
           ],
@@ -99,39 +100,107 @@ export default (collection: OwnerCustomizer) =>
           type: 'Layout',
           component: 'Page',
           previousButtonLabel: '👈 go back to identity',
-          nextButtonLabel: 'go to ... 👉',
+          nextButtonLabel: 'go to money $ 👉',
           elements: [
             {
-              type: 'Enum',
+              type: 'String',
               id: 'homeStyle',
-              label: 'You live in:',
-              enumValues: ['flat', 'house', 'under a bridge', 'at work'],
+              label: 'You live:',
+              widget: 'Dropdown',
+              options: [
+                { label: 'in a flat 🏢', value: 'nicely' },
+                { label: 'in a house 🏡', value: 'comfy' },
+                { label: 'in a house 🏡', value: 'comfy' },
+                { label: 'under a bridge 🌉', value: 'poorly' },
+                { label: 'at work 🌲', value: 'overbooked' },
+              ],
+              isRequired: true,
+            },
+
+            {
+              type: 'String',
+              label: 'Where',
+              id: 'address',
+              widget: 'AddressAutocomplete',
+              isRequired: true,
+            },
+            {
+              type: 'Layout',
+              component: 'HtmlBlock',
+              if: context => Boolean(context.formValues.homeStyle && context.formValues.address),
+              content: context => `
+              <h1>To summarize:</h1>
+              <p>You lived at ${context.formValues.address}, <br>${context.formValues.homeStyle}</p>
+            `,
             },
           ],
         },
         {
-          // identity
+          // Money
           type: 'Layout',
           component: 'Page',
-          previousButtonLabel: 'not shown on 1st page',
-          nextButtonLabel: 'go to ...',
-          elements: [],
+          previousButtonLabel: '👈 go back to address',
+          nextButtonLabel: 'go to summary page 👉',
+          elements: [
+            {
+              type: 'Layout',
+              component: 'Row',
+              fields: [
+                {
+                  type: 'Enum',
+                  enumValues: ['₿', '$', '€', '£', '💩', 'USD'],
+                  id: 'currency',
+                  label: 'What is your currency ?',
+                },
+                {
+                  type: 'Number',
+                  id: 'savings',
+                  label: 'how much did you save in your life ?',
+                },
+              ],
+            },
+            {
+              type: 'Layout',
+              component: 'HtmlBlock',
+              if: context => Boolean(context.formValues.currency && context.formValues.savings),
+              content: context => `
+              <h1>To summarize:</h1>
+              <p>You have ${context.formValues.currency}&nbsp;${context.formValues.savings}</p>
+            `,
+            },
+          ],
         },
         {
           // confirmation
           type: 'Layout',
           component: 'Page',
-          previousButtonLabel: '👈 go back to',
+          previousButtonLabel: '👈 go back to money',
           nextButtonLabel: 'Not shown on the last page. Submit button instead',
           elements: [
+            {
+              type: 'String',
+              id: 'extraSummary',
+              label: 'Something else to add to the summary',
+              widget: 'RichText',
+            },
+            { type: 'Layout', component: 'Separator' },
             {
               type: 'Layout',
               component: 'HtmlBlock',
               content: context => `
-              <p>You are ${{ M: '🚹', F: '🚺', other: '⚧️??' }[context.formValues.gender]} <b>${
-                context.formValues?.firstName
-              } ${context.formValues.lastName}</b></p>
-            `,
+                <h1>Preview:</h1>
+                <p>You are ${{ M: '🚹', F: '🚺', other: '⚧️' }[context.formValues.gender]} ${
+                context.formValues.genderOther ? context.formValues.genderOther : ''
+              } <b>${context.formValues?.firstName} ${context.formValues.lastName}</b></p>
+                <p>You lived at <b>${context.formValues.address}</b>, <br><b>${
+                context.formValues.homeStyle
+              }</b></p>
+                <p>You have <b>${context.formValues.currency}&nbsp;${
+                context.formValues.savings
+              }</b></p>
+              <br/><br/>
+              ${context.formValues.extraSummary ? context.formValues.extraSummary : ''}
+              `,
             },
           ],
         },
