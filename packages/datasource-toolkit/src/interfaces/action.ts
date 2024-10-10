@@ -35,7 +35,7 @@ export interface ActionFieldBase extends ActionFormElementBase {
   watchChanges: boolean;
 }
 
-type ActionFieldType =
+export type ActionFieldType =
   | 'Boolean'
   | 'Collection'
   | 'Date'
