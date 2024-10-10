@@ -1,3 +1,19 @@
+## @forestadmin/forest-cloud [1.11.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.24...@forestadmin/forest-cloud@1.11.25) (2024-10-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.50.2
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.1
+* **@forestadmin/datasource-mongo:** upgraded to 1.3.24
+* **@forestadmin/datasource-mongoose:** upgraded to 1.8.4
+* **@forestadmin/datasource-sequelize:** upgraded to 1.10.4
+* **@forestadmin/datasource-sql:** upgraded to 1.14.30
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.1
+
 ## @forestadmin/forest-cloud [1.11.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.23...@forestadmin/forest-cloud@1.11.24) (2024-10-09)
 
 
