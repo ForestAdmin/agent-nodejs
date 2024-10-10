@@ -58,6 +58,7 @@ describe('SchemaGeneratorFields > Column', () => {
               'Present',
               'Blank',
               'In',
+              'NotIn',
               'StartsWith',
               'EndsWith',
               'Contains',

@@ -56,6 +56,14 @@ describe('ConditionTreeParser', () => {
     });
 
     expect(tree).toStrictEqual(new ConditionTreeLeaf('id', 'In', ['id1', 'id2', 'id3']));
+
+    const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'id',
+      operator: 'in',
+      value: ['id1', 'id2', 'id3'],
+    });
+
+    expect(treeWithArray).toStrictEqual(new ConditionTreeLeaf('id', 'In', ['id1', 'id2', 'id3']));
   });
 
   test('should work with in and number', () => {
@@ -66,6 +74,14 @@ describe('ConditionTreeParser', () => {
     });
 
     expect(tree).toStrictEqual(new ConditionTreeLeaf('number', 'In', [1, 2, 3]));
+
+    const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'number',
+      operator: 'in',
+      value: [1, 2, 3, 'invalid'],
+    });
+
+    expect(treeWithArray).toStrictEqual(new ConditionTreeLeaf('number', 'In', [1, 2, 3]));
   });
 
   test('should work with in and boolean', () => {
@@ -77,6 +93,76 @@ describe('ConditionTreeParser', () => {
 
     expect(tree).toStrictEqual(
       new ConditionTreeLeaf('boolean', 'In', [true, false, false, true, false]),
+    );
+
+    const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'boolean',
+      operator: 'in',
+      value: [true, 0, false, 'yes', 'no'],
+    });
+
+    expect(treeWithArray).toStrictEqual(
+      new ConditionTreeLeaf('boolean', 'In', [true, false, false, true, false]),
+    );
+  });
+
+  test('should work with not_in and string', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'id',
+      operator: 'not_in',
+      value: 'id1,id2 ,  id3',
+    });
+
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('id', 'NotIn', ['id1', 'id2', 'id3']));
+
+    const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'id',
+      operator: 'not_in',
+      value: ['id1', 'id2', 'id3'],
+    });
+
+    expect(treeWithArray).toStrictEqual(
+      new ConditionTreeLeaf('id', 'NotIn', ['id1', 'id2', 'id3']),
+    );
+  });
+
+  test('should work with not_in and number', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'number',
+      operator: 'not_in',
+      value: '1, 2, 3 , invalid',
+    });
+
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('number', 'NotIn', [1, 2, 3]));
+
+    const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'number',
+      operator: 'not_in',
+      value: [1, 2, 3, 'invalid'],
+    });
+
+    expect(treeWithArray).toStrictEqual(new ConditionTreeLeaf('number', 'NotIn', [1, 2, 3]));
+  });
+
+  test('should work with not_in and boolean', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'boolean',
+      operator: 'not_in',
+      value: 'true, 0, false, yes, no',
+    });
+
+    expect(tree).toStrictEqual(
+      new ConditionTreeLeaf('boolean', 'NotIn', [true, false, false, true, false]),
+    );
+
+    const treeWithArray = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'boolean',
+      operator: 'not_in',
+      value: [true, 0, false, 'yes', 'no'],
+    });
+
+    expect(treeWithArray).toStrictEqual(
+      new ConditionTreeLeaf('boolean', 'NotIn', [true, false, false, true, false]),
     );
   });
 
