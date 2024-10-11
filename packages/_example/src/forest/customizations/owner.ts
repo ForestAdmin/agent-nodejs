@@ -122,7 +122,6 @@ export default (collection: OwnerCustomizer) =>
               options: [
                 { label: 'in a flat 🏢', value: 'nicely' },
                 { label: 'in a house 🏡', value: 'comfy' },
-                { label: 'in a house 🏡', value: 'comfy' },
                 { label: 'under a bridge 🌉', value: 'poorly' },
                 { label: 'at work 🌲', value: 'overbooked' },
               ],
