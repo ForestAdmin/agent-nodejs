@@ -37,7 +37,9 @@ export default (collection: OwnerCustomizer) =>
             {
               type: 'Layout',
               component: 'HtmlBlock',
-              content: `<img href="">`,
+              content: `
+              <h1>You can onboard a new user for managing his portfolio</h1>
+              <img width="425" height="350" src="https://www.thepixelfreak.co.uk/wp-content/uploads/2019/05/Entwined-M-Logo.png">`,
             },
 
             { type: 'Layout', component: 'Separator' },
