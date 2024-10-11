@@ -146,10 +146,21 @@ export default (collection: OwnerCustomizer) =>
               type: 'Layout',
               component: 'HtmlBlock',
               if: context => Boolean(context.formValues.homeStyle && context.formValues.address),
-              content: context => `
+              content: async context => {
+                const add = `http://nominatim.openstreetmap.org/search?format=json&q=${encodeURI(
+                  context.formValues.address,
+                )}`;
+                const address = await (await fetch(add)).json();
+                const bb = address[0].boundingbox;
+
+                return `
               <h1>To summarize:</h1>
-              <p>You lived at ${context.formValues.address}, <br>${context.formValues.homeStyle}</p>
-            `,
+              <p>You live ${context.formValues.address}, <br>${context.formValues.homeStyle}</p>
+              <p>that's here right?</p>
+<iframe width="425" height="350" src="https://www.openstreetmap.org/export/embed.html?bbox=${bb[3]}%2C${bb[0]}%2C${bb[2]}%2C${bb[1]}&amp;layer=mapnik" >
+</iframe>
+            `;
+              },
             },
           ],
         },
