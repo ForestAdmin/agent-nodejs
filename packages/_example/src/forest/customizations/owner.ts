@@ -38,8 +38,20 @@ export default (collection: OwnerCustomizer) =>
               type: 'Layout',
               component: 'Row',
               fields: [
-                { type: 'String', id: 'firstName', label: 'First name', isRequired: true },
-                { type: 'String', id: 'lastName', label: 'Last name', isRequired: true },
+                {
+                  type: 'String',
+                  id: 'firstName',
+                  label: 'First name',
+                  isRequired: true,
+                  defaultValue: context => context.caller.firstName,
+                },
+                {
+                  type: 'String',
+                  id: 'lastName',
+                  label: 'Last name',
+                  isRequired: true,
+                  defaultValue: context => context.caller.lastName,
+                },
               ],
             },
             { type: 'Layout', component: 'Separator' },
