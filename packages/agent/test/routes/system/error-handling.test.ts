@@ -71,7 +71,7 @@ describe('ErrorHandling', () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new ValidationError('hello'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.BadRequest);
       expect(context.response.body).toStrictEqual({
@@ -84,7 +84,7 @@ describe('ErrorHandling', () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new BadRequestError('message'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.BadRequest);
       expect(context.response.body).toStrictEqual({
@@ -97,7 +97,7 @@ describe('ErrorHandling', () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new UnprocessableError('message'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.Unprocessable);
       expect(context.response.body).toStrictEqual({
@@ -110,7 +110,7 @@ describe('ErrorHandling', () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new ForbiddenError('forbidden'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
       expect(context.response.body).toStrictEqual({
@@ -123,7 +123,7 @@ describe('ErrorHandling', () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new NotFoundError('message'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.NotFound);
       expect(context.response.body).toStrictEqual({
@@ -138,7 +138,7 @@ describe('ErrorHandling', () => {
         .fn()
         .mockRejectedValue(new Error('Internal error with important data that should not leak'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
@@ -151,7 +151,7 @@ describe('ErrorHandling', () => {
       const context = createMockContext();
       const next = jest.fn().mockRejectedValue(new Error('My Error'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
 
       expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
       expect(context.response.body).toStrictEqual({
@@ -165,7 +165,7 @@ describe('ErrorHandling', () => {
           const context = createMockContext();
           const next = jest.fn().mockRejectedValue(new FakePayloadError('message'));
 
-          await handleError.call(route, context, next);
+          await expect(handleError.call(route, context, next)).rejects.toThrow();
 
           expect(context.response.status).toStrictEqual(HttpCode.Forbidden);
           expect(context.response.body).toStrictEqual({
@@ -196,7 +196,7 @@ describe('ErrorHandling', () => {
 
           const next = jest.fn().mockRejectedValue(fakeErrorFromDependency);
 
-          await handleError.call(route, context, next);
+          await expect(handleError.call(route, context, next)).rejects.toThrow();
 
           expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
           expect(context.response.body).toStrictEqual({
@@ -233,7 +233,8 @@ describe('ErrorHandling', () => {
       const context = createMockContext({ method: 'POST' });
       const next = jest.fn().mockRejectedValue(new Error('Internal error'));
 
-      await handleError.call(route, context, next);
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
+
       await new Promise(setImmediate);
 
       expect(console.error).toHaveBeenCalled();
