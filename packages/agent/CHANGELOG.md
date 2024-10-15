@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.50.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.2...@forestadmin/agent@1.50.3) (2024-10-15)
+
+
+### Bug Fixes
+
+* **logger:** logger should display the right status code in case of error ([#1194](https://github.com/ForestAdmin/agent-nodejs/issues/1194)) ([d328764](https://github.com/ForestAdmin/agent-nodejs/commit/d328764394c9660ad865864e29fdbf14385a5556))
+
 ## @forestadmin/agent [1.50.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.1...@forestadmin/agent@1.50.2) (2024-10-10)
 
 
