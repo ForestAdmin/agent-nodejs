@@ -20,7 +20,6 @@ export default class Logger extends BaseRoute {
       await next();
     } catch (e) {
       error = e;
-      throw e;
     } finally {
       let logLevel: LoggerLevel = 'Info';
       if (context.response.status >= HttpCode.BadRequest) logLevel = 'Warn';
