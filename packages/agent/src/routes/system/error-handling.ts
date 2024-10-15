@@ -42,6 +42,9 @@ export default class ErrorHandling extends BaseRoute {
       if (!this.options.isProduction) {
         process.nextTick(() => this.debugLogError(context, e));
       }
+
+      // The error will be used by Logger
+      throw e;
     }
   }
 

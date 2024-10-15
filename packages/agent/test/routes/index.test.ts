@@ -27,6 +27,7 @@ import ScopeInvalidation from '../../src/routes/security/scope-invalidation';
 import ErrorHandling from '../../src/routes/system/error-handling';
 import HealthCheck from '../../src/routes/system/healthcheck';
 import Logger from '../../src/routes/system/logger';
+import { RouteType } from '../../src/types';
 import * as factories from '../__factories__';
 
 describe('Route index', () => {
@@ -80,6 +81,22 @@ describe('Route index', () => {
 
         const countCollectionRoutes = COLLECTION_ROUTES_CTOR.length * dataSource.collections.length;
         expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + countCollectionRoutes);
+      });
+
+      test('should order routes correctly', async () => {
+        const dataSource = setupWithoutRelation();
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+        );
+
+        // with LoggerHandler in first
+        expect(routes[0].type).toEqual(RouteType.LoggerHandler);
+
+        // followed by ErrorHandler
+        expect(routes[1].type).toEqual(RouteType.ErrorHandler);
       });
     });
 
