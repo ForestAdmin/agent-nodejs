@@ -68,7 +68,7 @@ export default class SchemaGeneratorFields {
       field: name,
       integration: null,
       inverseOf: null,
-      isFilterable: FrontendFilterableUtils.isFilterable(column.columnType, column.filterOperators),
+      isFilterable: FrontendFilterableUtils.isFilterable(column.filterOperators),
       isPrimaryKey: Boolean(column.isPrimaryKey),
 
       // When a column is a foreign key, it is readonly.
@@ -158,8 +158,7 @@ export default class SchemaGeneratorFields {
   private static isForeignCollectionFilterable(foreignCollection: Collection): boolean {
     return Object.values(foreignCollection.schema.fields).some(
       field =>
-        field.type === 'Column' &&
-        FrontendFilterableUtils.isFilterable(field.columnType, field.filterOperators),
+        field.type === 'Column' && FrontendFilterableUtils.isFilterable(field.filterOperators),
     );
   }
 
