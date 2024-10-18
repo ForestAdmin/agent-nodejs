@@ -90,7 +90,12 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -132,7 +137,12 @@ describe('UpdateRelationRoute', () => {
         await update.handleUpdateRelationRoute(context);
 
         expect(dataSource.getCollection('books').update).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           new Filter({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -221,6 +231,7 @@ describe('UpdateRelationRoute', () => {
         const caller = {
           email: 'john.doe@domain.com',
           requestId: expect.any(String),
+          request: { ip: expect.any(String) },
           timezone: 'Europe/Paris',
         };
 
@@ -278,6 +289,7 @@ describe('UpdateRelationRoute', () => {
         const caller = {
           email: 'john.doe@domain.com',
           requestId: expect.any(String),
+          request: { ip: expect.any(String) },
           timezone: 'Europe/Paris',
         };
 
@@ -347,6 +359,7 @@ describe('UpdateRelationRoute', () => {
         const caller = {
           email: 'john.doe@domain.com',
           requestId: expect.any(String),
+          request: { ip: expect.any(String) },
           timezone: 'Europe/Paris',
         };
 

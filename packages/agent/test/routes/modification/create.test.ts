@@ -63,7 +63,12 @@ describe('CreateRoute', () => {
       await create.handleCreate(context);
 
       expect(collection.create).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         [attributes],
       );
 
@@ -148,6 +153,7 @@ describe('CreateRoute', () => {
             {
               email: 'john.doe@domain.com',
               requestId: expect.any(String),
+              request: { ip: expect.any(String) },
               timezone: 'Europe/Paris',
             },
             new Filter({ conditionTree: new ConditionTreeLeaf('personId', 'Equal', 1) }),
@@ -157,6 +163,7 @@ describe('CreateRoute', () => {
             {
               email: 'john.doe@domain.com',
               requestId: expect.any(String),
+              request: { ip: expect.any(String) },
               timezone: 'Europe/Paris',
             },
             new Filter({
@@ -247,7 +254,12 @@ describe('CreateRoute', () => {
         await create.handleCreate(context);
 
         expect(dataSource.getCollection('passports').create).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           [{ personId: '1d162304-78bf-599e-b197-000000000000' }],
         );
 

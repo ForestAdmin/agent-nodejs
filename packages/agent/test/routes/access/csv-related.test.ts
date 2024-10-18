@@ -122,7 +122,12 @@ describe('CsvRelatedRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
@@ -134,7 +139,12 @@ describe('CsvRelatedRoute', () => {
         dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );
@@ -216,7 +226,12 @@ describe('CsvRelatedRoute', () => {
 
       await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvGenerator).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
@@ -228,7 +243,12 @@ describe('CsvRelatedRoute', () => {
         dataSource.getCollection('books'),
         ['123e4567-e89b-12d3-a456-111111111111'],
         'myPersons',
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         expect.any(PaginatedFilter),
         expect.any(Projection),
       );
