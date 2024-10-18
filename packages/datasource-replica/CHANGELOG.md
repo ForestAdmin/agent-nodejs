@@ -1,3 +1,21 @@
+# @forestadmin/datasource-replica [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.4.5...@forestadmin/datasource-replica@1.5.0) (2024-10-18)
+
+
+### Features
+
+* add caller ip in action context.caller.request.ip ([#1196](https://github.com/ForestAdmin/agent-nodejs/issues/1196)) ([25aa5b8](https://github.com/ForestAdmin/agent-nodejs/commit/25aa5b859f856bab8302989500bddee8d2e3bbe9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.2
+* **@forestadmin/datasource-sequelize:** upgraded to 1.10.5
+* **@forestadmin/datasource-sql:** upgraded to 1.14.31
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+
 ## @forestadmin/datasource-replica [1.4.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.4.4...@forestadmin/datasource-replica@1.4.5) (2024-10-10)
 
 
