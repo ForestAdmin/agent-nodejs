@@ -6,6 +6,7 @@ export type Caller = {
   team: string;
   renderingId: number;
   requestId: string;
+  request: { ip: string };
   role: string;
   tags: { [key: string]: string };
   permissionLevel: 'admin' | 'developer' | 'editor' | 'user';

@@ -4,7 +4,7 @@ export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
     .addAction('Create new card', {
-      scope: 'Global',
+      scope: 'Single',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok');
       },
@@ -12,6 +12,8 @@ export default (collection: CardCustomizer) =>
         {
           type: 'Layout',
           component: 'Page',
+          nextButtonLabel: 'go to next page',
+          previousButtonLabel: 'back',
           elements: [
             {
               type: 'String',
@@ -59,8 +61,8 @@ export default (collection: CardCustomizer) =>
         {
           type: 'Layout',
           component: 'Page',
-          nextButtonLabel: 'go to next page',
-          previousButtonLabel: 'go to previous page',
+          nextButtonLabel: 'go to next page (finalisation, setup of card properties)',
+          previousButtonLabel: 'return to previous page (selection of the card plan)',
           elements: [
             {
               type: 'Layout',
@@ -77,6 +79,7 @@ export default (collection: CardCustomizer) =>
         {
           type: 'Layout',
           component: 'Page',
+          previousButtonLabel: 'return to previous page (useless empty page)',
           elements: [
             {
               type: 'Number',

@@ -28,6 +28,7 @@ services:
   mssql:
     image: mcr.microsoft.com/azure-sql-edge
     container_name: forest_agent_example_mssql
+    user: root
     ports:
       - '1433:1433'
     environment:
