@@ -35,6 +35,9 @@ export type Options = {
 export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   private readonly compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
+  public publicServices?: {
+    sendNotifications: (payload: object) => Promise<void>;
+  };
 
   /**
    * Retrieve schema of the agent

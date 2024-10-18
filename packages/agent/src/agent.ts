@@ -73,6 +73,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         this.options.forestAdminClient.notifyFrontendService,
       ),
     };
+    globalThis.publicServices = this.publicServices;
+    this.customizer.publicServices = {
+      sendNotifications: this.options.forestAdminClient.notifyFrontendService.notify.bind(
+        this.options.forestAdminClient.notifyFrontendService,
+      ),
+    };
     this.customizationService = new CustomizationService(allOptions);
   }
 

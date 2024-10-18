@@ -1,9 +1,94 @@
 import { CardCustomizer } from '../typings';
 
+export type NotificationFromAgent = {
+  notification:
+    | { refresh: { collectionName: string; recordIds?: string[] } }
+    | { message: { type: 'success' | 'info' | 'warning' | 'error'; text: string } };
+  target?: { users?: string[]; team?: string; roles?: string[] };
+};
+
+const send = async (notif: NotificationFromAgent, resultBuilder?) => {
+  const resp = await fetch(
+    `https://api.development.forestadmin.com/liana/notifications-from-agent`,
+    {
+      method: 'POST',
+      body: JSON.stringify(notif),
+      headers: {
+        'forest-secret-key': '5eb3ab09768a960a059bfaac57db9e1d2b33633a6d37cd4c13e19100c553bf14',
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  return resultBuilder?.success(`Notif sent !!!`);
+};
+
 export default (collection: CardCustomizer) =>
   collection
     .addManyToOneRelation('customer', 'customer', { foreignKey: 'customer_id' })
-    .addAction('Create new card', {
+    .addAction('trigger notif to everyone', {
+      scope: 'Global',
+      async execute(context, resultBuilder) {
+        const notif: NotificationFromAgent = {
+          notification: {
+            message: {
+              type: 'warning',
+              text: 'Data refreshed',
+            },
+            refresh: {
+              collectionName: 'card',
+            },
+          },
+        };
+
+        return send(notif, resultBuilder);
+      },
+    })
+    .addAction('trigger notif to nicolas@email.com', {
+      scope: 'Global',
+      async execute(context, resultBuilder) {
+        const notif: NotificationFromAgent = {
+          notification: {
+            message: {
+              type: 'warning',
+              text: 'Your data has been refreshed Nicolas',
+            },
+            refresh: {
+              collectionName: 'card',
+            },
+          },
+          target: { users: ['nicolas@email.com'] },
+        };
+
+        return send(notif, resultBuilder);
+      },
+    })
+    .addAction('send love to…', {
+      scope: 'Global',
+      submitButtonLabel: '😘',
+      form: [
+        {
+          label: 'Who do you love?',
+          id: 'loved',
+          type: 'StringList',
+          widget: 'UserDropdown',
+        },
+      ],
+      async execute(context, resultBuilder) {
+        const notif: NotificationFromAgent = {
+          notification: {
+            message: {
+              type: 'info',
+              text: `❤️ ${context.caller.firstName} ${context.caller.lastName} loves you ❤️`,
+            },
+          },
+          target: { users: context.formValues.loved },
+        };
+
+        return send(notif, resultBuilder);
+      },
+    })
+    .addAction('create new card', {
       scope: 'Global',
       execute: (context, resultBuilder) => {
         return resultBuilder.success('ok');
@@ -136,4 +221,26 @@ export default (collection: CardCustomizer) =>
           ],
         },
       ],
+    })
+    .addAction('Escalate', {
+      scope: 'Single',
+      execute: async (context, resultBuilder) => {
+        await context.collection.update(context.filter, { is_active: false });
+
+        const notif: NotificationFromAgent = {
+          notification: {
+            message: {
+              type: 'warning',
+              text: 'A new card has been escalated',
+            },
+            refresh: {
+              collectionName: 'card',
+            },
+          },
+          target: { users: ['nicolas@email.com'] },
+        };
+        await send(notif, resultBuilder);
+
+        return resultBuilder.success('Card escalated to back office');
+      },
     });
