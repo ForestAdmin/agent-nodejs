@@ -19,6 +19,8 @@ describe('plugin-export-advanced', () => {
             fields: {
               id: factories.columnSchema.numericPrimaryKey().build(),
               title: factories.columnSchema.build({ columnType: 'String' }),
+              isPublished: factories.columnSchema.build({ columnType: 'Boolean' }),
+              publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
               author: factories.manyToOneSchema.build({
                 foreignCollection: 'authors',
                 foreignKey: 'id',
@@ -29,11 +31,15 @@ describe('plugin-export-advanced', () => {
             {
               id: 1,
               title: "The Hitchhiker's Guide to the Galaxy, vol 2",
+              isPublished: true,
+              publishedAt: new Date(),
               author: { id: 1, fullname: 'Douglas Adams' },
             },
             {
               id: 2,
               title: 'The Restaurant at the End of the Universe',
+              isPublished: false,
+              publishedAt: new Date(),
               author: null,
             },
           ],
@@ -92,11 +98,11 @@ describe('plugin-export-advanced', () => {
           watchChanges: false,
         },
         {
-          enumValues: ['id', 'title', 'author:id', 'author:fullname'],
+          enumValues: ['id', 'title', 'isPublished', 'publishedAt', 'author:id', 'author:fullname'],
           id: 'Fields',
           label: 'Fields',
           type: 'EnumList',
-          value: ['id', 'title', 'author:id', 'author:fullname'],
+          value: ['id', 'title', 'isPublished', 'publishedAt', 'author:id', 'author:fullname'],
           watchChanges: true,
         },
       ]);
@@ -112,7 +118,7 @@ describe('plugin-export-advanced', () => {
         .execute(factories.caller.build(), 'Export books (advanced)', {
           Format: format,
           Filename: 'file',
-          Fields: ['id', 'title', 'author:id', 'author:fullname'],
+          Fields: ['id', 'title', 'isPublished', 'publishedAt', 'author:id', 'author:fullname'],
         });
 
       expect(result.type).toStrictEqual('File');
