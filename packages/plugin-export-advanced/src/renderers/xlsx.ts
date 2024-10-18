@@ -5,10 +5,10 @@ import getFieldValue from '../utils/get-field-value';
 
 function getExcel4NodeTypeFromValue(value: unknown): string {
   if (value === null || value === undefined) return null;
-  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'boolean') return 'bool';
   if (typeof value === 'number') return 'number';
   if (typeof value === 'string') {
-      if(value === 'true' || value === 'false') return 'boolean';
+      if(value === 'true' || value === 'false') return 'bool';
       if(!isNaN(Number(value))) return 'number';
       if (!isNaN(Date.parse(value))) return 'date';
       return 'string';
@@ -19,7 +19,7 @@ function getExcel4NodeTypeFromValue(value: unknown): string {
 
 function castValue(value) {
   switch (getExcel4NodeTypeFromValue(value)) {
-      case 'boolean':
+      case 'bool':
           return Boolean(value);
       case 'number':
           return Number(value);
