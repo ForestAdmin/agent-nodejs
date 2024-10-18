@@ -11,6 +11,7 @@ export default class CacheDataSourceInterface {
     firstName: 'Datasource',
     lastName: 'Replica',
     renderingId: 0,
+    request: { ip: '::1' },
     role: 'system',
     tags: {},
     team: 'system',

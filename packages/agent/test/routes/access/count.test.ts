@@ -33,7 +33,12 @@ describe('CountRoute', () => {
         await count.handleCount(context);
 
         expect(aggregateSpy).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           { conditionTree: null, search: null, searchExtended: false, segment: null },
           { operation: 'Count' },
         );
@@ -75,7 +80,12 @@ describe('CountRoute', () => {
         await count.handleCount(context);
 
         expect(aggregateSpy).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           {
             conditionTree: {
               field: 'title',

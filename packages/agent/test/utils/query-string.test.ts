@@ -395,6 +395,7 @@ describe('QueryStringParser', () => {
       expect(QueryStringParser.parseCaller(context)).toEqual({
         email: 'john.doe@domain.com',
         requestId: expect.any(String),
+        request: { ip: expect.any(String) },
         timezone: 'America/Los_Angeles',
       });
     });

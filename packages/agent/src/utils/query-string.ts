@@ -119,6 +119,7 @@ export default class QueryStringParser {
 
   static parseCaller(context: Context): Caller {
     const timezone = context.request.query.timezone?.toString();
+    const { ip } = context.request;
 
     if (!timezone) {
       throw new ValidationError('Missing timezone');
@@ -140,7 +141,7 @@ export default class QueryStringParser {
       QueryStringParser.VALID_TIMEZONES.add(timezone);
     }
 
-    return { ...context.state.user, timezone, requestId: uuidv4() };
+    return { ...context.state.user, timezone, requestId: uuidv4(), request: { ip } };
   }
 
   static parsePagination(context: Context): Page {
