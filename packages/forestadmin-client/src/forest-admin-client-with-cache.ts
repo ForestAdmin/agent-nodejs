@@ -1,4 +1,5 @@
 import ChartHandler from './charts/chart-handler';
+import NotifyFrontendService from './events-subscription/notify-frontend-service';
 import {
   BaseEventsSubscriptionService,
   RefreshEventsHandlerService,
@@ -32,6 +33,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly modelCustomizationService: ModelCustomizationService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
+    public readonly notifyFrontendService: NotifyFrontendService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {
