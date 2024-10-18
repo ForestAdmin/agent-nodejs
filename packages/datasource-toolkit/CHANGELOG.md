@@ -1,3 +1,24 @@
+# @forestadmin/datasource-toolkit [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.42.1...@forestadmin/datasource-toolkit@1.43.0) (2024-10-18)
+
+
+### Features
+
+* add caller ip in action context.caller.request.ip ([#1196](https://github.com/ForestAdmin/agent-nodejs/issues/1196)) ([25aa5b8](https://github.com/ForestAdmin/agent-nodejs/commit/25aa5b859f856bab8302989500bddee8d2e3bbe9))
+
+## @forestadmin/datasource-toolkit [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.42.0...@forestadmin/datasource-toolkit@1.42.1) (2024-10-10)
+
+
+### Bug Fixes
+
+* missing exported type ([#1192](https://github.com/ForestAdmin/agent-nodejs/issues/1192)) ([7e26bd9](https://github.com/ForestAdmin/agent-nodejs/commit/7e26bd9a3fd7a3333d3620a8701e70a63e51720e))
+
+# @forestadmin/datasource-toolkit [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.41.0...@forestadmin/datasource-toolkit@1.42.0) (2024-10-07)
+
+
+### Features
+
+* add pages in action forms ([#1179](https://github.com/ForestAdmin/agent-nodejs/issues/1179)) ([0b2dc0a](https://github.com/ForestAdmin/agent-nodejs/commit/0b2dc0a0d20b0f762aeb9eb6674693e05fd386c2))
+
 # @forestadmin/datasource-toolkit [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.40.0...@forestadmin/datasource-toolkit@1.41.0) (2024-10-04)
 
 

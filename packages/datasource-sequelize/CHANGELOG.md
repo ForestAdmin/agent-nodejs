@@ -1,3 +1,40 @@
+## @forestadmin/datasource-sequelize [1.10.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.4...@forestadmin/datasource-sequelize@1.10.5) (2024-10-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+
+## @forestadmin/datasource-sequelize [1.10.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.3...@forestadmin/datasource-sequelize@1.10.4) (2024-10-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.1
+
+## @forestadmin/datasource-sequelize [1.10.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.2...@forestadmin/datasource-sequelize@1.10.3) (2024-10-09)
+
+
+### Bug Fixes
+
+* required fields are not required in schema when they have default values ([#1185](https://github.com/ForestAdmin/agent-nodejs/issues/1185)) ([a5501fc](https://github.com/ForestAdmin/agent-nodejs/commit/a5501fc066885253ea1bece7721ad2cd2df48857))
+
+## @forestadmin/datasource-sequelize [1.10.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.1...@forestadmin/datasource-sequelize@1.10.2) (2024-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+
 ## @forestadmin/datasource-sequelize [1.10.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.0...@forestadmin/datasource-sequelize@1.10.1) (2024-10-04)
 
 

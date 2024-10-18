@@ -1,3 +1,63 @@
+## @forestadmin/plugin-export-advanced [1.1.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.8...@forestadmin/plugin-export-advanced@1.1.9) (2024-10-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+
+## @forestadmin/plugin-export-advanced [1.1.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.7...@forestadmin/plugin-export-advanced@1.1.8) (2024-10-18)
+
+
+### Bug Fixes
+
+* fix excel export type ([#1195](https://github.com/ForestAdmin/agent-nodejs/issues/1195)) ([ac7f7d9](https://github.com/ForestAdmin/agent-nodejs/commit/ac7f7d9109fbf03ef33e2cb77a5b5bd5e4cac165))
+
+## @forestadmin/plugin-export-advanced [1.1.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.6...@forestadmin/plugin-export-advanced@1.1.7) (2024-10-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.1
+
+## @forestadmin/plugin-export-advanced [1.1.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.5...@forestadmin/plugin-export-advanced@1.1.6) (2024-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.0
+
+## @forestadmin/plugin-export-advanced [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.4...@forestadmin/plugin-export-advanced@1.1.5) (2024-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.54.1
+
+## @forestadmin/plugin-export-advanced [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.3...@forestadmin/plugin-export-advanced@1.1.4) (2024-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.54.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+
 ## @forestadmin/plugin-export-advanced [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.2...@forestadmin/plugin-export-advanced@1.1.3) (2024-10-04)
 
 

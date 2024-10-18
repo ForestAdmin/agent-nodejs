@@ -50,7 +50,12 @@ describe('ListRoute', () => {
 
       // then
       expect(collection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         {
           conditionTree: null,
           search: '2',
@@ -113,7 +118,12 @@ describe('ListRoute', () => {
 
       // then
       expect(collection.list).toHaveBeenCalledWith(
-        { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+        {
+          email: 'john.doe@domain.com',
+          requestId: expect.any(String),
+          request: { ip: expect.any(String) },
+          timezone: 'Europe/Paris',
+        },
         {
           conditionTree: {
             field: 'title',

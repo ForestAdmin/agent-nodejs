@@ -71,7 +71,8 @@ describe('Logger', () => {
       };
       const next = jest.fn().mockRejectedValue(error);
 
-      await expect(handleLog.call(route, context, next)).rejects.toThrow('RouteError');
+      await expect(handleLog.call(route, context, next)).toResolve();
+
       expect(options.logger).toHaveBeenCalledWith('Error', '[500] GET someUrl - 0ms', error);
     });
   });

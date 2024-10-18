@@ -1,3 +1,52 @@
+## @forestadmin/datasource-customizer [1.55.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.1...@forestadmin/datasource-customizer@1.55.2) (2024-10-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+
+## @forestadmin/datasource-customizer [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.0...@forestadmin/datasource-customizer@1.55.1) (2024-10-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.1
+
+# @forestadmin/datasource-customizer [1.55.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.54.1...@forestadmin/datasource-customizer@1.55.0) (2024-10-07)
+
+
+### Features
+
+* support static action forms with layout ([#1182](https://github.com/ForestAdmin/agent-nodejs/issues/1182)) ([92011d8](https://github.com/ForestAdmin/agent-nodejs/commit/92011d86b4e10dacf5783725cd864a31c7ce8fe5))
+
+## @forestadmin/datasource-customizer [1.54.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.54.0...@forestadmin/datasource-customizer@1.54.1) (2024-10-07)
+
+
+### Bug Fixes
+
+* search hook with layout ([#1187](https://github.com/ForestAdmin/agent-nodejs/issues/1187)) ([e75a06e](https://github.com/ForestAdmin/agent-nodejs/commit/e75a06ed221696d90036f5585b5eb8c7849642fd))
+
+# @forestadmin/datasource-customizer [1.54.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.53.0...@forestadmin/datasource-customizer@1.54.0) (2024-10-07)
+
+
+### Features
+
+* add pages in action forms ([#1179](https://github.com/ForestAdmin/agent-nodejs/issues/1179)) ([0b2dc0a](https://github.com/ForestAdmin/agent-nodejs/commit/0b2dc0a0d20b0f762aeb9eb6674693e05fd386c2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+
 # @forestadmin/datasource-customizer [1.53.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.52.1...@forestadmin/datasource-customizer@1.53.0) (2024-10-04)
 
 

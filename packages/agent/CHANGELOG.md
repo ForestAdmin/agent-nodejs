@@ -1,3 +1,88 @@
+# @forestadmin/agent [1.51.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.3...@forestadmin/agent@1.51.0) (2024-10-18)
+
+
+### Features
+
+* add caller ip in action context.caller.request.ip ([#1196](https://github.com/ForestAdmin/agent-nodejs/issues/1196)) ([25aa5b8](https://github.com/ForestAdmin/agent-nodejs/commit/25aa5b859f856bab8302989500bddee8d2e3bbe9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.34.2
+
+## @forestadmin/agent [1.50.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.2...@forestadmin/agent@1.50.3) (2024-10-15)
+
+
+### Bug Fixes
+
+* **logger:** logger should display the right status code in case of error ([#1194](https://github.com/ForestAdmin/agent-nodejs/issues/1194)) ([d328764](https://github.com/ForestAdmin/agent-nodejs/commit/d328764394c9660ad865864e29fdbf14385a5556))
+
+## @forestadmin/agent [1.50.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.1...@forestadmin/agent@1.50.2) (2024-10-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.34.1
+
+## @forestadmin/agent [1.50.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.0...@forestadmin/agent@1.50.1) (2024-10-09)
+
+
+### Bug Fixes
+
+* **permissions:** properly check permissions when dissociating or deleting related resources ([#1190](https://github.com/ForestAdmin/agent-nodejs/issues/1190)) ([211fd1f](https://github.com/ForestAdmin/agent-nodejs/commit/211fd1f77c4f519271e09826ff63f7ad160c144e))
+
+# @forestadmin/agent [1.50.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.49.1...@forestadmin/agent@1.50.0) (2024-10-07)
+
+
+### Features
+
+* support static action forms with layout ([#1182](https://github.com/ForestAdmin/agent-nodejs/issues/1182)) ([92011d8](https://github.com/ForestAdmin/agent-nodejs/commit/92011d86b4e10dacf5783725cd864a31c7ce8fe5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.0
+
+## @forestadmin/agent [1.49.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.49.0...@forestadmin/agent@1.49.1) (2024-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.54.1
+
+# @forestadmin/agent [1.49.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.48.0...@forestadmin/agent@1.49.0) (2024-10-07)
+
+
+### Features
+
+* add pages in action forms ([#1179](https://github.com/ForestAdmin/agent-nodejs/issues/1179)) ([0b2dc0a](https://github.com/ForestAdmin/agent-nodejs/commit/0b2dc0a0d20b0f762aeb9eb6674693e05fd386c2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.54.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.42.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.34.0
+
 # @forestadmin/agent [1.48.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.47.0...@forestadmin/agent@1.48.0) (2024-10-04)
 
 
