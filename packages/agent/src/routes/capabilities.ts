@@ -20,7 +20,7 @@ export default class Capabilities extends BaseRoute {
   }
 
   setupRoutes(router: Router): void {
-    router.post(`/capabilities`, this.fetchCapabilities.bind(this));
+    router.post(`/_internal/capabilities`, this.fetchCapabilities.bind(this));
   }
 
   private async fetchCapabilities(context: Context) {
