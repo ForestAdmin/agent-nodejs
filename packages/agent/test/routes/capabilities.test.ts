@@ -17,14 +17,14 @@ describe('Capabilities', () => {
     jest.resetAllMocks();
   });
 
-  test('should register "/capabilities" route', () => {
+  test('should register "/_internal/capabilities" route', () => {
     const dataSource = factories.dataSource.buildWithCollection(
       factories.collection.build({ name: 'books' }),
     );
     const route = new Capabilities(services, options, dataSource);
     route.setupRoutes(router);
 
-    expect(router.post).toHaveBeenCalledWith('/capabilities', expect.any(Function));
+    expect(router.post).toHaveBeenCalledWith('/_internal/capabilities', expect.any(Function));
   });
 
   describe('with the route mounted', () => {
