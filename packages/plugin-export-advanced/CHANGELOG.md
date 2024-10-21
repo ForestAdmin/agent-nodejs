@@ -1,3 +1,10 @@
+## @forestadmin/plugin-export-advanced [1.1.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.9...@forestadmin/plugin-export-advanced@1.1.10) (2024-10-21)
+
+
+### Bug Fixes
+
+* **advanced-export:** export now uses context.filter ([#1198](https://github.com/ForestAdmin/agent-nodejs/issues/1198)) ([68cef9b](https://github.com/ForestAdmin/agent-nodejs/commit/68cef9bf8fe3eac03d20920c390185ce17fa33b5))
+
 ## @forestadmin/plugin-export-advanced [1.1.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.8...@forestadmin/plugin-export-advanced@1.1.9) (2024-10-18)
 
 
