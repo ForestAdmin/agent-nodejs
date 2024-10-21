@@ -113,13 +113,16 @@ describe('plugin-export-advanced', () => {
       ['.json', 'application/json'],
       ['.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
     ])('running the action should export to %s', async (format, mimeType) => {
-      const result = await dataSource
-        .getCollection('books')
-        .execute(factories.caller.build(), 'Export books (advanced)', {
+      const result = await dataSource.getCollection('books').execute(
+        factories.caller.build(),
+        'Export books (advanced)',
+        {
           Format: format,
           Filename: 'file',
           Fields: ['id', 'title', 'isPublished', 'publishedAt', 'author:id', 'author:fullname'],
-        });
+        },
+        factories.filter.build(),
+      );
 
       expect(result.type).toStrictEqual('File');
       expect((result as FileResult).mimeType).toStrictEqual(mimeType);
@@ -162,7 +165,7 @@ describe('plugin-export-advanced', () => {
     test('running the action should export to csv', async () => {
       const result = await dataSource
         .getCollection('books')
-        .execute(factories.caller.build(), 'Export', {});
+        .execute(factories.caller.build(), 'Export', {}, factories.filter.build());
 
       expect(result.type).toStrictEqual('File');
       expect((result as FileResult).mimeType).toStrictEqual('text/csv');
