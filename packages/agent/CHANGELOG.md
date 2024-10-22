@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.52.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.51.0...@forestadmin/agent@1.52.0) (2024-10-22)
+
+
+### Features
+
+* **capabilities:** register capabilities route for field filter operators ([#1197](https://github.com/ForestAdmin/agent-nodejs/issues/1197)) ([31edc82](https://github.com/ForestAdmin/agent-nodejs/commit/31edc822b2d48a1fbaeb6067268fc8e25d7d6679))
+
 # @forestadmin/agent [1.51.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.3...@forestadmin/agent@1.51.0) (2024-10-18)
 
 
