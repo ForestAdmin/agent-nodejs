@@ -14,4 +14,8 @@ export default class DistPathManager {
   get distCodeCustomizations(): string {
     return path.join(this.cloudCustomizerPath, 'dist', 'code-customizations');
   }
+
+  get localDatasources(): string {
+    return path.join(this.cloudCustomizerPath, 'datasources.json');
+  }
 }
