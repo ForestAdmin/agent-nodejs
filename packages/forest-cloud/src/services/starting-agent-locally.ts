@@ -101,12 +101,11 @@ export async function startingAgent(
     // eslint-disable-next-line import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires
     const localDatasources = require(localDatasourcesPath);
 
-    logger('Debug', JSON.stringify(localDatasources));
     addDatasourceToAgent(agent, localDatasources);
   } catch (e) {
-    logger('Debug', 'bug', e);
+    logger('Debug', `Could not load ${localDatasourcesPath}`, e);
     throw new BusinessError(
-      `No datasources fount at ${localDatasourcesPath}.\nPlease provide datasources information..`,
+      `No datasources found at ${localDatasourcesPath}.\nPlease provide datasources information..`,
     );
   }
 
