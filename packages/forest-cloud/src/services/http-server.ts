@@ -154,4 +154,17 @@ export default class HttpServer {
   static async getLatestVersion(packageName: string): Promise<string> {
     return latestVersion(packageName);
   }
+
+  async createNewDevelopmentEnvironment() {
+    return handledAxios<{ environmentSecret: string }>(
+      {
+        url: `${this.serverUrl}/api/full-hosted-agent/development-environment-for-user`,
+        method: 'POST',
+        headers: this.headers,
+      },
+      {
+        errorMessage: 'Failed to create development environment for the current user',
+      },
+    );
+  }
 }

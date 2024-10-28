@@ -43,9 +43,14 @@ export default (program: Command, context: MakeCommands) => {
         );
         validateEnvironmentVariables(vars);
 
-        const datasources = await buildHttpServer(vars).getDatasources();
+        // Check that /d.forest/.environments does contains env secret yet
+        const { environmentSecret } = await buildHttpServer(vars).createNewDevelopmentEnvironment();
 
-        await startingAgent(distPathManager, datasources, vars, agentLogger);
+        await startingAgent(
+          distPathManager,
+          { forestServerUrl: vars.FOREST_SERVER_URL, envSecret: environmentSecret },
+          agentLogger,
+        );
       }),
     );
 };
