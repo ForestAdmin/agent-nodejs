@@ -150,7 +150,8 @@ export default class QueryStringParser {
         forestContextUrl,
       );
     } catch (error) {
-      // Silent error, as this is not critical
+      // Silent error, as this is not critical.
+      // Just like in v1, Forest-Context-Url is not always available.
     }
 
     return {
