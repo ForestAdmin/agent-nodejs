@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import fs from 'fs';
 
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
@@ -44,7 +45,27 @@ export default (program: Command, context: MakeCommands) => {
         validateEnvironmentVariables(vars);
 
         // Check that /d.forest/.environments does contains env secret yet
-        const { environmentSecret } = await buildHttpServer(vars).createNewDevelopmentEnvironment();
+        try {
+          fs.existsSync(distPathManager.localCloudEnvironmentConfigPath);
+        } catch (e) {
+          fs.writeFileSync(distPathManager.localCloudEnvironmentConfigPath, JSON.stringify({}));
+        }
+
+        // eslint-disable-next-line import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires
+        const localCloudEnvironmentsConfig = require(distPathManager.localCloudEnvironmentConfigPath);
+
+        let environmentSecret = localCloudEnvironmentsConfig[`${vars.FOREST_ENV_SECRET}`];
+
+        if (!environmentSecret) {
+          ({ environmentSecret } = await buildHttpServer(vars).createNewDevelopmentEnvironment());
+
+          // Add it to local variables
+          localCloudEnvironmentsConfig[`${vars.FOREST_ENV_SECRET}`] = environmentSecret;
+          fs.writeFileSync(
+            distPathManager.localCloudEnvironmentConfigPath,
+            JSON.stringify(localCloudEnvironmentsConfig),
+          );
+        }
 
         await startingAgent(
           distPathManager,
