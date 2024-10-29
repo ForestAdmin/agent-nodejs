@@ -6,8 +6,8 @@ export type Caller = {
   team: string;
   renderingId: number;
   requestId: string;
-  environmentName: string | null;
-  projectName: string | null;
+  environment: string | null;
+  project: string | null;
   request: { ip: string };
   role: string;
   tags: { [key: string]: string };

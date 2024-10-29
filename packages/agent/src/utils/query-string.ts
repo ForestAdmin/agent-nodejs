@@ -141,14 +141,12 @@ export default class QueryStringParser {
       QueryStringParser.VALID_TIMEZONES.add(timezone);
     }
 
-    let projectName: string;
-    let environmentName: string;
+    let project: string;
+    let environment: string;
 
     try {
       const forestContextUrl = context.request.headers['forest-context-url'] as string;
-      [, , projectName, environmentName] = /https:\/\/([^\/]*)\/([^\/]*)\/([^\/]*)/.exec(
-        forestContextUrl,
-      );
+      [, , project, environment] = /https:\/\/([^\/]*)\/([^\/]*)\/([^\/]*)/.exec(forestContextUrl);
     } catch (error) {
       // Silent error, as this is not critical.
       // Just like in v1, Forest-Context-Url is not always available.
@@ -158,8 +156,8 @@ export default class QueryStringParser {
       ...context.state.user,
       timezone,
       requestId: uuidv4(),
-      projectName,
-      environmentName,
+      project,
+      environment,
       request: { ip },
     };
   }
