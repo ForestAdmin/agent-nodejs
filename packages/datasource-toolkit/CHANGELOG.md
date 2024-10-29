@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.42.1...@forestadmin/datasource-toolkit@1.43.0) (2024-10-18)
+
+
+### Features
+
+* add caller ip in action context.caller.request.ip ([#1196](https://github.com/ForestAdmin/agent-nodejs/issues/1196)) ([25aa5b8](https://github.com/ForestAdmin/agent-nodejs/commit/25aa5b859f856bab8302989500bddee8d2e3bbe9))
+
 ## @forestadmin/datasource-toolkit [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.42.0...@forestadmin/datasource-toolkit@1.42.1) (2024-10-10)
 
 

@@ -1,6 +1,7 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
 import makeRoutes, {
+  CAPABILITIES_ROUTES_CTOR,
   COLLECTION_ROUTES_CTOR,
   RELATED_RELATION_ROUTES_CTOR,
   RELATED_ROUTES_CTOR,
@@ -14,6 +15,7 @@ import CsvRelated from '../../src/routes/access/csv-related';
 import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
+import Capabilities from '../../src/routes/capabilities';
 import AssociateRelated from '../../src/routes/modification/associate-related';
 import Create from '../../src/routes/modification/create';
 import Delete from '../../src/routes/modification/delete';
@@ -58,8 +60,11 @@ describe('Route index', () => {
       DissociateDeleteRelated,
       ListRelated,
     ]);
+    expect(CAPABILITIES_ROUTES_CTOR).toEqual([Capabilities]);
     expect(RELATED_RELATION_ROUTES_CTOR).toEqual([UpdateRelation]);
   });
+
+  const BASE_ROUTE_SIZE = ROOT_ROUTES_CTOR.length + CAPABILITIES_ROUTES_CTOR.length;
 
   describe('makeRoutes', () => {
     describe('when a data source without relations', () => {
@@ -80,7 +85,7 @@ describe('Route index', () => {
         );
 
         const countCollectionRoutes = COLLECTION_ROUTES_CTOR.length * dataSource.collections.length;
-        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + countCollectionRoutes);
+        expect(routes.length).toEqual(BASE_ROUTE_SIZE + countCollectionRoutes);
       });
 
       test('should order routes correctly', async () => {
@@ -136,7 +141,7 @@ describe('Route index', () => {
 
         const countCollectionRoutes = COLLECTION_ROUTES_CTOR.length * dataSource.collections.length;
         expect(routes.length).toEqual(
-          ROOT_ROUTES_CTOR.length + countCollectionRoutes + RELATED_ROUTES_CTOR.length,
+          BASE_ROUTE_SIZE + countCollectionRoutes + RELATED_ROUTES_CTOR.length,
         );
       });
     });
@@ -187,7 +192,7 @@ describe('Route index', () => {
 
         const countCollectionRoutes = COLLECTION_ROUTES_CTOR.length * dataSource.collections.length;
         expect(routes.length).toEqual(
-          ROOT_ROUTES_CTOR.length +
+          BASE_ROUTE_SIZE +
             countCollectionRoutes +
             RELATED_ROUTES_CTOR.length * 2 +
             RELATED_RELATION_ROUTES_CTOR.length * 2,
@@ -226,7 +231,7 @@ describe('Route index', () => {
 
         const countCollectionRoutes = COLLECTION_ROUTES_CTOR.length * dataSource.collections.length;
         expect(routes.length).toEqual(
-          ROOT_ROUTES_CTOR.length + countCollectionRoutes + RELATED_RELATION_ROUTES_CTOR.length,
+          BASE_ROUTE_SIZE + countCollectionRoutes + RELATED_RELATION_ROUTES_CTOR.length,
         );
       });
     });
@@ -256,7 +261,7 @@ describe('Route index', () => {
         );
 
         // because there are two charts, there are two routes in addition to the basic ones
-        expect(routes.length).toEqual(ROOT_ROUTES_CTOR.length + COLLECTION_ROUTES_CTOR.length + 2);
+        expect(routes.length).toEqual(BASE_ROUTE_SIZE + COLLECTION_ROUTES_CTOR.length + 2);
       });
     });
   });

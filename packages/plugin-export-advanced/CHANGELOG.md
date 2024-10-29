@@ -1,3 +1,28 @@
+## @forestadmin/plugin-export-advanced [1.1.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.9...@forestadmin/plugin-export-advanced@1.1.10) (2024-10-21)
+
+
+### Bug Fixes
+
+* **advanced-export:** export now uses context.filter ([#1198](https://github.com/ForestAdmin/agent-nodejs/issues/1198)) ([68cef9b](https://github.com/ForestAdmin/agent-nodejs/commit/68cef9bf8fe3eac03d20920c390185ce17fa33b5))
+
+## @forestadmin/plugin-export-advanced [1.1.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.8...@forestadmin/plugin-export-advanced@1.1.9) (2024-10-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+
+## @forestadmin/plugin-export-advanced [1.1.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.7...@forestadmin/plugin-export-advanced@1.1.8) (2024-10-18)
+
+
+### Bug Fixes
+
+* fix excel export type ([#1195](https://github.com/ForestAdmin/agent-nodejs/issues/1195)) ([ac7f7d9](https://github.com/ForestAdmin/agent-nodejs/commit/ac7f7d9109fbf03ef33e2cb77a5b5bd5e4cac165))
+
 ## @forestadmin/plugin-export-advanced [1.1.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.6...@forestadmin/plugin-export-advanced@1.1.7) (2024-10-10)
 
 

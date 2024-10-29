@@ -69,7 +69,12 @@ describe('GetRoute', () => {
         await get.handleGet(context);
 
         expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           {
             conditionTree: {
               field: 'id',
@@ -134,7 +139,12 @@ describe('GetRoute', () => {
         );
 
         expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           new PaginatedFilter({
             conditionTree: ConditionTreeFactory.fromPlainObject({
               aggregator: 'And',

@@ -88,7 +88,7 @@ export async function addExportAdvanced(
         const filename = context.formValues.Filename || options.filename;
 
         const renderer = renderers[format];
-        const records = await context.collection.list({}, fields);
+        const records = await context.collection.list(context.filter, fields);
         const output = renderer.handler(records, fields);
 
         return resultBuilder.file(output, `${filename}${format}`, renderer.mimeType);

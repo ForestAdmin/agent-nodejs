@@ -49,7 +49,12 @@ describe('DeleteRoute', () => {
 
         expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -111,7 +116,12 @@ describe('DeleteRoute', () => {
         await deleteRoute.handleDelete(context);
 
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'And',
@@ -172,7 +182,12 @@ describe('DeleteRoute', () => {
 
         expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'Equal',
@@ -224,7 +239,12 @@ describe('DeleteRoute', () => {
 
         expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           factories.filter.build({
             conditionTree: factories.conditionTreeLeaf.build({
               operator: 'In',
@@ -273,6 +293,7 @@ describe('DeleteRoute', () => {
             {
               email: 'john.doe@domain.com',
               requestId: expect.any(String),
+              request: { ip: expect.any(String) },
               timezone: 'Europe/Paris',
             },
             factories.filter.build({
@@ -321,7 +342,12 @@ describe('DeleteRoute', () => {
 
         expect(services.authorization.assertCanDelete).toHaveBeenCalledWith(context, 'books');
         expect(bookCollection.delete).toHaveBeenCalledWith(
-          { email: 'john.doe@domain.com', requestId: expect.any(String), timezone: 'Europe/Paris' },
+          {
+            email: 'john.doe@domain.com',
+            requestId: expect.any(String),
+            request: { ip: expect.any(String) },
+            timezone: 'Europe/Paris',
+          },
           factories.filter.build({
             conditionTree: factories.conditionTreeBranch.build({
               aggregator: 'Or',
@@ -403,6 +429,7 @@ describe('DeleteRoute', () => {
             {
               email: 'john.doe@domain.com',
               requestId: expect.any(String),
+              request: { ip: expect.any(String) },
               timezone: 'Europe/Paris',
             },
             factories.filter.build({

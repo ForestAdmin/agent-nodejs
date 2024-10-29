@@ -1,3 +1,27 @@
+# @forestadmin/agent [1.52.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.51.0...@forestadmin/agent@1.52.0) (2024-10-22)
+
+
+### Features
+
+* **capabilities:** register capabilities route for field filter operators ([#1197](https://github.com/ForestAdmin/agent-nodejs/issues/1197)) ([31edc82](https://github.com/ForestAdmin/agent-nodejs/commit/31edc822b2d48a1fbaeb6067268fc8e25d7d6679))
+
+# @forestadmin/agent [1.51.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.3...@forestadmin/agent@1.51.0) (2024-10-18)
+
+
+### Features
+
+* add caller ip in action context.caller.request.ip ([#1196](https://github.com/ForestAdmin/agent-nodejs/issues/1196)) ([25aa5b8](https://github.com/ForestAdmin/agent-nodejs/commit/25aa5b859f856bab8302989500bddee8d2e3bbe9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.55.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.43.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.34.2
+
 ## @forestadmin/agent [1.50.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.50.2...@forestadmin/agent@1.50.3) (2024-10-15)
 
 
