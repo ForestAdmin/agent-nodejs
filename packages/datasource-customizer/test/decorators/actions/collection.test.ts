@@ -1121,7 +1121,7 @@ describe('ActionDecorator', () => {
           newBooks.getForm(null, 'make photocopy', null, null),
         ).rejects.toThrow(
           new Error(
-            `You cannot mix pages and other form elements in smart action 'make photocopy' form`,
+            `You cannot mix pages and other form elements in an action form. Action triggering this error: 'make photocopy'`,
           ),
         );
       });
@@ -1146,7 +1146,7 @@ describe('ActionDecorator', () => {
           newBooks.getForm(null, 'make photocopy', null, null),
         ).rejects.toThrow(
           new Error(
-            `You cannot mix pages and other form elements in smart action 'make photocopy' form`,
+            `You cannot mix pages and other form elements in an action form. Action triggering this error: 'make photocopy'`,
           ),
         );
       });

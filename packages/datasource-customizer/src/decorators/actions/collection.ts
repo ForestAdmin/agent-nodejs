@@ -135,7 +135,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
       if ((multiPages && !elementIsPage) || (!multiPages && elementIsPage)) {
         throw new Error(
-          `You cannot mix pages and other form elements in smart action '${actionName}' form`,
+          `You cannot mix pages and other form elements in an action form. Action triggering this error: '${actionName}'`,
         );
       }
     });
