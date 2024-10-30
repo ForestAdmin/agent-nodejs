@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-aws-s3",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -17,7 +17,7 @@
     "@forestadmin/datasource-toolkit": "1.43.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.55.2",
+    "@forestadmin/datasource-customizer": "1.55.3",
     "@forestadmin/datasource-toolkit": "1.43.0"
   },
   "files": [
