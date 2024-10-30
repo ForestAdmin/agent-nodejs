@@ -146,7 +146,7 @@ export default class QueryStringParser {
 
     try {
       const forestContextUrl = context.request.headers['forest-context-url'] as string;
-      [, , project, environment] = /https:\/\/([^\/]*)\/([^\/]*)\/([^\/]*)/.exec(forestContextUrl);
+      [, , project, environment] = /https:\/\/([^/]*)\/([^/]*)\/([^/]*)/.exec(forestContextUrl);
     } catch (error) {
       // Silent error, as this is not critical.
       // Just like in v1, Forest-Context-Url is not always available.

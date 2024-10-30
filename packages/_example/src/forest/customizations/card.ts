@@ -6,6 +6,8 @@ export default (collection: CardCustomizer) =>
     .addAction('Create new card', {
       scope: 'Global',
       execute: (context, resultBuilder) => {
+        console.log(context);
+
         return resultBuilder.success('ok');
       },
       form: [
