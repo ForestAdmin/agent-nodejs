@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.55.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.2...@forestadmin/datasource-customizer@1.55.3) (2024-10-30)
+
+
+### Bug Fixes
+
+* change error message when mixing pages and other elements in an action form ([#1201](https://github.com/ForestAdmin/agent-nodejs/issues/1201)) ([c06e8f7](https://github.com/ForestAdmin/agent-nodejs/commit/c06e8f7a04b862341f22b8bd158540e56728231f))
+
 ## @forestadmin/datasource-customizer [1.55.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.1...@forestadmin/datasource-customizer@1.55.2) (2024-10-18)
 
 
