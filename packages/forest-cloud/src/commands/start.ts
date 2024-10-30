@@ -57,7 +57,9 @@ export default (program: Command, context: MakeCommands) => {
         let environmentSecret = localCloudEnvironmentsConfig[`${vars.FOREST_ENV_SECRET}`];
 
         if (!environmentSecret) {
-          ({ environmentSecret } = await buildHttpServer(vars).createNewDevelopmentEnvironment());
+          ({ environmentSecret } = await buildHttpServer(
+            vars,
+          ).getOrCreateNewDevelopmentEnvironment());
 
           // Add it to local variables
           localCloudEnvironmentsConfig[`${vars.FOREST_ENV_SECRET}`] = environmentSecret;
