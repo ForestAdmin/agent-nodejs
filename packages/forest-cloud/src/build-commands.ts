@@ -9,6 +9,7 @@ import BootstrapPathManager from './services/bootstrap-path-manager';
 import DistPathManager from './services/dist-path-manager';
 import { getEnvironmentVariables } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
+import generateDatasourceConfigFile from './services/generate-datasource-config-file';
 import HttpServer from './services/http-server';
 import { EnvironmentVariables } from './types';
 
@@ -36,6 +37,7 @@ export default function buildCommands() {
     login,
     logger: createLogger(),
     getCurrentVersion,
+    generateDatasourceConfigFile,
     bootstrapPathManager: new BootstrapPathManager(os.tmpdir(), os.homedir()),
     distPathManager: new DistPathManager(),
   });

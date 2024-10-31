@@ -45,10 +45,10 @@ export async function startingAgent(
   try {
     await fs.access(localDatasourcesPath);
     // eslint-disable-next-line import/no-dynamic-require, global-require, @typescript-eslint/no-var-requires
-    const localDatasources = require(localDatasourcesPath);
+    const localDatasources: () => Datasources = require(localDatasourcesPath);
 
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    addDatasourceToAgent(agent, localDatasources);
+    addDatasourceToAgent(agent, localDatasources());
   } catch (e) {
     logger('Debug', `Could not load ${localDatasourcesPath}`, e);
     throw new BusinessError(

@@ -41,6 +41,7 @@ export const setupCommandArguments = (
     login: jest.Mock;
     getDatasources: jest.Mock;
     subscribeToCodeCustomization: jest.Mock;
+    generateDatasourceConfigFile: jest.Mock;
     getLatestVersion: jest.Mock;
     getCurrentVersion: jest.Mock;
     getLogs: jest.Mock;
@@ -48,17 +49,27 @@ export const setupCommandArguments = (
 ): MakeCommandsForTests => {
   const getCurrentVersionMock = jest.fn().mockReturnValue('1.0.0');
   const getCurrentVersion = options?.getCurrentVersion || getCurrentVersionMock;
+  const generateDatasourceConfigFile = options?.generateDatasourceConfigFile || jest.fn();
   const getEnvironmentVariables =
     options?.getEnvironmentVariables || jest.fn().mockResolvedValue(environmentVariables);
 
+  const getOrCreateNewDevelopmentEnvironment = jest.fn().mockResolvedValue({
+    data: {
+      attributes: {
+        secret_key: 'a784f885c9de4fdfc9cc953659bf6264e60a76e48e8c4af0956aef8f56c6650d',
+      },
+    },
+  });
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const buildHttpServer = (vars: EnvironmentVariables) => {
+  const buildHttpServer = (vars?: EnvironmentVariables) => {
     return {
       getDatasources: options?.getDatasources || jest.fn().mockResolvedValue([]),
       postUploadRequest: jest.fn().mockResolvedValue(presignedPost),
       getLastPublishedCodeDetails: options?.getLastPublishedCodeDetails || jest.fn(),
       postPublish: jest.fn().mockResolvedValue({ subscriptionId: 'aSubscriptionId' }),
       getLogs: options?.getLogs || jest.fn(),
+      getOrCreateNewDevelopmentEnvironment,
     } as unknown as HttpServer;
   };
 
@@ -87,6 +98,7 @@ export const setupCommandArguments = (
     buildEventSubscriber,
     login,
     getCurrentVersion,
+    generateDatasourceConfigFile,
     distPathManager: new DistPathManager(tmpdir),
     bootstrapPathManager: new BootstrapPathManager(tmpdir, tmpdir, tmpdir),
   };

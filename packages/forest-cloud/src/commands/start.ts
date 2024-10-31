@@ -3,6 +3,7 @@ import fs from 'fs';
 
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
+import { BusinessError } from '../errors';
 import { validateEnvironmentVariables } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import { startingAgent } from '../services/starting-agent-locally';
@@ -16,6 +17,7 @@ export default (program: Command, context: MakeCommands) => {
     buildHttpServer,
     login,
     getEnvironmentVariables,
+    generateDatasourceConfigFile,
     distPathManager,
   } = context;
 
@@ -45,9 +47,7 @@ export default (program: Command, context: MakeCommands) => {
         validateEnvironmentVariables(vars);
 
         // Check that /d.forest/.environments does contains env secret yet
-        try {
-          fs.existsSync(distPathManager.localCloudEnvironmentConfigPath);
-        } catch (e) {
+        if (!fs.existsSync(distPathManager.localCloudEnvironmentConfigPath)) {
           fs.writeFileSync(distPathManager.localCloudEnvironmentConfigPath, JSON.stringify({}));
         }
 
@@ -57,15 +57,22 @@ export default (program: Command, context: MakeCommands) => {
         let environmentSecret = localCloudEnvironmentsConfig[`${vars.FOREST_ENV_SECRET}`];
 
         if (!environmentSecret) {
-          ({ environmentSecret } = await buildHttpServer(
-            vars,
-          ).getOrCreateNewDevelopmentEnvironment());
+          environmentSecret = (await buildHttpServer(vars).getOrCreateNewDevelopmentEnvironment())
+            .data.attributes.secret_key;
 
           // Add it to local variables
           localCloudEnvironmentsConfig[`${vars.FOREST_ENV_SECRET}`] = environmentSecret;
           fs.writeFileSync(
             distPathManager.localCloudEnvironmentConfigPath,
             JSON.stringify(localCloudEnvironmentsConfig),
+          );
+        }
+
+        // Check that the user has the datasource connection options file
+        if (!fs.existsSync(distPathManager.localDatasourcesPath)) {
+          await generateDatasourceConfigFile(distPathManager.localDatasourcesPath);
+          throw new BusinessError(
+            `Could not find configuration for your local datasource connection options. A new file (${distPathManager.localDatasourcesPath}) has been generated please complete it.`,
           );
         }
 

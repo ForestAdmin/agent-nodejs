@@ -25,7 +25,7 @@ export default class DistPathManager {
   }
 
   get localDatasources(): string {
-    return path.join(this.cloudCustomizerPath, 'datasources.json');
+    return path.join(this.cloudCustomizerPath, 'datasources.js');
   }
 
   get localDatasourcesPath(): string {

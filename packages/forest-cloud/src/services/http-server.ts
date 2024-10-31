@@ -1,5 +1,6 @@
 import * as axios from 'axios';
 import * as fs from 'fs';
+import { env } from 'process';
 
 import latestVersion from './latest-version';
 import { Datasources } from './update-typings';
@@ -157,18 +158,19 @@ export default class HttpServer {
 
   async getOrCreateNewDevelopmentEnvironment() {
     try {
-      return await handledAxios<{ environmentSecret: string }>(
+      return await handledAxios<{ data: { attributes: { secret_key: string } } }>(
         {
           url: `${this.serverUrl}/api/full-hosted-agent/development-environment-for-user`,
           method: 'POST',
           headers: this.headers,
+          data: { endpoint: `http://localhost:${process.env.PORT ?? 3351}` },
         },
         {
           errorMessage: 'Failed to create development environment for the current user',
         },
       );
     } catch (_e) {
-      return handledAxios<{ environmentSecret: string }>(
+      return await handledAxios<{ data: { attributes: { secret_key: string } } }>(
         {
           url: `${this.serverUrl}/api/full-hosted-agent/development-environment-for-user`,
           method: 'GET',

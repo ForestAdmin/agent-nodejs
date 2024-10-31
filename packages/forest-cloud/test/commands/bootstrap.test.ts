@@ -67,6 +67,9 @@ describe('bootstrap command', () => {
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.stop(),
         cmd.spinner.succeed('Environment found'),
+        cmd.spinner.info(
+          `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the \"start\" command.`,
+        ),
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
@@ -123,6 +126,9 @@ describe('bootstrap command', () => {
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.stop(),
         cmd.spinner.succeed('Environment found'),
+        cmd.spinner.info(
+          `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the \"start\" command.`,
+        ),
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.succeed(
           'Project successfully bootstrapped. You can start creating your customizations!',
@@ -154,6 +160,9 @@ describe('bootstrap command', () => {
         expect(cmd.outputs).toEqual([
           cmd.spinner.start('Bootstrapping project'),
           cmd.spinner.succeed('Environment found'),
+          cmd.spinner.info(
+            `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the \"start\" command.`,
+          ),
           cmd.spinner.start('Bootstrapping project'),
           cmd.spinner.succeed(
             'Project successfully bootstrapped. You can start creating your customizations!',
@@ -204,6 +213,9 @@ describe('bootstrap command', () => {
       expect(cmd.outputs).toEqual([
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.succeed('Environment found'),
+        cmd.spinner.info(
+          `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the \"start\" command.`,
+        ),
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.fail('You have already a "my-project-name" folder'),
         cmd.spinner.stop(),
