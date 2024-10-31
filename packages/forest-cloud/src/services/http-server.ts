@@ -1,6 +1,5 @@
 import * as axios from 'axios';
 import * as fs from 'fs';
-import { env } from 'process';
 
 import latestVersion from './latest-version';
 import { Datasources } from './update-typings';
