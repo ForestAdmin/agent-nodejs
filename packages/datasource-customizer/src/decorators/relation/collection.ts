@@ -292,6 +292,13 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
     await Promise.all(promises);
   }
 
+  // in the case of https://app.clickup.com/t/86c0vvu15
+  // an external datasource with inconsistent column type
+  // fk could be NaN, which crashes the agent
+  private removeUnapplicableKey = key => {
+    return key !== null && !Number.isNaN(key);
+  };
+
   private async reprojectRelationInPlace(
     caller: Caller,
     records: RecordData[],
@@ -308,7 +315,10 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
         projection,
       );
     } else if (schema.type === 'ManyToOne') {
-      const ids = records.map(record => record[schema.foreignKey]).filter(fk => fk !== null);
+      const ids = records
+        .map(record => record[schema.foreignKey])
+        .filter(this.removeUnapplicableKey);
+
       const subFilter = new Filter({
         conditionTree: new ConditionTreeLeaf(schema.foreignKeyTarget, 'In', [...new Set(ids)]),
       });
@@ -324,7 +334,9 @@ export default class RelationCollectionDecorator extends CollectionDecorator {
         );
       }
     } else if (schema.type === 'OneToOne' || schema.type === 'OneToMany') {
-      const ids = records.map(record => record[schema.originKeyTarget]).filter(okt => okt !== null);
+      const ids = records
+        .map(record => record[schema.originKeyTarget])
+        .filter(this.removeUnapplicableKey);
       const subFilter = new Filter({
         conditionTree: new ConditionTreeLeaf(schema.originKey, 'In', [...new Set(ids)]),
       });
