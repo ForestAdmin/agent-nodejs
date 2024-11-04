@@ -4,8 +4,6 @@ import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
 import { BusinessError } from '../../src/errors';
 
-jest.mock('fs');
-
 describe('start command', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -16,7 +14,8 @@ describe('start command', () => {
     it('should get or create the environment secret and save it', async () => {
       const setup = setupCommandArguments();
 
-      jest.mocked(fs.existsSync).mockReturnValue(false);
+      jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+      jest.spyOn(fs, 'writeFileSync');
 
       const cmd = new CommandTester(setup, ['start']);
       await cmd.run();
@@ -37,7 +36,8 @@ describe('start command', () => {
     it('should create it', async () => {
       const setup = setupCommandArguments();
 
-      jest.mocked(fs.existsSync).mockReturnValue(false);
+      jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+      jest.spyOn(fs, 'writeFileSync');
 
       const cmd = new CommandTester(setup, ['start']);
       await cmd.run();
@@ -58,7 +58,7 @@ describe('start command', () => {
       const error = new BusinessError(
         `Could not find configuration for your local datasource connection options. A new file (${setup.distPathManager.localDatasourcesPath}) has been generated please complete it.`,
       );
-      jest.mocked(fs.existsSync).mockReturnValue(false);
+      jest.spyOn(fs, 'existsSync').mockReturnValue(false);
 
       const cmd = new CommandTester(setup, ['start']);
 
