@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.55.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.3...@forestadmin/datasource-customizer@1.55.4) (2024-11-05)
+
+
+### Bug Fixes
+
+* ignore inconsistent foreign key types ([#1202](https://github.com/ForestAdmin/agent-nodejs/issues/1202)) ([b5e8c6a](https://github.com/ForestAdmin/agent-nodejs/commit/b5e8c6a8dc784c819efd40fd1e9d6f03c2929c84))
+
 ## @forestadmin/datasource-customizer [1.55.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.2...@forestadmin/datasource-customizer@1.55.3) (2024-10-30)
 
 
