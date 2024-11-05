@@ -28,7 +28,6 @@ export async function startingAgent(
 ): Promise<void> {
   const agentOptions: AgentOptions = {
     authSecret: 'dev8environment'.repeat(8),
-    // New environment variable or fetch it to the server when launching it ? Could be easier from a user perspective (if no dev env we could create it)
     envSecret: envSecret || process.env.FOREST_ENV_SECRET_DEVELOPMENT,
     // Needed for lumberjacks
     forestServerUrl,
