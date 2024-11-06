@@ -22,10 +22,11 @@ export default (program: Command, context: MakeCommands) => {
   } = context;
 
   const agentLogger = (level: string, ...args: unknown[]) => {
-    const lowerCaseLevel = level.toLowerCase();
+    const loggerLevel = process.env.LOG_LEVEL ?? 'Info';
+    const levels = ['Debug', 'Info', 'Warn', 'Error'];
 
-    if (['debug', 'info', 'warn', 'error'].includes(lowerCaseLevel)) {
-      logger[lowerCaseLevel](...args);
+    if (levels.indexOf(level) >= levels.indexOf(loggerLevel)) {
+      logger[level.toLowerCase()](...args);
     }
   };
 

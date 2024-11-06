@@ -31,8 +31,6 @@ export async function startingAgent(
     envSecret: envSecret || process.env.FOREST_ENV_SECRET_DEVELOPMENT,
     // Needed for lumberjacks
     forestServerUrl,
-
-    loggerLevel: 'Error',
     isProduction: false,
     logger,
   };
