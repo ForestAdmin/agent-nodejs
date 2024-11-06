@@ -32,13 +32,13 @@ export default (program: Command, context: MakeCommands) => {
   program
     .command('start')
     .description(
-      'Starts the agent locally to allow easier work flow before publish to Cloud Production',
+      'Starts the agent locally to test your code customizations before publishing to your production environment.',
     )
     .action(
       actionRunner(logger.spinner, async () => {
         await checkLatestVersion(logger.spinner, getCurrentVersion(), HttpServer.getLatestVersion);
 
-        logger.info('Starting agent locally..');
+        logger.info('Starting agent locally…');
         const vars = await loginIfMissingAuthAndReturnEnvironmentVariables(
           login,
           logger,
@@ -72,7 +72,7 @@ export default (program: Command, context: MakeCommands) => {
         if (!fs.existsSync(distPathManager.localDatasourcesPath)) {
           await generateDatasourceConfigFile(distPathManager.localDatasourcesPath);
           throw new BusinessError(
-            `Could not find configuration for your local datasource connection options. A new file (${distPathManager.localDatasourcesPath}) has been generated please complete it.`,
+            `Could not find configuration for your local datasource connection options. A new file (${distPathManager.localDatasourcesPath}) has been generated. Please complete it with your local database credentials.`,
           );
         }
 

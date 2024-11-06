@@ -51,7 +51,7 @@ export async function startingAgent(
   } catch (e) {
     logger('Debug', `Could not load ${localDatasourcesPath}`, e);
     throw new BusinessError(
-      `No datasources found at ${localDatasourcesPath}.\nPlease provide datasources information..`,
+      `No datasources found at ${localDatasourcesPath}.\nPlease provide datasources connection details…`,
     );
   }
 

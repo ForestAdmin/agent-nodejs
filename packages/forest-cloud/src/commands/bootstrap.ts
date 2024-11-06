@@ -21,7 +21,6 @@ export default (program: Command, context: MakeCommands) => {
     login,
     getEnvironmentVariables,
     generateDatasourceConfigFile,
-    distPathManager,
   } = context;
 
   program
@@ -68,10 +67,10 @@ export default (program: Command, context: MakeCommands) => {
         }
 
         // Check that the user has the datasource connection options file
-        if (!fs.existsSync(distPathManager.localDatasourcesPath)) {
-          await generateDatasourceConfigFile(distPathManager.localDatasourcesPath);
+        if (!fs.existsSync(bootstrapPathManager.localDatasourcesPath)) {
+          await generateDatasourceConfigFile(bootstrapPathManager.localDatasourcesPath);
           logger.spinner.info(
-            `Generated a new file (${distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
+            `Generated a new file (${bootstrapPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
           );
         }
 
