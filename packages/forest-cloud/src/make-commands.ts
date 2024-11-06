@@ -5,6 +5,7 @@ import makeLoginCommand from './commands/login';
 import makeLogsCommand from './commands/logs';
 import makePackageCommand from './commands/package';
 import makePublishCommand from './commands/publish';
+import makeStartCommand from './commands/start';
 import makeUpdateTypingsCommand from './commands/update-typings';
 import makeVersionCommand from './commands/version';
 import { MakeCommands } from './types';
@@ -32,6 +33,7 @@ export default function makeCommands(context: MakeCommands): Command {
   makePublishCommand(program, context);
   makeUpdateTypingsCommand(program, context);
   makeVersionCommand(program, context);
+  makeStartCommand(program, context);
 
   return program;
 }

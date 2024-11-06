@@ -154,4 +154,31 @@ export default class HttpServer {
   static async getLatestVersion(packageName: string): Promise<string> {
     return latestVersion(packageName);
   }
+
+  async getOrCreateNewDevelopmentEnvironment() {
+    try {
+      return await handledAxios<{ data: { attributes: { secret_key: string } } }>(
+        {
+          url: `${this.serverUrl}/api/full-hosted-agent/development-environment-for-user`,
+          method: 'POST',
+          headers: this.headers,
+          data: { endpoint: `http://localhost:${process.env.PORT ?? 3351}` },
+        },
+        {
+          errorMessage: 'Failed to create development environment for the current user',
+        },
+      );
+    } catch (_e) {
+      return await handledAxios<{ data: { attributes: { secret_key: string } } }>(
+        {
+          url: `${this.serverUrl}/api/full-hosted-agent/development-environment-for-user`,
+          method: 'GET',
+          headers: this.headers,
+        },
+        {
+          errorMessage: 'Failed to get development environment for the current user',
+        },
+      );
+    }
+  }
 }

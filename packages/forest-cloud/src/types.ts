@@ -81,6 +81,7 @@ export type MakeCommands = {
   buildHttpServer: BuildHttpServer;
   getEnvironmentVariables: () => Promise<EnvironmentVariables>;
   getCurrentVersion: () => string;
+  generateDatasourceConfigFile: (path: string) => Promise<void>;
   bootstrapPathManager: BootstrapPathManager;
   distPathManager: DistPathManager;
   logger: Logger;

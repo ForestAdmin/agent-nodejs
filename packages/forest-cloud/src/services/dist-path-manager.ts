@@ -1,3 +1,4 @@
+import { homedir } from 'os';
 import path from 'path';
 
 export default class DistPathManager {
@@ -11,7 +12,31 @@ export default class DistPathManager {
     return path.join(this.cloudCustomizerPath, 'dist', 'code-customizations.zip');
   }
 
+  get zipPath() {
+    return path.resolve(this.zip);
+  }
+
   get distCodeCustomizations(): string {
     return path.join(this.cloudCustomizerPath, 'dist', 'code-customizations');
+  }
+
+  get distCodeCustomizationsPath(): string {
+    return path.resolve(this.distCodeCustomizations);
+  }
+
+  get localDatasources(): string {
+    return path.join(this.cloudCustomizerPath, 'datasources.js');
+  }
+
+  get localDatasourcesPath(): string {
+    return path.resolve(this.localDatasources);
+  }
+
+  get localCloudEnvironmentConfig(): string {
+    return path.join(homedir(), '.forest.d', '.environments.json');
+  }
+
+  get localCloudEnvironmentConfigPath(): string {
+    return path.resolve(this.localCloudEnvironmentConfig);
   }
 }

@@ -64,4 +64,12 @@ export default class BootstrapPathManager {
   get indexTemplate(): string {
     return path.join(__dirname, '..', 'templates', 'index.txt');
   }
+
+  get localDatasources(): string {
+    return path.join(this.folder, 'datasources.js');
+  }
+
+  get localDatasourcesPath(): string {
+    return path.resolve(this.localDatasources);
+  }
 }
