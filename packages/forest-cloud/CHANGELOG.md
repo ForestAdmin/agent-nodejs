@@ -1,3 +1,10 @@
+# @forestadmin/forest-cloud [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.30...@forestadmin/forest-cloud@1.12.0) (2024-11-06)
+
+
+### Features
+
+* **forest-cloud:** introduce local development environment for cloud projects ([#1199](https://github.com/ForestAdmin/agent-nodejs/issues/1199)) ([e1cfa42](https://github.com/ForestAdmin/agent-nodejs/commit/e1cfa424d9dfcd64193e40474571b58e0931d57a))
+
 ## @forestadmin/forest-cloud [1.11.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.29...@forestadmin/forest-cloud@1.11.30) (2024-11-05)
 
 
