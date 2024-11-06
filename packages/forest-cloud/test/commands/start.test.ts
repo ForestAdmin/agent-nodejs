@@ -58,7 +58,7 @@ describe('start command', () => {
     it('should create the file and stop execution', async () => {
       const setup = setupCommandArguments();
       const error = new BusinessError(
-        `Could not find configuration for your local datasource connection options. A new file (${setup.distPathManager.localDatasourcesPath}) has been generated please complete it.`,
+        `Could not find configuration for your local datasource connection options. A new file (${setup.distPathManager.localDatasourcesPath}) has been generated. Please complete it with your local database credentials.`,
       );
       jest.mocked(fs.existsSync).mockReturnValue(false);
 

@@ -68,7 +68,7 @@ describe('bootstrap command', () => {
         cmd.spinner.stop(),
         cmd.spinner.succeed('Environment found'),
         cmd.spinner.info(
-          `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
+          `Generated a new file (${setup.bootstrapPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
         ),
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.succeed(
@@ -127,7 +127,7 @@ describe('bootstrap command', () => {
         cmd.spinner.stop(),
         cmd.spinner.succeed('Environment found'),
         cmd.spinner.info(
-          `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
+          `Generated a new file (${setup.bootstrapPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
         ),
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.succeed(
@@ -161,7 +161,7 @@ describe('bootstrap command', () => {
           cmd.spinner.start('Bootstrapping project'),
           cmd.spinner.succeed('Environment found'),
           cmd.spinner.info(
-            `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
+            `Generated a new file (${setup.bootstrapPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
           ),
           cmd.spinner.start('Bootstrapping project'),
           cmd.spinner.succeed(
@@ -214,7 +214,7 @@ describe('bootstrap command', () => {
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.succeed('Environment found'),
         cmd.spinner.info(
-          `Generated a new file (${setup.distPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
+          `Generated a new file (${setup.bootstrapPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
         ),
         cmd.spinner.start('Bootstrapping project'),
         cmd.spinner.fail('You have already a "my-project-name" folder'),
