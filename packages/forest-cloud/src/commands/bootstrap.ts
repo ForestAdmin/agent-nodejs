@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import fs from 'fs';
 
 import actionRunner from '../dialogs/action-runner';
 import askQuestion from '../dialogs/ask-question';
@@ -14,14 +13,7 @@ import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
 import { MakeCommands } from '../types';
 
 export default (program: Command, context: MakeCommands) => {
-  const {
-    logger,
-    buildHttpServer,
-    bootstrapPathManager,
-    login,
-    getEnvironmentVariables,
-    generateDatasourceConfigFile,
-  } = context;
+  const { logger, buildHttpServer, bootstrapPathManager, login, getEnvironmentVariables } = context;
 
   program
     .command('bootstrap')
@@ -64,14 +56,6 @@ export default (program: Command, context: MakeCommands) => {
           if (!(await askQuestion('Do you want to continue?'))) {
             throw new BusinessError('Operation aborted');
           }
-        }
-
-        // Check that the user has the datasource connection options file
-        if (!fs.existsSync(bootstrapPathManager.localDatasourcesPath)) {
-          await generateDatasourceConfigFile(bootstrapPathManager.localDatasourcesPath);
-          logger.spinner.info(
-            `Generated a new file (${bootstrapPathManager.localDatasourcesPath}) for local development, You can complete it and start an agent locally, with the "start" command.`,
-          );
         }
 
         logger.spinner.start();

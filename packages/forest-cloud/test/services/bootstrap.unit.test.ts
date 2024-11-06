@@ -153,7 +153,7 @@ describe('bootstrap', () => {
         expect(renameSpy).toHaveBeenCalledWith('/tmp/cloud-customizer-main', 'forest-cloud');
         expect(rmSpy).toHaveBeenCalledWith('/tmp/cloud-customizer.zip', { force: true });
 
-        expect(writeFileSpy).toHaveBeenCalledTimes(2);
+        expect(writeFileSpy).toHaveBeenCalledTimes(3);
         const firstCallArgs = writeFileSpy.mock.calls[0];
         expect(firstCallArgs[0]).toBe('forest-cloud/.env');
         expect(firstCallArgs[1].toString().replace(/\s/g, '')).toBe(
@@ -175,6 +175,8 @@ describe('bootstrap', () => {
           [{ introspection, datasourceSuffix: '_BI', datasourceId: 123 }],
           path,
         );
+        const thirdCallArgs = writeFileSpy.mock.calls[2];
+        expect(thirdCallArgs[0]).toEqual(expect.stringContaining('forest-cloud/datasources.js'));
       });
     });
   });
