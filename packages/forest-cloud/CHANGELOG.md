@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.1...@forestadmin/forest-cloud@1.12.2) (2024-11-07)
+
+
+### Bug Fixes
+
+* **typo:** bootstrap command ([#1206](https://github.com/ForestAdmin/agent-nodejs/issues/1206)) ([d60337b](https://github.com/ForestAdmin/agent-nodejs/commit/d60337b82531c7ef753a54cb55ea8711d8f80a8f))
+
 ## @forestadmin/forest-cloud [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.0...@forestadmin/forest-cloud@1.12.1) (2024-11-07)
 
 
