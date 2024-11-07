@@ -168,6 +168,42 @@ describe('GetRoute', () => {
         expect(context.response.body).toEqual('test');
       });
 
+      describe('whith projection', () => {
+        test('it should handle projection', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+          services.serializer.serialize = jest.fn().mockReturnValue('test');
+          const get = new Get(services, options, dataSource, 'books');
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            customProperties: {
+              query: { timezone: 'Europe/Paris', 'fields[books]': 'id' },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
+          });
+
+          await get.handleGet(context);
+
+          expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+            {
+              email: 'john.doe@domain.com',
+              requestId: expect.any(String),
+              request: { ip: expect.any(String) },
+              timezone: 'Europe/Paris',
+            },
+            {
+              conditionTree: {
+                field: 'id',
+                operator: 'Equal',
+                value: '2d162303-78bf-599e-b197-93590ac3d315',
+              },
+            },
+            ['id'],
+          );
+        });
+      });
+
       describe('when an error happens', () => {
         describe('when list returns []', () => {
           test('should return an HTTP 404 response', async () => {
