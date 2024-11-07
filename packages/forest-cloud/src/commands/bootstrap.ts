@@ -49,7 +49,7 @@ export default (program: Command, context: MakeCommands) => {
         if (details) {
           displayCustomizationInfo(logger.spinner, details);
           logger.spinner.warn(
-            'If you continue it will boostrap a new customization project from scratch',
+            'If you continue it will bootstrap a new customization project from scratch',
           );
           logger.spinner.stop();
 
