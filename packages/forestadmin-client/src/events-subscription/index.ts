@@ -19,7 +19,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
   async subscribeEvents(): Promise<void> {
     if (!this.options.instantCacheRefresh) {
       this.options.logger(
-        'Debug',
+        'Info',
         'Event source deactivated.. Use agent option [instantCacheRefresh=true] ' +
           'if you want to activate them',
       );
@@ -89,7 +89,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     const { status, message } = event;
 
     if ([502, 503, 504].includes(status)) {
-      this.options.logger('Debug', 'Server Event - Connection lost trying to reconnect…');
+      this.options.logger('Warn', 'Server Event - Connection lost trying to reconnect…');
 
       return;
     }
@@ -107,7 +107,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
 
   private onEventOpenAgain() {
     this.options.logger(
-      'Debug',
+      'Info',
       'Server Event - Open EventSource (SSE) connection with Forest Admin servers',
     );
 
