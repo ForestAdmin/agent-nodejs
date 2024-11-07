@@ -1,8 +1,4 @@
-import {
-  ConditionTreeFactory,
-  PaginatedFilter,
-  ProjectionFactory,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
