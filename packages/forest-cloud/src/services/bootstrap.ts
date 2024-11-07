@@ -4,6 +4,7 @@ import * as fsP from 'fs/promises';
 
 import BootstrapPathManager from './bootstrap-path-manager';
 import { defaultEnvs } from './environment-variables';
+import generateDatasourceConfigFile from './generate-datasource-config-file';
 import HttpServer from './http-server';
 import { updateTypings } from './update-typings';
 import { BusinessError } from '../errors';
@@ -58,6 +59,11 @@ export default async function bootstrap(
     // we do not overwrite it because it may contain sensitive data
     if (!fs.existsSync(paths.env)) await generateDotEnv(vars, paths);
     await fsP.writeFile(paths.index, await fsP.readFile(paths.indexTemplate));
+
+    // Check that the user has the datasource connection options file
+    if (!fs.existsSync(paths.localDatasourcesPath)) {
+      await generateDatasourceConfigFile(paths.localDatasourcesPath);
+    }
 
     const datasources = await httpServer.getDatasources();
 
