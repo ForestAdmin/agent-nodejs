@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.0...@forestadmin/forest-cloud@1.12.1) (2024-11-07)
+
+
+### Bug Fixes
+
+* **forest-cloud:** generate datasource file on bootstrap ([#1203](https://github.com/ForestAdmin/agent-nodejs/issues/1203)) ([3a365f2](https://github.com/ForestAdmin/agent-nodejs/commit/3a365f282df7adf08c6ceec0ded8e8f540f5a1b1))
+
 # @forestadmin/forest-cloud [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.11.30...@forestadmin/forest-cloud@1.12.0) (2024-11-06)
 
 
