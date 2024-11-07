@@ -30,7 +30,7 @@ export default class GetRoute extends CollectionRoute {
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
       filter,
-      ProjectionFactory.all(this.collection),
+      QueryStringParser.parseProjectionWithPks(this.collection, context),
     );
 
     if (!records.length) {
