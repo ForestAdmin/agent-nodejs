@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.53.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.52.2...@forestadmin/agent@1.53.0) (2024-11-12)
+
+
+### Features
+
+* add support of projection on get route ([#1205](https://github.com/ForestAdmin/agent-nodejs/issues/1205)) ([5df3c58](https://github.com/ForestAdmin/agent-nodejs/commit/5df3c5823365aa3640e4f88e7254e1c2e7daeed1))
+
 ## @forestadmin/agent [1.52.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.52.1...@forestadmin/agent@1.52.2) (2024-11-05)
 
 
