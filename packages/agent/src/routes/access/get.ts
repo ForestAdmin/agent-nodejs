@@ -1,8 +1,4 @@
-import {
-  ConditionTreeFactory,
-  PaginatedFilter,
-  ProjectionFactory,
-} from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
@@ -30,7 +26,7 @@ export default class GetRoute extends CollectionRoute {
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
       filter,
-      ProjectionFactory.all(this.collection),
+      QueryStringParser.parseProjectionWithPks(this.collection, context),
     );
 
     if (!records.length) {
