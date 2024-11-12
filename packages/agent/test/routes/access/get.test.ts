@@ -178,7 +178,11 @@ describe('GetRoute', () => {
           const context = createMockContext({
             state: { user: { email: 'john.doe@domain.com' } },
             customProperties: {
-              query: { timezone: 'Europe/Paris', 'fields[books]': 'id' },
+              query: {
+                timezone: 'Europe/Paris',
+                'fields[books]': 'name,author',
+                'fields[author]': 'id',
+              },
               params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
             },
           });
@@ -199,7 +203,7 @@ describe('GetRoute', () => {
                 value: '2d162303-78bf-599e-b197-93590ac3d315',
               },
             },
-            ['id'],
+            ['name', 'author:id', 'id'],
           );
         });
       });
