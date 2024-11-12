@@ -23,8 +23,6 @@ export default class GetRoute extends CollectionRoute {
       ),
     });
 
-    console.log(QueryStringParser.parseProjectionWithPks(this.collection, context));
-
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
       filter,

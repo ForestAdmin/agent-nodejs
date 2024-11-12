@@ -168,7 +168,7 @@ describe('GetRoute', () => {
         expect(context.response.body).toEqual('test');
       });
 
-      describe('whith projection', () => {
+      describe('with projection', () => {
         test('it should handle projection', async () => {
           jest
             .spyOn(dataSource.getCollection('books'), 'list')

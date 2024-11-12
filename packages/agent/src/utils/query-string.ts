@@ -63,7 +63,6 @@ export default class QueryStringParser {
       });
 
       ProjectionValidator.validate(collection, explicitRequest);
-      // console.log(explicitRequest);
 
       return new Projection(...explicitRequest);
     } catch (e) {
