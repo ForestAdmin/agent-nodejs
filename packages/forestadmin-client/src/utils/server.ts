@@ -15,9 +15,10 @@ export default class ServerUtils {
     body?: string | object,
     maxTimeAllowed = 10000, // Set a default value if not provided
   ): Promise<T> {
-    try {
-      const url = new URL(path, options.forestServerUrl).toString();
+    let url;
 
+    try {
+      url = new URL(path, options.forestServerUrl).toString();
       const request = superagent[method](url).timeout(maxTimeAllowed);
 
       request.set('forest-secret-key', options.envSecret);
@@ -28,7 +29,11 @@ export default class ServerUtils {
       return response.body;
     } catch (error) {
       if (error.timeout) {
-        throw new Error('The request to Forest Admin server has timeout');
+        throw new Error(
+          `The request to Forest Admin server has timed out while trying to reach ${url} at ${new Date().toISOString()}. Message: ${
+            error.message
+          }`,
+        );
       }
 
       this.handleResponseError(error);
