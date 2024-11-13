@@ -104,6 +104,8 @@ describe('ServerUtils', () => {
   });
 
   it('should timeout if the server take more than maxTimeAllowed to respond', async () => {
+    const mockDate = new Date(1466424490000);
+    const spy = jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
     nock(options.forestServerUrl, {
       reqheaders: { 'x-foo': 'bar', 'forest-secret-key': options.envSecret },
     })
@@ -123,7 +125,10 @@ describe('ServerUtils', () => {
         '',
         100, // maxTimeAllowed to respond
       ),
-    ).rejects.toThrow('The request to Forest Admin server has timeout');
+    ).rejects.toThrow(
+      'The request to Forest Admin server has timed out while trying to reach http://forestadmin-server.com/endpoint at 2016-06-20T12:08:10.000Z. Message: Timeout of 100ms exceeded',
+    );
+    spy.mockRestore();
   });
 
   describe('when the server send back a message', () => {
