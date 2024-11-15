@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.34.2...@forestadmin/forestadmin-client@1.35.0) (2024-11-15)
+
+
+### Features
+
+* better logs during timeout ([#1208](https://github.com/ForestAdmin/agent-nodejs/issues/1208)) ([e844184](https://github.com/ForestAdmin/agent-nodejs/commit/e84418466dd473b176b5f41062ad055f258d6803))
+
 ## @forestadmin/forestadmin-client [1.34.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.34.1...@forestadmin/forestadmin-client@1.34.2) (2024-10-18)
 
 
