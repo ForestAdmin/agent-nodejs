@@ -24,14 +24,14 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     introspection: LatestIntrospection,
-    displayParanoid: string[],
+    displaySoftDeleted: string[],
   ): void {
     for (const table of introspection.tables) {
       this.defineModelFromTable(
         sequelize,
         logger,
         table,
-        displayParanoid.some(tableName => table.name === tableName),
+        displaySoftDeleted.some(tableName => table.name === tableName),
       );
     }
 
@@ -44,7 +44,7 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     table: TableOrView,
-    displayParanoid?: boolean,
+    displaySoftDeleted?: boolean,
   ): void {
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
@@ -60,7 +60,7 @@ export default class ModelBuilder {
         ...this.getAutoTimestampFieldsOverride(table),
       });
 
-      if (displayParanoid) {
+      if (displaySoftDeleted) {
         model.beforeFind(option => {
           option.paranoid = false;
         });

@@ -39,7 +39,7 @@ async function buildModelsAndRelations(
   sequelize: Sequelize,
   logger: Logger,
   introspection: SupportedIntrospection,
-  displayParanoid: string[] = [],
+  displaySoftDeleted: string[] = [],
 ): Promise<LatestIntrospection> {
   try {
     const latestIntrospection = await Introspector.migrateOrIntrospect(
@@ -47,7 +47,7 @@ async function buildModelsAndRelations(
       logger,
       introspection,
     );
-    ModelBuilder.defineModels(sequelize, logger, latestIntrospection, displayParanoid);
+    ModelBuilder.defineModels(sequelize, logger, latestIntrospection, displaySoftDeleted);
     RelationBuilder.defineRelations(sequelize, logger, latestIntrospection);
 
     return latestIntrospection;
@@ -85,7 +85,7 @@ export async function buildSequelizeInstance(
 
 export function createSqlDataSource(
   uriOrOptions: PlainConnectionOptionsOrUri,
-  options?: { introspection?: SupportedIntrospection; displayParanoid?: string[] },
+  options?: { introspection?: SupportedIntrospection; displaySoftDeleted?: string[] },
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const sequelize = await connect(new ConnectionOptions(uriOrOptions, logger));
@@ -93,7 +93,7 @@ export function createSqlDataSource(
       sequelize,
       logger,
       options?.introspection,
-      options?.displayParanoid,
+      options?.displaySoftDeleted,
     );
 
     return new SqlDatasource(new SequelizeDataSource(sequelize, logger), latestIntrospection.views);
