@@ -1577,33 +1577,6 @@
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
 
-"@forestadmin/datasource-sequelize@1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.3.1.tgz#4a9018e88d2c52bf06581fdcb8161910241029ef"
-  integrity sha512-J3sQEtUgAw5jtuoa4VXXn5j8Bz8ywHpkdIO3HXysK+CDkdUiXmNkD63iq45qr6dWtBp8pVbGF4Be+PtXsgePNQ==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.5.0"
-
-"@forestadmin/datasource-sql@1.6.4":
-  version "1.6.4"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.6.4.tgz#b11d6606163a15a8bc4aeb5c6cc9d5148a63bbeb"
-  integrity sha512-VhfoaNTprVMW6t6j0HaIFoolABg8eb1BbzTgcsw0ZCZ+PoJJuL2RmIgLRntVIYEci/KSitpju/OylhKon1XRbg==
-  dependencies:
-    "@forestadmin/datasource-sequelize" "1.3.1"
-    "@forestadmin/datasource-toolkit" "1.5.0"
-    pluralize "^8.0.0"
-    sequelize "^6.28.0"
-    socks "^2.7.1"
-
-"@forestadmin/datasource-toolkit@1.5.0":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.5.0.tgz#d585b41dd9645a86344f7a63d826d64245be86a5"
-  integrity sha512-CljPPN25dyF85XDUgyrPh0u/fRM6Z0iMrD//XcYNsdgM29AfzjHci8yjcuZjlMVOZai2U1nTmmCB1uon8PGYug==
-  dependencies:
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "^9.0.0"
-
 "@gar/promisify@^1.0.1", "@gar/promisify@^1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
@@ -6599,7 +6572,7 @@ dotenv@~10.0.0:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-10.0.0.tgz#3d4227b8fb95f81096cdd2b66653fb2c7085ba81"
   integrity sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==
 
-dottie@^2.0.4, dottie@^2.0.6:
+dottie@^2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/dottie/-/dottie-2.0.6.tgz#34564ebfc6ec5e5772272d466424ad5b696484d4"
   integrity sha512-iGCHkfUc5kFekGiqhe8B/mdaurD+lakO9txNnTvKtA6PISrw86LgqHvRzWYPyoE2Ph5aMIrCw9/uko6XHTKCwA==
@@ -7791,13 +7764,13 @@ foreground-child@^3.1.0:
     cross-spawn "^7.0.0"
     signal-exit "^4.0.1"
 
-forest-cli@5.1.6:
-  version "5.1.6"
-  resolved "https://registry.yarnpkg.com/forest-cli/-/forest-cli-5.1.6.tgz#478ad53455f15fef061f7f7d9a8a0ccba48edf2d"
-  integrity sha512-wZJ7HO5+BDBrSfegZ5u9u0ieIAgdtc1+KeMBa/OqQ2xABuD3+hdUBos6ROJHE5G6SAy1tYbEHK9UgikHNj7Ffg==
+forest-cli@5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/forest-cli/-/forest-cli-5.2.1.tgz#a899d500ce8484bd02167972661e0813c9bff9eb"
+  integrity sha512-meXs91JMZqja21il5N6eLKvCXko5PpHHx8yPi9pKDS4+aEWyl4IjkMeBkrEYIwZcc/bk+oNfUx1B28MBBiolIw==
   dependencies:
     "@forestadmin/context" "1.37.1"
-    "@forestadmin/datasource-sql" "1.6.4"
+    "@forestadmin/datasource-sql" "1.14.31"
     "@oclif/core" "3.18.2"
     "@oclif/plugin-help" "6.0.12"
     "@oclif/plugin-not-found" "3.0.10"
@@ -7827,7 +7800,7 @@ forest-cli@5.1.6:
     pluralize "8.0.0"
     progress "2.0.3"
     saslprep "1.0.3"
-    sequelize "6.32.1"
+    sequelize "6.37.5"
     spinnies "0.5.1"
     stdout-stderr "0.1.13"
     superagent "8.1.2"
@@ -12791,7 +12764,7 @@ pg-cloudflare@^1.1.1:
   resolved "https://registry.yarnpkg.com/pg-cloudflare/-/pg-cloudflare-1.1.1.tgz#e6d5833015b170e23ae819e8c5d7eaedb472ca98"
   integrity sha512-xWPagP/4B6BgFO+EKz3JONXv3YDgvkbVrGw2mTo3D6tVDQRh1e7cqVGvyR3BE+eQgAvx1XhW/iEASj4/jCWl3Q==
 
-pg-connection-string@^2.6.0, pg-connection-string@^2.6.1, pg-connection-string@^2.6.2:
+pg-connection-string@^2.6.1, pg-connection-string@^2.6.2:
   version "2.6.2"
   resolved "https://registry.yarnpkg.com/pg-connection-string/-/pg-connection-string-2.6.2.tgz#713d82053de4e2bd166fab70cd4f26ad36aab475"
   integrity sha512-ch6OwaeaPYcova4kKZ15sbJ2hKb/VP48ZD2gE7i1J+L4MspCtBMAx8nMgz7bksc7IojCIIWuEhHibSMFH8m8oA==
@@ -13905,13 +13878,6 @@ semver@^6.0.0, semver@^6.3.0, semver@^6.3.1:
   resolved "https://registry.yarnpkg.com/semver/-/semver-6.3.1.tgz#556d2ef8689146e46dcea4bfdd095f3434dffcb4"
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
 
-semver@^7.5.1:
-  version "7.6.0"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.0.tgz#1a46a4db4bffcccd97b743b5005c8325f23d4e2d"
-  integrity sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==
-  dependencies:
-    lru-cache "^6.0.0"
-
 send@0.18.0:
   version "0.18.0"
   resolved "https://registry.yarnpkg.com/send/-/send-0.18.0.tgz#670167cc654b05f5aa4a767f9113bb371bc706be"
@@ -13960,32 +13926,10 @@ sequelize-pool@^7.1.0:
   resolved "https://registry.yarnpkg.com/sequelize-pool/-/sequelize-pool-7.1.0.tgz#210b391af4002762f823188fd6ecfc7413020768"
   integrity sha512-G9c0qlIWQSK29pR/5U2JF5dDQeqqHRragoyahj/Nx4KOOQ3CPPfzxnfqFPCSB7x5UgjOgnZ61nSxz+fjDpRlJg==
 
-sequelize@6.32.1:
-  version "6.32.1"
-  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.32.1.tgz#8e8669a8d6cf711d2d94b33cc721928fad7487f6"
-  integrity sha512-3Iv0jruv57Y0YvcxQW7BE56O7DC1BojcfIrqh6my+IQwde+9u/YnuYHzK+8kmZLhLvaziRT1eWu38nh9yVwn/g==
-  dependencies:
-    "@types/debug" "^4.1.8"
-    "@types/validator" "^13.7.17"
-    debug "^4.3.4"
-    dottie "^2.0.4"
-    inflection "^1.13.4"
-    lodash "^4.17.21"
-    moment "^2.29.4"
-    moment-timezone "^0.5.43"
-    pg-connection-string "^2.6.0"
-    retry-as-promised "^7.0.4"
-    semver "^7.5.1"
-    sequelize-pool "^7.1.0"
-    toposort-class "^1.0.1"
-    uuid "^8.3.2"
-    validator "^13.9.0"
-    wkx "^0.5.0"
-
-sequelize@^6.28.0:
-  version "6.35.0"
-  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.35.0.tgz#70a1fa28aff73403ce85c1da1155c6f851a88c2a"
-  integrity sha512-cnxnmjUfphGfSKCwTtNZ3YD/F35fqMTNPw/Qe9xsMij49t6LkW2G57sNQkuKac8fkQgSX+M8OZOQsxCS6dnUwQ==
+sequelize@6.37.5, sequelize@^6.37.5:
+  version "6.37.5"
+  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.37.5.tgz#2711ab97d0e0fe49c652368946a7312eb0f11cd7"
+  integrity sha512-10WA4poUb3XWnUROThqL2Apq9C2NhyV1xHPMZuybNMCucDsbbFuKg51jhmyvvAUyUqCiimwTZamc3AHhMoBr2Q==
   dependencies:
     "@types/debug" "^4.1.8"
     "@types/validator" "^13.7.17"
