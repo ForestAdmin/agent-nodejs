@@ -36,14 +36,6 @@ export default function makeAgent() {
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
     .addDataSource(
       // Using an URI
-      createSqlDataSource('postgres://forest:secret@localhost:5435/many', {
-        displayParanoid: ['dep'],
-      }),
-      { include: ['dep'] },
-    )
-
-    .addDataSource(
-      // Using an URI
       createSqlDataSource('mariadb://example:password@localhost:3808/example'),
       { include: ['customer'] },
     )

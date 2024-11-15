@@ -15,13 +15,6 @@ export type DevXpMembersFilter = TPaginatedFilter<Schema, 'dev_xp_members'>;
 export type DevXpMembersSortClause = TSortClause<Schema, 'dev_xp_members'>;
 export type DevXpMembersAggregation = TAggregation<Schema, 'dev_xp_members'>;
 
-export type DepCustomizer = CollectionCustomizer<Schema, 'dep'>;
-export type DepRecord = TPartialRow<Schema, 'dep'>;
-export type DepConditionTree = TConditionTree<Schema, 'dep'>;
-export type DepFilter = TPaginatedFilter<Schema, 'dep'>;
-export type DepSortClause = TSortClause<Schema, 'dep'>;
-export type DepAggregation = TAggregation<Schema, 'dep'>;
-
 export type CustomerCustomizer = CollectionCustomizer<Schema, 'customer'>;
 export type CustomerRecord = TPartialRow<Schema, 'customer'>;
 export type CustomerConditionTree = TConditionTree<Schema, 'customer'>;
@@ -329,17 +322,6 @@ export type Schema = {
       'createdAt': string;
       'deletedAt': string | null;
       'firstName': string;
-      'id': number;
-      'name': string | null;
-      'updatedAt': string;
-    };
-    nested: {};
-    flat: {};
-  };
-  'dep': {
-    plain: {
-      'createdAt': string;
-      'deletedAt': string | null;
       'id': number;
       'name': string | null;
       'updatedAt': string;
