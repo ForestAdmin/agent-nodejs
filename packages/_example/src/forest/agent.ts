@@ -34,6 +34,7 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
+
     .addDataSource(
       // Using an URI
       createSqlDataSource('mariadb://example:password@localhost:3808/example'),
