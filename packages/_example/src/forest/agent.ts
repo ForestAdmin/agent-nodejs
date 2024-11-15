@@ -34,6 +34,13 @@ export default function makeAgent() {
 
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
+    .addDataSource(
+      // Using an URI
+      createSqlDataSource('postgres://forest:secret@localhost:5435/many', {
+        displayParanoid: ['dep'],
+      }),
+      { include: ['dep'] },
+    )
 
     .addDataSource(
       // Using an URI

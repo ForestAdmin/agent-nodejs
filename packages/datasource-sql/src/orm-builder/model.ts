@@ -24,9 +24,15 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     introspection: LatestIntrospection,
+    displayParanoid: string[],
   ): void {
     for (const table of introspection.tables) {
-      this.defineModelFromTable(sequelize, logger, table);
+      this.defineModelFromTable(
+        sequelize,
+        logger,
+        table,
+        displayParanoid.some(tableName => table.name === tableName),
+      );
     }
 
     for (const table of introspection.views) {
@@ -38,6 +44,7 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     table: TableOrView,
+    displayParanoid?: boolean,
   ): void {
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
@@ -52,6 +59,12 @@ export default class ModelBuilder {
         schema: table.schema,
         ...this.getAutoTimestampFieldsOverride(table),
       });
+
+      if (displayParanoid) {
+        model.beforeFind(option => {
+          option.paranoid = false;
+        });
+      }
 
       // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys
       // Tell sequelize NOT to invent primary keys when we don't provide them.
