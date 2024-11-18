@@ -1,4 +1,9 @@
-import type { PlainConnectionOptions, PlainConnectionOptionsOrUri, SslMode } from './types';
+import type {
+  PlainConnectionOptions,
+  PlainConnectionOptionsOrUri,
+  SqlDatasourceOptions,
+  SslMode,
+} from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -39,7 +44,7 @@ async function buildModelsAndRelations(
   sequelize: Sequelize,
   logger: Logger,
   introspection: SupportedIntrospection,
-  displaySoftDeleted: string[] = [],
+  displaySoftDeleted?: SqlDatasourceOptions['displaySoftDeleted'],
 ): Promise<LatestIntrospection> {
   try {
     const latestIntrospection = await Introspector.migrateOrIntrospect(
@@ -85,7 +90,7 @@ export async function buildSequelizeInstance(
 
 export function createSqlDataSource(
   uriOrOptions: PlainConnectionOptionsOrUri,
-  options?: { introspection?: SupportedIntrospection; displaySoftDeleted?: string[] },
+  options?: SqlDatasourceOptions,
 ): DataSourceFactory {
   return async (logger: Logger) => {
     const sequelize = await connect(new ConnectionOptions(uriOrOptions, logger));

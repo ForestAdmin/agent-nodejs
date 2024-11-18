@@ -24,15 +24,15 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     introspection: LatestIntrospection,
-    displaySoftDeleted: string[],
+    displaySoftDeleted: string[] | true,
   ): void {
     for (const table of introspection.tables) {
-      this.defineModelFromTable(
-        sequelize,
-        logger,
-        table,
-        displaySoftDeleted.some(tableName => table.name === tableName),
-      );
+      const shouldDisplaySoftDeleted =
+        displaySoftDeleted === true ||
+        (Array.isArray(displaySoftDeleted) &&
+          displaySoftDeleted.some(tableName => table.name === tableName));
+
+      this.defineModelFromTable(sequelize, logger, table, shouldDisplaySoftDeleted);
     }
 
     for (const table of introspection.views) {
