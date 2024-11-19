@@ -35,17 +35,12 @@ describe('ModelBuilder', () => {
     ];
 
     expect(() =>
-      ModelBuilder.defineModels(
-        sequelize,
-        () => {},
-        {
-          tables,
-          views: [],
-          version: 3,
-          source: '@forestadmin/datasource-sql',
-        },
-        [],
-      ),
+      ModelBuilder.defineModels(sequelize, () => {}, {
+        tables,
+        views: [],
+        version: 3,
+        source: '@forestadmin/datasource-sql',
+      }),
     ).toThrow();
   });
 
@@ -67,7 +62,7 @@ describe('ModelBuilder', () => {
     ];
 
     expect(() =>
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []),
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }),
     ).toThrow();
   });
 
@@ -84,7 +79,7 @@ describe('ModelBuilder', () => {
       },
     ];
 
-    ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+    ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
     expect(sequelize.models.myTable).toBeDefined();
     expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe('ENUM');
@@ -112,7 +107,7 @@ describe('ModelBuilder', () => {
       },
     ];
 
-    ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+    ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
     expect(sequelize.models.myTable).toBeDefined();
     expect(sequelize.models.myTable.rawAttributes.enumList.type.toString({})).toBe(
@@ -132,7 +127,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.id.primaryKey).toBe(true);
@@ -149,7 +144,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.ID.primaryKey).toBe(true);
@@ -170,7 +165,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.uniqueField.primaryKey).toBe(true);
@@ -191,7 +186,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.uniqueTogether1.primaryKey).toBe(true);
@@ -222,7 +217,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.myTable).toBeDefined();
       expect(sequelize.models.myTable.rawAttributes.fk1.primaryKey).toBe(true);
@@ -239,7 +234,7 @@ describe('ModelBuilder', () => {
         }),
       } as unknown as Sequelize;
 
-      ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, tables });
 
       expect(logger).toHaveBeenCalledWith(
         'Warn',
@@ -259,7 +254,7 @@ describe('ModelBuilder', () => {
           },
         ];
         const logger = jest.fn();
-        ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, views }, []);
+        ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, views });
 
         expect(sequelize.models.myView).toBeDefined();
         expect(sequelize.models.myView.rawAttributes.id.primaryKey).toBe(true);
@@ -278,7 +273,7 @@ describe('ModelBuilder', () => {
             },
           ];
           const logger = jest.fn();
-          ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, views }, []);
+          ModelBuilder.defineModels(sequelize, logger, { ...defaultIntrospection, views });
 
           expect(sequelize.models.myView).toBeDefined();
           expect(sequelize.models.myView.rawAttributes.notUnique.primaryKey).toBe(true);
@@ -306,7 +301,7 @@ describe('ModelBuilder', () => {
         { columns: [column], name: 'aModel', schema: undefined, unique: [] },
       ] as Table[];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.aModel).toBeDefined();
       expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toStrictEqual(
@@ -332,7 +327,7 @@ describe('ModelBuilder', () => {
           { columns: [column], name: 'aModel', schema: undefined, unique: [] },
         ] as Table[];
 
-        ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+        ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
         expect(sequelize.models.aModel).toBeDefined();
         expect(sequelize.models.aModel.rawAttributes.uuid.defaultValue).toBe(null);
@@ -359,7 +354,7 @@ describe('ModelBuilder', () => {
             { columns: [column], name: 'aModel', schema: undefined, unique: [] },
           ] as Table[];
 
-          ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+          ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
           expect(sequelize.models.aModel).toBeDefined();
 
@@ -381,7 +376,7 @@ describe('ModelBuilder', () => {
         },
       ];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.myTable.getTableName()).toMatchObject({
         schema: 'mySchema',
@@ -427,7 +422,7 @@ describe('ModelBuilder', () => {
       ];
       const tables = [{ columns, name: 'aModel', schema: undefined, unique: [] }] as Table[];
 
-      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables }, []);
+      ModelBuilder.defineModels(sequelize, () => {}, { ...defaultIntrospection, tables });
 
       expect(sequelize.models.aModel).toBeDefined();
       expect(sequelize.models.aModel.rawAttributes.created_at).toBeDefined();

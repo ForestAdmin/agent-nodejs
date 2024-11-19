@@ -5,6 +5,7 @@ import { Literal } from 'sequelize/types/utils';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
 import { LatestIntrospection, Table } from '../introspection/types';
+import { SqlDatasourceOptions } from '../types';
 
 type TableOrView = Table & { view?: boolean };
 
@@ -24,7 +25,7 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     introspection: LatestIntrospection,
-    displaySoftDeleted: string[] | true,
+    displaySoftDeleted?: SqlDatasourceOptions['displaySoftDeleted'],
   ): void {
     for (const table of introspection.tables) {
       const shouldDisplaySoftDeleted =
