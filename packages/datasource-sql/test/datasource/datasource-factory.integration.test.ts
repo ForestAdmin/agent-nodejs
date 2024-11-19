@@ -442,7 +442,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         });
       });
 
-      describe.only('with soft deleted record', () => {
+      describe('with soft deleted record', () => {
         let sequelize: Sequelize | undefined;
         const databaseName = 'datasource-sql-softdeleted-test';
 
