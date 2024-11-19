@@ -1,4 +1,6 @@
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { Projection } from '@forestadmin/datasource-toolkit';
+import { caller, filter } from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { stringify } from 'querystring';
 import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 
@@ -443,21 +445,12 @@ describe('SqlDataSourceFactory > Integration', () => {
       });
 
       describe('with soft deleted record', () => {
-        let sequelize: Sequelize | undefined;
         const databaseName = 'datasource-sql-softdeleted-test';
-
-        beforeEach(async () => {
-          await setupSoftDeleted(connectionDetails, databaseName, schema);
-        });
-
-        afterEach(async () => {
-          await sequelize?.close();
-          sequelize = undefined;
-        });
 
         describe('when display soft deleted only on one table', () => {
           it('should only display records of that table', async () => {
             const logger = jest.fn();
+            await setupSoftDeleted(connectionDetails, databaseName, schema);
 
             const sqlDs = await createSqlDataSource(
               `${connectionDetails.url(databaseName)}?${queryString}`,
@@ -467,24 +460,25 @@ describe('SqlDataSourceFactory > Integration', () => {
             const collection = sqlDs.getCollection('softDeleted');
             const collection2 = sqlDs.getCollection('softDeleted2');
 
-            // avoid issue with connection
-            sequelize = (collection.nativeDriver as any).Sequelize as Sequelize;
-
-            await collection.create({} as any, [{ name: 'shouldDisplay', deletedAt: Date.now() }]);
-            await collection2.create({} as any, [
+            await collection.create(caller.build(), [
+              { name: 'shouldDisplay', deletedAt: Date.now() },
+            ]);
+            await collection2.create(caller.build(), [
               { name: 'shouldNotDisplay', deletedAt: Date.now() },
             ]);
 
             const records = await collection.list(
-              {} as any,
-              {} as any,
+              caller.build(),
+              filter.build(),
               new Projection('name', 'deletedAt'),
             );
             const records2 = await collection2.list(
-              {} as any,
-              {} as any,
+              caller.build(),
+              filter.build(),
               new Projection('name', 'deletedAt'),
             );
+
+            await (sqlDs as SequelizeDataSource).close();
 
             expect(records).toHaveLength(1);
             expect(records2).toHaveLength(0);
@@ -494,6 +488,7 @@ describe('SqlDataSourceFactory > Integration', () => {
         describe('when display soft deleted only all tables', () => {
           it('should display records on all tables', async () => {
             const logger = jest.fn();
+            await setupSoftDeleted(connectionDetails, databaseName, schema);
 
             const sqlDs = await createSqlDataSource(
               `${connectionDetails.url(databaseName)}?${queryString}`,
@@ -503,24 +498,25 @@ describe('SqlDataSourceFactory > Integration', () => {
             const collection = sqlDs.getCollection('softDeleted');
             const collection2 = sqlDs.getCollection('softDeleted2');
 
-            // avoid issue with connection
-            sequelize = (collection.nativeDriver as any).Sequelize as Sequelize;
-
-            await collection.create({} as any, [{ name: 'shouldDisplay', deletedAt: Date.now() }]);
-            await collection2.create({} as any, [
+            await collection.create(caller.build(), [
+              { name: 'shouldDisplay', deletedAt: Date.now() },
+            ]);
+            await collection2.create(caller.build(), [
               { name: 'shouldNotDisplay', deletedAt: Date.now() },
             ]);
 
             const records = await collection.list(
-              {} as any,
-              {} as any,
+              caller.build(),
+              filter.build(),
               new Projection('name', 'deletedAt'),
             );
             const records2 = await collection2.list(
-              {} as any,
-              {} as any,
+              caller.build(),
+              filter.build(),
               new Projection('name', 'deletedAt'),
             );
+
+            await (sqlDs as SequelizeDataSource).close();
 
             expect(records).toHaveLength(1);
             expect(records2).toHaveLength(1);
