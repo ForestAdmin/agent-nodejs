@@ -485,7 +485,7 @@ describe('SqlDataSourceFactory > Integration', () => {
           });
         });
 
-        describe('when display soft deleted only all tables', () => {
+        describe('when display soft deleted for all tables', () => {
           it('should display records on all tables', async () => {
             const logger = jest.fn();
             await setupSoftDeleted(connectionDetails, databaseName, schema);
