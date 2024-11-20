@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sql [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.31...@forestadmin/datasource-sql@1.15.0) (2024-11-20)
+
+
+### Features
+
+* **datasource sql:** add option to see paranoid ([#1210](https://github.com/ForestAdmin/agent-nodejs/issues/1210)) ([2d2639c](https://github.com/ForestAdmin/agent-nodejs/commit/2d2639c4eb506fab4db54a94778e3ee9196180e2))
+
 ## @forestadmin/datasource-sql [1.14.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.14.30...@forestadmin/datasource-sql@1.14.31) (2024-10-18)
 
 
