@@ -1,6 +1,8 @@
 import { Options } from 'sequelize/types';
 import { ConnectConfig } from 'ssh2';
 
+import { SupportedIntrospection } from './introspection/types';
+
 type SupportedSequelizeOptions = Pick<
   Options,
   | 'database'
@@ -44,3 +46,8 @@ export type PlainConnectionOptions = SupportedSequelizeOptions & {
 export type PlainConnectionOptionsOrUri = PlainConnectionOptions | string;
 
 export type SslMode = 'preferred' | 'disabled' | 'required' | 'verify' | 'manual';
+
+export type SqlDatasourceOptions = {
+  introspection?: SupportedIntrospection;
+  displaySoftDeleted?: string[] | true;
+};

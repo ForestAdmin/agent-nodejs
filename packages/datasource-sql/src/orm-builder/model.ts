@@ -5,6 +5,7 @@ import { Literal } from 'sequelize/types/utils';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
 import { LatestIntrospection, Table } from '../introspection/types';
+import { SqlDatasourceOptions } from '../types';
 
 type TableOrView = Table & { view?: boolean };
 
@@ -24,9 +25,15 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     introspection: LatestIntrospection,
+    displaySoftDeleted?: SqlDatasourceOptions['displaySoftDeleted'],
   ): void {
     for (const table of introspection.tables) {
-      this.defineModelFromTable(sequelize, logger, table);
+      const shouldDisplaySoftDeleted =
+        displaySoftDeleted === true ||
+        (Array.isArray(displaySoftDeleted) &&
+          displaySoftDeleted.some(tableName => table.name === tableName));
+
+      this.defineModelFromTable(sequelize, logger, table, shouldDisplaySoftDeleted);
     }
 
     for (const table of introspection.views) {
@@ -38,6 +45,7 @@ export default class ModelBuilder {
     sequelize: Sequelize,
     logger: Logger,
     table: TableOrView,
+    displaySoftDeleted?: boolean,
   ): void {
     const hasTimestamps = this.hasTimestamps(table);
     const isParanoid = this.isParanoid(table);
@@ -52,6 +60,12 @@ export default class ModelBuilder {
         schema: table.schema,
         ...this.getAutoTimestampFieldsOverride(table),
       });
+
+      if (displaySoftDeleted) {
+        model.beforeFind(option => {
+          option.paranoid = false;
+        });
+      }
 
       // @see https://sequelize.org/docs/v6/other-topics/legacy/#primary-keys
       // Tell sequelize NOT to invent primary keys when we don't provide them.

@@ -1,12 +1,16 @@
+import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import { Projection } from '@forestadmin/datasource-toolkit';
+import { caller, filter } from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { stringify } from 'querystring';
 import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 
-import { buildSequelizeInstance, introspect } from '../../src';
+import { buildSequelizeInstance, createSqlDataSource, introspect } from '../../src';
 import Introspector from '../../src/introspection/introspector';
 import { CONNECTION_DETAILS } from '../_helpers/connection-details';
 import setupEmptyDatabase from '../_helpers/setup-empty-database';
 import setupDatabaseWithIdNotPrimary from '../_helpers/setup-id-is-not-a-pk';
 import setupSimpleTable from '../_helpers/setup-simple-table';
+import setupSoftDeleted from '../_helpers/setup-soft-deleted';
 import setupDatabaseWithTypes, { getAttributeMapping } from '../_helpers/setup-using-all-types';
 import setupDatabaseWithRelations, { RELATION_MAPPING } from '../_helpers/setup-using-relations';
 
@@ -437,6 +441,86 @@ describe('SqlDataSourceFactory > Integration', () => {
           const modelAssociations = extractTablesAndRelations(dataSourceModels);
 
           expect(modelAssociations).toMatchObject(RELATION_MAPPING);
+        });
+      });
+
+      describe('with soft deleted record', () => {
+        const databaseName = 'datasource-sql-softdeleted-test';
+
+        describe('when display soft deleted only on one table', () => {
+          it('should only display records of that table', async () => {
+            const logger = jest.fn();
+            await setupSoftDeleted(connectionDetails, databaseName, schema);
+
+            const sqlDs = await createSqlDataSource(
+              `${connectionDetails.url(databaseName)}?${queryString}`,
+              { displaySoftDeleted: ['softDeleted'] },
+            )(logger);
+
+            const collection = sqlDs.getCollection('softDeleted');
+            const collection2 = sqlDs.getCollection('softDeleted2');
+
+            await collection.create(caller.build(), [
+              { name: 'shouldDisplay', deletedAt: Date.now() },
+            ]);
+            await collection2.create(caller.build(), [
+              { name: 'shouldNotDisplay', deletedAt: Date.now() },
+            ]);
+
+            const records = await collection.list(
+              caller.build(),
+              filter.build(),
+              new Projection('name', 'deletedAt'),
+            );
+            const records2 = await collection2.list(
+              caller.build(),
+              filter.build(),
+              new Projection('name', 'deletedAt'),
+            );
+
+            await (sqlDs as SequelizeDataSource).close();
+
+            expect(records).toHaveLength(1);
+            expect(records2).toHaveLength(0);
+          });
+        });
+
+        describe('when display soft deleted for all tables', () => {
+          it('should display records on all tables', async () => {
+            const logger = jest.fn();
+            await setupSoftDeleted(connectionDetails, databaseName, schema);
+
+            const sqlDs = await createSqlDataSource(
+              `${connectionDetails.url(databaseName)}?${queryString}`,
+              { displaySoftDeleted: true },
+            )(logger);
+
+            const collection = sqlDs.getCollection('softDeleted');
+            const collection2 = sqlDs.getCollection('softDeleted2');
+
+            await collection.create(caller.build(), [
+              { name: 'shouldDisplay', deletedAt: Date.now() },
+            ]);
+            await collection2.create(caller.build(), [
+              { name: 'shouldNotDisplay', deletedAt: Date.now() },
+            ]);
+
+            const records = await collection.list(
+              caller.build(),
+              filter.build(),
+              new Projection('name', 'deletedAt'),
+            );
+            const records2 = await collection2.list(
+              caller.build(),
+              filter.build(),
+              new Projection('name', 'deletedAt'),
+            );
+
+            await (sqlDs as SequelizeDataSource).close();
+
+            expect(records).toHaveLength(1);
+            expect(records2).toHaveLength(1);
+          });
         });
       });
     });
