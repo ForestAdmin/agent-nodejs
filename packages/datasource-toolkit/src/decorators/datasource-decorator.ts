@@ -18,6 +18,10 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
     return this.childDataSource.schema;
   }
 
+  get nativeQueryConnections(): Record<string, unknown> {
+    return this.childDataSource.nativeQueryConnections;
+  }
+
   get collections(): CollectionDecorator[] {
     return this.childDataSource.collections.map(({ name }) => this.getCollection(name));
   }
@@ -42,5 +46,13 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
 
   renderChart(caller: Caller, name: string): Promise<Chart> {
     return this.childDataSource.renderChart(caller, name);
+  }
+
+  async executeNativeQuery(
+    connectionName: string,
+    query: string,
+    contextVariables: Record<string, unknown>,
+  ) {
+    return this.childDataSource.executeNativeQuery(connectionName, query, contextVariables);
   }
 }

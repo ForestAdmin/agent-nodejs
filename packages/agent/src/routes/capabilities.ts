@@ -31,6 +31,9 @@ export default class Capabilities extends BaseRoute {
     );
 
     context.response.body = {
+      nativeQueryConnections: Object.keys(this.dataSource.nativeQueryConnections).map(
+        connectionName => ({ name: connectionName }),
+      ),
       collections:
         collections?.map(collection => ({
           name: collection.name,
