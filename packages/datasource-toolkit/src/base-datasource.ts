@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { MissingCollectionError } from './errors';
 import { Caller } from './interfaces/caller';
 import { Chart } from './interfaces/chart';
