@@ -51,5 +51,8 @@
   "workspaces": [
     "packages/*",
     "!packages/_example/*"
-  ]
+  ],
+  "resolutions": {
+    "express": "^4.21.1"
+  }
 }
