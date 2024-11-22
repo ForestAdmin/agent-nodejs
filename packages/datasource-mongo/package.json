@@ -28,6 +28,5 @@
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "test": "jest"
-  },
-  "devDependencies": {}
+  }
 }

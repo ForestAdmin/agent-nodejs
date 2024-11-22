@@ -42,9 +42,7 @@
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
     "directory": "packages/forest-cloud"
   },
-  "bin": {
-    "forest-cloud": "dist/command.js"
-  },
+  "bin": "dist/command.js",
   "scripts": {
     "build": "tsc && yarn build:copy",
     "build:watch": "tsc --watch & nodemon --watch 'src/templates/*' --ext txt --exec yarn build:copy",

@@ -33,8 +33,8 @@ jobs:
             node_modules
             packages/*/node_modules
           key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
-      - name: Install & Bootstrap
-        run: yarn && yarn bootstrap --ci
+      - name: Install
+        run: yarn
       - name: Build
         run: yarn build
       - uses: actions/cache/save@v3
@@ -162,12 +162,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-api-reference, send-coverage, lint]
     if: |
-      github.event_name == 'push' 
+      github.event_name == 'push'
       && (
-        github.ref == 'refs/heads/main' 
-        || github.ref == 'refs/heads/beta' 
-        || github.ref == 'refs/heads/alpha' 
-        || startsWith(github.ref, 'refs/heads/alpha-') 
+        github.ref == 'refs/heads/main'
+        || github.ref == 'refs/heads/beta'
+        || github.ref == 'refs/heads/alpha'
+        || startsWith(github.ref, 'refs/heads/alpha-')
         || startsWith(github.ref, 'refs/heads/beta-')
       )
     steps:
@@ -218,7 +218,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' 
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build-api-reference, send-coverage, lint]
     steps:
       - name: Setup Pages
