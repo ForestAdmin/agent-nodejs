@@ -7,7 +7,7 @@ This project has been designed with scalability in mind to fit requirements from
 ## Installation
 
 ```
-yarn install && yarn bootstrap
+yarn install
 ```
 
 ## Who Uses Forest Admin
