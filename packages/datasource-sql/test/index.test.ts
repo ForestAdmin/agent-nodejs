@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource, preprocessOptions } from '../src';
+import { PlainConnectionOptionsOrUri } from '../src/types';
 
 jest.mock('sequelize');
 
