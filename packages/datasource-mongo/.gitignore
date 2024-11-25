@@ -1,3 +1,3 @@
 # ignore all in everything ssh-config folder except the id_rsa files
-# test/ssh-config/*
-# !test/ssh-config/id_rsa*
+test/ssh-config/*
+!test/ssh-config/id_rsa*
