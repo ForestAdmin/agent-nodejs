@@ -82,7 +82,7 @@ services:
       - PROXY_PASSWORD=password
 
   ssh-server:
-    image: lscr.io/linuxserver/openssh-server:latest
+    image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls173
     container_name: ssh_server
     environment:
       - PUID=1000
