@@ -449,6 +449,26 @@ describe('QueryStringParser', () => {
         expect(fn).toThrow(new Error('Time zones are not available in this environment'));
       });
     });
+
+    test('should return the project and environment name', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+        headers: {
+          'forest-context-url':
+            'https://app.development.forestadmin.com/new-agent/Development/Operations/data/card/index',
+        },
+      });
+
+      expect(QueryStringParser.parseCaller(context)).toEqual({
+        email: 'john.doe@domain.com',
+        requestId: expect.any(String),
+        request: { ip: expect.any(String) },
+        timezone: 'America/Los_Angeles',
+        project: 'new-agent',
+        environment: 'Development',
+      });
+    });
   });
 
   describe('parsePagination', () => {
