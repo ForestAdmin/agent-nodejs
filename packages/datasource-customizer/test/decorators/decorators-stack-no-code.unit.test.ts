@@ -10,8 +10,6 @@ function makeMockDataSource(): jest.Mocked<DataSource> {
       charts: [] as string[],
     },
     collections: [],
-    nativeQueryConnections: {},
-    executeNativeQuery: jest.fn(),
     getCollection: jest.fn(),
     renderChart: jest.fn(),
   };

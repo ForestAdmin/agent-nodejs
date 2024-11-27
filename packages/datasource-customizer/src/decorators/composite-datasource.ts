@@ -12,13 +12,6 @@ export default class CompositeDatasource<T extends Collection = Collection>
 {
   private dataSources: DataSource[] = [];
 
-  get nativeQueryConnections(): Record<string, unknown> {
-    return this.dataSources.reduce(
-      (acc, current) => ({ ...acc, ...current.nativeQueryConnections }),
-      {},
-    );
-  }
-
   get schema(): DataSourceSchema {
     return { charts: this.dataSources.flatMap(dataSource => dataSource.schema.charts) };
   }
@@ -57,12 +50,6 @@ export default class CompositeDatasource<T extends Collection = Collection>
       }
     }
 
-    for (const nativeQueryConnection of Object.keys(dataSource.nativeQueryConnections || {})) {
-      if (this.nativeQueryConnections[nativeQueryConnection]) {
-        throw new Error(`Native Query connection '${nativeQueryConnection}' is already defined`);
-      }
-    }
-
     this.dataSources.push(dataSource);
   }
 
@@ -74,19 +61,5 @@ export default class CompositeDatasource<T extends Collection = Collection>
     }
 
     throw new Error(`Chart '${name}' is not defined in the dataSource.`);
-  }
-
-  async executeNativeQuery(
-    connectionName: string,
-    query: string,
-    contextVariables = {},
-  ): Promise<unknown> {
-    if (!this.nativeQueryConnections[connectionName]) {
-      throw new Error(`Unknown connection name '${connectionName}'`);
-    }
-
-    return this.dataSources
-      .find(datasource => Boolean(datasource.nativeQueryConnections[connectionName]))
-      .executeNativeQuery(connectionName, query, contextVariables);
   }
 }

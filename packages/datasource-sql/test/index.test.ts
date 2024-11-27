@@ -1,7 +1,6 @@
 import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource, preprocessOptions } from '../src';
-import { PlainConnectionOptionsOrUri } from '../src/types';
 
 jest.mock('sequelize');
 
@@ -72,7 +71,7 @@ describe('index', () => {
     describe('when a database schema is given from uri options', () => {
       it('should use the given schema', async () => {
         const uri = 'postgres://example:password@localhost:5442/example?schema=public&ssl=true';
-        await buildSequelizeInstance({ uri } as PlainConnectionOptionsOrUri, jest.fn(), {
+        await buildSequelizeInstance({ uri }, jest.fn(), {
           views: [],
           tables: [],
           version: 3,
@@ -128,7 +127,7 @@ describe('index', () => {
         port: 5442,
         sslMode: 'required',
         username: 'example',
-      } as PlainConnectionOptionsOrUri);
+      });
 
       expect(result).toStrictEqual({
         database: 'example',
