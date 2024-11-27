@@ -59,14 +59,24 @@ export default class RenameFieldCollectionDecorator extends CollectionDecorator 
       const schema = { ...oldSchema };
 
       if (schema.type === 'ManyToOne') {
+        const relation = this.dataSource.getCollection(schema.foreignCollection);
         schema.foreignKey = this.fromChildCollection[schema.foreignKey] ?? schema.foreignKey;
+        schema.foreignKeyTarget =
+          relation.fromChildCollection[schema.foreignKeyTarget] ?? schema.foreignKeyTarget;
       } else if (schema.type === 'OneToMany' || schema.type === 'OneToOne') {
         const relation = this.dataSource.getCollection(schema.foreignCollection);
         schema.originKey = relation.fromChildCollection[schema.originKey] ?? schema.originKey;
+        schema.originKeyTarget =
+          this.fromChildCollection[schema.originKeyTarget] ?? schema.originKeyTarget;
       } else if (schema.type === 'ManyToMany') {
         const through = this.dataSource.getCollection(schema.throughCollection);
+        const relation = this.dataSource.getCollection(schema.foreignCollection);
         schema.foreignKey = through.fromChildCollection[schema.foreignKey] ?? schema.foreignKey;
         schema.originKey = through.fromChildCollection[schema.originKey] ?? schema.originKey;
+        schema.originKeyTarget =
+          this.fromChildCollection[schema.originKeyTarget] ?? schema.originKeyTarget;
+        schema.foreignKeyTarget =
+          relation.fromChildCollection[schema.foreignKeyTarget] ?? schema.foreignKeyTarget;
       }
 
       fields[this.fromChildCollection[oldName] ?? oldName] = schema;
