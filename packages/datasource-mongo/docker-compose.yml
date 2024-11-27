@@ -11,7 +11,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: secret
 
   ssh-server:
-    image: lscr.io/linuxserver/openssh-server:latest
+    image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls173
     container_name: ssh_server_mongo
     environment:
       - PUID=1000
