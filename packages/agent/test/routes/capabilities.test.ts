@@ -68,6 +68,7 @@ describe('Capabilities', () => {
 
         expect(context.response.body).toEqual({
           nativeQueryConnections: [{ name: 'main' }, { name: 'replica' }],
+          useProjectionOnGetOne: true,
           collections: [],
         });
       });
@@ -86,6 +87,7 @@ describe('Capabilities', () => {
 
         expect(context.response.body).toEqual({
           nativeQueryConnections: [],
+          useProjectionOnGetOne: true,
           collections: [],
         });
       });
@@ -102,6 +104,7 @@ describe('Capabilities', () => {
 
         expect(context.response.body).toEqual({
           nativeQueryConnections: [],
+          useProjectionOnGetOne: true,
           collections: [],
         });
       });
@@ -120,6 +123,7 @@ describe('Capabilities', () => {
 
         expect(context.response.body).toEqual({
           nativeQueryConnections: [],
+          useProjectionOnGetOne: true,
           collections: [
             {
               name: 'books',
