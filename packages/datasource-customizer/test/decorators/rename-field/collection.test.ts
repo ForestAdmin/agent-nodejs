@@ -363,4 +363,32 @@ describe('RenameFieldCollectionDecorator', () => {
       expect(personFields.myBookPerson).toMatchObject({ originKey: 'authorId' });
     });
   });
+
+  describe('when renaming primary keys', () => {
+    beforeEach(() => {
+      // Cache the schemas to ensure they refresh property
+      void newBooks.schema;
+      void newBookPersons.schema;
+      void newPersons.schema;
+
+      // Rename stuff
+      newBooks.renameField('id', 'newBookId');
+      newPersons.renameField('id', 'newPersonId');
+    });
+
+    test('the relations should be updated in all collections', () => {
+      const bookFields = newBooks.schema.fields;
+      const bookPersonFields = newBookPersons.schema.fields;
+      const personFields = newPersons.schema.fields;
+
+      expect(bookFields.myPersons).toMatchObject({
+        foreignKeyTarget: 'newPersonId',
+        originKeyTarget: 'newBookId',
+      });
+      expect(bookFields.myBookPersons).toMatchObject({ originKeyTarget: 'newBookId' });
+      expect(bookPersonFields.myBook).toMatchObject({ foreignKeyTarget: 'newBookId' });
+      expect(bookPersonFields.myPerson).toMatchObject({ foreignKeyTarget: 'newPersonId' });
+      expect(personFields.myBookPerson).toMatchObject({ originKeyTarget: 'newPersonId' });
+    });
+  });
 });
