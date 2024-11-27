@@ -4,7 +4,7 @@ import { Collection } from '../../src/interfaces/collection';
 import * as factories from '../__factories__';
 
 class DecoratedCollection extends CollectionDecorator {
-  public override childCollection: Collection;
+  public declare childCollection: Collection;
 }
 
 describe('DataSourceDecorator', () => {
@@ -35,6 +35,25 @@ describe('DataSourceDecorator', () => {
     const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
 
     expect(decorator.schema).toBe(dataSource.schema);
+  });
+
+  test('should proxy calls to nativeQueryConnections', () => {
+    const dataSource = factories.dataSource.build();
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
+
+    expect(decorator.nativeQueryConnections).toBe(dataSource.nativeQueryConnections);
+  });
+
+  test('should proxy calls to executeNativeQuery', async () => {
+    const dataSource = factories.dataSource.build();
+    const decorator = new DataSourceDecorator(dataSource, DecoratedCollection);
+
+    const spyExecuteNativeQuery = jest.spyOn(dataSource, 'executeNativeQuery');
+
+    await decorator.executeNativeQuery('main', 'query', {});
+
+    expect(spyExecuteNativeQuery).toHaveBeenCalled();
+    expect(spyExecuteNativeQuery).toHaveBeenCalledWith('main', 'query', {});
   });
 
   test('should proxy calls to renderChart', () => {

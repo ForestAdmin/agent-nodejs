@@ -52,6 +52,27 @@ describe('Capabilities', () => {
       route = new Capabilities(services, options, dataSource);
     });
 
+    describe('when datasource has nativeQueryConnections registered', () => {
+      it('should return the available connection names', async () => {
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: { collectionNames: [] },
+        });
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        jest.replaceProperty(route.dataSource, 'nativeQueryConnections', { main: {}, replica: {} });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await route.fetchCapabilities(context);
+
+        expect(context.response.body).toEqual({
+          nativeQueryConnections: [{ name: 'main' }, { name: 'replica' }],
+          collections: [],
+        });
+      });
+    });
+
     describe('when request body does not list any collection name', () => {
       test('should return nothing', async () => {
         const context = createMockContext({
@@ -64,6 +85,7 @@ describe('Capabilities', () => {
         await route.fetchCapabilities(context);
 
         expect(context.response.body).toEqual({
+          nativeQueryConnections: [],
           collections: [],
         });
       });
@@ -79,6 +101,7 @@ describe('Capabilities', () => {
         await route.fetchCapabilities(context);
 
         expect(context.response.body).toEqual({
+          nativeQueryConnections: [],
           collections: [],
         });
       });
@@ -96,6 +119,7 @@ describe('Capabilities', () => {
         await route.fetchCapabilities(context);
 
         expect(context.response.body).toEqual({
+          nativeQueryConnections: [],
           collections: [
             {
               name: 'books',

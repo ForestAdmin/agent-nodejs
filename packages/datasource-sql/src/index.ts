@@ -101,7 +101,12 @@ export function createSqlDataSource(
       options?.displaySoftDeleted,
     );
 
-    return new SqlDatasource(new SequelizeDataSource(sequelize, logger), latestIntrospection.views);
+    return new SqlDatasource(
+      new SequelizeDataSource(sequelize, logger, {
+        liveQueryConnections: options?.liveQueryConnections,
+      }),
+      latestIntrospection.views,
+    );
   };
 }
 
