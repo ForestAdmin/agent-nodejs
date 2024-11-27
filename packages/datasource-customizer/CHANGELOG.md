@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.55.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.4...@forestadmin/datasource-customizer@1.55.5) (2024-11-27)
+
+
+### Bug Fixes
+
+* **rename decorator:** properly map relation when renaming pk field ([#1217](https://github.com/ForestAdmin/agent-nodejs/issues/1217)) ([2de746f](https://github.com/ForestAdmin/agent-nodejs/commit/2de746f7325310d6138550cd75660cc1955c6114))
+
 ## @forestadmin/datasource-customizer [1.55.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.3...@forestadmin/datasource-customizer@1.55.4) (2024-11-05)
 
 
