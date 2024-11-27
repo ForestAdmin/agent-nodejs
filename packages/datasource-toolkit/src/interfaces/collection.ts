@@ -10,17 +10,11 @@ import { CollectionSchema, DataSourceSchema } from './schema';
 
 export interface DataSource<C extends Collection = Collection> {
   get collections(): C[];
-  get nativeQueryConnections(): Record<string, unknown>;
   get schema(): DataSourceSchema;
 
   getCollection(name: string): C;
 
   renderChart(caller: Caller, name: string): Promise<Chart>;
-  executeNativeQuery(
-    connectionName: string,
-    query: string,
-    contextVariables: Record<string, unknown>,
-  ): Promise<unknown>;
 }
 
 export type GetFormMetas = {
