@@ -1,3 +1,23 @@
+# @forestadmin/datasource-sequelize [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.5...@forestadmin/datasource-sequelize@1.11.0) (2024-11-27)
+
+
+### Features
+
+* **capabilities:** define native query connection capabilities ([#1220](https://github.com/ForestAdmin/agent-nodejs/issues/1220)) ([bd0fc7c](https://github.com/ForestAdmin/agent-nodejs/commit/bd0fc7cce7f9d6dec79f1e62bdd3e13c7b4f72e4))
+
+
+### Reverts
+
+*  "chore(capabilities): define native query connection capabilities ([#1219](https://github.com/ForestAdmin/agent-nodejs/issues/1219))" ([290cde3](https://github.com/ForestAdmin/agent-nodejs/commit/290cde383ab72c11050e27beba7214cf9802e5e0))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.44.0
+
 ## @forestadmin/datasource-sequelize [1.10.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.10.4...@forestadmin/datasource-sequelize@1.10.5) (2024-10-18)
 
 
