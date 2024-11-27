@@ -1,10 +1,12 @@
-import { Sequelize } from 'sequelize';
+import { QueryTypes, Sequelize } from 'sequelize';
 
 import { SequelizeCollection, SequelizeDataSource } from '../src';
 
 describe('SequelizeDataSource', () => {
   it('should fail to instantiate without a Sequelize instance', () => {
-    expect(() => new SequelizeDataSource(null)).toThrow('Invalid (null) Sequelize instance.');
+    expect(() => new SequelizeDataSource(null as unknown as Sequelize)).toThrow(
+      'Invalid (null) Sequelize instance.',
+    );
   });
 
   it('should fail to instantiate without a Sequelize models defined', () => {
@@ -17,6 +19,12 @@ describe('SequelizeDataSource', () => {
     expect(
       new SequelizeDataSource({ models: {} } as unknown as Sequelize).collections,
     ).toBeArrayOfSize(0);
+  });
+
+  it('should have no predefined nativeQueryConnection', () => {
+    expect(
+      new SequelizeDataSource({ models: {} } as unknown as Sequelize).nativeQueryConnections,
+    ).toEqual({});
   });
 
   it('should create collection based on models', () => {
@@ -43,5 +51,54 @@ describe('SequelizeDataSource', () => {
     const secondCollectionNames = secondDataSource.collections.map(({ name }) => name);
 
     expect(firstCollectionNames).toStrictEqual(secondCollectionNames);
+  });
+
+  it('should register nativeQueryConnection', () => {
+    const sequelize = new Sequelize({ dialect: 'postgres' });
+    sequelize.define('cars', {});
+    const logger = jest.fn();
+    const dataSource = new SequelizeDataSource(sequelize, logger, {
+      liveQueryConnections: 'main',
+    });
+
+    expect(dataSource.nativeQueryConnections).toEqual({ main: { instance: sequelize } });
+  });
+
+  describe('executeNativeQuery', () => {
+    it('should execute the given query on the correct connection', async () => {
+      const sequelize = new Sequelize({ dialect: 'postgres' });
+      sequelize.define('cars', {});
+      const logger = jest.fn();
+      const spyQuery = jest.spyOn(sequelize, 'query').mockImplementation();
+      const dataSource = new SequelizeDataSource(sequelize, logger, {
+        liveQueryConnections: 'main',
+      });
+
+      await dataSource.executeNativeQuery('main', 'query', { something: 'value' });
+
+      expect(spyQuery).toHaveBeenCalled();
+      expect(spyQuery).toHaveBeenCalledWith('query', {
+        bind: { something: 'value' },
+        type: QueryTypes.SELECT,
+        raw: true,
+      });
+    });
+
+    describe('when giving an unknown connection name', () => {
+      it('should throw an error', async () => {
+        const sequelize = new Sequelize({ dialect: 'postgres' });
+        sequelize.define('cars', {});
+        const logger = jest.fn();
+        const spyQuery = jest.spyOn(sequelize, 'query').mockImplementation();
+        const dataSource = new SequelizeDataSource(sequelize, logger, {
+          liveQueryConnections: 'main',
+        });
+
+        await expect(
+          dataSource.executeNativeQuery('production', 'query', { something: 'value' }),
+        ).rejects.toThrow(new Error(`Unknown connection name 'production'`));
+        expect(spyQuery).not.toHaveBeenCalled();
+      });
+    });
   });
 });
