@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import * as factories from './__factories__';
-import { MissingCollectionError } from '../src';
+import { Caller, MissingCollectionError } from '../src';
 import BaseDataSource from '../src/base-datasource';
 import { Collection } from '../src/interfaces/collection';
 
@@ -50,7 +50,7 @@ describe('BaseDataSource', () => {
     it('should throw if renderChart() is called', () => {
       const dataSource = new DataSourceWithCollection();
 
-      expect(() => dataSource.renderChart(null, 'myChart')).toThrow(
+      expect(() => dataSource.renderChart(null as unknown as Caller, 'myChart')).toThrow(
         `No chart named 'myChart' exists on this datasource.`,
       );
     });
@@ -69,6 +69,39 @@ describe('BaseDataSource', () => {
     it('should prevent instantiation when adding collection with duplicated name', () => {
       expect(() => new DuplicatedCollectionErrorDataSource()).toThrow(
         "Collection '__duplicated__' already defined in datasource",
+      );
+    });
+  });
+
+  describe('addNativeQueryConnection', () => {
+    describe('when adding with an already existing name', () => {
+      it('should throw an error', () => {
+        const dataSource = new BaseDataSource();
+        dataSource.addNativeQueryConnection('main', {});
+
+        expect(() => dataSource.addNativeQueryConnection('main', {})).toThrow(
+          new Error(`NativeQueryConnection 'main' is already defined in datasource`),
+        );
+      });
+    });
+
+    it('should add the native query connection', () => {
+      const dataSource = new BaseDataSource();
+
+      expect(dataSource.nativeQueryConnections).toEqual({});
+
+      dataSource.addNativeQueryConnection('main', {});
+
+      expect(dataSource.nativeQueryConnections).toEqual({ main: {} });
+    });
+  });
+
+  describe('executeNativeQuery', () => {
+    it('should throw', async () => {
+      const dataSource = new BaseDataSource();
+
+      await expect(dataSource.executeNativeQuery('main', 'query', {})).rejects.toThrow(
+        new Error(`Native Query is not supported on this datasource`),
       );
     });
   });

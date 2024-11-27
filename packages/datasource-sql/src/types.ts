@@ -50,4 +50,5 @@ export type SslMode = 'preferred' | 'disabled' | 'required' | 'verify' | 'manual
 export type SqlDatasourceOptions = {
   introspection?: SupportedIntrospection;
   displaySoftDeleted?: string[] | true;
+  liveQueryConnections?: string;
 };

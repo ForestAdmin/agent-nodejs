@@ -16,6 +16,14 @@ export class DataSourceFactory extends Factory<DataSource> {
     return this.buildWithCollections([partialCollection]);
   }
 
+  buildWithNativeQueryConnections(nativeQueryConnections: Record<string, unknown>): DataSource {
+    const factory = this.afterBuild(dataSource => {
+      jest.replaceProperty(dataSource, 'nativeQueryConnections', nativeQueryConnections);
+    });
+
+    return factory.build();
+  }
+
   buildWithCollections(partialCollections: Array<Partial<Collection>>): DataSource {
     const factory = this.afterBuild(dataSource => {
       // Add collections
@@ -41,7 +49,9 @@ export class DataSourceFactory extends Factory<DataSource> {
 export default DataSourceFactory.define(() => ({
   schema: { charts: [] },
   collections: [],
+  nativeQueryConnections: {},
   getCollection: jest.fn(),
   addCollection: jest.fn(),
   renderChart: jest.fn().mockResolvedValue({}),
+  executeNativeQuery: jest.fn().mockResolvedValue({}),
 }));

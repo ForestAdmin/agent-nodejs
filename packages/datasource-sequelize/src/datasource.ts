@@ -1,7 +1,12 @@
 import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import { QueryTypes, Sequelize } from 'sequelize';
 
 import SequelizeCollection from './collection';
+import { SequelizeDatasourceOptions } from './types';
+
+interface NativeQueryConnection {
+  instance: Sequelize;
+}
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
   /**
@@ -12,7 +17,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
    */
   protected sequelize: Sequelize = null;
 
-  constructor(sequelize: Sequelize, logger?: Logger) {
+  constructor(sequelize: Sequelize, logger?: Logger, options?: SequelizeDatasourceOptions) {
     super();
 
     if (!sequelize) throw new Error('Invalid (null) Sequelize instance.');
@@ -21,6 +26,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     this.sequelize = sequelize;
 
     this.createCollections(this.sequelize.models, logger);
+
+    if (options?.liveQueryConnections) {
+      this.addNativeQueryConnection(options.liveQueryConnections, { instance: this.sequelize });
+    }
   }
 
   async close(): Promise<void> {
@@ -35,5 +44,24 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
         const collection = new SequelizeCollection(model.name, this, model, logger);
         this.addCollection(collection);
       });
+  }
+
+  override async executeNativeQuery<R extends object>(
+    connectionName: string,
+    query: string,
+    contextVariables = {},
+  ): Promise<R[]> {
+    if (!this.nativeQueryConnections[connectionName]) {
+      throw new Error(`Unknown connection name '${connectionName}'`);
+    }
+
+    return (this.nativeQueryConnections[connectionName] as NativeQueryConnection).instance.query<R>(
+      query,
+      {
+        bind: contextVariables,
+        type: QueryTypes.SELECT,
+        raw: true,
+      },
+    );
   }
 }
