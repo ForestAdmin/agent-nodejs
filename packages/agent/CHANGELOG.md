@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.55.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.54.0...@forestadmin/agent@1.55.0) (2024-11-28)
+
+
+### Features
+
+* **capabilities:** add capabilities on get one projection ([#1221](https://github.com/ForestAdmin/agent-nodejs/issues/1221)) ([0909eaf](https://github.com/ForestAdmin/agent-nodejs/commit/0909eaf005781e9c1a55d4686b9d1e44fbecb06b))
+
 # @forestadmin/agent [1.54.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.53.2...@forestadmin/agent@1.54.0) (2024-11-27)
 
 
