@@ -34,7 +34,7 @@ export default class Capabilities extends BaseRoute {
       nativeQueryConnections: Object.keys(this.dataSource.nativeQueryConnections).map(
         connectionName => ({ name: connectionName }),
       ),
-      useProjectionOnGetOne: true,
+      canUseProjectionOnGetOne: true,
       collections:
         collections?.map(collection => ({
           name: collection.name,
