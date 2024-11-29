@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.55.0...@forestadmin/agent@1.55.1) (2024-11-29)
+
+
+### Bug Fixes
+
+* introduce agentCapabilities sub object ([#1222](https://github.com/ForestAdmin/agent-nodejs/issues/1222)) ([bce04f9](https://github.com/ForestAdmin/agent-nodejs/commit/bce04f97f38582c6f3e63624c0434ff052b0b5ec))
+
 # @forestadmin/agent [1.55.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.54.0...@forestadmin/agent@1.55.0) (2024-11-28)
 
 
