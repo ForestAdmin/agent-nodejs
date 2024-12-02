@@ -13,6 +13,8 @@ export default Factory.define<Caller>(() => ({
   role: 'role',
   tags: {},
   team: 'team',
+  environment: 'environment',
+  project: 'project',
   permissionLevel: 'developer',
   timezone: 'Europe/Paris',
 }));
