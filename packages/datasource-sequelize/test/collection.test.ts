@@ -16,7 +16,20 @@ describe('SequelizeDataSource > Collection', () => {
     const dataSource = Symbol('datasource') as unknown as DataSource;
     const name = '__collection__';
     const sequelize = new Sequelize({ dialect: dialect as Dialect });
-    sequelize.define('__collection__', {});
+    sequelize.define('__collection__', {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      virtualField: {
+        type: DataTypes.VIRTUAL,
+        get() {
+          return 'virtualValue';
+        },
+      },
+    });
 
     return {
       dataSource,
@@ -46,7 +59,6 @@ describe('SequelizeDataSource > Collection', () => {
   describe('rawQuery', () => {
     it('should forward rawQuery calls to sequelize', async () => {
       type NativeDriver = { rawQuery: (...args: unknown[]) => Promise<RecordData[]> };
-
       const { dataSource, name, sequelize } = makeConstructorParams();
       const sequelizeCollection = new SequelizeCollection(name, dataSource, sequelize.models[name]);
 
@@ -115,7 +127,7 @@ describe('SequelizeDataSource > Collection', () => {
     };
 
     it('should delegate work to `sequelize.model.bulkCreate`', async () => {
-      const data = [{ data: 'data' }, { data: 10 }, { data: ['Enum'] }];
+      const data = [{ id: 'data' }, { createdAt: 10 }, { updatedAt: ['Enum'] }];
       const { bulkCreate, sequelizeCollection } = setup(data);
 
       await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual(
@@ -124,32 +136,42 @@ describe('SequelizeDataSource > Collection', () => {
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
 
-    it('should serialize date as iso string', async () => {
-      const data = [{ date: new Date('2000-01-02') }];
+    it('should remove the VIRTUAL field from the returned record', async () => {
+      const data = [{ id: 'data', virtualField: 'virtualValue' }];
       const { bulkCreate, sequelizeCollection } = setup(data);
 
       await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
-        { date: '2000-01-02T00:00:00.000Z' },
+        { id: 'data' },
+      ]);
+      expect(bulkCreate).toHaveBeenCalledWith(data);
+    });
+
+    it('should serialize date as iso string', async () => {
+      const data = [{ createdAt: new Date('2000-01-02') }];
+      const { bulkCreate, sequelizeCollection } = setup(data);
+
+      await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
+        { createdAt: '2000-01-02T00:00:00.000Z' },
       ]);
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
 
     it('should serialize date as iso string with many to one relation', async () => {
-      const data = [{ manyToOne: { date: new Date('2000-01-02') } }];
+      const data = [{ createdAt: { date: new Date('2000-01-02') } }];
       const { bulkCreate, sequelizeCollection } = setup(data);
 
       await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
-        { manyToOne: { date: '2000-01-02T00:00:00.000Z' } },
+        { createdAt: { date: '2000-01-02T00:00:00.000Z' } },
       ]);
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });
 
     it('should serialize array of date as iso string', async () => {
-      const data = [{ dates: [new Date('2000-01-02')] }];
+      const data = [{ createdAt: [new Date('2000-01-02')] }];
       const { bulkCreate, sequelizeCollection } = setup(data);
 
       await expect(sequelizeCollection.create(factories.caller.build(), data)).resolves.toEqual([
-        { dates: ['2000-01-02T00:00:00.000Z'] },
+        { createdAt: ['2000-01-02T00:00:00.000Z'] },
       ]);
       expect(bulkCreate).toHaveBeenCalledWith(data);
     });

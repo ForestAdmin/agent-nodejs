@@ -14,6 +14,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import {
   BindOrReplacements,
+  DataTypes,
   FindOptions,
   ModelDefined,
   ProjectionAlias,
@@ -95,7 +96,21 @@ export default class SequelizeCollection extends BaseCollection {
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const records = await handleErrors('create', () => this.model.bulkCreate(data));
 
-    return records.map(record => Serializer.serialize(record.get({ plain: true })));
+    // Dynamically get non-virtual fields because we don't support virtual fields
+    const attributes = this.model.rawAttributes;
+    const nonVirtualFields = Object.keys(attributes).filter(
+      field => !(attributes[field].type instanceof DataTypes.VIRTUAL),
+    );
+
+    // Exclude virtual fields and serialize the records
+    return records.map(record => {
+      const plainRecord = record.get({ plain: true });
+      const filteredRecord = Object.fromEntries(
+        Object.entries(plainRecord).filter(([key]) => nonVirtualFields.includes(key)),
+      );
+
+      return Serializer.serialize(filteredRecord);
+    });
   }
 
   async list(

@@ -20,6 +20,12 @@ sequelizePostgres.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    virtualFullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return `${this.getDataValue('firstName')} ${this.getDataValue('lastName')}`;
+      },
+    },
   },
   {
     tableName: 'owner',
