@@ -1,3 +1,19 @@
+## example [1.11.18](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.11.17...example@1.11.18) (2024-12-03)
+
+
+### Bug Fixes
+
+* **sequelize-ds:** allow user to create a record when there is a virtual field by removing it from the returned record ([#1223](https://github.com/ForestAdmin/agent-nodejs/issues/1223)) ([a7cb4da](https://github.com/ForestAdmin/agent-nodejs/commit/a7cb4da7f7d75864e407c3dc66f15a277416bda5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.11.1
+* **@forestadmin/datasource-sql:** upgraded to 1.16.1
+
 ## example [1.11.17](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.11.16...example@1.11.17) (2024-11-29)
 
 
