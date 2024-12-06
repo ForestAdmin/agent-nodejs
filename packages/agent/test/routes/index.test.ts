@@ -3,6 +3,7 @@ import { DataSource } from '@forestadmin/datasource-toolkit';
 import makeRoutes, {
   CAPABILITIES_ROUTES_CTOR,
   COLLECTION_ROUTES_CTOR,
+  NATIVE_QUERY_ROUTES_CTOR,
   RELATED_RELATION_ROUTES_CTOR,
   RELATED_ROUTES_CTOR,
   ROOT_ROUTES_CTOR,
@@ -63,9 +64,11 @@ describe('Route index', () => {
     ]);
     expect(CAPABILITIES_ROUTES_CTOR).toEqual([Capabilities]);
     expect(RELATED_RELATION_ROUTES_CTOR).toEqual([UpdateRelation]);
+    expect(NATIVE_QUERY_ROUTES_CTOR).toEqual([DataSourceNativeQueryRoute]);
   });
 
-  const BASE_ROUTE_SIZE = ROOT_ROUTES_CTOR.length + CAPABILITIES_ROUTES_CTOR.length;
+  const BASE_ROUTE_SIZE =
+    ROOT_ROUTES_CTOR.length + CAPABILITIES_ROUTES_CTOR.length + NATIVE_QUERY_ROUTES_CTOR.length;
 
   describe('makeRoutes', () => {
     describe('when a data source without relations', () => {
