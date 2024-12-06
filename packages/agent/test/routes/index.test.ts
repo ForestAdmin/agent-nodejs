@@ -15,6 +15,7 @@ import CsvRelated from '../../src/routes/access/csv-related';
 import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
+import DataSourceNativeQueryRoute from '../../src/routes/access/native-query-datasource';
 import Capabilities from '../../src/routes/capabilities';
 import AssociateRelated from '../../src/routes/modification/associate-related';
 import Create from '../../src/routes/modification/create';
@@ -262,6 +263,36 @@ describe('Route index', () => {
 
         // because there are two charts, there are two routes in addition to the basic ones
         expect(routes.length).toEqual(BASE_ROUTE_SIZE + COLLECTION_ROUTES_CTOR.length + 2);
+      });
+    });
+
+    describe('with a data source with live query connections', () => {
+      const setupWithChart = (): DataSource => {
+        return factories.dataSource.build({
+          nativeQueryConnections: { name: 'Postgre' },
+          schema: { charts: ['myChart'] },
+          collections: [
+            factories.collection.build({
+              name: 'books',
+              schema: factories.collectionSchema.build({
+                charts: ['myChart'],
+              }),
+            }),
+          ],
+        });
+      };
+
+      test('should instantiate the live query routes', async () => {
+        const dataSource = setupWithChart();
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+        );
+        const lqRoute = routes.find(route => route instanceof DataSourceNativeQueryRoute);
+
+        expect(lqRoute).toBeTruthy();
       });
     });
   });
