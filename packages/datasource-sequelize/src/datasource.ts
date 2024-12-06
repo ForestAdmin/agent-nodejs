@@ -1,4 +1,4 @@
-import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource, Logger, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import SequelizeCollection from './collection';
@@ -55,13 +55,17 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
       throw new Error(`Unknown connection name '${connectionName}'`);
     }
 
-    return (this.nativeQueryConnections[connectionName] as NativeQueryConnection).instance.query<R>(
-      query,
-      {
+    try {
+      return await (
+        this.nativeQueryConnections[connectionName] as NativeQueryConnection
+      ).instance.query<R>(query, {
         bind: contextVariables,
         type: QueryTypes.SELECT,
         raw: true,
-      },
-    );
+      });
+    } catch (e) {
+      const error = e as Error;
+      throw new UnprocessableError(`Query failed with the following error: ${error.message}`);
+    }
   }
 }
