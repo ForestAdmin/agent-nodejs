@@ -19,6 +19,7 @@ export interface ApiRouteChart extends BaseChart {
 export interface QueryChart extends BaseChart {
   type: Exclude<ChartType, ChartType.Smart>;
   query: string;
+  connectionName?: string;
 }
 
 export interface FilterableChart extends BaseChart {
