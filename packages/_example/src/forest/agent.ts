@@ -37,7 +37,9 @@ export default function makeAgent() {
 
     .addDataSource(
       // Using an URI
-      createSqlDataSource('mariadb://example:password@localhost:3808/example'),
+      createSqlDataSource('mariadb://example:password@localhost:3808/example', {
+        liveQueryConnections: 'Main database',
+      }),
       { include: ['customer'] },
     )
     .addDataSource(
@@ -52,7 +54,11 @@ export default function makeAgent() {
       { include: ['card', 'active_cards'] }, // active_cards is a view
     )
     .addDataSource(createTypicode())
-    .addDataSource(createSequelizeDataSource(sequelizePostgres))
+    .addDataSource(
+      createSequelizeDataSource(sequelizePostgres, {
+        liveQueryConnections: 'Business intel',
+      }),
+    )
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))
     .addDataSource(
