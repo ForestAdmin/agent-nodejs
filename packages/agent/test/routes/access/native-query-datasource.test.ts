@@ -1,0 +1,42 @@
+import makeRoutes from '../../../src/routes';
+import DataSourceNativeQueryRoute from '../../../src/routes/access/native-query-datasource';
+import * as factories from '../../__factories__';
+
+describe('DataSourceNativeQueryRoute', () => {
+  describe('setupRoutes', () => {
+    const setupWithLiveQuery = () => {
+      return factories.dataSource.build({
+        nativeQueryConnections: { name: 'Postgre' },
+        schema: { charts: ['myChart'] },
+        collections: [
+          factories.collection.build({
+            name: 'books',
+            schema: factories.collectionSchema.build({
+              charts: ['myChart'],
+            }),
+          }),
+        ],
+      });
+    };
+
+    const router = factories.router.build();
+    router.post = jest.fn();
+
+    const dataSource = setupWithLiveQuery();
+    const routes = makeRoutes(
+      dataSource,
+      factories.forestAdminHttpDriverOptions.build(),
+      factories.forestAdminHttpDriverServices.build(),
+    );
+    const liveQueryRoute = routes.find(
+      route => route instanceof DataSourceNativeQueryRoute,
+    ) as DataSourceNativeQueryRoute;
+
+    test('calling the setup', () => {
+      liveQueryRoute.setupRoutes(router);
+
+      expect(router.post).toHaveBeenCalledOnce();
+      expect(router.post).toHaveBeenCalledWith('/_internal/native_query', expect.toBeFunction());
+    });
+  });
+});
