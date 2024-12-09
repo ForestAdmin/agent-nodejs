@@ -8,6 +8,7 @@ function hashChart(chart: Chart): string {
     'apiRoute',
     'smartRoute',
     'query',
+    'connectionName',
     'labelFieldName',
     'filter',
     'sourceCollectionName',
