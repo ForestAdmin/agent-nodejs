@@ -1,5 +1,6 @@
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
+import isSegmentQueryOnConnection from './is-segment-query-on-connection';
 import {
   CollectionRenderingPermissionV4,
   PermissionLevel,
@@ -96,11 +97,13 @@ export default class RenderingPermissionService {
     renderingId,
     collectionName,
     segmentQuery,
+    connectionName,
     userId,
   }: {
     renderingId: number | string;
     collectionName: string;
     segmentQuery: string;
+    connectionName?: string;
     userId: number;
   }): Promise<boolean> {
     return (
@@ -108,6 +111,7 @@ export default class RenderingPermissionService {
         renderingId,
         collectionName,
         segmentQuery,
+        connectionName,
         userId,
         // Only allow retry when not using server events
         allowRetry: !this.options.instantCacheRefresh,
@@ -119,12 +123,14 @@ export default class RenderingPermissionService {
     renderingId,
     collectionName,
     segmentQuery,
+    connectionName,
     allowRetry,
     userId,
   }: {
     renderingId: number | string;
     collectionName: string;
     segmentQuery: string;
+    connectionName?: string;
     allowRetry: boolean;
     userId: number;
   }): Promise<boolean> {
@@ -150,6 +156,7 @@ export default class RenderingPermissionService {
 
     if (
       !collectionPermissions ||
+      !isSegmentQueryOnConnection(collectionPermissions, segmentQuery, connectionName) ||
       !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
     ) {
       if (allowRetry) {
@@ -159,6 +166,7 @@ export default class RenderingPermissionService {
           renderingId,
           collectionName,
           segmentQuery,
+          connectionName,
           userId,
           allowRetry: false,
         });

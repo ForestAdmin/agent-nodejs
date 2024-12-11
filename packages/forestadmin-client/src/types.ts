@@ -106,6 +106,7 @@ export interface PermissionService {
     collectionName: string;
     renderingId: number | string;
     segmentQuery: string;
+    connectionName?: string;
   }): Promise<boolean>;
 
   getConditionalTriggerCondition(params: {

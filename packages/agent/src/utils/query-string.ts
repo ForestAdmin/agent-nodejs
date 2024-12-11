@@ -12,6 +12,7 @@ import {
   Sort,
   SortFactory,
   SortValidator,
+  UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import { Context } from 'koa';
@@ -115,6 +116,22 @@ export default class QueryStringParser {
     }
 
     return segment;
+  }
+
+  static parseLiveQuerySegment(context: Context) {
+    const { query } = context.request as any;
+    const segmentQuery = query.segmentQuery?.toString();
+    const connectionName = query.connectionName?.toString();
+
+    if (!segmentQuery) {
+      return null;
+    }
+
+    if (!connectionName) {
+      throw new UnprocessableError('Missing native query connection attribute');
+    }
+
+    return { query: segmentQuery, connectionName };
   }
 
   static parseCaller(context: Context): Caller {
