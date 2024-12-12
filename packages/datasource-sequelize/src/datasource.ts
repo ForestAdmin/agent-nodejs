@@ -1,4 +1,4 @@
-import { BaseDataSource, Logger, UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import SequelizeCollection from './collection';
