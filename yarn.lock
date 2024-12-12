@@ -1577,21 +1577,6 @@
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
 
-<<<<<<< Updated upstream
-=======
-"@forestadmin/datasource-customizer@1.55.5":
-  version "1.55.5"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.55.5.tgz#1cc20e0832c3681f7804787ff7c00127d66c8be7"
-  integrity sha512-qvRZlQMYb4s7l6qd1pehXFdVv0PpFbD5FTLrLEhAzrJrMEyrwidwMWd+rnJERYKJXiN+4jpHhCzoxs9kiKdyRw==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.43.0"
-    antlr4 "^4.13.1-patch-1"
-    file-type "^16.5.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "^9.0.0"
-
->>>>>>> Stashed changes
 "@forestadmin/datasource-sequelize@1.10.5":
   version "1.10.5"
   resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.10.5.tgz#e8353e0cb8bc38ad109b4224f472aa6be59bb569"
@@ -1621,21 +1606,6 @@
     object-hash "^3.0.0"
     uuid "^9.0.0"
 
-<<<<<<< Updated upstream
-=======
-"@forestadmin/forestadmin-client@1.35.1":
-  version "1.35.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.35.1.tgz#d4f7f6ab5002e8793e3867859db0973558a85ec7"
-  integrity sha512-OYKx7EpEXfU4bI9OH5sBcusieeZ4N/LMkEc2dpdTcUAdntcGJyJ6TzKPfTaEkwiDJN55hAhzi4AiUGK6W8Yzrw==
-  dependencies:
-    eventsource "2.0.2"
-    json-api-serializer "^2.6.6"
-    jsonwebtoken "^9.0.0"
-    object-hash "^3.0.0"
-    openid-client "^5.6.4"
-    superagent "^8.0.6"
-
->>>>>>> Stashed changes
 "@gar/promisify@^1.0.1", "@gar/promisify@^1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"

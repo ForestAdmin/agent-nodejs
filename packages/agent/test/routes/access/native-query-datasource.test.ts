@@ -7,6 +7,8 @@ import * as factories from '../../__factories__';
 
 describe('DataSourceNativeQueryRoute', () => {
   describe('setupRoutes', () => {
+    afterEach(() => jest.resetAllMocks());
+
     const setupWithLiveQuery = () => {
       return factories.dataSource.build({
         nativeQueryConnections: { name: 'Postgre' },
@@ -59,7 +61,7 @@ describe('DataSourceNativeQueryRoute', () => {
 
             await expect(() =>
               handleNativeQuery({ request: { body: {} } } as Context),
-            ).rejects.toBe(
+            ).rejects.toThrow(
               new UnprocessableError('Native query endpoint only supports Query Chart Requests'),
             );
           });
