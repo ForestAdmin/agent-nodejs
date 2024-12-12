@@ -55,17 +55,13 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
       throw new Error(`Unknown connection name '${connectionName}'`);
     }
 
-    try {
-      return await (
-        this.nativeQueryConnections[connectionName] as NativeQueryConnection
-      ).instance.query<R>(query, {
+    return (this.nativeQueryConnections[connectionName] as NativeQueryConnection).instance.query<R>(
+      query,
+      {
         bind: contextVariables,
         type: QueryTypes.SELECT,
         raw: true,
-      });
-    } catch (e) {
-      const error = e as Error;
-      throw new UnprocessableError(`Query failed with the following error: ${error.message}`);
-    }
+      },
+    );
   }
 }
