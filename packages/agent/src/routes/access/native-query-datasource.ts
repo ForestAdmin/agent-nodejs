@@ -70,11 +70,19 @@ export default class DataSourceNativeQueryRoute extends BaseRoute {
       chartRequest,
     });
 
-    const result = (await this.dataSource.executeNativeQuery(
-      chartRequest.connectionName,
-      query,
-      contextVariables,
-    )) as Record<string, unknown>[];
+    let result;
+
+    try {
+      result = (await this.dataSource.executeNativeQuery(
+        chartRequest.connectionName,
+        query,
+        contextVariables,
+      )) as Record<string, unknown>[];
+    } catch (error) {
+      throw new UnprocessableError(
+        `Error during chart native query execution: ${(error as Error).message}`,
+      );
+    }
 
     let body;
 
