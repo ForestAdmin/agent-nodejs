@@ -150,6 +150,32 @@ describe('DataSourceNativeQueryRoute', () => {
           });
         });
 
+        describe('when connectionName is missing', () => {
+          test('it should throw an error', async () => {
+            liveQueryRoute.setupRoutes(router);
+
+            expect(router.post).toHaveBeenCalledOnce();
+            expect(router.post).toHaveBeenCalledWith(
+              '/_internal/native_query',
+              expect.toBeFunction(),
+            );
+            const handleNativeQuery = (router.post as jest.Mock).mock.calls[0][1] as (
+              context: Context,
+            ) => Promise<void>;
+
+            await expect(() =>
+              handleNativeQuery({
+                request: {
+                  body: {
+                    query: 'Select * FROM toto',
+                    type: ChartType.Pie,
+                  },
+                },
+              } as Context),
+            ).rejects.toThrow(new UnprocessableError(`Missing native query connection attribute`));
+          });
+        });
+
         describe('when sql query causes an error', () => {
           test('it should throw an error', async () => {
             liveQueryRoute.setupRoutes(router);
@@ -201,7 +227,13 @@ describe('DataSourceNativeQueryRoute', () => {
         });
 
         describe('when query returns wrong keys', () => {
-          test('it should throw an error', async () => {
+          test.each([
+            { type: ChartType.Leaderboard },
+            { type: ChartType.Pie },
+            { type: ChartType.Value },
+            { type: ChartType.Line },
+            { type: ChartType.Objective },
+          ])('it should throw an error', async ({ type }) => {
             liveQueryRoute.setupRoutes(router);
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -235,7 +267,7 @@ describe('DataSourceNativeQueryRoute', () => {
                 body: {
                   query: 'Select * FROM toto',
                   connectionName: 'main',
-                  type: ChartType.Pie,
+                  type,
                 },
               },
             } as Context;
