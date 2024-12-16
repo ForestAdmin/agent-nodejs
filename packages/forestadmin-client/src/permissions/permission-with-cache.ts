@@ -36,6 +36,7 @@ export default class PermissionServiceWithCache implements PermissionService {
     collectionName: string;
     renderingId: number;
     segmentQuery: string;
+    connectionName?: string;
   }) {
     return this.renderingPermissionService.canExecuteSegmentQuery(params);
   }

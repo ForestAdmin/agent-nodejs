@@ -346,7 +346,8 @@ describe('ActionRoute', () => {
           },
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         },
       );
     });
@@ -567,7 +568,8 @@ describe('ActionRoute', () => {
           },
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         },
         {
           changedField: undefined,
@@ -634,7 +636,8 @@ describe('ActionRoute', () => {
           },
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         },
         {
           searchField: undefined,
@@ -707,7 +710,8 @@ describe('ActionRoute', () => {
           },
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         },
       );
     });
@@ -764,7 +768,8 @@ describe('ActionRoute', () => {
           conditionTree: null,
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         }),
       );
     });
@@ -850,7 +855,8 @@ describe('ActionRoute', () => {
           }),
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         }),
       );
     });
@@ -940,7 +946,8 @@ describe('ActionRoute', () => {
           }),
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         }),
       );
     });

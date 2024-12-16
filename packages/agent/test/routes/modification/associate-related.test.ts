@@ -107,7 +107,8 @@ describe('AssociateRelatedRoute', () => {
           }),
           search: null,
           searchExtended: false,
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );

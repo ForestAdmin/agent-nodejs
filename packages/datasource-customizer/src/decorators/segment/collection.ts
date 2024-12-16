@@ -1,11 +1,14 @@
 import {
+  BusinessError,
   Caller,
   CollectionDecorator,
   CollectionSchema,
   ConditionTree,
   ConditionTreeFactory,
+  ConditionTreeLeaf,
   ConditionTreeValidator,
   PaginatedFilter,
+  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import { SegmentDefinition } from './types';
@@ -34,7 +37,18 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
       return null;
     }
 
-    let { conditionTree, segment } = filter;
+    const trees = await Promise.all([
+      this.refineFilterSegment(caller, filter),
+      this.refineFilterLiveQuerySegment(filter),
+    ]);
+
+    const conditionTree = ConditionTreeFactory.intersect(filter.conditionTree, ...trees);
+
+    return filter.override({ conditionTree, segment: null });
+  }
+
+  private async refineFilterSegment(caller: Caller, filter: PaginatedFilter) {
+    const { segment } = filter;
 
     if (segment && this.segments[segment]) {
       const definition = this.segments[segment];
@@ -43,15 +57,49 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
           ? await definition(new CollectionCustomizationContext(this, caller))
           : await definition;
 
-      const conditionTreeSegment =
+      const conditionTree =
         result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
 
-      ConditionTreeValidator.validate(conditionTreeSegment, this);
+      ConditionTreeValidator.validate(conditionTree, this);
 
-      conditionTree = ConditionTreeFactory.intersect(conditionTree, conditionTreeSegment);
-      segment = null;
+      return conditionTree;
     }
 
-    return filter.override({ conditionTree, segment });
+    return null;
+  }
+
+  private async refineFilterLiveQuerySegment(filter: PaginatedFilter) {
+    const { liveQuerySegment } = filter;
+
+    if (liveQuerySegment) {
+      const { query, connectionName } = liveQuerySegment;
+
+      try {
+        const result = (await this.dataSource.executeNativeQuery(
+          connectionName,
+          query,
+          {},
+        )) as Record<string, unknown>[];
+
+        const [primaryKey] = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
+
+        const conditionTree = new ConditionTreeLeaf(
+          primaryKey,
+          'In',
+          result.map(row => row[primaryKey]),
+        );
+
+        ConditionTreeValidator.validate(conditionTree, this);
+
+        return conditionTree;
+      } catch (error) {
+        throw new BusinessError(
+          `An error occurred during the execution of the segment query - ${error.message}`,
+          error,
+        );
+      }
+    }
+
+    return null;
   }
 }

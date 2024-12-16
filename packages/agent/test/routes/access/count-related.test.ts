@@ -134,6 +134,7 @@ describe('CountRelatedRoute', () => {
             search: 'searched argument',
             searchExtended: false,
             segment: 'a-valid-segment',
+            liveQuerySegment: expect.toBeNil(),
             conditionTree: new ConditionTreeLeaf(
               'id',
               'Equal',
@@ -198,7 +199,7 @@ describe('CountRelatedRoute', () => {
             ],
           }),
         };
-        const segmentParams = { segment: 'a-valid-segment' };
+        const segmentParams = { segment: 'a-valid-segment', liveQuerySegment: expect.toBeNil() };
 
         const context = createMockContext({
           customProperties: {
@@ -238,6 +239,7 @@ describe('CountRelatedRoute', () => {
             search: 'searched argument',
             searchExtended: false,
             segment: 'a-valid-segment',
+            liveQuerySegment: expect.toBeNil(),
             conditionTree: ConditionTreeFactory.fromPlainObject({
               aggregator: 'And',
               conditions: [
