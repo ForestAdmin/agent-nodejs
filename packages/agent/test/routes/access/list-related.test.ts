@@ -115,6 +115,7 @@ describe('ListRelatedRoute', () => {
             page: new Page(0, 15),
             sort: new Sort({ field: 'id', ascending: true }),
             segment: 'a-valid-segment',
+            liveQuerySegment: expect.toBeNil(),
             conditionTree: new ConditionTreeLeaf(
               'id',
               'Equal',
@@ -184,7 +185,7 @@ describe('ListRelatedRoute', () => {
             ],
           }),
         };
-        const segmentParams = { segment: 'a-valid-segment' };
+        const segmentParams = { segment: 'a-valid-segment', liveQuerySegment: expect.toBeNil() };
         const projectionParams = { 'fields[persons]': 'id,name' };
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
@@ -225,6 +226,7 @@ describe('ListRelatedRoute', () => {
             page: new Page(0, 15),
             sort: new Sort({ field: 'id', ascending: true }),
             segment: 'a-valid-segment',
+            liveQuerySegment: expect.toBeNil(),
             conditionTree: ConditionTreeFactory.fromPlainObject({
               aggregator: 'And',
               conditions: [

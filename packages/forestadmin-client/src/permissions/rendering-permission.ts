@@ -1,6 +1,6 @@
 import { hashChartRequest, hashServerCharts } from './hash-chart';
+import isSegmentQueryAllowedOnConnection from './is-segment-query-allowed-on-connection';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
-import isSegmentQueryOnConnection from './is-segment-query-on-connection';
 import {
   CollectionRenderingPermissionV4,
   PermissionLevel,
@@ -156,7 +156,7 @@ export default class RenderingPermissionService {
 
     if (
       !collectionPermissions ||
-      !isSegmentQueryOnConnection(collectionPermissions, segmentQuery, connectionName) ||
+      !isSegmentQueryAllowedOnConnection(collectionPermissions, segmentQuery, connectionName) ||
       !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
     ) {
       if (allowRetry) {

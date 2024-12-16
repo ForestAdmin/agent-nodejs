@@ -51,12 +51,16 @@ export default class AuthorizationService {
       collectionName,
     });
 
-    const { segmentQuery, connectionName } = context.request.body as {
-      segmentQuery?: string;
-      connectionName?: string;
-    };
+    if (
+      context.request?.body &&
+      CollectionActionEvent.Browse === event &&
+      (context.request.body as { segmentQuery?: string }).segmentQuery
+    ) {
+      const { segmentQuery, connectionName } = context.request.body as {
+        segmentQuery?: string;
+        connectionName?: string;
+      };
 
-    if (CollectionActionEvent.Browse === event && segmentQuery) {
       const canExecuteSegmentQuery =
         await this.forestAdminClient.permissionService.canExecuteSegmentQuery({
           userId,

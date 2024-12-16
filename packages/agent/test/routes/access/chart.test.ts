@@ -132,7 +132,13 @@ describe('ChartRoute', () => {
             request: { ip: expect.any(String) },
             timezone: 'Europe/Paris',
           },
-          { conditionTree: null, search: null, searchExtended: false, segment: null },
+          {
+            conditionTree: null,
+            search: null,
+            searchExtended: false,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+          },
           { field: undefined, groups: undefined, operation: 'Count' },
         );
         expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
@@ -274,7 +280,8 @@ describe('ChartRoute', () => {
                 conditionTree: { field: 'name', operator: 'Present', value: null },
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               },
               { field: undefined, groups: undefined, operation: 'Count' },
             );
@@ -335,7 +342,8 @@ describe('ChartRoute', () => {
                 },
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               },
               { field: undefined, groups: undefined, operation: 'Count' },
             );
@@ -410,7 +418,13 @@ describe('ChartRoute', () => {
             request: { ip: expect.any(String) },
             timezone: 'Europe/Paris',
           },
-          { conditionTree: null, search: null, searchExtended: false, segment: null },
+          {
+            conditionTree: null,
+            search: null,
+            searchExtended: false,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+          },
           { field: undefined, groups: undefined, operation: 'Count' },
         );
         expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
@@ -460,7 +474,8 @@ describe('ChartRoute', () => {
             conditionTree: { field: 'title', operator: 'NotContains', value: '[test]' },
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           },
           { field: undefined, groups: undefined, operation: 'Count' },
         );
@@ -505,7 +520,13 @@ describe('ChartRoute', () => {
             request: { ip: expect.any(String) },
             timezone: 'Europe/Paris',
           },
-          { conditionTree: null, search: null, searchExtended: false, segment: null },
+          {
+            conditionTree: null,
+            search: null,
+            searchExtended: false,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+          },
           { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
         );
         expect(getChartWithContextInjectedMock).toHaveBeenCalledWith({
@@ -566,7 +587,8 @@ describe('ChartRoute', () => {
             conditionTree: { field: 'title', operator: 'NotContains', value: '[test]' },
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           },
           { field: undefined, groups: [{ field: 'author:firstName' }], operation: 'Count' },
         );
@@ -628,7 +650,8 @@ describe('ChartRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           },
           {
             field: undefined,
@@ -709,7 +732,8 @@ describe('ChartRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           },
           {
             field: undefined,
@@ -770,7 +794,13 @@ describe('ChartRoute', () => {
             request: { ip: expect.any(String) },
             timezone: 'Europe/Paris',
           },
-          { conditionTree: null, search: null, searchExtended: false, segment: null },
+          {
+            conditionTree: null,
+            search: null,
+            searchExtended: false,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+          },
           { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
           2,
         );
@@ -821,7 +851,13 @@ describe('ChartRoute', () => {
             request: { ip: expect.any(String) },
             timezone: 'Europe/Paris',
           },
-          { conditionTree: null, search: null, searchExtended: false, segment: null },
+          {
+            conditionTree: null,
+            search: null,
+            searchExtended: false,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+          },
           { operation: 'Count', field: null, groups: [{ field: 'publisher:id' }] },
           2,
         );
@@ -887,7 +923,8 @@ describe('ChartRoute', () => {
             },
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           },
           { field: 'id', groups: [{ field: 'author:id' }], operation: 'Sum' },
           2,
@@ -941,7 +978,13 @@ describe('ChartRoute', () => {
               request: { ip: expect.any(String) },
               timezone: 'Europe/Paris',
             },
-            { conditionTree: null, search: null, searchExtended: false, segment: null },
+            {
+              conditionTree: null,
+              search: null,
+              searchExtended: false,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
+            },
             { groups: [{ field: 'author:id' }], operation: 'Count' },
             2,
           );

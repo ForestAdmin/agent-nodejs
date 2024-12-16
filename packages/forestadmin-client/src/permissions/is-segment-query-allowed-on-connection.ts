@@ -1,6 +1,6 @@
 import { CollectionRenderingPermissionV4 } from './types';
 
-export default function isSegmentQueryAllowed(
+export default function isSegmentQueryAllowedOnConnection(
   collectionPermissions: CollectionRenderingPermissionV4,
   segmentQuery: string,
   connectionName: string,

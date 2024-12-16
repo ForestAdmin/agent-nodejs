@@ -5,9 +5,9 @@ import {
   CollectionSchema,
   ConditionTree,
   ConditionTreeFactory,
+  ConditionTreeLeaf,
   ConditionTreeValidator,
   PaginatedFilter,
-  PlainConditionTree,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
@@ -82,13 +82,13 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
         )) as Record<string, unknown>[];
 
         const [primaryKey] = SchemaUtils.getPrimaryKeys(this.childCollection.schema);
-        const plainCondition: PlainConditionTree = {
-          field: primaryKey,
-          operator: 'In',
-          value: result.map(row => row[primaryKey]),
-        };
 
-        const conditionTree = ConditionTreeFactory.fromPlainObject(plainCondition);
+        const conditionTree = new ConditionTreeLeaf(
+          primaryKey,
+          'In',
+          result.map(row => row[primaryKey]),
+        );
+
         ConditionTreeValidator.validate(conditionTree, this);
 
         return conditionTree;
