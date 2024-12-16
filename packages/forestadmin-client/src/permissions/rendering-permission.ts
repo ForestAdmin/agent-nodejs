@@ -156,7 +156,8 @@ export default class RenderingPermissionService {
 
     if (
       !collectionPermissions ||
-      !isSegmentQueryAllowedOnConnection(collectionPermissions, segmentQuery, connectionName) ||
+      (connectionName &&
+        !isSegmentQueryAllowedOnConnection(collectionPermissions, segmentQuery, connectionName)) ||
       !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
     ) {
       if (allowRetry) {
