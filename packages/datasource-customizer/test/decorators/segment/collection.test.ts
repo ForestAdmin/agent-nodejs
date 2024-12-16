@@ -1,4 +1,10 @@
-import { Collection, DataSource, MissingFieldError } from '@forestadmin/datasource-toolkit';
+import {
+  BusinessError,
+  Collection,
+  ConditionTreeLeaf,
+  DataSource,
+  MissingFieldError,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import SegmentCollectionDecorator from '../../../src/decorators/segment/collection';
@@ -14,6 +20,11 @@ describe('SegmentCollectionDecorator', () => {
         name: 'books',
         schema: factories.collectionSchema.build({
           fields: {
+            id: factories.columnSchema.build({
+              isPrimaryKey: true,
+              columnType: 'Number',
+              filterOperators: new Set(['In']),
+            }),
             name: factories.columnSchema.build({
               filterOperators: new Set(['Equal', 'In']),
             }),
@@ -75,7 +86,8 @@ describe('SegmentCollectionDecorator', () => {
 
         expect(conditionTreeGenerator).toHaveBeenCalled();
         expect(filter).toEqual({
-          segment: null,
+          segment: expect.toBeNil(),
+          liveQuerySegment: expect.toBeNil(),
           conditionTree: {
             aggregator: 'And',
             conditions: [
@@ -104,6 +116,51 @@ describe('SegmentCollectionDecorator', () => {
         ).rejects.toThrow(MissingFieldError);
 
         expect(conditionTreeGenerator).toHaveBeenCalled();
+      });
+    });
+
+    describe('when there is a live query segment', () => {
+      it('should return the filter with the merged conditionTree from the query', async () => {
+        jest
+          .mocked(dataSource.executeNativeQuery)
+          .mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
+
+        const filter = await segmentDecorator.refineFilter(
+          factories.caller.build(),
+          factories.filter.build({
+            liveQuerySegment: { query: 'SELECT id from toto', connectionName: 'main' },
+          }),
+        );
+
+        const conditionTree = new ConditionTreeLeaf('id', 'In', [1, 2, 3]);
+
+        expect(filter).toEqual(
+          expect.objectContaining({
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+            conditionTree,
+          }),
+        );
+      });
+
+      describe('when an error occurs during the execution', () => {
+        it('should throw a business error', async () => {
+          const error = new Error('Database error');
+          jest.mocked(dataSource.executeNativeQuery).mockRejectedValue(error);
+
+          await expect(
+            segmentDecorator.refineFilter(
+              factories.caller.build(),
+              factories.filter.build({
+                liveQuerySegment: { query: 'SELECT id from toto', connectionName: 'main' },
+              }),
+            ),
+          ).rejects.toThrow(
+            new BusinessError(
+              `An error occurred during the execution of the segment query - Database error`,
+            ),
+          );
+        });
       });
     });
   });

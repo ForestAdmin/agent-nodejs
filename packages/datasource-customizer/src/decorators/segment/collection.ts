@@ -44,7 +44,7 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
 
     const conditionTree = ConditionTreeFactory.intersect(filter.conditionTree, ...trees);
 
-    return filter.override({ conditionTree, segment: null });
+    return filter.override({ conditionTree, segment: null, liveQuerySegment: null });
   }
 
   private async refineFilterSegment(caller: Caller, filter: PaginatedFilter) {
