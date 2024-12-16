@@ -39,14 +39,13 @@ describe('SegmentCollectionDecorator', () => {
 
   describe('when there is a filter', () => {
     describe('when the segment is not managed by this decorator', () => {
-      it('should return the given filter', async () => {
+      it('should not generate condition tree', async () => {
         const conditionTreeGenerator = jest.fn();
         segmentDecorator.addSegment('segmentName', conditionTreeGenerator);
 
-        const aFilter = factories.filter.build({ segment: 'aSegment' });
-        const filter = await segmentDecorator.refineFilter(factories.caller.build(), aFilter);
+        const aFilter = factories.filter.build({ segment: 'aSegment', conditionTree: null });
+        await segmentDecorator.refineFilter(factories.caller.build(), aFilter);
 
-        expect(filter).toEqual(aFilter);
         expect(conditionTreeGenerator).not.toHaveBeenCalled();
       });
     });
