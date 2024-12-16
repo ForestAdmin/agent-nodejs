@@ -23,6 +23,7 @@ async function createSSHTunnel(uri: string, sshConfig: SshOptions) {
 
   const tunnelOptions: TunnelOptions = {
     autoClose: false,
+    reconnectOnError: false,
   };
   const serverOptions: ServerOptions = {};
   const forwardOptions: ForwardOptions = {
