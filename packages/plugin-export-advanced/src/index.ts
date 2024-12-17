@@ -43,7 +43,7 @@ function getForm(
     form.push({
       label: 'Filename',
       type: 'String',
-      defaultValue: `${collection.name} - ${new Date().toISOString().substring(0, 10)}`,
+      defaultValue: () => `${collection.name} - ${new Date().toISOString().substring(0, 10)}`,
     });
   }
 
