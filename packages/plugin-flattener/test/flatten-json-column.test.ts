@@ -10,6 +10,7 @@ const logger = () => {};
 const filter = factories.filter.build({
   search: null as unknown as undefined,
   segment: null as unknown as undefined,
+  liveQuerySegment: null as unknown as undefined,
 });
 const caller = factories.caller.build();
 
@@ -246,6 +247,7 @@ describe('flattenJsonColumn', () => {
           conditionTree: { field: 'id', operator: 'Equal', value: '1' },
           search: null,
           segment: null,
+          liveQuerySegment: null,
         },
         { author: { name: 'Tolkien', address: { city: 'New York' } } },
       );
@@ -255,6 +257,7 @@ describe('flattenJsonColumn', () => {
           conditionTree: { field: 'id', operator: 'In', value: ['2', '3'] },
           search: null,
           segment: null,
+          liveQuerySegment: null,
         },
         { author: { name: 'Tolkien' } },
       );
