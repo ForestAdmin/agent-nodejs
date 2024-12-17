@@ -1,3 +1,10 @@
+## @forestadmin/plugin-export-advanced [1.1.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.14...@forestadmin/plugin-export-advanced@1.1.15) (2024-12-17)
+
+
+### Bug Fixes
+
+* **export-advanced:** compute filename on runtime ([#1229](https://github.com/ForestAdmin/agent-nodejs/issues/1229)) ([44082e8](https://github.com/ForestAdmin/agent-nodejs/commit/44082e86cbc469aeafa32086a0c1e0d3078d52b1))
+
 ## @forestadmin/plugin-export-advanced [1.1.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.13...@forestadmin/plugin-export-advanced@1.1.14) (2024-11-27)
 
 
