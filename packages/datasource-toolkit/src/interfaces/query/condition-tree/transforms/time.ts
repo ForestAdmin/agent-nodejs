@@ -6,7 +6,9 @@ import { Operator } from '../nodes/operators';
 
 type DateCallback = (now: DateTime, value: unknown) => DateTime;
 
-function format(value: DateTime): string {
+function format(value: DateTime, isDateOnly: boolean): string {
+  if (isDateOnly) return value.toISODate();
+
   return value.toUTC().toISO({ suppressMilliseconds: true });
 }
 
@@ -14,24 +16,27 @@ function compare(operator: Operator, dateFn: DateCallback): Alternative {
   return {
     dependsOn: [operator],
     forTypes: ['Date', 'Dateonly'],
-    replacer: (leaf, tz) => {
+    replacer: (leaf, tz, isDateOnly) => {
       const now = DateTime.utc().setZone(tz);
 
-      return leaf.override({ operator, value: format(dateFn(now, leaf.value)) });
+      return leaf.override({ operator, value: format(dateFn(now, leaf.value), isDateOnly) });
     },
   };
 }
 
 function interval(startFn: DateCallback, endFn: DateCallback): Alternative {
   return {
-    dependsOn: ['LessThan', 'GreaterThan'],
+    dependsOn: ['LessThan', 'GreaterThan', 'GreaterThanOrEqual'],
     forTypes: ['Date', 'Dateonly'],
-    replacer: (leaf, tz) => {
+    replacer: (leaf, tz, isDateOnly) => {
       const now = DateTime.utc().setZone(tz);
 
       return ConditionTreeFactory.intersect(
-        leaf.override({ operator: 'GreaterThan', value: format(startFn(now, leaf.value)) }),
-        leaf.override({ operator: 'LessThan', value: format(endFn(now, leaf.value)) }),
+        leaf.override({
+          operator: isDateOnly ? 'GreaterThanOrEqual' : 'GreaterThan',
+          value: format(startFn(now, leaf.value), isDateOnly),
+        }),
+        leaf.override({ operator: 'LessThan', value: format(endFn(now, leaf.value), isDateOnly) }),
       );
     },
   };
