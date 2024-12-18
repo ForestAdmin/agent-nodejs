@@ -73,7 +73,8 @@ describe('DeleteRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
       });
@@ -145,7 +146,8 @@ describe('DeleteRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
       });
@@ -196,7 +198,8 @@ describe('DeleteRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -253,7 +256,8 @@ describe('DeleteRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -304,7 +308,8 @@ describe('DeleteRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -386,7 +391,8 @@ describe('DeleteRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
       });
@@ -450,7 +456,8 @@ describe('DeleteRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
           );
         });

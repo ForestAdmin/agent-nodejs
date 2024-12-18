@@ -1,5 +1,6 @@
-import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
+import { Projection, UnprocessableError, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
+import { Context } from 'koa';
 
 import QueryStringParser from '../../src/utils/query-string';
 import * as factories from '../__factories__';
@@ -382,6 +383,39 @@ describe('QueryStringParser', () => {
       });
 
       expect(QueryStringParser.parseSegment(collectionSimple, context)).toEqual('fake-segment');
+    });
+  });
+
+  describe('parseLiveQuerySegment', () => {
+    test('should return null when no segment query is provided', () => {
+      const context = {
+        request: { query: {} },
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseLiveQuerySegment(context)).toEqual(null);
+    });
+
+    test('should parse live query segment properties', () => {
+      const context = {
+        request: { query: { segmentQuery: 'SELECT * FROM toto', connectionName: 'main' } },
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseLiveQuerySegment(context)).toEqual({
+        query: 'SELECT * FROM toto',
+        connectionName: 'main',
+      });
+    });
+
+    describe('when no connectionName is provided', () => {
+      test('should throw an error', () => {
+        const context = {
+          request: { query: { segmentQuery: 'SELECT * FROM toto' } },
+        } as unknown as Context;
+
+        expect(() => QueryStringParser.parseLiveQuerySegment(context)).toThrow(
+          new UnprocessableError('Missing native query connection attribute'),
+        );
+      });
     });
   });
 

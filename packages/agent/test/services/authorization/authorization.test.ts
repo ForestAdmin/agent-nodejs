@@ -81,6 +81,96 @@ describe('AuthorizationService', () => {
     });
   });
 
+  describe('assertCanBrowseOnCollection', () => {
+    describe('when a live query segment is present', () => {
+      it('should not do anything for authorized users', async () => {
+        const forestAdminClient = factories.forestAdminClient.build();
+        const authorizationService = new AuthorizationService(forestAdminClient);
+
+        const context = {
+          request: {
+            body: {
+              segmentQuery: `SELECT id FROM books where type = 'comics'`,
+              connectionName: 'library',
+            },
+          },
+          state: {
+            user: {
+              id: 35,
+              renderingId: 42,
+            },
+          },
+          throw: jest.fn(),
+        } as unknown as Context;
+
+        (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
+        (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+          true,
+        );
+
+        await authorizationService.assertCanBrowse(context, 'books');
+
+        expect(context.throw).not.toHaveBeenCalled();
+
+        expect(forestAdminClient.permissionService.canOnCollection).toHaveBeenCalledWith({
+          userId: 35,
+          event: CollectionActionEvent.Browse,
+          collectionName: 'books',
+        });
+
+        expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+          userId: 35,
+          collectionName: 'books',
+          renderingId: 42,
+          segmentQuery: `SELECT id FROM books where type = 'comics'`,
+          connectionName: 'library',
+        });
+      });
+
+      describe('when query is not authorized', () => {
+        it('should throw forbidden error', async () => {
+          const forestAdminClient = factories.forestAdminClient.build();
+          const authorizationService = new AuthorizationService(forestAdminClient);
+
+          const context = {
+            request: {
+              body: {
+                segmentQuery: `DROP TABLE books;`,
+                connectionName: 'library',
+              },
+            },
+            state: {
+              user: {
+                id: 35,
+                renderingId: 42,
+              },
+            },
+            throw: jest.fn(),
+          } as unknown as Context;
+
+          (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(
+            true,
+          );
+          (
+            forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock
+          ).mockResolvedValue(false);
+
+          await authorizationService.assertCanBrowse(context, 'books');
+
+          expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+
+          expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+            userId: 35,
+            collectionName: 'books',
+            renderingId: 42,
+            segmentQuery: `DROP TABLE books;`,
+            connectionName: 'library',
+          });
+        });
+      });
+    });
+  });
+
   describe('getScope', () => {
     it('should return the scope for the given user', async () => {
       const forestAdminClient = factories.forestAdminClient.build();

@@ -3,6 +3,7 @@ import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query
 import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
 import NonSelectSQLQueryError from '../../src/permissions/errors/non-select-sql-query-error';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
+import isSegmentQueryAllowedOnConnection from '../../src/permissions/is-segment-query-allowed-on-connection';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
 import { PermissionLevel, RawTree } from '../../src/permissions/types';
@@ -18,6 +19,11 @@ jest.mock('../../src/permissions/hash-chart', () => ({
 }));
 
 jest.mock('../../src/permissions/is-segment-query-authorized', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('../../src/permissions/is-segment-query-allowed-on-connection', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -56,6 +62,7 @@ describe('RenderingPermissionService', () => {
     const hashChartRequestMock = hashChartRequest as jest.Mock;
     const verifySQLQueryMock = verifySQLQuery as jest.Mock;
     const isSegmentQueryAllowedMock = isSegmentQueryAllowed as jest.Mock;
+    const isSegmentQueryAllowedOnConnectionMock = isSegmentQueryAllowedOnConnection as jest.Mock;
 
     return {
       userPermission,
@@ -66,6 +73,7 @@ describe('RenderingPermissionService', () => {
       hashChartRequestMock,
       verifySQLQueryMock,
       isSegmentQueryAllowedMock,
+      isSegmentQueryAllowedOnConnectionMock,
       options,
     };
   }
@@ -853,6 +861,7 @@ describe('RenderingPermissionService', () => {
         serverInterface,
         verifySQLQueryMock,
         isSegmentQueryAllowedMock,
+        isSegmentQueryAllowedOnConnectionMock,
         options,
       } = setup();
 
@@ -872,6 +881,7 @@ describe('RenderingPermissionService', () => {
       serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
       verifySQLQueryMock.mockReturnValue(true);
       isSegmentQueryAllowedMock.mockReturnValue(true);
+      isSegmentQueryAllowedOnConnectionMock.mockReturnValue(false);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
         renderingId: 42,
@@ -930,7 +940,13 @@ describe('RenderingPermissionService', () => {
     );
 
     it('should return false if the collection does not have an entry in permissions', async () => {
-      const { renderingPermission, serverInterface, isSegmentQueryAllowedMock, options } = setup();
+      const {
+        renderingPermission,
+        serverInterface,
+        isSegmentQueryAllowedMock,
+        isSegmentQueryAllowedOnConnectionMock,
+        options,
+      } = setup();
 
       const permissions = {
         team: { id: 33 },
@@ -950,6 +966,7 @@ describe('RenderingPermissionService', () => {
       expect(result).toBe(false);
 
       expect(isSegmentQueryAllowedMock).not.toHaveBeenCalled();
+      expect(isSegmentQueryAllowedOnConnectionMock).not.toHaveBeenCalled();
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
     });
 
@@ -959,6 +976,7 @@ describe('RenderingPermissionService', () => {
         serverInterface,
         verifySQLQueryMock,
         isSegmentQueryAllowedMock,
+        isSegmentQueryAllowedOnConnectionMock,
         options,
       } = setup();
 
@@ -978,6 +996,7 @@ describe('RenderingPermissionService', () => {
       serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
       verifySQLQueryMock.mockReturnValue(true);
       isSegmentQueryAllowedMock.mockReturnValue(false);
+      isSegmentQueryAllowedOnConnectionMock.mockReturnValue(false);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
         renderingId: 42,
@@ -1000,6 +1019,7 @@ describe('RenderingPermissionService', () => {
         renderingPermission,
         serverInterface,
         isSegmentQueryAllowedMock,
+        isSegmentQueryAllowedOnConnectionMock,
         verifySQLQueryMock,
         options,
       } = setup();
@@ -1035,6 +1055,7 @@ describe('RenderingPermissionService', () => {
         .mockResolvedValueOnce(permissions1)
         .mockResolvedValueOnce(permissions2);
       isSegmentQueryAllowedMock.mockReturnValueOnce(false).mockReturnValueOnce(true);
+      isSegmentQueryAllowedOnConnectionMock.mockReturnValue(false);
       verifySQLQueryMock.mockReturnValue(true);
 
       const result = await renderingPermission.canExecuteSegmentQuery({
@@ -1053,6 +1074,53 @@ describe('RenderingPermissionService', () => {
       );
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
+    });
+
+    describe('when connectionName is present', () => {
+      it('should return true if the segment query is allowed', async () => {
+        const {
+          renderingPermission,
+          serverInterface,
+          verifySQLQueryMock,
+          isSegmentQueryAllowedMock,
+          isSegmentQueryAllowedOnConnectionMock,
+          options,
+        } = setup();
+
+        const actorsPermissions = {
+          liveQuerySegments: [{ query: 'foo', connectionName: 'main' }],
+        };
+
+        const permissions = {
+          team: { id: 33 },
+          collections: {
+            actors: actorsPermissions,
+          },
+          stats: {},
+        };
+
+        serverInterface.getRenderingPermissions = jest.fn().mockResolvedValue(permissions);
+        isSegmentQueryAllowedOnConnectionMock.mockReturnValue(true);
+        isSegmentQueryAllowedMock.mockReturnValue(true);
+        verifySQLQueryMock.mockReturnValue(true);
+
+        const result = await renderingPermission.canExecuteSegmentQuery({
+          renderingId: 42,
+          collectionName: 'actors',
+          connectionName: 'main',
+          segmentQuery: 'SELECT * from actors',
+          userId: 21,
+        });
+
+        expect(result).toBe(true);
+
+        expect(isSegmentQueryAllowedOnConnectionMock).toHaveBeenCalledWith(
+          actorsPermissions,
+          'SELECT * from actors',
+          'main',
+        );
+        expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
+      });
     });
   });
 });

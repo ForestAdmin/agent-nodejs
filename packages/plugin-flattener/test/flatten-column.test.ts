@@ -7,7 +7,11 @@ import flattenColumn from '../src/flatten-column';
 const logger = () => {};
 
 // Working around a bug from a decorator which rewrites search in filters
-const filter = factories.filter.build({ search: null as unknown as undefined });
+const filter = factories.filter.build({
+  search: null as unknown as undefined,
+  segment: null as unknown as undefined,
+  liveQuerySegment: null as unknown as undefined,
+});
 const caller = factories.caller.build();
 
 describe('flattenColumn', () => {
@@ -293,12 +297,22 @@ describe('flattenColumn', () => {
       expect(baseUpdate).toHaveBeenCalledWith(
         caller,
         // not sure why I need to specify search == null. It's related to a bug in a decorator.
-        { conditionTree: { field: 'id', operator: 'Equal', value: '1' }, search: null },
+        {
+          conditionTree: { field: 'id', operator: 'Equal', value: '1' },
+          search: null,
+          segment: null,
+          liveQuerySegment: null,
+        },
         { author: { name: 'Tolkien', address: { city: 'New York' } } },
       );
       expect(baseUpdate).toHaveBeenCalledWith(
         caller,
-        { conditionTree: { field: 'id', operator: 'In', value: ['2', '3'] }, search: null },
+        {
+          conditionTree: { field: 'id', operator: 'In', value: ['2', '3'] },
+          search: null,
+          segment: null,
+          liveQuerySegment: null,
+        },
         { author: { name: 'Tolkien' } },
       );
     });

@@ -68,6 +68,7 @@ describe('FilterFactory', () => {
           page: new Page(20, 10),
           searchExtended: true,
           segment: 'a-valid-segment',
+          liveQuerySegment: expect.toBeNil(),
         }),
       );
     });
@@ -87,6 +88,7 @@ describe('FilterFactory', () => {
           page: new Page(20, 10),
           searchExtended: true,
           segment: 'a-valid-segment',
+          liveQuerySegment: expect.toBeNil(),
         }),
       );
     });
