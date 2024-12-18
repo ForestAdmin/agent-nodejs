@@ -1,3 +1,13 @@
+## @forestadmin/datasource-customizer [1.57.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.57.0...@forestadmin/datasource-customizer@1.57.1) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.1
+
 # @forestadmin/datasource-customizer [1.57.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.56.0...@forestadmin/datasource-customizer@1.57.0) (2024-12-18)
 
 
