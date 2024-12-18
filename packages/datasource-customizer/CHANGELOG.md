@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.57.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.56.0...@forestadmin/datasource-customizer@1.57.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+
 # @forestadmin/datasource-customizer [1.56.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.5...@forestadmin/datasource-customizer@1.56.0) (2024-11-27)
 
 
