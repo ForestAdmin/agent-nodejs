@@ -1,3 +1,24 @@
+# example [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.11.18...example@1.12.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.56.0
+* **@forestadmin/datasource-dummy:** upgraded to 1.1.42
+* **@forestadmin/datasource-mongo:** upgraded to 1.3.27
+* **@forestadmin/datasource-mongoose:** upgraded to 1.8.7
+* **@forestadmin/datasource-sequelize:** upgraded to 1.11.2
+* **@forestadmin/datasource-sql:** upgraded to 1.16.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+
 ## example [1.11.18](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.11.17...example@1.11.18) (2024-12-03)
 
 
