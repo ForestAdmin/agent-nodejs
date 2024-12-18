@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.56.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.55.1...@forestadmin/agent@1.56.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.57.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.0
+
 ## @forestadmin/agent [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.55.0...@forestadmin/agent@1.55.1) (2024-11-29)
 
 
