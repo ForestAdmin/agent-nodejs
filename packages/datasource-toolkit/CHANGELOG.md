@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.45.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.45.0...@forestadmin/datasource-toolkit@1.45.1) (2024-12-18)
+
+
+### Bug Fixes
+
+* filtering on dateOnly fields now interprets interval properly ([#1231](https://github.com/ForestAdmin/agent-nodejs/issues/1231)) ([9e359b9](https://github.com/ForestAdmin/agent-nodejs/commit/9e359b9bfc64dd513d41549f5fe8c2bcc00f3175))
+
 # @forestadmin/datasource-toolkit [1.45.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.44.0...@forestadmin/datasource-toolkit@1.45.0) (2024-12-18)
 
 
