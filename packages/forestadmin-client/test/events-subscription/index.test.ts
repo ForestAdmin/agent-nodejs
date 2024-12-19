@@ -15,7 +15,7 @@ const close = jest.fn();
 
 jest.mock('eventsource', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
+  EventSource: jest.fn().mockImplementation(() => ({
     addEventListener,
     once,
     close,
