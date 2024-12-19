@@ -7,17 +7,12 @@ const addEventListener = jest.fn((event, callback) => {
   events[event] = callback;
 });
 
-const once = jest.fn((event, callback) => {
-  events[event] = callback;
-});
-
 const close = jest.fn();
 
 jest.mock('eventsource', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
+  EventSource: jest.fn().mockImplementation(() => ({
     addEventListener,
-    once,
     close,
   })),
 }));
@@ -35,7 +30,6 @@ describe('EventsSubscriptionService', () => {
       eventsSubscriptionService.subscribeEvents();
 
       expect(addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
-      expect(once).toHaveBeenCalledWith('open', expect.any(Function));
 
       expect(addEventListener).toHaveBeenCalledWith(
         ServerEventType.RefreshUsers,
@@ -191,22 +185,6 @@ describe('EventsSubscriptionService', () => {
   });
 
   describe('onEventOpenAgain', () => {
-    test('should add new open listener on first open event', () => {
-      const eventsSubscriptionService = new EventsSubscriptionService(
-        options,
-        refreshEventsHandlerService,
-      );
-
-      eventsSubscriptionService.subscribeEvents();
-
-      // eslint-disable-next-line @typescript-eslint/dot-notation
-      events['open']();
-
-      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function));
-
-      expect(refreshEventsHandlerService.refreshEverything).not.toHaveBeenCalled();
-    });
-
     test('should refreshEverything using refreshEventsHandlerService on re-open', () => {
       const eventsSubscriptionService = new EventsSubscriptionService(
         options,

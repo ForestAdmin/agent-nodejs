@@ -12,12 +12,13 @@
     "directory": "packages/forestadmin-client"
   },
   "dependencies": {
-    "eventsource": "2.0.2",
+    "eventsource": "3.0.1",
     "json-api-serializer": "^2.6.6",
     "jsonwebtoken": "^9.0.0",
     "object-hash": "^3.0.0",
     "openid-client": "^5.6.4",
-    "superagent": "^8.0.6"
+    "superagent": "^8.0.6",
+    "undici": "^6.0.0"
   },
   "files": [
     "dist/**/*.js",

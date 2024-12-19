@@ -1,4 +1,5 @@
-import EventSource from 'eventsource';
+import { EventSource } from 'eventsource';
+import { Agent, fetch } from 'undici';
 
 import {
   BaseEventsSubscriptionService,
@@ -30,24 +31,27 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     const eventSourceConfig = {
       // forest-secret-key act as the credential
       withCredentials: false,
-      headers: { 'forest-secret-key': this.options.envSecret },
-      https: {
-        rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0',
-      },
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          headers: { ...init.headers, 'forest-secret-key': this.options.envSecret },
+          dispatcher: new Agent({
+            connect: {
+              rejectUnauthorized: false,
+            },
+          }),
+        }),
     };
     const url = new URL('/liana/v4/subscribe-to-events', this.options.forestServerUrl).toString();
 
     const eventSource = new EventSource(url, eventSourceConfig);
     // Override reconnect interval to 5 seconds
-    eventSource.reconnectInterval = 5000;
+    // eventSource.reconnectInterval = 5000;
 
     eventSource.addEventListener('error', this.onEventError.bind(this));
 
     // Only listen after first open
-    eventSource.once('open', () =>
-      eventSource.addEventListener('open', () => this.onEventOpenAgain()),
-    );
-
+    eventSource.addEventListener('open', () => this.onEventOpenAgain());
     eventSource.addEventListener(ServerEventType.RefreshUsers, async () =>
       this.refreshEventsHandlerService.refreshUsers(),
     );

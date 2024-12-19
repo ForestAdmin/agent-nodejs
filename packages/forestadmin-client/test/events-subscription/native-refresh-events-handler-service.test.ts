@@ -8,7 +8,7 @@ const addEventListener = jest.fn((event, callback) => {
 
 jest.mock('eventsource', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
+  EventSource: jest.fn().mockImplementation(() => ({
     addEventListener,
   })),
 }));
