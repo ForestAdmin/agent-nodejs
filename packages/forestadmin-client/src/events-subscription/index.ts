@@ -68,10 +68,6 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
       this.refreshEventsHandlerService.refreshCustomizations(),
     );
 
-    eventSource.addEventListener('error', error => {
-      this.options.logger('Error', `Server Event - Error: ${error.message}`);
-    });
-
     this.eventSource = eventSource;
   }
 
