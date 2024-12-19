@@ -12,7 +12,7 @@
     "directory": "packages/forestadmin-client"
   },
   "dependencies": {
-    "eventsource": "3.0.2",
+    "eventsource": "3.0.1",
     "json-api-serializer": "^2.6.6",
     "jsonwebtoken": "^9.0.0",
     "object-hash": "^3.0.0",
