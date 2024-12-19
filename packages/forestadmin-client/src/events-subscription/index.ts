@@ -46,7 +46,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
 
     const eventSource = new EventSource(url, eventSourceConfig);
     // Override reconnect interval to 5 seconds
-    eventSource.reconnectInterval = 5000;
+    // eventSource.reconnectInterval = 5000;
 
     eventSource.addEventListener('error', this.onEventError.bind(this));
 
