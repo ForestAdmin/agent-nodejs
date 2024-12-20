@@ -8,7 +8,7 @@ export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unab
 export { default as ChainedSQLQueryError } from './permissions/errors/chained-sql-query-error';
 export { default as EmptySQLQueryError } from './permissions/errors/empty-sql-query-error';
 export { default as NonSelectSQLQueryError } from './permissions/errors/non-select-sql-query-error';
-export {
+export type {
   ForestAdminClientOptions,
   Logger,
   LoggerLevel,
@@ -19,16 +19,16 @@ export {
   RawTreeWithSources,
   ForestAdminServerInterface,
 } from './types';
-export { IpWhitelistConfiguration } from './ip-whitelist/types';
+export type { IpWhitelistConfiguration } from './ip-whitelist/types';
 
 // These types are used for the agent-generator package
-export {
-  CollectionActionEvent,
+export type {
   EnvironmentPermissionsV4,
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
-export { UserInfo } from './auth/types';
+export { CollectionActionEvent } from './permissions/types';
+export type { UserInfo } from './auth/types';
 
 export default function createForestAdminClient(
   options: ForestAdminClientOptions,
@@ -71,7 +71,7 @@ export { default as ContextVariables } from './utils/context-variables';
 export { default as ChartHandler } from './charts/chart-handler';
 export { default as ForestAdminClientWithCache } from './forest-admin-client-with-cache';
 export { default as buildApplicationServices } from './build-application-services';
-export { HttpOptions } from './permissions/forest-http-api';
+export type { HttpOptions } from './permissions/forest-http-api';
 export { default as ForestHttpApi } from './permissions/forest-http-api';
 // export is necessary for the agent-generator package
 export { default as SchemaService } from './schema';
