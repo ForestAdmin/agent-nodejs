@@ -128,7 +128,11 @@ describe('SegmentCollectionDecorator', () => {
         const filter = await segmentDecorator.refineFilter(
           factories.caller.build(),
           factories.filter.build({
-            liveQuerySegment: { query: 'SELECT id from toto', connectionName: 'main' },
+            liveQuerySegment: {
+              query: 'SELECT id from toto',
+              connectionName: 'main',
+              contextVariables: { toto: 1 },
+            },
           }),
         );
 

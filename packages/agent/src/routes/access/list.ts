@@ -14,7 +14,11 @@ export default class ListRoute extends CollectionRoute {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
     const scope = await this.services.authorization.getScope(this.collection, context);
-    const paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+    let paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+    paginatedFilter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
+      context,
+      paginatedFilter,
+    );
 
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
