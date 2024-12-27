@@ -19,13 +19,18 @@ import { SearchDefinition } from './types';
 export default class SearchCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<SearchCollectionDecorator>;
   replacer: SearchDefinition = null;
+  searchable = true;
 
   replaceSearch(replacer: SearchDefinition): void {
     this.replacer = replacer;
   }
 
+  disable() {
+    this.searchable = false;
+  }
+
   override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    return { ...subSchema, searchable: true };
+    return { ...subSchema, searchable: this.searchable };
   }
 
   override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
