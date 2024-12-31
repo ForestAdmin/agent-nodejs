@@ -60,6 +60,22 @@ describe('TTL Cache', () => {
 
       expect(fetchMethod).toHaveBeenCalledTimes(2);
     });
+
+    it('should not cache a rejected promise', async () => {
+      const fetchMethod = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('first'))
+        .mockResolvedValueOnce('second');
+
+      const cache = new TTLCache<string>(fetchMethod);
+
+      await expect(() => cache.fetch('key')).rejects.toThrow('first');
+
+      const fetch2 = await cache.fetch('key');
+      expect(fetch2).toEqual('second');
+
+      expect(fetchMethod).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('clear', () => {
