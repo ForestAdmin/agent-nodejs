@@ -5,11 +5,11 @@
 export default class TTLCache<V> {
   private readonly stateMap = new Map<
     string,
-    { promise: Promise<V | undefined> | V | undefined; expirationTimestamp: number }
+    { promise: Promise<V | undefined>; expirationTimestamp: number }
   >();
 
   constructor(
-    private readonly fetchMethod: (key: string) => Promise<V | undefined> | V | undefined,
+    private readonly fetchMethod: (key: string) => Promise<V | undefined>,
     private readonly ttl = 1000,
   ) {}
 
@@ -23,6 +23,11 @@ export default class TTLCache<V> {
 
     const fetch = this.fetchMethod(key);
     this.stateMap.set(key, { promise: fetch, expirationTimestamp: now + this.ttl });
+
+    fetch.catch(() => {
+      // Don't cache rejected promises
+      this.stateMap.delete(key);
+    });
 
     return fetch;
   }
