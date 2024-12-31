@@ -87,6 +87,12 @@ export default class CollectionCustomizer<
     });
   }
 
+  disableSearch(): this {
+    return this.pushCustomization(async () => {
+      this.stack.search.getCollection(this.name).disable();
+    });
+  }
+
   /**
    * Import a field from a many to one or one to one relation.
    *
