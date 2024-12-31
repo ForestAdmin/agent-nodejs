@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.36.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.1...@forestadmin/forestadmin-client@1.36.2) (2024-12-31)
+
+
+### Bug Fixes
+
+* don't cache rejected promises ([#1238](https://github.com/ForestAdmin/agent-nodejs/issues/1238)) ([161459d](https://github.com/ForestAdmin/agent-nodejs/commit/161459d9c6d5b0283a61a3e89664dcc22263be3b))
+
 ## @forestadmin/forestadmin-client [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.0...@forestadmin/forestadmin-client@1.36.1) (2024-12-18)
 
 
