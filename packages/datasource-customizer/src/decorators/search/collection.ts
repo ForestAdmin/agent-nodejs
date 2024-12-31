@@ -22,6 +22,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   searchable = true;
 
   replaceSearch(replacer: SearchDefinition): void {
+    this.searchable = true;
     this.replacer = replacer;
   }
 
