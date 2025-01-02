@@ -72,13 +72,13 @@ export default class SegmentCollectionDecorator extends CollectionDecorator {
     const { liveQuerySegment } = filter;
 
     if (liveQuerySegment) {
-      const { query, connectionName } = liveQuerySegment;
+      const { query, connectionName, contextVariables } = liveQuerySegment;
 
       try {
         const result = (await this.dataSource.executeNativeQuery(
           connectionName,
           query,
-          {},
+          contextVariables,
         )) as Record<string, unknown>[];
 
         const [primaryKey] = SchemaUtils.getPrimaryKeys(this.childCollection.schema);

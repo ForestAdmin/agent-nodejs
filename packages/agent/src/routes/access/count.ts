@@ -17,7 +17,11 @@ export default class CountRoute extends CollectionRoute {
     if (this.collection.schema.countable) {
       const scope = await this.services.authorization.getScope(this.collection, context);
       const caller = QueryStringParser.parseCaller(context);
-      const filter = ContextFilterFactory.build(this.collection, context, scope);
+      let filter = ContextFilterFactory.build(this.collection, context, scope);
+      filter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
+        context,
+        filter,
+      );
 
       const aggregation = new Aggregation({ operation: 'Count' });
       const aggregationResult = await this.collection.aggregate(caller, filter, aggregation);
