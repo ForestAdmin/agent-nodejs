@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.45.1...@forestadmin/datasource-toolkit@1.46.0) (2025-01-02)
+
+
+### Features
+
+* **segment:** support templating for segment live query ([#1235](https://github.com/ForestAdmin/agent-nodejs/issues/1235)) ([5452a95](https://github.com/ForestAdmin/agent-nodejs/commit/5452a95cc7c9340b81b30e91231b2b9ec5aa29b4))
+
 ## @forestadmin/datasource-toolkit [1.45.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.45.0...@forestadmin/datasource-toolkit@1.45.1) (2024-12-18)
 
 
