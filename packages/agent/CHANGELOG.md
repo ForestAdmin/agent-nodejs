@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.57.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.56.2...@forestadmin/agent@1.57.0) (2025-01-02)
+
+
+### Features
+
+* **segment:** support templating for segment live query ([#1235](https://github.com/ForestAdmin/agent-nodejs/issues/1235)) ([5452a95](https://github.com/ForestAdmin/agent-nodejs/commit/5452a95cc7c9340b81b30e91231b2b9ec5aa29b4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.58.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.46.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.3
+
 ## @forestadmin/agent [1.56.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.56.1...@forestadmin/agent@1.56.2) (2024-12-31)
 
 
