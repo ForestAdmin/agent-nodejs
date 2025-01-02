@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongo [1.3.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.28...@forestadmin/datasource-mongo@1.3.29) (2025-01-02)
+
+
+### Bug Fixes
+
+* upgrade ssh-tunnel dependency to avoid crash when "no response from server" ([#1228](https://github.com/ForestAdmin/agent-nodejs/issues/1228)) ([83fbf9c](https://github.com/ForestAdmin/agent-nodejs/commit/83fbf9c0da57d999bd95418d890ad7d169ff982c))
+
 ## @forestadmin/datasource-mongo [1.3.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.27...@forestadmin/datasource-mongo@1.3.28) (2024-12-18)
 
 
