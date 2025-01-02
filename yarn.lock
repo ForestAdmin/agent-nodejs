@@ -15008,10 +15008,10 @@ tunnel-agent@^0.6.0:
   dependencies:
     safe-buffer "^5.0.1"
 
-tunnel-ssh@^5.1.2:
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/tunnel-ssh/-/tunnel-ssh-5.1.2.tgz#da4b4e262633af26b0536a50963a827b9b9afef3"
-  integrity sha512-PNfxgg5aEV9ZWpx4oHvkyPoC7TvYGdbob9L35BrYGY/LM3mt5KUQ5uOO9PbT/gNQowGanOfli3JGwRZ+DTd2ZQ==
+tunnel-ssh@^5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/tunnel-ssh/-/tunnel-ssh-5.2.0.tgz#199df96b07f1fa833d578e47a5801da4af065b2a"
+  integrity sha512-IGiyhE2RSt3NVvZ7aKH3ykziAxKNPe/z97Rab/lrIXslif/cq7J/m6EXfERlDITiFyGGYMqqi5SSrt/mk1VbEg==
   dependencies:
     ssh2 "^1.15.0"
 
