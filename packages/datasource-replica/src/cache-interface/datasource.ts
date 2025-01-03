@@ -15,6 +15,8 @@ export default class CacheDataSourceInterface {
     role: 'system',
     tags: {},
     team: 'system',
+    environment: null,
+    project: null,
     timezone: 'UTC',
     permissionLevel: 'admin',
     requestId: '',
