@@ -21,19 +21,19 @@ export default class AnalysisPassThough implements SynchronizationTarget, Synchr
   source: SynchronizationSource;
   namespace: string;
 
+  constructor(connection: Sequelize, source: SynchronizationSource, namespace: string) {
+    this.source = source;
+    this.recordCache = connection.model(`${namespace}_pending_operations`);
+    this.namespace = namespace;
+    this.nodes = {};
+  }
+
   get requestCache(): CacheDataSourceInterface {
     return this.source?.requestCache;
   }
 
   set requestCache(value: CacheDataSourceInterface) {
     this.source.requestCache = value;
-  }
-
-  constructor(connection: Sequelize, source: SynchronizationSource, namespace: string) {
-    this.source = source;
-    this.recordCache = connection.model(`${namespace}_pending_operations`);
-    this.namespace = namespace;
-    this.nodes = {};
   }
 
   async start(target: SynchronizationTarget): Promise<void> {

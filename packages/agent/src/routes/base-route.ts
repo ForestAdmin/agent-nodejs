@@ -7,12 +7,11 @@ export default abstract class BaseRoute {
   protected readonly services: ForestAdminHttpDriverServices;
   protected readonly options: AgentOptionsWithDefaults;
 
-  abstract get type(): RouteType;
-
   constructor(services: ForestAdminHttpDriverServices, options: AgentOptionsWithDefaults) {
     this.services = services;
     this.options = options;
   }
+  abstract get type(): RouteType;
 
   async bootstrap(): Promise<void> {
     // Do nothing by default

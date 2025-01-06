@@ -24,6 +24,100 @@ type CanPerformCustomActionParams = {
 };
 
 export default class ActionAuthorizationService {
+  private static async canPerformConditionalCustomAction(
+    caller: Caller,
+    collection: Collection,
+    requestFilter: Filter,
+    condition?: unknown,
+  ) {
+    if (condition) {
+      const [requestRecordsCount, matchingRecordsCount] = await Promise.all([
+        ActionAuthorizationService.aggregateCountConditionIntersection(
+          caller,
+          collection,
+          requestFilter,
+        ),
+        ActionAuthorizationService.aggregateCountConditionIntersection(
+          caller,
+          collection,
+          requestFilter,
+          condition,
+        ),
+      ]);
+
+      // If all records condition the condition everything is ok
+      // Otherwise when some records don't match the condition then the user
+      // is not allow to perform the conditional action
+      return matchingRecordsCount === requestRecordsCount;
+    }
+
+    return true;
+  }
+
+  private static async aggregateCountConditionIntersection(
+    caller: Caller,
+    collection: Collection,
+    requestFilter: Filter,
+    condition?: unknown,
+  ) {
+    try {
+      // Override request filter with condition if any
+      const conditionalFilter = requestFilter.override({
+        conditionTree: condition
+          ? ConditionTreeFactory.intersect(
+              ConditionTreeParser.fromPlainObject(collection, condition),
+              requestFilter.conditionTree,
+            )
+          : requestFilter.conditionTree,
+      });
+
+      const rows = await collection.aggregate(
+        caller,
+        conditionalFilter,
+        new Aggregation({
+          operation: 'Count',
+        }),
+      );
+
+      return (rows?.[0]?.value as number) ?? 0;
+    } catch (error) {
+      throw new InvalidActionConditionError();
+    }
+  }
+
+  /**
+   * Given a map it groups keys based on their hash values
+   */
+  private static transformToRolesIdsGroupByConditions<T>(
+    actionConditionsByRoleId: Map<number, T>,
+  ): {
+    roleIds: number[];
+    condition: T;
+  }[] {
+    const rolesIdsGroupByConditions = Array.from(
+      actionConditionsByRoleId,
+      ([roleId, condition]) => {
+        return {
+          roleId,
+          condition,
+          conditionHash: hashObject(condition as Record<string, unknown>, { respectType: false }),
+        };
+      },
+    ).reduce((acc, current) => {
+      const { roleId, condition, conditionHash } = current;
+
+      if (acc.has(conditionHash)) {
+        acc.get(conditionHash).roleIds.push(roleId);
+      } else {
+        acc.set(conditionHash, { roleIds: [roleId], condition });
+      }
+
+      return acc;
+    }, new Map<string, { roleIds: number[]; condition: T }>());
+
+    return Array.from(rolesIdsGroupByConditions.values());
+  }
+
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
 
   public async assertCanTriggerCustomAction({
@@ -273,99 +367,5 @@ export default class ActionAuthorizationService {
       // are allowed to approve by default
       roleIdsAllowedToApproveWithoutConditions,
     );
-  }
-
-  private static async canPerformConditionalCustomAction(
-    caller: Caller,
-    collection: Collection,
-    requestFilter: Filter,
-    condition?: unknown,
-  ) {
-    if (condition) {
-      const [requestRecordsCount, matchingRecordsCount] = await Promise.all([
-        ActionAuthorizationService.aggregateCountConditionIntersection(
-          caller,
-          collection,
-          requestFilter,
-        ),
-        ActionAuthorizationService.aggregateCountConditionIntersection(
-          caller,
-          collection,
-          requestFilter,
-          condition,
-        ),
-      ]);
-
-      // If all records condition the condition everything is ok
-      // Otherwise when some records don't match the condition then the user
-      // is not allow to perform the conditional action
-      return matchingRecordsCount === requestRecordsCount;
-    }
-
-    return true;
-  }
-
-  private static async aggregateCountConditionIntersection(
-    caller: Caller,
-    collection: Collection,
-    requestFilter: Filter,
-    condition?: unknown,
-  ) {
-    try {
-      // Override request filter with condition if any
-      const conditionalFilter = requestFilter.override({
-        conditionTree: condition
-          ? ConditionTreeFactory.intersect(
-              ConditionTreeParser.fromPlainObject(collection, condition),
-              requestFilter.conditionTree,
-            )
-          : requestFilter.conditionTree,
-      });
-
-      const rows = await collection.aggregate(
-        caller,
-        conditionalFilter,
-        new Aggregation({
-          operation: 'Count',
-        }),
-      );
-
-      return (rows?.[0]?.value as number) ?? 0;
-    } catch (error) {
-      throw new InvalidActionConditionError();
-    }
-  }
-
-  /**
-   * Given a map it groups keys based on their hash values
-   */
-  private static transformToRolesIdsGroupByConditions<T>(
-    actionConditionsByRoleId: Map<number, T>,
-  ): {
-    roleIds: number[];
-    condition: T;
-  }[] {
-    const rolesIdsGroupByConditions = Array.from(
-      actionConditionsByRoleId,
-      ([roleId, condition]) => {
-        return {
-          roleId,
-          condition,
-          conditionHash: hashObject(condition as Record<string, unknown>, { respectType: false }),
-        };
-      },
-    ).reduce((acc, current) => {
-      const { roleId, condition, conditionHash } = current;
-
-      if (acc.has(conditionHash)) {
-        acc.get(conditionHash).roleIds.push(roleId);
-      } else {
-        acc.set(conditionHash, { roleIds: [roleId], condition });
-      }
-
-      return acc;
-    }, new Map<string, { roleIds: number[]; condition: T }>());
-
-    return Array.from(rolesIdsGroupByConditions.values());
   }
 }

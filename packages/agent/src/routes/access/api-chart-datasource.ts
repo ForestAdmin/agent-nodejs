@@ -15,10 +15,6 @@ export default class DataSourceApiChartRoute extends BaseRoute {
   private dataSource: DataSource;
   private chartName: string;
 
-  get chartUrlSlug(): string {
-    return this.escapeUrlSlug(this.chartName);
-  }
-
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
@@ -29,6 +25,10 @@ export default class DataSourceApiChartRoute extends BaseRoute {
 
     this.dataSource = dataSource;
     this.chartName = chartName;
+  }
+
+  get chartUrlSlug(): string {
+    return this.escapeUrlSlug(this.chartName);
   }
 
   setupRoutes(router: Router): void {

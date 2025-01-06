@@ -59,20 +59,6 @@ export default class MongooseCollection extends BaseCollection {
     return this._list(filter, projection);
   }
 
-  private async _list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
-    const lookupProjection = projection.union(
-      filter.conditionTree?.projection,
-      filter.sort?.projection,
-    );
-
-    const pipeline = [
-      ...this.buildBasePipeline(filter, lookupProjection),
-      ...ProjectionGenerator.project(projection),
-    ];
-
-    return addNullValues(replaceMongoTypes(await this.model.aggregate(pipeline)), projection);
-  }
-
   async aggregate(
     caller: Caller,
     filter: Filter,
@@ -102,36 +88,26 @@ export default class MongooseCollection extends BaseCollection {
     return this.handleValidationError(() => this._delete(caller, filter));
   }
 
-  private async _create(caller: Caller, flatData: RecordData[]): Promise<RecordData[]> {
-    const { asFields } = this.stack[this.stack.length - 1];
-    const data = flatData.map(fd => unflattenRecord(fd, asFields));
-
-    // For root models, we can simply insert the records.
-    if (this.stack.length < 2) {
-      const { insertedIds } = await this.model.insertMany(data, { rawResult: true });
-
-      return flatData.map((flatRecord, index) => ({
-        _id: replaceMongoTypes(insertedIds[index]),
-        ...flatRecord,
-      }));
-    }
-
-    // Only array fields can create subdocuments (the others should use update)
-    const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
-
-    if (schema.isArray) {
-      return this.createForArraySubfield(data, flatData, schema);
-    }
-
-    return this.createForObjectSubfield(data, flatData);
-  }
-
   private computeSubFieldName() {
     const lastStackStep = this.stack[this.stack.length - 1];
 
     return this.stack.length > 2
       ? lastStackStep.prefix.substring(this.stack[this.stack.length - 2].prefix.length + 1)
       : lastStackStep.prefix;
+  }
+
+  private async _list(filter: PaginatedFilter, projection: Projection): Promise<RecordData[]> {
+    const lookupProjection = projection.union(
+      filter.conditionTree?.projection,
+      filter.sort?.projection,
+    );
+
+    const pipeline = [
+      ...this.buildBasePipeline(filter, lookupProjection),
+      ...ProjectionGenerator.project(projection),
+    ];
+
+    return addNullValues(replaceMongoTypes(await this.model.aggregate(pipeline)), projection);
   }
 
   private async createForArraySubfield(
@@ -190,6 +166,93 @@ export default class MongooseCollection extends BaseCollection {
     await this.model.updateOne({ _id: rootId }, { $set: { [path]: rest } });
 
     return [{ _id: `${rootId}.${path}`, ...flatData[0] }];
+  }
+
+  private buildBasePipeline(
+    filter: PaginatedFilter,
+    lookupProjection: Projection,
+  ): PipelineStage[] {
+    const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
+
+    const [preSortAndPaginate, sortAndPaginatePostFiltering, sortAndPaginateAll] =
+      FilterGenerator.sortAndPaginate(this.model, filter);
+
+    const reparentStages = ReparentGenerator.reparent(this.model, this.stack);
+    const addVirtualStages = VirtualFieldsGenerator.addVirtual(
+      this.model,
+      this.stack,
+      lookupProjection,
+    );
+    // For performance reasons, we want to only include the relationships that are used in filters
+    // before applying the filters
+    const lookupUsedInFiltersStage = LookupGenerator.lookup(
+      this.model,
+      this.stack,
+      lookupProjection,
+      {
+        include: fieldsUsedInFilters,
+      },
+    );
+    const filterStage = FilterGenerator.filter(this.model, this.stack, filter);
+
+    // Here are the remaining relationships that are not used in filters. For performance reasons
+    // they are computed after the filters.
+    const lookupNotFilteredStage = LookupGenerator.lookup(
+      this.model,
+      this.stack,
+      lookupProjection,
+      {
+        exclude: fieldsUsedInFilters,
+      },
+    );
+
+    return [
+      ...preSortAndPaginate,
+      ...reparentStages,
+      ...addVirtualStages,
+      ...lookupUsedInFiltersStage,
+      ...filterStage,
+      ...sortAndPaginatePostFiltering,
+      ...lookupNotFilteredStage,
+      ...sortAndPaginateAll,
+    ];
+  }
+
+  private async handleValidationError<T>(callback: () => Promise<T>): Promise<T> {
+    try {
+      // Do not remove the await here, it's important!
+      return await callback();
+    } catch (error) {
+      if (error instanceof Error.ValidationError) {
+        throw new ValidationError(error.message);
+      }
+
+      throw error;
+    }
+  }
+
+  private async _create(caller: Caller, flatData: RecordData[]): Promise<RecordData[]> {
+    const { asFields } = this.stack[this.stack.length - 1];
+    const data = flatData.map(fd => unflattenRecord(fd, asFields));
+
+    // For root models, we can simply insert the records.
+    if (this.stack.length < 2) {
+      const { insertedIds } = await this.model.insertMany(data, { rawResult: true });
+
+      return flatData.map((flatRecord, index) => ({
+        _id: replaceMongoTypes(insertedIds[index]),
+        ...flatRecord,
+      }));
+    }
+
+    // Only array fields can create subdocuments (the others should use update)
+    const schema = MongooseSchema.fromModel(this.model).applyStack(this.stack);
+
+    if (schema.isArray) {
+      return this.createForArraySubfield(data, flatData, schema);
+    }
+
+    return this.createForObjectSubfield(data, flatData);
   }
 
   private async _update(caller: Caller, filter: Filter, flatPatch: RecordData): Promise<void> {
@@ -293,69 +356,6 @@ export default class MongooseCollection extends BaseCollection {
       );
 
       await Promise.all(promises);
-    }
-  }
-
-  private buildBasePipeline(
-    filter: PaginatedFilter,
-    lookupProjection: Projection,
-  ): PipelineStage[] {
-    const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
-
-    const [preSortAndPaginate, sortAndPaginatePostFiltering, sortAndPaginateAll] =
-      FilterGenerator.sortAndPaginate(this.model, filter);
-
-    const reparentStages = ReparentGenerator.reparent(this.model, this.stack);
-    const addVirtualStages = VirtualFieldsGenerator.addVirtual(
-      this.model,
-      this.stack,
-      lookupProjection,
-    );
-    // For performance reasons, we want to only include the relationships that are used in filters
-    // before applying the filters
-    const lookupUsedInFiltersStage = LookupGenerator.lookup(
-      this.model,
-      this.stack,
-      lookupProjection,
-      {
-        include: fieldsUsedInFilters,
-      },
-    );
-    const filterStage = FilterGenerator.filter(this.model, this.stack, filter);
-
-    // Here are the remaining relationships that are not used in filters. For performance reasons
-    // they are computed after the filters.
-    const lookupNotFilteredStage = LookupGenerator.lookup(
-      this.model,
-      this.stack,
-      lookupProjection,
-      {
-        exclude: fieldsUsedInFilters,
-      },
-    );
-
-    return [
-      ...preSortAndPaginate,
-      ...reparentStages,
-      ...addVirtualStages,
-      ...lookupUsedInFiltersStage,
-      ...filterStage,
-      ...sortAndPaginatePostFiltering,
-      ...lookupNotFilteredStage,
-      ...sortAndPaginateAll,
-    ];
-  }
-
-  private async handleValidationError<T>(callback: () => Promise<T>): Promise<T> {
-    try {
-      // Do not remove the await here, it's important!
-      return await callback();
-    } catch (error) {
-      if (error instanceof Error.ValidationError) {
-        throw new ValidationError(error.message);
-      }
-
-      throw error;
     }
   }
 }

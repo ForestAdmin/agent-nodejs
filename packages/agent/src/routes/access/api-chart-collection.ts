@@ -13,10 +13,6 @@ import CollectionRoute from '../collection-route';
 export default class CollectionApiChartRoute extends CollectionRoute {
   private chartName: string;
 
-  get chartUrlSlug(): string {
-    return this.escapeUrlSlug(this.chartName);
-  }
-
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
@@ -26,6 +22,10 @@ export default class CollectionApiChartRoute extends CollectionRoute {
   ) {
     super(services, options, dataSource, collectionName);
     this.chartName = chartName;
+  }
+
+  get chartUrlSlug(): string {
+    return this.escapeUrlSlug(this.chartName);
   }
 
   setupRoutes(router: Router): void {

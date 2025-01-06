@@ -22,6 +22,15 @@ export default class AggregationUtils {
 
   private dateAggregationConverter: DateAggregationConverter;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(model: ModelDefined<any, any>) {
+    this.model = model;
+    this.dialect = this.model.sequelize.getDialect() as Dialect;
+    this.col = this.model.sequelize.col;
+
+    this.dateAggregationConverter = new DateAggregationConverter(this.model.sequelize);
+  }
+
   readonly _aggregateFieldName = '__aggregate__';
   get aggregateFieldName() {
     if (
@@ -34,15 +43,6 @@ export default class AggregationUtils {
     }
 
     return this._aggregateFieldName;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(model: ModelDefined<any, any>) {
-    this.model = model;
-    this.dialect = this.model.sequelize.getDialect() as Dialect;
-    this.col = this.model.sequelize.col;
-
-    this.dateAggregationConverter = new DateAggregationConverter(this.model.sequelize);
   }
 
   private getGroupFieldName(groupField: string) {
