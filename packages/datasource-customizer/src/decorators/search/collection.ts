@@ -24,10 +24,12 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
   replaceSearch(replacer: SearchDefinition): void {
     this.searchable = true;
     this.replacer = replacer;
+    this.markSchemaAsDirty();
   }
 
   disable() {
     this.searchable = false;
+    this.markSchemaAsDirty();
   }
 
   override refineSchema(subSchema: CollectionSchema): CollectionSchema {
