@@ -133,6 +133,20 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('disableSearch', () => {
+    it('should edit the schema', async () => {
+      const { dsc, customizer, stack } = await setup();
+      const spy = jest.spyOn(stack.search.getCollection('authors'), 'disable');
+
+      const self = customizer.disableSearch();
+      await dsc.getDataSource(logger);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(self.schema.searchable).toBeFalsy();
+      expect(self).toEqual(customizer);
+    });
+  });
+
   describe('renameField', () => {
     it('should throw when renaming with a name including space', async () => {
       const { customizer, dsc } = await setup();

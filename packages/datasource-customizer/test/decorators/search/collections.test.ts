@@ -29,11 +29,46 @@ function buildCollection(
 }
 
 describe('SearchCollectionDecorator', () => {
+  describe('disable', () => {
+    it('should set the schema not searchable', async () => {
+      const decorator = buildCollection({});
+      decorator.disable();
+
+      expect(decorator.schema.searchable).toBe(false);
+    });
+  });
+
   describe('refineSchema', () => {
     it('should set the schema searchable', async () => {
       const decorator = buildCollection({ searchable: false });
 
       expect(decorator.schema.searchable).toBe(true);
+    });
+
+    describe('when replace and disable are both used', () => {
+      it('should set the schema searchable', async () => {
+        const decorator = buildCollection({});
+        decorator.disable();
+
+        expect(decorator.schema.searchable).toBe(false);
+
+        decorator.replaceSearch(value => ({ field: 'id', operator: 'Equal', value }));
+
+        expect(decorator.schema.searchable).toBe(true);
+      });
+
+      it('should set the schema not searchable', async () => {
+        const decorator = buildCollection({});
+        decorator.disable();
+
+        decorator.replaceSearch(value => ({ field: 'id', operator: 'Equal', value }));
+
+        expect(decorator.schema.searchable).toBe(true);
+
+        decorator.disable();
+
+        expect(decorator.schema.searchable).toBe(false);
+      });
     });
   });
 
