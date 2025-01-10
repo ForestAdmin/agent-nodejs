@@ -30,7 +30,7 @@ function buildCollection(
 
 describe('SearchCollectionDecorator', () => {
   describe('disable', () => {
-    it('should set the schema not searchable', async () => {
+    it('should set the schema to isSearchable false', async () => {
       const decorator = buildCollection({});
       decorator.disable();
 
@@ -59,8 +59,6 @@ describe('SearchCollectionDecorator', () => {
 
       it('should set the schema not searchable', async () => {
         const decorator = buildCollection({});
-        decorator.disable();
-
         decorator.replaceSearch(value => ({ field: 'id', operator: 'Equal', value }));
 
         expect(decorator.schema.searchable).toBe(true);
