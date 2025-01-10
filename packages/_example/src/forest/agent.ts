@@ -28,7 +28,7 @@ export default function makeAgent() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     isProduction: false,
-    loggerLevel: 'Debug',
+    loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
   };
 
