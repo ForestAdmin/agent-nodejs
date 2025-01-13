@@ -87,6 +87,12 @@ export default class CollectionCustomizer<
     });
   }
 
+  /**
+   * Disable search on the collection
+   *
+   * * @example
+   * .disableSearch()
+   */
   disableSearch(): this {
     return this.pushCustomization(async () => {
       this.stack.search.getCollection(this.name).disable();
