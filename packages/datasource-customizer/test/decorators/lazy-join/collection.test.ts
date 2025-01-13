@@ -1,9 +1,7 @@
 import {
-  Caller,
   Collection,
   DataSource,
   DataSourceDecorator,
-  PaginatedFilter,
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
