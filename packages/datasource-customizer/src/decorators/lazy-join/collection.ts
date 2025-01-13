@@ -82,7 +82,10 @@ export default class LazyJoinDecorator extends CollectionDecorator {
         const { foreignKeyTarget, foreignKey } = relation;
 
         records.forEach(record => {
-          record[relationName] = { [foreignKeyTarget]: record[foreignKey] };
+          if (record[foreignKey]) {
+            record[relationName] = { [foreignKeyTarget]: record[foreignKey] };
+          }
+
           delete record[foreignKey];
         });
       }
