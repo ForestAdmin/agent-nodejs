@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.59.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.58.0...@forestadmin/datasource-customizer@1.59.0) (2025-01-13)
+
+
+### Features
+
+* allow disable search on collection ([#1236](https://github.com/ForestAdmin/agent-nodejs/issues/1236)) ([c9e5e67](https://github.com/ForestAdmin/agent-nodejs/commit/c9e5e677b08b326674fb40112ae541339f75cb8c))
+
 # @forestadmin/datasource-customizer [1.58.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.57.1...@forestadmin/datasource-customizer@1.58.0) (2025-01-02)
 
 
