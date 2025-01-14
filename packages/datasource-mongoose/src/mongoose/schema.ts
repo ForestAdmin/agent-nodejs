@@ -155,9 +155,7 @@ export default class MongooseSchema {
     }
 
     // We ended up on a field => box it.
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    if (child instanceof SchemaType && child.name !== 'EmbeddedDocument') {
+    if (child instanceof SchemaType) {
       child = { content: child };
       isLeaf = true;
     }
@@ -189,11 +187,15 @@ export default class MongooseSchema {
             recursiveSet(paths, `${name}.[].${subName}`, subField);
           }
         } else if (VersionManager.isSubDocumentArray(field)) {
-          recursiveSet(
-            paths,
-            `${name}.[]`,
-            VersionManager.getRawSchemaFromCaster((field as any).caster),
-          );
+          if (VersionManager.isSubDocument(field.caster)) {
+            const subPaths = this.buildFields((field as any).caster.schema, level + 1);
+
+            for (const [subName, subField] of Object.entries(subPaths)) {
+              recursiveSet(paths, `${name}.[].${subName}`, subField);
+            }
+          } else {
+            recursiveSet(paths, `${name}.[]`, (field as any).caster);
+          }
         } else {
           recursiveSet(paths, name, field);
         }
