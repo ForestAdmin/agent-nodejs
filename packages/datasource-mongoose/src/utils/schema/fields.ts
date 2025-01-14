@@ -99,7 +99,7 @@ export default class FieldsGenerator {
 
   /** Compute column type from CleanSchema */
   private static getColumnType(field: SchemaNode): ColumnType {
-    const columnType = this.getColumnTypeRec(field);
+    const columnType = VersionManager.getColumnTypeRec(field as any);
 
     // Enum fields are promoted to enum instead of string _only_ if they are at the root of the
     // record.
@@ -112,34 +112,6 @@ export default class FieldsGenerator {
     }
 
     return columnType;
-  }
-
-  /** Build ColumnType from CleanSchema recursively */
-  private static getColumnTypeRec(field: SchemaNode): ColumnType {
-    if (field instanceof SchemaType) {
-      if (field.instance === 'Buffer') {
-        return 'Binary';
-      }
-
-      if (['String', 'Number', 'Date', 'Boolean'].includes(field.instance)) {
-        return field.instance as PrimitiveTypes;
-      }
-
-      if ([VersionManager.ObjectIdTypeName, 'Decimal128'].includes(field.instance)) {
-        return 'String';
-      }
-
-      return 'Json';
-    }
-
-    if (field['[]']) {
-      return [this.getColumnTypeRec(field['[]'])];
-    }
-
-    return Object.entries(field).reduce(
-      (memo, [name, subSchema]) => ({ ...memo, [name]: this.getColumnTypeRec(subSchema) }),
-      {},
-    );
   }
 
   /** Get enum validator from field definition */
