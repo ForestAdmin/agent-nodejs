@@ -2122,7 +2122,7 @@
   dependencies:
     sparse-bitfield "^3.0.3"
 
-"@mongodb-js/saslprep@^1.1.9":
+"@mongodb-js/saslprep@^1.1.5":
   version "1.1.9"
   resolved "https://registry.yarnpkg.com/@mongodb-js/saslprep/-/saslprep-1.1.9.tgz#e974bab8eca9faa88677d4ea4da8d09a52069004"
   integrity sha512-tVkljjeEaAhCqTzajSdgbQ6gE6f3oneVwa3iXR6csiEwXXOFsiC6Uh9iAjAhXPtqa/XMDHWjjeNH/77m/Yq2dw==
@@ -5328,12 +5328,7 @@ bson@^4.7.2:
   dependencies:
     buffer "^5.6.0"
 
-bson@^5.5.0:
-  version "5.5.1"
-  resolved "https://registry.yarnpkg.com/bson/-/bson-5.5.1.tgz#f5849d405711a7f23acdda9a442375df858e6833"
-  integrity sha512-ix0EwukN2EpC0SRWIj/7B5+A6uQMQy6KMREI9qQqvgpkV2frH63T0UDVd1SYedL6dNCmDBYB3QtXi4ISk9YT+g==
-
-bson@^6.10.1:
+bson@^6.7.0:
   version "6.10.1"
   resolved "https://registry.yarnpkg.com/bson/-/bson-6.10.1.tgz#dcd04703178f5ecf5b25de04edd2a95ec79385d3"
   integrity sha512-P92xmHDQjSKPLHqFxefqMxASNq/aWJMEZugpCjf+AF/pgcUpMMQCg7t7+ewko0/u8AapvF3luf/FoehddEK+sA==
@@ -9998,11 +9993,6 @@ jwt-decode@2.2.0:
   resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-2.2.0.tgz#7d86bd56679f58ce6a84704a657dd392bba81a79"
   integrity sha512-86GgN2vzfUu7m9Wcj63iUkuDzFNYFVmjeDm2GzWpUk+opB0pEpMsw6ePCMrhYkumz2C1ihqtZzOMAg7FiXcNoQ==
 
-kareem@2.5.1:
-  version "2.5.1"
-  resolved "https://registry.yarnpkg.com/kareem/-/kareem-2.5.1.tgz#7b8203e11819a8e77a34b3517d3ead206764d15d"
-  integrity sha512-7jFxRVm+jD+rkq3kY0iZDJfsO2/t4BBPeEb2qKn2lR/9KhuksYk5hxzfRYWMPV8P/x2d0kHD306YyWLzjjH+uA==
-
 kareem@2.6.3:
   version "2.6.3"
   resolved "https://registry.yarnpkg.com/kareem/-/kareem-2.6.3.tgz#23168ec8ffb6c1abfd31b7169a6fb1dd285992ac"
@@ -11339,51 +11329,27 @@ mongodb@4.17.2:
     "@aws-sdk/credential-providers" "^3.186.0"
     "@mongodb-js/saslprep" "^1.1.0"
 
-mongodb@5.9.2:
-  version "5.9.2"
-  resolved "https://registry.yarnpkg.com/mongodb/-/mongodb-5.9.2.tgz#39a73b9fbc87ac9d9c1aaf8aab5c5bb69e2b913e"
-  integrity sha512-H60HecKO4Bc+7dhOv4sJlgvenK4fQNqqUIlXxZYQNbfEWSALGAwGoyJd/0Qwk4TttFXUOHJ2ZJQe/52ScaUwtQ==
+mongodb@~6.10.0:
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/mongodb/-/mongodb-6.10.0.tgz#20a9f1cf3c6829e75fc39e6d8c1c19f164209c2e"
+  integrity sha512-gP9vduuYWb9ZkDM546M+MP2qKVk5ZG2wPF63OvSRuUbqCR+11ZCAE1mOfllhlAG0wcoJY5yDL/rV3OmYEwXIzg==
   dependencies:
-    bson "^5.5.0"
-    mongodb-connection-string-url "^2.6.0"
-    socks "^2.7.1"
-  optionalDependencies:
-    "@mongodb-js/saslprep" "^1.1.0"
-
-mongodb@~6.12.0:
-  version "6.12.0"
-  resolved "https://registry.yarnpkg.com/mongodb/-/mongodb-6.12.0.tgz#8b0bda1b18cbb3f0aec8ab4119c5dc535a43c444"
-  integrity sha512-RM7AHlvYfS7jv7+BXund/kR64DryVI+cHbVAy9P61fnb1RcWZqOW1/Wj2YhqMCx+MuYhqTRGv7AwHBzmsCKBfA==
-  dependencies:
-    "@mongodb-js/saslprep" "^1.1.9"
-    bson "^6.10.1"
+    "@mongodb-js/saslprep" "^1.1.5"
+    bson "^6.7.0"
     mongodb-connection-string-url "^3.0.0"
 
-mongoose@8.9.1:
-  version "8.9.1"
-  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-8.9.1.tgz#3fbb4661b2ecd455cdaf9ba1112e7a3e023177b3"
-  integrity sha512-whM6lWMdeKlUm4d2LSLS/q6cWtTp13lUrL5hy2YTsQdTSN+dsAu8HLdLUQOEgtBE59qp4IqLrjSXCSETbxhkQQ==
+mongoose@8.8.4:
+  version "8.8.4"
+  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-8.8.4.tgz#11e3991a7fd03596a79bc9f9b2fe8f3e75b7a30d"
+  integrity sha512-yJbn695qCsqDO+xyPII29x2R7flzXhxCDv09mMZPSGllf0sm4jKw3E9s9uvQ9hjO6bL2xjU8KKowYqcY9eSTMQ==
   dependencies:
-    bson "^6.10.1"
+    bson "^6.7.0"
     kareem "2.6.3"
-    mongodb "~6.12.0"
+    mongodb "~6.10.0"
     mpath "0.9.0"
     mquery "5.0.0"
     ms "2.1.3"
     sift "17.1.3"
-
-mongoose@^7.0.1:
-  version "7.8.3"
-  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-7.8.3.tgz#d6d3305268fc93a425c4a5f41478b0c1771a5b1c"
-  integrity sha512-eFnbkKgyVrICoHB6tVJ4uLanS7d5AIo/xHkEbQeOv6g2sD7gh/1biRwvFifsmbtkIddQVNr3ROqHik6gkknN3g==
-  dependencies:
-    bson "^5.5.0"
-    kareem "2.5.1"
-    mongodb "5.9.2"
-    mpath "0.9.0"
-    mquery "5.0.0"
-    ms "2.1.3"
-    sift "16.0.1"
 
 mpath@0.9.0:
   version "0.9.0"
@@ -14085,11 +14051,6 @@ side-channel@^1.0.6:
     es-errors "^1.3.0"
     get-intrinsic "^1.2.4"
     object-inspect "^1.13.1"
-
-sift@16.0.1:
-  version "16.0.1"
-  resolved "https://registry.yarnpkg.com/sift/-/sift-16.0.1.tgz#e9c2ccc72191585008cf3e36fc447b2d2633a053"
-  integrity sha512-Wv6BjQ5zbhW7VFefWusVP33T/EM0vYikCaQ2qR8yULbsilAT8/wQaXvuQ3ptGLpoKx+lihJE3y2UTgKDyyNHZQ==
 
 sift@17.1.3:
   version "17.1.3"
