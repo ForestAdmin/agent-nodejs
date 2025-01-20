@@ -28,16 +28,16 @@ export default class Filter {
   segment?: string;
   liveQuerySegment?: LiveQuerySegment;
 
-  get isNestable(): boolean {
-    return !this.search && !this.segment;
-  }
-
   constructor(parts: FilterComponents) {
     this.conditionTree = parts.conditionTree;
     this.search = parts.search;
     this.searchExtended = parts.searchExtended;
     this.segment = parts.segment;
     this.liveQuerySegment = parts.liveQuerySegment;
+  }
+
+  get isNestable(): boolean {
+    return !this.search && !this.segment;
   }
 
   override(fields: FilterComponents): Filter {

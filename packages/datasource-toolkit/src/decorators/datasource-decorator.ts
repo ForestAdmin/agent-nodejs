@@ -14,6 +14,14 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
   private readonly CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>;
   private readonly decorators: WeakMap<Collection, CollectionDecorator> = new WeakMap();
 
+  constructor(
+    childDataSource: DataSource,
+    CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>,
+  ) {
+    this.childDataSource = childDataSource;
+    this.CollectionDecoratorCtor = CollectionDecoratorCtor;
+  }
+
   get schema(): DataSourceSchema {
     return this.childDataSource.schema;
   }
@@ -24,14 +32,6 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
 
   get collections(): CollectionDecorator[] {
     return this.childDataSource.collections.map(({ name }) => this.getCollection(name));
-  }
-
-  constructor(
-    childDataSource: DataSource,
-    CollectionDecoratorCtor: CollectionDecoratorConstructor<CollectionDecorator>,
-  ) {
-    this.childDataSource = childDataSource;
-    this.CollectionDecoratorCtor = CollectionDecoratorCtor;
   }
 
   getCollection(name: string): CollectionDecorator {

@@ -18,29 +18,6 @@ const featuresFormattedWithVersion = [
 ];
 
 export default class CustomizationPluginService {
-  private readonly client: ForestAdminClient;
-
-  private readonly options: AgentOptionsWithDefaults;
-
-  public constructor(agentOptions: AgentOptionsWithDefaults) {
-    this.client = agentOptions.forestAdminClient;
-
-    this.options = agentOptions;
-  }
-
-  public addCustomizations: Plugin<void> = async (datasourceCustomizer, _) => {
-    const { experimental } = this.options;
-    if (!experimental) return;
-
-    const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
-
-    CustomizationPluginService.makeAddCustomizations(experimental)(
-      datasourceCustomizer,
-      _,
-      modelCustomizations,
-    );
-  };
-
   public static makeAddCustomizations: (
     experimental: ExperimentalOptions,
   ) => Plugin<ModelCustomization[]> = (experimental: ExperimentalOptions) => {
@@ -58,10 +35,6 @@ export default class CustomizationPluginService {
       }
     };
   };
-
-  public buildFeatures() {
-    return CustomizationPluginService.buildFeatures(this.options?.experimental);
-  }
 
   public static buildFeatures(experimental: ExperimentalOptions): Record<string, string> | null {
     const features = CustomizationPluginService.getFeatures(experimental);
@@ -85,5 +58,32 @@ export default class CustomizationPluginService {
     return Object.entries(optionsToFeatureMapping)
       .filter(([experimentalFeature]) => experimental?.[experimentalFeature])
       .map(([, feature]) => feature);
+  }
+
+  private readonly client: ForestAdminClient;
+
+  private readonly options: AgentOptionsWithDefaults;
+
+  public addCustomizations: Plugin<void> = async (datasourceCustomizer, _) => {
+    const { experimental } = this.options;
+    if (!experimental) return;
+
+    const modelCustomizations = await this.client.modelCustomizationService.getConfiguration();
+
+    CustomizationPluginService.makeAddCustomizations(experimental)(
+      datasourceCustomizer,
+      _,
+      modelCustomizations,
+    );
+  };
+
+  public constructor(agentOptions: AgentOptionsWithDefaults) {
+    this.client = agentOptions.forestAdminClient;
+
+    this.options = agentOptions;
+  }
+
+  public buildFeatures() {
+    return CustomizationPluginService.buildFeatures(this.options?.experimental);
   }
 }

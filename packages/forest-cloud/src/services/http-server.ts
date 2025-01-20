@@ -45,17 +45,6 @@ async function handledAxios<T>(
 }
 
 export default class HttpServer {
-  private readonly serverUrl: string;
-  private readonly headers: object;
-  constructor(serverUrl: string, secretKey: string, bearerToken: string) {
-    this.serverUrl = serverUrl;
-    this.headers = {
-      'forest-secret-key': secretKey,
-      Authorization: `Bearer ${bearerToken}`,
-      'Content-Type': 'application/json',
-    };
-  }
-
   public static async downloadCloudCustomizerTemplate(destination: string) {
     const response = await axios.default({
       url: 'https://github.com/ForestAdmin/cloud-customizer/archive/main.zip',
@@ -70,6 +59,22 @@ export default class HttpServer {
       stream.on('finish', resolve);
       stream.on('error', reject);
     });
+  }
+
+  static async getLatestVersion(packageName: string): Promise<string> {
+    return latestVersion(packageName);
+  }
+
+  private readonly serverUrl: string;
+
+  private readonly headers: object;
+  constructor(serverUrl: string, secretKey: string, bearerToken: string) {
+    this.serverUrl = serverUrl;
+    this.headers = {
+      'forest-secret-key': secretKey,
+      Authorization: `Bearer ${bearerToken}`,
+      'Content-Type': 'application/json',
+    };
   }
 
   async getDatasources(): Promise<Datasources> {
@@ -149,10 +154,6 @@ export default class HttpServer {
         { errorMessage: `Failed to retrieve logs` },
       )
     ).logs;
-  }
-
-  static async getLatestVersion(packageName: string): Promise<string> {
-    return latestVersion(packageName);
   }
 
   async getOrCreateNewDevelopmentEnvironment() {

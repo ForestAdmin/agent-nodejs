@@ -9,6 +9,12 @@ import { RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 export default class Authentication extends BaseRoute {
+  private static checkRenderingId(renderingId: number): void {
+    if (Number.isNaN(renderingId)) {
+      throw new ValidationError('Rendering id must be a number');
+    }
+  }
+
   readonly type = RouteType.Authentication;
 
   override async bootstrap(): Promise<void> {
@@ -69,12 +75,6 @@ export default class Authentication extends BaseRoute {
     const token = jsonwebtoken.sign(user, this.options.authSecret, { expiresIn: '1 hours' });
 
     context.response.body = { token, tokenData: jsonwebtoken.decode(token) };
-  }
-
-  private static checkRenderingId(renderingId: number): void {
-    if (Number.isNaN(renderingId)) {
-      throw new ValidationError('Rendering id must be a number');
-    }
   }
 
   private async handleError(context: Context, next: Next): Promise<void> {

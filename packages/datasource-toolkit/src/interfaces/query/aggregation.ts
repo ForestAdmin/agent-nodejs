@@ -36,17 +36,17 @@ export default class Aggregation {
   operation: GenericAggregation['operation'];
   groups?: GenericAggregation['groups'];
 
+  constructor(components: GenericAggregation) {
+    this.field = components.field;
+    this.operation = components.operation;
+    this.groups = components.groups;
+  }
+
   get projection(): Projection {
     const { field, groups } = this;
     const aggregateFields = [field, ...(groups ?? []).map(b => b.field)].filter(Boolean);
 
     return new Projection(...aggregateFields);
-  }
-
-  constructor(components: GenericAggregation) {
-    this.field = components.field;
-    this.operation = components.operation;
-    this.groups = components.groups;
   }
 
   apply(records: RecordData[], timezone: string, limit?: number): AggregateResult[] {

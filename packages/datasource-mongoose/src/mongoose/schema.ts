@@ -9,14 +9,61 @@ export type SchemaBranch = { [key: string]: SchemaNode };
 export type SchemaNode = SchemaType | SchemaBranch;
 
 export default class MongooseSchema {
+  static fromModel(model: Model<unknown>): MongooseSchema {
+    return new MongooseSchema(model.db.models, this.buildFields(model.schema), false, false);
+  }
+
+  /**
+   * Build a tree of SchemaType from a mongoose schema.
+   * This removes most complexity from using prefixes, nested schemas and array types
+   */
+  private static buildFields(schema: Schema, level = 0): SchemaBranch {
+    const paths = {};
+
+    for (const [name, field] of Object.entries(schema.paths)) {
+      // Exclude mixedFieldPattern $* and privateFieldPattern __
+      if (!name.startsWith('$*') && !name.includes('__') && (name !== '_id' || level === 0)) {
+        // Flatten nested schemas and arrays
+        if (field.constructor.name === 'SubdocumentPath') {
+          const subPaths = this.buildFields(field.schema as Schema, level + 1);
+
+          for (const [subName, subField] of Object.entries(subPaths)) {
+            recursiveSet(paths, `${name}.${subName}`, subField);
+          }
+        } else if (field.constructor.name === 'DocumentArrayPath') {
+          const subPaths = this.buildFields(field.schema as Schema, level + 1);
+
+          for (const [subName, subField] of Object.entries(subPaths)) {
+            recursiveSet(paths, `${name}.[].${subName}`, subField);
+          }
+        } else if (field.constructor.name === 'SchemaArray') {
+          recursiveSet(paths, `${name}.[]`, (field as any).caster);
+        } else {
+          recursiveSet(paths, name, field);
+        }
+      }
+    }
+
+    return paths;
+  }
+
   readonly isArray: boolean;
+
   readonly isLeaf: boolean;
   readonly fields: SchemaBranch;
 
   private models: { [name: string]: Model<unknown> };
 
-  static fromModel(model: Model<unknown>): MongooseSchema {
-    return new MongooseSchema(model.db.models, this.buildFields(model.schema), false, false);
+  constructor(
+    models: Record<string, Model<unknown>>,
+    fields: SchemaBranch,
+    isArray: boolean,
+    isLeaf: boolean,
+  ) {
+    this.models = models;
+    this.fields = fields;
+    this.isArray = isArray;
+    this.isLeaf = isLeaf;
   }
 
   get schemaNode(): SchemaNode {
@@ -29,18 +76,6 @@ export default class MongooseSchema {
     }
 
     throw new Error(`Schema is not a leaf.`);
-  }
-
-  constructor(
-    models: Record<string, Model<unknown>>,
-    fields: SchemaBranch,
-    isArray: boolean,
-    isLeaf: boolean,
-  ) {
-    this.models = models;
-    this.fields = fields;
-    this.isArray = isArray;
-    this.isLeaf = isLeaf;
   }
 
   listPathsMatching(
@@ -160,39 +195,5 @@ export default class MongooseSchema {
     }
 
     return new MongooseSchema(this.models, child, isArray, isLeaf).getSubSchema(suffix);
-  }
-
-  /**
-   * Build a tree of SchemaType from a mongoose schema.
-   * This removes most complexity from using prefixes, nested schemas and array types
-   */
-  private static buildFields(schema: Schema, level = 0): SchemaBranch {
-    const paths = {};
-
-    for (const [name, field] of Object.entries(schema.paths)) {
-      // Exclude mixedFieldPattern $* and privateFieldPattern __
-      if (!name.startsWith('$*') && !name.includes('__') && (name !== '_id' || level === 0)) {
-        // Flatten nested schemas and arrays
-        if (field.constructor.name === 'SubdocumentPath') {
-          const subPaths = this.buildFields(field.schema as Schema, level + 1);
-
-          for (const [subName, subField] of Object.entries(subPaths)) {
-            recursiveSet(paths, `${name}.${subName}`, subField);
-          }
-        } else if (field.constructor.name === 'DocumentArrayPath') {
-          const subPaths = this.buildFields(field.schema as Schema, level + 1);
-
-          for (const [subName, subField] of Object.entries(subPaths)) {
-            recursiveSet(paths, `${name}.[].${subName}`, subField);
-          }
-        } else if (field.constructor.name === 'SchemaArray') {
-          recursiveSet(paths, `${name}.[]`, (field as any).caster);
-        } else {
-          recursiveSet(paths, name, field);
-        }
-      }
-    }
-
-    return paths;
   }
 }

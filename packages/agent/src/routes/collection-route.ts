@@ -10,14 +10,6 @@ export default abstract class CollectionRoute extends BaseRoute {
   private readonly collectionName: string;
   protected readonly dataSource: DataSource;
 
-  protected get collection(): Collection {
-    return this.dataSource.getCollection(this.collectionName);
-  }
-
-  protected get collectionUrlSlug(): string {
-    return this.escapeUrlSlug(this.collectionName);
-  }
-
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
@@ -27,5 +19,13 @@ export default abstract class CollectionRoute extends BaseRoute {
     super(services, options);
     this.collectionName = collectionName;
     this.dataSource = dataSource;
+  }
+
+  protected get collection(): Collection {
+    return this.dataSource.getCollection(this.collectionName);
+  }
+
+  protected get collectionUrlSlug(): string {
+    return this.escapeUrlSlug(this.collectionName);
   }
 }

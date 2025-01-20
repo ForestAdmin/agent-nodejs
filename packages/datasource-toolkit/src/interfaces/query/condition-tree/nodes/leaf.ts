@@ -22,19 +22,19 @@ export default class ConditionTreeLeaf extends ConditionTree {
   operator: Operator;
   value?: unknown;
 
+  constructor(field: string, operator: Operator, value?: unknown) {
+    super();
+    this.field = field;
+    this.operator = operator;
+    this.value = value;
+  }
+
   get projection(): Projection {
     return new Projection(this.field);
   }
 
   get useIntervalOperator() {
     return intervalOperators.includes(this.operator as (typeof intervalOperators)[number]);
-  }
-
-  constructor(field: string, operator: Operator, value?: unknown) {
-    super();
-    this.field = field;
-    this.operator = operator;
-    this.value = value;
   }
 
   forEachLeaf(handler: LeafCallback): void {

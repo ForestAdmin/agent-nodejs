@@ -1,17 +1,18 @@
 import path from 'path';
 
 export default class BootstrapPathManager {
-  private readonly _tmp: string;
-  private readonly _home: string;
-  private _folderName: string;
   private readonly basePath: string;
-
   constructor(tmp: string, home: string, basePath?: string) {
     this._tmp = tmp;
     this._home = home;
     this._folderName = 'forest-cloud';
     this.basePath = basePath ?? '.';
   }
+
+  private readonly _tmp: string;
+
+  private readonly _home: string;
+  private _folderName: string;
 
   get folderName(): string {
     return this._folderName || 'forest-cloud';

@@ -18,14 +18,14 @@ export default class FrameworkMounter {
   private readonly prefix: string;
   private readonly logger: Logger;
 
-  /** Compute the prefix that the main router should be mounted at in the client's application */
-  private get completeMountPrefix(): string {
-    return path.posix.join('/', this.prefix, 'forest');
-  }
-
   constructor(prefix: string, logger: Logger) {
     this.prefix = prefix;
     this.logger = logger;
+  }
+
+  /** Compute the prefix that the main router should be mounted at in the client's application */
+  private get completeMountPrefix(): string {
+    return path.posix.join('/', this.prefix, 'forest');
   }
 
   protected async mount(router: Router): Promise<void> {

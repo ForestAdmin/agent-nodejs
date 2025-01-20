@@ -45,6 +45,7 @@
     "db:seed": "ts-node scripts/db-seed.ts"
   },
   "devDependencies": {
+    "eslint-plugin-sort-class-members": "^1.21.0",
     "ts-node": "^10.9.2"
   }
 }

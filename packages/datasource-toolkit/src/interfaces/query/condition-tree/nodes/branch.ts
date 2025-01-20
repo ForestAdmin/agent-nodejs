@@ -21,17 +21,17 @@ export default class ConditionTreeBranch extends ConditionTree {
   aggregator: Aggregator;
   conditions: ConditionTree[];
 
+  constructor(aggregator: Aggregator, conditions: ConditionTree[]) {
+    super();
+    this.aggregator = aggregator;
+    this.conditions = conditions;
+  }
+
   get projection(): Projection {
     return this.conditions.reduce(
       (memo, condition) => memo.union(condition.projection),
       new Projection(),
     );
-  }
-
-  constructor(aggregator: Aggregator, conditions: ConditionTree[]) {
-    super();
-    this.aggregator = aggregator;
-    this.conditions = conditions;
   }
 
   forEachLeaf(handler: LeafCallback): void {

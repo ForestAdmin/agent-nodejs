@@ -17,7 +17,7 @@ module.exports = {
     sourceType: 'module',
     project: ['./tsconfig.eslint.json'],
   },
-  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting'],
+  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting', 'sort-class-members'],
   rules: {
     /**********/
     /** Style */
@@ -48,7 +48,21 @@ module.exports = {
         alphabetize: { order: 'asc', caseInsensitive: true },
       },
     ],
-
+"sort-class-members/sort-class-members": [
+			2,
+			{
+				"order": [
+					"[static-properties]",
+					"[static-methods]",
+					"[properties]",
+					"constructor",
+					"[conventional-private-properties]",
+					"[methods]",
+					"[conventional-private-methods]"
+				],
+				"accessorPairPositioning": "getThenSet"
+			}
+		],
     /***********************************/
     /* Stricter rules than airbnb-base */
     /***********************************/

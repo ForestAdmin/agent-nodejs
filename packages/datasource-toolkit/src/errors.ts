@@ -1,17 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
 export class BusinessError extends Error {
-  // INTERNAL USAGES
-  public readonly isBusinessError = true;
-  public baseBusinessErrorName: string;
-
-  public readonly data: Record<string, unknown> | undefined;
-
-  constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message);
-    this.name = name ?? this.constructor.name;
-    this.data = data;
-  }
-
   /**
    * We cannot rely on `instanceof` because there can be some mismatch between
    * packages versions as dependencies of different packages.
@@ -22,6 +10,18 @@ export class BusinessError extends Error {
       error.name === ErrorConstructor.name ||
       (error as BusinessError).baseBusinessErrorName === ErrorConstructor.name
     );
+  }
+
+  // INTERNAL USAGES
+  public readonly isBusinessError = true;
+  public baseBusinessErrorName: string;
+
+  public readonly data: Record<string, unknown> | undefined;
+
+  constructor(message?: string, data?: Record<string, unknown>, name?: string) {
+    super(message);
+    this.name = name ?? this.constructor.name;
+    this.data = data;
   }
 }
 
