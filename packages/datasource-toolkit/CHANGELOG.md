@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.47.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.46.0...@forestadmin/datasource-toolkit@1.47.0) (2025-01-22)
+
+
+### Features
+
+* upgrade uuid package to handle uuid v7 ([#1243](https://github.com/ForestAdmin/agent-nodejs/issues/1243)) ([ebf9515](https://github.com/ForestAdmin/agent-nodejs/commit/ebf951561d49565e49fb6a5bfbb84209ded04c25))
+
 # @forestadmin/datasource-toolkit [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.45.1...@forestadmin/datasource-toolkit@1.46.0) (2025-01-02)
 
 
