@@ -1,9 +1,7 @@
 import mongoose, { Schema, SchemaType } from 'mongoose';
 
-const dynamicSchema = new mongoose.Schema({ objectId: mongoose.Schema.Types.ObjectId });
-
 export default class VersionManager {
-  static readonly ObjectIdTypeName = dynamicSchema.paths.objectId.instance;
+  static readonly ObjectIdTypeName = mongoose.Schema.Types.ObjectId.schemaName;
 
   public static isSubDocument(field): field is Schema.Types.Subdocument {
     return (
