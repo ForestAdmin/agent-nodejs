@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 
 import ReferenceCandidatesVerifier from '../../src/introspection/reference-candidates-verifier';
@@ -160,8 +159,8 @@ describe('Unit > Introspection > ReferenceCandidatesVerifier', () => {
     });
 
     it('should detect matching ids when using binary type', async () => {
-      const publisherId1 = new Binary(randomUUID());
-      const publisherId2 = new Binary(randomUUID());
+      const publisherId1 = new Binary(mongoose.mongo.UUID.generate());
+      const publisherId2 = new Binary(mongoose.mongo.UUID.generate());
       const { connection } = setupCollectionMock({
         publisher: [{ _id: publisherId1 }, { _id: publisherId2 }],
       });
@@ -186,8 +185,8 @@ describe('Unit > Introspection > ReferenceCandidatesVerifier', () => {
         publisher: [
           {
             referenceSamples: new Set([
-              new Binary(publisherId1.toString()),
-              new Binary(publisherId2.toString()),
+              new Binary(publisherId1.value()),
+              new Binary(publisherId2.value()),
             ]),
             isReferenceCandidate: true,
             seen: 2,
