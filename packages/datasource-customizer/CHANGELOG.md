@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.60.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.59.0...@forestadmin/datasource-customizer@1.60.0) (2025-01-22)
+
+
+### Features
+
+* upgrade uuid package to handle uuid v7 ([#1243](https://github.com/ForestAdmin/agent-nodejs/issues/1243)) ([ebf9515](https://github.com/ForestAdmin/agent-nodejs/commit/ebf951561d49565e49fb6a5bfbb84209ded04c25))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.0
+
 # @forestadmin/datasource-customizer [1.59.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.58.0...@forestadmin/datasource-customizer@1.59.0) (2025-01-13)
 
 
