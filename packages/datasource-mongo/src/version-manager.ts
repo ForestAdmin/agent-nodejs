@@ -9,5 +9,7 @@ export const ObjectIdVersion7 = 'ObjectId';
 export type PrimitiveObjectId = typeof ObjectIdVersion6 | typeof ObjectIdVersion7;
 
 export default class VersionManager {
-  static readonly ObjectIdTypeName = mongoose.Schema.Types.ObjectId.schemaName;
+  static readonly ObjectIdTypeName: PrimitiveObjectId = mongoose.version.startsWith('6')
+    ? ObjectIdVersion6
+    : ObjectIdVersion7;
 }
