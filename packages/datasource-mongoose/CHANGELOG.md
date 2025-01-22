@@ -1,3 +1,10 @@
+# @forestadmin/datasource-mongoose [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.10...@forestadmin/datasource-mongoose@1.9.0) (2025-01-22)
+
+
+### Features
+
+* support for mongoose v8 ([#1241](https://github.com/ForestAdmin/agent-nodejs/issues/1241)) ([ae0164d](https://github.com/ForestAdmin/agent-nodejs/commit/ae0164d04e477c5af13d1029d74f4e1c374a0b03))
+
 ## @forestadmin/datasource-mongoose [1.8.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.9...@forestadmin/datasource-mongoose@1.8.10) (2025-01-22)
 
 
