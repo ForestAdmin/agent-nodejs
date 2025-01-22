@@ -99,7 +99,7 @@ export default class FieldsGenerator {
 
   /** Compute column type from CleanSchema */
   private static getColumnType(field: SchemaNode): ColumnType {
-    const columnType = this.getColumnTypeRec(field as any);
+    const columnType = this.getColumnTypeRec(field);
 
     // Enum fields are promoted to enum instead of string _only_ if they are at the root of the
     // record.
