@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.61.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.60.0...@forestadmin/datasource-customizer@1.61.0) (2025-01-23)
+
+
+### Features
+
+* add lazy join decorator ([#1240](https://github.com/ForestAdmin/agent-nodejs/issues/1240)) ([1b6b248](https://github.com/ForestAdmin/agent-nodejs/commit/1b6b248321944b67a71e1ce4f42ee0d3932ebd69))
+
 # @forestadmin/datasource-customizer [1.60.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.59.0...@forestadmin/datasource-customizer@1.60.0) (2025-01-22)
 
 
