@@ -7,6 +7,7 @@ import ComputedCollectionDecorator from './computed/collection';
 import DecoratorsStackBase, { Options } from './decorators-stack-base';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
+import LazyJoinDecorator from './lazy-join/collection';
 import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
 import OperatorsEquivalenceCollectionDecorator from './operators-equivalence/collection';
 import OverrideCollectionDecorator from './override/collection';
@@ -39,6 +40,7 @@ export default class DecoratorsStack extends DecoratorsStackBase {
     last = this.earlyOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
     last = this.relation = new DataSourceDecorator(last, RelationCollectionDecorator);
+    last = new DataSourceDecorator(last, LazyJoinDecorator);
     last = this.lateComputed = new DataSourceDecorator(last, ComputedCollectionDecorator);
     last = this.lateOpEmulate = new DataSourceDecorator(last, OperatorsEmulateCollectionDecorator);
     last = new DataSourceDecorator(last, OperatorsEquivalenceCollectionDecorator);
