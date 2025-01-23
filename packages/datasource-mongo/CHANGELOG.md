@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongo [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.4.0...@forestadmin/datasource-mongo@1.4.1) (2025-01-23)
+
+
+### Bug Fixes
+
+* **datasource mongo:** remove useless version manager ([#1244](https://github.com/ForestAdmin/agent-nodejs/issues/1244)) ([fbb6698](https://github.com/ForestAdmin/agent-nodejs/commit/fbb6698ba25b93f44c508404f103ae635b3662e3))
+
 # @forestadmin/datasource-mongo [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.31...@forestadmin/datasource-mongo@1.4.0) (2025-01-22)
 
 
