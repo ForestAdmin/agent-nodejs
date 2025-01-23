@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 
 import Structure from '../../src/introspection/structure';
 import { MongoDb } from '../../src/introspection/types';
-import VersionManager from '../../src/version-manager';
 
 const { Decimal128, Int32, Long, Timestamp, ObjectId, Binary } = mongoose.mongo;
 
@@ -540,7 +539,7 @@ describe('Introspection > Structure', () => {
                   object: {
                     parent: expect.objectContaining({
                       seen: 1,
-                      types: { [VersionManager.ObjectIdTypeName]: 1 },
+                      types: { ObjectId: 1 },
                     }),
                   },
                   seen: 1,

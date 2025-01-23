@@ -1,7 +1,6 @@
 import type { Binary } from 'bson';
 
 import { ModelStudy, MongoCollection, MongoDb, NodeStudy, Primitive } from './types';
-import VersionManager from '../version-manager';
 
 export default class Structure {
   static async introspect(
@@ -127,7 +126,7 @@ export default class Structure {
     // in binary and string format).
     return (
       type === 'null' ||
-      type === VersionManager.ObjectIdTypeName ||
+      type === 'ObjectId' ||
       (type === 'Binary' && (sample as Binary).length() <= 16) ||
       (type === 'string' && (sample as string).length <= 36)
     );

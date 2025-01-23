@@ -1,7 +1,5 @@
 import { Connection } from 'mongoose';
 
-import { PrimitiveObjectId } from '../version-manager';
-
 export type MongoDb = Connection['db'];
 export type MongoCollection = ReturnType<MongoDb['collection']>;
 
@@ -25,7 +23,7 @@ export type Primitive =
   | 'object'
   | 'Binary'
   | 'Date'
-  | PrimitiveObjectId;
+  | 'ObjectId';
 
 export type PrimitiveDefinition = Exclude<Primitive, 'null'> | 'Mixed';
 
