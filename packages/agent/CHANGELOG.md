@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.58.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.1...@forestadmin/agent@1.58.2) (2025-01-24)
+
+
+### Bug Fixes
+
+* do not override view default sorting ordrer ([#1245](https://github.com/ForestAdmin/agent-nodejs/issues/1245)) ([8e27769](https://github.com/ForestAdmin/agent-nodejs/commit/8e2776925b6999c967c050c23cc7d63d76c87228))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.61.1
+
 ## @forestadmin/agent [1.58.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.0...@forestadmin/agent@1.58.1) (2025-01-23)
 
 
