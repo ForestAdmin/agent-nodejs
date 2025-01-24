@@ -64,7 +64,7 @@ describe('FilterFactory', () => {
             new ConditionTreeLeaf('id', 'Equal', '123e4567-e89b-12d3-a456-222222222222'),
           ]),
           search: 'searched argument',
-          sort: new Sort({ field: 'id', ascending: true }),
+          sort: new Sort(),
           page: new Page(20, 10),
           searchExtended: true,
           segment: 'a-valid-segment',
@@ -84,7 +84,7 @@ describe('FilterFactory', () => {
         new PaginatedFilter({
           conditionTree: null,
           search: 'searched argument',
-          sort: new Sort({ field: 'id', ascending: true }),
+          sort: new Sort(),
           page: new Page(20, 10),
           searchExtended: true,
           segment: 'a-valid-segment',

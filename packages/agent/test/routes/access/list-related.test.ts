@@ -113,7 +113,7 @@ describe('ListRelatedRoute', () => {
             search: 'aName',
             searchExtended: false,
             page: new Page(0, 15),
-            sort: new Sort({ field: 'id', ascending: true }),
+            sort: new Sort(),
             segment: 'a-valid-segment',
             liveQuerySegment: expect.toBeNil(),
             conditionTree: new ConditionTreeLeaf(
@@ -224,7 +224,7 @@ describe('ListRelatedRoute', () => {
             search: 'aName',
             searchExtended: false,
             page: new Page(0, 15),
-            sort: new Sort({ field: 'id', ascending: true }),
+            sort: new Sort(),
             segment: 'a-valid-segment',
             liveQuerySegment: expect.toBeNil(),
             conditionTree: ConditionTreeFactory.fromPlainObject({

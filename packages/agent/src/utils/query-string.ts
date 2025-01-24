@@ -10,7 +10,6 @@ import {
   ProjectionValidator,
   SchemaUtils,
   Sort,
-  SortFactory,
   SortValidator,
   UnprocessableError,
   ValidationError,
@@ -197,9 +196,9 @@ export default class QueryStringParser {
     const sortString =
       body?.data?.attributes?.all_records_subset_query?.sort?.toString() ?? query.sort?.toString();
 
-    try {
-      if (!sortString) return SortFactory.byPrimaryKeys(collection);
+    if (!sortString) return new Sort();
 
+    try {
       const sort = new Sort(
         ...sortString.split(',').map((sortChunk: string) => ({
           field: sortChunk.replace(/^-/, '').replace('.', ':'),

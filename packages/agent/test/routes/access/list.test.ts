@@ -63,7 +63,7 @@ describe('ListRoute', () => {
           segment: expect.toBeNil(),
           liveQuerySegment: expect.toBeNil(),
           page: { limit: 15, skip: 0 },
-          sort: [{ ascending: true, field: 'id' }],
+          sort: [],
         },
         new Projection('id'),
       );
@@ -136,7 +136,7 @@ describe('ListRoute', () => {
           segment: expect.toBeNil(),
           liveQuerySegment: expect.toBeNil(),
           page: { limit: 15, skip: 0 },
-          sort: [{ ascending: true, field: 'id' }],
+          sort: [],
         },
         new Projection('id'),
       );

@@ -545,7 +545,7 @@ describe('QueryStringParser', () => {
       expect(sort).toEqual([]);
     });
 
-    test('should sort by pk ascending when not sort is given', () => {
+    test('should not sort when not sort is given', () => {
       const collectionWithSortablePks = factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
@@ -564,10 +564,7 @@ describe('QueryStringParser', () => {
 
       const sort = QueryStringParser.parseSort(collectionWithSortablePks, context);
 
-      expect(sort).toEqual([
-        { field: 'id', ascending: true },
-        { field: 'secondId', ascending: true },
-      ]);
+      expect(sort).toEqual([]);
     });
 
     test('should sort by the request field and order when given', () => {
