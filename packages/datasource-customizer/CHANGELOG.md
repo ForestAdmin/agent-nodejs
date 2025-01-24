@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.61.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.61.0...@forestadmin/datasource-customizer@1.61.1) (2025-01-24)
+
+
+### Bug Fixes
+
+* **lazy join:** do not remove foreignkey when they are asking ([#1246](https://github.com/ForestAdmin/agent-nodejs/issues/1246)) ([621b243](https://github.com/ForestAdmin/agent-nodejs/commit/621b2434900f565e37fbd982dae6e82664797c37))
+
 # @forestadmin/datasource-customizer [1.61.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.60.0...@forestadmin/datasource-customizer@1.61.0) (2025-01-23)
 
 

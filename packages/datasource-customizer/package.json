@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-customizer",
-  "version": "1.61.0",
+  "version": "1.61.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
