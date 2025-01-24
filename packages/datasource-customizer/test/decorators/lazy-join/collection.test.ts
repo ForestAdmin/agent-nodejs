@@ -44,10 +44,12 @@ describe('LazyJoinDecorator', () => {
           id: factories.columnSchema.uuidPrimaryKey().build(),
           description: factories.columnSchema.build(),
           amountInEur: factories.columnSchema.build(),
+          card_id: factories.columnSchema.uuidPrimaryKey().build(),
           card: factories.manyToOneSchema.build({
             foreignCollection: 'cards',
             foreignKey: 'card_id',
           }),
+          user_id: factories.columnSchema.uuidPrimaryKey().build(),
           user: factories.manyToOneSchema.build({
             foreignCollection: 'users',
             foreignKey: 'user_id',
@@ -206,6 +208,25 @@ describe('LazyJoinDecorator', () => {
 
       expect(spy).toHaveBeenCalledWith(caller, filter, new Projection('id', 'card_id'));
       expect(records).toStrictEqual([{ id: 1 }]);
+    });
+
+    describe('when projection ask for foreign key and relation', () => {
+      test('it should not remove the key from the record', async () => {
+        const spy = jest.spyOn(transactions, 'list');
+        spy.mockResolvedValue([{ id: 1, card_id: 2 }]);
+
+        const caller = factories.caller.build();
+        const filter = factories.filter.build();
+
+        const records = await decoratedTransactions.list(
+          caller,
+          filter,
+          new Projection('id', 'card:id', 'card_id'),
+        );
+
+        expect(spy).toHaveBeenCalledWith(caller, filter, new Projection('id', 'card_id'));
+        expect(records).toStrictEqual([{ id: 1, card: { id: 2 }, card_id: 2 }]);
+      });
     });
   });
 

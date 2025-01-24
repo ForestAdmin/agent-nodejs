@@ -28,7 +28,7 @@ export default class LazyJoinDecorator extends CollectionDecorator {
           record[relationName] = { [foreignKeyTarget]: record[foreignKey] };
         }
 
-        delete record[foreignKey];
+        if (!projection.includes(foreignKey)) delete record[foreignKey];
       });
     });
 
