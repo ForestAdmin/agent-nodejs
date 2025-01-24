@@ -10,7 +10,6 @@ import {
   ProjectionValidator,
   SchemaUtils,
   Sort,
-  SortFactory,
   SortValidator,
   UnprocessableError,
   ValidationError,
