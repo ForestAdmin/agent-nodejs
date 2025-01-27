@@ -143,6 +143,24 @@ describe('UserPermission', () => {
       expect(serverInterface.getUsers).toHaveBeenCalledTimes(2);
       expect(userInfo).toEqual({ id: 43, email: 'bob2@world.com' });
     });
+
+    it('should not cache a rejected promise', async () => {
+      const { userPermissions, serverInterface } = setup();
+      serverInterface.getUsers = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('first'))
+        .mockResolvedValueOnce([
+          { id: 42, email: 'alice@world.com' },
+          { id: 43, email: 'bob2@world.com' },
+        ]);
+
+      await expect(() => userPermissions.getUserInfo(43)).rejects.toThrow('first');
+
+      const userInfo = await userPermissions.getUserInfo(43);
+
+      expect(serverInterface.getUsers).toHaveBeenCalledTimes(2);
+      expect(userInfo).toEqual({ id: 43, email: 'bob2@world.com' });
+    });
   });
 
   describe('invalidateCache', () => {
