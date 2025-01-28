@@ -29,7 +29,7 @@ describe('MongooseDatasource', () => {
   });
 
   describe('without debug option', () => {
-    it('should enable debug on mongoose', () => {
+    it('should not enable debug on mongoose', () => {
       mongoose.model('books', new Schema({}));
       const datasource = new MongooseDatasource(mongoose.connection, {});
 
