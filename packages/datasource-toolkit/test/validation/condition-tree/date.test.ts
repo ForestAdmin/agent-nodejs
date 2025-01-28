@@ -3,6 +3,28 @@ import ConditionTreeValidator from '../../../src/validation/condition-tree';
 import * as factories from '../../__factories__';
 
 describe('when the field is a date', () => {
+  describe('when operator is Equal', () => {
+    it('should not throw for null value', () => {
+      const conditionTree = factories.conditionTreeLeaf.build({
+        operator: 'Equal',
+        value: null,
+        field: 'aDateField',
+      });
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            aDateField: factories.columnSchema.build({
+              columnType: 'Date',
+              filterOperators: new Set(['Equal']),
+            }),
+          },
+        }),
+      });
+
+      expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+    });
+  });
+
   it('should not throw an error when it using the BeforeXHoursAgo operator', () => {
     const conditionTree = factories.conditionTreeLeaf.build({
       operator: 'BeforeXHoursAgo',
