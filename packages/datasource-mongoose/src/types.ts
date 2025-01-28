@@ -26,11 +26,17 @@ export type LegacyFlattenOptions = {
   asModels?: { [modelName: string]: string[] };
 };
 
-export type MongooseOptions =
+export type DebugModeOptions = {
+  debug?: boolean;
+};
+
+export type MongooseOptions = (
   | ManualFlattenOptions
   | AutoFlattenOptions
   | NoFlattenOptions
-  | LegacyFlattenOptions;
+  | LegacyFlattenOptions
+) &
+  DebugModeOptions;
 
 export type Stack = {
   prefix: string | null;

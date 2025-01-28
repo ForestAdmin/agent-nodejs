@@ -25,6 +25,12 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
       );
     }
 
+    if (options && options.debug) {
+      connection.set('debug', (collectionName: string, method: string, args: unknown[]) => {
+        logger('Debug', `${collectionName}.${method}: ${JSON.stringify(args)}`);
+      });
+    }
+
     // Create collections (with only many to one relations).
     for (const model of Object.values(connection.models)) {
       const schema = MongooseSchema.fromModel(model);
