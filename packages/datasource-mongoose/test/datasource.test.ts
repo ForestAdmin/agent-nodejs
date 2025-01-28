@@ -18,6 +18,26 @@ describe('MongooseDatasource', () => {
     spy.mockRestore();
   });
 
+  describe('with debug option', () => {
+    it('should enable debug on mongoose', () => {
+      mongoose.model('books', new Schema({}));
+      const datasource = new MongooseDatasource(mongoose.connection, { debug: true });
+
+      expect(datasource.collections).toMatchObject([{ name: 'books' }]);
+      expect(mongoose.connection.get('debug')).toBeTruthy();
+    });
+  });
+
+  describe('without debug option', () => {
+    it('should enable debug on mongoose', () => {
+      mongoose.model('books', new Schema({}));
+      const datasource = new MongooseDatasource(mongoose.connection, {});
+
+      expect(datasource.collections).toMatchObject([{ name: 'books' }]);
+      expect(mongoose.connection.get('debug')).toBeFalsy();
+    });
+  });
+
   describe('with simple schemas', () => {
     it('should give one collection by default', () => {
       mongoose.model('books', new Schema({}));
