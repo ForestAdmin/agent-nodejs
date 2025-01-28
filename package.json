@@ -39,6 +39,7 @@
   "scripts": {
     "bootstrap": "lerna bootstrap",
     "build:watch": "lerna run --parallel --no-bail --no-prefix build:watch",
+    "example:watch": "yarn nx run \"example\":start:watch",
     "build": "lerna run build",
     "clean": "lerna run clean && rm -rf coverage api-reference/",
     "docs": "typedoc",
