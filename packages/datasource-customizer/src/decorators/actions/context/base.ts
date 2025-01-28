@@ -159,6 +159,7 @@ export default class ActionContext<
   }
 
   protected assertSomeRecordsMatch(records) {
+    // The record might have been deleted since then
     if (!records?.length) throw new Error('Query with filter did not match any records');
   }
 }
