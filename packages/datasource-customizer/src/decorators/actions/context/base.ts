@@ -113,6 +113,7 @@ export default class ActionContext<
    */
   async getRecordIds(): Promise<Array<string | number>> {
     const compositeIds = await this.getCompositeRecordIds();
+    this.assertSomeRecordsMatch(compositeIds);
 
     return compositeIds.map(id => id[0]);
   }
@@ -155,5 +156,9 @@ export default class ActionContext<
   private reset(): void {
     this.queries = [];
     this.projection = new Projection();
+  }
+
+  protected assertSomeRecordsMatch(records) {
+    if (!records?.length) throw new Error('Query with filter did not match any records');
   }
 }

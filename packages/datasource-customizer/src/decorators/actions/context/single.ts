@@ -9,18 +9,21 @@ export default class ActionContextSingle<
 > extends ActionContext<S, N> {
   async getRecordId(): Promise<string | number> {
     const compositeId = await this.getCompositeRecordId();
+    this.assertSomeRecordsMatch(compositeId);
 
     return compositeId[0];
   }
 
   async getCompositeRecordId(): Promise<CompositeId> {
     const ids = await this.getCompositeRecordIds();
+    this.assertSomeRecordsMatch(ids);
 
     return ids[0];
   }
 
   async getRecord(fields: TFieldName<S, N>[]): Promise<TRow<S, N>> {
     const records = await this.getRecords(fields);
+    this.assertSomeRecordsMatch(records);
 
     return records[0];
   }
