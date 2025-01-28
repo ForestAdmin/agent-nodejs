@@ -25,7 +25,7 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
       );
     }
 
-    if (options && options.debug) {
+    if (options?.debug) {
       connection.set('debug', (collectionName: string, method: string, args: unknown[]) => {
         logger('Debug', `${collectionName}.${method}: ${JSON.stringify(args)}`);
       });
