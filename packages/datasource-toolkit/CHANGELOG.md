@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.47.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.47.0...@forestadmin/datasource-toolkit@1.47.1) (2025-01-28)
+
+
+### Bug Fixes
+
+* **validator:** allow null value for Equal operator ([#1250](https://github.com/ForestAdmin/agent-nodejs/issues/1250)) ([5d4cf3e](https://github.com/ForestAdmin/agent-nodejs/commit/5d4cf3eec67849ce6f749aa22f7fb5deda325bc7))
+
 # @forestadmin/datasource-toolkit [1.47.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.46.0...@forestadmin/datasource-toolkit@1.47.0) (2025-01-22)
 
 
