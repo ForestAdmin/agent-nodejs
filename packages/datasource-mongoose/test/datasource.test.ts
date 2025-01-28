@@ -25,6 +25,9 @@ describe('MongooseDatasource', () => {
 
       expect(datasource.collections).toMatchObject([{ name: 'books' }]);
       expect(mongoose.connection.get('debug')).toBeTruthy();
+
+      mongoose.connection.set('debug', false);
+      mongoose.deleteModel('books');
     });
   });
 
@@ -35,6 +38,8 @@ describe('MongooseDatasource', () => {
 
       expect(datasource.collections).toMatchObject([{ name: 'books' }]);
       expect(mongoose.connection.get('debug')).toBeFalsy();
+
+      mongoose.deleteModel('books');
     });
   });
 
