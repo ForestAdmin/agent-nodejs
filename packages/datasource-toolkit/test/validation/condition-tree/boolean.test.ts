@@ -21,4 +21,26 @@ describe('when the field is a boolean', () => {
 
     expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
   });
+
+  describe('when operator is Equal', () => {
+    it('should not throw for null value', () => {
+      const conditionTree = factories.conditionTreeLeaf.build({
+        operator: 'Equal',
+        value: null,
+        field: 'aBooleanField',
+      });
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            aBooleanField: factories.columnSchema.build({
+              columnType: 'Boolean',
+              filterOperators: new Set(['Equal']),
+            }),
+          },
+        }),
+      });
+
+      expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+    });
+  });
 });
