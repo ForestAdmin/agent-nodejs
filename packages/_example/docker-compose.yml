@@ -26,8 +26,9 @@ services:
       - mysql-data:/var/lib/mysql
 
   mssql:
-    image: mcr.microsoft.com/azure-sql-edge
+    image: mcr.microsoft.com/mssql/server:2022-CU17-ubuntu-22.04
     container_name: forest_agent_example_mssql
+    platform: linux/amd64
     ports:
       - '1433:1433'
     environment:
@@ -35,6 +36,16 @@ services:
       - ACCEPT_EULA=Y
     volumes:
       - mssql-data:/var/opt/mssql
+
+# waiting 30secs for mssql to be up and creating the 'example' database 
+  sqlcmd:
+    image: mcr.microsoft.com/mssql-tools:latest
+    platform: linux/amd64
+    stdin_open: true
+    environment:
+        - MSSQL_SA_PASSWORD=yourStrong(!)Password
+    command: /bin/bash -c 'sleep 30 && /opt/mssql-tools/bin/sqlcmd -S mssql -U sa -P $$MSSQL_SA_PASSWORD -d master  -Q "CREATE DATABASE example"'
+
 
   mariadb:
     image: mariadb:latest
