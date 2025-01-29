@@ -28,6 +28,7 @@ services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: forest_agent_example_mssql
+    platform: linux/amd64
     ports:
       - '1433:1433'
     environment:
@@ -39,6 +40,7 @@ services:
 # waiting 30secs for mssql to be up and creating the 'example' database 
   sqlcmd:
     image: mcr.microsoft.com/mssql-tools:latest
+    platform: linux/amd64
     stdin_open: true
     environment:
         - MSSQL_SA_PASSWORD=yourStrong(!)Password
