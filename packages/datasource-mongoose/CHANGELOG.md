@@ -1,3 +1,10 @@
+# @forestadmin/datasource-mongoose [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.9.1...@forestadmin/datasource-mongoose@1.10.0) (2025-01-29)
+
+
+### Features
+
+* **mongoose:** allow to enable debug mode ([#1251](https://github.com/ForestAdmin/agent-nodejs/issues/1251)) ([db36f93](https://github.com/ForestAdmin/agent-nodejs/commit/db36f9311b937c2d8e23ac554aa138a07800b318))
+
 ## @forestadmin/datasource-mongoose [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.9.0...@forestadmin/datasource-mongoose@1.9.1) (2025-01-28)
 
 
