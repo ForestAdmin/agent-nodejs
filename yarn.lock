@@ -11283,9 +11283,9 @@ mongodb@5.9.2:
     "@mongodb-js/saslprep" "^1.1.0"
 
 mongoose@^7.0.1:
-  version "7.8.3"
-  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-7.8.3.tgz#d6d3305268fc93a425c4a5f41478b0c1771a5b1c"
-  integrity sha512-eFnbkKgyVrICoHB6tVJ4uLanS7d5AIo/xHkEbQeOv6g2sD7gh/1biRwvFifsmbtkIddQVNr3ROqHik6gkknN3g==
+  version "7.8.6"
+  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-7.8.6.tgz#86e9c287bf9f15a1d4f236426b5d698b1685a8c3"
+  integrity sha512-1oVPRHvcmPVwk/zeSTEzayzQEVeYQM1D5zrkLsttfNNB7pPRUmkKeFu6gpbvyEswOuZLrWJjqB8kSTY+k2AZOA==
   dependencies:
     bson "^5.5.0"
     kareem "2.5.1"
