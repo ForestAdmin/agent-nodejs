@@ -35,7 +35,11 @@ describe('EventsSubscriptionService', () => {
       eventsSubscriptionService.subscribeEvents();
 
       expect(addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
-      expect(once).toHaveBeenCalledWith('open', expect.any(Function));
+      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function), { once: true });
+
+      expect(addEventListener).toHaveBeenCalledWith('heartbeat', expect.any(Function), {
+        once: true,
+      });
 
       expect(addEventListener).toHaveBeenCalledWith(
         ServerEventType.RefreshUsers,

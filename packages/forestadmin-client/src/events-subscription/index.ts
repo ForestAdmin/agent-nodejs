@@ -17,7 +17,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     private readonly refreshEventsHandlerService: RefreshEventsHandlerService,
   ) {}
 
-  private async detectBuffering() {
+  private detectBuffering() {
     clearTimeout(this.heartBeatTimeout);
 
     this.heartBeatTimeout = setTimeout(() => {
@@ -60,13 +60,19 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     eventSource.addEventListener('error', this.onEventError.bind(this));
 
     // Only listen after first open
-    eventSource.once('open', () =>
-      eventSource.addEventListener('open', () => this.onEventOpenAgain()),
+    eventSource.addEventListener(
+      'open',
+      () => eventSource.addEventListener('open', () => this.onEventOpenAgain()),
+      { once: true },
     );
 
-    eventSource.on('heartbeat', () => {
-      clearTimeout(this.heartBeatTimeout);
-    });
+    eventSource.addEventListener(
+      'heartbeat',
+      () => {
+        clearTimeout(this.heartBeatTimeout);
+      },
+      { once: true },
+    );
 
     this.detectBuffering();
 
@@ -93,6 +99,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
    * Close the current EventSource
    */
   public close() {
+    clearTimeout(this.heartBeatTimeout);
     this.eventSource?.close();
   }
 
