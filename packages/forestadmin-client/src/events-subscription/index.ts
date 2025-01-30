@@ -10,11 +10,27 @@ import { ForestAdminClientOptionsWithDefaults } from '../types';
 
 export default class EventsSubscriptionService implements BaseEventsSubscriptionService {
   private eventSource: EventSource;
+  private heartBeatTimeout: NodeJS.Timeout;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
     private readonly refreshEventsHandlerService: RefreshEventsHandlerService,
   ) {}
+
+  private async detectBuffering() {
+    clearTimeout(this.heartBeatTimeout);
+
+    this.heartBeatTimeout = setTimeout(() => {
+      this.options.logger(
+        'Error',
+        `Unable to detect ServerSentEvents Heartbeat.
+        Forest Admin uses ServerSentEvents to ensure that permission cache is up to date.
+        It seems that your agent does not receive events from our server, this may due to buffering of events from your reverse proxy. 
+        https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/install/troubleshooting
+        `,
+      );
+    }, 45000);
+  }
 
   async subscribeEvents(): Promise<void> {
     if (!this.options.instantCacheRefresh) {
@@ -47,6 +63,12 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     eventSource.once('open', () =>
       eventSource.addEventListener('open', () => this.onEventOpenAgain()),
     );
+
+    eventSource.on('heartbeat', () => {
+      clearTimeout(this.heartBeatTimeout);
+    });
+
+    this.detectBuffering();
 
     eventSource.addEventListener(ServerEventType.RefreshUsers, async () =>
       this.refreshEventsHandlerService.refreshUsers(),
