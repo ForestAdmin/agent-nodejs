@@ -107,7 +107,59 @@ describe('EventsSubscriptionService', () => {
     });
   });
 
+  describe('detectBuffering', () => {
+    test('should log an error after the timeout', () => {
+      const spy = jest.spyOn(global, 'setTimeout');
+      const eventsSubscriptionService = new EventsSubscriptionService(
+        options,
+        refreshEventsHandlerService,
+      );
+      eventsSubscriptionService.subscribeEvents();
+
+      expect(spy).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(expect.any(Function), 45000);
+
+      const callback = spy.mock.calls[0][0];
+
+      callback();
+
+      expect(options.logger).toHaveBeenCalledWith(
+        'Error',
+        `Unable to detect ServerSentEvents Heartbeat.
+        Forest Admin uses ServerSentEvents to ensure that permission cache is up to date.
+        It seems that your agent does not receive events from our server, this may due to buffering of events from your reverse proxy. 
+        https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/install/troubleshooting
+        `,
+      );
+
+      jest.clearAllMocks();
+    });
+  });
+
   describe('handleSeverEvents', () => {
+    describe('on Heartbeat', () => {
+      test('should clear heartbeat timeout', () => {
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          refreshEventsHandlerService,
+        );
+        eventsSubscriptionService.subscribeEvents();
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        // eslint-disable-next-line no-underscore-dangle
+        expect(eventsSubscriptionService.heartBeatTimeout._destroyed).toBeFalsy();
+
+        // eslint-disable-next-line @typescript-eslint/dot-notation
+        events['heartbeat']({});
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        // eslint-disable-next-line no-underscore-dangle
+        expect(eventsSubscriptionService.heartBeatTimeout._destroyed).toBeTruthy();
+      });
+    });
+
     describe('on RefreshUsers event', () => {
       test('should delegate to refreshEventsHandlerService', () => {
         const eventsSubscriptionService = new EventsSubscriptionService(
