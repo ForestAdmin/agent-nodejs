@@ -1,3 +1,97 @@
+## @forestadmin/datasource-mongo [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.4.2...@forestadmin/datasource-mongo@1.4.3) (2025-01-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.10.0
+
+## @forestadmin/datasource-mongo [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.4.1...@forestadmin/datasource-mongo@1.4.2) (2025-01-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.9.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.1
+
+## @forestadmin/datasource-mongo [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.4.0...@forestadmin/datasource-mongo@1.4.1) (2025-01-23)
+
+
+### Bug Fixes
+
+* **datasource mongo:** remove useless version manager ([#1244](https://github.com/ForestAdmin/agent-nodejs/issues/1244)) ([fbb6698](https://github.com/ForestAdmin/agent-nodejs/commit/fbb6698ba25b93f44c508404f103ae635b3662e3))
+
+# @forestadmin/datasource-mongo [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.31...@forestadmin/datasource-mongo@1.4.0) (2025-01-22)
+
+
+### Features
+
+* support for mongoose v8 ([#1241](https://github.com/ForestAdmin/agent-nodejs/issues/1241)) ([ae0164d](https://github.com/ForestAdmin/agent-nodejs/commit/ae0164d04e477c5af13d1029d74f4e1c374a0b03))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.9.0
+
+## @forestadmin/datasource-mongo [1.3.31](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.30...@forestadmin/datasource-mongo@1.3.31) (2025-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.8.10
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.0
+
+## @forestadmin/datasource-mongo [1.3.30](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.29...@forestadmin/datasource-mongo@1.3.30) (2025-01-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.8.9
+* **@forestadmin/datasource-toolkit:** upgraded to 1.46.0
+
+## @forestadmin/datasource-mongo [1.3.29](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.28...@forestadmin/datasource-mongo@1.3.29) (2025-01-02)
+
+
+### Bug Fixes
+
+* upgrade ssh-tunnel dependency to avoid crash when "no response from server" ([#1228](https://github.com/ForestAdmin/agent-nodejs/issues/1228)) ([83fbf9c](https://github.com/ForestAdmin/agent-nodejs/commit/83fbf9c0da57d999bd95418d890ad7d169ff982c))
+
+## @forestadmin/datasource-mongo [1.3.28](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.27...@forestadmin/datasource-mongo@1.3.28) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.8.8
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.1
+
+## @forestadmin/datasource-mongo [1.3.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.26...@forestadmin/datasource-mongo@1.3.27) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.8.7
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+
 ## @forestadmin/datasource-mongo [1.3.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.3.25...@forestadmin/datasource-mongo@1.3.26) (2024-11-27)
 
 

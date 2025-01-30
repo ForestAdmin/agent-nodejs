@@ -41,4 +41,26 @@ describe('when the field is a number', () => {
 
     expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
   });
+
+  describe('when operator is Equal', () => {
+    it('should not throw for null value', () => {
+      const conditionTree = factories.conditionTreeLeaf.build({
+        operator: 'Equal',
+        value: null,
+        field: 'aNumberField',
+      });
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            aNumberField: factories.columnSchema.build({
+              columnType: 'Number',
+              filterOperators: new Set(['Equal']),
+            }),
+          },
+        }),
+      });
+
+      expect(() => ConditionTreeValidator.validate(conditionTree, collection)).not.toThrow();
+    });
+  });
 });

@@ -88,6 +88,18 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Disable search on the collection
+   *
+   * * @example
+   * .disableSearch()
+   */
+  disableSearch(): this {
+    return this.pushCustomization(async () => {
+      this.stack.search.getCollection(this.name).disable();
+    });
+  }
+
+  /**
    * Import a field from a many to one or one to one relation.
    *
    * @param name the name of the field that will be created on the collection

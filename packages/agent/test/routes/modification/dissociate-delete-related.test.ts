@@ -123,7 +123,8 @@ describe('DissociateDeleteRelatedRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
           { bookId: null },
         );
@@ -193,7 +194,8 @@ describe('DissociateDeleteRelatedRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
             { bookId: null },
           );
@@ -247,7 +249,8 @@ describe('DissociateDeleteRelatedRoute', () => {
                 }),
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               }),
               { bookId: null },
             );
@@ -387,7 +390,8 @@ describe('DissociateDeleteRelatedRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -456,7 +460,8 @@ describe('DissociateDeleteRelatedRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -514,7 +519,8 @@ describe('DissociateDeleteRelatedRoute', () => {
                 }),
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               }),
             );
             expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -631,7 +637,8 @@ describe('DissociateDeleteRelatedRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -698,7 +705,8 @@ describe('DissociateDeleteRelatedRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -744,7 +752,8 @@ describe('DissociateDeleteRelatedRoute', () => {
                 }),
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               }),
             );
             expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -880,7 +889,8 @@ describe('DissociateDeleteRelatedRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
 
@@ -915,7 +925,8 @@ describe('DissociateDeleteRelatedRoute', () => {
             }),
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           }),
         );
         expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -993,7 +1004,8 @@ describe('DissociateDeleteRelatedRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
           );
 
@@ -1028,7 +1040,8 @@ describe('DissociateDeleteRelatedRoute', () => {
               }),
               search: null,
               searchExtended: false,
-              segment: null,
+              segment: expect.toBeNil(),
+              liveQuerySegment: expect.toBeNil(),
             }),
           );
           expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -1091,7 +1104,8 @@ describe('DissociateDeleteRelatedRoute', () => {
                 }),
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               }),
             );
 
@@ -1110,7 +1124,8 @@ describe('DissociateDeleteRelatedRoute', () => {
                 }),
                 search: null,
                 searchExtended: false,
-                segment: null,
+                segment: expect.toBeNil(),
+                liveQuerySegment: expect.toBeNil(),
               }),
             );
 

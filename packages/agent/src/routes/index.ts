@@ -10,6 +10,7 @@ import CsvRelated from './access/csv-related';
 import Get from './access/get';
 import List from './access/list';
 import ListRelated from './access/list-related';
+import NativeQueryDatasource from './access/native-query-datasource';
 import BaseRoute from './base-route';
 import Capabilities from './capabilities';
 import ActionRoute from './modification/action/action';
@@ -57,6 +58,7 @@ export const RELATED_ROUTES_CTOR = [
 ];
 export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 export const CAPABILITIES_ROUTES_CTOR = [Capabilities];
+export const NATIVE_QUERY_ROUTES_CTOR = [NativeQueryDatasource];
 
 function getRootRoutes(options: Options, services: Services): BaseRoute[] {
   return ROOT_ROUTES_CTOR.map(Route => new Route(services, options));
@@ -102,6 +104,18 @@ function getCapabilitiesRoutes(
   const routes: BaseRoute[] = [];
 
   routes.push(...CAPABILITIES_ROUTES_CTOR.map(Route => new Route(services, options, dataSource)));
+
+  return routes;
+}
+
+function getNativeQueryRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  const routes: BaseRoute[] = [];
+
+  routes.push(...NATIVE_QUERY_ROUTES_CTOR.map(Route => new Route(services, options, dataSource)));
 
   return routes;
 }
@@ -159,6 +173,7 @@ export default function makeRoutes(
     ...getRootRoutes(options, services),
     ...getCrudRoutes(dataSource, options, services),
     ...getCapabilitiesRoutes(dataSource, options, services),
+    ...getNativeQueryRoutes(dataSource, options, services),
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),

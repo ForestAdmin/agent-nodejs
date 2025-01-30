@@ -1,3 +1,89 @@
+## @forestadmin/datasource-customizer [1.61.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.61.1...@forestadmin/datasource-customizer@1.61.2) (2025-01-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.1
+
+## @forestadmin/datasource-customizer [1.61.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.61.0...@forestadmin/datasource-customizer@1.61.1) (2025-01-24)
+
+
+### Bug Fixes
+
+* **lazy join:** do not remove foreignkey when they are asking ([#1246](https://github.com/ForestAdmin/agent-nodejs/issues/1246)) ([621b243](https://github.com/ForestAdmin/agent-nodejs/commit/621b2434900f565e37fbd982dae6e82664797c37))
+
+# @forestadmin/datasource-customizer [1.61.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.60.0...@forestadmin/datasource-customizer@1.61.0) (2025-01-23)
+
+
+### Features
+
+* add lazy join decorator ([#1240](https://github.com/ForestAdmin/agent-nodejs/issues/1240)) ([1b6b248](https://github.com/ForestAdmin/agent-nodejs/commit/1b6b248321944b67a71e1ce4f42ee0d3932ebd69))
+
+# @forestadmin/datasource-customizer [1.60.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.59.0...@forestadmin/datasource-customizer@1.60.0) (2025-01-22)
+
+
+### Features
+
+* upgrade uuid package to handle uuid v7 ([#1243](https://github.com/ForestAdmin/agent-nodejs/issues/1243)) ([ebf9515](https://github.com/ForestAdmin/agent-nodejs/commit/ebf951561d49565e49fb6a5bfbb84209ded04c25))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.0
+
+# @forestadmin/datasource-customizer [1.59.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.58.0...@forestadmin/datasource-customizer@1.59.0) (2025-01-13)
+
+
+### Features
+
+* allow disable search on collection ([#1236](https://github.com/ForestAdmin/agent-nodejs/issues/1236)) ([c9e5e67](https://github.com/ForestAdmin/agent-nodejs/commit/c9e5e677b08b326674fb40112ae541339f75cb8c))
+
+# @forestadmin/datasource-customizer [1.58.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.57.1...@forestadmin/datasource-customizer@1.58.0) (2025-01-02)
+
+
+### Features
+
+* **segment:** support templating for segment live query ([#1235](https://github.com/ForestAdmin/agent-nodejs/issues/1235)) ([5452a95](https://github.com/ForestAdmin/agent-nodejs/commit/5452a95cc7c9340b81b30e91231b2b9ec5aa29b4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.46.0
+
+## @forestadmin/datasource-customizer [1.57.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.57.0...@forestadmin/datasource-customizer@1.57.1) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.1
+
+# @forestadmin/datasource-customizer [1.57.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.56.0...@forestadmin/datasource-customizer@1.57.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+
 # @forestadmin/datasource-customizer [1.56.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.55.5...@forestadmin/datasource-customizer@1.56.0) (2024-11-27)
 
 

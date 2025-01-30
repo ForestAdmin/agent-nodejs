@@ -2,7 +2,6 @@
 import { Connection, Mongoose, Schema } from 'mongoose';
 
 import { ModelAnalysis, ModelDefinition, PrimitiveDefinition } from '../introspection/types';
-import VersionManager from '../version-manager';
 
 export default class OdmBuilder {
   private static readonly primitives: Partial<Record<PrimitiveDefinition, unknown>> = {
@@ -13,7 +12,6 @@ export default class OdmBuilder {
     Binary: Buffer,
     Mixed: Schema.Types.Mixed,
     ObjectId: Schema.Types.ObjectId,
-    ObjectID: Schema.Types.ObjectId,
   };
 
   static defineModels(connection: Connection | Mongoose, study: ModelDefinition[]) {
@@ -51,7 +49,7 @@ export default class OdmBuilder {
     }
 
     const assumePrimaryKey = name === '_id';
-    const autoPrimaryKey = assumePrimaryKey && node.type === VersionManager.ObjectIdTypeName;
+    const autoPrimaryKey = assumePrimaryKey && node.type === 'ObjectId';
 
     const result: Record<string, unknown> = {
       type: this.primitives[node.type],

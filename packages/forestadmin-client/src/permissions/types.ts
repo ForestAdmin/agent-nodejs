@@ -153,6 +153,7 @@ export type DynamicScopesValues = {
 
 export type CollectionRenderingPermissionV4 = {
   scope: RawTree | null;
+  liveQuerySegments?: { connectionName: string; query: string }[];
   segments: string[];
 };
 

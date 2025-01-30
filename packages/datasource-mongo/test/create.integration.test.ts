@@ -32,9 +32,9 @@ describe('create', () => {
 
   it('should allow to create a new movie', async () => {
     const dataSource = await createDataSource();
-    const movies = dataSource.collections.find(c => c.name === 'movies');
+    const movies = dataSource.getCollection('movies');
 
-    const created = await movies!.create(null as unknown as Caller, [{ title: 'Interstellar' }]);
+    const created = await movies.create(null as unknown as Caller, [{ title: 'Interstellar' }]);
 
     expect(created).toEqual([{ _id: expect.any(String), title: 'Interstellar' }]);
   });

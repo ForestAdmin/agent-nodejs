@@ -1,5 +1,6 @@
-import { Projection, ValidationError } from '@forestadmin/datasource-toolkit';
+import { Projection, UnprocessableError, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
+import { Context } from 'koa';
 
 import QueryStringParser from '../../src/utils/query-string';
 import * as factories from '../__factories__';
@@ -385,6 +386,39 @@ describe('QueryStringParser', () => {
     });
   });
 
+  describe('parseLiveQuerySegment', () => {
+    test('should return null when no segment query is provided', () => {
+      const context = {
+        request: { query: {} },
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseLiveQuerySegment(context)).toEqual(null);
+    });
+
+    test('should parse live query segment properties', () => {
+      const context = {
+        request: { query: { segmentQuery: 'SELECT * FROM toto', connectionName: 'main' } },
+      } as unknown as Context;
+
+      expect(QueryStringParser.parseLiveQuerySegment(context)).toEqual({
+        query: 'SELECT * FROM toto',
+        connectionName: 'main',
+      });
+    });
+
+    describe('when no connectionName is provided', () => {
+      test('should throw an error', () => {
+        const context = {
+          request: { query: { segmentQuery: 'SELECT * FROM toto' } },
+        } as unknown as Context;
+
+        expect(() => QueryStringParser.parseLiveQuerySegment(context)).toThrow(
+          new UnprocessableError('Missing native query connection attribute'),
+        );
+      });
+    });
+  });
+
   describe('parseCaller', () => {
     test('should return the timezone and the user', () => {
       const context = createMockContext({
@@ -511,7 +545,7 @@ describe('QueryStringParser', () => {
       expect(sort).toEqual([]);
     });
 
-    test('should sort by pk ascending when not sort is given', () => {
+    test('should not sort when not sort is given', () => {
       const collectionWithSortablePks = factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
@@ -530,10 +564,7 @@ describe('QueryStringParser', () => {
 
       const sort = QueryStringParser.parseSort(collectionWithSortablePks, context);
 
-      expect(sort).toEqual([
-        { field: 'id', ascending: true },
-        { field: 'secondId', ascending: true },
-      ]);
+      expect(sort).toEqual([]);
     });
 
     test('should sort by the request field and order when given', () => {

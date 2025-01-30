@@ -101,6 +101,7 @@ export const MAP_ALLOWED_TYPES_FOR_OPERATOR_CONDITION_TREE: Readonly<
   Record<Operator, readonly PrimitiveTypes[]>
 > = Object.freeze({
   ...defaultsOperators,
+  Equal: [...defaultsOperators.Equal, null],
   In: [...defaultsOperators.In, null],
   NotIn: [...defaultsOperators.NotIn, null],
   IncludesAll: [...defaultsOperators.IncludesAll, null],

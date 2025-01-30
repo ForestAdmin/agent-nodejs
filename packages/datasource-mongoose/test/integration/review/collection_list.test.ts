@@ -566,4 +566,38 @@ describe('MongooseCollection', () => {
       });
     });
   });
+
+  describe('with debug option', () => {
+    it('should log', async () => {
+      connection = await setupReview('collection_review_list');
+      const logger = jest.fn();
+      const dataSource = new MongooseDatasource(
+        connection,
+        { debug: true, flattenMode: 'auto' },
+        logger,
+      );
+      const review = dataSource.getCollection('review');
+
+      await review.list(factories.caller.build(), factories.filter.build(), new Projection('id'));
+
+      expect(logger).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Debug',
+        'reviews.aggregate: [{"$addFields":{"nestedField@@@other":"$nestedField.other"}},{"$project":{"nestedField.other":0}},{"$project":{"_id":false,"FOREST_RECORD_DOES_NOT_EXIST":true,"id":true}}]',
+      );
+    });
+  });
+
+  describe('without debug option', () => {
+    it('should not log', async () => {
+      connection = await setupReview('collection_review_list');
+      const logger = jest.fn();
+      const dataSource = new MongooseDatasource(connection, { flattenMode: 'auto' }, logger);
+      const review = dataSource.getCollection('review');
+
+      await review.list(factories.caller.build(), factories.filter.build(), new Projection('id'));
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+  });
 });

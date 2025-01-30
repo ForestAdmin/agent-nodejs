@@ -1,3 +1,38 @@
+## @forestadmin/datasource-toolkit [1.47.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.47.0...@forestadmin/datasource-toolkit@1.47.1) (2025-01-28)
+
+
+### Bug Fixes
+
+* **validator:** allow null value for Equal operator ([#1250](https://github.com/ForestAdmin/agent-nodejs/issues/1250)) ([5d4cf3e](https://github.com/ForestAdmin/agent-nodejs/commit/5d4cf3eec67849ce6f749aa22f7fb5deda325bc7))
+
+# @forestadmin/datasource-toolkit [1.47.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.46.0...@forestadmin/datasource-toolkit@1.47.0) (2025-01-22)
+
+
+### Features
+
+* upgrade uuid package to handle uuid v7 ([#1243](https://github.com/ForestAdmin/agent-nodejs/issues/1243)) ([ebf9515](https://github.com/ForestAdmin/agent-nodejs/commit/ebf951561d49565e49fb6a5bfbb84209ded04c25))
+
+# @forestadmin/datasource-toolkit [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.45.1...@forestadmin/datasource-toolkit@1.46.0) (2025-01-02)
+
+
+### Features
+
+* **segment:** support templating for segment live query ([#1235](https://github.com/ForestAdmin/agent-nodejs/issues/1235)) ([5452a95](https://github.com/ForestAdmin/agent-nodejs/commit/5452a95cc7c9340b81b30e91231b2b9ec5aa29b4))
+
+## @forestadmin/datasource-toolkit [1.45.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.45.0...@forestadmin/datasource-toolkit@1.45.1) (2024-12-18)
+
+
+### Bug Fixes
+
+* filtering on dateOnly fields now interprets interval properly ([#1231](https://github.com/ForestAdmin/agent-nodejs/issues/1231)) ([9e359b9](https://github.com/ForestAdmin/agent-nodejs/commit/9e359b9bfc64dd513d41549f5fe8c2bcc00f3175))
+
+# @forestadmin/datasource-toolkit [1.45.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.44.0...@forestadmin/datasource-toolkit@1.45.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
 # @forestadmin/datasource-toolkit [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.43.0...@forestadmin/datasource-toolkit@1.44.0) (2024-11-27)
 
 

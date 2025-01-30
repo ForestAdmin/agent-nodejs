@@ -39,7 +39,13 @@ describe('CountRoute', () => {
             request: { ip: expect.any(String) },
             timezone: 'Europe/Paris',
           },
-          { conditionTree: null, search: null, searchExtended: false, segment: null },
+          {
+            conditionTree: null,
+            search: null,
+            searchExtended: false,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
+          },
           { operation: 'Count' },
         );
         expect(context.response.body).toEqual({ count: 2 });
@@ -94,7 +100,8 @@ describe('CountRoute', () => {
             },
             search: null,
             searchExtended: false,
-            segment: null,
+            segment: expect.toBeNil(),
+            liveQuerySegment: expect.toBeNil(),
           },
           { operation: 'Count' },
         );

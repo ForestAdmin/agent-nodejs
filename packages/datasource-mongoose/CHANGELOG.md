@@ -1,3 +1,67 @@
+# @forestadmin/datasource-mongoose [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.9.1...@forestadmin/datasource-mongoose@1.10.0) (2025-01-29)
+
+
+### Features
+
+* **mongoose:** allow to enable debug mode ([#1251](https://github.com/ForestAdmin/agent-nodejs/issues/1251)) ([db36f93](https://github.com/ForestAdmin/agent-nodejs/commit/db36f9311b937c2d8e23ac554aa138a07800b318))
+
+## @forestadmin/datasource-mongoose [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.9.0...@forestadmin/datasource-mongoose@1.9.1) (2025-01-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.1
+
+# @forestadmin/datasource-mongoose [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.10...@forestadmin/datasource-mongoose@1.9.0) (2025-01-22)
+
+
+### Features
+
+* support for mongoose v8 ([#1241](https://github.com/ForestAdmin/agent-nodejs/issues/1241)) ([ae0164d](https://github.com/ForestAdmin/agent-nodejs/commit/ae0164d04e477c5af13d1029d74f4e1c374a0b03))
+
+## @forestadmin/datasource-mongoose [1.8.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.9...@forestadmin/datasource-mongoose@1.8.10) (2025-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.0
+
+## @forestadmin/datasource-mongoose [1.8.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.8...@forestadmin/datasource-mongoose@1.8.9) (2025-01-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.46.0
+
+## @forestadmin/datasource-mongoose [1.8.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.7...@forestadmin/datasource-mongoose@1.8.8) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.1
+
+## @forestadmin/datasource-mongoose [1.8.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.6...@forestadmin/datasource-mongoose@1.8.7) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+
 ## @forestadmin/datasource-mongoose [1.8.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.8.5...@forestadmin/datasource-mongoose@1.8.6) (2024-11-27)
 
 

@@ -1,3 +1,72 @@
+## @forestadmin/forestadmin-client [1.36.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.5...@forestadmin/forestadmin-client@1.36.6) (2025-01-28)
+
+
+### Bug Fixes
+
+* **user-permission:** don't cache rejected promises ([#1248](https://github.com/ForestAdmin/agent-nodejs/issues/1248)) ([10bd993](https://github.com/ForestAdmin/agent-nodejs/commit/10bd993c62920286e244436ac31bc614bc4bc34e))
+
+## @forestadmin/forestadmin-client [1.36.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.4...@forestadmin/forestadmin-client@1.36.5) (2025-01-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.1
+
+## @forestadmin/forestadmin-client [1.36.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.3...@forestadmin/forestadmin-client@1.36.4) (2025-01-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.0
+
+## @forestadmin/forestadmin-client [1.36.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.2...@forestadmin/forestadmin-client@1.36.3) (2025-01-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.46.0
+
+## @forestadmin/forestadmin-client [1.36.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.1...@forestadmin/forestadmin-client@1.36.2) (2024-12-31)
+
+
+### Bug Fixes
+
+* don't cache rejected promises ([#1238](https://github.com/ForestAdmin/agent-nodejs/issues/1238)) ([161459d](https://github.com/ForestAdmin/agent-nodejs/commit/161459d9c6d5b0283a61a3e89664dcc22263be3b))
+
+## @forestadmin/forestadmin-client [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.0...@forestadmin/forestadmin-client@1.36.1) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.1
+
+# @forestadmin/forestadmin-client [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.35.1...@forestadmin/forestadmin-client@1.36.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+
 ## @forestadmin/forestadmin-client [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.35.0...@forestadmin/forestadmin-client@1.35.1) (2024-11-27)
 
 

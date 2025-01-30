@@ -31,7 +31,12 @@ export default class UserPermissionService {
       // the response is not yet available.
       this.userInfoById = this.forestAdminServerInterface
         .getUsers(this.options)
-        .then(users => new Map(users.map(user => [`${user.id}`, user])));
+        .then(users => new Map(users.map(user => [`${user.id}`, user])))
+        .catch(err => {
+          // Don't cache rejected promises
+          this.invalidateCache();
+          throw err;
+        });
     }
 
     return (await this.userInfoById).get(`${userId}`);

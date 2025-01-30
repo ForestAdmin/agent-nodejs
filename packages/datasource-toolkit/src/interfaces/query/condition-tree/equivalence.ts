@@ -6,7 +6,11 @@ import patternTransforms from './transforms/pattern';
 import timeTransforms from './transforms/time';
 import { ColumnType, PrimitiveTypes } from '../../schema';
 
-export type Replacer = (leaf: ConditionTreeLeaf, timezone: string) => ConditionTree;
+export type Replacer = (
+  leaf: ConditionTreeLeaf,
+  timezone: string,
+  isDateOnly?: boolean,
+) => ConditionTree;
 
 export type Alternative = {
   dependsOn: Operator[];
@@ -29,7 +33,7 @@ export default class ConditionTreeEquivalent {
 
     if (!replacer) return leaf;
 
-    return replacer ? replacer(leaf, timezone) : null;
+    return replacer ? replacer(leaf, timezone, columnType === 'Dateonly') : null;
   }
 
   static hasEquivalentTree(
@@ -59,9 +63,9 @@ export default class ConditionTreeEquivalent {
         });
 
         if (dependsReplacers.every(r => !!r)) {
-          return (leaf, timezone) =>
-            replacer(leaf, timezone).replaceLeafs(subLeaf =>
-              dependsReplacers[dependsOn.indexOf(subLeaf.operator)](subLeaf, timezone),
+          return (leaf, timezone, isDateOnly) =>
+            replacer(leaf, timezone, isDateOnly).replaceLeafs(subLeaf =>
+              dependsReplacers[dependsOn.indexOf(subLeaf.operator)](subLeaf, timezone, isDateOnly),
             );
         }
       }

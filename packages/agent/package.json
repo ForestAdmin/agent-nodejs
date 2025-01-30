@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.55.1",
+  "version": "1.58.4",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -14,9 +14,9 @@
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@fastify/express": "^1.1.0",
-    "@forestadmin/datasource-customizer": "1.56.0",
-    "@forestadmin/datasource-toolkit": "1.44.0",
-    "@forestadmin/forestadmin-client": "1.35.1",
+    "@forestadmin/datasource-customizer": "1.61.2",
+    "@forestadmin/datasource-toolkit": "1.47.1",
+    "@forestadmin/forestadmin-client": "1.36.6",
     "@koa/cors": "^5.0.0",
     "@koa/router": "^12.0.0",
     "@types/koa__router": "^12.0.0",
@@ -30,7 +30,7 @@
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
     "superagent": "^8.0.6",
-    "uuid": "^9.0.0"
+    "uuid": "11.0.2"
   },
   "files": [
     "dist/**/*.js",

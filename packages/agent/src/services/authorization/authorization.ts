@@ -43,13 +43,35 @@ export default class AuthorizationService {
     context: Context,
     collectionName: string,
   ) {
-    const { id: userId } = context.state.user;
+    const { id: userId, renderingId } = context.state.user;
 
     const canOnCollection = await this.forestAdminClient.permissionService.canOnCollection({
       userId,
       event,
       collectionName,
     });
+
+    if (
+      context.request?.body &&
+      CollectionActionEvent.Browse === event &&
+      (context.request.body as { segmentQuery?: string }).segmentQuery
+    ) {
+      const { segmentQuery, connectionName } = context.request.body as {
+        segmentQuery?: string;
+        connectionName?: string;
+      };
+
+      const canExecuteSegmentQuery =
+        await this.forestAdminClient.permissionService.canExecuteSegmentQuery({
+          userId,
+          collectionName,
+          renderingId,
+          segmentQuery,
+          connectionName,
+        });
+
+      if (!canExecuteSegmentQuery) context.throw(HttpCode.Forbidden, 'Forbidden');
+    }
 
     if (!canOnCollection) {
       context.throw(HttpCode.Forbidden, 'Forbidden');

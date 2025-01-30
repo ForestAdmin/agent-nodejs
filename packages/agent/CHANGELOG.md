@@ -1,3 +1,133 @@
+## @forestadmin/agent [1.58.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.3...@forestadmin/agent@1.58.4) (2025-01-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.6
+
+## @forestadmin/agent [1.58.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.2...@forestadmin/agent@1.58.3) (2025-01-28)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.61.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.5
+
+## @forestadmin/agent [1.58.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.1...@forestadmin/agent@1.58.2) (2025-01-24)
+
+
+### Bug Fixes
+
+* do not override view default sorting ordrer ([#1245](https://github.com/ForestAdmin/agent-nodejs/issues/1245)) ([8e27769](https://github.com/ForestAdmin/agent-nodejs/commit/8e2776925b6999c967c050c23cc7d63d76c87228))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.61.1
+
+## @forestadmin/agent [1.58.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.0...@forestadmin/agent@1.58.1) (2025-01-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.61.0
+
+# @forestadmin/agent [1.58.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.57.1...@forestadmin/agent@1.58.0) (2025-01-22)
+
+
+### Features
+
+* upgrade uuid package to handle uuid v7 ([#1243](https://github.com/ForestAdmin/agent-nodejs/issues/1243)) ([ebf9515](https://github.com/ForestAdmin/agent-nodejs/commit/ebf951561d49565e49fb6a5bfbb84209ded04c25))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.60.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.47.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.4
+
+## @forestadmin/agent [1.57.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.57.0...@forestadmin/agent@1.57.1) (2025-01-13)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.59.0
+
+# @forestadmin/agent [1.57.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.56.2...@forestadmin/agent@1.57.0) (2025-01-02)
+
+
+### Features
+
+* **segment:** support templating for segment live query ([#1235](https://github.com/ForestAdmin/agent-nodejs/issues/1235)) ([5452a95](https://github.com/ForestAdmin/agent-nodejs/commit/5452a95cc7c9340b81b30e91231b2b9ec5aa29b4))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.58.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.46.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.3
+
+## @forestadmin/agent [1.56.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.56.1...@forestadmin/agent@1.56.2) (2024-12-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.2
+
+## @forestadmin/agent [1.56.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.56.0...@forestadmin/agent@1.56.1) (2024-12-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.57.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.1
+
+# @forestadmin/agent [1.56.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.55.1...@forestadmin/agent@1.56.0) (2024-12-18)
+
+
+### Features
+
+* **native-query:** execute chart query requests ([#1225](https://github.com/ForestAdmin/agent-nodejs/issues/1225)) ([84b26dd](https://github.com/ForestAdmin/agent-nodejs/commit/84b26dd0fe58018482d530d2b60e2961dd9ec2f8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.57.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.45.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.0
+
 ## @forestadmin/agent [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.55.0...@forestadmin/agent@1.55.1) (2024-11-29)
 
 

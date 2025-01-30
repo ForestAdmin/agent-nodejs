@@ -183,7 +183,7 @@ describe('createConnection', () => {
       const createdConnection = await createConnection(params);
 
       expect(createTunnel).toHaveBeenCalledWith(
-        { autoClose: false },
+        { autoClose: false, reconnectOnError: false },
         {},
         {
           host: 'localhost',

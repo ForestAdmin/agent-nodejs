@@ -4,6 +4,7 @@ import { Model, Schema, SchemaType } from 'mongoose';
 
 import { Stack } from '../types';
 import { recursiveDelete, recursiveSet } from '../utils/helpers';
+import VersionManager from '../utils/version-manager';
 
 export type SchemaBranch = { [key: string]: SchemaNode };
 export type SchemaNode = SchemaType | SchemaBranch;
@@ -173,7 +174,7 @@ export default class MongooseSchema {
       // Exclude mixedFieldPattern $* and privateFieldPattern __
       if (!name.startsWith('$*') && !name.includes('__') && (name !== '_id' || level === 0)) {
         // Flatten nested schemas and arrays
-        if (field.constructor.name === 'SubdocumentPath') {
+        if (VersionManager.isSubDocument(field)) {
           const subPaths = this.buildFields(field.schema as Schema, level + 1);
 
           for (const [subName, subField] of Object.entries(subPaths)) {
@@ -185,8 +186,16 @@ export default class MongooseSchema {
           for (const [subName, subField] of Object.entries(subPaths)) {
             recursiveSet(paths, `${name}.[].${subName}`, subField);
           }
-        } else if (field.constructor.name === 'SchemaArray') {
-          recursiveSet(paths, `${name}.[]`, (field as any).caster);
+        } else if (VersionManager.isSubDocumentArray(field)) {
+          if (VersionManager.isSubDocument(field.caster)) {
+            const subPaths = this.buildFields((field as any).caster.schema, level + 1);
+
+            for (const [subName, subField] of Object.entries(subPaths)) {
+              recursiveSet(paths, `${name}.[].${subName}`, subField);
+            }
+          } else {
+            recursiveSet(paths, `${name}.[]`, (field as any).caster);
+          }
         } else {
           recursiveSet(paths, name, field);
         }

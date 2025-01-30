@@ -1,10 +1,17 @@
 import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base';
 
+export type LiveQuerySegment = {
+  query: string;
+  connectionName: string;
+  contextVariables?: Record<string, unknown>;
+};
+
 export type FilterComponents = {
   conditionTree?: ConditionTree;
   search?: string | null;
   searchExtended?: boolean;
   segment?: string;
+  liveQuerySegment?: LiveQuerySegment;
 };
 
 export type PlainFilter = {
@@ -19,6 +26,7 @@ export default class Filter {
   search?: string;
   searchExtended?: boolean;
   segment?: string;
+  liveQuerySegment?: LiveQuerySegment;
 
   get isNestable(): boolean {
     return !this.search && !this.segment;
@@ -29,6 +37,7 @@ export default class Filter {
     this.search = parts.search;
     this.searchExtended = parts.searchExtended;
     this.segment = parts.segment;
+    this.liveQuerySegment = parts.liveQuerySegment;
   }
 
   override(fields: FilterComponents): Filter {
