@@ -1,4 +1,4 @@
-import mongoose, { Schema, mongo } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 import * as CollectionModule from '../src/collection';
 import MongooseDatasource from '../src/datasource';
