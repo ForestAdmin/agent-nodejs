@@ -72,10 +72,8 @@ export default async function bootstrap(
     const error = e as Error;
     const potentialErrorMessage = await tryToClearBootstrap(paths);
 
-    if (error instanceof BusinessError) {
-      throw new BusinessError(`Bootstrap failed: ${error.message}. ${potentialErrorMessage || ''}`);
-    } else {
-      throw error;
-    }
+    throw new BusinessError(
+      `Bootstrap failed: ${error.message}. ${potentialErrorMessage || ''}${error.stack}`,
+    );
   }
 }

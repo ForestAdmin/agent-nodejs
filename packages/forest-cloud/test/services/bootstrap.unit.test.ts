@@ -72,9 +72,8 @@ describe('bootstrap', () => {
         jest.spyOn(fs, 'existsSync').mockReturnValue(false);
         const httpServer = new HttpServer('', '', '');
         const path = new BootstrapPathManager('', '');
-        HttpServer.downloadCloudCustomizerTemplate = jest
-          .fn()
-          .mockRejectedValue(new Error('Failed'));
+        const error = new Error('Failed');
+        HttpServer.downloadCloudCustomizerTemplate = jest.fn().mockRejectedValue(error);
 
         await expect(
           bootstrap(
@@ -82,7 +81,7 @@ describe('bootstrap', () => {
             httpServer,
             path,
           ),
-        ).rejects.toEqual(new BusinessError('Bootstrap failed: Failed.'));
+        ).rejects.toEqual(new BusinessError(`Bootstrap failed: Failed. ${error.stack}`));
       });
 
       describe('If there is an error when trying to clear the bootstrap', () => {
@@ -90,11 +89,10 @@ describe('bootstrap', () => {
           jest.spyOn(fs, 'existsSync').mockReturnValue(false);
           const httpServer = new HttpServer('', '', '');
           const path = new BootstrapPathManager('', '');
-          HttpServer.downloadCloudCustomizerTemplate = jest
-            .fn()
-            .mockRejectedValue(new Error('Failed'));
+          const error = new Error('Failed');
+          HttpServer.downloadCloudCustomizerTemplate = jest.fn().mockRejectedValue(error);
           // throw error when trying to clear
-          jest.spyOn(fsP, 'rm').mockRejectedValue(new Error('Failed'));
+          jest.spyOn(fsP, 'rm').mockRejectedValue(new Error('Cannot remove file'));
 
           await expect(
             bootstrap(
@@ -104,7 +102,7 @@ describe('bootstrap', () => {
             ),
           ).rejects.toEqual(
             new BusinessError(
-              'Bootstrap failed: Failed.\nPlease remove "forest-cloud" folder and re-run bootstrap command.',
+              `Bootstrap failed: Failed. \nPlease remove "forest-cloud" folder and re-run bootstrap command.${error.stack}`,
             ),
           );
         });
