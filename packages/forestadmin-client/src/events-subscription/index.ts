@@ -25,7 +25,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
         'Error',
         `Unable to detect ServerSentEvents Heartbeat.
         Forest Admin uses ServerSentEvents to ensure that permission cache is up to date.
-        It seems that your agent does not receive events from our server, this may due to buffering of events from your networking infrastructure (reverse proxy). 
+        It seems that your agent does not receive events from our server, this may due to buffering of events from your networking infrastructure (reverse proxy).
         https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/install/troubleshooting#invalid-permissions
         `,
       );
