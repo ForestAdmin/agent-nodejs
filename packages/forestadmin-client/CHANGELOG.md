@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.36.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.6...@forestadmin/forestadmin-client@1.36.7) (2025-01-31)
+
+
+### Bug Fixes
+
+* **sse:** detect buffering and warn user ([#1256](https://github.com/ForestAdmin/agent-nodejs/issues/1256)) ([dc4fdf4](https://github.com/ForestAdmin/agent-nodejs/commit/dc4fdf4672b0181e0e4c0dd1537685de3cac6aef))
+
 ## @forestadmin/forestadmin-client [1.36.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.5...@forestadmin/forestadmin-client@1.36.6) (2025-01-28)
 
 
