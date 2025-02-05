@@ -1,3 +1,21 @@
+# @forestadmin/datasource-replica [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.5.14...@forestadmin/datasource-replica@1.6.0) (2025-02-05)
+
+
+### Features
+
+* add environment and project name in caller ([#1200](https://github.com/ForestAdmin/agent-nodejs/issues/1200)) ([819f5f6](https://github.com/ForestAdmin/agent-nodejs/commit/819f5f6cd144c19bb969116461c260ca44b4dfd7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.61.3
+* **@forestadmin/datasource-sequelize:** upgraded to 1.11.7
+* **@forestadmin/datasource-sql:** upgraded to 1.16.7
+* **@forestadmin/datasource-toolkit:** upgraded to 1.48.0
+
 ## @forestadmin/datasource-replica [1.5.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.5.13...@forestadmin/datasource-replica@1.5.14) (2025-01-28)
 
 
