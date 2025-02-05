@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.59.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.5...@forestadmin/agent@1.59.0) (2025-02-05)
+
+
+### Features
+
+* add environment and project name in caller ([#1200](https://github.com/ForestAdmin/agent-nodejs/issues/1200)) ([819f5f6](https://github.com/ForestAdmin/agent-nodejs/commit/819f5f6cd144c19bb969116461c260ca44b4dfd7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.61.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.48.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.8
+
 ## @forestadmin/agent [1.58.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.4...@forestadmin/agent@1.58.5) (2025-01-31)
 
 
