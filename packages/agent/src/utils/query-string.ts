@@ -157,7 +157,25 @@ export default class QueryStringParser {
       QueryStringParser.VALID_TIMEZONES.add(timezone);
     }
 
-    return { ...context.state.user, timezone, requestId: uuidv4(), request: { ip } };
+    let project: string;
+    let environment: string;
+
+    try {
+      const forestContextUrl = context.request.headers['forest-context-url'] as string;
+      [, , project, environment] = /https:\/\/([^/]*)\/([^/]*)\/([^/]*)/.exec(forestContextUrl);
+    } catch (error) {
+      // Silent error, as this is not critical.
+      // Just like in v1, Forest-Context-Url is not always available.
+    }
+
+    return {
+      ...context.state.user,
+      timezone,
+      requestId: uuidv4(),
+      project,
+      environment,
+      request: { ip },
+    };
   }
 
   static parsePagination(context: Context): Page {
