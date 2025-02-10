@@ -68,8 +68,12 @@ export default async function bootstrap(
     const datasources = await httpServer.getDatasources();
 
     await updateTypings(datasources, paths);
-  } catch (error) {
+  } catch (e) {
+    const error = e as Error;
     const potentialErrorMessage = await tryToClearBootstrap(paths);
-    throw new BusinessError(`Bootstrap failed: ${error.message}.${potentialErrorMessage || ''}`);
+
+    throw new BusinessError(
+      `Bootstrap failed: ${error.message}. ${potentialErrorMessage || ''}${error.stack}`,
+    );
   }
 }
