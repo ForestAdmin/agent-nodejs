@@ -13,6 +13,7 @@ export default class GroupGenerator {
 
   private static GROUP_OPERATION: Record<DateOperation, string> = {
     Year: '%Y-01-01',
+    Quarter: '%Y-%m-01',
     Month: '%Y-%m-01',
     Day: '%Y-%m-%d',
     Week: '%Y-%m-%d',
@@ -59,6 +60,9 @@ export default class GroupGenerator {
       if (group.operation) {
         if (group.operation === 'Week') {
           const date = { $dateTrunc: { date: field, startOfWeek: 'Monday', unit: 'week' } };
+          field = { $dateToString: { format: this.GROUP_OPERATION[group.operation], date } };
+        } else if (group.operation === 'Quarter') {
+          const date = { $dateTrunc: { date: field, unit: 'quarter' } };
           field = { $dateToString: { format: this.GROUP_OPERATION[group.operation], date } };
         } else {
           field = { $dateToString: { format: this.GROUP_OPERATION[group.operation], date: field } };

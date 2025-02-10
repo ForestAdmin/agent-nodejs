@@ -16,6 +16,7 @@ export default class ResultBuilder {
     Day: 'dd/MM/yyyy',
     Week: "'W'W-kkkk",
     Month: 'MMM yy',
+    Quarter: "'Q'q-yyyy",
     Year: 'yyyy',
   };
 

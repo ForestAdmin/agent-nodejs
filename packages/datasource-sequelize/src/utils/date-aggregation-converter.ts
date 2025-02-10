@@ -1,6 +1,6 @@
 import { DateOperation } from '@forestadmin/datasource-toolkit';
 import { Dialect, Sequelize } from 'sequelize';
-import { Col, Fn } from 'sequelize/types/utils';
+import { Col, Fn, Literal } from 'sequelize/types/utils';
 
 export default class DateAggregationConverter {
   private dialect: Dialect;
@@ -33,6 +33,14 @@ export default class DateAggregationConverter {
           '01',
         );
         break;
+      case 'Quarter':
+        dateToConvert = this.fn(
+          'DATEFROMPARTS',
+          this.fn('DATEPART', this.literal('YEAR'), this.col(field)),
+          this.literal(`DATEPART(q, ${field})*3`),
+          '01',
+        ); // transform the row date to the first day of the last month of it quarter
+        break;
       case 'Month':
         dateToConvert = this.fn(
           'DATEFROMPARTS',
@@ -62,11 +70,16 @@ export default class DateAggregationConverter {
 
   private convertMysql(field: string, operation: DateOperation): Fn {
     let format = '%Y-%m-%d';
-    let dateToConvert: Col | Fn = this.col(field);
+    let dateToConvert: Col | Fn | Literal = this.col(field);
 
     switch (operation) {
       case 'Year':
         format = '%Y-01-01';
+        break;
+      case 'Quarter':
+        dateToConvert = this.literal(
+          `MAKEDATE(YEAR(${field}), 1) + Interval QUARTER(${field})-1 QUARTER`,
+        );
         break;
       case 'Month':
         format = '%Y-%m-01';
