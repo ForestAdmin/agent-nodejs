@@ -1,3 +1,18 @@
+## @forestadmin/forest-cloud [1.12.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.26...@forestadmin/forest-cloud@1.12.27) (2025-02-11)
+
+
+### Bug Fixes
+
+* **forest-cloud:** show stack trace for business errors during bootstrap ([#1254](https://github.com/ForestAdmin/agent-nodejs/issues/1254)) ([5d366e6](https://github.com/ForestAdmin/agent-nodejs/commit/5d366e62febb465e6d912fa1289e9ee89c800a15))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.59.1
+
 ## @forestadmin/forest-cloud [1.12.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.25...@forestadmin/forest-cloud@1.12.26) (2025-02-05)
 
 
