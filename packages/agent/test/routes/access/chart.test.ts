@@ -760,6 +760,45 @@ describe('ChartRoute', () => {
           context,
         );
       });
+
+      describe('when using weekly format', () => {
+        describe('when the year has 53 iso weeks', () => {
+          test('it should format the label properly', async () => {
+            jest.spyOn(dataSource.getCollection('books'), 'aggregate').mockResolvedValueOnce([
+              { value: 777, group: { publication: '2024-12-23T00:00:00.000Z' } },
+              { value: 1234, group: { publication: '2024-12-30T00:00:00.000Z' } },
+              { value: 456, group: { publication: '2025-01-06T00:00:00.000Z' } },
+            ]);
+
+            const chart = new Chart(services, options, dataSource, 'books');
+            const context = createMockContext({
+              requestBody: {
+                type: 'Line',
+                aggregator: 'Count',
+                sourceCollectionName: 'books',
+                groupByFieldName: 'publication',
+                timeRange: 'Week',
+              },
+              ...defaultContext,
+            });
+
+            await chart.handleChart(context);
+
+            expect(context.response.body).toMatchObject({
+              data: {
+                attributes: {
+                  value: [
+                    { label: 'W52-2024', values: { value: 777 } },
+                    { label: 'W1-2025', values: { value: 1234 } },
+                    { label: 'W2-2025', values: { value: 456 } },
+                  ],
+                },
+                type: 'stats',
+              },
+            });
+          });
+        });
+      });
     });
 
     describe('on leaderboard chart', () => {

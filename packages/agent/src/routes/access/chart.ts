@@ -32,7 +32,7 @@ import CollectionRoute from '../collection-route';
 export default class ChartRoute extends CollectionRoute {
   private static readonly formats: Record<DateOperation, string> = {
     Day: 'dd/MM/yyyy',
-    Week: "'W'W-yyyy",
+    Week: "'W'W-kkkk",
     Month: 'MMM yy',
     Year: 'yyyy',
   };
