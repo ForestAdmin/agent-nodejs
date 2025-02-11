@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.59.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.59.0...@forestadmin/agent@1.59.1) (2025-02-11)
+
+
+### Bug Fixes
+
+* **charts:** properly format week of year ([#1258](https://github.com/ForestAdmin/agent-nodejs/issues/1258)) ([7e32fe1](https://github.com/ForestAdmin/agent-nodejs/commit/7e32fe1c90a867283c1582df50b933e51f22f126))
+
 # @forestadmin/agent [1.59.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.58.5...@forestadmin/agent@1.59.0) (2025-02-05)
 
 
