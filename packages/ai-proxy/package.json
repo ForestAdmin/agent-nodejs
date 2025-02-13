@@ -1,0 +1,33 @@
+{
+  "name": "@forestadmin/ai-proxy",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/ai-proxy"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "cors": "2.8.5",
+    "openai": "4.84.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17"
+  }
+}

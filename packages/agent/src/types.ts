@@ -22,6 +22,7 @@ export type AgentOptions = {
   experimental?: {
     webhookCustomActions?: boolean;
     updateRecordCustomActions?: boolean;
+    ai: { openAI?: { openAIApiKey?: string } };
   };
   maxBodySize?: string;
   /**

@@ -11,6 +11,7 @@ import Get from './access/get';
 import List from './access/list';
 import ListRelated from './access/list-related';
 import NativeQueryDatasource from './access/native-query-datasource';
+import AIProxy from './ai-proxy';
 import BaseRoute from './base-route';
 import Capabilities from './capabilities';
 import ActionRoute from './modification/action/action';
@@ -56,6 +57,7 @@ export const RELATED_ROUTES_CTOR = [
   DissociateDeleteRelated,
   ListRelated,
 ];
+export const AI_ROUTES_CTOR = [AIProxy];
 export const RELATED_RELATION_ROUTES_CTOR = [UpdateRelation];
 export const CAPABILITIES_ROUTES_CTOR = [Capabilities];
 export const NATIVE_QUERY_ROUTES_CTOR = [NativeQueryDatasource];
@@ -104,6 +106,14 @@ function getCapabilitiesRoutes(
   const routes: BaseRoute[] = [];
 
   routes.push(...CAPABILITIES_ROUTES_CTOR.map(Route => new Route(services, options, dataSource)));
+
+  return routes;
+}
+
+function getAIRoutes(options: Options, services: Services): BaseRoute[] {
+  const routes: BaseRoute[] = [];
+
+  routes.push(...AI_ROUTES_CTOR.map(Route => new Route(services, options)));
 
   return routes;
 }
@@ -171,6 +181,7 @@ export default function makeRoutes(
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
+    ...getAIRoutes(options, services),
     ...getCrudRoutes(dataSource, options, services),
     ...getCapabilitiesRoutes(dataSource, options, services),
     ...getNativeQueryRoutes(dataSource, options, services),
