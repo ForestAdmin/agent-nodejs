@@ -134,4 +134,15 @@ describe('ActionContext', () => {
     expect(title).toEqual('Foundation');
     expect(authorFirstName).toEqual('Isaac');
   });
+
+  test('should throw a specific error is there are no records in the action context', async () => {
+    const caller = factories.caller.build();
+    (books.list as jest.Mock).mockResolvedValue([]);
+
+    const context = new ActionContextSingle(books, caller, {}, {});
+
+    await expect(context.getRecordIds()).rejects.toThrow(
+      'Query with filter did not match any records',
+    );
+  });
 });
