@@ -1,3 +1,19 @@
+## example [1.13.10](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.9...example@1.13.10) (2025-02-14)
+
+
+### Bug Fixes
+
+* **vulnerability:** fix critical vulnerability on koa ([#1262](https://github.com/ForestAdmin/agent-nodejs/issues/1262)) ([940f606](https://github.com/ForestAdmin/agent-nodejs/commit/940f6061506b0cd7acebab756fd700d606822284))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.59.2
+* **@forestadmin/datasource-dummy:** upgraded to 1.1.51
+
 ## example [1.13.9](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.8...example@1.13.9) (2025-02-11)
 
 
