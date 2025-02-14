@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.62.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.61.3...@forestadmin/datasource-customizer@1.62.0) (2025-02-14)
+
+
+### Features
+
+* throw a better error when no record is found for running action on ([#1249](https://github.com/ForestAdmin/agent-nodejs/issues/1249)) ([80e7c20](https://github.com/ForestAdmin/agent-nodejs/commit/80e7c20e877607ff62217a8de922dbb77a023b72))
+
 ## @forestadmin/datasource-customizer [1.61.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.61.2...@forestadmin/datasource-customizer@1.61.3) (2025-02-05)
 
 
