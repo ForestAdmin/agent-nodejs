@@ -24,7 +24,7 @@
     "json-api-serializer": "^2.6.6",
     "json-stringify-pretty-compact": "^3.0.0",
     "jsonwebtoken": "^9.0.0",
-    "koa": "^2.14.1",
+    "koa": "^2.15.4",
     "koa-bodyparser": "^4.3.0",
     "koa-jwt": "^4.0.4",
     "luxon": "^3.2.1",
