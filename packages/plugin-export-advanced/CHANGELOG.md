@@ -1,3 +1,13 @@
+## @forestadmin/plugin-export-advanced [1.1.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.24...@forestadmin/plugin-export-advanced@1.1.25) (2025-02-14)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.62.0
+
 ## @forestadmin/plugin-export-advanced [1.1.24](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.23...@forestadmin/plugin-export-advanced@1.1.24) (2025-02-05)
 
 
