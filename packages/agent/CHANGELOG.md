@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.59.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.59.1...@forestadmin/agent@1.59.2) (2025-02-14)
+
+
+### Bug Fixes
+
+* **vulnerability:** fix critical vulnerability on koa ([#1262](https://github.com/ForestAdmin/agent-nodejs/issues/1262)) ([940f606](https://github.com/ForestAdmin/agent-nodejs/commit/940f6061506b0cd7acebab756fd700d606822284))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.62.0
+
 ## @forestadmin/agent [1.59.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.59.0...@forestadmin/agent@1.59.1) (2025-02-11)
 
 
