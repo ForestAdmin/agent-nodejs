@@ -28,6 +28,7 @@ export default CollectionFactory.define(() => ({
   dataSource: null,
   name: 'a collection',
   schema: collectionSchemaFactory.build(),
+  capabilities: { name: 'a collection', fields: [] },
   execute: jest.fn(),
   getForm: jest.fn(),
   renderChart: jest.fn(),

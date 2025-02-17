@@ -1,5 +1,6 @@
 import { ActionFormElement, ActionResult } from '../interfaces/action';
 import { Caller } from '../interfaces/caller';
+import { CollectionCapabilities } from '../interfaces/capabilities';
 import { Chart } from '../interfaces/chart';
 import { Collection, DataSource, GetFormMetas } from '../interfaces/collection';
 import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
@@ -14,6 +15,7 @@ export default class CollectionDecorator implements Collection {
   protected childCollection: Collection;
 
   private lastSchema: CollectionSchema;
+  private lastCapabilities: CollectionCapabilities;
 
   get nativeDriver(): unknown {
     return this.childCollection.nativeDriver;
@@ -31,6 +33,15 @@ export default class CollectionDecorator implements Collection {
 
   get name(): string {
     return this.childCollection.name;
+  }
+
+  get capabilities(): CollectionCapabilities {
+    if (!this.lastCapabilities) {
+      const { capabilities } = this.childCollection;
+      this.lastCapabilities = this.refineCapabilities(capabilities);
+    }
+
+    return this.lastCapabilities;
   }
 
   constructor(childCollection: Collection, dataSource: DataSource) {
@@ -127,5 +138,9 @@ export default class CollectionDecorator implements Collection {
 
   protected refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return subSchema;
+  }
+
+  protected refineCapabilities(capabilities: CollectionCapabilities): CollectionCapabilities {
+    return capabilities;
   }
 }

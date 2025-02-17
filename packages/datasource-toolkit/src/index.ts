@@ -29,6 +29,7 @@ export { default as SortFactory } from './interfaces/query/sort/factory';
 
 export * from './interfaces/action';
 export * from './interfaces/caller';
+export * from './interfaces/capabilities';
 export * from './interfaces/chart';
 export * from './interfaces/collection';
 export * from './interfaces/query/aggregation';

@@ -1,5 +1,6 @@
 import {
   Caller,
+  CollectionCapabilities,
   CollectionDecorator,
   CollectionSchema,
   CollectionUtils,
@@ -58,5 +59,28 @@ export default class OperatorsEquivalenceCollectionDecorator extends CollectionD
         );
       }),
     });
+  }
+
+  private pascalCaseToSnakeCase(str: string): string {
+    return str
+      .split(/\.?(?=[A-Z])/)
+      .join('_')
+      .toLowerCase();
+  }
+
+  override refineCapabilities(capabilities: CollectionCapabilities): CollectionCapabilities {
+    const fields = Object.entries(this.schema.fields)
+      .map(([fieldName, field]) => {
+        return field.type === 'Column'
+          ? {
+              name: fieldName,
+              type: field.columnType,
+              operators: [...field.filterOperators].map(this.pascalCaseToSnakeCase),
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    return { ...capabilities, fields };
   }
 }

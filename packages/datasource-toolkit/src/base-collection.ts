@@ -31,6 +31,13 @@ export default abstract class BaseCollection implements Collection {
     };
   }
 
+  get capabilities() {
+    return {
+      name: this.name,
+      fields: [],
+    };
+  }
+
   protected addAction(name: string, schema: ActionSchema): void {
     const action = this.schema.actions[name];
 

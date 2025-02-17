@@ -1,5 +1,6 @@
 import { ActionFormElement, ActionResult } from './action';
 import { Caller } from './caller';
+import { CollectionCapabilities } from './capabilities';
 import { Chart } from './chart';
 import Aggregation, { AggregateResult } from './query/aggregation';
 import PaginatedFilter from './query/filter/paginated';
@@ -35,6 +36,7 @@ export interface Collection {
   get dataSource(): DataSource;
   get name(): string;
   get schema(): CollectionSchema;
+  get capabilities(): CollectionCapabilities;
 
   execute(
     caller: Caller,
