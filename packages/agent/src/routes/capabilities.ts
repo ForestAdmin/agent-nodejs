@@ -37,29 +37,8 @@ export default class Capabilities extends BaseRoute {
       agentCapabilities: {
         canUseProjectionOnGetOne: true,
       },
-      collections:
-        collections?.map(collection => ({
-          name: collection.name,
-          fields: Object.entries(collection.schema.fields)
-            .map(([fieldName, field]) => {
-              return field.type === 'Column'
-                ? {
-                    name: fieldName,
-                    type: field.columnType,
-                    operators: [...field.filterOperators].map(this.pascalCaseToSnakeCase),
-                  }
-                : null;
-            })
-            .filter(Boolean),
-        })) ?? [],
+      collections: collections?.map(collection => collection.capabilities) ?? [],
     };
     context.response.status = HttpCode.Ok;
-  }
-
-  private pascalCaseToSnakeCase(str: string): string {
-    return str
-      .split(/\.?(?=[A-Z])/)
-      .join('_')
-      .toLowerCase();
   }
 }
