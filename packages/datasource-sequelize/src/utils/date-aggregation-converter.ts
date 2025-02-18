@@ -105,6 +105,15 @@ export default class DateAggregationConverter {
       return this.fn('DATE', this.col(field), 'weekday 0');
     }
 
+    if (operation === 'Quarter') {
+      return this.fn(
+        'DATE',
+        this.literal(
+          `STRFTIME('%Y', ${field}) || '-' || FORMAT('%02d', (FLOOR((STRFTIME('%m', ${field}) - 1) / 3) + 1) * 3) || '-01'`,
+        ),
+      );
+    }
+
     let format: string;
 
     switch (operation) {

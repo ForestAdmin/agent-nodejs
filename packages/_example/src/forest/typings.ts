@@ -331,6 +331,7 @@ export type Schema = {
   };
   'dev_xp_members': {
     plain: {
+      'createdAt': string | null;
       'id': number;
       'name': string | null;
     };
