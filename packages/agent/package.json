@@ -17,6 +17,7 @@
     "@forestadmin/datasource-customizer": "1.62.0",
     "@forestadmin/datasource-toolkit": "1.48.0",
     "@forestadmin/forestadmin-client": "1.36.8",
+    "@forestadmin/ai-proxy": "0.0.1",
     "@koa/cors": "^5.0.0",
     "@koa/router": "^12.0.0",
     "@types/koa__router": "^12.0.0",
