@@ -6,7 +6,7 @@ import RecordUtils from '../../utils/record';
 import { RecordData } from '../record';
 
 export type AggregationOperation = 'Count' | 'Sum' | 'Avg' | 'Max' | 'Min';
-export type DateOperation = 'Year' | 'Month' | 'Week' | 'Day';
+export type DateOperation = 'Year' | 'Quarter' | 'Month' | 'Week' | 'Day';
 
 type Summary = {
   group: Record<string, unknown>;
@@ -182,6 +182,10 @@ export default class Aggregation {
 
       if (operation === 'Year') {
         return dateTime.toFormat('yyyy-01-01');
+      }
+
+      if (operation === 'Quarter') {
+        return dateTime.startOf('quarter').toFormat('yyyy-LL-dd');
       }
 
       if (operation === 'Month') {

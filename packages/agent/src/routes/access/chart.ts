@@ -34,6 +34,7 @@ export default class ChartRoute extends CollectionRoute {
     Day: 'dd/MM/yyyy',
     Week: "'W'W-kkkk",
     Month: 'MMM yy',
+    Quarter: "'Q'q-yyyy",
     Year: 'yyyy',
   };
 

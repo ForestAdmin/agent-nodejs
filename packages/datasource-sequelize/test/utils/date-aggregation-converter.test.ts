@@ -71,6 +71,30 @@ describe('Utils > DateAggregationConverter', () => {
         });
       });
 
+      it('should return the right aggregation function for Quarter operation', () => {
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect(
+          'a__field',
+          'Quarter',
+        );
+
+        expect(aggregationFunction).toEqual({
+          fn: 'CONVERT',
+          args: [
+            { val: 'varchar(10)' },
+            {
+              fn: 'DATEFROMPARTS',
+              args: [
+                { fn: 'DATEPART', args: [{ val: 'YEAR' }, { col: 'a__field' }] },
+                { val: `DATEPART(q, a__field)*3` },
+                '01',
+              ],
+            },
+            23,
+          ],
+        });
+      });
+
       it('should return the right aggregation function for Month operation', () => {
         const dateAggregationConverter = setup();
         const aggregationFunction = dateAggregationConverter.convertToDialect('a__field', 'Month');
@@ -178,6 +202,49 @@ describe('Utils > DateAggregationConverter', () => {
               ],
             },
             '%Y-%m-%d',
+          ],
+        });
+      });
+
+      it('should return the right aggregation function for Quarter operation', () => {
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect(
+          'a__field',
+          'Quarter',
+        );
+
+        expect(aggregationFunction).toEqual({
+          fn: 'DATE_FORMAT',
+          args: [
+            {
+              val: 'MAKEDATE(YEAR(a__field), 1) + Interval QUARTER(a__field)-1 QUARTER',
+            },
+            '%Y-%m-%d',
+          ],
+        });
+      });
+    });
+
+    describe('whith sqlite', () => {
+      const setup = () => {
+        const sequelize = new Sequelize({ dialect: 'sqlite' });
+
+        return new DateAggregationConverter(sequelize);
+      };
+
+      it('should return the right aggregation function for Quarter operation', () => {
+        const dateAggregationConverter = setup();
+        const aggregationFunction = dateAggregationConverter.convertToDialect(
+          'a__field',
+          'Quarter',
+        );
+
+        expect(aggregationFunction).toEqual({
+          fn: 'DATE',
+          args: [
+            {
+              val: "STRFTIME('%Y', a__field) || '-' || FORMAT('%02d', (FLOOR((STRFTIME('%m', a__field) - 1) / 3) + 1) * 3) || '-01'",
+            },
           ],
         });
       });

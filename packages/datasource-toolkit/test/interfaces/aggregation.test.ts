@@ -172,4 +172,24 @@ describe('Aggregation', () => {
       ]);
     });
   });
+
+  describe('count with Quarter grouping', () => {
+    const aggregation = new Aggregation({
+      operation: 'Count',
+      groups: [{ field: 'discriminant', operation: 'Quarter' }],
+    });
+
+    test('apply should work', () => {
+      const records = [
+        { id: 2, discriminant: '2010-09-15T12:00:00Z' },
+        { id: 1, discriminant: '2021-05-20T12:00:00Z' },
+      ];
+
+      expect(aggregation.apply(records, 'Europe/Paris')).toEqual([
+        // Those are mondays
+        { value: 1, group: { discriminant: '2010-07-01' } },
+        { value: 1, group: { discriminant: '2021-04-01' } },
+      ]);
+    });
+  });
 });
