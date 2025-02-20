@@ -61,6 +61,20 @@ describe('Chart result builder', () => {
     ]);
   });
 
+  test('timeBased() should return the expected format (Quarter)', () => {
+    const result = builder.timeBased('Quarter', {
+      '1985-10-26': 1,
+      '1985-11-27': 2,
+      '1986-01-07': 3,
+      '1986-01-08': 4,
+    });
+
+    expect(result).toStrictEqual([
+      { label: 'Q4-1985', values: { value: 3 } },
+      { label: 'Q1-1986', values: { value: 7 } },
+    ]);
+  });
+
   test('timeBased() should return the expected format (Year)', () => {
     const result = builder.timeBased('Year', {
       '1985-10-26': 1,

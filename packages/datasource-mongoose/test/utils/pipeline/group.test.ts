@@ -79,4 +79,28 @@ describe('GroupGenerator', () => {
       { $project: { _id: 0, group: { createdAt: '$_id.createdAt' }, value: '$value' } },
     ]);
   });
+
+  it('should create a pipeline for count (w/ groups by quarter)', () => {
+    const aggregation = new Aggregation({
+      operation: 'Count',
+      groups: [{ field: 'createdAt', operation: 'Quarter' }],
+    });
+
+    expect(GroupGenerator.group(aggregation)).toStrictEqual([
+      {
+        $group: {
+          _id: {
+            createdAt: {
+              $dateToString: {
+                date: { $dateTrunc: { date: '$createdAt', unit: 'quarter' } },
+                format: '%Y-%m-01',
+              },
+            },
+          },
+          value: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, group: { createdAt: '$_id.createdAt' }, value: '$value' } },
+    ]);
+  });
 });
