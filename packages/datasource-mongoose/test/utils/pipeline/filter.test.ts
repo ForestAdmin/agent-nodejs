@@ -92,6 +92,50 @@ describe('FilterGenerator', () => {
     });
 
     describe('Sort', () => {
+      describe('if no sort is applied but there is a limit', () => {
+        describe('if no filter is required', () => {
+          it('should sort + limit in the first stage', () => {
+            const filter = new PaginatedFilter({
+              sort: undefined,
+              page: new Page(0, 100),
+            });
+
+            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+            expect(pipeline).toStrictEqual([[{ $skip: 0 }, { $limit: 100 }], [], []]);
+          });
+        });
+
+        describe('if a native filter is required', () => {
+          it('should sort + limit in the second stage', () => {
+            const filter = new PaginatedFilter({
+              sort: undefined,
+              page: new Page(0, 100),
+            });
+            filter.conditionTree = new ConditionTreeBranch('And', [
+              new ConditionTreeLeaf('title', 'Equal', 'Lord of the Rings'),
+            ]);
+
+            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+            expect(pipeline).toStrictEqual([[], [{ $skip: 0 }, { $limit: 100 }], []]);
+          });
+        });
+
+        describe('if filtering is not on a native field', () => {
+          it('should sort + limit in the third stage', () => {
+            const filter = new PaginatedFilter({
+              sort: undefined,
+              page: new Page(0, 100),
+            });
+            filter.conditionTree = new ConditionTreeBranch('And', [
+              new ConditionTreeLeaf('author:firstname', 'Equal', 'JRR Tolkien'),
+            ]);
+
+            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
+            expect(pipeline).toStrictEqual([[], [], [{ $skip: 0 }, { $limit: 100 }]]);
+          });
+        });
+      });
+
       describe('if sort is done on native field', () => {
         it('should generate the relevant pipeline on the first stage', () => {
           const filter = new PaginatedFilter({
