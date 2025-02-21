@@ -1,3 +1,18 @@
+# @forestadmin/datasource-mongoose [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.10.1...@forestadmin/datasource-mongoose@1.11.0) (2025-02-21)
+
+
+### Features
+
+* **chart:** allow date aggregation on quarter ([#1257](https://github.com/ForestAdmin/agent-nodejs/issues/1257)) ([67cbacd](https://github.com/ForestAdmin/agent-nodejs/commit/67cbacdfaac44623119d9636c44017c4a8f6c984))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.49.0
+
 ## @forestadmin/datasource-mongoose [1.10.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.10.0...@forestadmin/datasource-mongoose@1.10.1) (2025-02-05)
 
 
