@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.49.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.48.0...@forestadmin/datasource-toolkit@1.49.0) (2025-02-21)
+
+
+### Features
+
+* **chart:** allow date aggregation on quarter ([#1257](https://github.com/ForestAdmin/agent-nodejs/issues/1257)) ([67cbacd](https://github.com/ForestAdmin/agent-nodejs/commit/67cbacdfaac44623119d9636c44017c4a8f6c984))
+
 # @forestadmin/datasource-toolkit [1.48.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.47.1...@forestadmin/datasource-toolkit@1.48.0) (2025-02-05)
 
 
