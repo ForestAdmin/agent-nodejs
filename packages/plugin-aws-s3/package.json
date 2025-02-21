@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-aws-s3",
-  "version": "1.4.19",
+  "version": "1.4.20",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -14,11 +14,11 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.157.0",
     "@aws-sdk/s3-request-presigner": "^3.157.0",
-    "@forestadmin/datasource-toolkit": "1.48.0"
+    "@forestadmin/datasource-toolkit": "1.49.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.62.0",
-    "@forestadmin/datasource-toolkit": "1.48.0"
+    "@forestadmin/datasource-customizer": "1.63.0",
+    "@forestadmin/datasource-toolkit": "1.49.0"
   },
   "files": [
     "dist/**/*.js",
