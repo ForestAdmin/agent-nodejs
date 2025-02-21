@@ -26,9 +26,7 @@ export default class FilterGenerator {
     if (filter.page?.skip !== undefined) sortAndLimitStages.push({ $skip: filter.page.skip });
     if (filter.page?.limit !== undefined) sortAndLimitStages.push({ $limit: filter.page.limit });
 
-    if (!sort) return [sortAndLimitStages, [], []];
-
-    const allSortCriteriaNative = !Object.keys(sort).find(
+    const allSortCriteriaNative = !Object.keys(sort || {}).find(
       key => !Object.keys(model.schema.paths).includes(key),
     );
 
