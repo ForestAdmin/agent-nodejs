@@ -14,9 +14,18 @@ import VersionManager from '../version-manager';
 
 const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
 
+export enum FilterAtStage {
+  Early = 'early',
+  AfterFiltering = 'afterFiltering',
+  AfterLookup = 'afterLookup',
+}
+
 /** Transform a forest admin filter into mongo pipeline */
 export default class FilterGenerator {
-  static sortAndPaginate(model: Model<unknown>, filter: PaginatedFilter): PipelineStage[][] {
+  static sortAndPaginate(
+    model: Model<unknown>,
+    filter: PaginatedFilter,
+  ): { sortAndLimitStages: PipelineStage[]; filterAtStage: FilterAtStage } {
     const sort = this.computeSort(filter?.sort);
 
     const sortAndLimitStages: PipelineStage[] = [];
@@ -33,7 +42,7 @@ export default class FilterGenerator {
     if (allSortCriteriaNative && !filter.conditionTree) {
       // if sort applies to native fields and no filters are applied (very common case)
       // we apply pre-sort + limit at the beginning of the pipeline (to improve perf)
-      return [sortAndLimitStages, [], []];
+      return { sortAndLimitStages, filterAtStage: FilterAtStage.Early };
     }
 
     const allConditionTreeKeysNative = !(filter.conditionTree?.projection || []).find(
@@ -42,11 +51,11 @@ export default class FilterGenerator {
 
     if (allSortCriteriaNative && allConditionTreeKeysNative) {
       // if filters apply to native fields only, we can apply the sort right after filtering
-      return [[], sortAndLimitStages, []];
+      return { sortAndLimitStages, filterAtStage: FilterAtStage.AfterFiltering };
     }
 
     // if sorting apply to relations, it is safer to do it at the end of the pipeline
-    return [[], [], sortAndLimitStages];
+    return { sortAndLimitStages, filterAtStage: FilterAtStage.AfterLookup };
   }
 
   static filter(model: Model<unknown>, stack: Stack, filter: PaginatedFilter): PipelineStage[] {

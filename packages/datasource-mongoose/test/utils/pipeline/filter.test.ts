@@ -8,7 +8,7 @@ import {
 import mongoose, { Model, Schema } from 'mongoose';
 
 import { Stack } from '../../../src/types';
-import FilterGenerator from '../../../src/utils/pipeline/filter';
+import FilterGenerator, { FilterAtStage } from '../../../src/utils/pipeline/filter';
 
 describe('FilterGenerator', () => {
   let model: Model<unknown>;
@@ -86,8 +86,9 @@ describe('FilterGenerator', () => {
       it('should generate the relevant pipeline', () => {
         const filter = new PaginatedFilter({ page: new Page(100, 150) });
 
-        const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-        expect(pipeline).toStrictEqual([[{ $skip: 100 }, { $limit: 150 }], [], []]);
+        const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+        expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([{ $skip: 100 }, { $limit: 150 }]);
+        expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.Early);
       });
     });
 
@@ -100,8 +101,12 @@ describe('FilterGenerator', () => {
               page: new Page(0, 100),
             });
 
-            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-            expect(pipeline).toStrictEqual([[{ $skip: 0 }, { $limit: 100 }], [], []]);
+            const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+            expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([
+              { $skip: 0 },
+              { $limit: 100 },
+            ]);
+            expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.Early);
           });
         });
 
@@ -115,8 +120,12 @@ describe('FilterGenerator', () => {
               new ConditionTreeLeaf('title', 'Equal', 'Lord of the Rings'),
             ]);
 
-            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-            expect(pipeline).toStrictEqual([[], [{ $skip: 0 }, { $limit: 100 }], []]);
+            const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+            expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([
+              { $skip: 0 },
+              { $limit: 100 },
+            ]);
+            expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.AfterFiltering);
           });
         });
 
@@ -130,8 +139,12 @@ describe('FilterGenerator', () => {
               new ConditionTreeLeaf('author:firstname', 'Equal', 'JRR Tolkien'),
             ]);
 
-            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-            expect(pipeline).toStrictEqual([[], [], [{ $skip: 0 }, { $limit: 100 }]]);
+            const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+            expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([
+              { $skip: 0 },
+              { $limit: 100 },
+            ]);
+            expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.AfterLookup);
           });
         });
       });
@@ -142,8 +155,11 @@ describe('FilterGenerator', () => {
             sort: new Sort({ field: 'author:firstname', ascending: true }),
           });
 
-          const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-          expect(pipeline).toStrictEqual([[{ $sort: { 'author.firstname': 1 } }], [], []]);
+          const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+          expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([
+            { $sort: { 'author.firstname': 1 } },
+          ]);
+          expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.Early);
         });
       });
 
@@ -157,8 +173,11 @@ describe('FilterGenerator', () => {
               new ConditionTreeLeaf('title', 'Equal', 'Lord of the Rings'),
             ]);
 
-            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-            expect(pipeline).toStrictEqual([[], [{ $sort: { 'author.firstname': 1 } }], []]);
+            const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+            expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([
+              { $sort: { 'author.firstname': 1 } },
+            ]);
+            expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.AfterFiltering);
           });
         });
 
@@ -171,20 +190,24 @@ describe('FilterGenerator', () => {
               new ConditionTreeLeaf('editor', 'Equal', 'Folio'),
             ]);
 
-            const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-            expect(pipeline).toStrictEqual([[], [], [{ $sort: { 'author.firstname': 1 } }]]);
+            const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+            expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([
+              { $sort: { 'author.firstname': 1 } },
+            ]);
+            expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.AfterLookup);
           });
         });
       });
 
       describe('if sort criteria is not on a native field', () => {
-        it('should generate the relevant pipeline on second stage', () => {
+        it('should generate the relevant pipeline on third stage', () => {
           const filter = new PaginatedFilter({
             sort: new Sort({ field: 'hello', ascending: true }),
           });
 
-          const pipeline = FilterGenerator.sortAndPaginate(model, filter);
-          expect(pipeline).toStrictEqual([[], [], [{ $sort: { hello: 1 } }]]);
+          const sortAndPaginate = FilterGenerator.sortAndPaginate(model, filter);
+          expect(sortAndPaginate.sortAndLimitStages).toStrictEqual([{ $sort: { hello: 1 } }]);
+          expect(sortAndPaginate.filterAtStage).toStrictEqual(FilterAtStage.AfterLookup);
         });
       });
     });

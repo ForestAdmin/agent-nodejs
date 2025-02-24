@@ -26,7 +26,7 @@ import {
   splitId,
   unflattenRecord,
 } from './utils/helpers';
-import FilterGenerator from './utils/pipeline/filter';
+import FilterGenerator, { FilterAtStage } from './utils/pipeline/filter';
 import GroupGenerator from './utils/pipeline/group';
 import LookupGenerator from './utils/pipeline/lookup';
 import ProjectionGenerator from './utils/pipeline/projection';
@@ -302,8 +302,10 @@ export default class MongooseCollection extends BaseCollection {
   ): PipelineStage[] {
     const fieldsUsedInFilters = FilterGenerator.listRelationsUsedInFilter(filter);
 
-    const [preSortAndPaginate, sortAndPaginatePostFiltering, sortAndPaginateAll] =
-      FilterGenerator.sortAndPaginate(this.model, filter);
+    const { sortAndLimitStages, filterAtStage } = FilterGenerator.sortAndPaginate(
+      this.model,
+      filter,
+    );
 
     const reparentStages = ReparentGenerator.reparent(this.model, this.stack);
     const addVirtualStages = VirtualFieldsGenerator.addVirtual(
@@ -335,14 +337,14 @@ export default class MongooseCollection extends BaseCollection {
     );
 
     return [
-      ...preSortAndPaginate,
+      ...(filterAtStage === FilterAtStage.Early ? sortAndLimitStages : []),
       ...reparentStages,
       ...addVirtualStages,
       ...lookupUsedInFiltersStage,
       ...filterStage,
-      ...sortAndPaginatePostFiltering,
+      ...(filterAtStage === FilterAtStage.AfterFiltering ? sortAndLimitStages : []),
       ...lookupNotFilteredStage,
-      ...sortAndPaginateAll,
+      ...(filterAtStage === FilterAtStage.AfterLookup ? sortAndLimitStages : []),
     ];
   }
 
