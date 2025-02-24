@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.11.0...@forestadmin/datasource-mongoose@1.11.1) (2025-02-24)
+
+
+### Bug Fixes
+
+* belongs to typeahead does not return correct values ([#1268](https://github.com/ForestAdmin/agent-nodejs/issues/1268)) ([18d8d89](https://github.com/ForestAdmin/agent-nodejs/commit/18d8d89a14b2d36d0c0b3affb8fa4887832ff80d))
+
 # @forestadmin/datasource-mongoose [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.10.1...@forestadmin/datasource-mongoose@1.11.0) (2025-02-21)
 
 
