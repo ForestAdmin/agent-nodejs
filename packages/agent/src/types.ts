@@ -1,5 +1,5 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
-import { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import { ForestAdminClient, NotificationFromAgent } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
 /** Options to configure behavior of an agent's forestadmin driver */
@@ -58,3 +58,9 @@ export type SelectionIds = {
   areExcluded: boolean;
   ids: CompositeId[];
 };
+
+declare global {
+  interface PublicServices {
+    sendNotifications: (payload: NotificationFromAgent) => Promise<void>;
+  }
+}

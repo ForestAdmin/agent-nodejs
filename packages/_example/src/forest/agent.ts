@@ -32,7 +32,9 @@ export default function makeAgent() {
     typingsPath: 'src/forest/typings.ts',
   };
 
-  return createAgent<Schema>(envOptions)
+  const agent = createAgent<Schema>(envOptions);
+
+  return agent
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
     .addDataSource(
@@ -81,6 +83,27 @@ export default function makeAgent() {
     })
 
     .customizeCollection('card', customizeCard)
+    .customizeCollection('card', cards => {
+      cards.addAction('Hello', {
+        scope: 'Bulk',
+        async execute(context, resultBuilder) {
+          const notif = {
+            notification: {
+              message: {
+                type: 'warning',
+                text: 'Data refreshed',
+              },
+              refresh: {
+                collectionName: 'card',
+              },
+            },
+          };
+          globalThis.publicServices.sendNotifications(notif);
+
+          return resultBuilder.success('hello');
+        },
+      });
+    })
     .customizeCollection('account', customizeAccount)
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('store', customizeStore)
