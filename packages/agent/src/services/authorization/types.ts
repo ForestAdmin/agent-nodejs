@@ -14,6 +14,7 @@ export interface SmartActionRequestBody {
       parent_association_name: string | null;
       all_records: boolean;
       all_records_subset_query: null;
+      action_intent_params?: Record<string, unknown> | null;
     };
   };
 }
