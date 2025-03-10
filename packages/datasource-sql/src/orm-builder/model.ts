@@ -91,8 +91,8 @@ export default class ModelBuilder {
 
     for (const column of table.columns) {
       const isExplicit =
-        !(hasTimestamps && timestampFields.includes(column.name)) &&
-        !(isParanoid && deletedAtFields.includes(column.name));
+        !hasTimestamps ||
+        (!timestampFields.includes(column.name) && !deletedAtFields.includes(column.name));
 
       const type = SequelizeTypeFactory.makeType(dialect, column.type, table.name, column.name);
 
