@@ -45,6 +45,13 @@ describe('Capabilities', () => {
                 columnType: 'Number',
                 filterOperators: new Set(allowedOperatorsForColumnType.Number),
               }),
+              sources: factories.columnSchema.build({
+                columnType: [
+                  {
+                    name: 'String',
+                  },
+                ],
+              }),
             },
           }),
         }),
@@ -229,6 +236,24 @@ describe('Capabilities', () => {
               ],
             },
           ],
+        });
+      });
+
+      describe('when field ColumnType is an object', () => {
+        test('should not return a field capabilities for that field', async () => {
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['books'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await route.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].fields.some(field => field.name === 'sources')).toBeFalse();
         });
       });
     });

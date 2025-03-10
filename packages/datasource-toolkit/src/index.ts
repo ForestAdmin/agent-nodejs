@@ -55,6 +55,7 @@ export { default as FieldValidator } from './validation/field';
 export { default as ProjectionValidator } from './validation/projection';
 export { default as RecordValidator } from './validation/record';
 export { default as SortValidator } from './validation/sort';
+export { default as TypeGetter } from './validation/type-getter';
 
 // Utils
 export { default as CollectionUtils } from './utils/collection';

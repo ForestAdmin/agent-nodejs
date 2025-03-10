@@ -1,4 +1,4 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import { ColumnSchema, DataSource, FieldSchema, TypeGetter } from '@forestadmin/datasource-toolkit';
 import Router from '@koa/router';
 import { Context } from 'koa';
 
@@ -42,7 +42,7 @@ export default class Capabilities extends BaseRoute {
           name: collection.name,
           fields: Object.entries(collection.schema.fields)
             .map(([fieldName, field]) => {
-              return field.type === 'Column'
+              return this.shouldCreateFieldCapability(field)
                 ? {
                     name: fieldName,
                     type: field.columnType,
@@ -61,5 +61,13 @@ export default class Capabilities extends BaseRoute {
       .split(/\.?(?=[A-Z])/)
       .join('_')
       .toLowerCase();
+  }
+
+  private shouldCreateFieldCapability(field: FieldSchema): field is ColumnSchema {
+    return (
+      field.type === 'Column' &&
+      (TypeGetter.isPrimitiveType(field.columnType) ||
+        TypeGetter.isArrayOfPrimitiveType(field.columnType))
+    );
   }
 }
