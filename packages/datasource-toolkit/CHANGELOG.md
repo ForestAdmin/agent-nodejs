@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.49.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.49.0...@forestadmin/datasource-toolkit@1.49.1) (2025-03-11)
+
+
+### Bug Fixes
+
+* **capabilities:** should only handle Primitive type fields ([#1272](https://github.com/ForestAdmin/agent-nodejs/issues/1272)) ([ac23fd0](https://github.com/ForestAdmin/agent-nodejs/commit/ac23fd07ce92cd7bead3764af91fb4e31822f031))
+
 # @forestadmin/datasource-toolkit [1.49.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.48.0...@forestadmin/datasource-toolkit@1.49.0) (2025-02-21)
 
 
