@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-sequelize",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,7 +12,7 @@
     "directory": "packages/datasource-sequelize"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.49.0"
+    "@forestadmin/datasource-toolkit": "1.49.1"
   },
   "files": [
     "dist/**/*.js",
