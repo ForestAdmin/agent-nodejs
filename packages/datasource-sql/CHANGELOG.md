@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.16.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.16.8...@forestadmin/datasource-sql@1.16.9) (2025-03-11)
+
+
+### Bug Fixes
+
+* display deletedAt field when no timestamp are setup ([#1273](https://github.com/ForestAdmin/agent-nodejs/issues/1273)) ([690ddfd](https://github.com/ForestAdmin/agent-nodejs/commit/690ddfde4394290d65300be6dadef6ffca6de18c))
+
 ## @forestadmin/datasource-sql [1.16.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.16.7...@forestadmin/datasource-sql@1.16.8) (2025-02-21)
 
 
