@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.60.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.60.0...@forestadmin/agent@1.60.1) (2025-03-11)
+
+
+### Bug Fixes
+
+* **capabilities:** should only handle Primitive type fields ([#1272](https://github.com/ForestAdmin/agent-nodejs/issues/1272)) ([ac23fd0](https://github.com/ForestAdmin/agent-nodejs/commit/ac23fd07ce92cd7bead3764af91fb4e31822f031))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.63.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.49.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.10
+
 # @forestadmin/agent [1.60.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.59.2...@forestadmin/agent@1.60.0) (2025-02-21)
 
 
