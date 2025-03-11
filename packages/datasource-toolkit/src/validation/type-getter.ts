@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
 
-import { PrimitiveTypes } from '../interfaces/schema';
+import { ColumnType, PrimitiveTypes } from '../interfaces/schema';
 
 export default class TypeGetter {
   static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes {
@@ -20,6 +20,29 @@ export default class TypeGetter {
     if (value === null || value === undefined) return null;
 
     return undefined;
+  }
+
+  static isPrimitiveType(columnType: ColumnType): columnType is PrimitiveTypes {
+    const primitiveTypes: PrimitiveTypes[] = [
+      'Boolean',
+      'Binary',
+      'Date',
+      'Dateonly',
+      'Enum',
+      'Json',
+      'Number',
+      'Point',
+      'String',
+      'Time',
+      'Timeonly',
+      'Uuid',
+    ];
+
+    return primitiveTypes.includes(columnType as PrimitiveTypes);
+  }
+
+  static isArrayOfPrimitiveType(columnType: ColumnType): columnType is [PrimitiveTypes] {
+    return Array.isArray(columnType) && this.isPrimitiveType(columnType[0]);
   }
 
   private static getDateType(value: string): PrimitiveTypes {

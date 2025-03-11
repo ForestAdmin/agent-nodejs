@@ -1,3 +1,4 @@
+import { ColumnType } from '../../src/interfaces/schema';
 import TypeGetter from '../../src/validation/type-getter';
 
 describe('TypeGetter', () => {
@@ -115,6 +116,54 @@ describe('TypeGetter', () => {
           expect(TypeGetter.get('a string', 'String')).toEqual('String');
         });
       });
+    });
+  });
+
+  describe('isPrimitiveType', () => {
+    it.each([
+      'Boolean',
+      'Binary',
+      'Date',
+      'Dateonly',
+      'Enum',
+      'Json',
+      'Number',
+      'Point',
+      'String',
+      'Time',
+      'Timeonly',
+      'Uuid',
+    ])('should return true for type %s', type => {
+      expect(TypeGetter.isPrimitiveType(type as ColumnType)).toEqual(true);
+    });
+
+    it.each([[], {}, 'nothing', undefined, null])('should return false for type %s', type => {
+      expect(TypeGetter.isPrimitiveType(type as ColumnType)).toEqual(false);
+    });
+  });
+
+  describe('isArrayOfPrimitiveType', () => {
+    [
+      ['Boolean'],
+      ['Binary'],
+      ['Date'],
+      ['Dateonly'],
+      ['Enum'],
+      ['Json'],
+      ['Number'],
+      ['Point'],
+      ['String'],
+      ['Time'],
+      ['Timeonly'],
+      ['Uuid'],
+    ].forEach(type => {
+      it(`should return true for type ${type}`, () => {
+        expect(TypeGetter.isArrayOfPrimitiveType(type as ColumnType)).toEqual(true);
+      });
+    });
+
+    it.each([[], [{}], {}, 'nothing', undefined, null])('should return false for type %s', type => {
+      expect(TypeGetter.isArrayOfPrimitiveType(type as ColumnType)).toEqual(false);
     });
   });
 });
