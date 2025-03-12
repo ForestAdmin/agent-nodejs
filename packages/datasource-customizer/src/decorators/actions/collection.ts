@@ -82,7 +82,15 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     const formValues = data ? { ...data } : {};
     const used = new Set<string>();
-    const context = this.getContext(caller, action, formValues, filter, used, metas?.changedField);
+    const context = this.getContext(
+      caller,
+      action,
+      formValues,
+      filter,
+      used,
+      metas?.changedField,
+      metas?.actionIntentParams,
+    );
 
     // Convert DynamicField to ActionField in successive steps.
     let dynamicFields: DynamicForm = this.isHandler(action.form)
@@ -171,12 +179,21 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
     filter: Filter,
     used?: Set<string>,
     changedField?: string,
+    actionIntentParams?: Record<string, unknown>,
   ): ActionContext {
     return new {
       Global: ActionContext,
       Bulk: ActionContext,
       Single: ActionContextSingle,
-    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
+    }[action.scope](
+      this,
+      caller,
+      formValues,
+      filter as unknown as PlainFilter,
+      used,
+      changedField,
+      actionIntentParams,
+    );
   }
 
   private getSearchedField(element: DynamicFormElementOrPage, search: string): DynamicField | null {
