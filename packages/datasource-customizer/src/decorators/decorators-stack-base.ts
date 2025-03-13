@@ -28,6 +28,7 @@ export type Options = {
 
 export default abstract class DecoratorsStackBase {
   protected customizations: Array<(logger: Logger) => Promise<void>> = [];
+  protected _customizations: Array<(logger: Logger) => Promise<void>> = [];
   private options: Required<Options>;
 
   public dataSource: DataSource;
@@ -51,14 +52,14 @@ export default abstract class DecoratorsStackBase {
   write: WriteDataSourceDecorator;
   override: DataSourceDecorator<OverrideCollectionDecorator>;
 
-  finalizeStackSetup(dataSource: DataSource, options?: Options) {
-    this.dataSource = dataSource;
-
+  constructor(options: Options) {
     this.options = {
       ignoreMissingSchemaElementErrors: false,
       ...(options || {}),
     };
   }
+
+  abstract buildStack(dataSource: DataSource): void;
 
   queueCustomization(customization: (logger: Logger) => Promise<void>): void {
     this.customizations.push(customization);
@@ -71,7 +72,14 @@ export default abstract class DecoratorsStackBase {
    * This method will be called recursively and clears the queue at each recursion to ensure
    * that all customizations are applied in the right order.
    */
-  async applyQueuedCustomizations(logger: Logger): Promise<void> {
+  async applyQueuedCustomizations(logger: Logger, dataSource: DataSource): Promise<void> {
+    this.buildStack(dataSource);
+    this._customizations = Array.from(this.customizations);
+    await this._applyQueuedCustomizations(logger);
+    this.customizations = Array.from(this._customizations);
+  }
+
+  private async _applyQueuedCustomizations(logger: Logger): Promise<void> {
     const queuedCustomizations = this.customizations.slice();
     this.customizations.length = 0;
 
@@ -91,7 +99,7 @@ export default abstract class DecoratorsStackBase {
         }
       }
 
-      await this.applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
+      await this._applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
     }
   }
 }

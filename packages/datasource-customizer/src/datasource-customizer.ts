@@ -33,7 +33,7 @@ export type Options = {
  *  .start();
  */
 export default class DataSourceCustomizer<S extends TSchema = TSchema> {
-  private readonly compositeDataSource: CompositeDatasource<Collection>;
+  private compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
 
   /**
@@ -53,12 +53,10 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   constructor(options?: Options) {
-    this.compositeDataSource = new CompositeDatasource<Collection>();
-
     this.stack = new {
       NoCode: DecoratorsStackNoCode,
       Normal: DecoratorsStack,
-    }[options?.strategy ?? 'Normal'](this.compositeDataSource, options);
+    }[options?.strategy ?? 'Normal'](options);
   }
 
   /**
@@ -178,7 +176,8 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   async getDataSource(logger: Logger): Promise<DataSource> {
-    await this.stack.applyQueuedCustomizations(logger);
+    this.compositeDataSource = new CompositeDatasource<Collection>();
+    await this.stack.applyQueuedCustomizations(logger, this.compositeDataSource);
 
     return this.stack.dataSource;
   }
