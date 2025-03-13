@@ -1,14 +1,12 @@
 import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
-import DecoratorsStackBase, { Options } from './decorators-stack-base';
+import DecoratorsStackBase from './decorators-stack-base';
 import SchemaCollectionDecorator from './schema/collection';
 import ValidationCollectionDecorator from './validation/collection';
 
 export default class DecoratorsStackNoCode extends DecoratorsStackBase {
-  constructor(dataSource: DataSource, options?: Options) {
-    super();
-
+  buildStack(dataSource: DataSource) {
     // It's actually the initial stack in this case. :)
     let last: DataSource = dataSource;
 
@@ -19,6 +17,6 @@ export default class DecoratorsStackNoCode extends DecoratorsStackBase {
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);
 
-    this.finalizeStackSetup(last, options);
+    this.dataSource = last;
   }
 }

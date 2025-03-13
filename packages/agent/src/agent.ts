@@ -92,7 +92,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Restart the agent at runtime (remount routes).
    */
-  private async restart(): Promise<void> {
+  async restart(): Promise<void> {
     // We force sending schema when restarting
     const updatedRouter = await this.buildRouterAndSendSchema();
 
