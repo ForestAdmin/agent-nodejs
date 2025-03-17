@@ -28,7 +28,6 @@ export type Options = {
 
 export default abstract class DecoratorsStackBase {
   protected customizations: Array<(logger: Logger) => Promise<void>> = [];
-  protected _customizations: Array<(logger: Logger) => Promise<void>> = [];
   private options: Required<Options>;
 
   public dataSource: DataSource;
@@ -74,9 +73,9 @@ export default abstract class DecoratorsStackBase {
    */
   async applyQueuedCustomizations(logger: Logger, dataSource: DataSource): Promise<void> {
     this.buildStack(dataSource);
-    this._customizations = Array.from(this.customizations);
+    const customizations = Array.from(this.customizations);
     await this._applyQueuedCustomizations(logger);
-    this.customizations = Array.from(this._customizations);
+    this.customizations = customizations;
   }
 
   private async _applyQueuedCustomizations(logger: Logger): Promise<void> {
