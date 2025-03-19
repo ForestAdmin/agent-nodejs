@@ -4,7 +4,7 @@ import ActionCollectionDecorator from './actions/collection';
 import BinaryCollectionDecorator from './binary/collection';
 import ChartDataSourceDecorator from './chart/datasource';
 import ComputedCollectionDecorator from './computed/collection';
-import DecoratorsStackBase, { Options } from './decorators-stack-base';
+import DecoratorsStackBase from './decorators-stack-base';
 import EmptyCollectionDecorator from './empty/collection';
 import HookCollectionDecorator from './hook/collection';
 import LazyJoinDecorator from './lazy-join/collection';
@@ -22,9 +22,7 @@ import ValidationCollectionDecorator from './validation/collection';
 import WriteDataSourceDecorator from './write/datasource';
 
 export default class DecoratorsStack extends DecoratorsStackBase {
-  constructor(dataSource: DataSource, options?: Options) {
-    super();
-
+  buildStack(dataSource: DataSource) {
     let last: DataSource = dataSource;
 
     /* eslint-disable no-multi-assign */
@@ -65,6 +63,6 @@ export default class DecoratorsStack extends DecoratorsStackBase {
     last = this.renameField = new DataSourceDecorator(last, RenameFieldCollectionDecorator);
     /* eslint-enable no-multi-assign */
 
-    this.finalizeStackSetup(last, options);
+    this.dataSource = last;
   }
 }
