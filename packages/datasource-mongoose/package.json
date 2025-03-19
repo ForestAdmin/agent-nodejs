@@ -23,7 +23,7 @@
     "mongoose": "8.8.4"
   },
   "peerDependencies": {
-    "mongoose": "6.x || 7.x || 8.x"
+    "mongoose": "6.x || 7.x || >=8.0.0 <=8.8.x"
   },
   "scripts": {
     "build": "tsc",
