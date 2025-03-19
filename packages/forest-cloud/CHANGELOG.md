@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.12.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.32...@forestadmin/forest-cloud@1.12.33) (2025-03-19)
+
+
+### Bug Fixes
+
+* **forest-cloud:** bump forest-cli to try to fix an issue with mongoose on bootstrap command ([#1278](https://github.com/ForestAdmin/agent-nodejs/issues/1278)) ([dec647f](https://github.com/ForestAdmin/agent-nodejs/commit/dec647fce3912efb2ca9188f9c3eec82bdbe5a8b))
+
 ## @forestadmin/forest-cloud [1.12.32](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.31...@forestadmin/forest-cloud@1.12.32) (2025-03-11)
 
 
