@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.11.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.11.2...@forestadmin/datasource-mongoose@1.11.3) (2025-03-19)
+
+
+### Bug Fixes
+
+* **forest-cloud:**  set maximum mongoose version to try to fix the bootstrap command when there is a mongo DS ([#1280](https://github.com/ForestAdmin/agent-nodejs/issues/1280)) ([7c67e29](https://github.com/ForestAdmin/agent-nodejs/commit/7c67e294d46136116e54b9c6025c430ac1b475f0))
+
 ## @forestadmin/datasource-mongoose [1.11.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.11.1...@forestadmin/datasource-mongoose@1.11.2) (2025-03-11)
 
 
