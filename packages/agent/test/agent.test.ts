@@ -185,7 +185,6 @@ describe('Agent', () => {
       });
 
       await agent.start();
-      // @ts-expect-error: testing fakes RefreshCustomizations event
       await agent.restart();
 
       expect(options.forestAdminClient.subscribeToServerEvents).toHaveBeenCalledTimes(1);
@@ -202,7 +201,6 @@ describe('Agent', () => {
       });
 
       await agent.start();
-      // @ts-expect-error: testing fakes RefreshCustomizations event
       await agent.restart();
 
       expect(mockSetupRoute).toHaveBeenCalledTimes(2);
