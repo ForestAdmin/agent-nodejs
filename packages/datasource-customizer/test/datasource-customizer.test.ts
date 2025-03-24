@@ -26,7 +26,6 @@ describe('DataSourceCustomizer', () => {
       factories.dataSource.build({ schema: { charts: ['foo'] } }),
     );
 
-    expect(customizer.schema).toStrictEqual({ charts: [] });
     await customizer.getDataSource(logger);
     expect(customizer.schema).toStrictEqual({ charts: ['foo'] });
   });
@@ -37,7 +36,6 @@ describe('DataSourceCustomizer', () => {
       factories.dataSource.buildWithCollection(factories.collection.build({ name: 'foo' })),
     );
 
-    expect(customizer.collections).toHaveLength(0);
     await customizer.getDataSource(logger);
     expect(customizer.collections).toHaveLength(1);
     expect(customizer.collections[0]).toBeInstanceOf(CollectionCustomizer);

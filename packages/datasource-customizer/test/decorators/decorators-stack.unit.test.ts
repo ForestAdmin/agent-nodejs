@@ -24,12 +24,12 @@ describe('DecoratorsStack', () => {
         const logger = jest.fn();
         const customization = jest.fn().mockRejectedValue(new Error('Customization failed'));
 
-        const stack = new DecoratorsStack(makeMockDataSource(), {
+        const stack = new DecoratorsStack({
           ignoreMissingSchemaElementErrors: false,
         });
         stack.queueCustomization(customization);
 
-        await expect(stack.applyQueuedCustomizations(logger)).rejects.toThrow(
+        await expect(stack.applyQueuedCustomizations(logger, makeMockDataSource())).rejects.toThrow(
           'Customization failed',
         );
       });
@@ -41,12 +41,12 @@ describe('DecoratorsStack', () => {
         const error = new MissingCollectionError('Customization failed');
         const customization = jest.fn().mockRejectedValue(error);
 
-        const stack = new DecoratorsStack(makeMockDataSource(), {
+        const stack = new DecoratorsStack({
           ignoreMissingSchemaElementErrors: true,
         });
         stack.queueCustomization(customization);
 
-        await stack.applyQueuedCustomizations(logger);
+        await stack.applyQueuedCustomizations(logger, makeMockDataSource());
 
         expect(logger).toHaveBeenCalledWith('Warn', 'Customization failed', error);
       });
@@ -57,13 +57,13 @@ describe('DecoratorsStack', () => {
         const customization1 = jest.fn().mockRejectedValue(error);
         const customization2 = jest.fn();
 
-        const stack = new DecoratorsStack(makeMockDataSource(), {
+        const stack = new DecoratorsStack({
           ignoreMissingSchemaElementErrors: true,
         });
         stack.queueCustomization(customization1);
         stack.queueCustomization(customization2);
 
-        await stack.applyQueuedCustomizations(logger);
+        await stack.applyQueuedCustomizations(logger, makeMockDataSource());
 
         expect(customization1).toHaveBeenCalled();
         expect(customization2).toHaveBeenCalled();
@@ -74,12 +74,12 @@ describe('DecoratorsStack', () => {
         const error = new Error('Customization failed');
         const customization = jest.fn().mockRejectedValue(error);
 
-        const stack = new DecoratorsStack(makeMockDataSource(), {
+        const stack = new DecoratorsStack({
           ignoreMissingSchemaElementErrors: true,
         });
         stack.queueCustomization(customization);
 
-        await expect(stack.applyQueuedCustomizations(logger)).rejects.toThrow(
+        await expect(stack.applyQueuedCustomizations(logger, makeMockDataSource())).rejects.toThrow(
           'Customization failed',
         );
       });
