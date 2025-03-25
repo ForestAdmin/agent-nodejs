@@ -189,7 +189,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       } else {
         logger(
           'Error',
-          `Agent could not restart with the new configuration, keeping the old \n  ${error}`,
+          `Agent failed to restart with the new configuration. Retaining the previous one.\n  ${error}`,
         );
       }
     }

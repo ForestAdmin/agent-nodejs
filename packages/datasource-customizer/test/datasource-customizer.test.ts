@@ -238,6 +238,56 @@ describe('DataSourceCustomizer', () => {
       await customizer.getDataSource(logger);
       expect(array).toEqual([1, 2, 3, 4, 5]);
     });
+
+    describe('when there is some errors in the customizations', () => {
+      it('should throw on the first time applied', async () => {
+        const customizer = new DataSourceCustomizer();
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+
+        customizer
+          .addDataSource(async () => dataSource)
+          .customizeCollection('collection', collection =>
+            collection.addField('error', {
+              columnType: 'String',
+              dependencies: [],
+              getValues: () => [],
+            }),
+          );
+
+        await expect(customizer.getDataSource(logger)).rejects.toThrow(
+          "Computed field 'collection.error' must have at least one dependency.",
+        );
+      });
+
+      it('should log error and keep the old datasource on the reload', async () => {
+        const customizer = new DataSourceCustomizer();
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection' }),
+        );
+
+        customizer.addDataSource(async () => dataSource);
+
+        const ds = await customizer.getDataSource(logger);
+
+        customizer.customizeCollection('collection', collection =>
+          collection.addField('error', {
+            columnType: 'String',
+            dependencies: [],
+            getValues: () => [],
+          }),
+        );
+
+        const spy = jest.fn();
+
+        expect(await customizer.getDataSource(spy)).toStrictEqual(ds);
+        expect(spy).toHaveBeenCalledWith(
+          'Error',
+          "Agent failed to restart with the new configuration. Retaining the previous one.\n  Error: Computed field 'collection.error' must have at least one dependency.",
+        );
+      });
+    });
   });
 
   describe('findCollection', () => {
