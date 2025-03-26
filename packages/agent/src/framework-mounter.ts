@@ -186,7 +186,9 @@ export default class FrameworkMounter {
         router = new Router({ prefix: this.completeMountPrefix }).use(router.routes());
       }
 
-      handler = new Koa().use(router.routes()).callback();
+      handler = new Koa({ proxyIpHeader: 'X-Forwarded-For', proxy: true })
+        .use(router.routes())
+        .callback();
     });
 
     return (req, res) => {
