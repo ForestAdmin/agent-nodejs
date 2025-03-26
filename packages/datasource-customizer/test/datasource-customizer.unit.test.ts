@@ -1,5 +1,4 @@
 import DataSourceCustomizer from '../src/datasource-customizer';
-import CompositeDatasource from '../src/decorators/composite-datasource';
 import DecoratorsStack from '../src/decorators/decorators-stack';
 
 jest.mock('../src/decorators/decorators-stack');
@@ -13,7 +12,7 @@ describe('DatasourceCustomizer', () => {
       // eslint-disable-next-line no-new
       new DataSourceCustomizer(options);
 
-      expect(DecoratorsStack).toHaveBeenCalledWith(expect.any(CompositeDatasource), options);
+      expect(DecoratorsStack).toHaveBeenCalledWith(options);
     });
   });
 });
