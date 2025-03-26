@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.61.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.60.1...@forestadmin/agent@1.61.0) (2025-03-26)
+
+
+### Features
+
+* allow reload agent ([#1276](https://github.com/ForestAdmin/agent-nodejs/issues/1276)) ([43cf128](https://github.com/ForestAdmin/agent-nodejs/commit/43cf128bf95672317f40e0b26865f513d72edf4d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.64.0
+
 ## @forestadmin/agent [1.60.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.60.0...@forestadmin/agent@1.60.1) (2025-03-11)
 
 
