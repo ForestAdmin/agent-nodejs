@@ -106,7 +106,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/connection Documentation Link}
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
-    this.customizer.addDataSource(factory, options);
+    this.customizer.addDataSource(factory, options, this.restart.bind(this));
 
     return this;
   }
