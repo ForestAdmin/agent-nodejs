@@ -97,8 +97,8 @@ export default abstract class DecoratorsStackBase {
           throw e;
         }
       }
-
-      await this._applyQueuedCustomizations(logger); // eslint-disable-line no-await-in-loop
     }
+
+    if (this.customizations.length) await this._applyQueuedCustomizations(logger);
   }
 }

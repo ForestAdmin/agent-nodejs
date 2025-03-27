@@ -81,6 +81,10 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       }
 
       this.compositeDataSource.addDataSource(dataSource);
+
+      if (dataSource.exposedPlugins) {
+        dataSource.exposedPlugins.forEach(p => this.use(p));
+      }
     });
 
     return this;
