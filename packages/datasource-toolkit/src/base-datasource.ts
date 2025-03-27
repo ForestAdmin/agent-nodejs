@@ -8,6 +8,7 @@ import { DataSourceSchema } from './interfaces/schema';
 export default class BaseDataSource<T extends Collection = Collection> implements DataSource {
   protected _collections: { [collectionName: string]: T } = {};
   protected _nativeQueryConnections: { [connectionName: string]: unknown } = {};
+  exposedPlugins?: any[];
 
   get collections(): T[] {
     return Object.values(this._collections);

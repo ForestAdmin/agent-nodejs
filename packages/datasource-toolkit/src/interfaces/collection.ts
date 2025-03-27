@@ -12,6 +12,7 @@ export interface DataSource<C extends Collection = Collection> {
   get collections(): C[];
   get nativeQueryConnections(): Record<string, unknown>;
   get schema(): DataSourceSchema;
+  exposedPlugins?: any[];
 
   getCollection(name: string): C;
 
