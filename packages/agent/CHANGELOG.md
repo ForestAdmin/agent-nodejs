@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.61.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.61.0...@forestadmin/agent@1.61.1) (2025-03-28)
+
+
+### Bug Fixes
+
+* **vulnerability:** bump openid-client ([#1284](https://github.com/ForestAdmin/agent-nodejs/issues/1284)) ([af42288](https://github.com/ForestAdmin/agent-nodejs/commit/af42288c66e44aa365a249d9a8221542180dfb22))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.36.11
+
 # @forestadmin/agent [1.61.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.60.1...@forestadmin/agent@1.61.0) (2025-03-26)
 
 
