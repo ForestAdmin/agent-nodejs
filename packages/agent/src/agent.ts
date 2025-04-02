@@ -63,6 +63,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.options = allOptions;
     this.customizer = new DataSourceCustomizer<S>({
       ignoreMissingSchemaElementErrors: options.ignoreMissingSchemaElementErrors || false,
+      restartAgentFunction: this.restart.bind(this),
     });
     this.customizationService = new CustomizationService(allOptions);
   }
@@ -106,7 +107,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/connection Documentation Link}
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
-    this.customizer.addDataSource(factory, options, this.restart.bind(this));
+    this.customizer.addDataSource(factory, options);
 
     return this;
   }
@@ -217,6 +218,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.nocodeCustomizer = new DataSourceCustomizer<S>({
       ignoreMissingSchemaElementErrors: this.options.ignoreMissingSchemaElementErrors || false,
       strategy: 'NoCode',
+      restartAgentFunction: this.restart.bind(this),
     });
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);

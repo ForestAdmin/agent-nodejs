@@ -7,5 +7,5 @@ export type Logger = (level: LoggerLevel, message: string, error?: Error) => voi
 /** Function which generates datasources */
 export type DataSourceFactory = (
   logger: Logger,
-  restartAggent?: () => Promise<void>,
+  restartAggent: () => Promise<void>,
 ) => Promise<DataSource>;
