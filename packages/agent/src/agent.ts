@@ -9,7 +9,7 @@ import {
   TSchema,
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
-import { ForestSchema } from '@forestadmin/forestadmin-client';
+import { ForestSchema, NotificationFromAgent } from '@forestadmin/forestadmin-client';
 import cors from '@koa/cors';
 import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
@@ -40,6 +40,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
 
+  public publicServices?: {
+    sendNotifications: (payload: NotificationFromAgent) => Promise<void>;
+  };
+
   /**
    * Create a new Agent Builder.
    * If any options are missing, the default will be applied:
@@ -64,6 +68,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.customizer = new DataSourceCustomizer<S>({
       ignoreMissingSchemaElementErrors: options.ignoreMissingSchemaElementErrors || false,
     });
+    this.publicServices = {
+      sendNotifications: this.options.forestAdminClient.notifyFrontendService.notify.bind(
+        this.options.forestAdminClient.notifyFrontendService,
+      ),
+    };
+    globalThis.publicServices = this.publicServices;
+    this.customizer.publicServices = {
+      sendNotifications: this.options.forestAdminClient.notifyFrontendService.notify.bind(
+        this.options.forestAdminClient.notifyFrontendService,
+      ),
+    };
     this.customizationService = new CustomizationService(allOptions);
   }
 

@@ -4,6 +4,7 @@ import type { Chart, QueryChart } from './charts/types';
 import { ParsedUrlQuery } from 'querystring';
 
 import { Tokens, UserInfo } from './auth/types';
+import NotifyFrontendService from './events-subscription/notify-frontend-service';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
 import { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
 import { HttpOptions } from './permissions/forest-http-api';
@@ -22,6 +23,7 @@ export type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permi
 
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: unknown) => void;
+export { NotificationFromAgent } from './permissions/forest-http-api';
 
 export type ForestAdminClientOptions = {
   envSecret: string;
@@ -50,6 +52,7 @@ export interface ForestAdminClient {
   readonly chartHandler: ChartHandlerInterface;
   readonly modelCustomizationService: ModelCustomizationService;
   readonly authService: ForestAdminAuthServiceInterface;
+  readonly notifyFrontendService: NotifyFrontendService;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
@@ -162,4 +165,5 @@ export interface ForestAdminServerInterface {
   getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
+  notifyFromAgent: (...args) => Promise<void>;
 }
