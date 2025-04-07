@@ -60,7 +60,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       Normal: DecoratorsStack,
     }[options?.strategy ?? 'Normal'](options);
 
-    this.restartAgentFunction = options.restartAgentFunction;
+    this.restartAgentFunction = options?.restartAgentFunction;
   }
 
   /**
