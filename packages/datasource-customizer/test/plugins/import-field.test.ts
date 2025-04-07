@@ -42,6 +42,7 @@ describe('importField', () => {
     const { dataSource } = setupMocks();
     const dataSourceCustomizer = new DataSourceCustomizer({
       ignoreMissingSchemaElementErrors: false,
+      restartAgentFunction: async () => {},
     });
     dataSourceCustomizer.addDataSource(async () => dataSource);
 

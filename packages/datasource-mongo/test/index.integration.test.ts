@@ -148,7 +148,10 @@ describe('Datasource Mongo', () => {
           },
         });
 
-        const dataSource = await factory(() => {});
+        const dataSource = await factory(
+          () => {},
+          async () => {},
+        );
 
         expect(dataSource.collections).toHaveLength(2);
         expect(dataSource.collections.map(c => c.name)).toEqual(

@@ -51,7 +51,7 @@ describe('DataSourceCustomizer', () => {
       const factory = customizer.getFactory();
       expect(factory).toBeInstanceOf(Function);
 
-      const dataSource = await factory(logger);
+      const dataSource = await factory(logger, async () => {});
       expect(dataSource.schema).toStrictEqual({ charts: [] });
       expect(dataSource.collections).toHaveLength(1);
       expect(dataSource.collections[0].name).toBe('foo');
