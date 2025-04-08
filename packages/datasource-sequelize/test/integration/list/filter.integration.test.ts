@@ -72,7 +72,10 @@ describe('Filter tests on collection', () => {
           { name: null },
         ]);
 
-        const datasource = await createSequelizeDataSource(sequelize)(undefined as any);
+        const datasource = await createSequelizeDataSource(sequelize)(
+          undefined as any,
+          async () => {},
+        );
         collection = datasource.getCollection('User') as SequelizeCollection;
       }, 30_000);
 
@@ -439,7 +442,10 @@ describe('Filter tests on collection', () => {
             { tags: null },
           ]);
 
-          const datasource = await createSequelizeDataSource(sequelize)(undefined as any);
+          const datasource = await createSequelizeDataSource(sequelize)(
+            undefined as any,
+            async () => {},
+          );
           collection = datasource.getCollection('Objects') as SequelizeCollection;
         });
 
