@@ -27,7 +27,7 @@ describe('create', () => {
       dataSource: {},
     });
 
-    return dataSourceFactory(jest.fn());
+    return dataSourceFactory(jest.fn(), jest.fn());
   }
 
   it('should allow to create a new movie', async () => {

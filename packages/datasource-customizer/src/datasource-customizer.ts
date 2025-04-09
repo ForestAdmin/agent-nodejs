@@ -20,6 +20,7 @@ import TypingGenerator from './typing-generator';
 export type Options = {
   ignoreMissingSchemaElementErrors?: boolean;
   strategy?: 'Normal' | 'NoCode';
+  restartAgentFunction: () => Promise<void>;
 };
 
 /**
@@ -35,6 +36,7 @@ export type Options = {
 export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   private compositeDataSource: CompositeDatasource<Collection>;
   private readonly stack: DecoratorsStack;
+  private restartAgentFunction: Options['restartAgentFunction'];
 
   /**
    * Retrieve schema of the agent
@@ -57,6 +59,8 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       NoCode: DecoratorsStackNoCode,
       Normal: DecoratorsStack,
     }[options?.strategy ?? 'Normal'](options);
+
+    this.restartAgentFunction = options?.restartAgentFunction;
   }
 
   /**
@@ -66,7 +70,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    */
   addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
     this.stack.queueCustomization(async logger => {
-      let dataSource = await factory(logger);
+      let dataSource = await factory(logger, this.restartAgentFunction);
 
       if (options?.include || options?.exclude) {
         const publicationDecorator = new PublicationDataSourceDecorator(dataSource);
