@@ -42,7 +42,7 @@ describe('importField', () => {
     const { dataSource } = setupMocks();
     const dataSourceCustomizer = new DataSourceCustomizer({
       ignoreMissingSchemaElementErrors: false,
-      restartAgentFunction: async () => {},
+      restartAgentFunction: jest.fn(),
     });
     dataSourceCustomizer.addDataSource(async () => dataSource);
 

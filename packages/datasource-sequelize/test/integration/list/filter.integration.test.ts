@@ -442,10 +442,7 @@ describe('Filter tests on collection', () => {
             { tags: null },
           ]);
 
-          const datasource = await createSequelizeDataSource(sequelize)(
-            undefined as any,
-            async () => {},
-          );
+          const datasource = await createSequelizeDataSource(sequelize)(jest.fn(), jest.fn());
           collection = datasource.getCollection('Objects') as SequelizeCollection;
         });
 
