@@ -26,7 +26,7 @@ function createReplicaDataSource(rawOptions: ReplicaDataSourceOptions): DataSour
 
     // Create the sequelize data source and provide it to the source
     // (to allow customers to use it when handling requests if they want to)
-    const sequelizeDs = await createSequelizeDataSource(connection)(logger);
+    const sequelizeDs = await createSequelizeDataSource(connection)(logger, async () => {});
     const publicationDs = new PublicationCollectionDataSourceDecorator(sequelizeDs);
     publicationDs.keepCollectionsMatching(null, [
       `${options.cacheNamespace}_pending_operations`,
