@@ -64,9 +64,13 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * @param factory the datasource to add
    * @param options the options
    */
-  addDataSource(factory: DataSourceFactory, options?: DataSourceOptions): this {
+  addDataSource(
+    factory: DataSourceFactory,
+    options?: DataSourceOptions,
+    restartAgentFunction?: () => Promise<void>,
+  ): this {
     this.stack.queueCustomization(async logger => {
-      let dataSource = await factory(logger);
+      let dataSource = await factory(logger, restartAgentFunction);
 
       if (options?.include || options?.exclude) {
         const publicationDecorator = new PublicationDataSourceDecorator(dataSource);

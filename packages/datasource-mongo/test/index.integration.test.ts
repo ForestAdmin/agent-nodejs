@@ -148,7 +148,7 @@ describe('Datasource Mongo', () => {
           },
         });
 
-        const dataSource = await factory(() => {});
+        const dataSource = await factory(jest.fn(), jest.fn());
 
         expect(dataSource.collections).toHaveLength(2);
         expect(dataSource.collections.map(c => c.name)).toEqual(

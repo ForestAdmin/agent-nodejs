@@ -41,7 +41,10 @@ describe('datasource with views', () => {
 
       sequelize = await buildSequelizeInstance(connectionDetails.url(db), jest.fn(), introspection);
 
-      datasource = (await createSqlDataSource(connectionDetails.url(db))(logger)) as SqlDatasource;
+      datasource = (await createSqlDataSource(connectionDetails.url(db))(
+        logger,
+        jest.fn(),
+      )) as SqlDatasource;
     });
 
     afterAll(async () => {
