@@ -1,6 +1,7 @@
 import {
   CollectionSchema,
   CollectionUtils,
+  ColumnSchema,
   Logger,
   Operator,
   SchemaUtils,
@@ -643,6 +644,30 @@ export default class CollectionCustomizer<
   overrideDelete(handler: DeleteOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.override.getCollection(this.name).addDeleteHandler(handler);
+    });
+  }
+
+  /**
+   * Mark a field as optional
+   *
+   * Be wary that your database might still refuse empty values if it requires one
+   * @param name the name of the column you would like optional
+   * @example
+   * .markFieldAsOptional('userName');
+   */
+  markFieldAsOptional(name: TColumnName<S, N>): this {
+    return this.pushCustomization(async () => {
+      const column = this.schema.fields[name];
+
+      if (column && column?.type === 'Column') {
+        (column as ColumnSchema).allowNull = true;
+
+        const index = column.validation?.findIndex(v => v.operator === 'Present');
+
+        if (index > -1) {
+          column.validation.splice(index, 1);
+        }
+      }
     });
   }
 
