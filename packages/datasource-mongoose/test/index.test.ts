@@ -12,7 +12,7 @@ describe('exports', () => {
 
   it('createMongooseDataSource should return a datasource factory', async () => {
     const factory = createMongooseDataSource(mongoose.connection, {});
-    const dataSource = await factory(() => {});
+    const dataSource = await factory(jest.fn(), jest.fn());
 
     expect(factory).toBeInstanceOf(Function);
     expect(dataSource).toBeInstanceOf(MongooseDatasource);
