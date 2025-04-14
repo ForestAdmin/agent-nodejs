@@ -881,12 +881,12 @@ describe('Builder > Collection', () => {
     });
   });
 
-  describe('markFieldAsOptional', () => {
+  describe('setFieldNullable', () => {
     describe('when the field is already optional', () => {
       it('should not change anything', async () => {
         const { dsc, bookCustomizer } = await setup();
 
-        const self = bookCustomizer.markFieldAsOptional('title');
+        const self = bookCustomizer.setFieldNullable('title');
         await dsc.getDataSource(logger);
 
         expect((self.schema.fields.title as ColumnSchema).allowNull).toStrictEqual(true);
@@ -897,7 +897,7 @@ describe('Builder > Collection', () => {
       it('should make it optional', async () => {
         const { dsc, bookCustomizer } = await setup();
 
-        const self = bookCustomizer.markFieldAsOptional('numberOfPages');
+        const self = bookCustomizer.setFieldNullable('numberOfPages');
         await dsc.getDataSource(logger);
 
         expect((self.schema.fields.numberOfPages as ColumnSchema).allowNull).toStrictEqual(true);
@@ -907,7 +907,7 @@ describe('Builder > Collection', () => {
         it('should make it optional and remove validation', async () => {
           const { dsc, bookCustomizer } = await setup();
 
-          const self = bookCustomizer.markFieldAsOptional('numberOfCoWriter');
+          const self = bookCustomizer.setFieldNullable('numberOfCoWriter');
           await dsc.getDataSource(logger);
 
           const column = self.schema.fields.numberOfCoWriter as ColumnSchema;

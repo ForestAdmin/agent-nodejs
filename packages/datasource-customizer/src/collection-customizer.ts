@@ -653,9 +653,9 @@ export default class CollectionCustomizer<
    * Be wary that your database might still refuse empty values if it requires one
    * @param name the name of the column you would like optional
    * @example
-   * .markFieldAsOptional('userName');
+   * .setFieldNullable('userName');
    */
-  markFieldAsOptional(name: TColumnName<S, N>): this {
+  setFieldNullable(name: TColumnName<S, N>): this {
     return this.pushCustomization(async () => {
       const column = this.schema.fields[name];
 
