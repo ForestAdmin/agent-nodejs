@@ -662,11 +662,9 @@ export default class CollectionCustomizer<
       if (column && column?.type === 'Column') {
         (column as ColumnSchema).allowNull = true;
 
-        const index = column.validation?.findIndex(v => v.operator === 'Present');
-
-        if (index > -1) {
-          column.validation.splice(index, 1);
-        }
+        column.validation = column.validation?.filter(
+          validation => validation.operator !== 'Present',
+        );
       }
     });
   }
