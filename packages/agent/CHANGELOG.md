@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.63.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.62.0...@forestadmin/agent@1.63.0) (2025-04-15)
+
+
+### Features
+
+* **has-many:** allow user to retrieve data when primary key contains special characters ([#1287](https://github.com/ForestAdmin/agent-nodejs/issues/1287)) ([426e322](https://github.com/ForestAdmin/agent-nodejs/commit/426e3227a540f6fabc63dbe04a7634cb76678817))
+
 # @forestadmin/agent [1.62.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.61.1...@forestadmin/agent@1.62.0) (2025-04-15)
 
 
