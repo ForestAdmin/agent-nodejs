@@ -455,7 +455,7 @@ describe('SqlDataSourceFactory > Integration', () => {
             const sqlDs = await createSqlDataSource(
               `${connectionDetails.url(databaseName)}?${queryString}`,
               { displaySoftDeleted: ['softDeleted'] },
-            )(logger);
+            )(logger, jest.fn());
 
             const collection = sqlDs.getCollection('softDeleted');
             const collection2 = sqlDs.getCollection('softDeleted2');
@@ -493,7 +493,7 @@ describe('SqlDataSourceFactory > Integration', () => {
             const sqlDs = await createSqlDataSource(
               `${connectionDetails.url(databaseName)}?${queryString}`,
               { displaySoftDeleted: true },
-            )(logger);
+            )(logger, jest.fn());
 
             const collection = sqlDs.getCollection('softDeleted');
             const collection2 = sqlDs.getCollection('softDeleted2');

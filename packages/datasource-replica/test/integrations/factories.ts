@@ -25,5 +25,5 @@ export const makeReplicaDataSource = async (
 ): Promise<DataSource> => {
   const replicaFactory = createReplicaDataSource(options ?? {});
 
-  return replicaFactory(logger ?? makeLogger());
+  return replicaFactory(logger ?? makeLogger(), jest.fn());
 };

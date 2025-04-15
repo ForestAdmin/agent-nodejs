@@ -52,7 +52,7 @@ describe('Count', () => {
             { name: null },
           ]);
 
-          const datasource = await createSequelizeDataSource(sequelize)(undefined as any);
+          const datasource = await createSequelizeDataSource(sequelize)(jest.fn(), jest.fn());
           collection = datasource.getCollection('User') as SequelizeCollection;
         }, 30_000);
 

@@ -12,7 +12,7 @@ describe('index', () => {
         const factory = createSqlDataSource('invalid');
         const logger = jest.fn();
 
-        await expect(() => factory(logger)).rejects.toThrow(
+        await expect(() => factory(logger, jest.fn())).rejects.toThrow(
           'Connection Uri "invalid" provided to SQL data source is not valid.' +
             ' Should be <dialect>://<connection>.',
         );
@@ -39,7 +39,7 @@ describe('index', () => {
         });
         const logger = jest.fn();
 
-        await expect(() => factory(logger)).rejects.toThrow(
+        await expect(() => factory(logger, jest.fn())).rejects.toThrow(
           `This version of introspection is newer than this package version. ` +
             'Please update @forestadmin/datasource-sql',
         );
