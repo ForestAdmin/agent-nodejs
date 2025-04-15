@@ -1,3 +1,19 @@
+# @forestadmin/datasource-sql [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.16.10...@forestadmin/datasource-sql@1.17.0) (2025-04-15)
+
+
+### Features
+
+* allow reload agent on datasource ([#1285](https://github.com/ForestAdmin/agent-nodejs/issues/1285)) ([667aa60](https://github.com/ForestAdmin/agent-nodejs/commit/667aa60b2bf1e2d338c0dad5343d81df82b62b8a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.50.0
+
 ## @forestadmin/datasource-sql [1.16.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.16.9...@forestadmin/datasource-sql@1.16.10) (2025-03-11)
 
 
