@@ -47,7 +47,7 @@ export default class CollectionCustomizer<
   readonly name: string;
 
   get schema(): CollectionSchema {
-    return this.stack.validation.getCollection(this.name).schema;
+    return this.stack.binary.getCollection(this.name).schema;
   }
 
   constructor(
