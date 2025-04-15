@@ -388,6 +388,38 @@ describe('Serializer', () => {
       });
     });
 
+    test('serialize should encode the primary key', () => {
+      const result = setupSerializer().serialize(setupWithRelation().collections[0], {
+        isbn: '9780345317988',
+        title: 'Foundation',
+        author: { id: 'must be / encoded', name: 'Asimov' },
+      });
+
+      expect(result).toStrictEqual({
+        data: {
+          type: 'book',
+          id: '9780345317988',
+          attributes: { isbn: '9780345317988', title: 'Foundation' },
+          relationships: { author: { data: { type: 'person', id: 'must be / encoded' } } },
+        },
+        included: [
+          {
+            type: 'person',
+            id: 'must be / encoded',
+            attributes: { id: 'must be / encoded', name: 'Asimov' },
+            relationships: {
+              books: {
+                links: {
+                  related: { href: '/forest/person/must%20be%20%2F%20encoded/relationships/books' },
+                },
+              },
+            },
+          },
+        ],
+        jsonapi: { version: '1.0' },
+      });
+    });
+
     describe('when deserialize relationship', () => {
       describe('when uuid relation', () => {
         const setupWithColumnUuidIdRelation = () => {
