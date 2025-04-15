@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.50.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.49.1...@forestadmin/datasource-toolkit@1.50.0) (2025-04-15)
+
+
+### Features
+
+* allow reload agent on datasource ([#1285](https://github.com/ForestAdmin/agent-nodejs/issues/1285)) ([667aa60](https://github.com/ForestAdmin/agent-nodejs/commit/667aa60b2bf1e2d338c0dad5343d81df82b62b8a))
+
 ## @forestadmin/datasource-toolkit [1.49.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.49.0...@forestadmin/datasource-toolkit@1.49.1) (2025-03-11)
 
 
