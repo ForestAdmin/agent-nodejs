@@ -84,8 +84,8 @@ export default class LazyJoinDecorator extends CollectionDecorator {
       : field;
   }
 
-  override async refineFilter(caller: Caller, filter: PaginatedFilter): Promise<PaginatedFilter> {
-    if (filter.conditionTree) {
+  override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
+    if (filter?.conditionTree) {
       filter.conditionTree = filter.conditionTree.replaceFields(field =>
         this.refineField(field, filter.conditionTree.projection),
       );
