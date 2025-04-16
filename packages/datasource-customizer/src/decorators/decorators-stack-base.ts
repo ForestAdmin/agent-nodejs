@@ -60,6 +60,50 @@ export default abstract class DecoratorsStackBase {
 
   abstract buildStack(dataSource: DataSource): void;
 
+  backupStack() {
+    return {
+      action: this.action,
+      binary: this.binary,
+      chart: this.chart,
+      earlyComputed: this.earlyComputed,
+      earlyOpEmulate: this.earlyOpEmulate,
+      hook: this.hook,
+      lateComputed: this.lateComputed,
+      lateOpEmulate: this.lateOpEmulate,
+      publication: this.publication,
+      relation: this.relation,
+      renameField: this.renameField,
+      schema: this.schema,
+      search: this.search,
+      segment: this.segment,
+      sortEmulate: this.sortEmulate,
+      validation: this.validation,
+      write: this.write,
+      override: this.override,
+    };
+  }
+
+  restoreStack(stack) {
+    this.action = stack.action;
+    this.binary = stack.binary;
+    this.chart = stack.chart;
+    this.earlyComputed = stack.earlyComputed;
+    this.earlyOpEmulate = stack.earlyOpEmulate;
+    this.hook = stack.hook;
+    this.lateComputed = stack.lateComputed;
+    this.lateOpEmulate = stack.lateOpEmulate;
+    this.publication = stack.publication;
+    this.relation = stack.relation;
+    this.renameField = stack.renameField;
+    this.schema = stack.schema;
+    this.search = stack.search;
+    this.segment = stack.segment;
+    this.sortEmulate = stack.sortEmulate;
+    this.validation = stack.validation;
+    this.write = stack.write;
+    this.override = stack.override;
+  }
+
   queueCustomization(customization: (logger: Logger) => Promise<void>): void {
     this.customizations.push(customization);
   }
@@ -72,10 +116,31 @@ export default abstract class DecoratorsStackBase {
    * that all customizations are applied in the right order.
    */
   async applyQueuedCustomizations(logger: Logger, dataSource: DataSource): Promise<void> {
+    const isFirstStack = !!this.dataSource;
+
+    // backup customization, stack and last datasource
+    const customizationsBackup = Array.from(this.customizations);
+    const stackBackup = this.backupStack();
+    const dataSourceBackup = this.dataSource;
+
     this.buildStack(dataSource);
-    const customizations = Array.from(this.customizations);
-    await this._applyQueuedCustomizations(logger);
-    this.customizations = customizations;
+
+    try {
+      await this._applyQueuedCustomizations(logger);
+    } catch (error) {
+      if (!isFirstStack) {
+        throw error;
+      } else {
+        this.restoreStack(stackBackup);
+        this.dataSource = dataSourceBackup;
+        logger(
+          'Error',
+          `Agent failed to restart with the new configuration. Retaining the previous one.\n  ${error}`,
+        );
+      }
+    } finally {
+      this.customizations = customizationsBackup;
+    }
   }
 
   private async _applyQueuedCustomizations(logger: Logger): Promise<void> {
