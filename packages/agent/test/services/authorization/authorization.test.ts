@@ -89,7 +89,7 @@ describe('AuthorizationService', () => {
 
         const context = {
           request: {
-            body: {
+            query: {
               segmentQuery: `SELECT id FROM books where type = 'comics'`,
               connectionName: 'library',
             },
@@ -134,7 +134,7 @@ describe('AuthorizationService', () => {
 
           const context = {
             request: {
-              body: {
+              query: {
                 segmentQuery: `DROP TABLE books;`,
                 connectionName: 'library',
               },
