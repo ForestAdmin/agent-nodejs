@@ -6,6 +6,7 @@ import PublicationDataSourceDecorator from '../../../src/decorators/publication/
 describe('PublicationDataSourceDecorator', () => {
   let dataSource: DataSource;
   let decoratedDataSource: PublicationDataSourceDecorator;
+  const logger = jest.fn();
 
   beforeEach(() => {
     dataSource = factories.dataSource.buildWithCollections([
@@ -62,7 +63,7 @@ describe('PublicationDataSourceDecorator', () => {
       }),
     ]);
 
-    decoratedDataSource = new PublicationDataSourceDecorator(dataSource);
+    decoratedDataSource = new PublicationDataSourceDecorator(dataSource, logger);
   });
 
   test('should return all collections when no parameter is provided', () => {
@@ -110,6 +111,20 @@ describe('PublicationDataSourceDecorator', () => {
       expect(decoratedDataSource.getCollection('libraries').schema.fields).not.toHaveProperty(
         'myBooks',
       );
+    });
+
+    describe('Using Mongoose datasource', () => {
+      it('should warn that some virtual collections might be removed', () => {
+        // @ts-expect-error for mocking
+        dataSource.constructor = { name: 'MongooseDatasource' };
+        decoratedDataSource.keepCollectionsMatching(['books']);
+
+        expect(logger).toHaveBeenCalledOnce();
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          "Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. Removed collections: 'libraries', 'librariesBooks', kept collections: 'books'",
+        );
+      });
     });
   });
 });
