@@ -4,9 +4,9 @@ import PublicationCollectionDecorator from './collection';
 
 export default class PublicationDataSourceDecorator extends DataSourceDecorator<PublicationCollectionDecorator> {
   blacklist: Set<string> = new Set();
-  logger: Logger;
+  logger: Logger | null;
 
-  constructor(childDataSource: DataSource, logger: Logger) {
+  constructor(childDataSource: DataSource, logger?: Logger) {
     super(childDataSource, PublicationCollectionDecorator);
     this.logger = logger;
   }
@@ -61,7 +61,7 @@ export default class PublicationDataSourceDecorator extends DataSourceDecorator<
 
   private warnCollectionWhitelist(excluded: string[], kept: string[]) {
     if (excluded.length && this.childDataSource.constructor.name === 'MongooseDatasource') {
-      this.logger(
+      this.logger?.(
         'Warn',
         `Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. Removed collections: '${excluded.join(
           "', '",
