@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.63.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.63.1...@forestadmin/agent@1.63.2) (2025-04-28)
+
+
+### Bug Fixes
+
+* prevent unauthorized live queries ([#1291](https://github.com/ForestAdmin/agent-nodejs/issues/1291)) ([fa1a56e](https://github.com/ForestAdmin/agent-nodejs/commit/fa1a56ee668b7a3d40df3e3f96065fcf062de5ce))
+
 ## @forestadmin/agent [1.63.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.63.0...@forestadmin/agent@1.63.1) (2025-04-16)
 
 
