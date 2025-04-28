@@ -122,7 +122,7 @@ describe('PublicationDataSourceDecorator', () => {
         expect(logger).toHaveBeenCalledOnce();
         expect(logger).toHaveBeenCalledWith(
           'Warn',
-          "Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. Removed collections: 'libraries', 'librariesBooks', kept collections: 'books'",
+          "Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. See https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/provided-data-sources/mongoose#understanding-flattenmode. Removed collections: 'libraries', 'librariesBooks', kept collections: 'books'",
         );
       });
     });
