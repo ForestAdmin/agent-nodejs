@@ -63,7 +63,7 @@ export default class PublicationDataSourceDecorator extends DataSourceDecorator<
     if (excluded.length && this.childDataSource.constructor.name === 'MongooseDatasource') {
       this.logger?.(
         'Warn',
-        `Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. Removed collections: '${excluded.join(
+        `Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. See https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/provided-data-sources/mongoose#understanding-flattenmode. Removed collections: '${excluded.join(
           "', '",
         )}', kept collections: '${kept.join("', '")}'`,
       );
