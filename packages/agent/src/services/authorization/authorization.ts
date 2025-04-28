@@ -52,11 +52,11 @@ export default class AuthorizationService {
     });
 
     if (
-      context.request?.body &&
+      context.request?.query &&
       CollectionActionEvent.Browse === event &&
-      (context.request.body as { segmentQuery?: string }).segmentQuery
+      (context.request.query as { segmentQuery?: string }).segmentQuery
     ) {
-      const { segmentQuery, connectionName } = context.request.body as {
+      const { segmentQuery, connectionName } = context.request.query as {
         segmentQuery?: string;
         connectionName?: string;
       };
