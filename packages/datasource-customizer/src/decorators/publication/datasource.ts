@@ -1,12 +1,14 @@
-import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
 
 import PublicationCollectionDecorator from './collection';
 
 export default class PublicationDataSourceDecorator extends DataSourceDecorator<PublicationCollectionDecorator> {
   blacklist: Set<string> = new Set();
+  logger: Logger | null;
 
-  constructor(childDataSource: DataSource) {
+  constructor(childDataSource: DataSource, logger?: Logger) {
     super(childDataSource, PublicationCollectionDecorator);
+    this.logger = logger;
   }
 
   override get collections(): PublicationCollectionDecorator[] {
@@ -23,13 +25,21 @@ export default class PublicationDataSourceDecorator extends DataSourceDecorator<
 
   keepCollectionsMatching(include?: string[], exclude?: string[]): void {
     this.validateCollectionNames([...(include ?? []), ...(exclude ?? [])]);
+    const excluded = [];
+    const kept = [];
 
     // List collection we're keeping from the white/black list.
     for (const { name } of this.collections) {
       if ((include && !include.includes(name)) || exclude?.includes(name)) {
         this.removeCollection(name);
+
+        excluded.push(name);
+      } else {
+        kept.push(name);
       }
     }
+
+    if (include) this.warnCollectionWhitelist(excluded, kept);
   }
 
   removeCollection(collectionName: string): void {
@@ -47,6 +57,17 @@ export default class PublicationDataSourceDecorator extends DataSourceDecorator<
 
   private validateCollectionNames(names: string[]): void {
     for (const name of names) this.getCollection(name);
+  }
+
+  private warnCollectionWhitelist(excluded: string[], kept: string[]) {
+    if (excluded.length && this.childDataSource.constructor.name === 'MongooseDatasource') {
+      this.logger?.(
+        'Warn',
+        `Using include whitelist for MongooseDatasource may omit virtual collections that define relationships between included collections. See https://docs.forestadmin.com/developer-guide-agents-nodejs/data-sources/provided-data-sources/mongoose#understanding-flattenmode. Removed collections: '${excluded.join(
+          "', '",
+        )}', kept collections: '${kept.join("', '")}'`,
+      );
+    }
   }
 
   isPublished(collectionName: string): boolean {

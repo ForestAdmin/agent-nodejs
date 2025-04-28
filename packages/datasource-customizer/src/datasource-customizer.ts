@@ -73,7 +73,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
       let dataSource = await factory(logger, restartAgentFunction);
 
       if (options?.include || options?.exclude) {
-        const publicationDecorator = new PublicationDataSourceDecorator(dataSource);
+        const publicationDecorator = new PublicationDataSourceDecorator(dataSource, logger);
         publicationDecorator.keepCollectionsMatching(options.include, options.exclude);
         dataSource = publicationDecorator;
       }
