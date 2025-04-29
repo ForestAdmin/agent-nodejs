@@ -13,9 +13,10 @@ export default class GroupGenerator {
 
   private static GROUP_OPERATION: Record<DateOperation, string> = {
     Year: '%Y-01-01',
+    Quarter: '%Y-%m-01',
     Month: '%Y-%m-01',
-    Day: '%Y-%m-%d',
     Week: '%Y-%m-%d',
+    Day: '%Y-%m-%d',
   };
 
   static group(aggregation: Aggregation): PipelineStage[] {
