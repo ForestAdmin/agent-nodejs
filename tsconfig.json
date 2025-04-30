@@ -9,13 +9,9 @@
     "declarationMap": true,
     "inlineSourceMap": true,
     "noImplicitOverride": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "skipLibCheck": true,
   },
-  "exclude": [
-    "node_modules"
-  ],
-  //https://github.com/microsoft/TypeScript/issues/42797#issuecomment-1720090068
-  "maxNodeModuleJsDepth": 0,
   "files": [
     "global.d.ts"
   ]
