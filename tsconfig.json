@@ -11,5 +11,12 @@
     "noImplicitOverride": true,
     "stripInternal": true
   },
-  "files": ["global.d.ts"]
+  "exclude": [
+    "node_modules"
+  ],
+  //https://github.com/microsoft/TypeScript/issues/42797#issuecomment-1720090068
+  "maxNodeModuleJsDepth": 0,
+  "files": [
+    "global.d.ts"
+  ]
 }
