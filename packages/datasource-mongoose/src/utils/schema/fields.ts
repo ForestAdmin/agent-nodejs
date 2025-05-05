@@ -27,10 +27,22 @@ export default class FieldsGenerator {
     // Add columns and many to one relations
     for (const [name, field] of Object.entries(childSchema.fields)) {
       if (name !== 'parent') {
-        ourSchema[name] = this.buildColumnSchema(field);
+        if (!(field instanceof SchemaType) && field['[]'] && field['[]']?.options?.ref) {
+          const relationName = escape(`${model.modelName}_through_${name}`);
 
-        if (field instanceof SchemaType && field.options.ref) {
-          ourSchema[`${name}__manyToOne`] = this.buildManyToOne(field.options.ref, name);
+          ourSchema[name] = this.buildColumnSchema(field);
+          ourSchema[relationName] = {
+            type: 'OneToMany',
+            originKey: '_id',
+            originKeyTarget: name,
+            foreignCollection: field['[]'].options.ref as unknown as string,
+          };
+        } else {
+          ourSchema[name] = this.buildColumnSchema(field);
+
+          if (field instanceof SchemaType && field.options.ref) {
+            ourSchema[`${name}__manyToOne`] = this.buildManyToOne(field.options.ref, name);
+          }
         }
       }
     }
