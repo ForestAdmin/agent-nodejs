@@ -20,6 +20,7 @@ export {
   ForestAdminServerInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
+export { NotificationFromAgent } from './permissions/forest-http-api';
 
 // These types are used for the agent-generator package
 export {
@@ -45,6 +46,7 @@ export default function createForestAdminClient(
     modelCustomizationService,
     eventsSubscription,
     eventsHandler,
+    notifyFrontendService,
   } = buildApplicationServices(new ForestHttpApi(), options);
 
   return new ForestAdminClientWithCache(
@@ -59,6 +61,7 @@ export default function createForestAdminClient(
     modelCustomizationService,
     eventsSubscription,
     eventsHandler,
+    notifyFrontendService,
   );
 }
 

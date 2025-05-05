@@ -1,6 +1,7 @@
 import ChartHandler from './charts/chart-handler';
 import EventsSubscriptionService from './events-subscription';
 import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
+import NotifyFrontendService from './events-subscription/notify-frontend-service';
 import { RefreshEventsHandlerService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import ModelCustomizationFromApiService from './model-customizations/model-customization-from-api';
@@ -34,6 +35,7 @@ export default function buildApplicationServices(
   modelCustomizationService: ModelCustomizationService;
   eventsSubscription: EventsSubscriptionService;
   eventsHandler: RefreshEventsHandlerService;
+  notifyFrontendService: NotifyFrontendService;
 } {
   const optionsWithDefaults = {
     forestServerUrl: 'https://api.forestadmin.com',
@@ -72,6 +74,11 @@ export default function buildApplicationServices(
 
   const eventsSubscription = new EventsSubscriptionService(optionsWithDefaults, eventsHandler);
 
+  const notifyFrontendService = new NotifyFrontendService(
+    optionsWithDefaults,
+    forestAdminServerInterface,
+  );
+
   return {
     renderingPermission,
     optionsWithDefaults,
@@ -79,6 +86,7 @@ export default function buildApplicationServices(
     contextVariables,
     eventsSubscription,
     eventsHandler,
+    notifyFrontendService,
     chartHandler: new ChartHandler(contextVariables),
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
