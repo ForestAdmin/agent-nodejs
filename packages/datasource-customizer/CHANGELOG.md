@@ -1,3 +1,15 @@
+# @forestadmin/datasource-customizer [1.66.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.65.1...@forestadmin/datasource-customizer@1.66.0) (2025-05-06)
+
+
+### Bug Fixes
+
+* **agent:** backup and restore stack properly when reload ([#1289](https://github.com/ForestAdmin/agent-nodejs/issues/1289)) ([7120857](https://github.com/ForestAdmin/agent-nodejs/commit/7120857ccbb4db0dd27d3c0a0e31f6184a4275d3))
+
+
+### Features
+
+* show a warning in case a mongoose relationship is omitted ([#1290](https://github.com/ForestAdmin/agent-nodejs/issues/1290)) ([93ed397](https://github.com/ForestAdmin/agent-nodejs/commit/93ed397e1601f2cf921a177897c90ad06bddb246))
+
 ## @forestadmin/datasource-customizer [1.65.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.65.0...@forestadmin/datasource-customizer@1.65.1) (2025-04-16)
 
 
