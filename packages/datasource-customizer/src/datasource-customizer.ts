@@ -180,25 +180,10 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
   }
 
   async getDataSource(logger: Logger): Promise<DataSource> {
-    let datasource = this.stack.dataSource;
+    this.compositeDataSource = new CompositeDatasource<Collection>();
+    await this.stack.applyQueuedCustomizations(logger, this.compositeDataSource);
 
-    try {
-      this.compositeDataSource = new CompositeDatasource<Collection>();
-      await this.stack.applyQueuedCustomizations(logger, this.compositeDataSource);
-
-      datasource = this.stack.dataSource;
-    } catch (error) {
-      if (!datasource) {
-        throw error;
-      } else {
-        logger(
-          'Error',
-          `Agent failed to restart with the new configuration. Retaining the previous one.\n  ${error}`,
-        );
-      }
-    }
-
-    return datasource;
+    return this.stack.dataSource;
   }
 
   getFactory(): DataSourceFactory {
