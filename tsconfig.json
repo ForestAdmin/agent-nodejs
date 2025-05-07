@@ -9,7 +9,10 @@
     "declarationMap": true,
     "inlineSourceMap": true,
     "noImplicitOverride": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "skipLibCheck": true,
   },
-  "files": ["global.d.ts"]
+  "files": [
+    "global.d.ts"
+  ]
 }
