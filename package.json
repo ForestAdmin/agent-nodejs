@@ -47,8 +47,7 @@
     "lint:fix": "lerna exec --parallel eslint src test -- --fix",
     "prepare": "husky install",
     "test": "jest",
-    "test:coverage": "yarn test --coverage",
-    "postinstall": "rm ./node_modules/mongoose/types/index.d.ts"
+    "test:coverage": "yarn test --coverage"
   },
   "workspaces": [
     "packages/*",
