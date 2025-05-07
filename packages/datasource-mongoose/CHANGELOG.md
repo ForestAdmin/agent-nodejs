@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.0...@forestadmin/datasource-mongoose@1.12.1) (2025-05-07)
+
+
+### Bug Fixes
+
+* **security:** patch mongoose dependency vulnerabilities ([#1255](https://github.com/ForestAdmin/agent-nodejs/issues/1255)) ([a43af07](https://github.com/ForestAdmin/agent-nodejs/commit/a43af079594a98ea616b50d154eaeeaef0fcbf3c))
+
 # @forestadmin/datasource-mongoose [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.11.3...@forestadmin/datasource-mongoose@1.12.0) (2025-04-15)
 
 
