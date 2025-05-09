@@ -87,6 +87,12 @@ describe('Builder > Collection', () => {
               filterOperators: new Set(['Equal', 'In']),
             }),
             title: factories.columnSchema.build({ columnType: 'String' }),
+            numberOfPages: factories.columnSchema.build({ columnType: 'Number', allowNull: false }),
+            numberOfCoWriter: factories.columnSchema.build({
+              columnType: 'Number',
+              allowNull: false,
+              validation: [{ operator: 'Present' }, { operator: 'LessThan', value: '3' }],
+            }),
           },
         }),
       }),
@@ -98,8 +104,9 @@ describe('Builder > Collection', () => {
     // @ts-ignore
     const { stack } = dsc;
     const customizer = new CollectionCustomizer(dsc, stack, 'authors');
+    const bookCustomizer = new CollectionCustomizer(dsc, stack, 'books');
 
-    return { dsc, customizer, stack };
+    return { dsc, customizer, stack, bookCustomizer };
   };
 
   describe('use', () => {
@@ -871,6 +878,44 @@ describe('Builder > Collection', () => {
       // @ts-ignore
       expect(self.stack.override.getCollection('authors').deleteHandler).toStrictEqual(handler);
       expect(self).toEqual(customizer);
+    });
+  });
+
+  describe('setFieldNullable', () => {
+    describe('when the field is already optional', () => {
+      it('should not change anything', async () => {
+        const { dsc, bookCustomizer } = await setup();
+
+        const self = bookCustomizer.setFieldNullable('title');
+        await dsc.getDataSource(logger);
+
+        expect((self.schema.fields.title as ColumnSchema).allowNull).toStrictEqual(true);
+      });
+    });
+
+    describe('when the field is not optional', () => {
+      it('should make it optional', async () => {
+        const { dsc, bookCustomizer } = await setup();
+
+        const self = bookCustomizer.setFieldNullable('numberOfPages');
+        await dsc.getDataSource(logger);
+
+        expect((self.schema.fields.numberOfPages as ColumnSchema).allowNull).toStrictEqual(true);
+      });
+
+      describe('when the field also include `Present` validation', () => {
+        it('should make it optional and remove validation', async () => {
+          const { dsc, bookCustomizer } = await setup();
+
+          const self = bookCustomizer.setFieldNullable('numberOfCoWriter');
+          await dsc.getDataSource(logger);
+
+          const column = self.schema.fields.numberOfCoWriter as ColumnSchema;
+          expect(column.allowNull).toStrictEqual(true);
+          expect(column.validation).toHaveLength(1);
+          expect(column.validation[0].operator).toBe('LessThan');
+        });
+      });
     });
   });
 });
