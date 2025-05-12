@@ -127,12 +127,15 @@ export default class MongooseSchema {
     return subSchema;
   }
 
-  getSubSchema(path: string): MongooseSchema {
+  getSubSchema(path?: string): MongooseSchema {
     // Terminating condition
     if (!path) return this;
 
-    // General case: go down the tree
-    const [prefix, suffix] = path.split(/\.(.*)/);
+    // Safer alternative to `split(/\.(.*)/)`
+    const dotIndex = path.indexOf('.');
+    const prefix = dotIndex === -1 ? path : path.slice(0, dotIndex);
+    const suffix = dotIndex === -1 ? undefined : path.slice(dotIndex + 1);
+
     let isArray = false;
     let isLeaf = false;
     let child = this.fields[prefix] as SchemaBranch;
