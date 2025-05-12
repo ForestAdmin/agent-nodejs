@@ -1,3 +1,18 @@
+## example [1.13.25](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.24...example@1.13.25) (2025-05-12)
+
+
+### Bug Fixes
+
+* **vulnerability:** bump koa ([#1295](https://github.com/ForestAdmin/agent-nodejs/issues/1295)) ([08698ad](https://github.com/ForestAdmin/agent-nodejs/commit/08698ad123bb20f496b9d52f116f746d9cf0aced))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.63.5
+
 ## example [1.13.24](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.23...example@1.13.24) (2025-05-12)
 
 
