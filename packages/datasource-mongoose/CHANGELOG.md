@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.1...@forestadmin/datasource-mongoose@1.12.2) (2025-05-12)
+
+
+### Bug Fixes
+
+* **mongoose:** change regex to support windows os when making introspection ([#1296](https://github.com/ForestAdmin/agent-nodejs/issues/1296)) ([46c799f](https://github.com/ForestAdmin/agent-nodejs/commit/46c799f24a19ca5623b809f5730e1261476a6e3e))
+
 ## @forestadmin/datasource-mongoose [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.0...@forestadmin/datasource-mongoose@1.12.1) (2025-05-07)
 
 
