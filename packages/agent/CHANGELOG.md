@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.63.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.63.4...@forestadmin/agent@1.63.5) (2025-05-12)
+
+
+### Bug Fixes
+
+* **vulnerability:** bump koa ([#1295](https://github.com/ForestAdmin/agent-nodejs/issues/1295)) ([08698ad](https://github.com/ForestAdmin/agent-nodejs/commit/08698ad123bb20f496b9d52f116f746d9cf0aced))
+
 ## @forestadmin/agent [1.63.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.63.3...@forestadmin/agent@1.63.4) (2025-05-12)
 
 
