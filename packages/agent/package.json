@@ -48,7 +48,7 @@
     "@nestjs/core": "^9.2.1",
     "@nestjs/platform-express": "^9.2.1",
     "@nestjs/platform-fastify": "^9.2.1",
-    "@shopify/jest-koa-mocks": "^3.1.0",
+    "@shopify/jest-koa-mocks": "^5.3.1",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/koa": "^2.13.5",
