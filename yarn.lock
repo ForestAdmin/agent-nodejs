@@ -3109,7 +3109,7 @@
     "@pnpm/network.ca-file" "^1.0.1"
     config-chain "^1.1.11"
 
-"@semantic-release/changelog@^6.0.2":
+"@semantic-release/changelog@^6.0.3":
   version "6.0.3"
   resolved "https://registry.yarnpkg.com/@semantic-release/changelog/-/changelog-6.0.3.tgz#6195630ecbeccad174461de727d5f975abc23eeb"
   integrity sha512-dZuR5qByyfe3Y03TpmCvAxCyTnp7r5XwtHRf/8vD9EAn4ZWbavUX8adMtXYzE86EVh0gyLA7lm5yW4IV30XUag==
@@ -11710,7 +11710,7 @@ multer@1.4.4-lts.1:
     type-is "^1.6.4"
     xtend "^4.0.0"
 
-multi-semantic-release@^3.0.1:
+multi-semantic-release@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/multi-semantic-release/-/multi-semantic-release-3.0.2.tgz#a714bb66a30a669d64386f566f728416ff59cae8"
   integrity sha512-2q4aKAlfrgm9XRt0hGRSH7Hle1oZoQlotmvK4ur+VFsZTEX33TmFYVfO7An/ywFrq9Ufa1/dFJFTfSEGeDB2KQ==
@@ -14115,10 +14115,10 @@ secure-json-parse@^2.0.0, secure-json-parse@^2.1.0, secure-json-parse@^2.5.0:
   resolved "https://registry.yarnpkg.com/secure-json-parse/-/secure-json-parse-2.7.0.tgz#5a5f9cd6ae47df23dba3151edd06855d47e09862"
   integrity sha512-6aU+Rwsezw7VR8/nyvKTx8QpWH9FrcYiXXlqC4z5d5XQBDRqtbfsRjnwGyqbi3gddNtWHuEk9OANUotL26qKUw==
 
-semantic-release-slack-bot@^3.5.3:
-  version "3.5.3"
-  resolved "https://registry.yarnpkg.com/semantic-release-slack-bot/-/semantic-release-slack-bot-3.5.3.tgz#eaf638509210e01bbd401dcbc2af17ed36549348"
-  integrity sha512-QoLRfZPkgkER2s/DiIu0qA9pYu4am8ASu7xq3omCXl2oJ+fKdb1Rentgezzv7RefMXhO2q2aah1aqutWnSnlhw==
+semantic-release-slack-bot@^4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/semantic-release-slack-bot/-/semantic-release-slack-bot-4.0.2.tgz#7e4f7e04fbbf355c64fb8791df8870cdcda4dd35"
+  integrity sha512-EgpUGmxDq5l9qSfAJNkGMOjxi6p5a7lAMnV5sNG53QxpIOsgMUF9X3J+NeaFWXsGyRP5CEkVtDdDkfvvNNo2ag==
   dependencies:
     "@semantic-release/error" "^2.2.0"
     micromatch "4.0.2"
