@@ -12,7 +12,7 @@
     "@forestadmin/datasource-sequelize": "1.13.0",
     "@forestadmin/datasource-sql": "1.17.0",
     "@forestadmin/datasource-toolkit": "1.50.0",
-    "@koa/router": "^12.0.0",
+    "@koa/router": "^13.1.0",
     "@nestjs/common": "^9.2.1",
     "@nestjs/core": "^9.2.1",
     "@nestjs/platform-express": "^9.2.1",
