@@ -29,7 +29,7 @@
     "koa-jwt": "^4.0.4",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
-    "superagent": "^8.0.6",
+    "superagent": "^10.2.1",
     "uuid": "11.0.2"
   },
   "files": [
@@ -54,7 +54,7 @@
     "@types/koa": "^2.13.5",
     "@types/koa-bodyparser": "^4.3.10",
     "@types/koa__cors": "^3.3.0",
-    "@types/superagent": "^4.1.16",
+    "@types/superagent": "^8.1.9",
     "express": "^4.18.2",
     "fastify": "^3.29.0",
     "fastify2": "npm:fastify@^2.15.3",
