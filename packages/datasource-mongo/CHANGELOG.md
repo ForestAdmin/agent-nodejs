@@ -1,3 +1,13 @@
+## @forestadmin/datasource-mongo [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.5.1...@forestadmin/datasource-mongo@1.5.2) (2025-05-12)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.12.2
+
 ## @forestadmin/datasource-mongo [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.5.0...@forestadmin/datasource-mongo@1.5.1) (2025-05-07)
 
 
