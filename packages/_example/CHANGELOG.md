@@ -1,3 +1,18 @@
+## example [1.13.24](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.23...example@1.13.24) (2025-05-12)
+
+
+### Bug Fixes
+
+* **vulnerability:** bump superagent -> formidable ([#1294](https://github.com/ForestAdmin/agent-nodejs/issues/1294)) ([0a9ef9b](https://github.com/ForestAdmin/agent-nodejs/commit/0a9ef9b956a005019de51f3c31d882bfe58d8d1e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.63.4
+
 ## example [1.13.23](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.22...example@1.13.23) (2025-05-07)
 
 
