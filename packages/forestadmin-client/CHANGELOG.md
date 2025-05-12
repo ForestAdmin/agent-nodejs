@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.36.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.12...@forestadmin/forestadmin-client@1.36.13) (2025-05-12)
+
+
+### Bug Fixes
+
+* **vulnerability:** bump superagent -> formidable ([#1294](https://github.com/ForestAdmin/agent-nodejs/issues/1294)) ([0a9ef9b](https://github.com/ForestAdmin/agent-nodejs/commit/0a9ef9b956a005019de51f3c31d882bfe58d8d1e))
+
 ## @forestadmin/forestadmin-client [1.36.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.11...@forestadmin/forestadmin-client@1.36.12) (2025-04-15)
 
 
