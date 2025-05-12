@@ -16,7 +16,7 @@
     "@forestadmin/datasource-toolkit": "1.50.0",
     "pluralize": "^8.0.0",
     "sequelize": "^6.37.5",
-    "socks": "^2.7.1",
+    "socks": "^2.8.4",
     "ssh2": "^1.14.0",
     "@types/ssh2": "^1.11.11"
   },
