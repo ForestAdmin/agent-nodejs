@@ -17,7 +17,7 @@
     "jsonwebtoken": "^9.0.0",
     "object-hash": "^3.0.0",
     "openid-client": "^5.7.1",
-    "superagent": "^8.0.6"
+    "superagent": "^10.2.1"
   },
   "files": [
     "dist/**/*.js",
@@ -34,6 +34,6 @@
     "@forestadmin/datasource-toolkit": "1.50.0",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",
-    "@types/superagent": "^4.1.16"
+    "@types/superagent": "^8.1.9"
   }
 }
