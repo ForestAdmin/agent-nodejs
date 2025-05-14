@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.17.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.0...@forestadmin/datasource-sql@1.17.1) (2025-05-14)
+
+
+### Bug Fixes
+
+* **vulnerability:** bump socks ([#1299](https://github.com/ForestAdmin/agent-nodejs/issues/1299)) ([c4273f6](https://github.com/ForestAdmin/agent-nodejs/commit/c4273f6eeef22ee528d2abad4ed847fb2050d4fc))
+
 # @forestadmin/datasource-sql [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.16.10...@forestadmin/datasource-sql@1.17.0) (2025-04-15)
 
 
