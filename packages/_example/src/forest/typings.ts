@@ -120,6 +120,20 @@ export type AccountBillsItemsFilter = TPaginatedFilter<Schema, 'account_bills_it
 export type AccountBillsItemsSortClause = TSortClause<Schema, 'account_bills_items'>;
 export type AccountBillsItemsAggregation = TAggregation<Schema, 'account_bills_items'>;
 
+export type LocalesCustomizer = CollectionCustomizer<Schema, 'locales'>;
+export type LocalesRecord = TPartialRow<Schema, 'locales'>;
+export type LocalesConditionTree = TConditionTree<Schema, 'locales'>;
+export type LocalesFilter = TPaginatedFilter<Schema, 'locales'>;
+export type LocalesSortClause = TSortClause<Schema, 'locales'>;
+export type LocalesAggregation = TAggregation<Schema, 'locales'>;
+
+export type ProgramsCustomizer = CollectionCustomizer<Schema, 'programs'>;
+export type ProgramsRecord = TPartialRow<Schema, 'programs'>;
+export type ProgramsConditionTree = TConditionTree<Schema, 'programs'>;
+export type ProgramsFilter = TPaginatedFilter<Schema, 'programs'>;
+export type ProgramsSortClause = TSortClause<Schema, 'programs'>;
+export type ProgramsAggregation = TAggregation<Schema, 'programs'>;
+
 export type SalesCustomizer = CollectionCustomizer<Schema, 'sales'>;
 export type SalesRecord = TPartialRow<Schema, 'sales'>;
 export type SalesConditionTree = TConditionTree<Schema, 'sales'>;
@@ -133,6 +147,20 @@ export type SalesSaleItemsConditionTree = TConditionTree<Schema, 'sales_saleItem
 export type SalesSaleItemsFilter = TPaginatedFilter<Schema, 'sales_saleItems'>;
 export type SalesSaleItemsSortClause = TSortClause<Schema, 'sales_saleItems'>;
 export type SalesSaleItemsAggregation = TAggregation<Schema, 'sales_saleItems'>;
+
+export type UsersCustomizer = CollectionCustomizer<Schema, 'users'>;
+export type UsersRecord = TPartialRow<Schema, 'users'>;
+export type UsersConditionTree = TConditionTree<Schema, 'users'>;
+export type UsersFilter = TPaginatedFilter<Schema, 'users'>;
+export type UsersSortClause = TSortClause<Schema, 'users'>;
+export type UsersAggregation = TAggregation<Schema, 'users'>;
+
+export type UsersProgramsCustomizer = CollectionCustomizer<Schema, 'users_programs'>;
+export type UsersProgramsRecord = TPartialRow<Schema, 'users_programs'>;
+export type UsersProgramsConditionTree = TConditionTree<Schema, 'users_programs'>;
+export type UsersProgramsFilter = TPaginatedFilter<Schema, 'users_programs'>;
+export type UsersProgramsSortClause = TSortClause<Schema, 'users_programs'>;
+export type UsersProgramsAggregation = TAggregation<Schema, 'users_programs'>;
 
 
 export type Schema = {
@@ -395,6 +423,18 @@ export type Schema = {
       'dvd:store:owner:lastName': string;
     };
   };
+  'locales': {
+    plain: {
+      '_id': string;
+      'de': string;
+      'en': string;
+      'field': string;
+      'fr': string;
+      'it': string;
+    };
+    nested: {};
+    flat: {};
+  };
   'owner': {
     plain: {
       'firstName': string;
@@ -421,6 +461,17 @@ export type Schema = {
       'owner:id': number;
       'owner:lastName': string;
     };
+  };
+  'programs': {
+    plain: {
+      '_id': string;
+      'createdAt': string;
+      'name': string;
+      'updatedAt': string;
+      'version': number;
+    };
+    nested: {};
+    flat: {};
   };
   'rental': {
     plain: {
@@ -560,6 +611,44 @@ export type Schema = {
       'owner:fullName': string | null;
       'owner:id': number;
       'owner:lastName': string;
+    };
+  };
+  'users': {
+    plain: {
+      '_id': string;
+      'createdAt': string;
+      'email': string;
+      'name': string;
+      'passwordHash': string;
+      'roles': Array<string> | null;
+      'updatedAt': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'users_programs': {
+    plain: {
+      '_id': string;
+      'content': string;
+      'parentId': string;
+    };
+    nested: {
+      'content__manyToOne': Schema['programs']['plain'] & Schema['programs']['nested'];
+      'parent': Schema['users']['plain'] & Schema['users']['nested'];
+    };
+    flat: {
+      'content__manyToOne:_id': string;
+      'content__manyToOne:createdAt': string;
+      'content__manyToOne:name': string;
+      'content__manyToOne:updatedAt': string;
+      'content__manyToOne:version': number;
+      'parent:_id': string;
+      'parent:createdAt': string;
+      'parent:email': string;
+      'parent:name': string;
+      'parent:passwordHash': string;
+      'parent:roles': Array<string> | null;
+      'parent:updatedAt': string;
     };
   };
 };
