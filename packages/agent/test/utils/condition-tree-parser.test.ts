@@ -58,6 +58,16 @@ describe('ConditionTreeParser', () => {
     expect(tree).toStrictEqual(new ConditionTreeLeaf('id', 'In', ['id1', 'id2', 'id3']));
   });
 
+  test('should work with not in and string', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      field: 'id',
+      operator: 'not_in',
+      value: 'id1,id2 ,  id3',
+    });
+
+    expect(tree).toStrictEqual(new ConditionTreeLeaf('id', 'NotIn', ['id1', 'id2', 'id3']));
+  });
+
   test('should work with in and number', () => {
     const tree = ConditionTreeParser.fromPlainObject(collection, {
       field: 'number',
