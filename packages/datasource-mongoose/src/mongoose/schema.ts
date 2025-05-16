@@ -158,6 +158,7 @@ export default class MongooseSchema {
       isArray = true;
     }
 
+    // We ended up on a field => box it.
     if (isShemaType(child)) {
       child = { content: child };
       isLeaf = true;
