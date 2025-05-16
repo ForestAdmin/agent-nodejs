@@ -10,6 +10,7 @@ import {
 import { Model, SchemaType } from 'mongoose';
 
 import FilterOperatorsGenerator from './filter-operators';
+import isSchemaType from './is-schema-type';
 import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
 import { Stack } from '../../types';
 import { escape } from '../helpers';
@@ -29,7 +30,7 @@ export default class FieldsGenerator {
       if (name !== 'parent') {
         ourSchema[name] = this.buildColumnSchema(field);
 
-        if (field instanceof SchemaType && field.options.ref) {
+        if (isSchemaType(field) && field.options.ref) {
           ourSchema[`${name}__manyToOne`] = this.buildManyToOne(field.options.ref, name);
         }
       }
@@ -116,7 +117,7 @@ export default class FieldsGenerator {
 
   /** Build ColumnType from CleanSchema recursively */
   private static getColumnTypeRec(field: SchemaNode): ColumnType {
-    if (field instanceof SchemaType) {
+    if (isSchemaType(field)) {
       if (field.instance === 'Buffer') {
         return 'Binary';
       }

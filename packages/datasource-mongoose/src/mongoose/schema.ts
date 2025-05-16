@@ -4,6 +4,7 @@ import { Model, Schema, SchemaType } from 'mongoose';
 
 import { Stack } from '../types';
 import { recursiveDelete, recursiveSet } from '../utils/helpers';
+import isShemaType from '../utils/schema/is-schema-type';
 import VersionManager from '../utils/version-manager';
 
 export type SchemaBranch = { [key: string]: SchemaNode };
@@ -158,7 +159,7 @@ export default class MongooseSchema {
     }
 
     // We ended up on a field => box it.
-    if (child instanceof SchemaType) {
+    if (isShemaType(child)) {
       child = { content: child };
       isLeaf = true;
     }
