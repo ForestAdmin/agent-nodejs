@@ -1,4 +1,6 @@
-import mongoose, { Schema, SchemaType } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+
+import isSchemaType from './schema/is-schema-type';
 
 export default class VersionManager {
   static readonly ObjectIdTypeName = mongoose.Schema.Types.ObjectId.schemaName;
@@ -7,14 +9,13 @@ export default class VersionManager {
     return (
       field?.name === 'EmbeddedDocument' ||
       field?.constructor?.name === 'SubdocumentPath' ||
-      (field?.instance === 'Embedded' && field instanceof SchemaType)
+      (field?.instance === 'Embedded' && isSchemaType(field))
     );
   }
 
   public static isSubDocumentArray(field): field is Schema.Types.DocumentArray {
     return (
-      (field?.instance === 'Array' || field?.instance === 'DocumentArray') &&
-      field instanceof SchemaType
+      (field?.instance === 'Array' || field?.instance === 'DocumentArray') && isSchemaType(field)
     );
   }
 }
