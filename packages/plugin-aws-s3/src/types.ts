@@ -117,6 +117,9 @@ export type Options<
 
     /** AWS endpoint, defaults to process.env.AWS_S3_ENDPOINT */
     endpoint?: string;
+
+    /** AWS forcePathStyle, defauls to false */
+    forcePathStyle?: boolean;
   };
 };
 
