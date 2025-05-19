@@ -1,3 +1,10 @@
+# @forestadmin/plugin-aws-s3 [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.4.25...@forestadmin/plugin-aws-s3@1.5.0) (2025-05-19)
+
+
+### Features
+
+* **plugin-aws-s3:** add force path style parameter to s3 client ([#1305](https://github.com/ForestAdmin/agent-nodejs/issues/1305)) ([804a7f5](https://github.com/ForestAdmin/agent-nodejs/commit/804a7f517cd0cc50106743ab370b49b7a33b846d))
+
 ## @forestadmin/plugin-aws-s3 [1.4.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.4.24...@forestadmin/plugin-aws-s3@1.4.25) (2025-05-06)
 
 
