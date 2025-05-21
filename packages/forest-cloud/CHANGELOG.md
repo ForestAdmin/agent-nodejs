@@ -1,3 +1,14 @@
+## @forestadmin/forest-cloud [1.12.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.48...@forestadmin/forest-cloud@1.12.49) (2025-05-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongo:** upgraded to 1.5.3
+* **@forestadmin/datasource-mongoose:** upgraded to 1.12.3
+
 ## @forestadmin/forest-cloud [1.12.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.47...@forestadmin/forest-cloud@1.12.48) (2025-05-15)
 
 
