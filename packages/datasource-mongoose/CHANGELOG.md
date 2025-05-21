@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.2...@forestadmin/datasource-mongoose@1.12.3) (2025-05-21)
+
+
+### Bug Fixes
+
+* prevent stack overflow error during mongoose introspection ([#1304](https://github.com/ForestAdmin/agent-nodejs/issues/1304)) ([00264ac](https://github.com/ForestAdmin/agent-nodejs/commit/00264acd2503a983ed464967414ddac679198196))
+
 ## @forestadmin/datasource-mongoose [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.1...@forestadmin/datasource-mongoose@1.12.2) (2025-05-12)
 
 
