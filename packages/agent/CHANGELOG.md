@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.64.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.0...@forestadmin/agent@1.64.1) (2025-05-22)
+
+
+### Bug Fixes
+
+* **agent:** avoid crash when user use body-parser before agent router ([#1306](https://github.com/ForestAdmin/agent-nodejs/issues/1306)) ([370d1bd](https://github.com/ForestAdmin/agent-nodejs/commit/370d1bd2b0d341044b4c6ea03638bd14a03fe438))
+
 # @forestadmin/agent [1.64.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.63.6...@forestadmin/agent@1.64.0) (2025-05-15)
 
 
