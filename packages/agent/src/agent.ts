@@ -10,11 +10,11 @@ import {
 } from '@forestadmin/datasource-customizer';
 import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import { ForestSchema } from '@forestadmin/forestadmin-client';
+import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
-import bodyParser from 'koa-bodyparser';
 
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
@@ -204,7 +204,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Build router
     const router = new Router();
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
-    router.use(bodyParser({ jsonLimit: this.options.maxBodySize }));
+    router.use(
+      bodyParser({
+        encoding: 'utf-8',
+        jsonLimit: this.options.maxBodySize,
+        enableRawChecking: true,
+      }),
+    );
     routes.forEach(route => route.setupRoutes(router));
 
     return router;
