@@ -1670,6 +1670,11 @@
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
   integrity sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==
 
+"@hapi/bourne@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@hapi/bourne/-/bourne-3.0.0.tgz#f11fdf7dda62fe8e336fa7c6642d9041f30356d7"
+  integrity sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==
+
 "@hapi/hoek@^9.0.0", "@hapi/hoek@^9.3.0":
   version "9.3.0"
   resolved "https://registry.yarnpkg.com/@hapi/hoek/-/hoek-9.3.0.tgz#8368869dcb735be2e7f5cb7647de78e167a251fb"
@@ -2112,6 +2117,15 @@
   version "5.6.3"
   resolved "https://registry.yarnpkg.com/@js-joda/core/-/core-5.6.3.tgz#41ae1c07de1ebe0f6dde1abcbc9700a09b9c6056"
   integrity sha512-T1rRxzdqkEXcou0ZprN1q9yDRlvzCPLqmlNt5IIsGBzoEVgLCCYrKEwc84+TvsXuAc95VAZwtWD2zVsKPY4bcA==
+
+"@koa/bodyparser@^5.1.2":
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/@koa/bodyparser/-/bodyparser-5.1.2.tgz#d3f242e616dce2db9dcaadf7ebc3129df4db35b2"
+  integrity sha512-eGJm9/66iUX+LUH03Cz0e94unbSKrmSPCick4MO5UorAAomcjC5Kl+SkoZ6CSyPew3neMYjj7n+djnlGYBSJAg==
+  dependencies:
+    co-body "^6.1.0"
+    lodash.merge "^4.6.2"
+    type-is "^1.6.18"
 
 "@koa/cors@^5.0.0":
   version "5.0.0"
@@ -4315,13 +4329,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/koa-bodyparser@^4.3.12":
-  version "4.3.12"
-  resolved "https://registry.yarnpkg.com/@types/koa-bodyparser/-/koa-bodyparser-4.3.12.tgz#c19355e504422fd2a8fdb3496a32da48cd29133c"
-  integrity sha512-hKMmRMVP889gPIdLZmmtou/BijaU1tHPyMNmcK7FAHAdATnRcGQQy78EqTTxLH1D4FTsrxIzklAQCso9oGoebQ==
-  dependencies:
-    "@types/koa" "*"
-
 "@types/koa-compose@*":
   version "3.2.8"
   resolved "https://registry.yarnpkg.com/@types/koa-compose/-/koa-compose-3.2.8.tgz#dec48de1f6b3d87f87320097686a915f1e954b57"
@@ -6058,11 +6065,12 @@ cmd-shim@^5.0.0:
   dependencies:
     mkdirp-infer-owner "^2.0.0"
 
-co-body@^6.0.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/co-body/-/co-body-6.1.0.tgz#d87a8efc3564f9bfe3aced8ef5cd04c7a8766547"
-  integrity sha512-m7pOT6CdLN7FuXUcpuz/8lfQ/L77x8SchHCF4G0RBTJO20Wzmhn5Sp4/5WsKy8OSpifBSUrmg83qEqaDHdyFuQ==
+co-body@^6.1.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/co-body/-/co-body-6.2.0.tgz#afd776d60e5659f4eee862df83499698eb1aea1b"
+  integrity sha512-Kbpv2Yd1NdL1V/V4cwLVxraHDV6K8ayohr2rmH0J87Er8+zJjcTa6dAn9QMPC9CRgU8+aNajKbSf1TzDB1yKPA==
   dependencies:
+    "@hapi/bourne" "^3.0.0"
     inflation "^2.0.0"
     qs "^6.5.2"
     raw-body "^2.3.3"
@@ -6423,11 +6431,6 @@ cookies@~0.9.0:
   dependencies:
     depd "~2.0.0"
     keygrip "~1.1.0"
-
-copy-to@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/copy-to/-/copy-to-2.0.1.tgz#2680fbb8068a48d08656b6098092bdafc906f4a5"
-  integrity sha512-3DdaFaU/Zf1AnpLiFDeNCD4TOWe3Zl2RZaTzUvWiIk5ERzcCodOE20Vqq4fzCbNoHURFHT4/us/Lfq+S2zyY4w==
 
 core-util-is@~1.0.0:
   version "1.0.3"
@@ -10287,15 +10290,6 @@ kleur@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
-
-koa-bodyparser@^4.4.1:
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/koa-bodyparser/-/koa-bodyparser-4.4.1.tgz#a908d848e142cc57d9eece478e932bf00dce3029"
-  integrity sha512-kBH3IYPMb+iAXnrxIhXnW+gXV8OTzCu8VPDqvcDHW9SQrbkHmqPQtiZwrltNmSq6/lpipHnT7k7PsjlVD7kK0w==
-  dependencies:
-    co-body "^6.0.0"
-    copy-to "^2.0.1"
-    type-is "^1.6.18"
 
 koa-compose@^4.1.0:
   version "4.1.0"
