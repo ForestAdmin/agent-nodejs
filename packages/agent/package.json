@@ -25,7 +25,7 @@
     "json-stringify-pretty-compact": "^3.0.0",
     "jsonwebtoken": "^9.0.0",
     "koa": "^2.16.1",
-    "@koa/bodyparser": "^5.1.2",
+    "@koa/bodyparser": "^6.0.0",
     "koa-jwt": "^4.0.4",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
