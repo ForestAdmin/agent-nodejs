@@ -209,6 +209,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         encoding: 'utf-8',
         jsonLimit: this.options.maxBodySize,
         enableRawChecking: true,
+        parsedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'],
       }),
     );
     routes.forEach(route => route.setupRoutes(router));
