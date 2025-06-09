@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.64.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.1...@forestadmin/agent@1.64.2) (2025-06-09)
+
+
+### Bug Fixes
+
+* **body parser:** parse properly delete method ([#1307](https://github.com/ForestAdmin/agent-nodejs/issues/1307)) ([c2c84fd](https://github.com/ForestAdmin/agent-nodejs/commit/c2c84fdf946f15cd39d06469a923c32d738eeeae))
+
 ## @forestadmin/agent [1.64.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.0...@forestadmin/agent@1.64.1) (2025-05-22)
 
 
