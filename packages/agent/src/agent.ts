@@ -208,8 +208,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       bodyParser({
         encoding: 'utf-8',
         jsonLimit: this.options.maxBodySize,
-        enableRawChecking: true,
         parsedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'],
+        ...this.options.bodyParserOptions,
       }),
     );
     routes.forEach(route => route.setupRoutes(router));

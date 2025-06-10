@@ -1,6 +1,7 @@
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
+import type { BodyParserOptions } from '@koa/bodyparser/dist/body-parser.types';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
@@ -23,7 +24,12 @@ export type AgentOptions = {
     webhookCustomActions?: boolean;
     updateRecordCustomActions?: boolean;
   };
+  /**
+   * @deprecated use `bodyParserOptions.jsonLimit` instead.
+   * @todo remove option
+   */
   maxBodySize?: string;
+  bodyParserOptions?: BodyParserOptions;
   /**
    * If true, the agent will not throw an error when a customization error occurs,
    * because of a missing collection for example.
