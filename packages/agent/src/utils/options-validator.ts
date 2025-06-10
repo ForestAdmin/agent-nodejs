@@ -38,7 +38,7 @@ export default class OptionsValidator {
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.maxBodySize = copyOptions.maxBodySize || '50mb';
     copyOptions.bodyParserOptions = copyOptions.bodyParserOptions || {
-      jsonLimit: '50mb'
+      jsonLimit: '50mb',
     };
 
     if (copyOptions.instantCacheRefresh && copyOptions.permissionsCacheDurationInSeconds) {
