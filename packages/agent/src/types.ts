@@ -23,7 +23,19 @@ export type AgentOptions = {
     webhookCustomActions?: boolean;
     updateRecordCustomActions?: boolean;
   };
+  /**
+   * @deprecated use `bodyParserOptions.jsonLimit` instead.
+   * @todo remove option
+   */
   maxBodySize?: string;
+  /**
+   * Refer to `@koa/bodyparser` options
+   * @link https://github.com/koajs/bodyparser?tab=readme-ov-file#options
+   */
+  bodyParserOptions?: {
+    jsonLimit?: number | string;
+    enableRawChecking?: boolean;
+  };
   /**
    * If true, the agent will not throw an error when a customization error occurs,
    * because of a missing collection for example.
