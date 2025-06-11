@@ -1,5 +1,3 @@
-import type { BodyParserOptions } from '@koa/bodyparser/dist/body-parser.types';
-
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
@@ -30,7 +28,14 @@ export type AgentOptions = {
    * @todo remove option
    */
   maxBodySize?: string;
-  bodyParserOptions?: BodyParserOptions;
+  /**
+   * Refer to `@koa/bodyparser` options
+   * @link https://github.com/koajs/bodyparser?tab=readme-ov-file#options
+   */
+  bodyParserOptions?: {
+    jsonLimit?: number | string;
+    enableRawChecking?: boolean;
+  };
   /**
    * If true, the agent will not throw an error when a customization error occurs,
    * because of a missing collection for example.

@@ -21,5 +21,8 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   typingsPath: null,
   experimental: {},
   maxBodySize: '50mb',
+  bodyParserOptions: {
+    jsonLimit: '50mb',
+  },
   ignoreMissingSchemaElementErrors: false,
 }));
