@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.64.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.2...@forestadmin/agent@1.64.3) (2025-06-11)
+
+
+### Bug Fixes
+
+* **body parser:** add options to configure body parser to be able to use multiple parser ([#1311](https://github.com/ForestAdmin/agent-nodejs/issues/1311)) ([f9d497d](https://github.com/ForestAdmin/agent-nodejs/commit/f9d497d1012655dfc08f3eeebb6035ee8508bb6d))
+
 ## @forestadmin/agent [1.64.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.1...@forestadmin/agent@1.64.2) (2025-06-09)
 
 
