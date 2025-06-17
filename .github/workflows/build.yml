@@ -120,12 +120,11 @@ jobs:
         with:
           path: reports
       - name: Send coverage
-        uses: paambaati/codeclimate-action@84cea27117a473d605400ca3a97fcef7e433e2d6
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        uses: qltysh/qlty-action/coverage@8d5c844f32f80364ccc135534671640466e7f610 #v1.1
         with:
-          coverageLocations: |
-            ${{github.workspace}}/reports/**/clover.xml:clover
+          oidc: true
+          files: |
+            ${{github.workspace}}/reports/**/clover.xml
 
   build-api-reference:
     name: Build API Reference
