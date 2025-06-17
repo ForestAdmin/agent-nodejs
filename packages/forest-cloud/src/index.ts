@@ -4,5 +4,5 @@ import type { ConnectionOptions } from '@forestadmin/datasource-sql';
 
 import { Agent } from './types';
 
-export { Agent };
+export type { Agent };
 export type { ConnectionParams as MongoConnectionParams, ConnectionOptions as SqlConnectionParams };
