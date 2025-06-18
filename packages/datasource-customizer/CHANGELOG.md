@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.67.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.66.0...@forestadmin/datasource-customizer@1.67.0) (2025-06-18)
+
+
+### Features
+
+* **customizer:** customers can now mark a field as optional ([#1286](https://github.com/ForestAdmin/agent-nodejs/issues/1286)) ([4205252](https://github.com/ForestAdmin/agent-nodejs/commit/4205252354bfa24c95ce6da55df8ff1cfb856c7a))
+
 # @forestadmin/datasource-customizer [1.66.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.65.1...@forestadmin/datasource-customizer@1.66.0) (2025-05-06)
 
 
