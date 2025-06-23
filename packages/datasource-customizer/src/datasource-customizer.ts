@@ -40,14 +40,16 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    * Retrieve schema of the agent
    */
   get schema(): DataSourceSchema {
-    return this.stack.binary.schema;
+    return this.stack.dataSource.schema;
   }
 
   /**
    * Get list of customizable collections
    */
   get collections(): CollectionCustomizer<S>[] {
-    return this.stack.binary.collections.map(c => this.getCollection(c.name as TCollectionName<S>));
+    return this.stack.dataSource.collections.map(c =>
+      this.getCollection(c.name as TCollectionName<S>),
+    );
   }
 
   constructor(options?: Options) {
