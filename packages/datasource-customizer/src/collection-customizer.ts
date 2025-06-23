@@ -1,7 +1,6 @@
 import {
   CollectionSchema,
   CollectionUtils,
-  ColumnSchema,
   Logger,
   Operator,
   SchemaUtils,
