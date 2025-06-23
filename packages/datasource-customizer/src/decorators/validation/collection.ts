@@ -17,6 +17,7 @@ type ValidationRule = ColumnSchemaValidation[number];
 
 export default class ValidationDecorator extends CollectionDecorator {
   private validation: Record<string, ColumnSchema['validation']> = {};
+  private nullableFields: string[] = [];
 
   addValidation(name: string, validation: ValidationRule): void {
     FieldValidator.validate(this, name);
@@ -31,6 +32,11 @@ export default class ValidationDecorator extends CollectionDecorator {
 
     this.validation[name] ??= [];
     this.validation[name].push(validation);
+    this.markSchemaAsDirty();
+  }
+
+  setNullable(name: string): void {
+    this.nullableFields.push(name);
     this.markSchemaAsDirty();
   }
 
@@ -54,6 +60,13 @@ export default class ValidationDecorator extends CollectionDecorator {
       field.validation = [...(field.validation ?? []), ...rules];
       schema.fields[name] = field;
     }
+
+    this.nullableFields.forEach(name => {
+      const field = { ...SchemaUtils.getColumn(schema, name) };
+      field.allowNull = true;
+      field.validation = field.validation?.filter(validation => validation.operator !== 'Present');
+      schema.fields[name] = field;
+    });
 
     return schema;
   }
