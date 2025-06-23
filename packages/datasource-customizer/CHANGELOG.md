@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.67.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.0...@forestadmin/datasource-customizer@1.67.1) (2025-06-23)
+
+
+### Bug Fixes
+
+* **datasource customizer:** fix nullable customization to avoid crash with no code customization ([#1314](https://github.com/ForestAdmin/agent-nodejs/issues/1314)) ([030984f](https://github.com/ForestAdmin/agent-nodejs/commit/030984f6a088df9c29377c17366ff5a868da4ef9))
+
 # @forestadmin/datasource-customizer [1.67.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.66.0...@forestadmin/datasource-customizer@1.67.0) (2025-06-18)
 
 
