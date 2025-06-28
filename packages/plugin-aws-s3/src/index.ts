@@ -12,7 +12,7 @@ import replaceField from './field/replace-field';
 import { File, Options } from './types';
 import Client from './utils/s3';
 
-export { Options, File };
+export type { Options, File };
 
 export async function createFileField<
   S extends TSchema = TSchema,
