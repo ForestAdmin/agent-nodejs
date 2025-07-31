@@ -42,6 +42,7 @@ export type AgentOptions = {
    * @default false
    */
   ignoreMissingSchemaElementErrors?: boolean;
+  useUnsafeActionEndpoint?: boolean;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

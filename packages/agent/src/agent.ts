@@ -39,6 +39,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected customizer: DataSourceCustomizer<S>;
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
+  protected schemaGenerator: SchemaGenerator;
 
   /**
    * Create a new Agent Builder.
@@ -65,6 +66,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       ignoreMissingSchemaElementErrors: options.ignoreMissingSchemaElementErrors || false,
     });
     this.customizationService = new CustomizationService(allOptions);
+    this.schemaGenerator = new SchemaGenerator(allOptions);
   }
 
   /**
@@ -269,7 +271,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         throw new Error(`Can't load ${schemaPath}. Providing a schema is mandatory in production.`);
       }
     } else {
-      schema = await SchemaGenerator.buildSchema(dataSource);
+      schema = await this.schemaGenerator.buildSchema(dataSource);
 
       const pretty = stringify({ ...schema, meta }, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });

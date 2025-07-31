@@ -2,14 +2,21 @@ import { DataSource } from '@forestadmin/datasource-toolkit';
 import { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorCollection from './generator-collection';
+import { AgentOptionsWithDefaults } from '../../types';
 
 export default class SchemaGenerator {
-  static async buildSchema(dataSource: DataSource): Promise<Pick<ForestSchema, 'collections'>> {
+  private readonly schemaGeneratorCollection: SchemaGeneratorCollection;
+
+  constructor(options: AgentOptionsWithDefaults) {
+    this.schemaGeneratorCollection = new SchemaGeneratorCollection(options);
+  }
+
+  async buildSchema(dataSource: DataSource): Promise<Pick<ForestSchema, 'collections'>> {
     return {
       collections: await Promise.all(
         [...dataSource.collections]
           .sort((a, b) => a.name.localeCompare(b.name))
-          .map(c => SchemaGeneratorCollection.buildSchema(c)),
+          .map(c => this.schemaGeneratorCollection.buildSchema(c)),
       ),
     };
   }
