@@ -654,4 +654,40 @@ describe('SchemaGeneratorActions', () => {
       });
     });
   });
+
+  describe('with useUnsafeActionEndpoint option', () => {
+    const collection = factories.collection.buildWithAction('Send email', {
+      scope: 'Single',
+      generateFile: false,
+      staticForm: true,
+      description: 'hello',
+      submitButtonLabel: 'here we go',
+    });
+
+    test('should generate schema without action endpoint index', async () => {
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build({ useUnsafeActionEndpoint: true }),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send email');
+
+      expect(schema).toStrictEqual({
+        id: 'books-send-email',
+        name: 'Send email',
+        baseUrl: null,
+        download: false,
+        endpoint: '/forest/_actions/books/send-email',
+        fields: [],
+        httpMethod: 'POST',
+        redirect: null,
+        type: 'single',
+        description: 'hello',
+        submitButtonLabel: 'here we go',
+        hooks: {
+          // No form => hooks are disabled
+          load: false,
+          change: ['changeHook'],
+        },
+      });
+    });
+  });
 });
