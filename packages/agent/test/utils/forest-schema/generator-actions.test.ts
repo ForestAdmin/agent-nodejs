@@ -14,7 +14,10 @@ describe('SchemaGeneratorActions', () => {
     });
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send email');
 
       expect(schema).toStrictEqual({
         id: 'books-0-send-email',
@@ -47,7 +50,10 @@ describe('SchemaGeneratorActions', () => {
     });
 
     test('should throw an error', async () => {
-      await expect(SchemaGeneratorActions.buildSchema(collection, 'Send email')).rejects.toThrow(
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      await expect(schemaGeneratorActions.buildSchema(collection, 'Send email')).rejects.toThrow(
         new Error('Submit button label must have less than 50 characters'),
       );
     });
@@ -76,7 +82,10 @@ describe('SchemaGeneratorActions', () => {
     );
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send {} email');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send {} email');
 
       // Invariants should be correctly set
       expect(schema).toMatchObject({
@@ -120,7 +129,10 @@ describe('SchemaGeneratorActions', () => {
     );
 
     test('should include a reference to the change hook', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send email');
       expect(schema.fields[0].hook).toEqual('changeHook');
       expect(schema.layout).toEqual(undefined);
     });
@@ -182,7 +194,10 @@ describe('SchemaGeneratorActions', () => {
 
     test('special fields should work', async () => {
       const collection = dataSource.getCollection('books');
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send email');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send email');
 
       // Relation to other collection
       expect(schema.fields[0]).toMatchObject({
@@ -237,7 +252,10 @@ describe('SchemaGeneratorActions', () => {
 
       const collection = dataSource.getCollection('books');
 
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Update title');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Update title');
 
       expect(schema.fields[0]).toEqual({
         field: 'title',
@@ -282,7 +300,10 @@ describe('SchemaGeneratorActions', () => {
 
       const collection = dataSource.getCollection('books');
 
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Update format');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Update format');
 
       expect(schema.fields[0]).toMatchObject({
         field: 'format',
@@ -354,7 +375,10 @@ describe('SchemaGeneratorActions', () => {
     );
 
     test('should generate schema correctly', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send {} email');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send {} email');
 
       // Invariants should be correctly set
       expect(schema).toMatchObject({
@@ -409,7 +433,10 @@ describe('SchemaGeneratorActions', () => {
     );
 
     test('should generate schema correctly and omit the layout prop', async () => {
-      const schema = await SchemaGeneratorActions.buildSchema(collection, 'Send {} email');
+      const schemaGeneratorActions = new SchemaGeneratorActions(
+        factories.forestAdminHttpDriverOptions.build(),
+      );
+      const schema = await schemaGeneratorActions.buildSchema(collection, 'Send {} email');
 
       // Invariants should be correctly set
       expect(schema).toMatchObject({
