@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.65.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.5...@forestadmin/agent@1.65.0) (2025-08-12)
+
+
+### Features
+
+* **agent:** add unsafe sa endpoint option ([#1316](https://github.com/ForestAdmin/agent-nodejs/issues/1316)) ([5930387](https://github.com/ForestAdmin/agent-nodejs/commit/5930387c9ce60e66b9f840f662084ea19d7fe8f2))
+
 ## @forestadmin/agent [1.64.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.64.4...@forestadmin/agent@1.64.5) (2025-06-23)
 
 
