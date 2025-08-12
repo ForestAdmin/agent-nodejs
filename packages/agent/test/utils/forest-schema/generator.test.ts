@@ -8,7 +8,8 @@ describe('SchemaGenerator', () => {
         factories.collection.build({ name: 'books' }),
       );
 
-      const schema = await SchemaGenerator.buildSchema(dataSource);
+      const schemaGenerator = new SchemaGenerator(factories.forestAdminHttpDriverOptions.build());
+      const schema = await schemaGenerator.buildSchema(dataSource);
 
       expect(schema).toStrictEqual({
         collections: [expect.objectContaining({ name: 'books' })],
@@ -23,7 +24,8 @@ describe('SchemaGenerator', () => {
         factories.collection.build({ name: 'a' }),
       ]);
 
-      const schema = await SchemaGenerator.buildSchema(dataSource);
+      const schemaGenerator = new SchemaGenerator(factories.forestAdminHttpDriverOptions.build());
+      const schema = await schemaGenerator.buildSchema(dataSource);
 
       expect(schema.collections.map(c => c.name)).toStrictEqual(['a', 'b', 'B', 'ba']);
     });

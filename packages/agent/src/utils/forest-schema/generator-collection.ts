@@ -9,13 +9,20 @@ import {
 import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
 import SchemaGeneratorSegments from './generator-segments';
+import { AgentOptionsWithDefaults } from '../../types';
 
 export default class SchemaGeneratorCollection {
+  private readonly schemaGeneratorActions: SchemaGeneratorActions;
+
+  constructor(options: AgentOptionsWithDefaults) {
+    this.schemaGeneratorActions = new SchemaGeneratorActions(options);
+  }
+
   /** Build forest-server schema for a collection */
-  static async buildSchema(collection: Collection): Promise<ForestServerCollection> {
+  async buildSchema(collection: Collection): Promise<ForestServerCollection> {
     return {
       actions: await this.buildActions(collection),
-      fields: this.buildFields(collection),
+      fields: SchemaGeneratorCollection.buildFields(collection),
       icon: null,
       integration: null,
       isReadOnly: Object.values(collection.schema.fields).every(
@@ -26,15 +33,15 @@ export default class SchemaGeneratorCollection {
       name: collection.name,
       onlyForRelationships: false,
       paginationType: 'page',
-      segments: this.buildSegments(collection),
+      segments: SchemaGeneratorCollection.buildSegments(collection),
     };
   }
 
-  private static buildActions(collection: Collection): Promise<ForestServerAction[]> {
+  private buildActions(collection: Collection): Promise<ForestServerAction[]> {
     return Promise.all(
       Object.keys(collection.schema.actions)
         .sort()
-        .map(name => SchemaGeneratorActions.buildSchema(collection, name)),
+        .map(name => this.schemaGeneratorActions.buildSchema(collection, name)),
     );
   }
 

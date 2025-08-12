@@ -19,8 +19,15 @@ import path from 'path';
 import ActionFields from './action-fields';
 import ForestValueConverter from './action-values';
 import GeneratorActionFieldWidget from './generator-action-field-widget';
+import { AgentOptionsWithDefaults } from '../../types';
 
 export default class SchemaGeneratorActions {
+  private readonly useUnsafeActionEndpoint: boolean;
+
+  constructor(options: AgentOptionsWithDefaults) {
+    this.useUnsafeActionEndpoint = options.useUnsafeActionEndpoint;
+  }
+
   /**
    * 'fields' sent to forestadmin-server when we want to generate the form on demand.
    * This works around a bug in frontend which won't call the server if no fields are defined.
@@ -46,10 +53,8 @@ export default class SchemaGeneratorActions {
     return name.toLocaleLowerCase().replace(/[^a-z0-9-]+/g, '-');
   }
 
-  static async buildSchema(collection: Collection, name: string): Promise<ForestServerAction> {
+  async buildSchema(collection: Collection, name: string): Promise<ForestServerAction> {
     const schema = collection.schema.actions[name];
-
-    const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
 
     // Generate url-safe friendly name (which won't be unique, but that's OK).
     const slug = SchemaGeneratorActions.getActionSlug(name);
@@ -72,12 +77,24 @@ export default class SchemaGeneratorActions {
       throw new Error('Submit button label must have less than 50 characters');
     }
 
+    let id = `${collection.name}-`;
+    const endpointPaths = ['/forest/_actions', collection.name];
+
+    if (!this.useUnsafeActionEndpoint) {
+      const actionIndex = Object.keys(collection.schema.actions).indexOf(name);
+      id += `${actionIndex}-`;
+      endpointPaths.push(String(actionIndex));
+    }
+
+    id += slug;
+    endpointPaths.push(slug);
+
     return {
-      id: `${collection.name}-${actionIndex}-${slug}`,
+      id,
       name,
       type: schema.scope.toLowerCase() as 'single' | 'bulk' | 'global',
       baseUrl: null,
-      endpoint: path.posix.join('/forest/_actions', collection.name, String(actionIndex), slug),
+      endpoint: path.posix.join(...endpointPaths),
       httpMethod: 'POST',
       redirect: null, // frontend ignores this attribute
       download: Boolean(schema.generateFile),

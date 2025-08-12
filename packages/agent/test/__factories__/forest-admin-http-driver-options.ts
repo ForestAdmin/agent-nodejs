@@ -25,4 +25,5 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
     jsonLimit: '50mb',
   },
   ignoreMissingSchemaElementErrors: false,
+  useUnsafeActionEndpoint: false,
 }));

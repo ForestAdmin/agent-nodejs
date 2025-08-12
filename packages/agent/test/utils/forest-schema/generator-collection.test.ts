@@ -41,7 +41,10 @@ describe('SchemaGeneratorCollection', () => {
 
   test('books should not be readonly and skip foreign keys', async () => {
     // because not all fields are readonly
-    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('books'));
+    const schemaGeneratorCollection = new SchemaGeneratorCollection(
+      factories.forestAdminHttpDriverOptions.build(),
+    );
+    const schema = await schemaGeneratorCollection.buildSchema(dataSource.getCollection('books'));
 
     // readonly
     expect(schema).toHaveProperty('isReadOnly', false);
@@ -53,13 +56,19 @@ describe('SchemaGeneratorCollection', () => {
   });
 
   test('persons should be readonly (because all fields are readonly)', async () => {
-    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
+    const schemaGeneratorCollection = new SchemaGeneratorCollection(
+      factories.forestAdminHttpDriverOptions.build(),
+    );
+    const schema = await schemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
 
     expect(schema).toHaveProperty('isReadOnly', true);
   });
 
   test('persons should have actions and segments', async () => {
-    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
+    const schemaGeneratorCollection = new SchemaGeneratorCollection(
+      factories.forestAdminHttpDriverOptions.build(),
+    );
+    const schema = await schemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
 
     expect(schema.actions).toHaveLength(2);
     expect(schema.actions[0]).toHaveProperty('name', 'Add person');
@@ -70,13 +79,19 @@ describe('SchemaGeneratorCollection', () => {
   });
 
   test('persons should have an id, regardless of the fact that it is also a fk', async () => {
-    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
+    const schemaGeneratorCollection = new SchemaGeneratorCollection(
+      factories.forestAdminHttpDriverOptions.build(),
+    );
+    const schema = await schemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
 
     expect(schema.fields[0]).toMatchObject({ field: 'id', isPrimaryKey: true });
   });
 
   test('persons should have a one-to-one relationship', async () => {
-    const schema = await SchemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
+    const schemaGeneratorCollection = new SchemaGeneratorCollection(
+      factories.forestAdminHttpDriverOptions.build(),
+    );
+    const schema = await schemaGeneratorCollection.buildSchema(dataSource.getCollection('persons'));
 
     expect(schema.fields[1]).toMatchObject({
       field: 'mySelf',
