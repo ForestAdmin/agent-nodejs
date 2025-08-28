@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.12.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.3...@forestadmin/datasource-mongoose@1.12.4) (2025-08-28)
+
+
+### Bug Fixes
+
+* **datasource mongoose:** remove sub array element ([#1319](https://github.com/ForestAdmin/agent-nodejs/issues/1319)) ([024054d](https://github.com/ForestAdmin/agent-nodejs/commit/024054d321fbe354777faa273eaacea4d56bcaf4))
+
 ## @forestadmin/datasource-mongoose [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.2...@forestadmin/datasource-mongoose@1.12.3) (2025-05-21)
 
 
