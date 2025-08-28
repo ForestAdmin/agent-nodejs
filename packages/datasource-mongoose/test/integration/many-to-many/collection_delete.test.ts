@@ -61,4 +61,56 @@ describe('MongooseCollection', () => {
 
     expect(expectedOwnerStore).toEqual([]);
   });
+
+  describe('with flattenMode auto', () => {
+    it('delete an element within a nested array', async () => {
+      // given
+      connection = await setupWith2ManyToManyRelations('collection_m2m_delete');
+      const dataSource = new MongooseDatasource(connection, { flattenMode: 'auto' });
+
+      const owner = dataSource.getCollection('owner');
+      const ownerPrograms = dataSource.getCollection('owner_programs');
+      const ownerProgramsActivities = dataSource.getCollection('owner_programs_activities');
+
+      const [ownerRecord] = await owner.create(factories.caller.build(), [{ name: 'owner' }]);
+
+      const [ownerProgramsRecord] = await ownerPrograms.create(factories.caller.build(), [
+        { label: 'prog', parentId: ownerRecord._id },
+      ]);
+
+      const [recordToDelete] = await ownerProgramsActivities.create(factories.caller.build(), [
+        {
+          label: 'activity a',
+          order: 1,
+          parentId: ownerProgramsRecord._id,
+        },
+        {
+          label: 'activity b',
+          order: 2,
+          parentId: ownerProgramsRecord._id,
+        },
+      ]);
+
+      // when
+      await ownerProgramsActivities.delete(
+        factories.caller.build(),
+        new Filter({
+          conditionTree: factories.conditionTreeLeaf.build({
+            value: recordToDelete._id,
+            operator: 'Equal',
+            field: '_id',
+          }),
+        }),
+      );
+
+      // then
+      const expectedOwnerProgramsActivities = await ownerProgramsActivities.list(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Projection('programs'),
+      );
+
+      expect(expectedOwnerProgramsActivities).toHaveLength(1);
+    });
+  });
 });

@@ -9,6 +9,17 @@ export default async function setupWith2ManyToManyRelations(dbName = 'test') {
     new Schema({
       stores: { type: [Schema.Types.ObjectId], ref: 'store' },
       oldStores: { type: [Schema.Types.ObjectId], ref: 'store' },
+      programs: [
+        {
+          label: String,
+          activities: [
+            {
+              order: Number,
+              label: String,
+            },
+          ],
+        },
+      ],
       name: { type: String },
     }),
   );
