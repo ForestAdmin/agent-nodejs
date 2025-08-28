@@ -264,22 +264,18 @@ export default class MongooseCollection extends BaseCollection {
       // of the next elements that we'll touch don't change.
       for (const path of Object.keys(idsByPath).sort(compareIds).reverse()) {
         const arrayPath = path.substring(0, path.lastIndexOf('.'));
-        const index = Number(path.substring(path.lastIndexOf('.') + 1));
-
-        // There is no update operator to pop items out of arrays at known positions
-        // => we use an aggregation pipeline in the update operation
-        // @see https://jira.mongodb.org/browse/SERVER-1014?focusedCommentId=2305681#comment-2305681
-        const newArrayValue = [
-          { $slice: [`$${arrayPath}`, index] },
-          { $slice: [`$${arrayPath}`, index + 1, { $size: `$${arrayPath}` }] },
-        ];
-
         // When updating arrays, indexes will change with each request so we need to perform the
         // request sequentially.
         // eslint-disable-next-line no-await-in-loop
         await this.model.collection.updateMany(
           { _id: { $in: idsByPath[path] } } as unknown,
-          [{ $set: { [arrayPath]: { $concatArrays: newArrayValue } } }],
+          { $unset: { [path]: 1 } },
+          {},
+        );
+        // eslint-disable-next-line no-await-in-loop
+        await this.model.collection.updateMany(
+          { _id: { $in: idsByPath[path] } } as unknown,
+          { $pull: { [arrayPath]: null } } as unknown,
           {},
         );
       }
