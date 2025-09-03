@@ -16,6 +16,10 @@ export default class DistPathManager {
     return path.resolve(this.zip);
   }
 
+  get typings(): string {
+    return path.join(this.cloudCustomizerPath, 'typings.d.ts');
+  }
+
   get distCodeCustomizations(): string {
     return path.join(this.cloudCustomizerPath, 'dist', 'code-customizations');
   }

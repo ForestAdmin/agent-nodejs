@@ -32,6 +32,8 @@ export async function startingAgent(
     // Needed for lumberjacks
     forestServerUrl,
     isProduction: false,
+    typingsPath: distPathManager.typings,
+    typingsMaxDepth: 3,
     logger,
   };
 
