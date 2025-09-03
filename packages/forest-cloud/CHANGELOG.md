@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.12.57](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.56...@forestadmin/forest-cloud@1.12.57) (2025-09-03)
+
+
+### Bug Fixes
+
+* **forest-cloud:** local agent should update typings ([#1320](https://github.com/ForestAdmin/agent-nodejs/issues/1320)) ([aff86a1](https://github.com/ForestAdmin/agent-nodejs/commit/aff86a145257f85bdf186082f34c43f5eb535145))
+
 ## @forestadmin/forest-cloud [1.12.56](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.55...@forestadmin/forest-cloud@1.12.56) (2025-08-28)
 
 
