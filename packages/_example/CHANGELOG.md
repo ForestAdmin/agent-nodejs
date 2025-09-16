@@ -1,3 +1,18 @@
+## example [1.13.38](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.37...example@1.13.38) (2025-09-16)
+
+
+### Bug Fixes
+
+* bump form-data ([#1317](https://github.com/ForestAdmin/agent-nodejs/issues/1317)) ([1e8b795](https://github.com/ForestAdmin/agent-nodejs/commit/1e8b795267e8fad60f64ae1fa562ec1c8395d087))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.65.1
+
 ## example [1.13.37](https://github.com/ForestAdmin/agent-nodejs/compare/example@1.13.36...example@1.13.37) (2025-08-28)
 
 

@@ -1,3 +1,18 @@
+## @forestadmin/forest-cloud [1.12.58](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.57...@forestadmin/forest-cloud@1.12.58) (2025-09-16)
+
+
+### Bug Fixes
+
+* bump form-data ([#1317](https://github.com/ForestAdmin/agent-nodejs/issues/1317)) ([1e8b795](https://github.com/ForestAdmin/agent-nodejs/commit/1e8b795267e8fad60f64ae1fa562ec1c8395d087))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.65.1
+
 ## @forestadmin/forest-cloud [1.12.57](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.56...@forestadmin/forest-cloud@1.12.57) (2025-09-03)
 
 

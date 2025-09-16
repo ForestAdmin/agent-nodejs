@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.36.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.13...@forestadmin/forestadmin-client@1.36.14) (2025-09-16)
+
+
+### Bug Fixes
+
+* bump form-data ([#1317](https://github.com/ForestAdmin/agent-nodejs/issues/1317)) ([1e8b795](https://github.com/ForestAdmin/agent-nodejs/commit/1e8b795267e8fad60f64ae1fa562ec1c8395d087))
+
 ## @forestadmin/forestadmin-client [1.36.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.36.12...@forestadmin/forestadmin-client@1.36.13) (2025-05-12)
 
 
