@@ -19,6 +19,7 @@ export type AgentOptions = {
   permissionsCacheDurationInSeconds?: number;
   skipSchemaUpdate?: boolean;
   forestAdminClient?: ForestAdminClient;
+  appendSchemaPath?: string;
   experimental?: {
     webhookCustomActions?: boolean;
     updateRecordCustomActions?: boolean;

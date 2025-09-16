@@ -246,7 +246,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Send the apimap to forest admin server
    */
   protected async sendSchema(dataSource: DataSource): Promise<void> {
-    const { schemaPath, skipSchemaUpdate, isProduction, experimental } = this.options;
+    const { schemaPath, skipSchemaUpdate, isProduction, experimental, appendSchemaPath } =
+      this.options;
 
     // skipSchemaUpdate is mainly used in cloud version
     if (skipSchemaUpdate) {
@@ -275,6 +276,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       const pretty = stringify({ ...schema, meta }, { maxLength: 100 });
       await writeFile(schemaPath, pretty, { encoding: 'utf-8' });
+    }
+
+    if (appendSchemaPath) {
+      try {
+        schema.collections = [
+          ...schema.collections,
+          ...JSON.parse(await readFile(appendSchemaPath, { encoding: 'utf-8' })).collections,
+        ];
+      } catch (e) {
+        throw new Error(`Can't load additional schema ${appendSchemaPath}.`);
+      }
     }
 
     // Send schema to forest servers
