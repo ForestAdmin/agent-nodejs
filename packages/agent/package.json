@@ -44,7 +44,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@nestjs/common": "^9.2.1",
+    "@nestjs/common": "^10.4.16",
     "@nestjs/core": "^9.2.1",
     "@nestjs/platform-express": "^9.2.1",
     "@nestjs/platform-fastify": "^9.2.1",
