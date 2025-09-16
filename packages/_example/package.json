@@ -45,6 +45,9 @@
     "db:seed": "ts-node scripts/db-seed.ts"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2"
+    "@types/node": "^20.12.12",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.6.3"
   }
 }

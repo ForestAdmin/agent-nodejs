@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { Controller, Get, Module } from '@nestjs/common';
+import { Controller, Get, INestApplication, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 
@@ -14,7 +14,7 @@ class BasicController {
 @Module({ imports: [], controllers: [BasicController], providers: [] })
 class AppModule {}
 
-export default async function startNestFastifyV8() {
+export default async function startNestFastifyV8(): Promise<INestApplication> {
   return NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
     logger: false,
   });
