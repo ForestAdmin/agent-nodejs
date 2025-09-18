@@ -771,7 +771,7 @@
   dependencies:
     tslib "^2.6.2"
 
-"@azure/core-auth@1.7.2", "@azure/core-auth@^1.10.0", "@azure/core-auth@^1.3.0", "@azure/core-auth@^1.4.0", "@azure/core-auth@^1.5.0", "@azure/core-auth@^1.7.2":
+"@azure/core-auth@1.7.2", "@azure/core-auth@^1.3.0", "@azure/core-auth@^1.4.0", "@azure/core-auth@^1.5.0", "@azure/core-auth@^1.7.2":
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/@azure/core-auth/-/core-auth-1.7.2.tgz#558b7cb7dd12b00beec07ae5df5907d74df1ebd9"
   integrity sha512-Igm/S3fDYmnMq1uKS38Ae1/m37B3zigdlZw+kocwEhh5GjyKjPrXKO2J6rzpC1wAxrNil/jX9BJRqBshyjnF3g==
@@ -819,33 +819,19 @@
   dependencies:
     tslib "^2.2.0"
 
-"@azure/core-rest-pipeline@^1.1.0":
-  version "1.22.1"
-  resolved "https://registry.yarnpkg.com/@azure/core-rest-pipeline/-/core-rest-pipeline-1.22.1.tgz#f47bc02ff9a79f62e6a32aa375420b1b86dcbccd"
-  integrity sha512-UVZlVLfLyz6g3Hy7GNDpooMQonUygH7ghdiSASOOHy97fKj/mPLqgDX7aidOijn+sCMU+WU8NjlPlNTgnvbcGA==
+"@azure/core-rest-pipeline@1.16.3", "@azure/core-rest-pipeline@^1.1.0", "@azure/core-rest-pipeline@^1.3.0", "@azure/core-rest-pipeline@^1.8.1", "@azure/core-rest-pipeline@^1.9.1":
+  version "1.16.3"
+  resolved "https://registry.yarnpkg.com/@azure/core-rest-pipeline/-/core-rest-pipeline-1.16.3.tgz#bde3bc3ebad7f885ddd9de6af5e5a8fc254b287e"
+  integrity sha512-VxLk4AHLyqcHsfKe4MZ6IQ+D+ShuByy+RfStKfSjxJoL3WBWq17VNmrz8aT8etKzqc2nAeIyLxScjpzsS4fz8w==
   dependencies:
-    "@azure/abort-controller" "^2.1.2"
-    "@azure/core-auth" "^1.10.0"
-    "@azure/core-tracing" "^1.3.0"
-    "@azure/core-util" "^1.13.0"
-    "@azure/logger" "^1.3.0"
-    "@typespec/ts-http-runtime" "^0.3.0"
-    tslib "^2.6.2"
-
-"@azure/core-rest-pipeline@^1.3.0", "@azure/core-rest-pipeline@^1.8.1", "@azure/core-rest-pipeline@^1.9.1":
-  version "1.12.2"
-  resolved "https://registry.yarnpkg.com/@azure/core-rest-pipeline/-/core-rest-pipeline-1.12.2.tgz#a8952164f93b63ab15ae09aac416138da20daecd"
-  integrity sha512-wLLJQdL4v1yoqYtEtjKNjf8pJ/G/BqVomAWxcKOR1KbZJyCEnCv04yks7Y1NhJ3JzxbDs307W67uX0JzklFdCg==
-  dependencies:
-    "@azure/abort-controller" "^1.0.0"
+    "@azure/abort-controller" "^2.0.0"
     "@azure/core-auth" "^1.4.0"
     "@azure/core-tracing" "^1.0.1"
-    "@azure/core-util" "^1.3.0"
+    "@azure/core-util" "^1.9.0"
     "@azure/logger" "^1.0.0"
-    form-data "^4.0.0"
-    http-proxy-agent "^5.0.0"
-    https-proxy-agent "^5.0.0"
-    tslib "^2.2.0"
+    http-proxy-agent "^7.0.0"
+    https-proxy-agent "^7.0.0"
+    tslib "^2.6.2"
 
 "@azure/core-tracing@^1.0.0", "@azure/core-tracing@^1.0.1":
   version "1.0.1"
@@ -853,13 +839,6 @@
   integrity sha512-I5CGMoLtX+pI17ZdiFJZgxMJApsK6jjfm85hpgp3oazCdq5Wxgh4wMr7ge/TTWW1B5WBuvIOI1fMU/FrOAMKrw==
   dependencies:
     tslib "^2.2.0"
-
-"@azure/core-tracing@^1.3.0":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@azure/core-tracing/-/core-tracing-1.3.1.tgz#e971045c901ea9c110616b0e1db272507781d5f6"
-  integrity sha512-9MWKevR7Hz8kNzzPLfX4EAtGM2b8mr50HPDBvio96bURP/9C+HjdH3sBlLSNNrvRAr5/k/svoH457gB5IKpmwQ==
-  dependencies:
-    tslib "^2.6.2"
 
 "@azure/core-util@^1.0.0", "@azure/core-util@^1.1.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.3.0":
   version "1.6.1"
@@ -869,7 +848,7 @@
     "@azure/abort-controller" "^1.0.0"
     tslib "^2.2.0"
 
-"@azure/core-util@^1.13.0", "@azure/core-util@^1.6.1":
+"@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
   version "1.13.1"
   resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.13.1.tgz#6dff2ff6d3c9c6430c6f4d3b3e65de531f10bafe"
   integrity sha512-XPArKLzsvl0Hf0CaGyKHUyVgF7oDnhKoP85Xv6M4StF/1AhfORhZudHtOyf2s+FcbuQ9dPRAjB8J2KvRRMUK2A==
@@ -921,14 +900,6 @@
   integrity sha512-ustrPY8MryhloQj7OWGe+HrYx+aoiOxzbXTtgblbV3xwCqpzUK36phH3XNHQKj3EPonyFUuDTfR3qFhTEAuZEg==
   dependencies:
     tslib "^2.2.0"
-
-"@azure/logger@^1.3.0":
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/@azure/logger/-/logger-1.3.0.tgz#5501cf85d4f52630602a8cc75df76568c969a827"
-  integrity sha512-fCqPIfOcLE+CGqGPd66c8bZpwAji98tZ4JI9i/mlTNTlsIWslCfpg48s/ypyLxZTump5sypjrKn2/kY7q8oAbA==
-  dependencies:
-    "@typespec/ts-http-runtime" "^0.3.0"
-    tslib "^2.6.2"
 
 "@azure/msal-browser@^3.11.1":
   version "3.30.0"
