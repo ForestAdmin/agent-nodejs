@@ -61,8 +61,6 @@
     "socks": "^2.8.7",
     "micromatch": "^4.0.8",
     "@babel/helpers": "^7.26.10",
-    "@azure/identity": "4.10.1",
-    "tedious/@azure/identity": "4.10.1",
-    "forest-cli/@azure/identity": "4.10.1"
+    "@azure/identity": ">=4.2.1"
   }
 }

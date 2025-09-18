@@ -894,10 +894,10 @@
     "@azure/abort-controller" "^2.0.0"
     tslib "^2.2.0"
 
-"@azure/identity@4.10.1", "@azure/identity@^3.4.1", "@azure/identity@^4.2.1":
-  version "4.10.1"
-  resolved "https://registry.yarnpkg.com/@azure/identity/-/identity-4.10.1.tgz#6ce1e7b367d2eb6680d0efa5817382aafcd86f05"
-  integrity sha512-YM/z6RxRtFlXUH2egAYF/FDPes+MUE6ZoknjEdaq7ebJMMNUzn9zCJ3bd2ZZZlkP0r1xKa88kolhFH/FGV7JnA==
+"@azure/identity@>=4.2.1", "@azure/identity@^3.4.1", "@azure/identity@^4.2.1":
+  version "4.12.0"
+  resolved "https://registry.yarnpkg.com/@azure/identity/-/identity-4.12.0.tgz#272e39a8742191aac0b9f5ec683984bf4d88e7cb"
+  integrity sha512-6vuh2R3Cte6SD6azNalLCjIDoryGdcvDVEV7IDRPtm5lHX5ffkDlIalaoOp5YJU08e4ipjJENel20kSMDLAcug==
   dependencies:
     "@azure/abort-controller" "^2.0.0"
     "@azure/core-auth" "^1.9.0"
