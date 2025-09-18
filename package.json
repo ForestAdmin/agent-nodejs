@@ -62,6 +62,7 @@
     "micromatch": "^4.0.8",
     "@babel/helpers": "^7.26.10",
     "@azure/identity": "4.2.1",
-    "@azure/core-auth": "1.7.2"
+    "@azure/core-auth": "1.7.2",
+    "@azure/core-client": "1.9.2"
   }
 }
