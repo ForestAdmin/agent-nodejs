@@ -764,13 +764,6 @@
   dependencies:
     tslib "^2.2.0"
 
-"@azure/abort-controller@^2.1.2":
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-2.1.2.tgz#42fe0ccab23841d9905812c58f1082d27784566d"
-  integrity sha512-nBrLsEWm4J2u5LpAPjxADTlq3trDgVZZXHNKabeXZtpq3d3AbN/KGO82R87rdDz5/lYB024rtEf10/q0urNgsA==
-  dependencies:
-    tslib "^2.6.2"
-
 "@azure/core-auth@1.7.2", "@azure/core-auth@^1.3.0", "@azure/core-auth@^1.4.0", "@azure/core-auth@^1.5.0", "@azure/core-auth@^1.7.2":
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/@azure/core-auth/-/core-auth-1.7.2.tgz#558b7cb7dd12b00beec07ae5df5907d74df1ebd9"
@@ -840,21 +833,12 @@
   dependencies:
     tslib "^2.2.0"
 
-"@azure/core-util@^1.0.0", "@azure/core-util@^1.1.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.3.0":
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.6.1.tgz#fea221c4fa43c26543bccf799beb30c1c7878f5a"
-  integrity sha512-h5taHeySlsV9qxuK64KZxy4iln1BtMYlNt5jbuEFN3UFSAd1EwKg/Gjl5a6tZ/W8t6li3xPnutOx7zbDyXnPmQ==
+"@azure/core-util@1.9.2", "@azure/core-util@^1.0.0", "@azure/core-util@^1.1.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.3.0", "@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.9.2.tgz#1dc37dc5b0dae34c578be62cf98905ba7c0cafe7"
+  integrity sha512-l1Qrqhi4x1aekkV+OlcqsJa4AnAkj5p0JV8omgwjaV9OAbP41lvrMvs+CptfetKkeEaGRGSzby7sjPZEX7+kkQ==
   dependencies:
-    "@azure/abort-controller" "^1.0.0"
-    tslib "^2.2.0"
-
-"@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
-  version "1.13.1"
-  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.13.1.tgz#6dff2ff6d3c9c6430c6f4d3b3e65de531f10bafe"
-  integrity sha512-XPArKLzsvl0Hf0CaGyKHUyVgF7oDnhKoP85Xv6M4StF/1AhfORhZudHtOyf2s+FcbuQ9dPRAjB8J2KvRRMUK2A==
-  dependencies:
-    "@azure/abort-controller" "^2.1.2"
-    "@typespec/ts-http-runtime" "^0.3.0"
+    "@azure/abort-controller" "^2.0.0"
     tslib "^2.6.2"
 
 "@azure/identity@4.2.1", "@azure/identity@^3.4.1", "@azure/identity@^4.2.1":
@@ -4722,15 +4706,6 @@
   dependencies:
     "@typescript-eslint/types" "5.62.0"
     eslint-visitor-keys "^3.3.0"
-
-"@typespec/ts-http-runtime@^0.3.0":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@typespec/ts-http-runtime/-/ts-http-runtime-0.3.1.tgz#2fa94050f25b4d85d0bc8b9d97874b8d347a9173"
-  integrity sha512-SnbaqayTVFEA6/tYumdF0UmybY0KHyKwGPBXnyckFlrrKdhWFrL3a2HIPXHjht5ZOElKGcXfD2D63P36btb+ww==
-  dependencies:
-    http-proxy-agent "^7.0.0"
-    https-proxy-agent "^7.0.0"
-    tslib "^2.6.2"
 
 "@ungap/structured-clone@^1.2.0":
   version "1.2.0"

@@ -64,6 +64,7 @@
     "@azure/identity": "4.2.1",
     "@azure/core-auth": "1.7.2",
     "@azure/core-client": "1.9.2",
-    "@azure/core-rest-pipeline": "1.16.3"
+    "@azure/core-rest-pipeline": "1.16.3",
+    "@azure/core-util": "1.9.2"
   }
 }
