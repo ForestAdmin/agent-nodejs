@@ -19,6 +19,7 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   skipSchemaUpdate: false,
   typingsMaxDepth: 5,
   typingsPath: null,
+  limitExportSize: 5000,
   experimental: {},
   maxBodySize: '50mb',
   bodyParserOptions: {

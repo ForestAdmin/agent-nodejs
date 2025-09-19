@@ -8,6 +8,8 @@ import * as factories from '../../__factories__';
 import readCsv from '../../__helper__/read-csv';
 
 describe('CsvRelatedRoute', () => {
+  const limitExportSize = 5000;
+
   const setupWithOneToManyRelation = () => {
     const services = factories.forestAdminHttpDriverServices.build();
     const options = factories.forestAdminHttpDriverOptions.build();
@@ -131,6 +133,7 @@ describe('CsvRelatedRoute', () => {
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
+        limitExportSize,
         personsCollection,
         expect.any(Function),
       );
@@ -235,6 +238,7 @@ describe('CsvRelatedRoute', () => {
         new Projection('id', 'name'),
         'id,name',
         paginatedFilter,
+        limitExportSize,
         personsCollection,
         expect.any(Function),
       );

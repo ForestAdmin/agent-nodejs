@@ -23,6 +23,7 @@ export default class CsvGenerator {
     projection: Projection,
     header: string,
     filter: PaginatedFilter,
+    limitExportSize: number,
     collection: Collection,
     list: Collection['list'],
   ): AsyncGenerator<string> {
@@ -35,20 +36,26 @@ export default class CsvGenerator {
     }
 
     let currentIndex = 0;
+    let pageLimit = limitExportSize != null ? Math.min(limitExportSize, CHUNK_SIZE) : CHUNK_SIZE;
     let areAllRecordsFetched = false;
 
     while (!areAllRecordsFetched) {
       // the first argument is included in the range, the second is excluded
-      copiedFilter.page = new Page(currentIndex, CHUNK_SIZE);
+      copiedFilter.page = new Page(currentIndex, pageLimit);
 
       // eslint-disable-next-line no-await-in-loop
       const records = await list(caller, new PaginatedFilter(copiedFilter), projection);
 
       if (records.length !== 0) yield CsvGenerator.convert(records, projection);
 
-      areAllRecordsFetched = records.length < CHUNK_SIZE;
+      currentIndex += pageLimit;
+      areAllRecordsFetched = records.length < CHUNK_SIZE || limitExportSize === currentIndex;
 
-      currentIndex += CHUNK_SIZE;
+      if (limitExportSize) {
+        pageLimit = Math.min(CHUNK_SIZE, limitExportSize - currentIndex);
+      } else {
+        pageLimit = CHUNK_SIZE;
+      }
     }
   }
 
