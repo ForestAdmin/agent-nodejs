@@ -28,6 +28,8 @@ export default class ServerUtils {
 
       return response.body;
     } catch (error) {
+      console.log(error);
+
       if (error.timeout) {
         throw new Error(
           `The request to Forest Admin server has timed out while trying to reach ${url} at ${new Date().toISOString()}. Message: ${

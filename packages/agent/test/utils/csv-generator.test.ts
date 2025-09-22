@@ -361,5 +361,52 @@ describe('CsvGenerator', () => {
         );
       });
     });
+
+    describe('when limitExportSize is lower than CHUNK_SIZE', () => {
+      const setupWith2ChunkOfRecords = () => {
+        const projection = new Projection('name', 'id');
+
+        const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
+          { name: 'ab', id: n },
+        ]);
+        const filter = new PaginatedFilter({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+        const collection = factories.collection.build();
+
+        return { records, filter, collection, projection };
+      };
+
+      test('should return the expected amount of records', async () => {
+        const { records, filter, collection, projection } = setupWith2ChunkOfRecords();
+
+        collection.list = jest.fn().mockReturnValueOnce(records);
+
+        const caller = factories.caller.build();
+        const generator = CsvGenerator.generate(
+          caller,
+          projection,
+          'name',
+          filter,
+          250,
+          collection,
+          collection.list,
+        );
+        await readCsv(generator);
+
+        expect(collection.list).toHaveBeenCalledTimes(1);
+        expect(collection.list).toHaveBeenNthCalledWith(
+          1,
+          caller,
+          factories.filter.build({
+            page: new Page(0, 250),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
+      });
+    });
   });
 });
