@@ -26,7 +26,16 @@ export default class CsvRoute extends CollectionRoute {
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
     const list = this.collection.list.bind(this.collection);
-    const gen = CsvGenerator.generate(caller, projection, header, filter, this.collection, list);
+
+    const gen = CsvGenerator.generate(
+      caller,
+      projection,
+      header,
+      filter,
+      this.options.limitExportSize,
+      this.collection,
+      list,
+    );
     context.response.body = Readable.from(gen);
   }
 }

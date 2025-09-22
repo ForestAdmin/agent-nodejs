@@ -12,6 +12,8 @@ import readCsv from '../__helper__/read-csv';
 
 describe('CsvGenerator', () => {
   describe('generate', () => {
+    const limitExportSize = 5000;
+
     const setup = () => {
       const records = [
         { name: 'ab', id: 1 },
@@ -49,6 +51,7 @@ describe('CsvGenerator', () => {
         projection,
         'id,name',
         filter,
+        limitExportSize,
         collection,
         collection.list,
       );
@@ -75,6 +78,7 @@ describe('CsvGenerator', () => {
         projection,
         'id,name',
         filter,
+        limitExportSize,
         collection,
         collection.list,
       );
@@ -99,6 +103,7 @@ describe('CsvGenerator', () => {
         projection,
         'name',
         filter,
+        limitExportSize,
         collection,
         collection.list,
       );
@@ -136,6 +141,7 @@ describe('CsvGenerator', () => {
           projection,
           'name',
           filter,
+          limitExportSize,
           collection,
           collection.list,
         );
@@ -210,6 +216,7 @@ describe('CsvGenerator', () => {
           projection,
           'data',
           filter,
+          limitExportSize,
           collection,
           collection.list,
         );
@@ -221,6 +228,184 @@ describe('CsvGenerator', () => {
           'data\n',
           '"{""name"":""ab"",""price"":5}"\n"{""name"":""abc"",""price"":5}"\n',
         ]);
+      });
+    });
+
+    describe('when the limitExportSize is lower than the amount of records', () => {
+      const setupWith2ChunkOfRecords = () => {
+        const projection = new Projection('name', 'id');
+
+        const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
+          { name: 'ab', id: n },
+        ]);
+        const filter = new PaginatedFilter({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+        const collection = factories.collection.build();
+
+        return { records, filter, collection, projection };
+      };
+
+      test('should return all the records by fetching several time the list', async () => {
+        const { records, filter, collection, projection } = setupWith2ChunkOfRecords();
+
+        collection.list = jest.fn().mockReturnValueOnce(records).mockReturnValueOnce(records);
+
+        const caller = factories.caller.build();
+        const generator = CsvGenerator.generate(
+          caller,
+          projection,
+          'name',
+          filter,
+          1250,
+          collection,
+          collection.list,
+        );
+        await readCsv(generator);
+
+        expect(collection.list).toHaveBeenCalledTimes(2);
+        expect(collection.list).toHaveBeenNthCalledWith(
+          1,
+          caller,
+          factories.filter.build({
+            page: new Page(0, CHUNK_SIZE),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
+        expect(collection.list).toHaveBeenNthCalledWith(
+          2,
+          caller,
+          factories.filter.build({
+            page: new Page(CHUNK_SIZE, 250),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
+      });
+    });
+
+    describe('when there is no limitExportSize', () => {
+      const setupWith2ChunkOfRecords = () => {
+        const projection = new Projection('name', 'id');
+
+        const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
+          { name: 'ab', id: n },
+        ]);
+        const filter = new PaginatedFilter({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+        const collection = factories.collection.build();
+
+        return { records, filter, collection, projection };
+      };
+
+      test('should return all the records by fetching several time the list', async () => {
+        const { records, filter, collection, projection } = setupWith2ChunkOfRecords();
+
+        collection.list = jest
+          .fn()
+          .mockReturnValueOnce(records)
+          .mockReturnValueOnce(records)
+          .mockReturnValueOnce([]);
+
+        const caller = factories.caller.build();
+        const generator = CsvGenerator.generate(
+          caller,
+          projection,
+          'name',
+          filter,
+          null,
+          collection,
+          collection.list,
+        );
+        await readCsv(generator);
+
+        expect(collection.list).toHaveBeenCalledTimes(3);
+        expect(collection.list).toHaveBeenNthCalledWith(
+          1,
+          caller,
+          factories.filter.build({
+            page: new Page(0, CHUNK_SIZE),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
+        expect(collection.list).toHaveBeenNthCalledWith(
+          2,
+          caller,
+          factories.filter.build({
+            page: new Page(CHUNK_SIZE, CHUNK_SIZE),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
+        expect(collection.list).toHaveBeenNthCalledWith(
+          3,
+          caller,
+          factories.filter.build({
+            page: new Page(CHUNK_SIZE * 2, CHUNK_SIZE),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
+      });
+    });
+
+    describe('when limitExportSize is lower than CHUNK_SIZE', () => {
+      const setupWith2ChunkOfRecords = () => {
+        const projection = new Projection('name', 'id');
+
+        const records = Array.from({ length: CHUNK_SIZE }, (_, n: number) => [
+          { name: 'ab', id: n },
+        ]);
+        const filter = new PaginatedFilter({
+          conditionTree: factories.conditionTreeLeaf.build(),
+        });
+        const collection = factories.collection.build();
+
+        return { records, filter, collection, projection };
+      };
+
+      test('should return the expected amount of records', async () => {
+        const { records, filter, collection, projection } = setupWith2ChunkOfRecords();
+
+        collection.list = jest.fn().mockReturnValueOnce(records);
+
+        const caller = factories.caller.build();
+        const generator = CsvGenerator.generate(
+          caller,
+          projection,
+          'name',
+          filter,
+          250,
+          collection,
+          collection.list,
+        );
+        await readCsv(generator);
+
+        expect(collection.list).toHaveBeenCalledTimes(1);
+        expect(collection.list).toHaveBeenNthCalledWith(
+          1,
+          caller,
+          factories.filter.build({
+            page: new Page(0, 250),
+
+            conditionTree: expect.any(ConditionTreeLeaf),
+            sort: expect.any(Sort),
+          }),
+          expect.any(Projection),
+        );
       });
     });
   });

@@ -36,6 +36,8 @@ describe('CsvRoute', () => {
   });
 
   describe('handleCsv', () => {
+    const limitExportSize = 5000;
+
     it('should set the response headers correctly', async () => {
       const { options, services, dataSource } = setup();
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');
@@ -100,6 +102,7 @@ describe('CsvRoute', () => {
         ['id', 'name'],
         'id,name',
         paginatedFilter,
+        limitExportSize,
         booksCollection,
         expect.any(Function),
       );
