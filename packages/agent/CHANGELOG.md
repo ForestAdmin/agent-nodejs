@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.66.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.65.1...@forestadmin/agent@1.66.0) (2025-09-22)
+
+
+### Features
+
+* **csv-exporter:** allow to set global limit for csv exporter ([#1321](https://github.com/ForestAdmin/agent-nodejs/issues/1321)) ([1e7dbc0](https://github.com/ForestAdmin/agent-nodejs/commit/1e7dbc02add6ca8db5e5fe26aabe6a2bde741bf8))
+
 ## @forestadmin/agent [1.65.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.65.0...@forestadmin/agent@1.65.1) (2025-09-16)
 
 
