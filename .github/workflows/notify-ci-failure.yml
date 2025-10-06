@@ -1,0 +1,12 @@
+name: Notify CI Failure on Main
+
+on:
+  workflow_run:
+    workflows: ['Lint, Build, Test and Doc']
+    types: [completed]
+    branches: [main]
+
+jobs:
+  check-and-notify:
+    uses: 'ForestAdmin/github-workflows/.github/workflows/notify-ci-failure.yml@main'
+    secrets: inherit
