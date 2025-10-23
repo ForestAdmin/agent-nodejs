@@ -95,7 +95,10 @@ module.exports = {
 
     // padding around describe and tests
     "jest-formatting/padding-around-describe-blocks": 2,
-    "jest-formatting/padding-around-test-blocks": 2
+    "jest-formatting/padding-around-test-blocks": 2,
+
+    // Enforce export type when needed
+    '@typescript-eslint/consistent-type-exports': 'error',
   },
   overrides: [
     ...readdirSync(resolve(__dirname, 'packages'))
