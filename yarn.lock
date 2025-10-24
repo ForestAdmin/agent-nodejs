@@ -1230,7 +1230,7 @@
   resolved "https://registry.yarnpkg.com/@babel/helper-validator-option/-/helper-validator-option-7.27.1.tgz#fa52f5b1e7db1ab049445b421c4471303897702f"
   integrity sha512-YvjJow9FxbhFFKDSuFnVCe2WxXk1zWc22fFePVNEaWJEu8IrZVlda6N0uHwzZrUM1il7NC9Mlp4MaJYbYd9JSg==
 
-"@babel/helpers@^7.23.2", "@babel/helpers@^7.26.10", "@babel/helpers@^7.28.4":
+"@babel/helpers@^7.23.2", "@babel/helpers@^7.28.4":
   version "7.28.4"
   resolved "https://registry.yarnpkg.com/@babel/helpers/-/helpers-7.28.4.tgz#fe07274742e95bdf7cf1443593eeb8926ab63827"
   integrity sha512-HFN59MmQXGHVyYadKLVumYsA9dBFun/ldYxipEjzA4196jpLZd8UjEEBLkbEkvfYreDqJhZxYAWFPtrfhNpj4w==
@@ -1755,6 +1755,56 @@
     fastify-plugin "^4.0.0"
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
+
+"@forestadmin/agent@1.65.1":
+  version "1.65.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.65.1.tgz#64f37ac6a85eeef1f585964e1c861773306a9d7d"
+  integrity sha512-B5FuDnF77Q9Z11cRdssRWkp3RQB6UoFyhrBtZbq/veWbXd4Dg3TlUdcSOI4ilM4cbLDXX7m6jmD27HPrSwttEw==
+  dependencies:
+    "@fast-csv/format" "^4.3.5"
+    "@fastify/express" "^1.1.0"
+    "@forestadmin/datasource-customizer" "1.67.1"
+    "@forestadmin/datasource-toolkit" "1.50.0"
+    "@forestadmin/forestadmin-client" "1.36.14"
+    "@koa/bodyparser" "^6.0.0"
+    "@koa/cors" "^5.0.0"
+    "@koa/router" "^13.1.0"
+    "@types/koa__router" "^12.0.4"
+    forest-ip-utils "^1.0.1"
+    json-api-serializer "^2.6.6"
+    json-stringify-pretty-compact "^3.0.0"
+    jsonwebtoken "^9.0.0"
+    koa "^2.16.1"
+    koa-jwt "^4.0.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    superagent "^10.2.3"
+    uuid "11.0.2"
+
+"@forestadmin/agent@1.66.0":
+  version "1.66.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.66.0.tgz#94c3143ced404e15288c45588be6739338051ad8"
+  integrity sha512-WqfDZzvAozelYaQPMl1BWIZTgT7oO6FdrZqipezpyc+wUMrWzsJ3akOwH2L8OLgIkWTnf4die/nzg7Q6XLc8BQ==
+  dependencies:
+    "@fast-csv/format" "^4.3.5"
+    "@fastify/express" "^1.1.0"
+    "@forestadmin/datasource-customizer" "1.67.1"
+    "@forestadmin/datasource-toolkit" "1.50.0"
+    "@forestadmin/forestadmin-client" "1.36.14"
+    "@koa/bodyparser" "^6.0.0"
+    "@koa/cors" "^5.0.0"
+    "@koa/router" "^13.1.0"
+    "@types/koa__router" "^12.0.4"
+    forest-ip-utils "^1.0.1"
+    json-api-serializer "^2.6.6"
+    json-stringify-pretty-compact "^3.0.0"
+    jsonwebtoken "^9.0.0"
+    koa "^3.0.1"
+    koa-jwt "^4.0.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    superagent "^10.2.3"
+    uuid "11.0.2"
 
 "@forestadmin/context@1.37.1":
   version "1.37.1"
@@ -3133,7 +3183,7 @@
   resolved "https://registry.yarnpkg.com/@panva/asn1.js/-/asn1.js-1.0.0.tgz#dd55ae7b8129e02049f009408b97c61ccf9032f6"
   integrity sha512-UdkG3mLEqXgnlKsWanWcgb6dOjUzJ+XC5f+aWw30qrtjxeNUSfKX1cd5FBzOaXQumoe9nIqeZUvrRJS03HCCtw==
 
-"@paralleldrive/cuid2@^2.2.2":
+"@paralleldrive/cuid2@2.2.2", "@paralleldrive/cuid2@^2.2.2":
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/@paralleldrive/cuid2/-/cuid2-2.2.2.tgz#7f91364d53b89e2c9cb9e02e8dd0f129e834455f"
   integrity sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==
@@ -5628,7 +5678,7 @@ brace-expansion@^2.0.1:
   dependencies:
     balanced-match "^1.0.0"
 
-braces@^3.0.3, braces@~3.0.2:
+braces@^3.0.1, braces@^3.0.3, braces@~3.0.2:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/braces/-/braces-3.0.3.tgz#490332f40919452272d55a8480adc0c441358789"
   integrity sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==
@@ -7759,7 +7809,7 @@ exponential-backoff@^3.1.1:
   resolved "https://registry.yarnpkg.com/exponential-backoff/-/exponential-backoff-3.1.1.tgz#64ac7526fe341ab18a39016cd22c787d01e00bf6"
   integrity sha512-dX7e/LHVJ6W3DE1MHWi9S1EYzDESENfLrYohG2G++ovZrYOkm4Knwa0mc1cn84xJOR4KEU0WSchhLbd0UklbHw==
 
-express@4.21.2, express@^4.17.1, express@^4.18.2, express@^4.21.1:
+express@4.21.2, express@^4.17.1, express@^4.18.2:
   version "4.21.2"
   resolved "https://registry.yarnpkg.com/express/-/express-4.21.2.tgz#cf250e48362174ead6cea4a566abef0162c1ec32"
   integrity sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==
@@ -10628,6 +10678,35 @@ koa@^2.13.4:
     type-is "^1.6.16"
     vary "^1.1.2"
 
+koa@^2.16.1:
+  version "2.16.3"
+  resolved "https://registry.yarnpkg.com/koa/-/koa-2.16.3.tgz#dd3a250472862cf7a3ef6e25bf325cc9db620ab5"
+  integrity sha512-zPPuIt+ku1iCpFBRwseMcPYQ1cJL8l60rSmKeOuGfOXyE6YnTBmf2aEFNL2HQGrD0cPcLO/t+v9RTgC+fwEh/g==
+  dependencies:
+    accepts "^1.3.5"
+    cache-content-type "^1.0.0"
+    content-disposition "~0.5.2"
+    content-type "^1.0.4"
+    cookies "~0.9.0"
+    debug "^4.3.2"
+    delegates "^1.0.0"
+    depd "^2.0.0"
+    destroy "^1.0.4"
+    encodeurl "^1.0.2"
+    escape-html "^1.0.3"
+    fresh "~0.5.2"
+    http-assert "^1.3.0"
+    http-errors "^1.6.3"
+    is-generator-function "^1.0.7"
+    koa-compose "^4.1.0"
+    koa-convert "^2.0.0"
+    on-finished "^2.3.0"
+    only "~0.0.2"
+    parseurl "^1.3.2"
+    statuses "^1.5.0"
+    type-is "^1.6.16"
+    vary "^1.1.2"
+
 koa@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/koa/-/koa-3.0.1.tgz#b211a0f350d1cc6185047671f8ef7e019c16351d"
@@ -11653,7 +11732,15 @@ micromark@^2.11.3, micromark@~2.11.0, micromark@~2.11.3:
     debug "^4.0.0"
     parse-entities "^2.0.0"
 
-micromatch@4.0.2, micromatch@^4.0.0, micromatch@^4.0.2, micromatch@^4.0.4, micromatch@^4.0.8:
+micromatch@4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-4.0.2.tgz#4fcb0999bf9fbc2fcbdd212f6d629b9a56c39259"
+  integrity sha512-y7FpHSbMUMoyPbYUSzO6PaZ6FyRnQOpHuKwbo1G+Knck95XVU4QAiKdGEnj5wwoS7PlOgthX/09u5iFJ+aYf5Q==
+  dependencies:
+    braces "^3.0.1"
+    picomatch "^2.0.5"
+
+micromatch@^4.0.0, micromatch@^4.0.2, micromatch@^4.0.4, micromatch@^4.0.8:
   version "4.0.8"
   resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-4.0.8.tgz#d66fa18f3a47076789320b9b1af32bd86d9fa202"
   integrity sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==
@@ -13497,7 +13584,7 @@ picocolors@^1.1.1:
   resolved "https://registry.yarnpkg.com/picocolors/-/picocolors-1.1.1.tgz#3d321af3eab939b083c8f929a1d12cda81c26b6b"
   integrity sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==
 
-picomatch@^2.0.4, picomatch@^2.2.1, picomatch@^2.2.3, picomatch@^2.3.1:
+picomatch@^2.0.4, picomatch@^2.0.5, picomatch@^2.2.1, picomatch@^2.2.3, picomatch@^2.3.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
   integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
@@ -14854,7 +14941,7 @@ socks-proxy-agent@^8.0.3:
     debug "^4.3.4"
     socks "^2.8.3"
 
-socks@^2.6.2, socks@^2.7.1, socks@^2.8.3, socks@^2.8.4, socks@^2.8.7:
+socks@^2.6.2, socks@^2.7.1, socks@^2.8.3, socks@^2.8.4:
   version "2.8.7"
   resolved "https://registry.yarnpkg.com/socks/-/socks-2.8.7.tgz#e2fb1d9a603add75050a2067db8c381a0b5669ea"
   integrity sha512-HLpt+uLy/pxB+bum/9DzAgiKS8CX1EvbWxI4zlmgGCExImLdiad2iCwXT5Z4c9c3Eq8rP2318mPW2c+QbtjK8A==
