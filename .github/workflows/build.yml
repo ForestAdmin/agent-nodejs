@@ -191,13 +191,6 @@ jobs:
           path: packages/*/dist
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
-      # TODO: this can be done as a oneliner using the registry option in actions/setup-node step
-      - name: Configure npm
-        run: |
-          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
-          cat .npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Disable workspaces-update
         run: npm config set workspaces-update false
       - name: 'Run multi-semantic-release'
@@ -208,7 +201,6 @@ jobs:
           GIT_AUTHOR_NAME: ${{ secrets.GIT_AUTHOR_NAME }}
           GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL }}
           GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
   publish-api-reference:
