@@ -1,12 +1,18 @@
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
 import { BusinessError } from '../../src/errors';
 
-// Used to mock the environment configuration file in the CI
-jest.mock('/home/runner/.forest.d/.environments.json', () => ({}), { virtual: true });
 jest.mock('fs');
+
+// Mock the environment configuration file dynamically based on the actual home directory
+beforeAll(() => {
+  const environmentConfigPath = path.join(os.homedir(), '.forest.d', '.environments.json');
+  jest.doMock(environmentConfigPath, () => ({}), { virtual: true });
+});
 
 describe('start command', () => {
   afterEach(() => {
