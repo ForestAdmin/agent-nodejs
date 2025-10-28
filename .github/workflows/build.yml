@@ -202,6 +202,7 @@ jobs:
           GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL }}
           GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          NPM_CONFIG_PROVENANCE: true
 
   publish-api-reference:
     name: Publish API Reference
