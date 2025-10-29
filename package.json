@@ -60,6 +60,7 @@
     "form-data": "^4.0.4",
     "socks": "^2.8.7",
     "micromatch": "^4.0.8",
-    "@babel/helpers": "^7.26.10"
+    "@babel/helpers": "^7.26.10",
+    "semantic-release": "^24.0.0"
   }
 }

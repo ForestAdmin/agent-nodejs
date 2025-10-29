@@ -12,7 +12,7 @@ describe('Services > Internal > latestVersion', () => {
   describe('When the package does not exist', () => {
     it('should throw an error', async () => {
       await expect(latestVersion('@forestadmin/does-not-exist')).rejects.toThrow(
-        'Error while retrieving the version:npm ERR! code E404',
+        'Error while retrieving the version:npm error code E404',
       );
     }, 30_000);
   });
