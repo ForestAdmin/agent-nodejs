@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.66.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.66.1...@forestadmin/agent@1.66.2) (2025-10-30)
+
+
+### Bug Fixes
+
+* **onboarding:** prevent install of deprecated @paralleldrive/cuid2@2.3.0 version ([#1332](https://github.com/ForestAdmin/agent-nodejs/issues/1332)) ([71b2e73](https://github.com/ForestAdmin/agent-nodejs/commit/71b2e7383f1110ef4507099b532f071b198f7528))
+
 ## @forestadmin/agent [1.66.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.66.0...@forestadmin/agent@1.66.1) (2025-10-23)
 
 
