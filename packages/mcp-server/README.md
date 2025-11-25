@@ -49,6 +49,7 @@ yarn build
 | `AGENT_HOSTNAME` | No | `http://localhost:3310` | The URL where your Forest Admin agent is running |
 | `FOREST_SERVER_URL` | No | - | Forest Admin server URL (optional, uses default if not set) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
+| `MCP_TRANSPORT` | No | `http` | Transport mode: `stdio` for MCP stdio transport or `http` for HTTP REST API |
 
 ### Example Configuration
 
@@ -64,16 +65,16 @@ export MCP_SERVER_PORT="3931"
 
 ### Running the Server
 
-After building, run the server:
+The server supports two transport modes:
+
+#### HTTP Mode (Default)
+
+Run as an HTTP REST API server:
 
 ```bash
 yarn start
-```
-
-Or using the binary directly:
-
-```bash
-node dist/index.js
+# or
+MCP_TRANSPORT=http node dist/index.js
 ```
 
 The server will start on `http://localhost:3931` (or your configured port) and expose the following endpoints:
@@ -82,6 +83,7 @@ The server will start on `http://localhost:3931` (or your configured port) and e
 - `GET /health` - Health check endpoint
 - `GET /tools` - List available tools
 - `POST /tools/execute` - Execute a tool
+- `POST /mcp` - MCP protocol message endpoint
 
 **OAuth/OIDC Endpoints:**
 - `GET /.well-known/openid-configuration` - OIDC discovery endpoint
@@ -89,6 +91,21 @@ The server will start on `http://localhost:3931` (or your configured port) and e
 - `GET /oauth/authorize` - OAuth authorization endpoint
 - `POST /oauth/token` - OAuth token exchange endpoint
 - `GET /oauth/userinfo` - OAuth user info endpoint
+
+#### Stdio Mode
+
+Run with MCP stdio transport (for direct MCP client integration):
+
+```bash
+MCP_TRANSPORT=stdio node dist/index.js
+```
+
+In stdio mode, the server communicates using the MCP protocol over stdin/stdout. This mode is useful for:
+- Integration with MCP clients that support stdio transport
+- Direct tool invocation without HTTP overhead
+- Claude Desktop app integration
+
+The server will expose the same tools but communicate via the MCP protocol instead of HTTP.
 
 ### API Endpoints
 

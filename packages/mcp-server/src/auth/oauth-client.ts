@@ -1,7 +1,13 @@
-import createForestAdminClient, { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import * as http from 'http';
 import * as https from 'https';
+import { createRequire } from 'module';
 import * as url from 'url';
+
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const createForestAdminClient = require('@forestadmin/forestadmin-client').default;
+
+type ForestAdminClient = ReturnType<typeof createForestAdminClient>;
 
 interface UserInfo {
   id: number;
