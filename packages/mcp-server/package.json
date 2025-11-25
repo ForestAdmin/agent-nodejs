@@ -1,0 +1,38 @@
+{
+  "name": "@forestadmin/mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for Forest Admin with OAuth authentication",
+  "main": "dist/index.js",
+  "bin": {
+    "forest-mcp-server": "dist/index.js"
+  },
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/mcp-server"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@forestadmin/forestadmin-client": "1.36.14",
+    "superagent": "^10.2.3"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.18"
+  }
+}

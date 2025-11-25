@@ -53,5 +53,25 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
 
   // Debugging tests
-  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000"
+  "jest.jestCommandLine": "node_modules/.bin/jest --runInBand --testTimeout=60000000",
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#79cb9a",
+    "activityBar.background": "#79cb9a",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#865ec1",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#15202b99",
+    "sash.hoverBorder": "#79cb9a",
+    "statusBar.background": "#54bd7e",
+    "statusBar.foreground": "#15202b",
+    "statusBarItem.hoverBackground": "#3ea065",
+    "statusBarItem.remoteBackground": "#54bd7e",
+    "statusBarItem.remoteForeground": "#15202b",
+    "tab.activeBorder": "#79cb9a",
+    "titleBar.activeBackground": "#54bd7e",
+    "titleBar.activeForeground": "#15202b",
+    "titleBar.inactiveBackground": "#54bd7e99",
+    "titleBar.inactiveForeground": "#15202b99"
+  }
 }
