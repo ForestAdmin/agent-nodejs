@@ -10,7 +10,6 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestAdminOAuthProvider from './auth/forest-oauth-provider.js';
-import OAuthClient from './auth/oauth-client.js';
 import ToolsCreator from './tools/tools.js';
 
 /**
@@ -33,14 +32,15 @@ interface ToolInfo {
 }
 
 class ForestAdminMCPServer {
-  private oauthClient: OAuthClient;
   private mcpServer: McpServer;
   private mcpTransport?: StreamableHTTPServerTransport;
   private httpServer?: http.Server;
   private tools: ToolInfo[];
+  private forestServerUrl: string;
 
   constructor() {
-    this.oauthClient = new OAuthClient();
+    this.forestServerUrl =
+      process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
 
     // Create MCP Server
     this.mcpServer = new McpServer(
@@ -90,16 +90,16 @@ class ForestAdminMCPServer {
   }
 
   private setupTools(): void {
-    const toolsCreator = new ToolsCreator({ mcpServer: this.mcpServer });
+    ToolsCreator.createTools({
+      mcpServer: this.mcpServer,
+      forestServerUrl: this.forestServerUrl,
+    });
     // Only the 'list' tool from ToolsCreator is active
     // forest_info and forest_authenticate tools are deactivated
   }
 
   async run(): Promise<void> {
     try {
-      // Initialize OAuth client
-      await this.oauthClient.initialize();
-
       const port = Number(process.env.MCP_SERVER_PORT) || 3931;
       const baseUrl = new URL(`http://localhost:${port}`);
 
@@ -119,7 +119,7 @@ class ForestAdminMCPServer {
       );
 
       // Initialize and mount MCP OAuth router FIRST (at application root)
-      const oauthProvider = new ForestAdminOAuthProvider();
+      const oauthProvider = new ForestAdminOAuthProvider({ forestServerUrl: this.forestServerUrl });
       await oauthProvider.initialize();
 
       app.use(
@@ -180,7 +180,7 @@ class ForestAdminMCPServer {
         // eslint-disable-next-line no-console
         console.log(`[INFO] Forest Admin MCP Server running on http://localhost:${port}`);
         // eslint-disable-next-line no-console
-        console.log(`[INFO] Agent hostname: ${this.oauthClient.getAgentHostname()}`);
+        console.log(`[INFO] Agent hostname: ${process.env.AGENT_HOSTNAME}`);
         // eslint-disable-next-line no-console
         console.log(`[INFO] MCP Tool Endpoints:`);
         // eslint-disable-next-line no-console

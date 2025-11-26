@@ -11,14 +11,10 @@ import type {
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { Response } from 'express';
 
-import OAuthClient from './oauth-client.js';
-
 /**
  * OAuth Server Provider that integrates with Forest Admin authentication
  */
 export default class ForestAdminOAuthProvider implements OAuthServerProvider {
-  private oauthClient: OAuthClient;
-
   private authorizationCodes: Map<
     string,
     { codeChallenge: string; redirectUri: string; client: OAuthClientInformationFull }
@@ -30,28 +26,26 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
   > = new Map();
 
   private environmentId?: number;
+  private forestServerUrl: string;
 
-  constructor() {
-    this.oauthClient = new OAuthClient();
+  constructor({ forestServerUrl }: { forestServerUrl: string }) {
+    this.forestServerUrl = forestServerUrl;
   }
 
   async initialize(): Promise<void> {
-    await this.oauthClient.initialize();
     await this.fetchEnvironmentId();
   }
 
   private async fetchEnvironmentId(): Promise<void> {
     try {
       const envSecret = process.env.FOREST_ENV_SECRET;
-      const forestServerUrl =
-        process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
 
       if (!envSecret) {
         return;
       }
 
       // Call Forest Admin API to get environment information
-      const response = await fetch(`${forestServerUrl}/liana/environment`, {
+      const response = await fetch(`${this.forestServerUrl}/liana/environment`, {
         method: 'GET',
         headers: {
           'forest-secret-key': envSecret,
@@ -150,12 +144,10 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         client,
       });
 
-      const forestApiURL =
-        process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
       // Redirect to Forest Admin agent for actual authentication
       const agentAuthUrl = new URL(
         '/authentication/mcp-login',
-        forestApiURL.replace('https://api', 'https://app'),
+        this.forestServerUrl.replace('https://api', 'https://app'),
       );
 
       agentAuthUrl.searchParams.set('state', authCode);
@@ -193,9 +185,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     redirectUri?: string,
   ): Promise<OAuthTokens> {
     const { code, renderingId } = JSON.parse(authorizationCode);
-    const callbackUrl = new URL(
-      `${this.oauthClient.getAgentHostname()}/forest/authentication/callback`,
-    );
+    const callbackUrl = new URL(`${process.env.AGENT_HOSTNAME}/forest/authentication/callback`);
     callbackUrl.searchParams.set('code', code);
     callbackUrl.searchParams.set('state', JSON.stringify({ renderingId }));
     const response = await fetch(callbackUrl, { method: 'GET' });

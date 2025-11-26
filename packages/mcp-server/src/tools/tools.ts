@@ -67,17 +67,16 @@ type ListArgument = z.infer<typeof listArgumentSchema>;
  *
  */
 export default class ToolsCreator {
-  readonly server: McpServer;
-
-  constructor({ mcpServer }: { mcpServer: McpServer }) {
-    this.server = mcpServer;
-    this.declareTools();
-  }
-
-  private declareTools() {
+  public static createTools({
+    mcpServer,
+    forestServerUrl,
+  }: {
+    mcpServer: McpServer;
+    forestServerUrl: string;
+  }) {
     // TODO: How monitor tools execution?
     // TODO: Custom billing, how to handle it?
-    this.declareListTool();
+    this.declareListTool(mcpServer, forestServerUrl);
     // this.declareListHasManyTool();
     // this.declareAvailableCollectionsTool();
     // this.declareAvailableActionsTool();
@@ -135,8 +134,8 @@ export default class ToolsCreator {
    * This tool will be used to list the data from the customer agent
    * It will be used by the AI to retrieve the data from the customer agent
    */
-  private declareListTool() {
-    this.server.registerTool(
+  private static declareListTool(mcpServer: McpServer, forestServerUrl: string) {
+    mcpServer.registerTool(
       'list',
       {
         title: 'List data from the customer agent',
@@ -146,10 +145,12 @@ export default class ToolsCreator {
       async (options: ListArgument, extra) => {
         const {
           rpcClient,
-          authData: { userId, renderingId },
+          authData: { renderingId },
         } = await this.buildClient(extra);
 
-        await this.createActivityLog(userId, renderingId, 'list');
+        await this.createActivityLog(forestServerUrl, extra.authInfo.token, renderingId, 'list', {
+          collectionName: options.collectionName,
+        });
 
         const result = await rpcClient
           .collection(options.collectionName)
@@ -399,7 +400,9 @@ export default class ToolsCreator {
   //   );
   // }
 
-  private async buildClient(request: RequestHandlerExtra<ServerRequest, ServerNotification>) {
+  private static async buildClient(
+    request: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  ) {
     // TODO: improve this code to be authenticated to the customer agent
     // How to retrieve the user information when a mcp client is calling the agent?
     // The mcp server can be called by a mcp client hosted on forestadmin or by an external mcp client.
@@ -416,8 +419,6 @@ export default class ToolsCreator {
       actionEndpoints: {}, // trouver les endpoints des actions dans le rendering ?
     });
 
-    console.log('request.authInfo', request.authInfo, request.authInfo?.extra);
-
     return {
       rpcClient,
       authData: request.authInfo?.extra as {
@@ -430,7 +431,7 @@ export default class ToolsCreator {
     };
   }
 
-  private getListParameters(options: ListArgument): {
+  private static getListParameters(options: ListArgument): {
     filters?: Record<string, unknown>;
     search?: string;
     sort?: { field: string; ascending: boolean };
@@ -456,16 +457,17 @@ export default class ToolsCreator {
     return parameters;
   }
 
-  private createActivityLog(
-    userId: number,
+  private static async createActivityLog(
+    forestServerUrl: string,
+    token: string,
     renderingId: number | string,
     action: string,
-    // extra?: {
-    //   collectionName?: string;
-    //   recordId?: string | number;
-    //   recordIds?: string[] | number[];
-    //   label?: string;
-    // },
+    extra?: {
+      collectionName?: string;
+      recordId?: string | number;
+      recordIds?: string[] | number[];
+      label?: string;
+    },
   ) {
     const actionToType = {
       list: 'read',
@@ -484,6 +486,46 @@ export default class ToolsCreator {
     }
 
     const type = actionToType[action] as 'read' | 'write';
+
+    const response = await fetch(`${forestServerUrl}/api/activity-logs-requests`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Forest-Application-Source': 'MCP',
+      },
+      body: JSON.stringify({
+        data: {
+          id: 1,
+          type: 'activity-logs-requests',
+          attributes: {
+            type,
+            action,
+            label: extra?.label,
+            records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
+          },
+          relationships: {
+            rendering: {
+              data: {
+                id: renderingId,
+                type: 'renderings',
+              },
+            },
+            collection: {
+              data: extra?.collectionName
+                ? {
+                    id: extra.collectionName,
+                    type: 'collections',
+                  }
+                : null,
+            },
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create activity log: ${await response.text()}`);
+    }
 
     // FIXME: Call the forest api
     // return this.activityLogCreator.create({ id: userId } as User, {

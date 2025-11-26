@@ -17,7 +17,6 @@
     "directory": "packages/mcp-server"
   },
   "dependencies": {
-    "@forestadmin/forestadmin-client": "1.36.14",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@forestadmin-experimental/agent-nodejs-testing": "^0.36.0",
     "cors": "^2.8.5",
