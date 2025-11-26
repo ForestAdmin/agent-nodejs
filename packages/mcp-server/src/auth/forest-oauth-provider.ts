@@ -24,8 +24,10 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     { codeChallenge: string; redirectUri: string; client: OAuthClientInformationFull }
   > = new Map();
 
-  private accessTokens: Map<string, { clientId: string; userId: string; scopes: string[] }> =
-    new Map();
+  private accessTokens: Map<
+    string,
+    { clientId: string; userId: string; expiresAt: number; scopes: string[] }
+  > = new Map();
 
   constructor() {
     this.oauthClient = new OAuthClient();
@@ -69,19 +71,32 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
 
         return this.clients.get(clientId);
       },
-      // registerClient: (
-      //   client: Omit<OAuthClientInformationFull, 'client_id' | 'client_id_issued_at'>,
-      // ) => {
-      //   const clientId = `fa_client_${Math.random().toString(36).substring(2)}`;
-      //   const fullClient: OAuthClientInformationFull = {
-      //     ...client,
-      //     client_id: clientId,
-      //     client_id_issued_at: Math.floor(Date.now() / 1000),
-      //   };
-      //   this.clients.set(clientId, fullClient);
+      registerClient: (
+        client: Omit<OAuthClientInformationFull, 'client_id' | 'client_id_issued_at'>,
+      ) => {
+        const clientId = `fa_client_${Math.random().toString(36).substring(2)}`;
 
-      //   return fullClient;
-      // },
+        // Use the same permissive redirect_uris proxy to accept any redirect_uri
+        const permissiveRedirectUris = new Proxy(client.redirect_uris || [], {
+          get(target, prop) {
+            if (prop === 'includes') {
+              return () => true;
+            }
+
+            return target[prop as keyof typeof target];
+          },
+        });
+
+        const fullClient: OAuthClientInformationFull = {
+          ...client,
+          client_id: clientId,
+          client_id_issued_at: Math.floor(Date.now() / 1000),
+          redirect_uris: permissiveRedirectUris as unknown as string[],
+        };
+        this.clients.set(clientId, fullClient);
+
+        return fullClient;
+      },
     };
   }
 
@@ -171,6 +186,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     this.accessTokens.set(data.token, {
       clientId: client.client_id,
       userId: `${data.tokenData.id}`,
+      expiresAt: data.tokenData.exp,
       scopes: ['openid', 'profile', 'email'],
     });
 
@@ -195,6 +211,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       clientId: client.client_id,
       userId: 'forest_user',
       scopes: scopes || ['openid', 'profile', 'email'],
+      expiresAt: Date.now() / 1000 + 3600,
     });
 
     return {
@@ -206,17 +223,49 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
   }
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
+    // First, check if token is in our accessTokens map (from OAuth flow)
     const tokenInfo = this.accessTokens.get(token);
 
-    if (!tokenInfo) {
-      throw new Error('Invalid access token');
+    if (tokenInfo) {
+      return {
+        token,
+        clientId: tokenInfo.clientId,
+        expiresAt: tokenInfo.expiresAt,
+        scopes: tokenInfo.scopes,
+      };
     }
 
-    return {
-      token,
-      clientId: tokenInfo.clientId,
-      scopes: tokenInfo.scopes,
-    };
+    // If not in map, try to decode as Forest Admin JWT
+    // Forest Admin tokens are valid JWTs that we can accept directly
+    try {
+      const parts = token.split('.');
+
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+
+        // Verify it has the expected Forest Admin fields
+        if (payload.id && payload.email && payload.renderingId) {
+          // Accept the token and store it for future requests
+          this.accessTokens.set(token, {
+            clientId: 'forest-admin-direct',
+            userId: `${payload.id}`,
+            expiresAt: payload.exp,
+            scopes: ['openid', 'profile', 'email'],
+          });
+
+          return {
+            token,
+            expiresAt: tokenInfo.expiresAt,
+            clientId: 'forest-admin-direct',
+            scopes: ['openid', 'profile', 'email'],
+          };
+        }
+      }
+    } catch (error) {
+      // Token is not a valid JWT, continue to error
+    }
+
+    throw new Error('Invalid access token');
   }
 
   async revokeToken(

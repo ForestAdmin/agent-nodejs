@@ -189,43 +189,6 @@ class ForestAdminMCPServer {
     );
   }
 
-  private async handleToolCall(
-    toolName: string,
-    args: Record<string, unknown>,
-  ): Promise<{ success: boolean; result?: string; error?: string }> {
-    try {
-      // Ensure OAuth client is initialized
-      if (!this.oauthClient.isInitialized()) {
-        await this.oauthClient.initialize();
-      }
-
-      // Route to appropriate tool handler
-      switch (toolName) {
-        case 'forest_info': {
-          const result = await handleForestInfo(this.oauthClient);
-
-          return { success: true, result };
-        }
-
-        case 'forest_authenticate': {
-          const result = await handleForestAuthenticate(
-            this.oauthClient,
-            args as { renderingId?: number; callbackPort?: number },
-          );
-
-          return { success: true, result };
-        }
-
-        default:
-          return { success: false, error: `Unknown tool: ${toolName}` };
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      return { success: false, error: errorMessage };
-    }
-  }
-
   async run(): Promise<void> {
     try {
       // Initialize OAuth client
@@ -248,20 +211,6 @@ class ForestAdminMCPServer {
           origin: '*',
         }),
       );
-      // CORS middleware - must be first
-      // app.use((req, res, next) => {
-      //   res.setHeader('Access-Control-Allow-Origin', '*');
-      //   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      //   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-      //   if (req.method === 'OPTIONS') {
-      //     res.status(200).end();
-
-      //     return;
-      //   }
-
-      //   next();
-      // });
 
       // Initialize and mount MCP OAuth router FIRST (at application root)
       const oauthProvider = new ForestAdminOAuthProvider();
@@ -286,10 +235,10 @@ class ForestAdminMCPServer {
       // The middleware will set req.auth with authentication info from the bearer token
       app.post(
         '/mcp',
-        // requireBearerAuth({
-        //   verifier: oauthProvider,
-        //   requiredScopes: ['openid', 'profile', 'email'],
-        // }),
+        requireBearerAuth({
+          verifier: oauthProvider,
+          // requiredScopes: ['openid', 'profile', 'email'],
+        }),
         (req, res) => {
           void (async () => {
             try {
@@ -317,48 +266,6 @@ class ForestAdminMCPServer {
           })();
         },
       );
-
-      // // Health check endpoint
-      // app.get('/health', (_req, res) => {
-      //   res.json({
-      //     status: 'healthy',
-      //     authenticated: this.oauthClient.isAuthenticated(),
-      //     agentHostname: this.oauthClient.getAgentHostname(),
-      //   });
-      // });
-
-      // // List available tools
-      // app.get('/tools', (_req, res) => {
-      //   res.json({ tools: this.tools });
-      // });
-
-      // // Execute a tool
-      // app.post('/tools/execute', async (req, res) => {
-      //   try {
-      //     const { tool, args } = req.body as { tool: string; args?: Record<string, unknown> };
-      //     const result = await this.handleToolCall(tool, args || {});
-
-      //     res.json(result);
-      //   } catch (error) {
-      //     res.status(400).json({ success: false, error: 'Invalid request' });
-      //   }
-      // });
-
-      // // Default 404 handler
-      // app.use((_req, res) => {
-      //   res.status(404).json({
-      //     error: 'Not found',
-      //     endpoints: {
-      //       'GET /health': 'Health check endpoint',
-      //       'GET /tools': 'List available tools',
-      //       'POST /tools/execute': 'Execute a tool (body: { tool: string, args?: object })',
-      //       'GET /.well-known/oauth-authorization-server': 'OAuth discovery endpoint (RFC 8414)',
-      //       'GET /authorize': 'OAuth authorization endpoint',
-      //       'POST /token': 'OAuth token endpoint',
-      //       'POST /register': 'OAuth client registration endpoint',
-      //     },
-      //   });
-      // });
 
       // Create HTTP server from Express app
       this.httpServer = http.createServer(app);
