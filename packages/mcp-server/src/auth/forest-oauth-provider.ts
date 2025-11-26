@@ -29,12 +29,46 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     { clientId: string; userId: string; expiresAt: number; scopes: string[] }
   > = new Map();
 
+  private environmentId?: number;
+
   constructor() {
     this.oauthClient = new OAuthClient();
   }
 
   async initialize(): Promise<void> {
     await this.oauthClient.initialize();
+    await this.fetchEnvironmentId();
+  }
+
+  private async fetchEnvironmentId(): Promise<void> {
+    try {
+      const envSecret = process.env.FOREST_ENV_SECRET;
+      const forestServerUrl =
+        process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
+
+      if (!envSecret) {
+        return;
+      }
+
+      // Call Forest Admin API to get environment information
+      const response = await fetch(`${forestServerUrl}/liana/environment`, {
+        method: 'GET',
+        headers: {
+          'forest-secret-key': envSecret,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch environment: ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as unknown as { data: { id: string } };
+
+      this.environmentId = parseInt(data.data.id, 10);
+    } catch (error) {
+      console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
+    }
   }
 
   // In-memory clients store - in production this should be persisted
@@ -116,15 +150,21 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         client,
       });
 
+      const forestApiURL =
+        process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
       // Redirect to Forest Admin agent for actual authentication
       const agentAuthUrl = new URL(
         '/authentication/mcp-login',
-        process.env.FOREST_URL?.replace('https://api', 'https://app') ||
-          'https://app.forestadmin.com',
+        forestApiURL.replace('https://api', 'https://app'),
       );
 
       agentAuthUrl.searchParams.set('state', authCode);
       agentAuthUrl.searchParams.set('redirect_uri', params.redirectUri);
+
+      // Add environmentId if available
+      if (this.environmentId) {
+        agentAuthUrl.searchParams.set('environmentId', this.environmentId.toString());
+      }
 
       res.redirect(agentAuthUrl.toString());
     } catch (error) {
@@ -142,14 +182,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     client: OAuthClientInformationFull,
     authorizationCode: string,
   ): Promise<string> {
-    // const auth = this.authorizationCodes.get(authorizationCode);
-
-    // console.log('auth', auth);
-
-    // if (!auth) {
-    // throw new Error('Invalid authorization code');
-    // }
-
+    // This is never called but required by TS !
     return authorizationCode;
   }
 
@@ -227,11 +260,16 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     const tokenInfo = this.accessTokens.get(token);
 
     if (tokenInfo) {
+      const parsedJwt = this.parseJWT(token);
+
       return {
         token,
         clientId: tokenInfo.clientId,
         expiresAt: tokenInfo.expiresAt,
         scopes: tokenInfo.scopes,
+        extra: {
+          ...parsedJwt,
+        },
       };
     }
 
@@ -253,12 +291,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
             scopes: ['openid', 'profile', 'email'],
           });
 
-          return {
-            token,
-            expiresAt: tokenInfo.expiresAt,
-            clientId: 'forest-admin-direct',
-            scopes: ['openid', 'profile', 'email'],
-          };
+          return await this.verifyAccessToken(token);
         }
       }
     } catch (error) {
@@ -266,6 +299,36 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     }
 
     throw new Error('Invalid access token');
+  }
+
+  private parseJWT(token: string) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => {
+          const charCode = `00${c.charCodeAt(0).toString(16)}`.slice(-2);
+
+          return `%${charCode}`;
+        })
+        .join(''),
+    );
+
+    return JSON.parse(jsonPayload) as {
+      data: {
+        data: {
+          type: 'users';
+          id: string;
+          attributes: { first_name: string; last_name: string; email: string };
+        };
+      };
+      meta: {
+        renderingId: number;
+        environmentId: number;
+        projectId: number;
+      };
+    };
   }
 
   async revokeToken(

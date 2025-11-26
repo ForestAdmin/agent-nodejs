@@ -11,7 +11,7 @@ import * as http from 'http';
 
 import ForestAdminOAuthProvider from './auth/forest-oauth-provider.js';
 import OAuthClient from './auth/oauth-client.js';
-import { handleForestAuthenticate, handleForestInfo } from './tools/placeholder.js';
+import ToolsCreator from './tools/tools.js';
 
 /**
  * Forest Admin MCP Server
@@ -90,103 +90,9 @@ class ForestAdminMCPServer {
   }
 
   private setupTools(): void {
-    // Register forest_info tool
-    this.mcpServer.registerTool(
-      'forest_info',
-      {
-        description:
-          'Get information about the Forest Admin MCP server connection status and authentication.',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-        } as any,
-      },
-      async () => {
-        try {
-          if (!this.oauthClient.isInitialized()) {
-            await this.oauthClient.initialize();
-          }
-
-          const result = await handleForestInfo(this.oauthClient);
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: result,
-              },
-            ],
-          };
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: ${errorMessage}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      },
-    );
-
-    // Register forest_authenticate tool
-    this.mcpServer.registerTool(
-      'forest_authenticate',
-      {
-        description:
-          'Authenticate with Forest Admin using OAuth. Opens a browser for login and returns user information.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            renderingId: {
-              type: 'number',
-              description: 'The Forest Admin rendering ID (default: 1)',
-            },
-            callbackPort: {
-              type: 'number',
-              description: 'Port for the local OAuth callback server (default: 3333)',
-            },
-          },
-        } as any,
-      },
-      async (args: Record<string, unknown>) => {
-        try {
-          if (!this.oauthClient.isInitialized()) {
-            await this.oauthClient.initialize();
-          }
-
-          const result = await handleForestAuthenticate(
-            this.oauthClient,
-            args as { renderingId?: number; callbackPort?: number },
-          );
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: result,
-              },
-            ],
-          };
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: `Error: ${errorMessage}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      },
-    );
+    const toolsCreator = new ToolsCreator({ mcpServer: this.mcpServer });
+    // Only the 'list' tool from ToolsCreator is active
+    // forest_info and forest_authenticate tools are deactivated
   }
 
   async run(): Promise<void> {
