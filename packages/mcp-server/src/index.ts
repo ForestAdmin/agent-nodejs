@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
+import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js'; // eslint-disable-line import/extensions
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'; // eslint-disable-line import/extensions
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
 import ForestAdminOAuthProvider from './auth/forest-oauth-provider.js';
 import OAuthClient from './auth/oauth-client.js';
-import {
-  forestAuthenticateTool,
-  forestInfoTool,
-  handleForestAuthenticate,
-  handleForestInfo,
-} from './tools/placeholder.js';
+import { handleForestAuthenticate, handleForestInfo } from './tools/placeholder.js';
 
 /**
  * Forest Admin MCP Server
@@ -34,25 +34,159 @@ interface ToolInfo {
 
 class ForestAdminMCPServer {
   private oauthClient: OAuthClient;
-  private httpServer: http.Server | null = null;
+  private mcpServer: McpServer;
+  private mcpTransport?: StreamableHTTPServerTransport;
+  private httpServer?: http.Server;
+  private tools: ToolInfo[];
 
   constructor() {
     this.oauthClient = new OAuthClient();
-  }
 
-  private getAvailableTools(): ToolInfo[] {
-    return [
+    // Create MCP Server
+    this.mcpServer = new McpServer(
       {
-        name: forestInfoTool.name,
-        description: forestInfoTool.description || '',
-        inputSchema: forestInfoTool.inputSchema,
+        name: '@forestadmin/mcp-server',
+        version: '0.1.0',
       },
       {
-        name: forestAuthenticateTool.name,
-        description: forestAuthenticateTool.description || '',
-        inputSchema: forestAuthenticateTool.inputSchema,
+        capabilities: {
+          tools: {},
+        },
+      },
+    );
+
+    this.tools = [
+      {
+        name: 'forest_info',
+        description:
+          'Get information about the Forest Admin MCP server connection status and authentication.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'forest_authenticate',
+        description:
+          'Authenticate with Forest Admin using OAuth. Opens a browser for login and returns user information.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            renderingId: {
+              type: 'number',
+              description: 'The Forest Admin rendering ID (default: 1)',
+            },
+            callbackPort: {
+              type: 'number',
+              description: 'Port for the local OAuth callback server (default: 3333)',
+            },
+          },
+        },
       },
     ];
+
+    // Register tools with MCP Server
+    this.setupTools();
+  }
+
+  private setupTools(): void {
+    // Register forest_info tool
+    this.mcpServer.registerTool(
+      'forest_info',
+      {
+        description:
+          'Get information about the Forest Admin MCP server connection status and authentication.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        } as any,
+      },
+      async () => {
+        try {
+          if (!this.oauthClient.isInitialized()) {
+            await this.oauthClient.initialize();
+          }
+
+          const result = await handleForestInfo(this.oauthClient);
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: result,
+              },
+            ],
+          };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error: ${errorMessage}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      },
+    );
+
+    // Register forest_authenticate tool
+    this.mcpServer.registerTool(
+      'forest_authenticate',
+      {
+        description:
+          'Authenticate with Forest Admin using OAuth. Opens a browser for login and returns user information.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            renderingId: {
+              type: 'number',
+              description: 'The Forest Admin rendering ID (default: 1)',
+            },
+            callbackPort: {
+              type: 'number',
+              description: 'Port for the local OAuth callback server (default: 3333)',
+            },
+          },
+        } as any,
+      },
+      async (args: Record<string, unknown>) => {
+        try {
+          if (!this.oauthClient.isInitialized()) {
+            await this.oauthClient.initialize();
+          }
+
+          const result = await handleForestAuthenticate(
+            this.oauthClient,
+            args as { renderingId?: number; callbackPort?: number },
+          );
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: result,
+              },
+            ],
+          };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error: ${errorMessage}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      },
+    );
   }
 
   private async handleToolCall(
@@ -100,23 +234,34 @@ class ForestAdminMCPServer {
       const port = Number(process.env.MCP_SERVER_PORT) || 3931;
       const baseUrl = new URL(`http://localhost:${port}`);
 
+      // Initialize MCP transport and connect server
+      this.mcpTransport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      await this.mcpServer.connect(this.mcpTransport);
+
       // Create Express app
       const app = express();
 
+      app.use(
+        cors({
+          origin: '*',
+        }),
+      );
       // CORS middleware - must be first
-      app.use((req, res, next) => {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      // app.use((req, res, next) => {
+      //   res.setHeader('Access-Control-Allow-Origin', '*');
+      //   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      //   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-        if (req.method === 'OPTIONS') {
-          res.status(200).end();
+      //   if (req.method === 'OPTIONS') {
+      //     res.status(200).end();
 
-          return;
-        }
+      //     return;
+      //   }
 
-        next();
-      });
+      //   next();
+      // });
 
       // Initialize and mount MCP OAuth router FIRST (at application root)
       const oauthProvider = new ForestAdminOAuthProvider();
@@ -135,47 +280,85 @@ class ForestAdminMCPServer {
       app.use(express.json());
       app.use(express.urlencoded({ extended: true }));
 
-      // Health check endpoint
-      app.get('/health', (_req, res) => {
-        res.json({
-          status: 'healthy',
-          authenticated: this.oauthClient.isAuthenticated(),
-          agentHostname: this.oauthClient.getAgentHostname(),
-        });
-      });
+      app.use(allowedMethods(['POST']));
 
-      // List available tools
-      app.get('/tools', (_req, res) => {
-        res.json({ tools: this.getAvailableTools() });
-      });
+      // Apply bearer token authentication middleware to the MCP endpoint
+      // The middleware will set req.auth with authentication info from the bearer token
+      app.post(
+        '/mcp',
+        // requireBearerAuth({
+        //   verifier: oauthProvider,
+        //   requiredScopes: ['openid', 'profile', 'email'],
+        // }),
+        (req, res) => {
+          void (async () => {
+            try {
+              // Use the shared transport instance that's already connected to the MCP server
+              if (!this.mcpTransport) {
+                throw new Error('MCP transport not initialized');
+              }
 
-      // Execute a tool
-      app.post('/tools/execute', async (req, res) => {
-        try {
-          const { tool, args } = req.body as { tool: string; args?: Record<string, unknown> };
-          const result = await this.handleToolCall(tool, args || {});
+              // Handle the incoming request through the connected transport
+              await this.mcpTransport.handleRequest(req, res, req.body);
+            } catch (error) {
+              console.error('[MCP Error]', error);
 
-          res.json(result);
-        } catch (error) {
-          res.status(400).json({ success: false, error: 'Invalid request' });
-        }
-      });
+              if (!res.headersSent) {
+                res.status(500).json({
+                  jsonrpc: '2.0',
+                  error: {
+                    code: -32603,
+                    message: 'Internal server error',
+                  },
+                  id: null,
+                });
+              }
+            }
+          })();
+        },
+      );
 
-      // Default 404 handler
-      app.use((_req, res) => {
-        res.status(404).json({
-          error: 'Not found',
-          endpoints: {
-            'GET /health': 'Health check endpoint',
-            'GET /tools': 'List available tools',
-            'POST /tools/execute': 'Execute a tool (body: { tool: string, args?: object })',
-            'GET /.well-known/oauth-authorization-server': 'OAuth discovery endpoint (RFC 8414)',
-            'GET /authorize': 'OAuth authorization endpoint',
-            'POST /token': 'OAuth token endpoint',
-            'POST /register': 'OAuth client registration endpoint',
-          },
-        });
-      });
+      // // Health check endpoint
+      // app.get('/health', (_req, res) => {
+      //   res.json({
+      //     status: 'healthy',
+      //     authenticated: this.oauthClient.isAuthenticated(),
+      //     agentHostname: this.oauthClient.getAgentHostname(),
+      //   });
+      // });
+
+      // // List available tools
+      // app.get('/tools', (_req, res) => {
+      //   res.json({ tools: this.tools });
+      // });
+
+      // // Execute a tool
+      // app.post('/tools/execute', async (req, res) => {
+      //   try {
+      //     const { tool, args } = req.body as { tool: string; args?: Record<string, unknown> };
+      //     const result = await this.handleToolCall(tool, args || {});
+
+      //     res.json(result);
+      //   } catch (error) {
+      //     res.status(400).json({ success: false, error: 'Invalid request' });
+      //   }
+      // });
+
+      // // Default 404 handler
+      // app.use((_req, res) => {
+      //   res.status(404).json({
+      //     error: 'Not found',
+      //     endpoints: {
+      //       'GET /health': 'Health check endpoint',
+      //       'GET /tools': 'List available tools',
+      //       'POST /tools/execute': 'Execute a tool (body: { tool: string, args?: object })',
+      //       'GET /.well-known/oauth-authorization-server': 'OAuth discovery endpoint (RFC 8414)',
+      //       'GET /authorize': 'OAuth authorization endpoint',
+      //       'POST /token': 'OAuth token endpoint',
+      //       'POST /register': 'OAuth client registration endpoint',
+      //     },
+      //   });
+      // });
 
       // Create HTTP server from Express app
       this.httpServer = http.createServer(app);

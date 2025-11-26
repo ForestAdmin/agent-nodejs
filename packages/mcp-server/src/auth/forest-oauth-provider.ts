@@ -168,6 +168,12 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       };
     };
 
+    this.accessTokens.set(data.token, {
+      clientId: client.client_id,
+      userId: `${data.tokenData.id}`,
+      scopes: ['openid', 'profile', 'email'],
+    });
+
     return {
       access_token: data.token,
       token_type: 'Bearer',
