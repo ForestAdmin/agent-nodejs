@@ -148,9 +148,23 @@ export default class ToolsCreator {
           authData: { renderingId },
         } = await this.buildClient(extra);
 
-        await this.createActivityLog(forestServerUrl, extra.authInfo.token, renderingId, 'list', {
-          collectionName: options.collectionName,
-        });
+        let actionType = 'index';
+
+        if (options.search) {
+          actionType = 'search';
+        } else if (options.filters) {
+          actionType = 'filter';
+        }
+
+        await this.createActivityLog(
+          forestServerUrl,
+          extra.authInfo.extra.id as string,
+          renderingId,
+          actionType,
+          {
+            collectionName: options.collectionName,
+          },
+        );
 
         const result = await rpcClient
           .collection(options.collectionName)
@@ -459,7 +473,7 @@ export default class ToolsCreator {
 
   private static async createActivityLog(
     forestServerUrl: string,
-    token: string,
+    userId: string,
     renderingId: number | string,
     action: string,
     extra?: {
@@ -470,7 +484,9 @@ export default class ToolsCreator {
     },
   ) {
     const actionToType = {
-      list: 'read',
+      index: 'read',
+      search: 'read',
+      filters: 'read',
       listHasMany: 'read',
       actionForm: 'read',
       action: 'write',
@@ -487,11 +503,12 @@ export default class ToolsCreator {
 
     const type = actionToType[action] as 'read' | 'write';
 
-    const response = await fetch(`${forestServerUrl}/api/activity-logs-requests`, {
+    const response = await fetch(`${forestServerUrl}/liana/activity-logs-requests`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
         'Forest-Application-Source': 'MCP',
+        'forest-secret-key': process.env.FOREST_ENV_SECRET || '',
       },
       body: JSON.stringify({
         data: {
@@ -517,6 +534,12 @@ export default class ToolsCreator {
                     type: 'collections',
                   }
                 : null,
+            },
+            user: {
+              data: {
+                id: userId,
+                type: 'users',
+              },
             },
           },
         },

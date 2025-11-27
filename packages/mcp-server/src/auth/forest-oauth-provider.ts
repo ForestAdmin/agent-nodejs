@@ -15,11 +15,6 @@ import type { Response } from 'express';
  * OAuth Server Provider that integrates with Forest Admin authentication
  */
 export default class ForestAdminOAuthProvider implements OAuthServerProvider {
-  private authorizationCodes: Map<
-    string,
-    { codeChallenge: string; redirectUri: string; client: OAuthClientInformationFull }
-  > = new Map();
-
   private accessTokens: Map<
     string,
     { clientId: string; userId: string; expiresAt: number; scopes: string[] }
@@ -134,23 +129,12 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     res: Response,
   ): Promise<void> {
     try {
-      // Generate authorization code
-      const authCode = `fa_${Math.random().toString(36).substring(2)}`;
-
-      // Store the authorization code with associated data
-      this.authorizationCodes.set(authCode, {
-        codeChallenge: params.codeChallenge,
-        redirectUri: params.redirectUri,
-        client,
-      });
-
       // Redirect to Forest Admin agent for actual authentication
       const agentAuthUrl = new URL(
         '/authentication/mcp-login',
         this.forestServerUrl.replace('https://api', 'https://app'),
       );
 
-      agentAuthUrl.searchParams.set('state', authCode);
       agentAuthUrl.searchParams.set('redirect_uri', params.redirectUri);
 
       // Add environmentId if available
@@ -188,6 +172,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     const callbackUrl = new URL(`${process.env.AGENT_HOSTNAME}/forest/authentication/callback`);
     callbackUrl.searchParams.set('code', code);
     callbackUrl.searchParams.set('state', JSON.stringify({ renderingId }));
+
     const response = await fetch(callbackUrl, { method: 'GET' });
     const data = (await response.json()) as {
       token: string;
