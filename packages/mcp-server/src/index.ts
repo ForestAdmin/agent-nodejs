@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import ForestAdminMCPServer from './server';
+import ForestAdminMCPServer from './server.js';
 
 // Start the server
 const server = new ForestAdminMCPServer();

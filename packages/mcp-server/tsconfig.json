@@ -1,16 +1,10 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
+    "outDir": "dist",
     "module": "ES2022",
     "moduleResolution": "node",
-    "esModuleInterop": true,
-    "declaration": true,
-    "declarationMap": true,
-    "inlineSourceMap": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": "src"
+    "skipLibCheck": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"]
 }
