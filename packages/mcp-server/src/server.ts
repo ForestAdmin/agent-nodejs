@@ -1,9 +1,17 @@
+import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
+import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
+import {
+  createOAuthMetadata,
+  mcpAuthMetadataRouter,
+} from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
+
+import ForestAdminOAuthProvider from './forest-oauth-provider.js';
 
 /**
  * Forest Admin MCP Server
@@ -56,6 +64,7 @@ export default class ForestAdminMCPServer {
     this.ensureEnvironmentVariablesAreSet();
 
     const port = Number(process.env.MCP_SERVER_PORT) || 3931;
+    const baseUrl = new URL(`http://localhost:${port}`);
 
     this.mcpTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -67,6 +76,50 @@ export default class ForestAdminMCPServer {
     app.use(
       cors({
         origin: '*',
+      }),
+    );
+
+    // Initialize OAuth provider
+    const oauthProvider = new ForestAdminOAuthProvider({ forestServerUrl: this.forestServerUrl });
+    await oauthProvider.initialize();
+
+    const scopesSupported = [
+      'mcp:read',
+      'mcp:write',
+      'mcp:action',
+      'mcp:admin',
+      'profile',
+      'email',
+    ];
+
+    // Create OAuth metadata with custom registration_endpoint pointing to Forest Admin
+    const oauthMetadata = createOAuthMetadata({
+      provider: oauthProvider,
+      issuerUrl: baseUrl,
+      baseUrl,
+      scopesSupported,
+    });
+
+    oauthMetadata.grant_types_supported = ['authorization_code'];
+    oauthMetadata.token_endpoint_auth_methods_supported = ['none'];
+    oauthMetadata.response_types_supported = ['code'];
+    oauthMetadata.code_challenge_methods_supported = ['S256'];
+
+    // Override registration_endpoint to point to Forest Admin server
+    oauthMetadata.registration_endpoint = `${this.forestServerUrl}/oauth/register`;
+    // Remove revocation_endpoint from metadata (not supported)
+    delete oauthMetadata.revocation_endpoint;
+
+    // Mount authorization and token handlers
+    app.use('/authorize', authorizationHandler({ provider: oauthProvider }));
+    app.use('/token', tokenHandler({ provider: oauthProvider }));
+
+    // Mount metadata router with custom metadata
+    app.use(
+      mcpAuthMetadataRouter({
+        oauthMetadata,
+        resourceServerUrl: baseUrl,
+        scopesSupported,
       }),
     );
 
