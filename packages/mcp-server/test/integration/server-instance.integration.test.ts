@@ -4,6 +4,20 @@ import request from 'supertest';
 
 import ForestAdminMCPServer from '../../src/server';
 
+function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
+  if (!server) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    server.close(err => {
+      if (err) {
+        return reject(err);
+      }
+
+      resolve();
+    });
+  });
+}
+
 /**
  * Integration tests for ForestAdminMCPServer instance
  * Tests the actual server class and its behavior
@@ -11,8 +25,9 @@ import ForestAdminMCPServer from '../../src/server';
 describe('ForestAdminMCPServer Instance', () => {
   let server: ForestAdminMCPServer;
   let originalEnv: NodeJS.ProcessEnv;
+  let modifiedEnv: NodeJS.ProcessEnv;
 
-  beforeEach(() => {
+  beforeAll(() => {
     originalEnv = { ...process.env };
     process.env.FOREST_ENV_SECRET = 'test-env-secret';
     process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
@@ -20,15 +35,16 @@ describe('ForestAdminMCPServer Instance', () => {
     process.env.AGENT_HOSTNAME = 'http://localhost:3310';
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     process.env = originalEnv;
+  });
 
-    // Clean up server if it was started
-    if (server && server.httpServer) {
-      await new Promise<void>(resolve => {
-        server.httpServer?.close(() => resolve());
-      });
-    }
+  beforeEach(() => {
+    modifiedEnv = { ...process.env };
+  });
+
+  afterEach(async () => {
+    process.env = modifiedEnv;
   });
 
   describe('constructor', () => {
@@ -90,6 +106,10 @@ describe('ForestAdminMCPServer Instance', () => {
   });
 
   describe('run method', () => {
+    afterEach(async () => {
+      await shutDownHttpServer(server?.httpServer as http.Server);
+    });
+
     it('should start server on specified port', async () => {
       const testPort = 39310; // Use a different port for testing
       process.env.MCP_SERVER_PORT = testPort.toString();
@@ -134,7 +154,7 @@ describe('ForestAdminMCPServer Instance', () => {
   describe('HTTP endpoint', () => {
     let httpServer: http.Server;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
       const testPort = 39312;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
@@ -146,6 +166,10 @@ describe('ForestAdminMCPServer Instance', () => {
       });
 
       httpServer = server.httpServer as http.Server;
+    });
+
+    afterAll(async () => {
+      await shutDownHttpServer(server?.httpServer as http.Server);
     });
 
     it('should handle POST requests to /mcp', async () => {
