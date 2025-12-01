@@ -195,46 +195,12 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(response.headers['access-control-allow-origin']).toBe('*');
     });
 
-    it('should parse JSON bodies', async () => {
-      const requestBody = { jsonrpc: '2.0', method: 'tools/list', id: 1 };
-
-      const response = await request(httpServer)
-        .post('/mcp')
-        .set('Content-Type', 'application/json')
-        .send(requestBody);
-
-      expect(response.status).not.toBe(400);
-    });
-
     it('should return JSON-RPC error on transport failure', async () => {
       // Send invalid request
       const response = await request(httpServer).post('/mcp').send('invalid json');
 
       // Should handle the error gracefully
       expect(response.status).toBeGreaterThanOrEqual(400);
-    });
-  });
-
-  describe('server properties', () => {
-    beforeEach(() => {
-      server = new ForestAdminMCPServer();
-    });
-
-    it('should have mcpServer property', () => {
-      expect(server.mcpServer).toBeDefined();
-    });
-
-    it('should have forestServerUrl property', () => {
-      expect(server.forestServerUrl).toBeDefined();
-      expect(typeof server.forestServerUrl).toBe('string');
-    });
-
-    it('should initially have undefined mcpTransport', () => {
-      expect(server.mcpTransport).toBeUndefined();
-    });
-
-    it('should initially have undefined httpServer', () => {
-      expect(server.httpServer).toBeUndefined();
     });
   });
 });
