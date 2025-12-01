@@ -2,7 +2,7 @@ import type * as http from 'http';
 
 import request from 'supertest';
 
-import ForestAdminMCPServer from '../../src/server';
+import ForestAdminMCPServer from './server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();

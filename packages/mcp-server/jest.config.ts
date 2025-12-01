@@ -3,6 +3,6 @@ import jestConfig from '../../jest.config';
 
 export default {
   ...jestConfig,
-  collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
-  testMatch: ['<rootDir>/test/**/*.test.ts'],
+  collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/**/*.test.ts'],
+  testMatch: ['<rootDir>/src/**/*.test.ts'],
 };
