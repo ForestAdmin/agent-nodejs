@@ -1,4 +1,11 @@
-// Library exports only - no side effects
-export { default as ForestMCPServer } from './server';
-export type { ForestMCPServerOptions, HttpCallback } from './server';
-export { MCP_PATHS, isMcpRoute } from './mcp-paths';
+#!/usr/bin/env node
+
+import ForestAdminMCPServer from './server.js';
+
+// Start the server
+const server = new ForestAdminMCPServer();
+
+server.run().catch(error => {
+  console.error('[FATAL] Server crashed:', error);
+  process.exit(1);
+});

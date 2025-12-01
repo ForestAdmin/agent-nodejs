@@ -6,28 +6,17 @@ Model Context Protocol (MCP) server for Forest Admin with OAuth authentication s
 
 This MCP server provides HTTP REST API access to Forest Admin operations, enabling AI assistants and other MCP clients to interact with your Forest Admin data through a standardized protocol.
 
-## Usage
+## Installation
 
-### With Forest Admin Agent
-
-The MCP server is included with the Forest Admin agent. Simply call `mountAiMcpServer()`:
-
-```typescript
-import { createAgent } from '@forestadmin/agent';
-
-const agent = createAgent(options)
-  .addDataSource(myDataSource)
-  .mountAiMcpServer();
-
-agent.mountOnExpress(app);
-agent.start();
+```bash
+npm install @forestadmin/mcp-server
 ```
 
-The MCP server will be automatically initialized and mounted on your application.
+## Usage
 
-### Standalone Server
+### Running the Server
 
-You can also run the MCP server standalone using the CLI:
+You can start the server using the CLI:
 
 ```bash
 npx forest-mcp-server
@@ -39,17 +28,18 @@ Or programmatically:
 node dist/index.js
 ```
 
-#### Environment Variables
+### Environment Variables
 
-The following environment variables are required to run the server as a standalone:
+The following environment variables are required to run the server:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
+| `FOREST_SERVER_URL` | No | `https://api.forestadmin.com` | Forest Admin server URL |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 
-#### Example Configuration
+### Example Configuration
 
 ```bash
 export FOREST_ENV_SECRET="your-env-secret"
@@ -110,7 +100,7 @@ npm run clean
 
 The server consists of:
 
-- **ForestMCPServer**: Main server class managing the MCP server lifecycle
+- **ForestAdminMCPServer**: Main server class managing the MCP server lifecycle
 - **McpServer**: Core MCP protocol implementation
 - **StreamableHTTPServerTransport**: HTTP transport layer for MCP
 - **Express App**: HTTP server handling incoming requests
