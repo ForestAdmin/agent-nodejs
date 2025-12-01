@@ -207,7 +207,7 @@ describe('ForestAdminMCPServer Instance', () => {
 
         expect(response.status).toBe(200);
         expect(response.headers['content-type']).toMatch(/application\/json/);
-        expect(response.body.issuer).toBe('https://test.forestadmin.com/');
+        expect(response.body.issuer).toBe('http://localhost:39312/');
         expect(response.body.registration_endpoint).toBe(
           'https://test.forestadmin.com/oauth/register',
         );
