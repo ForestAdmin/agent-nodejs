@@ -268,15 +268,15 @@ describe('ForestAdminMCPServer Instance', () => {
       });
     });
 
-    describe('/authorize endpoint', () => {
+    describe('/oauth/authorize endpoint', () => {
       it('should return 400 when required parameters are missing', async () => {
-        const response = await request(httpServer).get('/authorize');
+        const response = await request(httpServer).get('/oauth/authorize');
 
         expect(response.status).toBe(400);
       });
 
       it('should return 400 when client_id is missing', async () => {
-        const response = await request(httpServer).get('/authorize').query({
+        const response = await request(httpServer).get('/oauth/authorize').query({
           redirect_uri: 'https://example.com/callback',
           response_type: 'code',
           code_challenge: 'test-challenge',
@@ -288,7 +288,7 @@ describe('ForestAdminMCPServer Instance', () => {
       });
 
       it('should return 400 when redirect_uri is missing', async () => {
-        const response = await request(httpServer).get('/authorize').query({
+        const response = await request(httpServer).get('/oauth/authorize').query({
           client_id: 'test-client',
           response_type: 'code',
           code_challenge: 'test-challenge',
@@ -300,7 +300,7 @@ describe('ForestAdminMCPServer Instance', () => {
       });
 
       it('should return 400 when code_challenge is missing', async () => {
-        const response = await request(httpServer).get('/authorize').query({
+        const response = await request(httpServer).get('/oauth/authorize').query({
           client_id: 'test-client',
           redirect_uri: 'https://example.com/callback',
           response_type: 'code',
@@ -312,7 +312,7 @@ describe('ForestAdminMCPServer Instance', () => {
       });
 
       it('should return 400 when client is not registered', async () => {
-        const response = await request(httpServer).get('/authorize').query({
+        const response = await request(httpServer).get('/oauth/authorize').query({
           client_id: 'unregistered-client',
           redirect_uri: 'https://example.com/callback',
           response_type: 'code',
@@ -326,7 +326,7 @@ describe('ForestAdminMCPServer Instance', () => {
       });
 
       it('should redirect to Forest Admin frontend with correct parameters', async () => {
-        const response = await request(httpServer).get('/authorize').query({
+        const response = await request(httpServer).get('/oauth/authorize').query({
           client_id: 'registered-client',
           redirect_uri: 'https://example.com/callback',
           response_type: 'code',
@@ -351,7 +351,7 @@ describe('ForestAdminMCPServer Instance', () => {
       });
 
       it('should redirect to default frontend when FOREST_FRONTEND_HOSTNAME is not set', async () => {
-        const response = await request(httpServer).get('/authorize').query({
+        const response = await request(httpServer).get('/oauth/authorize').query({
           client_id: 'registered-client',
           redirect_uri: 'https://example.com/callback',
           response_type: 'code',
@@ -369,7 +369,7 @@ describe('ForestAdminMCPServer Instance', () => {
 
       it('should handle POST method for authorize', async () => {
         // POST /authorize uses form-encoded body
-        const response = await request(httpServer).post('/authorize').type('form').send({
+        const response = await request(httpServer).post('/oauth/authorize').type('form').send({
           client_id: 'registered-client',
           redirect_uri: 'https://example.com/callback',
           response_type: 'code',
