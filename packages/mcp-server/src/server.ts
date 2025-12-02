@@ -83,14 +83,7 @@ export default class ForestAdminMCPServer {
     const oauthProvider = new ForestAdminOAuthProvider({ forestServerUrl: this.forestServerUrl });
     await oauthProvider.initialize();
 
-    const scopesSupported = [
-      'mcp:read',
-      'mcp:write',
-      'mcp:action',
-      'mcp:admin',
-      'profile',
-      'email',
-    ];
+    const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
 
     // Create OAuth metadata with custom registration_endpoint pointing to Forest Admin
     const oauthMetadata = createOAuthMetadata({
@@ -105,14 +98,16 @@ export default class ForestAdminMCPServer {
     oauthMetadata.response_types_supported = ['code'];
     oauthMetadata.code_challenge_methods_supported = ['S256'];
 
+    oauthMetadata.token_endpoint = `${baseUrl.href}oauth/token`;
+    oauthMetadata.authorization_endpoint = `${baseUrl.href}oauth/authorize`;
     // Override registration_endpoint to point to Forest Admin server
     oauthMetadata.registration_endpoint = `${this.forestServerUrl}/oauth/register`;
     // Remove revocation_endpoint from metadata (not supported)
     delete oauthMetadata.revocation_endpoint;
 
     // Mount authorization and token handlers
-    app.use('/authorize', authorizationHandler({ provider: oauthProvider }));
-    app.use('/token', tokenHandler({ provider: oauthProvider }));
+    app.use('/oauth/authorize', authorizationHandler({ provider: oauthProvider }));
+    app.use('/oauth/token', tokenHandler({ provider: oauthProvider }));
 
     // Mount metadata router with custom metadata
     app.use(

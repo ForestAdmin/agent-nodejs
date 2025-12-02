@@ -211,16 +211,14 @@ describe('ForestAdminMCPServer Instance', () => {
         expect(response.body.registration_endpoint).toBe(
           'https://test.forestadmin.com/oauth/register',
         );
-        expect(response.body.authorization_endpoint).toBe(`http://localhost:39312/authorize`);
-        expect(response.body.token_endpoint).toBe(`http://localhost:39312/token`);
+        expect(response.body.authorization_endpoint).toBe(`http://localhost:39312/oauth/authorize`);
+        expect(response.body.token_endpoint).toBe(`http://localhost:39312/oauth/token`);
         expect(response.body.revocation_endpoint).toBeUndefined();
         expect(response.body.scopes_supported).toEqual([
           'mcp:read',
           'mcp:write',
           'mcp:action',
           'mcp:admin',
-          'profile',
-          'email',
         ]);
         expect(response.body.response_types_supported).toEqual(['code']);
         expect(response.body.grant_types_supported).toEqual(['authorization_code']);

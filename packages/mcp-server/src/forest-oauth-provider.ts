@@ -64,7 +64,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       token_type: 'Bearer',
       expires_in: 3600,
       // refresh_token: refreshToken,
-      scope: 'openid profile email',
+      scope: 'mcp:read',
     };
   }
 
@@ -79,7 +79,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       access_token: 'Fake token',
       token_type: 'Bearer',
       expires_in: 3600,
-      scope: scopes?.join(' ') || 'openid profile email',
+      scope: scopes?.join(' ') || 'mcp:read',
     };
   }
 
@@ -90,7 +90,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       token,
       clientId: 'fake client id',
       expiresAt: 136472874,
-      scopes: ['openid', 'profile', 'email'],
+      scopes: ['mcp:read'],
     };
   }
 
