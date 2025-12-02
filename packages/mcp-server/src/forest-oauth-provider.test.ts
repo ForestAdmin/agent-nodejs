@@ -263,7 +263,7 @@ describe('ForestAdminOAuthProvider', () => {
       );
 
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        expect.stringContaining('https://app.forestadmin.com/authentication/mcp-login'),
+        expect.stringContaining('https://app.forestadmin.com/oauth/authorize'),
       );
     });
 
@@ -284,7 +284,7 @@ describe('ForestAdminOAuthProvider', () => {
       const url = new URL(redirectCall);
 
       expect(url.hostname).toBe('app.forestadmin.com');
-      expect(url.pathname).toBe('/authentication/mcp-login');
+      expect(url.pathname).toBe('/oauth/authorize');
       expect(url.searchParams.get('redirect_uri')).toBe('https://example.com/callback');
       expect(url.searchParams.get('code_challenge')).toBe('test-code-challenge');
       expect(url.searchParams.get('client_id')).toBe('test-client-id');

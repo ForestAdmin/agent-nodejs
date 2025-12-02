@@ -337,9 +337,7 @@ describe('ForestAdminMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(302);
-        expect(response.headers.location).toContain(
-          'https://app.forestadmin.com/authentication/mcp-login',
-        );
+        expect(response.headers.location).toContain('https://app.forestadmin.com/oauth/authorize');
 
         const redirectUrl = new URL(response.headers.location);
         expect(redirectUrl.searchParams.get('redirect_uri')).toBe('https://example.com/callback');
@@ -362,9 +360,7 @@ describe('ForestAdminMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(302);
-        expect(response.headers.location).toContain(
-          'https://app.forestadmin.com/authentication/mcp-login',
-        );
+        expect(response.headers.location).toContain('https://app.forestadmin.com/oauth/authorize');
       });
 
       it('should handle POST method for authorize', async () => {
@@ -382,7 +378,7 @@ describe('ForestAdminMCPServer Instance', () => {
 
         expect(response.status).toBe(302);
         expect(response.headers.location).toStrictEqual(
-          `https://app.forestadmin.com/authentication/mcp-login?redirect_uri=${encodeURIComponent(
+          `https://app.forestadmin.com/oauth/authorize?redirect_uri=${encodeURIComponent(
             'https://example.com/callback',
           )}&code_challenge=test-challenge&client_id=registered-client&state=test-state&scope=${encodeURIComponent(
             'mcp:read',

@@ -86,7 +86,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     try {
       // Redirect to Forest Admin agent for actual authentication
       const agentAuthUrl = new URL(
-        '/authentication/mcp-login',
+        '/oauth/authorize',
         process.env.FOREST_FRONTEND_HOSTNAME || 'https://app.forestadmin.com',
       );
 
