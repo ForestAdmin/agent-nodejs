@@ -544,6 +544,7 @@ describe('ForestAdminMCPServer Instance', () => {
       );
       expect(response.status).toBe(200);
       expect(response.body.access_token).toBeDefined();
+      expect(response.body.refresh_token).toBeDefined();
       expect(response.body.token_type).toBe('Bearer');
       expect(response.body.expires_in).toBe(3600);
       // The scope is returned from the decoded forest token
@@ -574,6 +575,123 @@ describe('ForestAdminMCPServer Instance', () => {
       // JWT should also have iat and exp claims
       expect(decoded.iat).toBeDefined();
       expect(decoded.exp).toBeDefined();
+
+      // Verify refresh token structure
+      const refreshToken = response.body.refresh_token as string;
+      const decodedRefreshToken = jsonwebtoken.decode(refreshToken) as Record<string, unknown>;
+      expect(decodedRefreshToken).toMatchObject({
+        type: 'refresh',
+        clientId: 'registered-client',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-server-refresh-token',
+      });
+    });
+
+    it('should exchange refresh token for new tokens', async () => {
+      tokenMockServer.clear();
+
+      // First, get initial tokens
+      const initialResponse = await request(tokenHttpServer)
+        .post('/oauth/token')
+        .type('form')
+        .send({
+          grant_type: 'authorization_code',
+          code: 'valid-auth-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+      expect(initialResponse.status).toBe(200);
+      const refreshToken = initialResponse.body.refresh_token as string;
+
+      // Clear mock to track new calls
+      tokenMockServer.clear();
+
+      // Now exchange refresh token for new tokens
+      const refreshResponse = await request(tokenHttpServer)
+        .post('/oauth/token')
+        .type('form')
+        .send({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: 'registered-client',
+        });
+
+      expect(refreshResponse.status).toBe(200);
+      expect(refreshResponse.body.access_token).toBeDefined();
+      expect(refreshResponse.body.refresh_token).toBeDefined();
+      expect(refreshResponse.body.token_type).toBe('Bearer');
+      expect(refreshResponse.body.expires_in).toBe(3600);
+
+      // Verify the new access token is valid
+      const newAccessToken = refreshResponse.body.access_token as string;
+      expect(() =>
+        jsonwebtoken.verify(newAccessToken, process.env.FOREST_AUTH_SECRET),
+      ).not.toThrow();
+
+      // Verify token rotation: new refresh token is returned
+      const newRefreshToken = refreshResponse.body.refresh_token as string;
+      expect(newRefreshToken).toBeDefined();
+      // Verify it's a valid JWT with refresh token structure
+      const decodedNewRefresh = jsonwebtoken.decode(newRefreshToken) as Record<string, unknown>;
+      expect(decodedNewRefresh.type).toBe('refresh');
+      expect(decodedNewRefresh.clientId).toBe('registered-client');
+
+      // Verify Forest Admin token endpoint was called with refresh_token grant
+      expect(tokenMockServer.fetch).toHaveBeenCalledWith(
+        'https://test.forestadmin.com/oauth/token',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"grant_type":"refresh_token"'),
+        }),
+      );
+      expect(newRefreshToken).not.toBe(refreshToken);
+    });
+
+    it('should return 400 for invalid refresh token', async () => {
+      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        grant_type: 'refresh_token',
+        refresh_token: 'invalid-token',
+        client_id: 'registered-client',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBeDefined();
+    });
+
+    it('should return 400 when refresh_token is missing for refresh_token grant', async () => {
+      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        grant_type: 'refresh_token',
+        client_id: 'registered-client',
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 when client_id does not match refresh token', async () => {
+      // Create a refresh token for a different client
+      const refreshToken = jsonwebtoken.sign(
+        {
+          type: 'refresh',
+          clientId: 'different-client',
+          userId: 123,
+          renderingId: 456,
+          serverRefreshToken: 'forest-refresh-token',
+        },
+        process.env.FOREST_AUTH_SECRET,
+        { expiresIn: '7d' },
+      );
+
+      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: 'registered-client',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBeDefined();
     });
 
     describe('error handling', () => {

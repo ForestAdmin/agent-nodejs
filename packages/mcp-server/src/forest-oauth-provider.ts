@@ -14,9 +14,16 @@ import type { Response } from 'express';
 import forestAdminClientModule, { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import {
   CustomOAuthError,
+  InvalidClientError,
+  InvalidRequestError,
   InvalidTokenError,
+  UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
+
+// Token expiration times
+const ACCESS_TOKEN_EXPIRES_IN = 3600; // 1 hour in seconds
+const REFRESH_TOKEN_EXPIRES_IN = '7d'; // 7 days
 
 // Handle ESM/CJS interop: the module may be double-wrapped with default exports
 const createForestAdminClient =
@@ -148,18 +155,73 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     codeVerifier?: string,
     redirectUri?: string,
   ): Promise<OAuthTokens> {
-    const response = await fetch(`${this.forestServerUrl}/oauth/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    try {
+      return await this.generateAccessToken(client, {
         grant_type: 'authorization_code',
         code: authorizationCode,
         redirect_uri: redirectUri,
         client_id: client.client_id,
         code_verifier: codeVerifier,
-      }),
+      });
+    } catch (error) {
+      throw new InvalidRequestError(`Failed to exchange authorization code: ${error.message}`);
+    }
+  }
+
+  async exchangeRefreshToken(
+    client: OAuthClientInformationFull,
+    refreshToken: string,
+    scopes?: string[],
+  ): Promise<OAuthTokens> {
+    // Verify and decode the refresh token
+    let decoded: {
+      type: string;
+      clientId: string;
+      userId: number;
+      renderingId: number;
+      serverRefreshToken: string;
+    };
+
+    try {
+      decoded = jsonwebtoken.verify(refreshToken, process.env.FOREST_AUTH_SECRET) as typeof decoded;
+    } catch (error) {
+      throw new InvalidTokenError('Invalid or expired refresh token');
+    }
+
+    // Validate token type
+    if (decoded.type !== 'refresh') {
+      throw new UnsupportedTokenTypeError('Invalid token type');
+    }
+
+    // Validate client_id matches
+    if (decoded.clientId !== client.client_id) {
+      throw new InvalidClientError('Token was not issued to this client');
+    }
+
+    // Exchange the Forest refresh token for new tokens
+    try {
+      return await this.generateAccessToken(client, {
+        grant_type: 'refresh_token',
+        refresh_token: decoded.serverRefreshToken,
+        client_id: client.client_id,
+        scopes,
+      });
+    } catch (error) {
+      throw new InvalidRequestError(`Failed to refresh token: ${error.message}`);
+    }
+  }
+
+  private async generateAccessToken(
+    client: OAuthClientInformationFull,
+    tokenPayload: Record<string, unknown>,
+  ): Promise<OAuthTokens> {
+    const response = await fetch(`${this.forestServerUrl}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'forest-secret-key': process.env.FOREST_ENV_SECRET,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tokenPayload),
     });
 
     if (!response.ok) {
@@ -170,14 +232,16 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       );
     }
 
-    const { access_token: forestServerAccessToken } = (await response.json()) as {
-      access_token: string;
-      refresh_token: string;
-      expires_in: number;
-      token_type: string;
-      scope: string;
-    };
+    const { access_token: forestServerAccessToken, refresh_token: forestServerRefreshToken } =
+      (await response.json()) as {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+        token_type: string;
+        scope: string;
+      };
 
+    // Get updated user info
     const {
       meta: { renderingId },
       expires_in: expiresIn,
@@ -192,33 +256,32 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       forestServerAccessToken,
     );
 
-    const token = jsonwebtoken.sign(
+    // Create new access token
+    const accessToken = jsonwebtoken.sign(
       { ...user, serverToken: forestServerAccessToken },
       process.env.FOREST_AUTH_SECRET,
-      { expiresIn: '1 hours' },
+      { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
+    );
+
+    // Create new refresh token (token rotation for security)
+    const refreshToken = jsonwebtoken.sign(
+      {
+        type: 'refresh',
+        clientId: client.client_id,
+        userId: user.id,
+        renderingId,
+        serverRefreshToken: forestServerRefreshToken,
+      },
+      process.env.FOREST_AUTH_SECRET,
+      { expiresIn: REFRESH_TOKEN_EXPIRES_IN },
     );
 
     return {
-      access_token: token,
+      access_token: accessToken,
       token_type: 'Bearer',
       expires_in: expiresIn || 3600,
-      // refresh_token: refreshToken,
+      refresh_token: refreshToken,
       scope: scope || client.scope,
-    };
-  }
-
-  async exchangeRefreshToken(
-    client: OAuthClientInformationFull,
-    refreshToken: string,
-    scopes?: string[],
-  ): Promise<OAuthTokens> {
-    // Generate new access token
-    // FIXME: To implement the exchange with Forest Admin server
-    return {
-      access_token: 'Fake token',
-      token_type: 'Bearer',
-      expires_in: 3600,
-      scope: scopes?.join(' ') || 'mcp:read',
     };
   }
 
@@ -232,6 +295,11 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         exp: number;
         iat: number;
       };
+
+      // Ensure this is an access token (not a refresh token)
+      if ('type' in decoded && (decoded as { type?: string }).type === 'refresh') {
+        throw new UnsupportedTokenTypeError('Cannot use refresh token as access token');
+      }
 
       return {
         token,

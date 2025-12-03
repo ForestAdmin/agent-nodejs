@@ -432,6 +432,8 @@ describe('ForestAdminOAuthProvider', () => {
 
       expect(mockJwtDecode).toHaveBeenCalledWith('forest-access-token');
       expect(mockGetUserInfo).toHaveBeenCalledWith(456, 'forest-access-token');
+
+      // First call: access token
       expect(mockJwtSign).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 123,
@@ -439,7 +441,20 @@ describe('ForestAdminOAuthProvider', () => {
           serverToken: 'forest-access-token',
         }),
         'test-auth-secret',
-        { expiresIn: '1 hours' },
+        { expiresIn: 3600 },
+      );
+
+      // Second call: refresh token
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'refresh',
+          clientId: 'test-client-id',
+          userId: 123,
+          renderingId: 456,
+          serverRefreshToken: 'forest-refresh-token',
+        }),
+        'test-auth-secret',
+        { expiresIn: '7d' },
       );
     });
 
@@ -463,6 +478,228 @@ describe('ForestAdminOAuthProvider', () => {
           'https://example.com/callback',
         ),
       ).rejects.toThrow('Failed to exchange authorization code');
+    });
+  });
+
+  describe('exchangeRefreshToken', () => {
+    let mockClient: OAuthClientInformationFull;
+    let mockGetUserInfo: jest.Mock;
+
+    beforeEach(() => {
+      mockClient = {
+        client_id: 'test-client-id',
+        redirect_uris: ['https://example.com/callback'],
+        scope: 'mcp:read mcp:write',
+      } as OAuthClientInformationFull;
+
+      mockGetUserInfo = jest.fn().mockResolvedValue({
+        id: 123,
+        email: 'user@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        team: 'Operations',
+        role: 'Admin',
+        tags: {},
+        renderingId: 456,
+        permissionLevel: 'admin',
+      });
+
+      mockCreateForestAdminClient.mockReturnValue({
+        authService: {
+          getUserInfo: mockGetUserInfo,
+        },
+      } as unknown as ReturnType<typeof createForestAdminClient>);
+
+      mockJwtSign.mockReturnValue('new-mocked-jwt-token');
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should exchange refresh token for new tokens', async () => {
+      // Mock jwt.verify to return decoded refresh token
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+      });
+
+      mockServer.post('/oauth/token', {
+        access_token: 'new-forest-access-token',
+        refresh_token: 'new-forest-refresh-token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+        scope: 'mcp:read',
+      });
+      global.fetch = mockServer.fetch;
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      const result = await provider.exchangeRefreshToken(mockClient, 'valid-refresh-token');
+
+      expect(result.access_token).toBe('new-mocked-jwt-token');
+      expect(result.refresh_token).toBe('new-mocked-jwt-token');
+      expect(result.token_type).toBe('Bearer');
+      expect(result.expires_in).toBe(3600);
+
+      expect(mockServer.fetch).toHaveBeenCalledWith(
+        'https://api.forestadmin.com/oauth/token',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            grant_type: 'refresh_token',
+            refresh_token: 'forest-refresh-token',
+            client_id: 'test-client-id',
+          }),
+        }),
+      );
+    });
+
+    it('should throw error for invalid refresh token', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockImplementation(() => {
+        throw new Error('invalid signature');
+      });
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(
+        provider.exchangeRefreshToken(mockClient, 'invalid-refresh-token'),
+      ).rejects.toThrow('Invalid or expired refresh token');
+    });
+
+    it('should throw error when token type is not refresh', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'access',
+        clientId: 'test-client-id',
+      });
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(provider.exchangeRefreshToken(mockClient, 'access-token')).rejects.toThrow(
+        'Invalid token type',
+      );
+    });
+
+    it('should throw error when client_id does not match', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'different-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+      });
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(
+        provider.exchangeRefreshToken(mockClient, 'refresh-token-for-different-client'),
+      ).rejects.toThrow('Token was not issued to this client');
+    });
+
+    it('should throw error when Forest Admin refresh fails', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'expired-forest-refresh-token',
+      });
+
+      mockServer.post('/oauth/token', { error: 'invalid_grant' }, 400);
+      global.fetch = mockServer.fetch;
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(
+        provider.exchangeRefreshToken(mockClient, 'valid-refresh-token'),
+      ).rejects.toThrow('Failed to refresh token');
+    });
+  });
+
+  describe('verifyAccessToken', () => {
+    it('should verify and decode a valid access token', async () => {
+      const mockDecoded = {
+        id: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        serverToken: 'forest-server-token',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
+      };
+
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue(mockDecoded);
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      const result = await provider.verifyAccessToken('valid-access-token');
+
+      expect(result.token).toBe('valid-access-token');
+      expect(result.clientId).toBe('456');
+      expect(result.expiresAt).toBe(mockDecoded.exp);
+      expect(result.scopes).toEqual(['mcp:read', 'mcp:write', 'mcp:action']);
+      expect(result.extra).toEqual({
+        userId: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+      });
+    });
+
+    it('should throw error for expired access token', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockImplementation(() => {
+        throw new jsonwebtoken.TokenExpiredError('jwt expired', new Date());
+      });
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(provider.verifyAccessToken('expired-token')).rejects.toThrow(
+        'Access token has expired',
+      );
+    });
+
+    it('should throw error for invalid access token', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockImplementation(() => {
+        throw new jsonwebtoken.JsonWebTokenError('invalid signature');
+      });
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(provider.verifyAccessToken('invalid-token')).rejects.toThrow(
+        'Invalid access token',
+      );
+    });
+
+    it('should throw error when using refresh token as access token', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+      });
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(provider.verifyAccessToken('refresh-token')).rejects.toThrow(
+        'Cannot use refresh token as access token',
+      );
     });
   });
 });
