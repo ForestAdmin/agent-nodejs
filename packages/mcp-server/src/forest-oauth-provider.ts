@@ -11,15 +11,30 @@ import type {
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { Response } from 'express';
 
+import forestAdminClientModule from '@forestadmin/forestadmin-client';
+import jsonwebtoken from 'jsonwebtoken';
+
+// Handle ESM/CJS interop: the module may be double-wrapped with default exports
+const createForestAdminClient =
+  typeof forestAdminClientModule === 'function'
+    ? forestAdminClientModule
+    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((forestAdminClientModule as any).default as typeof forestAdminClientModule);
+
 /**
  * OAuth Server Provider that integrates with Forest Admin authentication
  */
 export default class ForestAdminOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
   private environmentId?: number;
+  private forestAdminClient: ReturnType<typeof createForestAdminClient>;
 
   constructor({ forestServerUrl }: { forestServerUrl: string }) {
     this.forestServerUrl = forestServerUrl;
+    this.forestAdminClient = createForestAdminClient({
+      forestServerUrl: this.forestServerUrl,
+      envSecret: process.env.FOREST_ENV_SECRET,
+    });
   }
 
   async initialize(): Promise<void> {
@@ -126,13 +141,50 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     redirectUri?: string,
   ): Promise<OAuthTokens> {
     // FIXME: To implement the exchange with Forest Admin server
+    const response = await fetch(`${this.forestServerUrl}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        code: authorizationCode,
+        redirect_uri: redirectUri,
+        client_id: client.client_id,
+        code_verifier: codeVerifier,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to exchange authorization code: ${response.statusText}`);
+    }
+
+    const { access_token: forestServerAccessToken } = (await response.json()) as {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+      token_type: string;
+      scope: string;
+    };
+
+    const { renderingId } = jsonwebtoken.decode(forestServerAccessToken) as { renderingId: number };
+    const user = await this.forestAdminClient.authService.getUserInfo(
+      renderingId,
+      forestServerAccessToken,
+    );
+
+    const token = jsonwebtoken.sign(
+      { ...user, serverToken: forestServerAccessToken },
+      process.env.FOREST_AUTH_SECRET,
+      { expiresIn: '1 hours' },
+    );
 
     return {
-      access_token: redirectUri && 'Fake token',
+      access_token: token,
       token_type: 'Bearer',
       expires_in: 3600,
       // refresh_token: refreshToken,
-      scope: 'mcp:read',
+      scope: client.scope,
     };
   }
 

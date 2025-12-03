@@ -1,5 +1,6 @@
 import type * as http from 'http';
 
+import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
 import ForestAdminMCPServer from './server.js';
@@ -387,6 +388,155 @@ describe('ForestAdminMCPServer Instance', () => {
           )}&resource=${encodeURIComponent('https://example.com/resource')}&environmentId=12345`,
         );
       });
+    });
+  });
+
+  /**
+   * Integration tests for /oauth/token endpoint
+   * Uses a separate server instance with mock server for Forest Admin API
+   */
+  describe('/oauth/token endpoint', () => {
+    let tokenServer: ForestAdminMCPServer;
+    let tokenHttpServer: http.Server;
+    let tokenMockServer: MockServer;
+
+    beforeAll(async () => {
+      process.env.FOREST_ENV_SECRET = 'test-env-secret';
+      process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+      process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
+      process.env.MCP_SERVER_PORT = '39320';
+
+      // Setup mock for Forest Admin server API responses
+      tokenMockServer = new MockServer();
+      tokenMockServer
+        .get('/liana/environment', { data: { id: '12345' } })
+        .get(/\/oauth\/register\/registered-client/, {
+          client_id: 'registered-client',
+          redirect_uris: ['https://example.com/callback'],
+          client_name: 'Test Client',
+          scope: 'mcp:read mcp:write',
+        })
+        .get(/\/oauth\/register\//, { error: 'Client not found' }, 404)
+        // Mock Forest Admin OAuth token endpoint - returns a valid JWT with renderingId
+        .post('/oauth/token', {
+          access_token:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZW5kZXJpbmdJZCI6NDU2LCJpYXQiOjE2MzAwMDAwMDB9.fake',
+          refresh_token: 'forest-server-refresh-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'mcp:read',
+        })
+        // Mock Forest Admin user info endpoint (called by forestadmin-client via superagent)
+        .get(/\/liana\/v2\/renderings\/\d+\/authorization/, {
+          data: {
+            id: '123',
+            attributes: {
+              email: 'user@example.com',
+              first_name: 'Test',
+              last_name: 'User',
+              teams: ['Operations'],
+              role: 'Admin',
+              permission_level: 'admin',
+              tags: [],
+            },
+          },
+        });
+
+      global.fetch = tokenMockServer.fetch;
+      // Also mock superagent for forestadmin-client requests
+      tokenMockServer.setupSuperagentMock();
+
+      // Create and start server
+      tokenServer = new ForestAdminMCPServer();
+      tokenServer.run();
+
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      tokenHttpServer = tokenServer.httpServer as http.Server;
+    });
+
+    afterAll(async () => {
+      tokenMockServer.restoreSuperagent();
+      await new Promise<void>(resolve => {
+        if (tokenServer?.httpServer) {
+          (tokenServer.httpServer as http.Server).close(() => resolve());
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    it('should return 400 when grant_type is missing', async () => {
+      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        code: 'auth-code-123',
+        redirect_uri: 'https://example.com/callback',
+        client_id: 'registered-client',
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 when code is missing', async () => {
+      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        grant_type: 'authorization_code',
+        redirect_uri: 'https://example.com/callback',
+        client_id: 'registered-client',
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should call Forest Admin server to exchange code', async () => {
+      tokenMockServer.clear();
+
+      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        grant_type: 'authorization_code',
+        code: 'valid-auth-code',
+        redirect_uri: 'https://example.com/callback',
+        client_id: 'registered-client',
+        code_verifier: 'test-code-verifier',
+      });
+
+      expect(tokenMockServer.fetch).toHaveBeenCalledWith(
+        'https://test.forestadmin.com/oauth/token',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"grant_type":"authorization_code"'),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(response.body.access_token).toBeDefined();
+      expect(response.body.token_type).toBe('Bearer');
+      expect(response.body.expires_in).toBe(3600);
+      expect(response.body.scope).toBe('mcp:read mcp:write');
+      const accessToken = response.body.access_token as string;
+      expect(
+        () =>
+          jsonwebtoken.verify(accessToken, process.env.FOREST_AUTH_SECRET) as {
+            renderingId: number;
+          },
+      ).not.toThrow();
+      // The forestadmin-client transforms the response from the API
+      // (e.g., first_name → firstName, id string → number, teams[0] → team)
+      const decoded = jsonwebtoken.decode(accessToken) as Record<string, unknown>;
+      expect(decoded).toMatchObject({
+        id: 123,
+        email: 'user@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        team: 'Operations',
+        role: 'Admin',
+        permissionLevel: 'admin',
+        renderingId: 456,
+        tags: {},
+        serverToken:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZW5kZXJpbmdJZCI6NDU2LCJpYXQiOjE2MzAwMDAwMDB9.fake',
+      });
+      // JWT should also have iat and exp claims
+      expect(decoded.iat).toBeDefined();
+      expect(decoded.exp).toBeDefined();
     });
   });
 });
