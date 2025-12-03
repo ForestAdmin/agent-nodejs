@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
+import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 
 const listArgumentShape = {
@@ -45,7 +46,7 @@ function getListParameters(options: ListArgument): {
   return parameters;
 }
 
-export default function declareListTool(mcpServer: McpServer) {
+export default function declareListTool(mcpServer: McpServer, forestServerUrl: string): void {
   mcpServer.registerTool(
     'list',
     {
@@ -55,6 +56,18 @@ export default function declareListTool(mcpServer: McpServer) {
     },
     async (options: ListArgument, extra) => {
       const { rpcClient } = await buildClient(extra);
+
+      let actionType = 'index';
+
+      if (options.search) {
+        actionType = 'search';
+      } else if (options.filters) {
+        actionType = 'filter';
+      }
+
+      await createActivityLog(forestServerUrl, extra, actionType, {
+        collectionName: options.collectionName,
+      });
 
       const result = await rpcClient
         .collection(options.collectionName)

@@ -47,7 +47,7 @@ export default class ForestAdminMCPServer {
   }
 
   private setupTools(): void {
-    declareListTool(this.mcpServer);
+    declareListTool(this.mcpServer, this.forestServerUrl);
   }
 
   private ensureEnvironmentVariablesAreSet(): void {
