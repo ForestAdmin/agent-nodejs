@@ -2,17 +2,13 @@ import type * as http from 'http';
 
 import request from 'supertest';
 
-import ForestAdminMCPServer from './server';
+import ForestAdminMCPServer from './server.js';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
 
-  return new Promise((resolve, reject) => {
-    server.close(err => {
-      if (err) {
-        return reject(err);
-      }
-
+  return new Promise(resolve => {
+    server.close(() => {
       resolve();
     });
   });
@@ -201,6 +197,57 @@ describe('ForestAdminMCPServer Instance', () => {
 
       // Should handle the error gracefully
       expect(response.status).toBeGreaterThanOrEqual(400);
+    });
+
+    describe('OAuth metadata endpoint', () => {
+      it('should return OAuth metadata at /.well-known/oauth-authorization-server', async () => {
+        const response = await request(server.httpServer).get(
+          '/.well-known/oauth-authorization-server',
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.headers['content-type']).toMatch(/application\/json/);
+        expect(response.body.issuer).toBe('http://localhost:39312/');
+        expect(response.body.registration_endpoint).toBe(
+          'https://test.forestadmin.com/oauth/register',
+        );
+        expect(response.body.authorization_endpoint).toBe(`http://localhost:39312/oauth/authorize`);
+        expect(response.body.token_endpoint).toBe(`http://localhost:39312/oauth/token`);
+        expect(response.body.revocation_endpoint).toBeUndefined();
+        expect(response.body.scopes_supported).toEqual([
+          'mcp:read',
+          'mcp:write',
+          'mcp:action',
+          'mcp:admin',
+        ]);
+        expect(response.body.response_types_supported).toEqual(['code']);
+        expect(response.body.grant_types_supported).toEqual(['authorization_code']);
+        expect(response.body.code_challenge_methods_supported).toEqual(['S256']);
+        expect(response.body.token_endpoint_auth_methods_supported).toEqual(['none']);
+      });
+
+      it('should return registration_endpoint with custom FOREST_SERVER_URL', async () => {
+        // Clean up previous server
+        await shutDownHttpServer(server?.httpServer as http.Server);
+
+        process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
+        process.env.MCP_SERVER_PORT = '39314';
+
+        server = new ForestAdminMCPServer();
+        server.run();
+
+        await new Promise(resolve => {
+          setTimeout(resolve, 500);
+        });
+
+        const response = await request(server.httpServer).get(
+          '/.well-known/oauth-authorization-server',
+        );
+
+        expect(response.body.registration_endpoint).toBe(
+          'https://custom.forestadmin.com/oauth/register',
+        );
+      });
     });
   });
 });
