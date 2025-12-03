@@ -1,6 +1,7 @@
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import {
   createOAuthMetadata,
   mcpAuthMetadataRouter,
@@ -12,6 +13,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestAdminOAuthProvider from './forest-oauth-provider.js';
+import declareListTool from './tools/list.js';
 
 /**
  * Forest Admin MCP Server
@@ -36,18 +38,16 @@ export default class ForestAdminMCPServer {
     this.forestServerUrl =
       process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
 
-    // Create MCP Server
     this.mcpServer = new McpServer({
       name: '@forestadmin/mcp-server',
       version: '0.1.0',
     });
 
-    // Register tools with MCP Server
     this.setupTools();
   }
 
   private setupTools(): void {
-    // FIXME: To implement
+    declareListTool(this.mcpServer);
   }
 
   private ensureEnvironmentVariablesAreSet(): void {
@@ -124,32 +124,39 @@ export default class ForestAdminMCPServer {
 
     app.use(allowedMethods(['POST']));
 
-    app.post('/mcp', (req, res) => {
-      void (async () => {
-        try {
-          // Use the shared transport instance that's already connected to the MCP server
-          if (!this.mcpTransport) {
-            throw new Error('MCP transport not initialized');
-          }
+    app.post(
+      '/mcp',
+      requireBearerAuth({
+        verifier: oauthProvider,
+        requiredScopes: ['mcp:read'],
+      }),
+      (req, res) => {
+        void (async () => {
+          try {
+            // Use the shared transport instance that's already connected to the MCP server
+            if (!this.mcpTransport) {
+              throw new Error('MCP transport not initialized');
+            }
 
-          // Handle the incoming request through the connected transport
-          await this.mcpTransport.handleRequest(req, res, req.body);
-        } catch (error) {
-          console.error('[MCP Error]', error);
+            // Handle the incoming request through the connected transport
+            await this.mcpTransport.handleRequest(req, res, req.body);
+          } catch (error) {
+            console.error('[MCP Error]', error);
 
-          if (!res.headersSent) {
-            res.status(500).json({
-              jsonrpc: '2.0',
-              error: {
-                code: -32603,
-                message: (error as Error)?.message || 'Internal server error',
-              },
-              id: null,
-            });
+            if (!res.headersSent) {
+              res.status(500).json({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32603,
+                  message: (error as Error)?.message || 'Internal server error',
+                },
+                id: null,
+              });
+            }
           }
-        }
-      })();
-    });
+        })();
+      },
+    );
 
     // Create HTTP server from Express app
     this.httpServer = http.createServer(app);
