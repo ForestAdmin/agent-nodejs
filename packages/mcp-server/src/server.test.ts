@@ -3,6 +3,7 @@ import type * as http from 'http';
 import request from 'supertest';
 
 import ForestAdminMCPServer from './server.js';
+import MockServer from './test-utils/mock-server.js';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
@@ -22,6 +23,8 @@ describe('ForestAdminMCPServer Instance', () => {
   let server: ForestAdminMCPServer;
   let originalEnv: NodeJS.ProcessEnv;
   let modifiedEnv: NodeJS.ProcessEnv;
+  let mockServer: MockServer;
+  const originalFetch = global.fetch;
 
   beforeAll(() => {
     originalEnv = { ...process.env };
@@ -29,14 +32,29 @@ describe('ForestAdminMCPServer Instance', () => {
     process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
     process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
     process.env.AGENT_HOSTNAME = 'http://localhost:3310';
+
+    // Setup mock for Forest Admin server
+    mockServer = new MockServer();
+    mockServer
+      .get('/liana/environment', { data: { id: '12345' } })
+      .get(/\/oauth\/register\/registered-client/, {
+        client_id: 'registered-client',
+        redirect_uris: ['https://example.com/callback'],
+        client_name: 'Test Client',
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockServer.fetch;
   });
 
   afterAll(async () => {
     process.env = originalEnv;
+    global.fetch = originalFetch;
   });
 
   beforeEach(() => {
     modifiedEnv = { ...process.env };
+    mockServer.clear();
   });
 
   afterEach(async () => {
@@ -246,6 +264,127 @@ describe('ForestAdminMCPServer Instance', () => {
 
         expect(response.body.registration_endpoint).toBe(
           'https://custom.forestadmin.com/oauth/register',
+        );
+      });
+    });
+
+    describe('/oauth/authorize endpoint', () => {
+      it('should return 400 when required parameters are missing', async () => {
+        const response = await request(httpServer).get('/oauth/authorize');
+
+        expect(response.status).toBe(400);
+      });
+
+      it('should return 400 when client_id is missing', async () => {
+        const response = await request(httpServer).get('/oauth/authorize').query({
+          redirect_uri: 'https://example.com/callback',
+          response_type: 'code',
+          code_challenge: 'test-challenge',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it('should return 400 when redirect_uri is missing', async () => {
+        const response = await request(httpServer).get('/oauth/authorize').query({
+          client_id: 'test-client',
+          response_type: 'code',
+          code_challenge: 'test-challenge',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it('should return 400 when code_challenge is missing', async () => {
+        const response = await request(httpServer).get('/oauth/authorize').query({
+          client_id: 'test-client',
+          redirect_uri: 'https://example.com/callback',
+          response_type: 'code',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it('should return 400 when client is not registered', async () => {
+        const response = await request(httpServer).get('/oauth/authorize').query({
+          client_id: 'unregistered-client',
+          redirect_uri: 'https://example.com/callback',
+          response_type: 'code',
+          code_challenge: 'test-challenge',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+          scope: 'mcp:read',
+        });
+
+        expect(response.status).toBe(400);
+      });
+
+      it('should redirect to Forest Admin frontend with correct parameters', async () => {
+        const response = await request(httpServer).get('/oauth/authorize').query({
+          client_id: 'registered-client',
+          redirect_uri: 'https://example.com/callback',
+          response_type: 'code',
+          code_challenge: 'test-challenge',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+          scope: 'mcp:read profile',
+        });
+
+        expect(response.status).toBe(302);
+        expect(response.headers.location).toContain('https://app.forestadmin.com/oauth/authorize');
+
+        const redirectUrl = new URL(response.headers.location);
+        expect(redirectUrl.searchParams.get('redirect_uri')).toBe('https://example.com/callback');
+        expect(redirectUrl.searchParams.get('code_challenge')).toBe('test-challenge');
+        expect(redirectUrl.searchParams.get('code_challenge_method')).toBe('S256');
+        expect(redirectUrl.searchParams.get('response_type')).toBe('code');
+        expect(redirectUrl.searchParams.get('client_id')).toBe('registered-client');
+        expect(redirectUrl.searchParams.get('state')).toBe('test-state');
+        expect(redirectUrl.searchParams.get('scope')).toBe('mcp:read+profile');
+        expect(redirectUrl.searchParams.get('environmentId')).toBe('12345');
+      });
+
+      it('should redirect to default frontend when FOREST_FRONTEND_HOSTNAME is not set', async () => {
+        const response = await request(httpServer).get('/oauth/authorize').query({
+          client_id: 'registered-client',
+          redirect_uri: 'https://example.com/callback',
+          response_type: 'code',
+          code_challenge: 'test-challenge',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+          scope: 'mcp:read',
+        });
+
+        expect(response.status).toBe(302);
+        expect(response.headers.location).toContain('https://app.forestadmin.com/oauth/authorize');
+      });
+
+      it('should handle POST method for authorize', async () => {
+        // POST /authorize uses form-encoded body
+        const response = await request(httpServer).post('/oauth/authorize').type('form').send({
+          client_id: 'registered-client',
+          redirect_uri: 'https://example.com/callback',
+          response_type: 'code',
+          code_challenge: 'test-challenge',
+          code_challenge_method: 'S256',
+          state: 'test-state',
+          scope: 'mcp:read',
+          resource: 'https://example.com/resource',
+        });
+
+        expect(response.status).toBe(302);
+        expect(response.headers.location).toStrictEqual(
+          `https://app.forestadmin.com/oauth/authorize?redirect_uri=${encodeURIComponent(
+            'https://example.com/callback',
+          )}&code_challenge=test-challenge&code_challenge_method=S256&response_type=code&client_id=registered-client&state=test-state&scope=${encodeURIComponent(
+            'mcp:read',
+          )}&resource=${encodeURIComponent('https://example.com/resource')}&environmentId=12345`,
         );
       });
     });
