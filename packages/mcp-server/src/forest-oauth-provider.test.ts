@@ -287,6 +287,8 @@ describe('ForestAdminOAuthProvider', () => {
       expect(url.pathname).toBe('/oauth/authorize');
       expect(url.searchParams.get('redirect_uri')).toBe('https://example.com/callback');
       expect(url.searchParams.get('code_challenge')).toBe('test-code-challenge');
+      expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(url.searchParams.get('response_type')).toBe('code');
       expect(url.searchParams.get('client_id')).toBe('test-client-id');
       expect(url.searchParams.get('state')).toBe('test-state');
       expect(url.searchParams.get('scope')).toBe('mcp:read+profile');

@@ -92,6 +92,8 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
 
       agentAuthUrl.searchParams.set('redirect_uri', params.redirectUri);
       agentAuthUrl.searchParams.set('code_challenge', params.codeChallenge);
+      agentAuthUrl.searchParams.set('code_challenge_method', 'S256');
+      agentAuthUrl.searchParams.set('response_type', 'code');
       agentAuthUrl.searchParams.set('client_id', client.client_id);
       agentAuthUrl.searchParams.set('state', params.state);
       agentAuthUrl.searchParams.set('scope', params.scopes.join('+'));

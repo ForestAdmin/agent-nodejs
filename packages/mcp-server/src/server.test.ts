@@ -342,6 +342,8 @@ describe('ForestAdminMCPServer Instance', () => {
         const redirectUrl = new URL(response.headers.location);
         expect(redirectUrl.searchParams.get('redirect_uri')).toBe('https://example.com/callback');
         expect(redirectUrl.searchParams.get('code_challenge')).toBe('test-challenge');
+        expect(redirectUrl.searchParams.get('code_challenge_method')).toBe('S256');
+        expect(redirectUrl.searchParams.get('response_type')).toBe('code');
         expect(redirectUrl.searchParams.get('client_id')).toBe('registered-client');
         expect(redirectUrl.searchParams.get('state')).toBe('test-state');
         expect(redirectUrl.searchParams.get('scope')).toBe('mcp:read+profile');
@@ -380,7 +382,7 @@ describe('ForestAdminMCPServer Instance', () => {
         expect(response.headers.location).toStrictEqual(
           `https://app.forestadmin.com/oauth/authorize?redirect_uri=${encodeURIComponent(
             'https://example.com/callback',
-          )}&code_challenge=test-challenge&client_id=registered-client&state=test-state&scope=${encodeURIComponent(
+          )}&code_challenge=test-challenge&code_challenge_method=S256&response_type=code&client_id=registered-client&state=test-state&scope=${encodeURIComponent(
             'mcp:read',
           )}&resource=${encodeURIComponent('https://example.com/resource')}&environmentId=12345`,
         );
