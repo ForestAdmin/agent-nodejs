@@ -538,5 +538,167 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(decoded.iat).toBeDefined();
       expect(decoded.exp).toBeDefined();
     });
+
+    describe('error handling', () => {
+      const setupErrorMock = (errorResponse: object, statusCode: number) => {
+        tokenMockServer.reset();
+        tokenMockServer
+          .get('/liana/environment', { data: { id: '12345' } })
+          .get(/\/oauth\/register\/registered-client/, {
+            client_id: 'registered-client',
+            redirect_uris: ['https://example.com/callback'],
+            client_name: 'Test Client',
+            scope: 'mcp:read mcp:write',
+          })
+          .get(/\/oauth\/register\//, { error: 'Client not found' }, 404)
+          .post('/oauth/token', errorResponse, statusCode);
+      };
+
+      it('should return invalid_grant error when authorization code is invalid', async () => {
+        setupErrorMock(
+          {
+            error: 'invalid_grant',
+            error_description: 'The authorization code has expired or is invalid',
+          },
+          400,
+        );
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'expired-or-invalid-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('invalid_grant');
+        expect(response.body.error_description).toBe(
+          'The authorization code has expired or is invalid',
+        );
+      });
+
+      it('should return invalid_client error when client authentication fails', async () => {
+        setupErrorMock(
+          {
+            error: 'invalid_client',
+            error_description: 'Client authentication failed',
+          },
+          401,
+        );
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'some-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('invalid_client');
+        expect(response.body.error_description).toBe('Client authentication failed');
+      });
+
+      it('should return invalid_scope error when requested scope is invalid', async () => {
+        setupErrorMock(
+          {
+            error: 'invalid_scope',
+            error_description: 'The requested scope is invalid or unknown',
+          },
+          400,
+        );
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'some-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('invalid_scope');
+        expect(response.body.error_description).toBe('The requested scope is invalid or unknown');
+      });
+
+      it('should return unauthorized_client error when client is not authorized', async () => {
+        setupErrorMock(
+          {
+            error: 'unauthorized_client',
+            error_description: 'The client is not authorized to use this grant type',
+          },
+          403,
+        );
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'some-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('unauthorized_client');
+        expect(response.body.error_description).toBe(
+          'The client is not authorized to use this grant type',
+        );
+      });
+
+      it('should return server_error when Forest Admin server has internal error', async () => {
+        setupErrorMock(
+          {
+            error: 'server_error',
+            error_description: 'An unexpected error occurred on the server',
+          },
+          500,
+        );
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'some-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('server_error');
+        expect(response.body.error_description).toBe('An unexpected error occurred on the server');
+      });
+
+      it('should use default error description when not provided by Forest server', async () => {
+        setupErrorMock({ error: 'invalid_request' }, 400);
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'some-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('invalid_request');
+        expect(response.body.error_description).toBe('Failed to exchange authorization code');
+      });
+
+      it('should use server_error when Forest server returns error without error code', async () => {
+        setupErrorMock({ message: 'Something went wrong' }, 500);
+
+        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+          grant_type: 'authorization_code',
+          code: 'some-code',
+          redirect_uri: 'https://example.com/callback',
+          client_id: 'registered-client',
+          code_verifier: 'test-code-verifier',
+        });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('server_error');
+        expect(response.body.error_description).toBe('Failed to exchange authorization code');
+      });
+    });
   });
 });
