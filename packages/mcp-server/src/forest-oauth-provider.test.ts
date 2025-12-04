@@ -182,7 +182,6 @@ describe('ForestAdminOAuthProvider', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            'forest-secret-key': 'test-env-secret',
             'Content-Type': 'application/json',
           }),
         }),

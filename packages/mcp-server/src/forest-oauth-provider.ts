@@ -62,7 +62,6 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         const response = await fetch(`${this.forestServerUrl}/oauth/register/${clientId}`, {
           method: 'GET',
           headers: {
-            'forest-secret-key': process.env.FOREST_ENV_SECRET,
             'Content-Type': 'application/json',
           },
         });
