@@ -36,7 +36,6 @@ The following environment variables are required to run the server:
 |----------|----------|---------|-------------|
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
-| `FOREST_SERVER_URL` | No | `https://api.forestadmin.com` | Forest Admin server URL |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 
 ### Example Configuration

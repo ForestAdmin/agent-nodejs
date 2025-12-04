@@ -16,20 +16,63 @@ import type { Response } from 'express';
  */
 export default class ForestAdminOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
+  private environmentId?: number;
 
   constructor({ forestServerUrl }: { forestServerUrl: string }) {
     this.forestServerUrl = forestServerUrl;
   }
 
   async initialize(): Promise<void> {
-    // FIXME: Fetch environmentId on startup if needed
+    await this.fetchEnvironmentId();
+  }
+
+  private async fetchEnvironmentId(): Promise<void> {
+    try {
+      const envSecret = process.env.FOREST_ENV_SECRET;
+
+      if (!envSecret) {
+        return;
+      }
+
+      // Call Forest Admin API to get environment information
+      const response = await fetch(`${this.forestServerUrl}/liana/environment`, {
+        method: 'GET',
+        headers: {
+          'forest-secret-key': envSecret,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch environment: ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as unknown as { data: { id: string } };
+
+      this.environmentId = parseInt(data.data.id, 10);
+    } catch (error) {
+      console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
+    }
   }
 
   get clientsStore(): OAuthRegisteredClientsStore {
     return {
-      getClient: (clientId: string) => {
-        // FIXME: To implement
-        return clientId && null;
+      getClient: async (clientId: string) => {
+        // Call Forest Admin API to get client information
+        const response = await fetch(`${this.forestServerUrl}/oauth/register/${clientId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        // Return undefined if client is not found
+        if (!response.ok) {
+          return undefined;
+        }
+
+        // Return registered client if exists
+        return response.json();
       },
     };
   }
@@ -39,8 +82,33 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     params: AuthorizationParams,
     res: Response,
   ): Promise<void> {
-    // FIXME: To implement
-    res.sendStatus(501);
+    try {
+      // Redirect to Forest Admin agent for actual authentication
+      const agentAuthUrl = new URL(
+        '/oauth/authorize',
+        process.env.FOREST_FRONTEND_HOSTNAME || 'https://app.forestadmin.com',
+      );
+
+      agentAuthUrl.searchParams.set('redirect_uri', params.redirectUri);
+      agentAuthUrl.searchParams.set('code_challenge', params.codeChallenge);
+      agentAuthUrl.searchParams.set('code_challenge_method', 'S256');
+      agentAuthUrl.searchParams.set('response_type', 'code');
+      agentAuthUrl.searchParams.set('client_id', client.client_id);
+      agentAuthUrl.searchParams.set('state', params.state);
+      agentAuthUrl.searchParams.set('scope', params.scopes.join('+'));
+      agentAuthUrl.searchParams.set('resource', params.resource?.href);
+      agentAuthUrl.searchParams.set('environmentId', this.environmentId.toString());
+
+      res.redirect(agentAuthUrl.toString());
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      res.redirect(
+        `${params.redirectUri}?error=server_error&error_description=${encodeURIComponent(
+          errorMessage,
+        )}`,
+      );
+    }
   }
 
   async challengeForAuthorizationCode(
