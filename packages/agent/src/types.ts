@@ -2,6 +2,14 @@ import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolki
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
+import type { AiProvider, Clients } from '@forestadmin/ai-proxy';
+
+export type { AiProvider };
+
+export type AiLlmConfiguration = {
+  aiClients: Clients;
+};
+
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
   authSecret: string;

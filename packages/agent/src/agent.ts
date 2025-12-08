@@ -20,7 +20,7 @@ import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import CustomizationService from './services/model-customizations/customization';
-import { AgentOptions, AgentOptionsWithDefaults } from './types';
+import { AgentOptions, AgentOptionsWithDefaults, AiLlmConfiguration, AiProvider } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -40,6 +40,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
+  protected aiLlmConfig?: AiLlmConfiguration;
 
   /**
    * Create a new Agent Builder.
@@ -190,8 +191,29 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  /**
+   * Configure AI/LLM proxy routes for the agent.
+   * This enables AI-powered features through the /forest/ai-proxy/* endpoints.
+   *
+   * @param config AI client configuration
+   * @example
+   * agent.customizeAiLlm({
+   *   aiClients: {
+   *     openai: {
+   *       clientOptions: { apiKey: process.env.OPENAI_API_KEY },
+   *       chatConfiguration: { model: 'gpt-4' }
+   *     }
+   *   }
+   * });
+   */
+  customizeAiLlm(config: AiLlmConfiguration): this {
+    this.aiLlmConfig = config;
+
+    return this;
+  }
+
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services);
+    return makeRoutes(dataSource, this.options, services, this.aiLlmConfig);
   }
 
   /**
@@ -261,7 +283,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Either load the schema from the file system or build it
     let schema: Pick<ForestSchema, 'collections'>;
 
-    const { meta } = SchemaGenerator.buildMetadata(this.customizationService.buildFeatures());
+    // Get the AI provider name if configured (e.g., 'openai')
+    const aiLlm = this.aiLlmConfig
+      ? (Object.keys(this.aiLlmConfig.aiClients)[0] as AiProvider) ?? null
+      : null;
+    const { meta } = SchemaGenerator.buildMetadata(
+      this.customizationService.buildFeatures(),
+      aiLlm,
+    );
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {

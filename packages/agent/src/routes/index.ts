@@ -1,5 +1,6 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
+import AiProxyRoute from './ai/ai-proxy';
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
 import Chart from './access/chart';
@@ -28,7 +29,7 @@ import ErrorHandling from './system/error-handling';
 import HealthCheck from './system/healthcheck';
 import Logger from './system/logger';
 import { ForestAdminHttpDriverServices as Services } from '../services';
-import { AgentOptionsWithDefaults as Options } from '../types';
+import { AgentOptionsWithDefaults as Options, AiLlmConfiguration } from '../types';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,
@@ -164,10 +165,21 @@ function getActionRoutes(
   return routes;
 }
 
+function getAiRoutes(
+  options: Options,
+  services: Services,
+  aiLlmConfig?: AiLlmConfiguration,
+): BaseRoute[] {
+  if (!aiLlmConfig) return [];
+
+  return [new AiProxyRoute(services, options, aiLlmConfig)];
+}
+
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
+  aiLlmConfig?: AiLlmConfiguration,
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
@@ -177,6 +189,7 @@ export default function makeRoutes(
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
+    ...getAiRoutes(options, services, aiLlmConfig),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.
