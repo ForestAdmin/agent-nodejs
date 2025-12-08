@@ -12,7 +12,10 @@ import type {
 import type { Response } from 'express';
 
 import forestAdminClientModule, { ForestAdminClient } from '@forestadmin/forestadmin-client';
-import { CustomOAuthError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
+import {
+  CustomOAuthError,
+  InvalidTokenError,
+} from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 // Handle ESM/CJS interop: the module may be double-wrapped with default exports
@@ -29,6 +32,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
   private environmentId?: number;
   private forestAdminClient: ForestAdminClient;
+  private environmentApiEndpoint: string;
 
   constructor({ forestServerUrl }: { forestServerUrl: string }) {
     this.forestServerUrl = forestServerUrl;
@@ -63,9 +67,12 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         throw new Error(`Failed to fetch environment: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as unknown as { data: { id: string } };
+      const data = (await response.json()) as unknown as {
+        data: { id: string; attributes: { apiEndpoint: string } };
+      };
 
       this.environmentId = parseInt(data.data.id, 10);
+      this.environmentApiEndpoint = data.data.attributes.apiEndpoint;
     } catch (error) {
       console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
     }
@@ -172,11 +179,11 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     };
 
     const {
-      renderingId,
+      meta: { renderingId },
       expires_in: expiresIn,
       scope,
     } = jsonwebtoken.decode(forestServerAccessToken) as {
-      renderingId: number;
+      meta: { renderingId: number };
       expires_in: number;
       scope: string;
     };
@@ -216,14 +223,42 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
   }
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
-    // FIXME: To implement the verification with Forest Admin server
+    try {
+      const decoded = jsonwebtoken.verify(token, process.env.FOREST_AUTH_SECRET) as {
+        id: number;
+        email: string;
+        renderingId: number;
+        serverToken: string;
+        exp: number;
+        iat: number;
+      };
+      console.log('Decoded token:', decoded);
 
-    return {
-      token,
-      clientId: 'fake client id',
-      expiresAt: 136472874,
-      scopes: ['mcp:read'],
-    };
+      return {
+        token,
+        clientId: decoded.id.toString(),
+        expiresAt: decoded.exp,
+        scopes: ['mcp:read', 'mcp:write', 'mcp:action'],
+        extra: {
+          userId: decoded.id,
+          email: decoded.email,
+          renderingId: decoded.renderingId,
+          environmentApiEndpoint: this.environmentApiEndpoint,
+        },
+      };
+    } catch (error) {
+      console.error('Error verifying token:', error);
+
+      if (error instanceof jsonwebtoken.TokenExpiredError) {
+        throw new InvalidTokenError('Access token has expired');
+      }
+
+      if (error instanceof jsonwebtoken.JsonWebTokenError) {
+        throw new InvalidTokenError('Invalid access token');
+      }
+
+      throw error;
+    }
   }
 
   async revokeToken(

@@ -10,7 +10,7 @@ export default function buildClient(
 
   const rpcClient = createRemoteAgentClient({
     token,
-    url: process.env.AGENT_HOSTNAME || 'http://localhost:3310',
+    url: request.authInfo?.extra?.environmentApiEndpoint as string,
     actionEndpoints: {},
   });
 

@@ -37,7 +37,9 @@ describe('ForestAdminMCPServer Instance', () => {
     // Setup mock for Forest Admin server
     mockServer = new MockServer();
     mockServer
-      .get('/liana/environment', { data: { id: '12345' } })
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+      })
       .get(/\/oauth\/register\/registered-client/, {
         client_id: 'registered-client',
         redirect_uris: ['https://example.com/callback'],
@@ -409,7 +411,9 @@ describe('ForestAdminMCPServer Instance', () => {
       // Setup mock for Forest Admin server API responses
       mcpMockServer = new MockServer();
       mcpMockServer
-        .get('/liana/environment', { data: { id: '12345' } })
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+        })
         .get(/\/oauth\/register\/registered-client/, {
           client_id: 'registered-client',
           redirect_uris: ['https://example.com/callback'],
@@ -417,10 +421,10 @@ describe('ForestAdminMCPServer Instance', () => {
           scope: 'mcp:read mcp:write',
         })
         .get(/\/oauth\/register\//, { error: 'Client not found' }, 404)
-        // Mock Forest Admin OAuth token endpoint - returns a valid JWT with renderingId
+        // Mock Forest Admin OAuth token endpoint - returns a valid JWT with meta.renderingId
         .post('/oauth/token', {
           access_token:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZW5kZXJpbmdJZCI6NDU2LCJpYXQiOjE2MzAwMDAwMDB9.fake',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXRhIjp7InJlbmRlcmluZ0lkIjo0NTZ9LCJleHBpcmVzX2luIjozNjAwLCJzY29wZSI6Im1jcDpyZWFkIiwiaWF0IjoxNjMwMDAwMDAwfQ.fake',
           refresh_token: 'forest-server-refresh-token',
           expires_in: 3600,
           token_type: 'Bearer',
@@ -512,7 +516,8 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(response.body.access_token).toBeDefined();
       expect(response.body.token_type).toBe('Bearer');
       expect(response.body.expires_in).toBe(3600);
-      expect(response.body.scope).toBe('mcp:read mcp:write');
+      // The scope is returned from the decoded forest token
+      expect(response.body.scope).toBe('mcp:read');
       const accessToken = response.body.access_token as string;
       expect(
         () =>
@@ -534,7 +539,7 @@ describe('ForestAdminMCPServer Instance', () => {
         renderingId: 456,
         tags: {},
         serverToken:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZW5kZXJpbmdJZCI6NDU2LCJpYXQiOjE2MzAwMDAwMDB9.fake',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXRhIjp7InJlbmRlcmluZ0lkIjo0NTZ9LCJleHBpcmVzX2luIjozNjAwLCJzY29wZSI6Im1jcDpyZWFkIiwiaWF0IjoxNjMwMDAwMDAwfQ.fake',
       });
       // JWT should also have iat and exp claims
       expect(decoded.iat).toBeDefined();
@@ -545,7 +550,9 @@ describe('ForestAdminMCPServer Instance', () => {
       const setupErrorMock = (errorResponse: object, statusCode: number) => {
         mcpMockServer.reset();
         mcpMockServer
-          .get('/liana/environment', { data: { id: '12345' } })
+          .get('/liana/environment', {
+            data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+          })
           .get(/\/oauth\/register\/registered-client/, {
             client_id: 'registered-client',
             redirect_uris: ['https://example.com/callback'],
@@ -701,6 +708,166 @@ describe('ForestAdminMCPServer Instance', () => {
         expect(response.body.error).toBe('server_error');
         expect(response.body.error_description).toBe('Failed to exchange authorization code');
       });
+    });
+  });
+
+  /**
+   * Integration tests for the list tool
+   * Tests that the list tool is properly registered and accessible
+   */
+  describe('List tool integration', () => {
+    let listServer: ForestAdminMCPServer;
+    let listHttpServer: http.Server;
+    let listMockServer: MockServer;
+
+    beforeAll(async () => {
+      process.env.FOREST_ENV_SECRET = 'test-env-secret';
+      process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+      process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
+      process.env.AGENT_HOSTNAME = 'http://localhost:3310';
+      process.env.MCP_SERVER_PORT = '39330';
+
+      listMockServer = new MockServer();
+      listMockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+        })
+        .get(/\/oauth\/register\/registered-client/, {
+          client_id: 'registered-client',
+          redirect_uris: ['https://example.com/callback'],
+          client_name: 'Test Client',
+          scope: 'mcp:read mcp:write',
+        })
+        .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+      global.fetch = listMockServer.fetch;
+
+      listServer = new ForestAdminMCPServer();
+      listServer.run();
+
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      listHttpServer = listServer.httpServer as http.Server;
+    });
+
+    afterAll(async () => {
+      await new Promise<void>(resolve => {
+        if (listServer?.httpServer) {
+          (listServer.httpServer as http.Server).close(() => resolve());
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    it('should have list tool registered in the MCP server', () => {
+      expect(listServer.mcpServer).toBeDefined();
+      // The tool should be registered during server initialization
+      // We verify this by checking the server started successfully
+      expect(listHttpServer).toBeDefined();
+    });
+
+    it('should require authentication to access /mcp endpoint', async () => {
+      const response = await request(listHttpServer).post('/mcp').send({
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      });
+
+      // Without a valid bearer token, we should get an authentication error
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject requests with invalid bearer token', async () => {
+      const response = await request(listHttpServer)
+        .post('/mcp')
+        .set('Authorization', 'Bearer invalid-token')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: 1,
+        });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should accept requests with valid bearer token and list available tools', async () => {
+      // Create a valid JWT token
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+        },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      const response = await request(listHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: 1,
+        });
+
+      expect(response.status).toBe(200);
+
+      // The MCP SDK returns the response as text that needs to be parsed
+      // The response may be in JSON-RPC format or as a newline-delimited JSON stream
+      let responseData: {
+        jsonrpc: string;
+        id: number;
+        result: {
+          tools: Array<{
+            name: string;
+            description: string;
+            inputSchema: { properties: Record<string, unknown> };
+          }>;
+        };
+      };
+
+      if (response.body && Object.keys(response.body).length > 0) {
+        responseData = response.body;
+      } else {
+        // Parse the text response - MCP returns Server-Sent Events format with "data: " prefix
+        const textResponse = response.text;
+        const lines = textResponse.split('\n').filter((line: string) => line.trim());
+        // Find the line with the actual JSON-RPC response (starts with "data: ")
+        const dataLine = lines.find((line: string) => line.startsWith('data: '));
+
+        if (dataLine) {
+          responseData = JSON.parse(dataLine.replace('data: ', ''));
+        } else {
+          responseData = JSON.parse(lines[lines.length - 1]);
+        }
+      }
+
+      expect(responseData.jsonrpc).toBe('2.0');
+      expect(responseData.id).toBe(1);
+      expect(responseData.result).toBeDefined();
+      expect(responseData.result.tools).toBeDefined();
+      expect(Array.isArray(responseData.result.tools)).toBe(true);
+
+      // Verify the 'list' tool is registered
+      const listTool = responseData.result.tools.find(
+        (tool: { name: string }) => tool.name === 'list',
+      );
+      expect(listTool).toBeDefined();
+      expect(listTool.description).toBe(
+        'Retrieve a list of data from the specified collection in the customer agent.',
+      );
+      expect(listTool.inputSchema).toBeDefined();
+      expect(listTool.inputSchema.properties).toHaveProperty('collectionName');
+      expect(listTool.inputSchema.properties).toHaveProperty('search');
+      expect(listTool.inputSchema.properties).toHaveProperty('filters');
+      expect(listTool.inputSchema.properties).toHaveProperty('sort');
     });
   });
 });
