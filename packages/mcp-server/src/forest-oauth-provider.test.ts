@@ -414,6 +414,7 @@ describe('ForestAdminOAuthProvider', () => {
           method: 'POST',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
+            'forest-secret-key': 'test-env-secret',
           }),
           body: JSON.stringify({
             grant_type: 'authorization_code',
@@ -426,6 +427,7 @@ describe('ForestAdminOAuthProvider', () => {
       );
 
       expect(result.access_token).toBe('mocked-jwt-token');
+      expect(result.refresh_token).toBe('mocked-jwt-token');
       expect(result.token_type).toBe('Bearer');
       expect(result.expires_in).toBe(3600);
       expect(result.scope).toBe('mcp:read');
@@ -525,6 +527,13 @@ describe('ForestAdminOAuthProvider', () => {
         userId: 123,
         renderingId: 456,
         serverRefreshToken: 'forest-refresh-token',
+      });
+
+      // Mock jwt.decode for the new access token
+      mockJwtDecode.mockReturnValue({
+        meta: { renderingId: 456 },
+        expires_in: 3600,
+        scope: 'mcp:read',
       });
 
       mockServer.post('/oauth/token', {
