@@ -43,6 +43,7 @@ export default function createForestAdminClient(
     schema,
     auth,
     modelCustomizationService,
+    mcpServerConfigService,
     eventsSubscription,
     eventsHandler,
   } = buildApplicationServices(new ForestHttpApi(), options);
@@ -57,6 +58,7 @@ export default function createForestAdminClient(
     schema,
     auth,
     modelCustomizationService,
+    mcpServerConfigService,
     eventsSubscription,
     eventsHandler,
   );

@@ -1,3 +1,5 @@
+import type { McpConfiguration } from '@forestadmin/ai-proxy';
+
 import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
 import AuthService from '../auth';
 import { ModelCustomization } from '../model-customizations/types';
@@ -32,6 +34,10 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
 
   async getModelCustomizations(options: HttpOptions): Promise<ModelCustomization[]> {
     return ServerUtils.query<ModelCustomization[]>(options, 'get', '/liana/model-customizations');
+  }
+
+  async getMcpServerConfigs(options: HttpOptions): Promise<McpConfiguration> {
+    return ServerUtils.query<McpConfiguration>(options, 'get', '/api/mcp-server-configs-with-details');
   }
 
   makeAuthService(options: Required<ForestAdminClientOptions>): ForestAdminAuthServiceInterface {

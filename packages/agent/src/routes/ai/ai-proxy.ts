@@ -33,10 +33,15 @@ export default class AiProxyRoute extends BaseRoute {
   private async handleAiProxy(context: Context): Promise<void> {
     const route = context.params.route as Route;
 
+    // Fetch MCP server configs from Forest Admin server
+    const mcpConfigs =
+      await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
+
     context.response.body = await this.aiProxyRouter.route({
       route,
       body: context.request.body,
       query: context.query as { provider?: string; 'tool-name'?: string },
+      mcpConfigs,
     });
     context.response.status = HttpCode.Ok;
   }
