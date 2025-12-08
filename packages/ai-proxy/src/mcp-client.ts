@@ -1,7 +1,8 @@
+import type { Logger } from '@forestadmin/datasource-toolkit';
+
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 import { McpConnectionError } from './errors';
-import { type Logger, defaultLogger } from './logger';
 import RemoteTool from './remote-tool';
 
 export type McpConfiguration = {
@@ -10,11 +11,11 @@ export type McpConfiguration = {
 
 export default class McpClient {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
-  private readonly logger: Logger;
+  private readonly logger?: Logger;
 
   readonly tools: RemoteTool[] = [];
 
-  constructor(config: McpConfiguration, logger: Logger = defaultLogger) {
+  constructor(config: McpConfiguration, logger?: Logger) {
     this.logger = logger;
     // split the config into several clients to be more resilient
     // if a mcp server is down, the others will still work
@@ -43,7 +44,7 @@ export default class McpClient {
           );
           this.tools.push(...extendedTools);
         } catch (error) {
-          this.logger.error(`Error loading tools for ${name}:`, error);
+          this.logger?.('Error', `Error loading tools for ${name}`, error as Error);
           errors.push({ server: name, error: error as Error });
         }
       }),
@@ -52,7 +53,8 @@ export default class McpClient {
     // Surface partial failures to provide better feedback
     if (errors.length > 0) {
       const errorMessage = errors.map(e => `${e.server}: ${e.error.message}`).join('; ');
-      this.logger.error(
+      this.logger?.(
+        'Error',
         `Failed to load tools from ${errors.length}/${Object.keys(this.mcpClients).length} ` +
           `MCP server(s): ${errorMessage}`,
       );
@@ -75,7 +77,7 @@ export default class McpClient {
         await this.closeConnections();
       } catch (cleanupError) {
         // Log but don't throw - we don't want to mask the original connection error
-        this.logger.error('Error during test connection cleanup:', cleanupError);
+        this.logger?.('Error', 'Error during test connection cleanup', cleanupError as Error);
       }
     }
   }
@@ -91,12 +93,14 @@ export default class McpClient {
 
     if (failures.length > 0) {
       failures.forEach(({ name, result }) => {
-        this.logger.error(
-          `Failed to close MCP connection for ${name}:`,
+        this.logger?.(
+          'Error',
+          `Failed to close MCP connection for ${name}`,
           (result as PromiseRejectedResult).reason,
         );
       });
-      this.logger.error(
+      this.logger?.(
+        'Error',
         `Failed to close ${failures.length}/${results.length} MCP connections. ` +
           `This may result in resource leaks.`,
       );

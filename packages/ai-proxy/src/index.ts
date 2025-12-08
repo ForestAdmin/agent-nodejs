@@ -6,7 +6,6 @@ export * from './provider-dispatcher';
 export * from './remote-tools';
 export * from './router';
 export * from './mcp-client';
-export * from './logger';
 
 export * from './errors';
 

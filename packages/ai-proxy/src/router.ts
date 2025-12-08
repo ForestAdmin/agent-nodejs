@@ -1,9 +1,10 @@
+import type { Logger } from '@forestadmin/datasource-toolkit';
+
 import type { McpConfiguration } from './mcp-client';
 import type { Clients, DispatchBody } from './provider-dispatcher';
 import type { Messages, RemoteToolsApiKeys } from './remote-tools';
 
 import { AIUnprocessableError, ProviderDispatcher } from './index';
-import { type Logger, defaultLogger } from './logger';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
 
@@ -19,12 +20,12 @@ export type ApiKeys = RemoteToolsApiKeys;
 export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
   private readonly aiClients: Clients;
-  private readonly logger: Logger;
+  private readonly logger?: Logger;
 
   constructor(params?: { aiClients: Clients; localToolsApiKeys?: ApiKeys; logger?: Logger }) {
     this.aiClients = params?.aiClients;
     this.localToolsApiKeys = params?.localToolsApiKeys;
-    this.logger = params?.logger ?? defaultLogger;
+    this.logger = params?.logger;
   }
 
   /**
@@ -90,7 +91,7 @@ export class Router {
         try {
           await mcpClient.closeConnections();
         } catch (cleanupError) {
-          this.logger.error('Error during MCP connection cleanup:', cleanupError);
+          this.logger?.('Error', 'Error during MCP connection cleanup', cleanupError as Error);
         }
       }
     }

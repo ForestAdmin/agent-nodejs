@@ -18,30 +18,20 @@ export default class AiProxyRoute extends BaseRoute {
     super(services, options);
     this.aiProxyRouter = new AiProxyRouter({
       aiClients: aiLlmConfig.aiClients,
-      logger: {
-        error: (...args: unknown[]) => {
-          this.options.logger('Error', String(args[0]));
-        },
-      },
+      logger: this.options.logger,
     });
   }
 
   setupRoutes(router: KoaRouter): void {
-    router.all('/ai-proxy/:route', this.handleAiProxy.bind(this));
+    router.post('/ai-proxy/:route', this.handleAiProxy.bind(this));
   }
 
   private async handleAiProxy(context: Context): Promise<void> {
-    const route = context.params.route as Route;
-
-    // Fetch MCP server configs from Forest Admin server
-    const mcpConfigs =
-      await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
-
     context.response.body = await this.aiProxyRouter.route({
-      route,
+      route: context.params.route,
       body: context.request.body,
-      query: context.query as { provider?: string; 'tool-name'?: string },
-      mcpConfigs,
+      query: context.query,
+      mcpConfigs: await this.options.forestAdminClient.mcpServerConfigService.getConfiguration(),
     });
     context.response.status = HttpCode.Ok;
   }
