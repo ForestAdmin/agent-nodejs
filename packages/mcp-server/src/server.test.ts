@@ -396,9 +396,9 @@ describe('ForestAdminMCPServer Instance', () => {
    * Uses a separate server instance with mock server for Forest Admin API
    */
   describe('/oauth/token endpoint', () => {
-    let tokenServer: ForestAdminMCPServer;
-    let tokenHttpServer: http.Server;
-    let tokenMockServer: MockServer;
+    let mcpServer: ForestAdminMCPServer;
+    let mcpHttpServer: http.Server;
+    let mcpMockServer: MockServer;
 
     beforeAll(async () => {
       process.env.FOREST_ENV_SECRET = 'test-env-secret';
@@ -407,8 +407,8 @@ describe('ForestAdminMCPServer Instance', () => {
       process.env.MCP_SERVER_PORT = '39320';
 
       // Setup mock for Forest Admin server API responses
-      tokenMockServer = new MockServer();
-      tokenMockServer
+      mcpMockServer = new MockServer();
+      mcpMockServer
         .get('/liana/environment', { data: { id: '12345' } })
         .get(/\/oauth\/register\/registered-client/, {
           client_id: 'registered-client',
@@ -442,26 +442,26 @@ describe('ForestAdminMCPServer Instance', () => {
           },
         });
 
-      global.fetch = tokenMockServer.fetch;
+      global.fetch = mcpMockServer.fetch;
       // Also mock superagent for forestadmin-client requests
-      tokenMockServer.setupSuperagentMock();
+      mcpMockServer.setupSuperagentMock();
 
       // Create and start server
-      tokenServer = new ForestAdminMCPServer();
-      tokenServer.run();
+      mcpServer = new ForestAdminMCPServer();
+      mcpServer.run();
 
       await new Promise(resolve => {
         setTimeout(resolve, 500);
       });
 
-      tokenHttpServer = tokenServer.httpServer as http.Server;
+      mcpHttpServer = mcpServer.httpServer as http.Server;
     });
 
     afterAll(async () => {
-      tokenMockServer.restoreSuperagent();
+      mcpMockServer.restoreSuperagent();
       await new Promise<void>(resolve => {
-        if (tokenServer?.httpServer) {
-          (tokenServer.httpServer as http.Server).close(() => resolve());
+        if (mcpServer?.httpServer) {
+          (mcpServer.httpServer as http.Server).close(() => resolve());
         } else {
           resolve();
         }
@@ -469,29 +469,31 @@ describe('ForestAdminMCPServer Instance', () => {
     });
 
     it('should return 400 when grant_type is missing', async () => {
-      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+      const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
         code: 'auth-code-123',
         redirect_uri: 'https://example.com/callback',
         client_id: 'registered-client',
       });
 
       expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_request');
     });
 
     it('should return 400 when code is missing', async () => {
-      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+      const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
         grant_type: 'authorization_code',
         redirect_uri: 'https://example.com/callback',
         client_id: 'registered-client',
       });
 
       expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_request');
     });
 
     it('should call Forest Admin server to exchange code', async () => {
-      tokenMockServer.clear();
+      mcpMockServer.clear();
 
-      const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+      const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
         grant_type: 'authorization_code',
         code: 'valid-auth-code',
         redirect_uri: 'https://example.com/callback',
@@ -499,7 +501,7 @@ describe('ForestAdminMCPServer Instance', () => {
         code_verifier: 'test-code-verifier',
       });
 
-      expect(tokenMockServer.fetch).toHaveBeenCalledWith(
+      expect(mcpMockServer.fetch).toHaveBeenCalledWith(
         'https://test.forestadmin.com/oauth/token',
         expect.objectContaining({
           method: 'POST',
@@ -541,8 +543,8 @@ describe('ForestAdminMCPServer Instance', () => {
 
     describe('error handling', () => {
       const setupErrorMock = (errorResponse: object, statusCode: number) => {
-        tokenMockServer.reset();
-        tokenMockServer
+        mcpMockServer.reset();
+        mcpMockServer
           .get('/liana/environment', { data: { id: '12345' } })
           .get(/\/oauth\/register\/registered-client/, {
             client_id: 'registered-client',
@@ -563,7 +565,7 @@ describe('ForestAdminMCPServer Instance', () => {
           400,
         );
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'expired-or-invalid-code',
           redirect_uri: 'https://example.com/callback',
@@ -587,7 +589,7 @@ describe('ForestAdminMCPServer Instance', () => {
           401,
         );
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'some-code',
           redirect_uri: 'https://example.com/callback',
@@ -609,7 +611,7 @@ describe('ForestAdminMCPServer Instance', () => {
           400,
         );
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'some-code',
           redirect_uri: 'https://example.com/callback',
@@ -631,7 +633,7 @@ describe('ForestAdminMCPServer Instance', () => {
           403,
         );
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'some-code',
           redirect_uri: 'https://example.com/callback',
@@ -655,7 +657,7 @@ describe('ForestAdminMCPServer Instance', () => {
           500,
         );
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'some-code',
           redirect_uri: 'https://example.com/callback',
@@ -671,7 +673,7 @@ describe('ForestAdminMCPServer Instance', () => {
       it('should use default error description when not provided by Forest server', async () => {
         setupErrorMock({ error: 'invalid_request' }, 400);
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'some-code',
           redirect_uri: 'https://example.com/callback',
@@ -687,7 +689,7 @@ describe('ForestAdminMCPServer Instance', () => {
       it('should use server_error when Forest server returns error without error code', async () => {
         setupErrorMock({ message: 'Something went wrong' }, 500);
 
-        const response = await request(tokenHttpServer).post('/oauth/token').type('form').send({
+        const response = await request(mcpHttpServer).post('/oauth/token').type('form').send({
           grant_type: 'authorization_code',
           code: 'some-code',
           redirect_uri: 'https://example.com/callback',
