@@ -37,7 +37,11 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   }
 
   async getMcpServerConfigs(options: HttpOptions): Promise<McpConfiguration> {
-    return ServerUtils.query<McpConfiguration>(options, 'get', '/api/mcp-server-configs-with-details');
+    return ServerUtils.query<McpConfiguration>(
+      options,
+      'get',
+      '/liana/mcp-server-configs-with-details',
+    );
   }
 
   makeAuthService(options: Required<ForestAdminClientOptions>): ForestAdminAuthServiceInterface {

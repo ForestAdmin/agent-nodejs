@@ -10,13 +10,11 @@ export type McpConfiguration = {
 
 export default class McpClient {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
-  private readonly config: McpConfiguration;
   private readonly logger: Logger;
 
   readonly tools: RemoteTool[] = [];
 
   constructor(config: McpConfiguration, logger: Logger = defaultLogger) {
-    this.config = config;
     this.logger = logger;
     // split the config into several clients to be more resilient
     // if a mcp server is down, the others will still work
