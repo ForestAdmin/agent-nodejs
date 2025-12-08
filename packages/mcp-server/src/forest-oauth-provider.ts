@@ -12,7 +12,7 @@ import type {
 import type { Response } from 'express';
 
 import forestAdminClientModule, { ForestAdminClient } from '@forestadmin/forestadmin-client';
-import { CustomOAuthError } from '@modelcontextprotocol/sdk/server/auth/errors';
+import { CustomOAuthError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 // Handle ESM/CJS interop: the module may be double-wrapped with default exports
