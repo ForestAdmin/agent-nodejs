@@ -1,8 +1,20 @@
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { Response } from 'express';
 
+import createForestAdminClient from '@forestadmin/forestadmin-client';
+import jsonwebtoken from 'jsonwebtoken';
+
 import ForestAdminOAuthProvider from './forest-oauth-provider.js';
 import MockServer from './test-utils/mock-server.js';
+
+jest.mock('jsonwebtoken');
+jest.mock('@forestadmin/forestadmin-client');
+
+const mockCreateForestAdminClient = createForestAdminClient as jest.MockedFunction<
+  typeof createForestAdminClient
+>;
+const mockJwtDecode = jsonwebtoken.decode as jest.Mock;
+const mockJwtSign = jsonwebtoken.sign as jest.Mock;
 
 describe('ForestAdminOAuthProvider', () => {
   let originalEnv: NodeJS.ProcessEnv;
@@ -316,6 +328,122 @@ describe('ForestAdminOAuthProvider', () => {
 
       expect(redirectCall).toContain('https://example.com/callback');
       expect(redirectCall).toContain('error=server_error');
+    });
+  });
+
+  describe('exchangeAuthorizationCode', () => {
+    let mockClient: OAuthClientInformationFull;
+    let mockGetUserInfo: jest.Mock;
+
+    beforeEach(() => {
+      mockClient = {
+        client_id: 'test-client-id',
+        redirect_uris: ['https://example.com/callback'],
+        scope: 'mcp:read mcp:write',
+      } as OAuthClientInformationFull;
+
+      // Setup mock for forestAdminClient
+      mockGetUserInfo = jest.fn().mockResolvedValue({
+        id: 123,
+        email: 'user@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        team: 'Operations',
+        role: 'Admin',
+        tags: {},
+        renderingId: 456,
+        permissionLevel: 'admin',
+      });
+
+      mockCreateForestAdminClient.mockReturnValue({
+        authService: {
+          getUserInfo: mockGetUserInfo,
+        },
+      } as unknown as ReturnType<typeof createForestAdminClient>);
+
+      // Setup mock for jsonwebtoken
+      mockJwtDecode.mockReturnValue({ renderingId: 456 });
+      mockJwtSign.mockReturnValue('mocked-jwt-token');
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should exchange authorization code with Forest Admin server', async () => {
+      mockServer.get('/liana/environment', { data: { id: '12345' } }).post('/oauth/token', {
+        access_token: 'forest-access-token',
+        refresh_token: 'forest-refresh-token',
+        expires_in: 3600,
+        token_type: 'Bearer',
+        scope: 'mcp:read',
+      });
+      global.fetch = mockServer.fetch;
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      const result = await provider.exchangeAuthorizationCode(
+        mockClient,
+        'auth-code-123',
+        'code-verifier-456',
+        'https://example.com/callback',
+      );
+
+      expect(mockServer.fetch).toHaveBeenCalledWith(
+        'https://api.forestadmin.com/oauth/token',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify({
+            grant_type: 'authorization_code',
+            code: 'auth-code-123',
+            redirect_uri: 'https://example.com/callback',
+            client_id: 'test-client-id',
+            code_verifier: 'code-verifier-456',
+          }),
+        }),
+      );
+
+      expect(result.access_token).toBe('mocked-jwt-token');
+      expect(result.token_type).toBe('Bearer');
+      expect(result.expires_in).toBe(3600);
+      expect(result.scope).toBe('mcp:read mcp:write');
+
+      expect(mockJwtDecode).toHaveBeenCalledWith('forest-access-token');
+      expect(mockGetUserInfo).toHaveBeenCalledWith(456, 'forest-access-token');
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 123,
+          email: 'user@example.com',
+          serverToken: 'forest-access-token',
+        }),
+        'test-auth-secret',
+        { expiresIn: '1 hours' },
+      );
+    });
+
+    it('should throw error when token exchange fails', async () => {
+      mockServer
+        .get('/liana/environment', { data: { id: '12345' } })
+        .post('/oauth/token', { error: 'invalid_grant' }, 400);
+      global.fetch = mockServer.fetch;
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      await expect(
+        provider.exchangeAuthorizationCode(
+          mockClient,
+          'invalid-code',
+          'code-verifier',
+          'https://example.com/callback',
+        ),
+      ).rejects.toThrow('Failed to exchange authorization code');
     });
   });
 });
