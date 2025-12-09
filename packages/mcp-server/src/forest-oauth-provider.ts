@@ -68,11 +68,11 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       }
 
       const data = (await response.json()) as unknown as {
-        data: { id: string; attributes: { apiEndpoint: string } };
+        data: { id: string; attributes: { api_endpoint: string } };
       };
 
       this.environmentId = parseInt(data.data.id, 10);
-      this.environmentApiEndpoint = data.data.attributes.apiEndpoint;
+      this.environmentApiEndpoint = data.data.attributes.api_endpoint;
     } catch (error) {
       console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
     }
@@ -232,7 +232,6 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         exp: number;
         iat: number;
       };
-      console.log('Decoded token:', decoded);
 
       return {
         token,
@@ -244,6 +243,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
           email: decoded.email,
           renderingId: decoded.renderingId,
           environmentApiEndpoint: this.environmentApiEndpoint,
+          forestServerToken: decoded.serverToken,
         },
       };
     } catch (error) {

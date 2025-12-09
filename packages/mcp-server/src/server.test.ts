@@ -38,7 +38,7 @@ describe('ForestAdminMCPServer Instance', () => {
     mockServer = new MockServer();
     mockServer
       .get('/liana/environment', {
-        data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
       })
       .get(/\/oauth\/register\/registered-client/, {
         client_id: 'registered-client',
@@ -412,7 +412,7 @@ describe('ForestAdminMCPServer Instance', () => {
       mcpMockServer = new MockServer();
       mcpMockServer
         .get('/liana/environment', {
-          data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
         })
         .get(/\/oauth\/register\/registered-client/, {
           client_id: 'registered-client',
@@ -551,7 +551,7 @@ describe('ForestAdminMCPServer Instance', () => {
         mcpMockServer.reset();
         mcpMockServer
           .get('/liana/environment', {
-            data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+            data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
           })
           .get(/\/oauth\/register\/registered-client/, {
             client_id: 'registered-client',
@@ -730,7 +730,7 @@ describe('ForestAdminMCPServer Instance', () => {
       listMockServer = new MockServer();
       listMockServer
         .get('/liana/environment', {
-          data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
         })
         .get(/\/oauth\/register\/registered-client/, {
           client_id: 'registered-client',
@@ -868,6 +868,74 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(listTool.inputSchema.properties).toHaveProperty('search');
       expect(listTool.inputSchema.properties).toHaveProperty('filters');
       expect(listTool.inputSchema.properties).toHaveProperty('sort');
+    });
+
+    it('should create activity log with forestServerToken when calling list tool', async () => {
+      // This test verifies that the activity log API is called with the forestServerToken
+      // (the original Forest server token) and NOT the MCP JWT token.
+      // The forestServerToken is embedded in the MCP JWT during token exchange and extracted
+      // by verifyAccessToken into authInfo.extra.forestServerToken
+
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const forestServerToken = 'original-forest-server-token-for-activity-log';
+
+      // Create MCP JWT with embedded serverToken (as done during OAuth token exchange)
+      const mcpToken = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: forestServerToken,
+        },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      // Setup mock to capture the activity log API call and mock agent response
+      listMockServer.clear();
+      listMockServer
+        .post('/api/activity-logs-requests', { success: true })
+        .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
+
+      const response = await request(listHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${mcpToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: 'list',
+            arguments: { collectionName: 'users' },
+          },
+          id: 2,
+        });
+
+      // The tool call should succeed (or fail on agent call, but activity log should be created first)
+      expect(response.status).toBe(200);
+
+      // Verify activity log API was called with the correct forestServerToken
+      // The mock fetch captures all calls as [url, options] tuples
+      const activityLogCall = listMockServer.fetch.mock.calls.find(
+        (call: [string, RequestInit]) =>
+          call[0] === 'https://test.forestadmin.com/api/activity-logs-requests',
+      ) as [string, RequestInit] | undefined;
+
+      expect(activityLogCall).toBeDefined();
+      expect(activityLogCall![1].headers).toMatchObject({
+        Authorization: `Bearer ${forestServerToken}`,
+        'Content-Type': 'application/json',
+        'Forest-Application-Source': 'MCP',
+      });
+
+      // Verify the body contains the correct data
+      const body = JSON.parse(activityLogCall![1].body as string);
+      expect(body.data.attributes.action).toBe('index');
+      expect(body.data.relationships.collection.data).toEqual({
+        id: 'users',
+        type: 'collections',
+      });
     });
   });
 });

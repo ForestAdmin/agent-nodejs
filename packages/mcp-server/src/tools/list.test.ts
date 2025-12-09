@@ -239,6 +239,20 @@ describe('declareListTool', () => {
         });
       });
 
+      it('should pass sort parameter when ascending is false', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            sort: { field: 'createdAt', ascending: false },
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          sort: { field: 'createdAt', ascending: false },
+        });
+      });
+
       it('should not pass sort when only field is provided', async () => {
         await registeredToolHandler(
           {

@@ -66,7 +66,7 @@ describe('createActivityLog', () => {
   });
 
   describe('request formatting', () => {
-    it('should send correct headers', async () => {
+    it('should send correct headers with forestServerToken from authInfo.extra', async () => {
       const request = createMockRequest();
 
       await createActivityLog('https://api.forestadmin.com', request, 'index');
@@ -80,6 +80,57 @@ describe('createActivityLog', () => {
             'Forest-Application-Source': 'MCP',
             Authorization: 'Bearer test-forest-token',
           },
+        }),
+      );
+    });
+
+    it('should use forestServerToken for Authorization header (not the MCP token)', async () => {
+      // This test documents that the activity log API requires the original Forest server token,
+      // not the MCP-generated JWT token. The forestServerToken must be passed through
+      // authInfo.extra from the OAuth provider's verifyAccessToken method.
+      const request = {
+        authInfo: {
+          token: 'mcp-jwt-token-should-not-be-used',
+          extra: {
+            forestServerToken: 'original-forest-server-token',
+            renderingId: '12345',
+          },
+        },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      await createActivityLog('https://api.forestadmin.com', request, 'index');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.forestadmin.com/api/activity-logs-requests',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer original-forest-server-token',
+          }),
+        }),
+      );
+    });
+
+    it('should send undefined token when forestServerToken is missing from extra', async () => {
+      // This test documents the error case: if forestServerToken is not passed in extra,
+      // the Authorization header will be "Bearer undefined" which will fail
+      const request = {
+        authInfo: {
+          token: 'mcp-jwt-token',
+          extra: {
+            renderingId: '12345',
+            // forestServerToken is missing!
+          },
+        },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      await createActivityLog('https://api.forestadmin.com', request, 'index');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.forestadmin.com/api/activity-logs-requests',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer undefined',
+          }),
         }),
       );
     });

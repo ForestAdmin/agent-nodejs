@@ -62,7 +62,7 @@ describe('ForestAdminOAuthProvider', () => {
 
     it('should fetch environmentId from Forest Admin API', async () => {
       mockServer.get('/liana/environment', {
-        data: { id: '98765', attributes: { apiEndpoint: 'https://api.example.com' } },
+        data: { id: '98765', attributes: { api_endpoint: 'https://api.example.com' } },
       });
       global.fetch = mockServer.fetch;
 
@@ -87,7 +87,7 @@ describe('ForestAdminOAuthProvider', () => {
 
     it('should set environmentId after successful initialization', async () => {
       mockServer.get('/liana/environment', {
-        data: { id: '54321', attributes: { apiEndpoint: 'https://api.example.com' } },
+        data: { id: '54321', attributes: { api_endpoint: 'https://api.example.com' } },
       });
       global.fetch = mockServer.fetch;
 
@@ -161,7 +161,7 @@ describe('ForestAdminOAuthProvider', () => {
 
     it('should use correct forest server URL for API call', async () => {
       mockServer.get('/liana/environment', {
-        data: { id: '11111', attributes: { apiEndpoint: 'https://api.example.com' } },
+        data: { id: '11111', attributes: { api_endpoint: 'https://api.example.com' } },
       });
       global.fetch = mockServer.fetch;
 
@@ -257,7 +257,7 @@ describe('ForestAdminOAuthProvider', () => {
         ok: true,
         json: () =>
           Promise.resolve({
-            data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+            data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
           }),
       });
       global.fetch = mockFetch;
@@ -386,7 +386,7 @@ describe('ForestAdminOAuthProvider', () => {
     it('should exchange authorization code with Forest Admin server', async () => {
       mockServer
         .get('/liana/environment', {
-          data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
         })
         .post('/oauth/token', {
           access_token: 'forest-access-token',
@@ -446,7 +446,7 @@ describe('ForestAdminOAuthProvider', () => {
     it('should throw error when token exchange fails', async () => {
       mockServer
         .get('/liana/environment', {
-          data: { id: '12345', attributes: { apiEndpoint: 'https://api.example.com' } },
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
         })
         .post('/oauth/token', { error: 'invalid_grant' }, 400);
       global.fetch = mockServer.fetch;

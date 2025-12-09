@@ -39,7 +39,7 @@ function getListParameters(options: ListArgument): {
     parameters.search = options.search;
   }
 
-  if (options.sort?.field && options.sort?.ascending) {
+  if (options.sort?.field && 'ascending' in options.sort) {
     parameters.sort = options.sort as { field: string; ascending: boolean };
   }
 
