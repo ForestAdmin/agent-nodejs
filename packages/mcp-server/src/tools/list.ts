@@ -5,20 +5,27 @@ import filterSchema from '../schemas/filter.js';
 import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 
-const listArgumentShape = {
-  collectionName: z.string(),
-  search: z.string().optional(),
-  filters: filterSchema.optional(),
-  sort: z
-    .object({
-      field: z.string(),
-      ascending: z.boolean(),
-    })
-    .optional(),
-};
+function createListArgumentShape(collectionNames: string[]) {
+  return {
+    collectionName:
+      collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
+    search: z.string().optional(),
+    filters: filterSchema.optional(),
+    sort: z
+      .object({
+        field: z.string(),
+        ascending: z.boolean(),
+      })
+      .optional(),
+  };
+}
 
-const listArgumentSchema = z.object(listArgumentShape);
-type ListArgument = z.infer<typeof listArgumentSchema>;
+type ListArgument = {
+  collectionName: string;
+  search?: string;
+  filters?: z.infer<typeof filterSchema>;
+  sort?: { field: string; ascending: boolean };
+};
 
 function getListParameters(options: ListArgument): {
   filters?: Record<string, unknown>;
@@ -46,7 +53,13 @@ function getListParameters(options: ListArgument): {
   return parameters;
 }
 
-export default function declareListTool(mcpServer: McpServer, forestServerUrl: string): void {
+export default function declareListTool(
+  mcpServer: McpServer,
+  forestServerUrl: string,
+  collectionNames: string[] = [],
+): void {
+  const listArgumentShape = createListArgumentShape(collectionNames);
+
   mcpServer.registerTool(
     'list',
     {

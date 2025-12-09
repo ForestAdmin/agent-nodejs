@@ -60,6 +60,48 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
       expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
     });
+
+    it('should use string type for collectionName when no collection names provided', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com');
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options?: string[]; parse: (value: unknown) => unknown }
+      >;
+      // String type should not have options property (enum has options)
+      expect(schema.collectionName.options).toBeUndefined();
+      // Should accept any string
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
+    });
+
+    it('should use string type for collectionName when empty array provided', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com', []);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options?: string[]; parse: (value: unknown) => unknown }
+      >;
+      // String type should not have options property
+      expect(schema.collectionName.options).toBeUndefined();
+      // Should accept any string
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
+    });
+
+    it('should use enum type for collectionName when collection names provided', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com', ['users', 'products', 'orders']);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options: string[]; parse: (value: unknown) => unknown }
+      >;
+      // Enum type should have options property with the collection names
+      expect(schema.collectionName.options).toEqual(['users', 'products', 'orders']);
+      // Should accept valid collection names
+      expect(() => schema.collectionName.parse('users')).not.toThrow();
+      expect(() => schema.collectionName.parse('products')).not.toThrow();
+      // Should reject invalid collection names
+      expect(() => schema.collectionName.parse('invalid-collection')).toThrow();
+    });
   });
 
   describe('tool execution', () => {
