@@ -107,7 +107,6 @@ export default class ForestAdminMCPServer {
       scopesSupported,
     });
 
-    oauthMetadata.grant_types_supported = ['authorization_code'];
     oauthMetadata.token_endpoint_auth_methods_supported = ['none'];
     oauthMetadata.response_types_supported = ['code'];
     oauthMetadata.code_challenge_methods_supported = ['S256'];

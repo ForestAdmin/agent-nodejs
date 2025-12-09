@@ -257,7 +257,10 @@ describe('ForestAdminMCPServer Instance', () => {
           'mcp:admin',
         ]);
         expect(response.body.response_types_supported).toEqual(['code']);
-        expect(response.body.grant_types_supported).toEqual(['authorization_code']);
+        expect(response.body.grant_types_supported).toEqual([
+          'authorization_code',
+          'refresh_token',
+        ]);
         expect(response.body.code_challenge_methods_supported).toEqual(['S256']);
         expect(response.body.token_endpoint_auth_methods_supported).toEqual(['none']);
       });
@@ -451,11 +454,14 @@ describe('ForestAdminMCPServer Instance', () => {
           scope: 'mcp:read mcp:write',
         })
         .get(/\/oauth\/register\//, { error: 'Client not found' }, 404)
-        // Mock Forest Admin OAuth token endpoint - returns a valid JWT with meta.renderingId
+        // Mock Forest Admin OAuth token endpoint - returns valid JWTs with meta.renderingId, exp, iat, scope
+        // access_token JWT payload: { meta: { renderingId: 456 }, scope: 'mcp:read mcp:write', iat: 2524608000, exp: 2524611600 }
+        // refresh_token JWT payload: { iat: 2524608000, exp: 2525212800 }
         .post('/oauth/token', {
           access_token:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXRhIjp7InJlbmRlcmluZ0lkIjo0NTZ9LCJleHBpcmVzX2luIjozNjAwLCJzY29wZSI6Im1jcDpyZWFkIG1jcDp3cml0ZSIsImlhdCI6MTYzMDAwMDAwMH0.fake',
-          refresh_token: 'forest-server-refresh-token',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXRhIjp7InJlbmRlcmluZ0lkIjo0NTZ9LCJzY29wZSI6Im1jcDpyZWFkIG1jcDp3cml0ZSIsImlhdCI6MjUyNDYwODAwMCwiZXhwIjoyNTI0NjExNjAwfQ.fake',
+          refresh_token:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjI1MjQ2MDgwMDAsImV4cCI6MjUyNTIxMjgwMH0.fake',
           expires_in: 3600,
           token_type: 'Bearer',
           scope: 'mcp:read mcp:write',
@@ -546,7 +552,8 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(response.body.access_token).toBeDefined();
       expect(response.body.refresh_token).toBeDefined();
       expect(response.body.token_type).toBe('Bearer');
-      expect(response.body.expires_in).toBe(3600);
+      // expires_in is calculated as exp - now from the JWT, so it's a large value for our test tokens
+      expect(response.body.expires_in).toBeGreaterThan(0);
       // The scope is returned from the decoded forest token
       expect(response.body.scope).toBe('mcp:read mcp:write');
       const accessToken = response.body.access_token as string;
@@ -570,7 +577,7 @@ describe('ForestAdminMCPServer Instance', () => {
         renderingId: 456,
         tags: {},
         serverToken:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXRhIjp7InJlbmRlcmluZ0lkIjo0NTZ9LCJleHBpcmVzX2luIjozNjAwLCJzY29wZSI6Im1jcDpyZWFkIG1jcDp3cml0ZSIsImlhdCI6MTYzMDAwMDAwMH0.fake',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXRhIjp7InJlbmRlcmluZ0lkIjo0NTZ9LCJzY29wZSI6Im1jcDpyZWFkIG1jcDp3cml0ZSIsImlhdCI6MjUyNDYwODAwMCwiZXhwIjoyNTI0NjExNjAwfQ.fake',
       });
       // JWT should also have iat and exp claims
       expect(decoded.iat).toBeDefined();
@@ -584,7 +591,9 @@ describe('ForestAdminMCPServer Instance', () => {
         clientId: 'registered-client',
         userId: 123,
         renderingId: 456,
-        serverRefreshToken: 'forest-server-refresh-token',
+        // The serverRefreshToken is the JWT returned from Forest Admin
+        serverRefreshToken:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjI1MjQ2MDgwMDAsImV4cCI6MjUyNTIxMjgwMH0.fake',
       });
     });
 
@@ -617,7 +626,8 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(refreshResponse.body.access_token).toBeDefined();
       expect(refreshResponse.body.refresh_token).toBeDefined();
       expect(refreshResponse.body.token_type).toBe('Bearer');
-      expect(refreshResponse.body.expires_in).toBe(3600);
+      // expires_in is calculated as exp - now from the JWT (duration in seconds)
+      expect(refreshResponse.body.expires_in).toBeGreaterThan(0);
 
       // Verify the new access token is valid
       const newAccessToken = refreshResponse.body.access_token as string;

@@ -370,12 +370,20 @@ describe('ForestAdminOAuthProvider', () => {
         },
       } as unknown as ReturnType<typeof createForestAdminClient>);
 
-      // Setup mock for jsonwebtoken
-      mockJwtDecode.mockReturnValue({
-        meta: { renderingId: 456 },
-        expires_in: 3600,
-        scope: 'mcp:read',
-      });
+      // Setup mock for jsonwebtoken - decode is called twice:
+      // first for access token, then for refresh token
+      const now = Math.floor(Date.now() / 1000);
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: now + 3600, // expires in 1 hour
+          iat: now,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({
+          exp: now + 604800, // expires in 7 days
+          iat: now,
+        });
       mockJwtSign.mockReturnValue('mocked-jwt-token');
     });
 
@@ -429,13 +437,16 @@ describe('ForestAdminOAuthProvider', () => {
       expect(result.access_token).toBe('mocked-jwt-token');
       expect(result.refresh_token).toBe('mocked-jwt-token');
       expect(result.token_type).toBe('Bearer');
-      expect(result.expires_in).toBe(3600);
+      // expires_in is calculated as exp - now, so it should be approximately 3600
+      expect(result.expires_in).toBeGreaterThan(3590);
+      expect(result.expires_in).toBeLessThanOrEqual(3600);
       expect(result.scope).toBe('mcp:read');
 
       expect(mockJwtDecode).toHaveBeenCalledWith('forest-access-token');
+      expect(mockJwtDecode).toHaveBeenCalledWith('forest-refresh-token');
       expect(mockGetUserInfo).toHaveBeenCalledWith(456, 'forest-access-token');
 
-      // First call: access token
+      // First call: access token - expiresIn is calculated as exp - now, so it's approximately 3600
       expect(mockJwtSign).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 123,
@@ -443,10 +454,10 @@ describe('ForestAdminOAuthProvider', () => {
           serverToken: 'forest-access-token',
         }),
         'test-auth-secret',
-        { expiresIn: 3600 },
+        { expiresIn: expect.any(Number) },
       );
 
-      // Second call: refresh token
+      // Second call: refresh token - expiresIn is calculated as exp - now, so it's approximately 604800
       expect(mockJwtSign).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'refresh',
@@ -456,7 +467,7 @@ describe('ForestAdminOAuthProvider', () => {
           serverRefreshToken: 'forest-refresh-token',
         }),
         'test-auth-secret',
-        { expiresIn: '7d' },
+        { expiresIn: expect.any(Number) },
       );
     });
 
@@ -529,12 +540,19 @@ describe('ForestAdminOAuthProvider', () => {
         serverRefreshToken: 'forest-refresh-token',
       });
 
-      // Mock jwt.decode for the new access token
-      mockJwtDecode.mockReturnValue({
-        meta: { renderingId: 456 },
-        expires_in: 3600,
-        scope: 'mcp:read',
-      });
+      // Mock jwt.decode - called twice: first for access token, then for refresh token
+      const now = Math.floor(Date.now() / 1000);
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: now + 3600, // expires in 1 hour
+          iat: now,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({
+          exp: now + 604800, // expires in 7 days
+          iat: now,
+        });
 
       mockServer.post('/oauth/token', {
         access_token: 'new-forest-access-token',
@@ -554,7 +572,9 @@ describe('ForestAdminOAuthProvider', () => {
       expect(result.access_token).toBe('new-mocked-jwt-token');
       expect(result.refresh_token).toBe('new-mocked-jwt-token');
       expect(result.token_type).toBe('Bearer');
-      expect(result.expires_in).toBe(3600);
+      // expires_in is calculated as exp - now, so it should be approximately 3600
+      expect(result.expires_in).toBeGreaterThan(3590);
+      expect(result.expires_in).toBeLessThanOrEqual(3600);
 
       expect(mockServer.fetch).toHaveBeenCalledWith(
         'https://api.forestadmin.com/oauth/token',

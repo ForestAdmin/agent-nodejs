@@ -21,10 +21,6 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
-// Token expiration times
-const ACCESS_TOKEN_EXPIRES_IN = 3600; // 1 hour in seconds
-const REFRESH_TOKEN_EXPIRES_IN = '7d'; // 7 days
-
 // Handle ESM/CJS interop: the module may be double-wrapped with default exports
 const createForestAdminClient =
   typeof forestAdminClientModule === 'function'
@@ -244,12 +240,17 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     // Get updated user info
     const {
       meta: { renderingId },
-      expires_in: expiresIn,
+      exp: expirationDate,
       scope,
     } = jsonwebtoken.decode(forestServerAccessToken) as {
       meta: { renderingId: number };
-      expires_in: number;
+      exp: number;
+      iat: number;
       scope: string;
+    };
+    const { exp: refreshTokenExpirationDate } = jsonwebtoken.decode(forestServerRefreshToken) as {
+      exp: number;
+      iat: number;
     };
     const user = await this.forestAdminClient.authService.getUserInfo(
       renderingId,
@@ -260,7 +261,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     const accessToken = jsonwebtoken.sign(
       { ...user, serverToken: forestServerAccessToken },
       process.env.FOREST_AUTH_SECRET,
-      { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
+      { expiresIn: expirationDate - Math.floor(Date.now() / 1000) },
     );
 
     // Create new refresh token (token rotation for security)
@@ -273,13 +274,15 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         serverRefreshToken: forestServerRefreshToken,
       },
       process.env.FOREST_AUTH_SECRET,
-      { expiresIn: REFRESH_TOKEN_EXPIRES_IN },
+      { expiresIn: refreshTokenExpirationDate - Math.floor(Date.now() / 1000) },
     );
+
+    const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
 
     return {
       access_token: accessToken,
       token_type: 'Bearer',
-      expires_in: expiresIn || 3600,
+      expires_in: expiresIn > 0 ? expiresIn : 3600,
       refresh_token: refreshToken,
       scope: scope || client.scope,
     };
