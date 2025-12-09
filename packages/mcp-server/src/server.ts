@@ -20,6 +20,7 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
+import declareListHasManyTool from './tools/has-many';
 import declareListTool from './tools/list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
@@ -125,6 +126,7 @@ export default class ForestMCPServer {
     }
 
     declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareListHasManyTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {

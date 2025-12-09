@@ -1,0 +1,693 @@
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
+import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+
+import declareListHasManyTool from '../../src/tools/has-many.js';
+import { Logger } from '../../src/server.js';
+import createActivityLog from '../../src/utils/activity-logs-creator.js';
+import buildClient from '../../src/utils/agent-caller.js';
+import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
+
+jest.mock('../../src/utils/agent-caller.js');
+jest.mock('../../src/utils/activity-logs-creator.js');
+jest.mock('../../src/utils/schema-fetcher.js');
+
+const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
+const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
+  typeof schemaFetcher.fetchForestSchema
+>;
+const mockGetFieldsOfCollection = schemaFetcher.getFieldsOfCollection as jest.MockedFunction<
+  typeof schemaFetcher.getFieldsOfCollection
+>;
+
+describe('declareListHasManyTool', () => {
+  let mcpServer: McpServer;
+  let mockLogger: Logger;
+  let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
+  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Create a mock logger
+    mockLogger = jest.fn();
+
+    // Create a mock MCP server that captures the registered tool
+    mcpServer = {
+      registerTool: jest.fn((name, config, handler) => {
+        registeredToolConfig = config;
+        registeredToolHandler = handler;
+      }),
+    } as unknown as McpServer;
+
+    mockCreateActivityLog.mockResolvedValue(undefined);
+  });
+
+  describe('tool registration', () => {
+    it('should register a tool named "getHasMany"', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      expect(mcpServer.registerTool).toHaveBeenCalledWith(
+        'getHasMany',
+        expect.any(Object),
+        expect.any(Function),
+      );
+    });
+
+    it('should register tool with correct title and description', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      expect(registeredToolConfig.title).toBe('List records from a hasMany relationship');
+      expect(registeredToolConfig.description).toBe(
+        'Retrieve a list of records from the specified hasMany relationship.',
+      );
+    });
+
+    it('should define correct input schema', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('parentRecordId');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('search');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
+    });
+
+    it('should use string type for collectionName when no collection names provided', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options?: string[]; parse: (value: unknown) => unknown }
+      >;
+      // String type should not have options property (enum has options)
+      expect(schema.collectionName.options).toBeUndefined();
+      // Should accept any string
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
+    });
+
+    it('should use string type for collectionName when empty array provided', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger, []);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options?: string[]; parse: (value: unknown) => unknown }
+      >;
+      // String type should not have options property
+      expect(schema.collectionName.options).toBeUndefined();
+      // Should accept any string
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
+    });
+
+    it('should use enum type for collectionName when collection names provided', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
+        'users',
+        'products',
+        'orders',
+      ]);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options: string[]; parse: (value: unknown) => unknown }
+      >;
+      // Enum type should have options property with the collection names
+      expect(schema.collectionName.options).toEqual(['users', 'products', 'orders']);
+      // Should accept valid collection names
+      expect(() => schema.collectionName.parse('users')).not.toThrow();
+      expect(() => schema.collectionName.parse('products')).not.toThrow();
+      // Should reject invalid collection names
+      expect(() => schema.collectionName.parse('invalid-collection')).toThrow();
+    });
+
+    it('should accept string parentRecordId', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { parse: (value: unknown) => unknown }
+      >;
+      expect(() => schema.parentRecordId.parse('abc-123')).not.toThrow();
+    });
+
+    it('should accept number parentRecordId', () => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { parse: (value: unknown) => unknown }
+      >;
+      expect(() => schema.parentRecordId.parse(123)).not.toThrow();
+    });
+  });
+
+  describe('tool execution', () => {
+    const mockExtra = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          forestServerToken: 'forest-token',
+          renderingId: '123',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    beforeEach(() => {
+      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+    });
+
+    it('should call buildClient with the extra parameter', async () => {
+      const mockList = jest.fn().mockResolvedValue([{ id: 1, name: 'Item 1' }]);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+        mockExtra,
+      );
+
+      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+    });
+
+    it('should call rpcClient.collection with the collection name', async () => {
+      const mockList = jest.fn().mockResolvedValue([]);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+        mockExtra,
+      );
+
+      expect(mockCollection).toHaveBeenCalledWith('users');
+    });
+
+    it('should call relation with the relation name and parent record id', async () => {
+      const mockList = jest.fn().mockResolvedValue([]);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 42 },
+        mockExtra,
+      );
+
+      expect(mockRelation).toHaveBeenCalledWith('orders', 42);
+    });
+
+    it('should call relation with string parentRecordId', async () => {
+      const mockList = jest.fn().mockResolvedValue([]);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 'uuid-123' },
+        mockExtra,
+      );
+
+      expect(mockRelation).toHaveBeenCalledWith('orders', 'uuid-123');
+    });
+
+    it('should return results as JSON text content', async () => {
+      const mockData = [
+        { id: 1, name: 'Order 1' },
+        { id: 2, name: 'Order 2' },
+      ];
+      const mockList = jest.fn().mockResolvedValue(mockData);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+        mockExtra,
+      );
+
+      expect(result).toEqual({
+        content: [{ type: 'text', text: JSON.stringify(mockData) }],
+      });
+    });
+
+    describe('activity logging', () => {
+      beforeEach(() => {
+        const mockList = jest.fn().mockResolvedValue([]);
+        const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+        const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+      });
+
+      it('should create activity log with "index" action and relation label', async () => {
+        await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 42 },
+          mockExtra,
+        );
+
+        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+          'https://api.forestadmin.com',
+          mockExtra,
+          'index',
+          {
+            collectionName: 'users',
+            recordId: 42,
+            label: 'list hasMany relation "orders"',
+          },
+        );
+      });
+
+      it('should include parentRecordId in activity log', async () => {
+        await registeredToolHandler(
+          { collectionName: 'products', relationName: 'reviews', parentRecordId: 'prod-123' },
+          mockExtra,
+        );
+
+        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+          'https://api.forestadmin.com',
+          mockExtra,
+          'index',
+          {
+            collectionName: 'products',
+            recordId: 'prod-123',
+            label: 'list hasMany relation "reviews"',
+          },
+        );
+      });
+    });
+
+    describe('list parameters', () => {
+      let mockList: jest.Mock;
+      let mockRelation: jest.Mock;
+      let mockCollection: jest.Mock;
+
+      beforeEach(() => {
+        mockList = jest.fn().mockResolvedValue([]);
+        mockRelation = jest.fn().mockReturnValue({ list: mockList });
+        mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+      });
+
+      it('should call list with basic parameters', async () => {
+        await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+        });
+      });
+
+      it('should pass search parameter to list', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            relationName: 'orders',
+            parentRecordId: 1,
+            search: 'test query',
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          search: 'test query',
+        });
+      });
+
+      it('should pass filters to list', async () => {
+        const filters = { field: 'status', operator: 'Equal', value: 'completed' };
+
+        await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1, filters },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          filters,
+        });
+      });
+
+      it('should pass sort parameter when both field and ascending are provided', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            relationName: 'orders',
+            parentRecordId: 1,
+            sort: { field: 'createdAt', ascending: true },
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          sort: { field: 'createdAt', ascending: true },
+        });
+      });
+
+      it('should pass sort parameter when ascending is false', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            relationName: 'orders',
+            parentRecordId: 1,
+            sort: { field: 'createdAt', ascending: false },
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          sort: { field: 'createdAt', ascending: false },
+        });
+      });
+
+      it('should pass all parameters together', async () => {
+        const filters = {
+          aggregator: 'And',
+          conditions: [{ field: 'status', operator: 'Equal', value: 'pending' }],
+        };
+
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            relationName: 'orders',
+            parentRecordId: 1,
+            search: 'test',
+            filters,
+            sort: { field: 'total', ascending: false },
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          relationName: 'orders',
+          parentRecordId: 1,
+          search: 'test',
+          filters,
+          sort: { field: 'total', ascending: false },
+        });
+      });
+    });
+
+    describe('error handling', () => {
+      let mockList: jest.Mock;
+      let mockRelation: jest.Mock;
+      let mockCollection: jest.Mock;
+
+      beforeEach(() => {
+        mockList = jest.fn();
+        mockRelation = jest.fn().mockReturnValue({ list: mockList });
+        mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+      });
+
+      it('should parse error with nested error.text structure in message', async () => {
+        const errorPayload = {
+          error: {
+            status: 400,
+            text: JSON.stringify({
+              errors: [{ name: 'ValidationError', detail: 'Invalid filters provided' }],
+            }),
+          },
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow('Invalid filters provided');
+      });
+
+      it('should parse error with direct text property in message', async () => {
+        const errorPayload = {
+          text: JSON.stringify({
+            errors: [{ name: 'ValidationError', detail: 'Direct text error' }],
+          }),
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow('Direct text error');
+      });
+
+      it('should provide helpful error message for Invalid sort errors', async () => {
+        const errorPayload = {
+          error: {
+            status: 400,
+            text: JSON.stringify({
+              errors: [{ name: 'ValidationError', detail: 'Invalid sort field: invalidField' }],
+            }),
+          },
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'id',
+            type: 'Number',
+            isSortable: true,
+            enum: null,
+            reference: null,
+            isReadOnly: false,
+            isRequired: true,
+            isPrimaryKey: true,
+          },
+          {
+            field: 'total',
+            type: 'Number',
+            isSortable: true,
+            enum: null,
+            reference: null,
+            isReadOnly: false,
+            isRequired: false,
+            isPrimaryKey: false,
+          },
+          {
+            field: 'computed',
+            type: 'String',
+            isSortable: false,
+            enum: null,
+            reference: null,
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+          },
+        ];
+        const mockSchema: schemaFetcher.ForestSchema = {
+          collections: [{ name: 'users', fields: mockFields }],
+        };
+        mockFetchForestSchema.mockResolvedValue(mockSchema);
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow(
+          'The sort field provided is invalid for this collection. Available fields for the collection users are: id, total.',
+        );
+
+        expect(mockFetchForestSchema).toHaveBeenCalledWith('https://api.forestadmin.com');
+        expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');
+      });
+
+      it('should provide helpful error message when relation is not found', async () => {
+        const agentError = new Error('Relation not found');
+        mockList.mockRejectedValue(agentError);
+
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'id',
+            type: 'Number',
+            isSortable: true,
+            enum: null,
+            reference: null,
+            isReadOnly: false,
+            isRequired: true,
+            isPrimaryKey: true,
+            relationship: null,
+          },
+          {
+            field: 'orders',
+            type: 'HasMany',
+            isSortable: false,
+            enum: null,
+            reference: 'orders',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'HasMany',
+          },
+          {
+            field: 'reviews',
+            type: 'HasMany',
+            isSortable: false,
+            enum: null,
+            reference: 'reviews',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'HasMany',
+          },
+        ];
+        const mockSchema: schemaFetcher.ForestSchema = {
+          collections: [{ name: 'users', fields: mockFields }],
+        };
+        mockFetchForestSchema.mockResolvedValue(mockSchema);
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'invalidRelation', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow(
+          'The relation name provided is invalid for this collection. Available relation for the collection are users are: orders, reviews.',
+        );
+      });
+
+      it('should not show relation error when relation exists but error is different', async () => {
+        const agentError = new Error('Some other error');
+        mockList.mockRejectedValue(agentError);
+
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'orders',
+            type: 'HasMany',
+            isSortable: false,
+            enum: null,
+            reference: 'orders',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'HasMany',
+          },
+        ];
+        const mockSchema: schemaFetcher.ForestSchema = {
+          collections: [{ name: 'users', fields: mockFields }],
+        };
+        mockFetchForestSchema.mockResolvedValue(mockSchema);
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        // Should throw the original error message since 'orders' relation exists
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow('Some other error');
+      });
+
+      it('should fall back to error.message when message is not valid JSON', async () => {
+        const agentError = new Error('Plain error message');
+        mockList.mockRejectedValue(agentError);
+
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'orders',
+            type: 'HasMany',
+            isSortable: false,
+            enum: null,
+            reference: 'orders',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'HasMany',
+          },
+        ];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'users', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow('Plain error message');
+      });
+
+      it('should rethrow original error when no parsable error found', async () => {
+        const agentError = { unknownProperty: 'some value' };
+        mockList.mockRejectedValue(agentError);
+
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'orders',
+            type: 'HasMany',
+            isSortable: false,
+            enum: null,
+            reference: 'orders',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'HasMany',
+          },
+        ];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'users', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toEqual(agentError);
+      });
+    });
+  });
+});

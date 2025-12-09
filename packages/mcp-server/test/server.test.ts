@@ -4,6 +4,7 @@ import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
 import MockServer from './test-utils/mock-server';
+import { clearSchemaCache } from './utils/schema-fetcher.js';
 import ForestMCPServer from '../src/server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
@@ -2149,6 +2150,289 @@ describe('ForestMCPServer Instance', () => {
       expect(incomingIndex).toBeGreaterThanOrEqual(0);
       expect(toolCallIndex).toBeGreaterThan(incomingIndex);
       expect(responseIndex).toBeGreaterThan(toolCallIndex);
+    });
+  });
+
+  /**
+   * Integration tests for the getHasMany tool
+   * Tests that the getHasMany tool is properly registered and accessible
+   */
+  describe('GetHasMany tool integration', () => {
+    let hasManyServer: ForestAdminMCPServer;
+    let hasManyHttpServer: http.Server;
+    let hasManyMockServer: MockServer;
+
+    beforeAll(async () => {
+      process.env.FOREST_ENV_SECRET = 'test-env-secret';
+      process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+      process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
+      process.env.AGENT_HOSTNAME = 'http://localhost:3310';
+      process.env.MCP_SERVER_PORT = '39340';
+
+      // Clear the schema cache from previous tests to ensure fresh fetch
+      clearSchemaCache();
+
+      hasManyMockServer = new MockServer();
+      hasManyMockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
+        .get('/liana/forest-schema', {
+          data: [
+            {
+              id: 'users',
+              type: 'collections',
+              attributes: {
+                name: 'users',
+                fields: [
+                  { field: 'id', type: 'Number' },
+                  {
+                    field: 'orders',
+                    type: 'HasMany',
+                    reference: 'orders',
+                    relationship: 'HasMany',
+                  },
+                ],
+              },
+            },
+            {
+              id: 'orders',
+              type: 'collections',
+              attributes: { name: 'orders', fields: [{ field: 'id', type: 'Number' }] },
+            },
+          ],
+          meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+        })
+        .get(/\/oauth\/register\/registered-client/, {
+          client_id: 'registered-client',
+          redirect_uris: ['https://example.com/callback'],
+          client_name: 'Test Client',
+          scope: 'mcp:read mcp:write',
+        })
+        .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+      global.fetch = hasManyMockServer.fetch;
+
+      hasManyServer = new ForestAdminMCPServer();
+      hasManyServer.run();
+
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      hasManyHttpServer = hasManyServer.httpServer as http.Server;
+    });
+
+    afterAll(async () => {
+      await new Promise<void>(resolve => {
+        if (hasManyServer?.httpServer) {
+          (hasManyServer.httpServer as http.Server).close(() => resolve());
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    it('should have getHasMany tool registered in the MCP server', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+        },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      const response = await request(hasManyHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: 1,
+        });
+
+      expect(response.status).toBe(200);
+
+      let responseData: {
+        jsonrpc: string;
+        id: number;
+        result: {
+          tools: Array<{
+            name: string;
+            description: string;
+            inputSchema: { properties: Record<string, unknown> };
+          }>;
+        };
+      };
+
+      if (response.body && Object.keys(response.body).length > 0) {
+        responseData = response.body;
+      } else {
+        const textResponse = response.text;
+        const lines = textResponse.split('\n').filter((line: string) => line.trim());
+        const dataLine = lines.find((line: string) => line.startsWith('data: '));
+
+        if (dataLine) {
+          responseData = JSON.parse(dataLine.replace('data: ', ''));
+        } else {
+          responseData = JSON.parse(lines[lines.length - 1]);
+        }
+      }
+
+      expect(responseData.jsonrpc).toBe('2.0');
+      expect(responseData.id).toBe(1);
+      expect(responseData.result).toBeDefined();
+      expect(responseData.result.tools).toBeDefined();
+      expect(Array.isArray(responseData.result.tools)).toBe(true);
+
+      // Verify the 'getHasMany' tool is registered
+      const getHasManyTool = responseData.result.tools.find(
+        (tool: { name: string }) => tool.name === 'getHasMany',
+      );
+      expect(getHasManyTool).toBeDefined();
+      expect(getHasManyTool.description).toBe(
+        'Retrieve a list of records from the specified hasMany relationship.',
+      );
+      expect(getHasManyTool.inputSchema).toBeDefined();
+      expect(getHasManyTool.inputSchema.properties).toHaveProperty('collectionName');
+      expect(getHasManyTool.inputSchema.properties).toHaveProperty('relationName');
+      expect(getHasManyTool.inputSchema.properties).toHaveProperty('parentRecordId');
+      expect(getHasManyTool.inputSchema.properties).toHaveProperty('search');
+      expect(getHasManyTool.inputSchema.properties).toHaveProperty('filters');
+      expect(getHasManyTool.inputSchema.properties).toHaveProperty('sort');
+
+      // Verify collectionName has enum with the collection names from the mocked schema
+      const collectionNameSchema = getHasManyTool.inputSchema.properties.collectionName as {
+        type: string;
+        enum?: string[];
+      };
+      expect(collectionNameSchema.type).toBe('string');
+      expect(collectionNameSchema.enum).toBeDefined();
+      expect(collectionNameSchema.enum).toEqual(['users', 'orders']);
+    });
+
+    it('should create activity log with forestServerToken and relation label when calling getHasMany tool', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const forestServerToken = 'original-forest-server-token-for-has-many';
+
+      // Create MCP JWT with embedded serverToken (as done during OAuth token exchange)
+      const mcpToken = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: forestServerToken,
+        },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      // Setup mock to capture the activity log API call and mock agent response
+      hasManyMockServer.clear();
+      hasManyMockServer
+        .post('/api/activity-logs-requests', { success: true })
+        .post('/forest/rpc', { result: [{ id: 1, product: 'Widget', total: 100 }] });
+
+      const response = await request(hasManyHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${mcpToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: 'getHasMany',
+            arguments: {
+              collectionName: 'users',
+              relationName: 'orders',
+              parentRecordId: 42,
+            },
+          },
+          id: 2,
+        });
+
+      // The tool call should succeed (or fail on agent call, but activity log should be created first)
+      expect(response.status).toBe(200);
+
+      // Verify activity log API was called with the correct forestServerToken
+      const activityLogCall = hasManyMockServer.fetch.mock.calls.find(
+        (call: [string, RequestInit]) =>
+          call[0] === 'https://test.forestadmin.com/api/activity-logs-requests',
+      ) as [string, RequestInit] | undefined;
+
+      expect(activityLogCall).toBeDefined();
+      expect(activityLogCall![1].headers).toMatchObject({
+        Authorization: `Bearer ${forestServerToken}`,
+        'Content-Type': 'application/json',
+        'Forest-Application-Source': 'MCP',
+      });
+
+      // Verify the body contains the correct data with relation label
+      const body = JSON.parse(activityLogCall![1].body as string);
+      expect(body.data.attributes.action).toBe('index');
+      expect(body.data.attributes.label).toBe('list hasMany relation "orders"');
+      expect(body.data.relationships.collection.data).toEqual({
+        id: 'users',
+        type: 'collections',
+      });
+    });
+
+    it('should accept string parentRecordId when calling getHasMany tool', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const forestServerToken = 'forest-token-for-string-id-test';
+
+      const mcpToken = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: forestServerToken,
+        },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      hasManyMockServer.clear();
+      hasManyMockServer
+        .post('/api/activity-logs-requests', { success: true })
+        .post('/forest/rpc', { result: [{ id: 1, product: 'Widget' }] });
+
+      const response = await request(hasManyHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${mcpToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: 'getHasMany',
+            arguments: {
+              collectionName: 'users',
+              relationName: 'orders',
+              parentRecordId: 'uuid-abc-123',
+            },
+          },
+          id: 3,
+        });
+
+      expect(response.status).toBe(200);
+
+      // Verify activity log was created with string recordId
+      const activityLogCall = hasManyMockServer.fetch.mock.calls.find(
+        (call: [string, RequestInit]) =>
+          call[0] === 'https://test.forestadmin.com/api/activity-logs-requests',
+      ) as [string, RequestInit] | undefined;
+
+      expect(activityLogCall).toBeDefined();
+      const body = JSON.parse(activityLogCall![1].body as string);
+      expect(body.data.attributes.label).toBe('list hasMany relation "orders"');
     });
   });
 });
