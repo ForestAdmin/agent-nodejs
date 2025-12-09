@@ -82,7 +82,10 @@ export default function makeAgent() {
     .customizeAiLlm({
       aiClients: {
         openai: {
-          clientOptions: { apiKey: process.env.OPENAI_API_KEY },
+          clientOptions: {
+            apiKey:
+              'process.env.OPENAI_API_KEY',
+          },
           chatConfiguration: { model: 'gpt-4' },
         },
       },

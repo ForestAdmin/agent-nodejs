@@ -1,4 +1,4 @@
-import { Router as AiProxyRouter, Route } from '@forestadmin/ai-proxy';
+import { Router as AiProxyRouter } from '@forestadmin/ai-proxy';
 import KoaRouter from '@koa/router';
 import { Context } from 'koa';
 

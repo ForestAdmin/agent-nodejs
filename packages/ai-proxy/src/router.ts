@@ -9,7 +9,7 @@ import { RemoteTools } from './remote-tools';
 
 export type InvokeRemoteToolBody = { inputs: Messages };
 export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
-export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool' | 'refresh-remote-tools';
+export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool';
 export type Query = {
   provider?: string;
   'tool-name'?: string;
@@ -39,9 +39,6 @@ export class Router {
    *
    * // get the list of available remote tools
    * - /remote-tools
-   *
-   * // refresh the cache of remote tools (it will be reloaded from the MCP)
-   * - /refresh-tools
    */
   async route(args: { body?: Body; route: Route; query?: Query; mcpConfigs?: McpConfiguration }) {
     let mcpClient: McpClient | undefined;
@@ -69,12 +66,6 @@ export class Router {
 
       if (args.route === 'remote-tools') {
         return remoteTools.toolDefinitionsForFrontend;
-      }
-
-      if (args.route === 'refresh-remote-tools') {
-        // TODO: remove this route because it is no longer needed
-        // Do this after the front is removed the refresh button
-        return;
       }
 
       // don't add mcpConfigs to the error message, as it may contain sensitive information
