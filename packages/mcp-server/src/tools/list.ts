@@ -61,9 +61,9 @@ const listArgumentSchema = z.object({
     .describe('When true, also returns totalCount of matching records'),
 });
 
-type ListArgument = z.infer<typeof listArgumentSchema>;
+export type ListArgument = z.infer<typeof listArgumentSchema>;
 
-function createListArgumentShape(collectionNames: string[]) {
+export function createListArgumentShape(collectionNames: string[]) {
   return {
     ...listArgumentSchema.shape,
     collectionName:

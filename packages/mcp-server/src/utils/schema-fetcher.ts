@@ -21,6 +21,7 @@ export interface ForestField {
   validations?: unknown[];
   defaultValue?: unknown;
   isPrimaryKey: boolean;
+  relationship?: 'HasMany' | 'BelongsTo' | 'HasOne' | null;
 }
 
 export interface ForestCollection {

@@ -22,6 +22,7 @@ import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
+import declareListHasManyTool from './tools/has-many';
 import declareListTool from './tools/list';
 import declareUpdateTool from './tools/update';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
@@ -134,6 +135,7 @@ export default class ForestMCPServer {
     declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareUpdateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareDeleteTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareListHasManyTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
