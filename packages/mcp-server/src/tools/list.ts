@@ -4,6 +4,8 @@ import { z } from 'zod';
 import filterSchema from '../schemas/filter.js';
 import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
+import parseAgentError from '../utils/error-parser.js';
+import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 
 function createListArgumentShape(collectionNames: string[]) {
   return {
@@ -82,11 +84,33 @@ export default function declareListTool(
         collectionName: options.collectionName,
       });
 
-      const result = await rpcClient
-        .collection(options.collectionName)
-        .list(getListParameters(options));
+      try {
+        const result = await rpcClient
+          .collection(options.collectionName)
+          .list(getListParameters(options));
 
-      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (error) {
+        // Parse error text if it's a JSON string from the agent
+        const errorDetail = parseAgentError(error);
+
+        if (errorDetail?.includes('Invalid sort')) {
+          const fields = getFieldsOfCollection(
+            await fetchForestSchema(forestServerUrl),
+            options.collectionName,
+          );
+          throw new Error(
+            `The sort field provided is invalid for this collection. Available fields for the collection ${
+              options.collectionName
+            } are: ${fields
+              .filter(field => field.isSortable)
+              .map(field => field.field)
+              .join(', ')}.`,
+          );
+        }
+
+        throw errorDetail ? new Error(errorDetail) : error;
+      }
     },
   );
 }

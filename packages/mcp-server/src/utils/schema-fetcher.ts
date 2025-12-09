@@ -7,12 +7,25 @@ import JsonApiSerializer from 'jsonapi-serializer';
  * and caches it for 24 hours.
  */
 
+export interface ForestField {
+  field: string;
+  type: string;
+  isFilterable?: boolean;
+  isSortable?: boolean;
+  enum: string[] | null;
+  inverseOf?: string | null;
+  reference: string | null;
+  isReadOnly: boolean;
+  isRequired: boolean;
+  integration?: string | null;
+  validations?: unknown[];
+  defaultValue?: unknown;
+  isPrimaryKey: boolean;
+}
+
 export interface ForestCollection {
   name: string;
-  fields: Array<{
-    field: string;
-    type: string;
-  }>;
+  fields: ForestField[];
 }
 
 export interface ForestSchema {
@@ -96,6 +109,16 @@ export async function fetchForestSchema(forestServerUrl: string): Promise<Forest
  */
 export function getCollectionNames(schema: ForestSchema): string[] {
   return schema.collections.map(collection => collection.name);
+}
+
+export function getFieldsOfCollection(schema: ForestSchema, collectionName: string): ForestField[] {
+  const collection = schema.collections.find(col => col.name === collectionName);
+
+  if (!collection) {
+    throw new Error(`Collection "${collectionName}" not found in schema`);
+  }
+
+  return collection.fields;
 }
 
 /**
