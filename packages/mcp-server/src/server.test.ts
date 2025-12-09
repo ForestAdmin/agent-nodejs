@@ -40,6 +40,21 @@ describe('ForestAdminMCPServer Instance', () => {
       .get('/liana/environment', {
         data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
       })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+          {
+            id: 'products',
+            type: 'collections',
+            attributes: { name: 'products', fields: [{ field: 'name', type: 'String' }] },
+          },
+        ],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
       .get(/\/oauth\/register\/registered-client/, {
         client_id: 'registered-client',
         redirect_uris: ['https://example.com/callback'],
@@ -414,6 +429,21 @@ describe('ForestAdminMCPServer Instance', () => {
         .get('/liana/environment', {
           data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
         })
+        .get('/liana/forest-schema', {
+          data: [
+            {
+              id: 'users',
+              type: 'collections',
+              attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+            },
+            {
+              id: 'products',
+              type: 'collections',
+              attributes: { name: 'products', fields: [{ field: 'name', type: 'String' }] },
+            },
+          ],
+          meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+        })
         .get(/\/oauth\/register\/registered-client/, {
           client_id: 'registered-client',
           redirect_uris: ['https://example.com/callback'],
@@ -552,6 +582,20 @@ describe('ForestAdminMCPServer Instance', () => {
         mcpMockServer
           .get('/liana/environment', {
             data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+          })
+          .get('/liana/forest-schema', {
+            data: [
+              {
+                id: 'users',
+                type: 'collections',
+                attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+              },
+            ],
+            meta: {
+              liana: 'forest-express-sequelize',
+              liana_version: '9.0.0',
+              liana_features: null,
+            },
           })
           .get(/\/oauth\/register\/registered-client/, {
             client_id: 'registered-client',
@@ -732,6 +776,21 @@ describe('ForestAdminMCPServer Instance', () => {
         .get('/liana/environment', {
           data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
         })
+        .get('/liana/forest-schema', {
+          data: [
+            {
+              id: 'users',
+              type: 'collections',
+              attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+            },
+            {
+              id: 'products',
+              type: 'collections',
+              attributes: { name: 'products', fields: [{ field: 'name', type: 'String' }] },
+            },
+          ],
+          meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+        })
         .get(/\/oauth\/register\/registered-client/, {
           client_id: 'registered-client',
           redirect_uris: ['https://example.com/callback'],
@@ -868,6 +927,15 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(listTool.inputSchema.properties).toHaveProperty('search');
       expect(listTool.inputSchema.properties).toHaveProperty('filters');
       expect(listTool.inputSchema.properties).toHaveProperty('sort');
+
+      // Verify collectionName has enum with the collection names from the mocked schema
+      const collectionNameSchema = listTool.inputSchema.properties.collectionName as {
+        type: string;
+        enum?: string[];
+      };
+      expect(collectionNameSchema.type).toBe('string');
+      expect(collectionNameSchema.enum).toBeDefined();
+      expect(collectionNameSchema.enum).toEqual(['users', 'products']);
     });
 
     it('should create activity log with forestServerToken when calling list tool', async () => {
