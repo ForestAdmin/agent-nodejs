@@ -1,8 +1,8 @@
+import type { AiProvider, Clients } from '@forestadmin/ai-proxy';
+
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
-
-import type { AiProvider, Clients } from '@forestadmin/ai-proxy';
 
 export type { AiProvider };
 

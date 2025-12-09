@@ -1,6 +1,6 @@
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
+import type { McpConfiguration } from '@forestadmin/ai-proxy';
 
 import { ParsedUrlQuery } from 'querystring';
 

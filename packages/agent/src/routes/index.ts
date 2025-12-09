@@ -1,6 +1,5 @@
 import { DataSource } from '@forestadmin/datasource-toolkit';
 
-import AiProxyRoute from './ai/ai-proxy';
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
 import Chart from './access/chart';
@@ -12,6 +11,7 @@ import Get from './access/get';
 import List from './access/list';
 import ListRelated from './access/list-related';
 import NativeQueryDatasource from './access/native-query-datasource';
+import AiProxyRoute from './ai/ai-proxy';
 import BaseRoute from './base-route';
 import Capabilities from './capabilities';
 import ActionRoute from './modification/action/action';
@@ -29,7 +29,7 @@ import ErrorHandling from './system/error-handling';
 import HealthCheck from './system/healthcheck';
 import Logger from './system/logger';
 import { ForestAdminHttpDriverServices as Services } from '../services';
-import { AgentOptionsWithDefaults as Options, AiLlmConfiguration } from '../types';
+import { AiLlmConfiguration, AgentOptionsWithDefaults as Options } from '../types';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,

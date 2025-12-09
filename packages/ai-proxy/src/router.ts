@@ -1,8 +1,7 @@
-import type { Logger } from '@forestadmin/datasource-toolkit';
-
 import type { McpConfiguration } from './mcp-client';
 import type { Clients, DispatchBody } from './provider-dispatcher';
 import type { Messages, RemoteToolsApiKeys } from './remote-tools';
+import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
