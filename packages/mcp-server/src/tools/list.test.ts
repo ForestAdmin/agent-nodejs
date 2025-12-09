@@ -6,12 +6,20 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import declareListTool from './list.js';
 import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
+import * as schemaFetcher from '../utils/schema-fetcher.js';
 
 jest.mock('../utils/agent-caller.js');
 jest.mock('../utils/activity-logs-creator.js');
+jest.mock('../utils/schema-fetcher.js');
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
 const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
+  typeof schemaFetcher.fetchForestSchema
+>;
+const mockGetFieldsOfCollection = schemaFetcher.getFieldsOfCollection as jest.MockedFunction<
+  typeof schemaFetcher.getFieldsOfCollection
+>;
 
 describe('declareListTool', () => {
   let mcpServer: McpServer;
@@ -59,6 +67,48 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.inputSchema).toHaveProperty('search');
       expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
       expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
+    });
+
+    it('should use string type for collectionName when no collection names provided', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com');
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options?: string[]; parse: (value: unknown) => unknown }
+      >;
+      // String type should not have options property (enum has options)
+      expect(schema.collectionName.options).toBeUndefined();
+      // Should accept any string
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
+    });
+
+    it('should use string type for collectionName when empty array provided', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com', []);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options?: string[]; parse: (value: unknown) => unknown }
+      >;
+      // String type should not have options property
+      expect(schema.collectionName.options).toBeUndefined();
+      // Should accept any string
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
+    });
+
+    it('should use enum type for collectionName when collection names provided', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com', ['users', 'products', 'orders']);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { options: string[]; parse: (value: unknown) => unknown }
+      >;
+      // Enum type should have options property with the collection names
+      expect(schema.collectionName.options).toEqual(['users', 'products', 'orders']);
+      // Should accept valid collection names
+      expect(() => schema.collectionName.parse('users')).not.toThrow();
+      expect(() => schema.collectionName.parse('products')).not.toThrow();
+      // Should reject invalid collection names
+      expect(() => schema.collectionName.parse('invalid-collection')).toThrow();
     });
   });
 
@@ -286,6 +336,156 @@ describe('declareListTool', () => {
           filters: { conditionTree: filters },
           sort: { field: 'name', ascending: true },
         });
+      });
+    });
+
+    describe('error handling', () => {
+      let mockList: jest.Mock;
+      let mockCollection: jest.Mock;
+
+      beforeEach(() => {
+        mockList = jest.fn();
+        mockCollection = jest.fn().mockReturnValue({ list: mockList });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+      });
+
+      it('should parse error with nested error.text structure in message', async () => {
+        // The RPC client throws an Error with message containing JSON: { error: { text: '...' } }
+        const errorPayload = {
+          error: {
+            status: 400,
+            text: JSON.stringify({
+              errors: [{ name: 'ValidationError', detail: 'Invalid filters provided' }],
+            }),
+          },
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Invalid filters provided',
+        );
+      });
+
+      it('should parse error with direct text property in message', async () => {
+        // The RPC client throws an Error with message containing JSON: { text: '...' }
+        const errorPayload = {
+          text: JSON.stringify({
+            errors: [{ name: 'ValidationError', detail: 'Direct text error' }],
+          }),
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Direct text error',
+        );
+      });
+
+      it('should use message property from parsed JSON when no text field', async () => {
+        // The RPC client throws an Error with message containing JSON: { message: '...' }
+        const errorPayload = {
+          message: 'Error message from JSON payload',
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Error message from JSON payload',
+        );
+      });
+
+      it('should fall back to error.message when message is not valid JSON', async () => {
+        // The RPC client throws an Error with a plain string message (not JSON)
+        const agentError = new Error('Plain error message');
+        mockList.mockRejectedValue(agentError);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Plain error message',
+        );
+      });
+
+      it('should rethrow original error when no parsable error found', async () => {
+        // An object without a message property
+        const agentError = { unknownProperty: 'some value' };
+        mockList.mockRejectedValue(agentError);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toEqual(
+          agentError,
+        );
+      });
+
+      it('should provide helpful error message for Invalid sort errors', async () => {
+        // The RPC client throws an "Invalid sort" error
+        const errorPayload = {
+          error: {
+            status: 400,
+            text: JSON.stringify({
+              errors: [{ name: 'ValidationError', detail: 'Invalid sort field: invalidField' }],
+            }),
+          },
+        };
+        const agentError = new Error(JSON.stringify(errorPayload));
+        mockList.mockRejectedValue(agentError);
+
+        // Mock schema fetcher to return collection fields
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'id',
+            type: 'Number',
+            isSortable: true,
+            enum: null,
+            reference: null,
+            isReadOnly: false,
+            isRequired: true,
+            isPrimaryKey: true,
+          },
+          {
+            field: 'name',
+            type: 'String',
+            isSortable: true,
+            enum: null,
+            reference: null,
+            isReadOnly: false,
+            isRequired: false,
+            isPrimaryKey: false,
+          },
+          {
+            field: 'email',
+            type: 'String',
+            isSortable: true,
+            enum: null,
+            reference: null,
+            isReadOnly: false,
+            isRequired: false,
+            isPrimaryKey: false,
+          },
+          {
+            field: 'computed',
+            type: 'String',
+            isSortable: false,
+            enum: null,
+            reference: null,
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+          },
+        ];
+        const mockSchema: schemaFetcher.ForestSchema = {
+          collections: [{ name: 'users', fields: mockFields }],
+        };
+        mockFetchForestSchema.mockResolvedValue(mockSchema);
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'The sort field provided is invalid for this collection. Available fields for the collection users are: id, name, email.',
+        );
+
+        expect(mockFetchForestSchema).toHaveBeenCalledWith('https://api.forestadmin.com');
+        expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');
       });
     });
   });

@@ -4,21 +4,30 @@ import { z } from 'zod';
 import filterSchema from '../schemas/filter.js';
 import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
+import parseAgentError from '../utils/error-parser.js';
+import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 
-const listArgumentShape = {
-  collectionName: z.string(),
-  search: z.string().optional(),
-  filters: filterSchema.optional(),
-  sort: z
-    .object({
-      field: z.string(),
-      ascending: z.boolean(),
-    })
-    .optional(),
+function createListArgumentShape(collectionNames: string[]) {
+  return {
+    collectionName:
+      collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
+    search: z.string().optional(),
+    filters: filterSchema.optional(),
+    sort: z
+      .object({
+        field: z.string(),
+        ascending: z.boolean(),
+      })
+      .optional(),
+  };
+}
+
+type ListArgument = {
+  collectionName: string;
+  search?: string;
+  filters?: z.infer<typeof filterSchema>;
+  sort?: { field: string; ascending: boolean };
 };
-
-const listArgumentSchema = z.object(listArgumentShape);
-type ListArgument = z.infer<typeof listArgumentSchema>;
 
 function getListParameters(options: ListArgument): {
   filters?: Record<string, unknown>;
@@ -46,7 +55,13 @@ function getListParameters(options: ListArgument): {
   return parameters;
 }
 
-export default function declareListTool(mcpServer: McpServer, forestServerUrl: string): void {
+export default function declareListTool(
+  mcpServer: McpServer,
+  forestServerUrl: string,
+  collectionNames: string[] = [],
+): void {
+  const listArgumentShape = createListArgumentShape(collectionNames);
+
   mcpServer.registerTool(
     'list',
     {
@@ -69,11 +84,33 @@ export default function declareListTool(mcpServer: McpServer, forestServerUrl: s
         collectionName: options.collectionName,
       });
 
-      const result = await rpcClient
-        .collection(options.collectionName)
-        .list(getListParameters(options));
+      try {
+        const result = await rpcClient
+          .collection(options.collectionName)
+          .list(getListParameters(options));
 
-      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (error) {
+        // Parse error text if it's a JSON string from the agent
+        const errorDetail = parseAgentError(error);
+
+        if (errorDetail?.includes('Invalid sort')) {
+          const fields = getFieldsOfCollection(
+            await fetchForestSchema(forestServerUrl),
+            options.collectionName,
+          );
+          throw new Error(
+            `The sort field provided is invalid for this collection. Available fields for the collection ${
+              options.collectionName
+            } are: ${fields
+              .filter(field => field.isSortable)
+              .map(field => field.field)
+              .join(', ')}.`,
+          );
+        }
+
+        throw errorDetail ? new Error(errorDetail) : error;
+      }
     },
   );
 }
