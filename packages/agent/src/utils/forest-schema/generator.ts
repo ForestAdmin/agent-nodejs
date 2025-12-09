@@ -32,7 +32,7 @@ export default class SchemaGenerator {
         liana: 'forest-nodejs-agent',
         liana_version: version,
         liana_features: features,
-        aiLlm,
+        ai_llm: aiLlm,
         stack: {
           engine: 'nodejs',
           engine_version: process.versions && process.versions.node,
