@@ -1789,6 +1789,19 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
+"@forestadmin-experimental/agent-nodejs-testing@^0.36.0":
+  version "0.36.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin-experimental/agent-nodejs-testing/-/agent-nodejs-testing-0.36.0.tgz#7b0358c1145e07c0cc4d8e2dce49da98e1dd95a8"
+  integrity sha512-SJUVeNstVBounzNe0+ic1J5LBlVdZpYCLpekvdj6Lf3ND5wEPnM1YpIoSZewPZNJ04z2kdbxTfPINHsWltePHw==
+  dependencies:
+    "@forestadmin/agent" "1.66.0"
+    "@forestadmin/datasource-customizer" "1.67.1"
+    "@forestadmin/datasource-toolkit" "1.50.0"
+    "@forestadmin/forestadmin-client" "1.36.14"
+    jsonapi-serializer "^3.5.1"
+    jsonwebtoken "^9.0.2"
+    superagent "^8.1.2"
+
 "@forestadmin/agent@1.65.1":
   version "1.65.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.65.1.tgz#64f37ac6a85eeef1f585964e1c861773306a9d7d"
@@ -10941,6 +10954,14 @@ jsonapi-serializer@3.6.2:
     inflected "^1.1.6"
     lodash "^4.16.3"
 
+jsonapi-serializer@^3.5.1:
+  version "3.6.9"
+  resolved "https://registry.yarnpkg.com/jsonapi-serializer/-/jsonapi-serializer-3.6.9.tgz#a2ea0b53a24cf4bb7659232406ed8caa2423e9b2"
+  integrity sha512-LeRPlP93Mz6+Klu13OKcnXNLvtH1gbeo/yfThqihAMw7vUBCWWs6jHImpR/tQwzAxJi7F1+bfVJxeHoNCrbZiQ==
+  dependencies:
+    inflected "^1.1.6"
+    lodash "^4.16.3"
+
 jsonc-parser@3.2.0:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/jsonc-parser/-/jsonc-parser-3.2.0.tgz#31ff3f4c2b9793f89c67212627c51c6394f88e76"
@@ -16006,7 +16027,7 @@ super-regex@^1.0.0:
     make-asynchronous "^1.0.1"
     time-span "^5.1.0"
 
-superagent@8.1.2:
+superagent@8.1.2, superagent@^8.1.2:
   version "8.1.2"
   resolved "https://registry.yarnpkg.com/superagent/-/superagent-8.1.2.tgz#03cb7da3ec8b32472c9d20f6c2a57c7f3765f30b"
   integrity sha512-6WTxW1EB6yCxV5VFOIPQruWGHqc3yI7hEmZK6h+pyk69Lk/Ut7rLUY6W/ONF2MjBuGjvmMiIpsrVJ2vjrHlslA==
@@ -17502,7 +17523,7 @@ zod-to-json-schema@^3.25.0:
   resolved "https://registry.yarnpkg.com/zod-to-json-schema/-/zod-to-json-schema-3.25.0.tgz#df504c957c4fb0feff467c74d03e6aab0b013e1c"
   integrity sha512-HvWtU2UG41LALjajJrML6uQejQhNJx+JBO9IflpSja4R03iNWfKXrj6W2h7ljuLyc1nKS+9yDyL/9tD1U/yBnQ==
 
-"zod@^3.25 || ^4.0":
+"zod@^3.25 || ^4.0", zod@^4.1.13:
   version "4.1.13"
   resolved "https://registry.yarnpkg.com/zod/-/zod-4.1.13.tgz#93699a8afe937ba96badbb0ce8be6033c0a4b6b1"
   integrity sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==
