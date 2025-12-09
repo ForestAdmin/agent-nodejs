@@ -14,6 +14,7 @@ import * as http from 'http';
 
 import ForestAdminOAuthProvider from './forest-oauth-provider.js';
 import declareListTool from './tools/list.js';
+import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher.js';
 
 /**
  * Forest Admin MCP Server
@@ -42,12 +43,22 @@ export default class ForestAdminMCPServer {
       name: '@forestadmin/mcp-server',
       version: '0.1.0',
     });
-
-    this.setupTools();
   }
 
-  private setupTools(): void {
-    declareListTool(this.mcpServer, this.forestServerUrl);
+  private async setupTools(): Promise<void> {
+    let collectionNames: string[] = [];
+
+    try {
+      const schema = await fetchForestSchema(this.forestServerUrl);
+      collectionNames = getCollectionNames(schema);
+    } catch (error) {
+      console.warn(
+        '[WARN] Failed to fetch forest schema, collection names will not be available:',
+        error,
+      );
+    }
+
+    declareListTool(this.mcpServer, this.forestServerUrl, collectionNames);
   }
 
   private ensureEnvironmentVariablesAreSet(): void {
@@ -62,6 +73,9 @@ export default class ForestAdminMCPServer {
 
   async run(): Promise<void> {
     this.ensureEnvironmentVariablesAreSet();
+
+    // Fetch schema and setup tools before starting the server
+    await this.setupTools();
 
     const port = Number(process.env.MCP_SERVER_PORT) || 3931;
     const baseUrl = new URL(`http://localhost:${port}`);
