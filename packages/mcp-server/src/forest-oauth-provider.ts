@@ -258,10 +258,11 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     );
 
     // Create new access token
+    const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
     const accessToken = jsonwebtoken.sign(
       { ...user, serverToken: forestServerAccessToken },
       process.env.FOREST_AUTH_SECRET,
-      { expiresIn: expirationDate - Math.floor(Date.now() / 1000) },
+      { expiresIn },
     );
 
     // Create new refresh token (token rotation for security)
@@ -276,8 +277,6 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       process.env.FOREST_AUTH_SECRET,
       { expiresIn: refreshTokenExpirationDate - Math.floor(Date.now() / 1000) },
     );
-
-    const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
 
     return {
       access_token: accessToken,
