@@ -658,13 +658,15 @@ describe('ForestAdminOAuthProvider', () => {
       const result = await provider.verifyAccessToken('valid-access-token');
 
       expect(result.token).toBe('valid-access-token');
-      expect(result.clientId).toBe('456');
+      expect(result.clientId).toBe('123');
       expect(result.expiresAt).toBe(mockDecoded.exp);
       expect(result.scopes).toEqual(['mcp:read', 'mcp:write', 'mcp:action']);
       expect(result.extra).toEqual({
         userId: 123,
         email: 'user@example.com',
         renderingId: 456,
+        environmentApiEndpoint: undefined,
+        forestServerToken: 'forest-server-token',
       });
     });
 
@@ -709,6 +711,45 @@ describe('ForestAdminOAuthProvider', () => {
       await expect(provider.verifyAccessToken('refresh-token')).rejects.toThrow(
         'Cannot use refresh token as access token',
       );
+    });
+
+    it('should include environmentApiEndpoint after initialize is called', async () => {
+      mockServer.get('/liana/environment', {
+        data: {
+          id: '12345',
+          attributes: { api_endpoint: 'https://api.example.com' },
+        },
+      });
+
+      global.fetch = mockServer.fetch;
+
+      const mockDecoded = {
+        id: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        serverToken: 'forest-server-token',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
+      };
+
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue(mockDecoded);
+
+      const provider = new ForestAdminOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+
+      // Call initialize to fetch environment data
+      await provider.initialize();
+
+      const result = await provider.verifyAccessToken('valid-access-token');
+
+      expect(result.extra).toEqual({
+        userId: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        environmentApiEndpoint: 'https://api.example.com',
+        forestServerToken: 'forest-server-token',
+      });
     });
   });
 });

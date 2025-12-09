@@ -548,7 +548,7 @@ describe('ForestAdminMCPServer Instance', () => {
       expect(response.body.token_type).toBe('Bearer');
       expect(response.body.expires_in).toBe(3600);
       // The scope is returned from the decoded forest token
-      expect(response.body.scope).toBe('mcp:read');
+      expect(response.body.scope).toBe('mcp:read mcp:write');
       const accessToken = response.body.access_token as string;
       expect(
         () =>
