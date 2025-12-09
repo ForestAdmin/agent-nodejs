@@ -34,7 +34,7 @@ describe('createActivityLog', () => {
     it.each([
       ['index', 'read'],
       ['search', 'read'],
-      ['filters', 'read'],
+      ['filter', 'read'],
       ['listHasMany', 'read'],
       ['actionForm', 'read'],
       ['availableActions', 'read'],

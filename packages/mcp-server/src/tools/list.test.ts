@@ -46,9 +46,9 @@ describe('declareListTool', () => {
     it('should register tool with correct title and description', () => {
       declareListTool(mcpServer, 'https://api.forestadmin.com');
 
-      expect(registeredToolConfig.title).toBe('List data from the customer agent');
+      expect(registeredToolConfig.title).toBe('List records from a collection');
       expect(registeredToolConfig.description).toBe(
-        'Retrieve a list of data from the specified collection in the customer agent.',
+        'Retrieve a list of records from the specified collection.',
       );
     });
 

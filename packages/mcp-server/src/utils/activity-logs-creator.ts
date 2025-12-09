@@ -15,7 +15,7 @@ export default async function createActivityLog(
   const actionToType = {
     index: 'read',
     search: 'read',
-    filters: 'read',
+    filter: 'read',
     listHasMany: 'read',
     actionForm: 'read',
     action: 'write',

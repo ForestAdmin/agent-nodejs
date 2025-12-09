@@ -50,8 +50,8 @@ export default function declareListTool(mcpServer: McpServer, forestServerUrl: s
   mcpServer.registerTool(
     'list',
     {
-      title: 'List data from the customer agent',
-      description: 'Retrieve a list of data from the specified collection in the customer agent.',
+      title: 'List records from a collection',
+      description: 'Retrieve a list of records from the specified collection.',
       inputSchema: listArgumentShape,
     },
     async (options: ListArgument, extra) => {

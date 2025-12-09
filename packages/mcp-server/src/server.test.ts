@@ -861,7 +861,7 @@ describe('ForestAdminMCPServer Instance', () => {
       );
       expect(listTool).toBeDefined();
       expect(listTool.description).toBe(
-        'Retrieve a list of data from the specified collection in the customer agent.',
+        'Retrieve a list of records from the specified collection.',
       );
       expect(listTool.inputSchema).toBeDefined();
       expect(listTool.inputSchema.properties).toHaveProperty('collectionName');
