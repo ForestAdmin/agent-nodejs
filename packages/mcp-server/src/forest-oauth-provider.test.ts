@@ -61,7 +61,9 @@ describe('ForestAdminOAuthProvider', () => {
     });
 
     it('should fetch environmentId from Forest Admin API', async () => {
-      mockServer.get('/liana/environment', { data: { id: '98765' } });
+      mockServer.get('/liana/environment', {
+        data: { id: '98765', attributes: { api_endpoint: 'https://api.example.com' } },
+      });
       global.fetch = mockServer.fetch;
 
       const testProvider = new ForestAdminOAuthProvider({
@@ -84,7 +86,9 @@ describe('ForestAdminOAuthProvider', () => {
     });
 
     it('should set environmentId after successful initialization', async () => {
-      mockServer.get('/liana/environment', { data: { id: '54321' } });
+      mockServer.get('/liana/environment', {
+        data: { id: '54321', attributes: { api_endpoint: 'https://api.example.com' } },
+      });
       global.fetch = mockServer.fetch;
 
       const testProvider = new ForestAdminOAuthProvider({
@@ -156,7 +160,9 @@ describe('ForestAdminOAuthProvider', () => {
     });
 
     it('should use correct forest server URL for API call', async () => {
-      mockServer.get('/liana/environment', { data: { id: '11111' } });
+      mockServer.get('/liana/environment', {
+        data: { id: '11111', attributes: { api_endpoint: 'https://api.example.com' } },
+      });
       global.fetch = mockServer.fetch;
 
       const testProvider = new ForestAdminOAuthProvider({
@@ -249,7 +255,10 @@ describe('ForestAdminOAuthProvider', () => {
       // Mock fetch to return a valid response
       const mockFetch = jest.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ data: { id: '12345' } }),
+        json: () =>
+          Promise.resolve({
+            data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+          }),
       });
       global.fetch = mockFetch;
 
@@ -362,7 +371,11 @@ describe('ForestAdminOAuthProvider', () => {
       } as unknown as ReturnType<typeof createForestAdminClient>);
 
       // Setup mock for jsonwebtoken
-      mockJwtDecode.mockReturnValue({ renderingId: 456 });
+      mockJwtDecode.mockReturnValue({
+        meta: { renderingId: 456 },
+        expires_in: 3600,
+        scope: 'mcp:read',
+      });
       mockJwtSign.mockReturnValue('mocked-jwt-token');
     });
 
@@ -371,13 +384,17 @@ describe('ForestAdminOAuthProvider', () => {
     });
 
     it('should exchange authorization code with Forest Admin server', async () => {
-      mockServer.get('/liana/environment', { data: { id: '12345' } }).post('/oauth/token', {
-        access_token: 'forest-access-token',
-        refresh_token: 'forest-refresh-token',
-        expires_in: 3600,
-        token_type: 'Bearer',
-        scope: 'mcp:read',
-      });
+      mockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
+        .post('/oauth/token', {
+          access_token: 'forest-access-token',
+          refresh_token: 'forest-refresh-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'mcp:read',
+        });
       global.fetch = mockServer.fetch;
 
       const provider = new ForestAdminOAuthProvider({
@@ -411,7 +428,7 @@ describe('ForestAdminOAuthProvider', () => {
       expect(result.access_token).toBe('mocked-jwt-token');
       expect(result.token_type).toBe('Bearer');
       expect(result.expires_in).toBe(3600);
-      expect(result.scope).toBe('mcp:read mcp:write');
+      expect(result.scope).toBe('mcp:read');
 
       expect(mockJwtDecode).toHaveBeenCalledWith('forest-access-token');
       expect(mockGetUserInfo).toHaveBeenCalledWith(456, 'forest-access-token');
@@ -428,7 +445,9 @@ describe('ForestAdminOAuthProvider', () => {
 
     it('should throw error when token exchange fails', async () => {
       mockServer
-        .get('/liana/environment', { data: { id: '12345' } })
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
         .post('/oauth/token', { error: 'invalid_grant' }, 400);
       global.fetch = mockServer.fetch;
 

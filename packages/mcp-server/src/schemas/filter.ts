@@ -1,0 +1,61 @@
+import { z } from 'zod';
+
+const plainConditionTreeLeafSchema = z.object({
+  field: z.string(),
+  operator: z.enum([
+    'Equal',
+    'NotEqual',
+    'LessThan',
+    'GreaterThan',
+    'LessThanOrEqual',
+    'GreaterThanOrEqual',
+    'Match',
+    'NotContains',
+    'NotIContains',
+    'LongerThan',
+    'ShorterThan',
+    'IncludesAll',
+    'IncludesNone',
+    'Today',
+    'Yesterday',
+    'PreviousMonth',
+    'PreviousQuarter',
+    'PreviousWeek',
+    'PreviousYear',
+    'PreviousMonthToDate',
+    'PreviousQuarterToDate',
+    'PreviousWeekToDate',
+    'PreviousXDaysToDate',
+    'PreviousXDays',
+    'PreviousYearToDate',
+    'Present',
+    'Blank',
+    'Missing',
+    'In',
+    'NotIn',
+    'StartsWith',
+    'EndsWith',
+    'Contains',
+    'IStartsWith',
+    'IEndsWith',
+    'IContains',
+    'Like',
+    'ILike',
+    'Before',
+    'After',
+    'AfterXHoursAgo',
+    'BeforeXHoursAgo',
+    'Future',
+    'Past',
+  ]),
+  value: z.unknown().optional(),
+});
+
+const plainConditionTreeBranchSchema: z.ZodType<unknown> = z.object({
+  aggregator: z.enum(['And', 'Or']),
+  conditions: z.array(
+    z.lazy(() => plainConditionTreeBranchSchema).or(plainConditionTreeLeafSchema),
+  ),
+});
+
+export default plainConditionTreeBranchSchema;

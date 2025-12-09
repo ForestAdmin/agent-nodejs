@@ -1794,6 +1794,19 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
+"@forestadmin-experimental/agent-nodejs-testing@^0.36.0":
+  version "0.36.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin-experimental/agent-nodejs-testing/-/agent-nodejs-testing-0.36.0.tgz#7b0358c1145e07c0cc4d8e2dce49da98e1dd95a8"
+  integrity sha512-SJUVeNstVBounzNe0+ic1J5LBlVdZpYCLpekvdj6Lf3ND5wEPnM1YpIoSZewPZNJ04z2kdbxTfPINHsWltePHw==
+  dependencies:
+    "@forestadmin/agent" "1.66.0"
+    "@forestadmin/datasource-customizer" "1.67.1"
+    "@forestadmin/datasource-toolkit" "1.50.0"
+    "@forestadmin/forestadmin-client" "1.36.14"
+    jsonapi-serializer "^3.5.1"
+    jsonwebtoken "^9.0.2"
+    superagent "^8.1.2"
+
 "@forestadmin/agent@1.65.1":
   version "1.65.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.65.1.tgz#64f37ac6a85eeef1f585964e1c861773306a9d7d"
@@ -16470,7 +16483,7 @@ super-regex@^1.0.0:
     make-asynchronous "^1.0.1"
     time-span "^5.1.0"
 
-superagent@8.1.2:
+superagent@8.1.2, superagent@^8.1.2:
   version "8.1.2"
   resolved "https://registry.yarnpkg.com/superagent/-/superagent-8.1.2.tgz#03cb7da3ec8b32472c9d20f6c2a57c7f3765f30b"
   integrity sha512-6WTxW1EB6yCxV5VFOIPQruWGHqc3yI7hEmZK6h+pyk69Lk/Ut7rLUY6W/ONF2MjBuGjvmMiIpsrVJ2vjrHlslA==
