@@ -17,7 +17,7 @@ export default class AiProxyRoute extends BaseRoute {
   ) {
     super(services, options);
     this.aiProxyRouter = new AiProxyRouter({
-      aiClients: aiLlmConfig.aiClients,
+      aiClients: aiLlmConfig,
       logger: this.options.logger,
     });
   }

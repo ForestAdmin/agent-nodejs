@@ -80,14 +80,9 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
     .customizeAiLlm({
-      aiClients: {
-        openai: {
-          clientOptions: {
-            apiKey:
-              'process.env.OPENAI_API_KEY',
-          },
-          chatConfiguration: { model: 'gpt-4' },
-        },
+      openai: {
+        apiKey: process.env.OPENAI_API_KEY,
+        model: 'gpt-4',
       },
     })
 

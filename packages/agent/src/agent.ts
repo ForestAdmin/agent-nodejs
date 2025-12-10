@@ -198,11 +198,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @param config AI client configuration
    * @example
    * agent.customizeAiLlm({
-   *   aiClients: {
-   *     openai: {
-   *       clientOptions: { apiKey: process.env.OPENAI_API_KEY },
-   *       chatConfiguration: { model: 'gpt-4' }
-   *     }
+   *   openai: {
+   *     apiKey: process.env.OPENAI_API_KEY,
+   *     model: 'gpt-4'
    *   }
    * });
    */
@@ -285,7 +283,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Get the AI provider name if configured (e.g., 'openai')
     const aiLlm = this.aiLlmConfig
-      ? (Object.keys(this.aiLlmConfig.aiClients)[0] as AiProvider) ?? null
+      ? (Object.keys(this.aiLlmConfig)[0] as AiProvider) ?? null
       : null;
     const { meta } = SchemaGenerator.buildMetadata(
       this.customizationService.buildFeatures(),

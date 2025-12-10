@@ -8,8 +8,8 @@ import OpenAI from 'openai';
 import { OpenAIUnprocessableError } from './errors';
 
 export type OpenaiClient = {
-  clientOptions: ClientOptions;
-  chatConfiguration: Omit<ChatCompletionCreateParamsNonStreaming, 'tools' | 'messages'>;
+  apiKey: string;
+  model: string;
 };
 
 export type Clients = { openai?: OpenaiClient };
@@ -26,7 +26,7 @@ export type DispatchBody = OpenAIBody;
 export class ProviderDispatcher {
   private readonly openai: {
     client: OpenAI;
-    chatConfiguration: Omit<ChatCompletionCreateParamsNonStreaming, 'tools' | 'messages'>;
+    model: string;
   };
 
   private readonly remoteTools: RemoteTools;
@@ -34,10 +34,10 @@ export class ProviderDispatcher {
   constructor(clients: Clients, remoteTools: RemoteTools) {
     this.remoteTools = remoteTools;
 
-    if (clients.openai?.clientOptions.apiKey) {
+    if (clients.openai?.apiKey) {
       this.openai = {
-        client: new OpenAI(clients.openai?.clientOptions),
-        chatConfiguration: clients.openai?.chatConfiguration,
+        client: new OpenAI({ apiKey: clients.openai.apiKey }),
+        model: clients.openai.model,
       };
     }
   }
@@ -50,7 +50,7 @@ export class ProviderDispatcher {
       const { tools, messages, tool_choice: toolChoice } = body;
 
       const options = {
-        ...this.openai.chatConfiguration,
+        model: this.openai.model,
         // Add the remote tools to the tools to be used by the AI
         tools: this.enhanceOpenAIRemoteTools(tools),
         messages,
