@@ -4,7 +4,7 @@
   "description": "Model Context Protocol server for Forest Admin with OAuth authentication",
   "main": "dist/index.js",
   "bin": {
-    "forest-mcp-server": "dist/index.js"
+    "forest-mcp-server": "dist/cli.js"
   },
   "license": "GPL-3.0",
   "publishConfig": {
@@ -32,8 +32,8 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "start": "node dist/index.js",
-    "start:dev": "node --env-file=.env dist/index.js",
+    "start": "node dist/cli.js",
+    "start:dev": "node --env-file=.env dist/cli.js",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "test": "jest"

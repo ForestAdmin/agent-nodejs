@@ -123,7 +123,7 @@ describe('ForestAdminMCPServer Instance', () => {
       server = new ForestAdminMCPServer();
 
       await expect(server.run()).rejects.toThrow(
-        'FOREST_ENV_SECRET environment variable is not set',
+        'FOREST_ENV_SECRET is not set. Provide it via options.envSecret or FOREST_ENV_SECRET environment variable.',
       );
     });
 
@@ -132,7 +132,7 @@ describe('ForestAdminMCPServer Instance', () => {
       server = new ForestAdminMCPServer();
 
       await expect(server.run()).rejects.toThrow(
-        'FOREST_AUTH_SECRET environment variable is not set',
+        'FOREST_AUTH_SECRET is not set. Provide it via options.authSecret or FOREST_AUTH_SECRET environment variable.',
       );
     });
   });

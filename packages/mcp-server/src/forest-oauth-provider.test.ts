@@ -16,6 +16,17 @@ const mockCreateForestAdminClient = createForestAdminClient as jest.MockedFuncti
 const mockJwtDecode = jsonwebtoken.decode as jest.Mock;
 const mockJwtSign = jsonwebtoken.sign as jest.Mock;
 
+const TEST_ENV_SECRET = 'test-env-secret';
+const TEST_AUTH_SECRET = 'test-auth-secret';
+
+function createProvider(forestServerUrl = 'https://api.forestadmin.com') {
+  return new ForestAdminOAuthProvider({
+    forestServerUrl,
+    envSecret: TEST_ENV_SECRET,
+    authSecret: TEST_AUTH_SECRET,
+  });
+}
+
 describe('ForestAdminOAuthProvider', () => {
   let originalEnv: NodeJS.ProcessEnv;
   let mockServer: MockServer;
@@ -31,8 +42,8 @@ describe('ForestAdminOAuthProvider', () => {
   });
 
   beforeEach(() => {
-    process.env.FOREST_ENV_SECRET = 'test-env-secret';
-    process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+    process.env.FOREST_ENV_SECRET = TEST_ENV_SECRET;
+    process.env.FOREST_AUTH_SECRET = TEST_AUTH_SECRET;
     mockServer = new MockServer();
   });
 
@@ -42,19 +53,18 @@ describe('ForestAdminOAuthProvider', () => {
 
   describe('constructor', () => {
     it('should create instance with forestServerUrl', () => {
-      const customProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://custom.forestadmin.com',
-      });
+      const customProvider = createProvider('https://custom.forestadmin.com');
 
       expect(customProvider).toBeDefined();
     });
   });
 
   describe('initialize', () => {
-    it('should not throw when FOREST_ENV_SECRET is missing', async () => {
-      delete process.env.FOREST_ENV_SECRET;
+    it('should not throw when envSecret is empty string', async () => {
       const customProvider = new ForestAdminOAuthProvider({
         forestServerUrl: 'https://api.forestadmin.com',
+        envSecret: '',
+        authSecret: TEST_AUTH_SECRET,
       });
 
       await expect(customProvider.initialize()).resolves.not.toThrow();
@@ -66,9 +76,7 @@ describe('ForestAdminOAuthProvider', () => {
       });
       global.fetch = mockServer.fetch;
 
-      const testProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const testProvider = createProvider();
 
       await testProvider.initialize();
 
@@ -91,9 +99,7 @@ describe('ForestAdminOAuthProvider', () => {
       });
       global.fetch = mockServer.fetch;
 
-      const testProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const testProvider = createProvider();
 
       await testProvider.initialize();
 
@@ -126,9 +132,7 @@ describe('ForestAdminOAuthProvider', () => {
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      const testProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const testProvider = createProvider();
 
       await testProvider.initialize();
 
@@ -145,9 +149,7 @@ describe('ForestAdminOAuthProvider', () => {
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      const testProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const testProvider = createProvider();
 
       await testProvider.initialize();
 
@@ -165,9 +167,7 @@ describe('ForestAdminOAuthProvider', () => {
       });
       global.fetch = mockServer.fetch;
 
-      const testProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://custom.forestadmin.com',
-      });
+      const testProvider = createProvider('https://custom.forestadmin.com');
 
       await testProvider.initialize();
 
@@ -188,9 +188,7 @@ describe('ForestAdminOAuthProvider', () => {
       mockServer.get('/oauth/register/test-client-123', clientData);
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       const client = await provider.clientsStore.getClient('test-client-123');
 
@@ -210,9 +208,7 @@ describe('ForestAdminOAuthProvider', () => {
       mockServer.get('/oauth/register/unknown-client', { error: 'Not found' }, 404);
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       const client = await provider.clientsStore.getClient('unknown-client');
 
@@ -223,9 +219,7 @@ describe('ForestAdminOAuthProvider', () => {
       mockServer.get('/oauth/register/error-client', { error: 'Internal error' }, 500);
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       const client = await provider.clientsStore.getClient('error-client');
 
@@ -248,9 +242,7 @@ describe('ForestAdminOAuthProvider', () => {
       } as OAuthClientInformationFull;
 
       // Create provider and mock the fetch to set environmentId
-      initializedProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      initializedProvider = createProvider();
 
       // Mock fetch to return a valid response
       const mockFetch = jest.fn().mockResolvedValue({
@@ -317,9 +309,7 @@ describe('ForestAdminOAuthProvider', () => {
 
     it('should redirect to error URL when environmentId is not set', async () => {
       // Create a provider without initializing (environmentId is undefined)
-      const uninitializedProvider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const uninitializedProvider = createProvider();
 
       await uninitializedProvider.authorize(
         mockClient,
@@ -405,9 +395,7 @@ describe('ForestAdminOAuthProvider', () => {
         });
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       const result = await provider.exchangeAuthorizationCode(
         mockClient,
@@ -479,9 +467,7 @@ describe('ForestAdminOAuthProvider', () => {
         .post('/oauth/token', { error: 'invalid_grant' }, 400);
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(
         provider.exchangeAuthorizationCode(
@@ -563,9 +549,7 @@ describe('ForestAdminOAuthProvider', () => {
       });
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       const result = await provider.exchangeRefreshToken(mockClient, 'valid-refresh-token');
 
@@ -594,9 +578,7 @@ describe('ForestAdminOAuthProvider', () => {
         throw new Error('invalid signature');
       });
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'invalid-refresh-token'),
@@ -609,9 +591,7 @@ describe('ForestAdminOAuthProvider', () => {
         clientId: 'test-client-id',
       });
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(provider.exchangeRefreshToken(mockClient, 'access-token')).rejects.toThrow(
         'Invalid token type',
@@ -627,9 +607,7 @@ describe('ForestAdminOAuthProvider', () => {
         serverRefreshToken: 'forest-refresh-token',
       });
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'refresh-token-for-different-client'),
@@ -648,9 +626,7 @@ describe('ForestAdminOAuthProvider', () => {
       mockServer.post('/oauth/token', { error: 'invalid_grant' }, 400);
       global.fetch = mockServer.fetch;
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'valid-refresh-token'),
@@ -671,9 +647,7 @@ describe('ForestAdminOAuthProvider', () => {
 
       (jsonwebtoken.verify as jest.Mock).mockReturnValue(mockDecoded);
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       const result = await provider.verifyAccessToken('valid-access-token');
 
@@ -695,9 +669,7 @@ describe('ForestAdminOAuthProvider', () => {
         throw new jsonwebtoken.TokenExpiredError('jwt expired', new Date());
       });
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(provider.verifyAccessToken('expired-token')).rejects.toThrow(
         'Access token has expired',
@@ -709,9 +681,7 @@ describe('ForestAdminOAuthProvider', () => {
         throw new jsonwebtoken.JsonWebTokenError('invalid signature');
       });
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(provider.verifyAccessToken('invalid-token')).rejects.toThrow(
         'Invalid access token',
@@ -724,9 +694,7 @@ describe('ForestAdminOAuthProvider', () => {
         clientId: 'test-client-id',
       });
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       await expect(provider.verifyAccessToken('refresh-token')).rejects.toThrow(
         'Cannot use refresh token as access token',
@@ -754,9 +722,7 @@ describe('ForestAdminOAuthProvider', () => {
 
       (jsonwebtoken.verify as jest.Mock).mockReturnValue(mockDecoded);
 
-      const provider = new ForestAdminOAuthProvider({
-        forestServerUrl: 'https://api.forestadmin.com',
-      });
+      const provider = createProvider();
 
       // Call initialize to fetch environment data
       await provider.initialize();
