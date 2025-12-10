@@ -107,10 +107,11 @@ export default class ForestAdminMCPServer {
    * Build and return the Express app without starting a standalone server.
    * Useful for embedding the MCP server into another application.
    *
-   * @param baseUrl - The base URL where the MCP server will be accessible
+   * @param baseUrl - Optional base URL override. If not provided, will use the
+   *                  environmentApiEndpoint from Forest Admin API.
    * @returns The configured Express application
    */
-  async buildExpressApp(baseUrl: URL): Promise<Express> {
+  async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
     // Fetch schema and setup tools before building the app
@@ -137,13 +138,23 @@ export default class ForestAdminMCPServer {
     });
     await oauthProvider.initialize();
 
+    // Use provided baseUrl or get it from the OAuth provider (environmentApiEndpoint)
+    const effectiveBaseUrl = baseUrl || oauthProvider.getBaseUrl();
+
+    if (!effectiveBaseUrl) {
+      throw new Error(
+        'Could not determine base URL for MCP server. ' +
+          'Either provide a baseUrl parameter or ensure the Forest Admin environment has an api_endpoint configured.',
+      );
+    }
+
     const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
 
     // Create OAuth metadata with custom registration_endpoint pointing to Forest Admin
     const oauthMetadata = createOAuthMetadata({
       provider: oauthProvider,
-      issuerUrl: baseUrl,
-      baseUrl,
+      issuerUrl: effectiveBaseUrl,
+      baseUrl: effectiveBaseUrl,
       scopesSupported,
     });
 
@@ -151,8 +162,8 @@ export default class ForestAdminMCPServer {
     oauthMetadata.response_types_supported = ['code'];
     oauthMetadata.code_challenge_methods_supported = ['S256'];
 
-    oauthMetadata.token_endpoint = `${baseUrl.href}oauth/token`;
-    oauthMetadata.authorization_endpoint = `${baseUrl.href}oauth/authorize`;
+    oauthMetadata.token_endpoint = `${effectiveBaseUrl.href}oauth/token`;
+    oauthMetadata.authorization_endpoint = `${effectiveBaseUrl.href}oauth/authorize`;
     // Override registration_endpoint to point to Forest Admin server
     oauthMetadata.registration_endpoint = `${this.forestServerUrl}/oauth/register`;
     // Remove revocation_endpoint from metadata (not supported)
@@ -175,7 +186,7 @@ export default class ForestAdminMCPServer {
     // Mount metadata router with custom metadata
     // The resourceServerUrl should include the /mcp path to match RFC 9728 requirements.
     // This creates the .well-known/oauth-protected-resource/mcp endpoint.
-    const mcpResourceUrl = new URL('mcp', baseUrl);
+    const mcpResourceUrl = new URL('mcp', effectiveBaseUrl);
     app.use(
       mcpAuthMetadataRouter({
         oauthMetadata,

@@ -87,6 +87,18 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     this.environmentApiEndpoint = data.data.attributes.api_endpoint;
   }
 
+  /**
+   * Get the base URL for the MCP server from the environment's api_endpoint.
+   * Returns undefined if the environment info hasn't been fetched yet.
+   */
+  getBaseUrl(): URL | undefined {
+    if (!this.environmentApiEndpoint) {
+      return undefined;
+    }
+
+    return new URL(this.environmentApiEndpoint);
+  }
+
   get clientsStore(): OAuthRegisteredClientsStore {
     return {
       getClient: async (clientId: string) => {
