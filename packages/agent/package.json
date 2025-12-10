@@ -11,6 +11,14 @@
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
     "directory": "packages/agent"
   },
+  "peerDependencies": {
+    "@forestadmin/mcp-server": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@forestadmin/mcp-server": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@fastify/express": "^1.1.0",
