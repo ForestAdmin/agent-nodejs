@@ -58,7 +58,7 @@ export default async function bootstrap(
     // create the .env file if it does not exist
     // we do not overwrite it because it may contain sensitive data
     if (!fs.existsSync(paths.env)) await generateDotEnv(vars, paths);
-    await fsP.writeFile(paths.index, await fsP.readFile(paths.indexTemplate));
+    await fsP.writeFile(paths.index, await fsP.readFile(paths.indexTemplate, 'utf-8'));
 
     // Check that the user has the datasource connection options file
     if (!fs.existsSync(paths.localDatasourcesPath)) {
