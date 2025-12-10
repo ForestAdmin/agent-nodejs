@@ -197,15 +197,15 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *
    * @param configuration AI client configuration
    * @example
-   * agent.addAi({
+   * agent.addAI({
    *   provider: 'openai',
    *   apiKey: process.env.OPENAI_API_KEY,
    *   model: 'gpt-4'
    * });
    */
-  addAi(configuration: AiConfiguration): this {
+  addAI(configuration: AiConfiguration): this {
     if (this.aiConfiguration) {
-      throw new Error('addAi() can only be called once');
+      throw new Error('addAI() can only be called once');
     }
 
     this.aiConfiguration = configuration;

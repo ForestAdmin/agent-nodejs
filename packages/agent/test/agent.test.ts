@@ -332,7 +332,7 @@ describe('Agent', () => {
     });
   });
 
-  describe('addAi', () => {
+  describe('addAI', () => {
     const options = factories.forestAdminHttpDriverOptions.build({
       isProduction: false,
       forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
@@ -340,7 +340,7 @@ describe('Agent', () => {
 
     test('should store the AI configuration', () => {
       const agent = new Agent(options);
-      const result = agent.addAi({
+      const result = agent.addAI({
         provider: 'openai',
         apiKey: 'test-key',
         model: 'gpt-4',
@@ -352,24 +352,24 @@ describe('Agent', () => {
     test('should throw an error when called more than once', () => {
       const agent = new Agent(options);
 
-      agent.addAi({
+      agent.addAI({
         provider: 'openai',
         apiKey: 'test-key',
         model: 'gpt-4',
       });
 
       expect(() =>
-        agent.addAi({
+        agent.addAI({
           provider: 'openai',
           apiKey: 'another-key',
           model: 'gpt-4-turbo',
         }),
-      ).toThrow('addAi() can only be called once');
+      ).toThrow('addAI() can only be called once');
     });
 
     test('should include ai_llm in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
-      agent.addAi({
+      agent.addAI({
         provider: 'openai',
         apiKey: 'test-key',
         model: 'gpt-4',
