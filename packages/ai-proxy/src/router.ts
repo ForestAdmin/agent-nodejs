@@ -11,22 +11,21 @@ export type InvokeRemoteToolBody = { inputs: Messages };
 export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
 export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool';
 export type Query = {
-  'client-name'?: string;
   'tool-name'?: string;
 };
 export type ApiKeys = RemoteToolsApiKeys;
 
 export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
-  private readonly aiConfigurations: AiConfiguration[];
+  private readonly aiConfiguration: AiConfiguration | null;
   private readonly logger?: Logger;
 
   constructor(params?: {
-    aiConfigurations: AiConfiguration[];
+    aiConfiguration?: AiConfiguration;
     localToolsApiKeys?: ApiKeys;
     logger?: Logger;
   }) {
-    this.aiConfigurations = params?.aiConfigurations ?? [];
+    this.aiConfiguration = params?.aiConfiguration ?? null;
     this.localToolsApiKeys = params?.localToolsApiKeys;
     this.logger = params?.logger;
   }
@@ -35,8 +34,8 @@ export class Router {
    * Route the request to the appropriate handler
    *
    * List of routes:
-   * // dispatch the query to the AI client by name
-   * - /ai-query?client-name=:clientName
+   * // dispatch the query to the AI
+   * - /ai-query
    *
    * // invoke a remote tool by name
    * - /invoke-remote-tool?tool-name=:toolName
@@ -55,8 +54,7 @@ export class Router {
       const remoteTools = new RemoteTools(this.localToolsApiKeys, await mcpClient?.loadTools());
 
       if (args.route === 'ai-query') {
-        return await new ProviderDispatcher(this.aiConfigurations, remoteTools).dispatch(
-          args.query['client-name'],
+        return await new ProviderDispatcher(this.aiConfiguration, remoteTools).dispatch(
           args.body as DispatchBody,
         );
       }

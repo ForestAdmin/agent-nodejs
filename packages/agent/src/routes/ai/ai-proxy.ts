@@ -13,11 +13,11 @@ export default class AiProxyRoute extends BaseRoute {
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
-    aiConfigurations: AiConfiguration[],
+    aiConfiguration: AiConfiguration,
   ) {
     super(services, options);
     this.aiProxyRouter = new AiProxyRouter({
-      aiConfigurations,
+      aiConfiguration,
       logger: this.options.logger,
     });
   }

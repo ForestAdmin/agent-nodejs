@@ -168,18 +168,18 @@ function getActionRoutes(
 function getAiRoutes(
   options: Options,
   services: Services,
-  aiConfigurations?: AiConfiguration[],
+  aiConfiguration?: AiConfiguration,
 ): BaseRoute[] {
-  if (!aiConfigurations || aiConfigurations.length === 0) return [];
+  if (!aiConfiguration) return [];
 
-  return [new AiProxyRoute(services, options, aiConfigurations)];
+  return [new AiProxyRoute(services, options, aiConfiguration)];
 }
 
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
-  aiConfigurations?: AiConfiguration[],
+  aiConfiguration?: AiConfiguration,
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
@@ -189,7 +189,7 @@ export default function makeRoutes(
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
-    ...getAiRoutes(options, services, aiConfigurations),
+    ...getAiRoutes(options, services, aiConfiguration),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.

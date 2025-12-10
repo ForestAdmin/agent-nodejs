@@ -25,6 +25,13 @@ export class AIUnprocessableError extends AIError {
   }
 }
 
+export class AINotConfiguredError extends AIError {
+  constructor() {
+    super('AI is not configured. Please call customizeAi() on your agent.');
+    this.name = 'AINotConfiguredError';
+  }
+}
+
 export class OpenAIUnprocessableError extends AIUnprocessableError {
   constructor(message: string) {
     super(message);
