@@ -3,7 +3,7 @@ import KoaRouter from '@koa/router';
 import { Context } from 'koa';
 
 import { ForestAdminHttpDriverServices } from '../../services';
-import { AgentOptionsWithDefaults, AiLlmConfiguration, HttpCode, RouteType } from '../../types';
+import { AgentOptionsWithDefaults, AiConfiguration, HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 export default class AiProxyRoute extends BaseRoute {
@@ -13,11 +13,11 @@ export default class AiProxyRoute extends BaseRoute {
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
-    aiLlmConfig: AiLlmConfiguration,
+    aiConfig: AiConfiguration,
   ) {
     super(services, options);
     this.aiProxyRouter = new AiProxyRouter({
-      aiClients: aiLlmConfig,
+      aiClients: aiConfig,
       logger: this.options.logger,
     });
   }

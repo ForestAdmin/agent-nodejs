@@ -6,7 +6,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 
 export type { AiProvider };
 
-export type AiLlmConfiguration = Clients;
+export type AiConfiguration = Clients;
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {

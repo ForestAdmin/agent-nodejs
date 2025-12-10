@@ -29,7 +29,7 @@ import ErrorHandling from './system/error-handling';
 import HealthCheck from './system/healthcheck';
 import Logger from './system/logger';
 import { ForestAdminHttpDriverServices as Services } from '../services';
-import { AiLlmConfiguration, AgentOptionsWithDefaults as Options } from '../types';
+import { AiConfiguration, AgentOptionsWithDefaults as Options } from '../types';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,
@@ -168,18 +168,18 @@ function getActionRoutes(
 function getAiRoutes(
   options: Options,
   services: Services,
-  aiLlmConfig?: AiLlmConfiguration,
+  aiConfig?: AiConfiguration,
 ): BaseRoute[] {
-  if (!aiLlmConfig) return [];
+  if (!aiConfig) return [];
 
-  return [new AiProxyRoute(services, options, aiLlmConfig)];
+  return [new AiProxyRoute(services, options, aiConfig)];
 }
 
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
-  aiLlmConfig?: AiLlmConfiguration,
+  aiConfig?: AiConfiguration,
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
@@ -189,7 +189,7 @@ export default function makeRoutes(
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
-    ...getAiRoutes(options, services, aiLlmConfig),
+    ...getAiRoutes(options, services, aiConfig),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.
