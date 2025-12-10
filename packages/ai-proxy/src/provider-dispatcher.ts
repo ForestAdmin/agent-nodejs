@@ -7,12 +7,9 @@ import OpenAI from 'openai';
 
 import { OpenAIUnprocessableError } from './errors';
 
-export type OpenaiClient = {
-  apiKey: string;
-  model: string;
-};
+export type OpenAiConfiguration = ClientOptions & { model: string };
 
-export type Clients = { openai?: OpenaiClient };
+export type Clients = { openai?: OpenAiConfiguration };
 
 export type AiProvider = keyof Clients;
 
@@ -35,9 +32,10 @@ export class ProviderDispatcher {
     this.remoteTools = remoteTools;
 
     if (clients.openai?.apiKey) {
+      const { model, ...clientOptions } = clients.openai;
       this.openai = {
-        client: new OpenAI({ apiKey: clients.openai.apiKey }),
-        model: clients.openai.model,
+        client: new OpenAI(clientOptions),
+        model,
       };
     }
   }
