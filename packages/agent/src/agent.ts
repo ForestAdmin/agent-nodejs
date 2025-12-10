@@ -192,18 +192,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
-   * Configure AI proxy routes for the agent.
+   * Add AI configuration to the agent.
    * This enables AI-powered features through the /forest/ai-proxy/* endpoints.
    *
    * @param configuration AI client configuration
    * @example
-   * agent.customizeAi({
+   * agent.addAi({
    *   provider: 'openai',
    *   apiKey: process.env.OPENAI_API_KEY,
    *   model: 'gpt-4'
    * });
    */
-  customizeAi(configuration: AiConfiguration): this {
+  addAi(configuration: AiConfiguration): this {
+    if (this.aiConfiguration) {
+      throw new Error('addAi() can only be called once');
+    }
+
     this.aiConfiguration = configuration;
 
     return this;

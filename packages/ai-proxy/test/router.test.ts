@@ -1,4 +1,5 @@
-import type { DispatchBody, Logger, Route } from '../src';
+import type { DispatchBody, Route } from '../src';
+import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, Router } from '../src';
 import McpClient from '../src/mcp-client';
@@ -42,21 +43,19 @@ describe('route', () => {
   describe('when the route is /ai-query', () => {
     it('calls the provider dispatcher', async () => {
       const router = new Router({
-        aiClients: {
-          openai: {
-            clientOptions: { apiKey: 'dev' },
-            chatConfiguration: { model: 'gpt-4o' },
-          },
+        aiConfiguration: {
+          provider: 'openai',
+          apiKey: 'dev',
+          model: 'gpt-4o',
         },
       });
 
       await router.route({
         route: 'ai-query',
-        query: { provider: 'openai' },
-        body: { tools: [], tool_choice: 'required', messages: [] } as DispatchBody,
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
       });
 
-      expect(dispatchMock).toHaveBeenCalledWith('openai', {
+      expect(dispatchMock).toHaveBeenCalledWith({
         tools: [],
         tool_choice: 'required',
         messages: [],
@@ -66,9 +65,7 @@ describe('route', () => {
 
   describe('when the route is /invoke-remote-tool', () => {
     it('calls the remote tools', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       await router.route({
         route: 'invoke-remote-tool',
@@ -82,9 +79,7 @@ describe('route', () => {
 
   describe('when the route is /remote-tools', () => {
     it('returns the remote tools definitions', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       const result = await router.route({ route: 'remote-tools' });
 
@@ -94,9 +89,7 @@ describe('route', () => {
 
   describe('when the route is unknown', () => {
     it('throws an error', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       await expect(router.route({ route: 'unknown' as Route })).rejects.toThrow(
         new AIUnprocessableError('No action to perform: {"route":"unknown"}'),
@@ -104,9 +97,7 @@ describe('route', () => {
     });
 
     it('does not include mcpConfigs in the error message', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       await expect(
         router.route({
@@ -119,9 +110,7 @@ describe('route', () => {
 
   describe('MCP connection cleanup', () => {
     it('closes the MCP connection after successful route handling', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       await router.route({
         route: 'remote-tools',
@@ -134,9 +123,7 @@ describe('route', () => {
     });
 
     it('closes the MCP connection even when an error occurs', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       await expect(
         router.route({
@@ -151,9 +138,7 @@ describe('route', () => {
     });
 
     it('does not call closeConnections when no mcpConfigs provided', async () => {
-      const router = new Router({
-        aiClients: {},
-      });
+      const router = new Router({});
 
       await router.route({
         route: 'remote-tools',
@@ -163,11 +148,11 @@ describe('route', () => {
     });
 
     it('does not throw when closeConnections fails during successful route', async () => {
+      const mockLogger = jest.fn();
       const router = new Router({
-        aiClients: {},
+        logger: mockLogger,
       });
       const closeError = new Error('Cleanup failed');
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       jest.mocked(McpClient).mockImplementation(
         () =>
@@ -184,20 +169,15 @@ describe('route', () => {
       });
 
       expect(result).toBeDefined();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error during MCP connection cleanup:',
-        closeError,
-      );
-
-      consoleErrorSpy.mockRestore();
+      expect(mockLogger).toHaveBeenCalledWith('Error', 'Error during MCP connection cleanup', closeError);
     });
 
     it('preserves original error when both route and cleanup fail', async () => {
+      const mockLogger = jest.fn();
       const router = new Router({
-        aiClients: {},
+        logger: mockLogger,
       });
       const closeError = new Error('Cleanup failed');
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       jest.mocked(McpClient).mockImplementation(
         () =>
@@ -216,26 +196,17 @@ describe('route', () => {
       ).rejects.toThrow(AIUnprocessableError);
 
       // Cleanup error should be logged
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error during MCP connection cleanup:',
-        closeError,
-      );
-
-      consoleErrorSpy.mockRestore();
+      expect(mockLogger).toHaveBeenCalledWith('Error', 'Error during MCP connection cleanup', closeError);
     });
   });
 
   describe('Logger injection', () => {
     it('uses the injected logger instead of console', async () => {
-      const customLogger: Logger = {
-        error: jest.fn(),
-      };
+      const customLogger: Logger = jest.fn();
       const router = new Router({
-        aiClients: {},
         logger: customLogger,
       });
       const closeError = new Error('Cleanup failed');
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       jest.mocked(McpClient).mockImplementation(
         () =>
@@ -251,22 +222,12 @@ describe('route', () => {
       });
 
       // Custom logger should be called
-      expect(customLogger.error).toHaveBeenCalledWith(
-        'Error during MCP connection cleanup:',
-        closeError,
-      );
-      // Console.error should NOT be called
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
+      expect(customLogger).toHaveBeenCalledWith('Error', 'Error during MCP connection cleanup', closeError);
     });
 
     it('passes logger to McpClient', async () => {
-      const customLogger: Logger = {
-        error: jest.fn(),
-      };
+      const customLogger: Logger = jest.fn();
       const router = new Router({
-        aiClients: {},
         logger: customLogger,
       });
 

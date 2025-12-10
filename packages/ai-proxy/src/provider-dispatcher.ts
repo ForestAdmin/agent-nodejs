@@ -12,7 +12,6 @@ export type OpenAiConfiguration = ClientOptions & {
   model: ChatCompletionCreateParamsNonStreaming['model'];
 };
 
-// Extensible: add MistralConfiguration, AnthropicConfiguration, etc.
 export type AiConfiguration = OpenAiConfiguration;
 
 export type AiProvider = AiConfiguration['provider'];
