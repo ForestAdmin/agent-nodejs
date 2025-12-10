@@ -1,12 +1,10 @@
-import type { AiProvider, Clients } from '@forestadmin/ai-proxy';
+import type { AiConfiguration, AiProvider } from '@forestadmin/ai-proxy';
 
 import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
-export type { AiProvider };
-
-export type AiConfiguration = Clients;
+export type { AiConfiguration, AiProvider };
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {

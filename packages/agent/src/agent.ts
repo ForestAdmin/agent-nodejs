@@ -40,7 +40,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
-  protected aiConfig?: AiConfiguration;
+  protected aiConfigurations: AiConfiguration[] = [];
 
   /**
    * Create a new Agent Builder.
@@ -195,23 +195,32 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Configure AI proxy routes for the agent.
    * This enables AI-powered features through the /forest/ai-proxy/* endpoints.
    *
-   * @param config AI client configuration
+   * @param configurations AI client configurations (can be called multiple times)
    * @example
-   * agent.customizeAi({
-   *   openai: {
+   * agent.customizeAi([
+   *   {
+   *     name: 'gpt4-default',
+   *     provider: 'openai',
    *     apiKey: process.env.OPENAI_API_KEY,
    *     model: 'gpt-4'
+   *   },
+   *   {
+   *     name: 'gpt4-fast',
+   *     provider: 'openai',
+   *     apiKey: process.env.OPENAI_API_KEY,
+   *     model: 'gpt-4-turbo',
+   *     timeout: 5000
    *   }
-   * });
+   * ]);
    */
-  customizeAi(config: AiConfiguration): this {
-    this.aiConfig = config;
+  customizeAi(configurations: AiConfiguration[]): this {
+    this.aiConfigurations.push(...configurations);
 
     return this;
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services, this.aiConfig);
+    return makeRoutes(dataSource, this.options, services, this.aiConfigurations);
   }
 
   /**
@@ -282,8 +291,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     let schema: Pick<ForestSchema, 'collections'>;
 
     // Get the AI provider name if configured (e.g., 'openai')
-    const aiProvider = this.aiConfig
-      ? (Object.keys(this.aiConfig)[0] as AiProvider) ?? null
+    const aiProvider = this.aiConfigurations.length > 0
+      ? this.aiConfigurations[0].provider
       : null;
     const { meta } = SchemaGenerator.buildMetadata(
       this.customizationService.buildFeatures(),

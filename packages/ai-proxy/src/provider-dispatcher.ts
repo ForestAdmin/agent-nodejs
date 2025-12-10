@@ -7,11 +7,16 @@ import OpenAI from 'openai';
 
 import { OpenAIUnprocessableError } from './errors';
 
-export type OpenAiConfiguration = ClientOptions & { model: string };
+export type OpenAiConfiguration = ClientOptions & {
+  name: string;
+  provider: 'openai';
+  model: string;
+};
 
-export type Clients = { openai?: OpenAiConfiguration };
+// Extensible: add MistralConfiguration, AnthropicConfiguration, etc.
+export type AiConfiguration = OpenAiConfiguration;
 
-export type AiProvider = keyof Clients;
+export type AiProvider = AiConfiguration['provider'];
 
 export type OpenAIBody = Pick<
   ChatCompletionCreateParamsNonStreaming,
@@ -20,51 +25,53 @@ export type OpenAIBody = Pick<
 
 export type DispatchBody = OpenAIBody;
 
+type OpenAiClient = { client: OpenAI; model: string };
+
 export class ProviderDispatcher {
-  private readonly openai: {
-    client: OpenAI;
-    model: string;
-  };
+  private readonly clients: Map<string, OpenAiClient> = new Map();
 
   private readonly remoteTools: RemoteTools;
 
-  constructor(clients: Clients, remoteTools: RemoteTools) {
+  constructor(configurations: AiConfiguration[], remoteTools: RemoteTools) {
     this.remoteTools = remoteTools;
 
-    if (clients.openai?.apiKey) {
-      const { model, ...clientOptions } = clients.openai;
-      this.openai = {
-        client: new OpenAI(clientOptions),
-        model,
-      };
+    for (const config of configurations) {
+      if (config.provider === 'openai' && config.apiKey) {
+        const { name, provider, model, ...clientOptions } = config;
+        this.clients.set(name, {
+          client: new OpenAI(clientOptions),
+          model,
+        });
+      }
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  async dispatch(aiProvider: 'openai' | string, body: DispatchBody): Promise<unknown> {
-    if (aiProvider === 'openai' && this.openai?.client) {
-      // tools, messages and tool_choice must be extracted from the body and passed as options
-      // because we don't want to let users to pass any other option
-      const { tools, messages, tool_choice: toolChoice } = body;
+  async dispatch(clientName: string, body: DispatchBody): Promise<unknown> {
+    const aiClient = this.clients.get(clientName);
 
-      const options = {
-        model: this.openai.model,
-        // Add the remote tools to the tools to be used by the AI
-        tools: this.enhanceOpenAIRemoteTools(tools),
-        messages,
-        tool_choice: toolChoice,
-      } as ChatCompletionCreateParamsNonStreaming;
-
-      try {
-        return await this.openai.client.chat.completions.create(options);
-      } catch (error) {
-        throw new OpenAIUnprocessableError(
-          `Error while calling OpenAI: ${(error as Error).message}`,
-        );
-      }
+    if (!aiClient) {
+      throw new Error(`AI client "${clientName}" is not configured`);
     }
 
-    throw new Error(`AI provider ${aiProvider} is not supported`);
+    // tools, messages and tool_choice must be extracted from the body and passed as options
+    // because we don't want to let users to pass any other option
+    const { tools, messages, tool_choice: toolChoice } = body;
+
+    const options = {
+      model: aiClient.model,
+      // Add the remote tools to the tools to be used by the AI
+      tools: this.enhanceOpenAIRemoteTools(tools),
+      messages,
+      tool_choice: toolChoice,
+    } as ChatCompletionCreateParamsNonStreaming;
+
+    try {
+      return await aiClient.client.chat.completions.create(options);
+    } catch (error) {
+      throw new OpenAIUnprocessableError(
+        `Error while calling OpenAI: ${(error as Error).message}`,
+      );
+    }
   }
 
   private enhanceOpenAIRemoteTools(tools?: ChatCompletionCreateParamsNonStreaming['tools']) {
