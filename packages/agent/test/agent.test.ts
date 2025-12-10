@@ -127,7 +127,7 @@ describe('Agent', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: null,
-          ai_llm: null,
+          ai_llms: null,
           stack: expect.anything(),
         },
       });
@@ -156,7 +156,7 @@ describe('Agent', () => {
           liana_features: {
             'webhook-custom-actions': expect.stringMatching(/\d+\.\d+\.\d+.*/),
           },
-          ai_llm: null,
+          ai_llms: null,
           stack: expect.anything(),
         },
       });
@@ -367,7 +367,7 @@ describe('Agent', () => {
       ).toThrow('addAI() can only be called once');
     });
 
-    test('should include ai_llm in schema meta when AI is configured', async () => {
+    test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
       agent.addAI({
         provider: 'openai',
@@ -380,13 +380,13 @@ describe('Agent', () => {
       expect(mockPostSchema).toHaveBeenCalledWith(
         expect.objectContaining({
           meta: expect.objectContaining({
-            ai_llm: 'openai',
+            ai_llms: [{ provider: 'openai' }],
           }),
         }),
       );
     });
 
-    test('should not include ai_llm in schema meta when AI is not configured', async () => {
+    test('should not include ai_llms in schema meta when AI is not configured', async () => {
       const agent = new Agent(options);
 
       await agent.start();
@@ -394,7 +394,7 @@ describe('Agent', () => {
       expect(mockPostSchema).toHaveBeenCalledWith(
         expect.objectContaining({
           meta: expect.objectContaining({
-            ai_llm: null,
+            ai_llms: null,
           }),
         }),
       );
