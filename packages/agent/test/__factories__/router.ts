@@ -9,6 +9,7 @@ export class RouterFactory extends Factory<Router> {
       router.use = jest.fn();
       router.post = jest.fn();
       router.put = jest.fn();
+      router.all = jest.fn();
     });
   }
 }

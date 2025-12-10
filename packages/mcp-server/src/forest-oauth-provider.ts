@@ -20,11 +20,13 @@ import {
   UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
+import { Logger } from './server';
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
   envSecret: string;
   authSecret: string;
+  logger: Logger;
 }
 
 /**
@@ -37,11 +39,13 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestClient: ForestAdminClient;
   private environmentId?: number;
   private environmentApiEndpoint?: string;
+  private logger: Logger;
 
-  constructor({ forestServerUrl, envSecret, authSecret }: ForestOAuthProviderOptions) {
+  constructor({ forestServerUrl, envSecret, authSecret, logger }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
     this.envSecret = envSecret;
     this.authSecret = authSecret;
+    this.logger = logger;
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
@@ -54,7 +58,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     } catch (error) {
       // Log warning but don't throw - the MCP server can still partially function
       // The authorize method will return an appropriate error when environmentId is missing
-      console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
+      this.logger('Warn', `Failed to fetch environmentId from Forest Admin API: ${error}`);
     }
   }
 
@@ -160,7 +164,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
       res.redirect(agentAuthUrl.toString());
     } catch (error) {
-      console.error('[ForestOAuthProvider] Authorization error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger('Error', `[ForestOAuthProvider] Authorization error:: ${errorMessage}`);
 
       // Don't expose internal error details to the client - use a generic message
       // The actual error is logged above for debugging
@@ -372,7 +377,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         },
       };
     } catch (error) {
-      console.error('Error verifying token:', error);
+      this.logger('Error', `Error verifying token: ${error}`);
 
       if (error instanceof jsonwebtoken.TokenExpiredError) {
         throw new InvalidTokenError('Access token has expired');

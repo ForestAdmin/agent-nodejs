@@ -329,4 +329,39 @@ describe('Agent', () => {
       });
     });
   });
+
+  describe('MCP server', () => {
+    test('should not attempt to load MCP server when disabled', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build({
+        mcpServer: { enabled: false },
+      });
+      const agent = new Agent(options);
+
+      // Agent should start without any issues when MCP is disabled
+      await agent.start();
+
+      // The agent started successfully, which means no MCP initialization was attempted
+      expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+    });
+
+    test('should fail gracefully when MCP is enabled but module not installed', async () => {
+      const mockLogger = jest.fn();
+      const options = factories.forestAdminHttpDriverOptions.build({
+        mcpServer: { enabled: true },
+        logger: mockLogger,
+      });
+
+      const agent = new Agent(options);
+
+      // This will try to load @forestadmin/mcp-server which may not be installed
+      // in the test environment, so it should fail with a meaningful error
+      await expect(agent.start()).rejects.toThrow();
+
+      // The error should be logged
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('Failed to initialize MCP server'),
+      );
+    });
+  });
 });
