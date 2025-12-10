@@ -2,6 +2,27 @@ import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolki
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
+/**
+ * Interface for the dynamically imported @forestadmin/mcp-server module.
+ * This is used when MCP server is enabled to avoid requiring it as a direct dependency.
+ */
+export interface McpServerModule {
+  ForestAdminMCPServer: new (options?: {
+    forestServerUrl?: string;
+    envSecret?: string;
+    authSecret?: string;
+  }) => McpServerInstance;
+}
+
+/**
+ * Interface for an MCP server instance returned by the ForestAdminMCPServer constructor.
+ */
+export interface McpServerInstance {
+  getHttpCallback(
+    baseUrl?: URL,
+  ): Promise<(req: IncomingMessage, res: ServerResponse, next?: () => void) => void>;
+}
+
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
   authSecret: string;
@@ -44,10 +65,33 @@ export type AgentOptions = {
    */
   ignoreMissingSchemaElementErrors?: boolean;
   useUnsafeActionEndpoint?: boolean;
+  /**
+   * Options for the MCP (Model Context Protocol) server.
+   * When enabled, exposes an MCP server endpoint that allows AI assistants
+   * to interact with your Forest Admin data.
+   */
+  mcpServer?: {
+    /**
+     * Enable the MCP server endpoint.
+     * @default false
+     */
+    enabled?: boolean;
+    /**
+     * Optional override for the base URL where the agent is publicly accessible.
+     * If not provided, it will be automatically fetched from Forest Admin API
+     * (the environment's api_endpoint configuration).
+     * Example: 'https://my-app.example.com' or 'http://localhost:3000'
+     */
+    baseUrl?: string;
+  };
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
-export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
+export type HttpCallback = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  next?: () => void,
+) => void;
 
 export enum HttpCode {
   BadRequest = 400,

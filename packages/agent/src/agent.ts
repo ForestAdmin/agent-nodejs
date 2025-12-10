@@ -20,7 +20,7 @@ import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import CustomizationService from './services/model-customizations/customization';
-import { AgentOptions, AgentOptionsWithDefaults } from './types';
+import { AgentOptions, AgentOptionsWithDefaults, McpServerModule } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -73,12 +73,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Start the agent.
    */
   async start(): Promise<void> {
-    const router = await this.buildRouterAndSendSchema();
+    const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
 
     await this.options.forestAdminClient.subscribeToServerEvents();
     this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-    await this.mount(router);
+    await this.mount(router, mcpHttpCallback);
   }
 
   /**
@@ -96,9 +96,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   async restart(): Promise<void> {
     // We force sending schema when restarting
-    const updatedRouter = await this.buildRouterAndSendSchema();
+    const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
 
-    await this.remount(updatedRouter);
+    await this.remount(router, mcpHttpCallback);
   }
 
   /**
@@ -196,14 +196,25 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /**
    * Create an http handler which can respond to all queries which are expected from an agent.
+   * Returns the main router and optional MCP HTTP callback.
    */
-  private async getRouter(dataSource: DataSource): Promise<Router> {
+  private async getRouter(
+    dataSource: DataSource,
+  ): Promise<{ router: Router; mcpHttpCallback?: import('./types').HttpCallback }> {
     // Bootstrap app
     const services = makeServices(this.options);
     const routes = this.getRoutes(dataSource, services);
+
     await Promise.all(routes.map(route => route.bootstrap()));
 
-    // Build router
+    // Initialize MCP server if enabled and get HTTP callback
+    let mcpHttpCallback: import('./types').HttpCallback | undefined;
+
+    if (this.options.mcpServer?.enabled) {
+      mcpHttpCallback = await this.initializeMcpServer();
+    }
+
+    // Build main router
     const router = new Router();
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
     router.use(
@@ -216,10 +227,65 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     );
     routes.forEach(route => route.setupRoutes(router));
 
-    return router;
+    return { router, mcpHttpCallback };
   }
 
-  private async buildRouterAndSendSchema(): Promise<Router> {
+  /**
+   * Initialize the MCP server and get the HTTP callback.
+   * This dynamically imports @forestadmin/mcp-server to avoid requiring it when not enabled.
+   */
+  private async initializeMcpServer(): Promise<import('./types').HttpCallback> {
+    try {
+      // Dynamic import using Function constructor to prevent TypeScript from
+      // transforming import() to require() in CommonJS output.
+      // This is necessary because @forestadmin/mcp-server is an ES Module.
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+        specifier: string,
+      ) => Promise<McpServerModule>;
+
+      const mcpModule = await dynamicImport('@forestadmin/mcp-server');
+
+      // Validate that the imported module has the expected structure
+      if (!mcpModule.ForestAdminMCPServer || typeof mcpModule.ForestAdminMCPServer !== 'function') {
+        throw new Error(
+          'Invalid @forestadmin/mcp-server module: ForestAdminMCPServer constructor not found',
+        );
+      }
+
+      const { ForestAdminMCPServer } = mcpModule;
+
+      const mcpServer = new ForestAdminMCPServer({
+        forestServerUrl: this.options.forestServerUrl,
+        envSecret: this.options.envSecret,
+        authSecret: this.options.authSecret,
+      });
+
+      // Get the HTTP callback - baseUrl will be fetched from Forest Admin API
+      // (environmentApiEndpoint) or can be overridden via mcpServer.baseUrl option
+      const baseUrl = this.options.mcpServer?.baseUrl
+        ? new URL('/', this.options.mcpServer.baseUrl)
+        : undefined;
+
+      const httpCallback = await mcpServer.getHttpCallback(baseUrl);
+
+      this.options.logger('Info', 'MCP server initialized successfully');
+
+      return httpCallback;
+    } catch (error) {
+      this.options.logger(
+        'Error',
+        `Failed to initialize MCP server: ${(error as Error).message}. ` +
+          'Make sure @forestadmin/mcp-server is installed.',
+      );
+      throw error;
+    }
+  }
+
+  private async buildRouterAndSendSchema(): Promise<{
+    router: Router;
+    mcpHttpCallback?: import('./types').HttpCallback;
+  }> {
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations
@@ -231,7 +297,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
     const dataSource = await this.nocodeCustomizer.getDataSource(logger);
-    const [router] = await Promise.all([
+    const [routers] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
       !isProduction && typingsPath
@@ -239,7 +305,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         : Promise.resolve(),
     ]);
 
-    return router;
+    return routers;
   }
 
   /**
