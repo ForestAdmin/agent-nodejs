@@ -6,9 +6,9 @@ import zendesk from 'node-zendesk';
 import runMcpServer from './simple-mcp-server';
 
 const client = zendesk.createClient({
-  username: 'email',
-  token: 'tFGjxI3V97pqlLOR4dGlMmoclIaV3CI2E49Ol5CN',
-  subdomain: 'forestadmin-91613',
+  username: 'your-email@example.com',
+  token: 'YOUR_ZENDESK_API_TOKEN',
+  subdomain: 'your-subdomain',
 });
 
 const server = new McpServer({
