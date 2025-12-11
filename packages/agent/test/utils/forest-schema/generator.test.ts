@@ -40,6 +40,7 @@ describe('SchemaGenerator', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
           liana_features: null,
+          ai_llms: null,
           stack: {
             engine: 'nodejs',
             engine_version: expect.any(String),
