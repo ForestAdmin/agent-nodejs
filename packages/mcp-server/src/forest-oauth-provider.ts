@@ -34,9 +34,9 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
   private envSecret: string;
   private authSecret: string;
-  private environmentId?: number;
   private forestClient: ForestAdminClient;
-  private environmentApiEndpoint: string;
+  private environmentId?: number;
+  private environmentApiEndpoint?: string;
 
   constructor({ forestServerUrl, envSecret, authSecret }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
@@ -109,11 +109,6 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
             'Content-Type': 'application/json',
           },
         });
-
-        // Return undefined if client is not found (404)
-        if (response.status === 404) {
-          return undefined;
-        }
 
         // Log and return undefined for other errors (don't expose internal errors)
         if (!response.ok) {

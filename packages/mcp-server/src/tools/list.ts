@@ -81,13 +81,9 @@ export default function declareListTool(
       }
 
       // Log activity but don't block the main operation if it fails
-      try {
-        await createActivityLog(forestServerUrl, extra, actionType, {
-          collectionName: options.collectionName,
-        });
-      } catch (activityLogError) {
-        console.warn('[MCP] Failed to create activity log:', activityLogError);
-      }
+      await createActivityLog(forestServerUrl, extra, actionType, {
+        collectionName: options.collectionName,
+      });
 
       try {
         const result = await rpcClient
