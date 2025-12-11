@@ -1,10 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "module": "ES2022",
-    "moduleResolution": "node",
-    "skipLibCheck": true
+    "outDir": "dist"
   },
   "include": ["src/**/*"]
 }

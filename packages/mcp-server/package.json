@@ -2,7 +2,6 @@
   "name": "@forestadmin/mcp-server",
   "version": "0.1.0",
   "description": "Model Context Protocol server for Forest Admin with OAuth authentication",
-  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "forest-mcp-server": "dist/index.js"

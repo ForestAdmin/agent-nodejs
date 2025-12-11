@@ -115,12 +115,5 @@ module.exports = {
           ],
         },
       })),
-    {
-      // ESM package requiring .js extensions for imports
-      files: ['packages/mcp-server/**/*'],
-      rules: {
-        'import/extensions': ['error', 'ignorePackages'],
-      },
-    },
   ],
 };

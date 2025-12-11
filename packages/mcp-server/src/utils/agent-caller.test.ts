@@ -3,7 +3,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { createRemoteAgentClient } from '@forestadmin-experimental/agent-nodejs-testing';
 
-import buildClient from './agent-caller.js';
+import buildClient from './agent-caller';
 
 jest.mock('@forestadmin-experimental/agent-nodejs-testing');
 
