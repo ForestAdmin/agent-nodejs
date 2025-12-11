@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["test/**/*"],
+  "files": ["../../../node_modules/jest-extended/types/index.d.ts"]
+}
