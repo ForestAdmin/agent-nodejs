@@ -4,7 +4,7 @@ import {
   clearSchemaCache,
   setSchemaCache,
   type ForestSchema,
-} from './schema-fetcher.js';
+} from './schema-fetcher';
 
 describe('schema-fetcher', () => {
   const originalFetch = global.fetch;

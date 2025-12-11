@@ -3,14 +3,14 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import declareListTool from './list.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
-import buildClient from '../utils/agent-caller.js';
-import * as schemaFetcher from '../utils/schema-fetcher.js';
+import declareListTool from './list';
+import createActivityLog from '../utils/activity-logs-creator';
+import buildClient from '../utils/agent-caller';
+import * as schemaFetcher from '../utils/schema-fetcher';
 
-jest.mock('../utils/agent-caller.js');
-jest.mock('../utils/activity-logs-creator.js');
-jest.mock('../utils/schema-fetcher.js');
+jest.mock('../utils/agent-caller');
+jest.mock('../utils/activity-logs-creator');
+jest.mock('../utils/schema-fetcher');
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
 const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
