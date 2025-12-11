@@ -79,6 +79,11 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
+    .addAI({
+      provider: 'openai',
+      apiKey: process.env.OPENAI_API_KEY,
+      model: 'gpt-4',
+    })
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)

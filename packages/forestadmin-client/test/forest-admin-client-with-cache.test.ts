@@ -26,6 +26,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
       );
@@ -52,6 +53,7 @@ describe('ForestAdminClientWithCache', () => {
         schemaService,
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
       );
@@ -62,6 +64,7 @@ describe('ForestAdminClientWithCache', () => {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
           liana_features: null,
+          ai_llms: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -84,6 +87,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
       );
@@ -111,6 +115,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.schema.build(),
           factories.auth.build(),
           factories.modelCustomization.build(),
+          factories.mcpServerConfig.build(),
           factories.eventsSubscription.build(),
           factories.eventsHandler.build(),
         );
@@ -134,6 +139,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.schema.build(),
           factories.auth.build(),
           factories.modelCustomization.build(),
+          factories.mcpServerConfig.build(),
           factories.eventsSubscription.build(),
           factories.eventsHandler.build(),
         );
@@ -158,6 +164,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
       );
@@ -192,6 +199,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         eventsSubscriptionService,
         factories.eventsHandler.build(),
       );
@@ -215,6 +223,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         eventsSubscriptionService,
         factories.eventsHandler.build(),
       );
@@ -238,6 +247,7 @@ describe('ForestAdminClientWithCache', () => {
         factories.schema.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
+        factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         eventsHandlerService,
       );
@@ -263,6 +273,7 @@ describe('ForestAdminClientWithCache', () => {
           factories.schema.build(),
           factories.auth.build(),
           factories.modelCustomization.build(),
+          factories.mcpServerConfig.build(),
           factories.eventsSubscription.build(),
           eventsHandlerService,
         );

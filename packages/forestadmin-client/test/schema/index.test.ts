@@ -30,6 +30,7 @@ describe('SchemaService', () => {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
           liana_features: null,
+          ai_llms: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -57,6 +58,7 @@ describe('SchemaService', () => {
             liana: 'forest-nodejs-agent',
             liana_version: '1.0.0',
             liana_features: null,
+            ai_llms: null,
             stack: { engine: 'nodejs', engine_version: '16.0.0' },
             schemaFileHash: expect.any(String),
           },
@@ -65,7 +67,7 @@ describe('SchemaService', () => {
       expect(options.logger).toHaveBeenCalledTimes(1);
       expect(options.logger).toHaveBeenCalledWith(
         'Info',
-        'Schema was updated, sending new version (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
+        'Schema was updated, sending new version (hash: 67322a4d0162f04afc440c80aa71daf9bcd2f4de)',
       );
     });
   });
@@ -89,6 +91,7 @@ describe('SchemaService', () => {
           liana: 'forest-nodejs-agent',
           liana_version: '1.0.0',
           liana_features: null,
+          ai_llms: null,
           stack: { engine: 'nodejs', engine_version: '16.0.0' },
         },
       });
@@ -106,7 +109,7 @@ describe('SchemaService', () => {
       expect(options.logger).toHaveBeenCalledTimes(1);
       expect(options.logger).toHaveBeenCalledWith(
         'Info',
-        'Schema was not updated since last run (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
+        'Schema was not updated since last run (hash: 67322a4d0162f04afc440c80aa71daf9bcd2f4de)',
       );
     });
   });

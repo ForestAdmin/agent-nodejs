@@ -12,6 +12,7 @@
     "directory": "packages/forestadmin-client"
   },
   "dependencies": {
+    "@forestadmin/ai-proxy": "0.1.0",
     "eventsource": "2.0.2",
     "json-api-serializer": "^2.6.6",
     "jsonwebtoken": "^9.0.0",

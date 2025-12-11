@@ -1,10 +1,12 @@
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
+import type { McpConfiguration } from '@forestadmin/ai-proxy';
 
 import { ParsedUrlQuery } from 'querystring';
 
 import { Tokens, UserInfo } from './auth/types';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { McpServerConfigService } from './mcp-server-config/types';
 import { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
 import { HttpOptions } from './permissions/forest-http-api';
 import {
@@ -49,6 +51,7 @@ export interface ForestAdminClient {
   readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;
   readonly chartHandler: ChartHandlerInterface;
   readonly modelCustomizationService: ModelCustomizationService;
+  readonly mcpServerConfigService: McpServerConfigService;
   readonly authService: ForestAdminAuthServiceInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
@@ -161,5 +164,6 @@ export interface ForestAdminServerInterface {
   getUsers: (...args) => Promise<UserPermissionV4[]>;
   getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
+  getMcpServerConfigs: (options: HttpOptions) => Promise<McpConfiguration>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
 }
