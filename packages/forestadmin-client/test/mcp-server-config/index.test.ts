@@ -5,9 +5,7 @@ describe('McpServerConfigFromApiService', () => {
   describe('getConfiguration', () => {
     it('should call getMcpServerConfigs on the server interface', async () => {
       const mcpConfig = {
-        mcpServers: [
-          { name: 'server1', url: 'http://localhost:3000' },
-        ],
+        mcpServers: [{ name: 'server1', url: 'http://localhost:3000' }],
       };
       const serverInterface = factories.forestAdminServerInterface.build();
       (serverInterface.getMcpServerConfigs as jest.Mock).mockResolvedValue(mcpConfig);
