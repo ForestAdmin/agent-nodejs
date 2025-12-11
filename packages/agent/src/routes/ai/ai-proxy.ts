@@ -23,7 +23,7 @@ export default class AiProxyRoute extends BaseRoute {
   }
 
   setupRoutes(router: KoaRouter): void {
-    router.post('/ai-proxy/:route', this.handleAiProxy.bind(this));
+    router.post('/_internal/ai-proxy/:route', this.handleAiProxy.bind(this));
   }
 
   private async handleAiProxy(context: Context): Promise<void> {

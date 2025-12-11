@@ -193,7 +193,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /**
    * Add AI configuration to the agent.
-   * This enables AI-powered features through the /forest/ai-proxy/* endpoints.
+   * This enables AI-powered features through the /forest/_internal/ai-proxy/* endpoints.
    *
    * @param configuration AI client configuration
    * @example
