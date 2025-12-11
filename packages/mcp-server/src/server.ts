@@ -1,6 +1,6 @@
 // Import polyfills FIRST - before any MCP SDK imports
 // This ensures URL.canParse is available for MCP SDK's Zod validation
-import './polyfills.js';
+import './polyfills';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
