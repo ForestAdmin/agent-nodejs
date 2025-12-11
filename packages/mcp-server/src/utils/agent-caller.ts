@@ -7,10 +7,19 @@ export default function buildClient(
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
 ) {
   const token = request.authInfo?.token;
+  const url = request.authInfo?.extra?.environmentApiEndpoint;
+
+  if (!token) {
+    throw new Error('Authentication token is missing');
+  }
+
+  if (!url || typeof url !== 'string') {
+    throw new Error('Environment API endpoint is missing or invalid');
+  }
 
   const rpcClient = createRemoteAgentClient({
     token,
-    url: request.authInfo?.extra?.environmentApiEndpoint as string,
+    url,
     actionEndpoints: {},
   });
 
