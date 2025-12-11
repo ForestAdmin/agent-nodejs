@@ -1,7 +1,7 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import createActivityLog from './activity-logs-creator.js';
+import createActivityLog from './activity-logs-creator';
 
 describe('createActivityLog', () => {
   const originalFetch = global.fetch;
