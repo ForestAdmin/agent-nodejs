@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import ForestMCPServer from './server';
+import ForestMCPServer from './server.js';
 
 // Start the server when run directly as CLI
 const server = new ForestMCPServer();
