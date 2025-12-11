@@ -5,6 +5,7 @@ import {
 } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
 import { IpWhitelistConfiguration } from './ip-whitelist/types';
+import { McpServerConfigService } from './mcp-server-config';
 import { ModelCustomizationService } from './model-customizations/types';
 import RenderingPermissionService from './permissions/rendering-permission';
 import { RawTree } from './permissions/types';
@@ -30,6 +31,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly schemaService: SchemaService,
     public readonly authService: ForestAdminAuthServiceInterface,
     public readonly modelCustomizationService: ModelCustomizationService,
+    public readonly mcpServerConfigService: McpServerConfigService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
   ) {}

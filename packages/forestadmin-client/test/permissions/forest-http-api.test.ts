@@ -42,4 +42,16 @@ describe('ForestHttpApi', () => {
       expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/model-customizations');
     });
   });
+
+  describe('getMcpServerConfigs', () => {
+    it('should call the right endpoint', async () => {
+      await new ForestHttpApi().getMcpServerConfigs(options);
+
+      expect(ServerUtils.query).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/liana/mcp-server-configs-with-details',
+      );
+    });
+  });
 });

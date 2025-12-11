@@ -6,6 +6,7 @@ const forestAdminServerInterface = {
     getEnvironmentPermissions: jest.fn(),
     getUsers: jest.fn(),
     getModelCustomizations: jest.fn(),
+    getMcpServerConfigs: jest.fn(),
     makeAuthService: jest.fn(),
   }),
 };

@@ -3,6 +3,7 @@ import EventsSubscriptionService from './events-subscription';
 import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
 import { RefreshEventsHandlerService } from './events-subscription/types';
 import IpWhiteListService from './ip-whitelist';
+import McpServerConfigFromApiService, { McpServerConfigService } from './mcp-server-config';
 import ModelCustomizationFromApiService from './model-customizations/model-customization-from-api';
 import { ModelCustomizationService } from './model-customizations/types';
 import ActionPermissionService from './permissions/action-permission';
@@ -32,6 +33,7 @@ export default function buildApplicationServices(
   chartHandler: ChartHandler;
   auth: ForestAdminAuthServiceInterface;
   modelCustomizationService: ModelCustomizationService;
+  mcpServerConfigService: McpServerConfigService;
   eventsSubscription: EventsSubscriptionService;
   eventsHandler: RefreshEventsHandlerService;
 } {
@@ -84,6 +86,10 @@ export default function buildApplicationServices(
     schema: new SchemaService(optionsWithDefaults),
     auth: forestAdminServerInterface.makeAuthService(optionsWithDefaults),
     modelCustomizationService: new ModelCustomizationFromApiService(
+      forestAdminServerInterface,
+      optionsWithDefaults,
+    ),
+    mcpServerConfigService: new McpServerConfigFromApiService(
       forestAdminServerInterface,
       optionsWithDefaults,
     ),
