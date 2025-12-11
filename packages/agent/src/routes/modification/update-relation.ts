@@ -155,7 +155,7 @@ export default class UpdateRelation extends RelationRoute {
       1,
     );
 
-    if (count.value > 0) {
+    if ((count.value as number) > 0) {
       // Avoids updating records to null if it's not authorized by the ORM
       // and if there is no record to update (the filter returns no record)
       await this.foreignCollection.update(caller, oldFkOwnerToRemoveFilter, {

@@ -1,11 +1,13 @@
-import { Factory } from 'fishery';
-
 import { ForestAdminServerInterface } from '../../src/types';
 
-export default Factory.define<ForestAdminServerInterface>(() => ({
-  getRenderingPermissions: jest.fn(),
-  getEnvironmentPermissions: jest.fn(),
-  getUsers: jest.fn(),
-  getModelCustomizations: jest.fn(),
-  makeAuthService: jest.fn(),
-}));
+const forestAdminServerInterface = {
+  build: (): ForestAdminServerInterface => ({
+    getRenderingPermissions: jest.fn(),
+    getEnvironmentPermissions: jest.fn(),
+    getUsers: jest.fn(),
+    getModelCustomizations: jest.fn(),
+    makeAuthService: jest.fn(),
+  }),
+};
+
+export default forestAdminServerInterface;

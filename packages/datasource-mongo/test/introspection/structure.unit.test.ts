@@ -584,7 +584,7 @@ describe('Introspection > Structure', () => {
 
         describe('with a binary value', () => {
           it('should generate the structure for a binary value', async () => {
-            const value = new Binary(Buffer.from('ABCDEF', 'utf-8'));
+            const value = new Binary(new Uint8Array(Buffer.from('ABCDEF', 'utf-8')));
 
             const { connection } = setupConnectionMock([
               {
@@ -619,7 +619,9 @@ describe('Introspection > Structure', () => {
           });
 
           it('should consider binary as reference candidates if it contains a UUID', async () => {
-            const uuid = new Binary(Buffer.from(randomUUID().replace(/-/g, ''), 'hex'));
+            const uuid = new Binary(
+              new Uint8Array(Buffer.from(randomUUID().replace(/-/g, ''), 'hex')),
+            );
             const { connection } = setupConnectionMock([
               {
                 collectionName: 'collection',
@@ -649,7 +651,9 @@ describe('Introspection > Structure', () => {
           });
 
           it('should not consider binary as reference candidates if too long', async () => {
-            const value = new Binary(Buffer.from(new Array(17).fill('A').join(''), 'utf-8'));
+            const value = new Binary(
+              new Uint8Array(Buffer.from(new Array(17).fill('A').join(''), 'utf-8')),
+            );
 
             const { connection } = setupConnectionMock([
               {
