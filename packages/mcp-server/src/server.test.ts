@@ -3,7 +3,7 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import ForestAdminMCPServer from './server';
+import ForestMCPServer from './server';
 import MockServer from './test-utils/mock-server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
@@ -17,11 +17,11 @@ function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
 }
 
 /**
- * Integration tests for ForestAdminMCPServer instance
+ * Integration tests for ForestMCPServer instance
  * Tests the actual server class and its behavior
  */
-describe('ForestAdminMCPServer Instance', () => {
-  let server: ForestAdminMCPServer;
+describe('ForestMCPServer Instance', () => {
+  let server: ForestMCPServer;
   let originalEnv: NodeJS.ProcessEnv;
   let modifiedEnv: NodeJS.ProcessEnv;
   let mockServer: MockServer;
@@ -81,15 +81,15 @@ describe('ForestAdminMCPServer Instance', () => {
 
   describe('constructor', () => {
     it('should create server instance', () => {
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       expect(server).toBeDefined();
-      expect(server).toBeInstanceOf(ForestAdminMCPServer);
+      expect(server).toBeInstanceOf(ForestMCPServer);
     });
 
     it('should initialize with FOREST_SERVER_URL', () => {
       process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       expect(server.forestServerUrl).toBe('https://custom.forestadmin.com');
     });
@@ -97,7 +97,7 @@ describe('ForestAdminMCPServer Instance', () => {
     it('should fallback to FOREST_URL', () => {
       delete process.env.FOREST_SERVER_URL;
       process.env.FOREST_URL = 'https://fallback.forestadmin.com';
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       expect(server.forestServerUrl).toBe('https://fallback.forestadmin.com');
     });
@@ -105,13 +105,13 @@ describe('ForestAdminMCPServer Instance', () => {
     it('should use default URL when neither is provided', () => {
       delete process.env.FOREST_SERVER_URL;
       delete process.env.FOREST_URL;
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       expect(server.forestServerUrl).toBe('https://api.forestadmin.com');
     });
 
     it('should create MCP server instance', () => {
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       expect(server.mcpServer).toBeDefined();
     });
@@ -120,7 +120,7 @@ describe('ForestAdminMCPServer Instance', () => {
   describe('environment validation', () => {
     it('should throw error when FOREST_ENV_SECRET is missing', async () => {
       delete process.env.FOREST_ENV_SECRET;
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       await expect(server.run()).rejects.toThrow(
         'FOREST_ENV_SECRET is not set. Provide it via options.envSecret or FOREST_ENV_SECRET environment variable.',
@@ -129,7 +129,7 @@ describe('ForestAdminMCPServer Instance', () => {
 
     it('should throw error when FOREST_AUTH_SECRET is missing', async () => {
       delete process.env.FOREST_AUTH_SECRET;
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       await expect(server.run()).rejects.toThrow(
         'FOREST_AUTH_SECRET is not set. Provide it via options.authSecret or FOREST_AUTH_SECRET environment variable.',
@@ -146,7 +146,7 @@ describe('ForestAdminMCPServer Instance', () => {
       const testPort = 39310; // Use a different port for testing
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
 
       // Start the server without awaiting (it runs indefinitely)
       server.run();
@@ -172,7 +172,7 @@ describe('ForestAdminMCPServer Instance', () => {
       const testPort = 39311;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
       server.run();
 
       await new Promise(resolve => {
@@ -190,7 +190,7 @@ describe('ForestAdminMCPServer Instance', () => {
       const testPort = 39312;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestAdminMCPServer();
+      server = new ForestMCPServer();
       server.run();
 
       await new Promise(resolve => {
@@ -272,7 +272,7 @@ describe('ForestAdminMCPServer Instance', () => {
         process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
         process.env.MCP_SERVER_PORT = '39314';
 
-        server = new ForestAdminMCPServer();
+        server = new ForestMCPServer();
         server.run();
 
         await new Promise(resolve => {
@@ -416,7 +416,7 @@ describe('ForestAdminMCPServer Instance', () => {
    * Uses a separate server instance with mock server for Forest Admin API
    */
   describe('/oauth/token endpoint', () => {
-    let mcpServer: ForestAdminMCPServer;
+    let mcpServer: ForestMCPServer;
     let mcpHttpServer: http.Server;
     let mcpMockServer: MockServer;
 
@@ -487,7 +487,7 @@ describe('ForestAdminMCPServer Instance', () => {
       mcpMockServer.setupSuperagentMock();
 
       // Create and start server
-      mcpServer = new ForestAdminMCPServer();
+      mcpServer = new ForestMCPServer();
       mcpServer.run();
 
       await new Promise(resolve => {
@@ -887,7 +887,7 @@ describe('ForestAdminMCPServer Instance', () => {
    * Tests that the list tool is properly registered and accessible
    */
   describe('List tool integration', () => {
-    let listServer: ForestAdminMCPServer;
+    let listServer: ForestMCPServer;
     let listHttpServer: http.Server;
     let listMockServer: MockServer;
 
@@ -928,7 +928,7 @@ describe('ForestAdminMCPServer Instance', () => {
 
       global.fetch = listMockServer.fetch;
 
-      listServer = new ForestAdminMCPServer();
+      listServer = new ForestMCPServer();
       listServer.run();
 
       await new Promise(resolve => {

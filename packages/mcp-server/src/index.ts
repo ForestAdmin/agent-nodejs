@@ -1,3 +1,3 @@
 // Library exports only - no side effects
-export { default as ForestAdminMCPServer } from './server';
-export type { ForestAdminMCPServerOptions } from './server';
+export { default as ForestMCPServer } from './server';
+export type { ForestMCPServerOptions } from './server';

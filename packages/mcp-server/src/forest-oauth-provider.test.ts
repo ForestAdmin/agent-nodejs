@@ -4,7 +4,7 @@ import type { Response } from 'express';
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import jsonwebtoken from 'jsonwebtoken';
 
-import ForestAdminOAuthProvider from './forest-oauth-provider';
+import ForestOAuthProvider from './forest-oauth-provider';
 import MockServer from './test-utils/mock-server';
 
 jest.mock('jsonwebtoken');
@@ -20,14 +20,14 @@ const TEST_ENV_SECRET = 'test-env-secret';
 const TEST_AUTH_SECRET = 'test-auth-secret';
 
 function createProvider(forestServerUrl = 'https://api.forestadmin.com') {
-  return new ForestAdminOAuthProvider({
+  return new ForestOAuthProvider({
     forestServerUrl,
     envSecret: TEST_ENV_SECRET,
     authSecret: TEST_AUTH_SECRET,
   });
 }
 
-describe('ForestAdminOAuthProvider', () => {
+describe('ForestOAuthProvider', () => {
   let originalEnv: NodeJS.ProcessEnv;
   let mockServer: MockServer;
   const originalFetch = global.fetch;
@@ -61,7 +61,7 @@ describe('ForestAdminOAuthProvider', () => {
 
   describe('initialize', () => {
     it('should not throw when envSecret is empty string', async () => {
-      const customProvider = new ForestAdminOAuthProvider({
+      const customProvider = new ForestOAuthProvider({
         forestServerUrl: 'https://api.forestadmin.com',
         envSecret: '',
         authSecret: TEST_AUTH_SECRET,
@@ -230,7 +230,7 @@ describe('ForestAdminOAuthProvider', () => {
   describe('authorize', () => {
     let mockResponse: Partial<Response>;
     let mockClient: OAuthClientInformationFull;
-    let initializedProvider: ForestAdminOAuthProvider;
+    let initializedProvider: ForestOAuthProvider;
 
     beforeEach(async () => {
       mockResponse = {

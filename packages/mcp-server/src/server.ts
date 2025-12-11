@@ -16,14 +16,14 @@ import cors from 'cors';
 import express, { Express } from 'express';
 import * as http from 'http';
 
-import ForestAdminOAuthProvider from './forest-oauth-provider';
+import ForestOAuthProvider from './forest-oauth-provider';
 import declareListTool from './tools/list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 
 /**
  * Options for configuring the Forest Admin MCP Server
  */
-export interface ForestAdminMCPServerOptions {
+export interface ForestMCPServerOptions {
   /** Forest Admin server URL */
   forestServerUrl?: string;
   /** Forest Admin environment secret */
@@ -45,7 +45,7 @@ export interface ForestAdminMCPServerOptions {
  * - MCP_SERVER_PORT: Port for the HTTP server (default: 3931)
  */
 
-export default class ForestAdminMCPServer {
+export default class ForestMCPServer {
   public mcpServer: McpServer;
   public mcpTransport?: StreamableHTTPServerTransport;
   public httpServer?: http.Server;
@@ -55,7 +55,7 @@ export default class ForestAdminMCPServer {
   private envSecret?: string;
   private authSecret?: string;
 
-  constructor(options?: ForestAdminMCPServerOptions) {
+  constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl =
       options?.forestServerUrl ||
       process.env.FOREST_SERVER_URL ||
@@ -131,7 +131,7 @@ export default class ForestAdminMCPServer {
     );
 
     // Initialize OAuth provider
-    const oauthProvider = new ForestAdminOAuthProvider({
+    const oauthProvider = new ForestOAuthProvider({
       forestServerUrl: this.forestServerUrl,
       envSecret,
       authSecret,

@@ -21,7 +21,7 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
-export interface ForestAdminOAuthProviderOptions {
+export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
   envSecret: string;
   authSecret: string;
@@ -30,19 +30,19 @@ export interface ForestAdminOAuthProviderOptions {
 /**
  * OAuth Server Provider that integrates with Forest Admin authentication
  */
-export default class ForestAdminOAuthProvider implements OAuthServerProvider {
+export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
   private envSecret: string;
   private authSecret: string;
   private environmentId?: number;
-  private forestAdminClient: ForestAdminClient;
+  private forestClient: ForestAdminClient;
   private environmentApiEndpoint: string;
 
-  constructor({ forestServerUrl, envSecret, authSecret }: ForestAdminOAuthProviderOptions) {
+  constructor({ forestServerUrl, envSecret, authSecret }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
     this.envSecret = envSecret;
     this.authSecret = authSecret;
-    this.forestAdminClient = createForestAdminClient({
+    this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
     });
@@ -156,7 +156,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
 
       res.redirect(agentAuthUrl.toString());
     } catch (error) {
-      console.error('[ForestAdminOAuthProvider] Authorization error:', error);
+      console.error('[ForestOAuthProvider] Authorization error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       res.redirect(
@@ -282,7 +282,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       exp: number;
       iat: number;
     };
-    const user = await this.forestAdminClient.authService.getUserInfo(
+    const user = await this.forestClient.authService.getUserInfo(
       renderingId,
       forestServerAccessToken,
     );
