@@ -1,4 +1,4 @@
-import parseAgentError from './error-parser.js';
+import parseAgentError from './error-parser';
 
 describe('parseAgentError', () => {
   describe('nested error.text structure', () => {

@@ -12,9 +12,9 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
-import ForestAdminOAuthProvider from './forest-oauth-provider.js';
-import declareListTool from './tools/list.js';
-import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher.js';
+import ForestAdminOAuthProvider from './forest-oauth-provider';
+import declareListTool from './tools/list';
+import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 
 /**
  * Forest Admin MCP Server

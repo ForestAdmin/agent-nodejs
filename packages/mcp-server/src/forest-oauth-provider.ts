@@ -11,7 +11,7 @@ import type {
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import type { Response } from 'express';
 
-import forestAdminClientModule, { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import createForestAdminClient, { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import {
   CustomOAuthError,
   InvalidClientError,
@@ -20,13 +20,6 @@ import {
   UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
-
-// Handle ESM/CJS interop: the module may be double-wrapped with default exports
-const createForestAdminClient =
-  typeof forestAdminClientModule === 'function'
-    ? forestAdminClientModule
-    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ((forestAdminClientModule as any).default as typeof forestAdminClientModule);
 
 /**
  * OAuth Server Provider that integrates with Forest Admin authentication
