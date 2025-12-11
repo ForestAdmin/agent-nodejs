@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
+    "@forestadmin/ai-proxy": "0.1.0",
     "@forestadmin/datasource-customizer": "1.67.2",
     "@forestadmin/datasource-toolkit": "1.50.1",
     "@forestadmin/forestadmin-client": "1.37.4",

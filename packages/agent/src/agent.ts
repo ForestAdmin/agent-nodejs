@@ -42,6 +42,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
+  protected aiConfiguration: AiConfiguration | null = null;
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
@@ -210,8 +211,30 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  /**
+   * Add AI configuration to the agent.
+   * This enables AI-powered features through the /forest/_internal/ai-proxy/* endpoints.
+   *
+   * @param configuration AI client configuration
+   * @example
+   * agent.addAI({
+   *   provider: 'openai',
+   *   apiKey: process.env.OPENAI_API_KEY,
+   *   model: 'gpt-4'
+   * });
+   */
+  addAI(configuration: AiConfiguration): this {
+    if (this.aiConfiguration) {
+      throw new Error('addAI() can only be called once');
+    }
+
+    this.aiConfiguration = configuration;
+
+    return this;
+  }
+
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services);
+    return makeRoutes(dataSource, this.options, services, this.aiConfiguration);
   }
 
   /**
@@ -331,7 +354,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Either load the schema from the file system or build it
     let schema: Pick<ForestSchema, 'collections'>;
 
-    const { meta } = SchemaGenerator.buildMetadata(this.customizationService.buildFeatures());
+    // Get the AI provider name if configured (e.g., 'openai')
+    const aiProvider = this.aiConfiguration?.provider ?? null;
+    const { meta } = SchemaGenerator.buildMetadata(
+      this.customizationService.buildFeatures(),
+      aiProvider,
+    );
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {

@@ -40,6 +40,7 @@ describe('SchemaGenerator', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
           liana_features: null,
+          ai_llms: null,
           stack: {
             engine: 'nodejs',
             engine_version: expect.any(String),
@@ -62,6 +63,7 @@ describe('SchemaGenerator', () => {
             'webhook-custom-actions': '1.0.0',
             'awesome-feature': '3.0.0',
           },
+          ai_llms: null,
           stack: {
             engine: 'nodejs',
             engine_version: expect.any(String),
