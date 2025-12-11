@@ -1,6 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+/* eslint-disable import/no-extraneous-dependencies, import/extensions */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+/* eslint-enable import/no-extraneous-dependencies, import/extensions */
 
 import runMcpServer from './simple-mcp-server';
 

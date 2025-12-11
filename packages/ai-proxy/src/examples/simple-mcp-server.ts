@@ -1,9 +1,9 @@
+/* eslint-disable import/no-extraneous-dependencies, import/extensions */
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import express from 'express';
+/* eslint-enable import/no-extraneous-dependencies, import/extensions */
 
 const BEARER_TOKEN = 'your-secure-token-here';
 

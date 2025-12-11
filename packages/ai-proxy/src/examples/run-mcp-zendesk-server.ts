@@ -1,7 +1,7 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+/* eslint-disable import/no-extraneous-dependencies, import/extensions */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import zendesk from 'node-zendesk';
+/* eslint-enable import/no-extraneous-dependencies, import/extensions */
 
 import runMcpServer from './simple-mcp-server';
 

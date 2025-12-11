@@ -159,7 +159,7 @@ describe('route', () => {
           ({
             loadTools: jest.fn().mockResolvedValue([]),
             closeConnections: jest.fn().mockRejectedValue(closeError),
-          }) as unknown as McpClient,
+          } as unknown as McpClient),
       );
 
       // Should not throw even though cleanup fails
@@ -169,7 +169,11 @@ describe('route', () => {
       });
 
       expect(result).toBeDefined();
-      expect(mockLogger).toHaveBeenCalledWith('Error', 'Error during MCP connection cleanup', closeError);
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Error during MCP connection cleanup',
+        closeError,
+      );
     });
 
     it('preserves original error when both route and cleanup fail', async () => {
@@ -184,7 +188,7 @@ describe('route', () => {
           ({
             loadTools: jest.fn().mockResolvedValue([]),
             closeConnections: jest.fn().mockRejectedValue(closeError),
-          }) as unknown as McpClient,
+          } as unknown as McpClient),
       );
 
       // Should throw the original route error, not the cleanup error
@@ -196,7 +200,11 @@ describe('route', () => {
       ).rejects.toThrow(AIUnprocessableError);
 
       // Cleanup error should be logged
-      expect(mockLogger).toHaveBeenCalledWith('Error', 'Error during MCP connection cleanup', closeError);
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Error during MCP connection cleanup',
+        closeError,
+      );
     });
   });
 
@@ -213,7 +221,7 @@ describe('route', () => {
           ({
             loadTools: jest.fn().mockResolvedValue([]),
             closeConnections: jest.fn().mockRejectedValue(closeError),
-          }) as unknown as McpClient,
+          } as unknown as McpClient),
       );
 
       await router.route({
@@ -222,7 +230,11 @@ describe('route', () => {
       });
 
       // Custom logger should be called
-      expect(customLogger).toHaveBeenCalledWith('Error', 'Error during MCP connection cleanup', closeError);
+      expect(customLogger).toHaveBeenCalledWith(
+        'Error',
+        'Error during MCP connection cleanup',
+        closeError,
+      );
     });
 
     it('passes logger to McpClient', async () => {
