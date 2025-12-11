@@ -21,57 +21,82 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
+export interface ForestOAuthProviderOptions {
+  forestServerUrl: string;
+  envSecret: string;
+  authSecret: string;
+}
+
 /**
  * OAuth Server Provider that integrates with Forest Admin authentication
  */
-export default class ForestAdminOAuthProvider implements OAuthServerProvider {
+export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
+  private envSecret: string;
+  private authSecret: string;
   private environmentId?: number;
-  private forestAdminClient: ForestAdminClient;
+  private forestClient: ForestAdminClient;
   private environmentApiEndpoint: string;
 
-  constructor({ forestServerUrl }: { forestServerUrl: string }) {
+  constructor({ forestServerUrl, envSecret, authSecret }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
-    this.forestAdminClient = createForestAdminClient({
+    this.envSecret = envSecret;
+    this.authSecret = authSecret;
+    this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
-      envSecret: process.env.FOREST_ENV_SECRET,
+      envSecret: this.envSecret,
     });
   }
 
   async initialize(): Promise<void> {
-    await this.fetchEnvironmentId();
+    try {
+      await this.fetchEnvironmentId();
+    } catch (error) {
+      // Log warning but don't throw - the MCP server can still partially function
+      // The authorize method will return an appropriate error when environmentId is missing
+      console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
+    }
   }
 
   private async fetchEnvironmentId(): Promise<void> {
-    try {
-      const envSecret = process.env.FOREST_ENV_SECRET;
-
-      if (!envSecret) {
-        return;
-      }
-
-      // Call Forest Admin API to get environment information
-      const response = await fetch(`${this.forestServerUrl}/liana/environment`, {
-        method: 'GET',
-        headers: {
-          'forest-secret-key': envSecret,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch environment: ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as unknown as {
-        data: { id: string; attributes: { api_endpoint: string } };
-      };
-
-      this.environmentId = parseInt(data.data.id, 10);
-      this.environmentApiEndpoint = data.data.attributes.api_endpoint;
-    } catch (error) {
-      console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
+    if (!this.envSecret) {
+      throw new Error('FOREST_ENV_SECRET is required to fetch environment ID');
     }
+
+    // Call Forest Admin API to get environment information
+    const response = await fetch(`${this.forestServerUrl}/liana/environment`, {
+      method: 'GET',
+      headers: {
+        'forest-secret-key': this.envSecret,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Failed to fetch environment from Forest Admin API: ${response.status} ${response.statusText}. ${errorText}`,
+      );
+    }
+
+    const data = (await response.json()) as unknown as {
+      data: { id: string; attributes: { api_endpoint: string } };
+    };
+
+    this.environmentId = parseInt(data.data.id, 10);
+    this.environmentApiEndpoint = data.data.attributes.api_endpoint;
+  }
+
+  /**
+   * Get the base URL for the MCP server from the environment's api_endpoint.
+   * Returns undefined if the environment info hasn't been fetched yet.
+   */
+  getBaseUrl(): URL | undefined {
+    if (!this.environmentApiEndpoint) {
+      return undefined;
+    }
+
+    return new URL(this.environmentApiEndpoint);
   }
 
   get clientsStore(): OAuthRegisteredClientsStore {
@@ -102,6 +127,13 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     res: Response,
   ): Promise<void> {
     try {
+      // Ensure environmentId is available
+      if (!this.environmentId) {
+        throw new Error(
+          'Environment ID not available. Make sure initialize() was called and the Forest Admin API is reachable.',
+        );
+      }
+
       // Redirect to Forest Admin agent for actual authentication
       const agentAuthUrl = new URL(
         '/oauth/authorize',
@@ -115,11 +147,16 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       agentAuthUrl.searchParams.set('client_id', client.client_id);
       agentAuthUrl.searchParams.set('state', params.state);
       agentAuthUrl.searchParams.set('scope', params.scopes.join('+'));
-      agentAuthUrl.searchParams.set('resource', params.resource?.href);
+
+      if (params.resource?.href) {
+        agentAuthUrl.searchParams.set('resource', params.resource.href);
+      }
+
       agentAuthUrl.searchParams.set('environmentId', this.environmentId.toString());
 
       res.redirect(agentAuthUrl.toString());
     } catch (error) {
+      console.error('[ForestOAuthProvider] Authorization error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       res.redirect(
@@ -172,7 +209,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     };
 
     try {
-      decoded = jsonwebtoken.verify(refreshToken, process.env.FOREST_AUTH_SECRET) as typeof decoded;
+      decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
     } catch (error) {
       throw new InvalidTokenError('Invalid or expired refresh token');
     }
@@ -207,7 +244,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     const response = await fetch(`${this.forestServerUrl}/oauth/token`, {
       method: 'POST',
       headers: {
-        'forest-secret-key': process.env.FOREST_ENV_SECRET,
+        'forest-secret-key': this.envSecret,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(tokenPayload),
@@ -245,7 +282,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
       exp: number;
       iat: number;
     };
-    const user = await this.forestAdminClient.authService.getUserInfo(
+    const user = await this.forestClient.authService.getUserInfo(
       renderingId,
       forestServerAccessToken,
     );
@@ -254,7 +291,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
     const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
     const accessToken = jsonwebtoken.sign(
       { ...user, serverToken: forestServerAccessToken },
-      process.env.FOREST_AUTH_SECRET,
+      this.authSecret,
       { expiresIn },
     );
 
@@ -267,7 +304,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
         renderingId,
         serverRefreshToken: forestServerRefreshToken,
       },
-      process.env.FOREST_AUTH_SECRET,
+      this.authSecret,
       { expiresIn: refreshTokenExpirationDate - Math.floor(Date.now() / 1000) },
     );
 
@@ -282,7 +319,7 @@ export default class ForestAdminOAuthProvider implements OAuthServerProvider {
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
     try {
-      const decoded = jsonwebtoken.verify(token, process.env.FOREST_AUTH_SECRET) as {
+      const decoded = jsonwebtoken.verify(token, this.authSecret) as {
         id: number;
         email: string;
         renderingId: number;
