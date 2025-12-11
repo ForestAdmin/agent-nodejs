@@ -126,9 +126,9 @@ export default class ConditionTreeLeaf extends ConditionTree {
       case 'EndsWith':
         return typeof fieldValue === 'string' && fieldValue.endsWith(this.value as string);
       case 'LongerThan':
-        return typeof fieldValue === 'string' ? fieldValue.length > this.value : false;
+        return typeof fieldValue === 'string' ? fieldValue.length > (this.value as number) : false;
       case 'ShorterThan':
-        return typeof fieldValue === 'string' ? fieldValue.length < this.value : false;
+        return typeof fieldValue === 'string' ? fieldValue.length < (this.value as number) : false;
       case 'IncludesAll':
         return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
       case 'IncludesNone':
