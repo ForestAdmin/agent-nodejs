@@ -12,3 +12,4 @@ export { default as ipWhiteList } from './ip-whitelist';
 export { default as schema } from './schema';
 export { default as auth } from './auth';
 export { default as modelCustomization } from './model-customizations/model-customization-from-api';
+export { default as mcpServerConfig } from './mcp-server-config';
