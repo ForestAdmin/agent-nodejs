@@ -53,10 +53,7 @@ describe('AiProxyRoute', () => {
       const route = new AiProxyRoute(services, options, aiConfiguration);
       route.setupRoutes(router);
 
-      expect(router.post).toHaveBeenCalledWith(
-        '/_internal/ai-proxy/:route',
-        expect.any(Function),
-      );
+      expect(router.post).toHaveBeenCalledWith('/_internal/ai-proxy/:route', expect.any(Function));
     });
   });
 
