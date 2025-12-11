@@ -20,7 +20,13 @@ import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import CustomizationService from './services/model-customizations/customization';
-import { AgentOptions, AgentOptionsWithDefaults } from './types';
+import {
+  AgentOptions,
+  AgentOptionsWithDefaults,
+  HttpCallback,
+  McpFactory,
+  McpFactoryOptions,
+} from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -40,6 +46,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
+
+  /** MCP factory and options registered via useMcp() */
+  private mcpConfig: {
+    factory: McpFactory<McpFactoryOptions>;
+    options?: McpFactoryOptions;
+  } | null = null;
 
   /**
    * Create a new Agent Builder.
@@ -190,6 +202,26 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  /**
+   * Enable MCP (Model Context Protocol) server support.
+   * This allows AI assistants to interact with your Forest Admin data.
+   *
+   * @param factory MCP factory function from @forestadmin/mcp-server
+   * @param options Optional configuration for the MCP server
+   * @example
+   * import { createMcpServer } from '@forestadmin/mcp-server';
+   *
+   * agent.useMcp(createMcpServer, { baseUrl: 'https://my-app.example.com' });
+   */
+  useMcp<TOptions extends McpFactoryOptions>(
+    factory: McpFactory<TOptions>,
+    options?: TOptions,
+  ): this {
+    this.mcpConfig = { factory, options };
+
+    return this;
+  }
+
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
     return makeRoutes(dataSource, this.options, services);
   }
@@ -197,13 +229,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /**
    * Create an http handler which can respond to all queries which are expected from an agent.
    */
-  private async getRouter(dataSource: DataSource): Promise<Router> {
+  private async getRouter(
+    dataSource: DataSource,
+  ): Promise<{ router: Router; mcpHttpCallback?: HttpCallback }> {
     // Bootstrap app
     const services = makeServices(this.options);
     const routes = this.getRoutes(dataSource, services);
     await Promise.all(routes.map(route => route.bootstrap()));
 
-    // Build router
+    // Initialize MCP server if configured via useMcp()
+    let mcpHttpCallback: HttpCallback | undefined;
+
+    if (this.mcpConfig) {
+      mcpHttpCallback = await this.initializeMcpServer();
+    }
+
+    // Build main router
     const router = new Router();
     router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
     router.use(
@@ -219,7 +260,39 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return router;
   }
 
-  private async buildRouterAndSendSchema(): Promise<Router> {
+  /**
+   * Initialize the MCP server using the factory registered via useMcp().
+   */
+  private async initializeMcpServer(): Promise<HttpCallback> {
+    if (!this.mcpConfig) {
+      throw new Error('MCP server not configured. Call useMcp() before start().');
+    }
+
+    try {
+      const { factory, options } = this.mcpConfig;
+
+      const context = {
+        forestServerUrl: this.options.forestServerUrl,
+        envSecret: this.options.envSecret,
+        authSecret: this.options.authSecret,
+        logger: this.options.logger,
+      };
+
+      const httpCallback = await factory(context, options);
+
+      this.options.logger('Info', 'MCP server initialized successfully');
+
+      return httpCallback;
+    } catch (error) {
+      this.options.logger('Error', `Failed to initialize MCP server: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  private async buildRouterAndSendSchema(): Promise<{
+    router: Router;
+    mcpHttpCallback?: HttpCallback;
+  }> {
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 
     // It allows to rebuild the full customization stack with no code customizations

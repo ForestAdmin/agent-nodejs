@@ -91,6 +91,10 @@ export default class FrameworkMounter {
    * @param express instance of the express app or router.
    */
   mountOnExpress(express: any): this {
+    // MCP middleware - the callback handles its own path filtering and calls next() for non-MCP routes
+    express.use(this.getMcpMiddleware());
+
+    // Mount main forest routes at /{prefix}/forest
     express.use(this.completeMountPrefix, this.getConnectCallback(false));
     this.logger('Info', `Successfully mounted on Express.js`);
 
@@ -102,6 +106,10 @@ export default class FrameworkMounter {
    * @param fastify instance of the fastify app, or of a fastify context
    */
   mountOnFastify(fastify: any): this {
+    // MCP middleware at root - the callback handles its own path filtering
+    this.useCallbackOnFastify(fastify, this.getMcpMiddleware(), '/');
+
+    // Mount main forest routes
     const callback = this.getConnectCallback(false);
     this.useCallbackOnFastify(fastify, callback);
 
@@ -123,11 +131,41 @@ export default class FrameworkMounter {
       ctx.response.body = { error: 'Agent is not started' };
     });
 
-    this.onEachStart.push(async driverRouter => {
+    let mcpCallback: HttpCallback | null = null;
+
+    this.onEachStart.push(async (driverRouter, mcpHttpCallback) => {
       // Unmounts previous routes
       parentRouter.stack = [];
       // Mounts new ones
       parentRouter.use(driverRouter.routes());
+      // Store the MCP callback
+      mcpCallback = mcpHttpCallback || null;
+    });
+
+    // MCP middleware - intercepts MCP routes before they reach Koa's body parser
+    koa.use(async (ctx: any, next: () => Promise<void>) => {
+      const currentMcpCallback = mcpCallback;
+
+      if (currentMcpCallback) {
+        // Handle with MCP callback, bypassing Koa processing
+        // The MCP callback will call next() if the route is not an MCP route
+        await new Promise<void>(resolve => {
+          ctx.respond = false;
+          currentMcpCallback(ctx.req, ctx.res, () => {
+            // next() called means not an MCP route - continue with Koa
+            ctx.respond = true;
+            resolve();
+          });
+          ctx.res.once('finish', resolve);
+          ctx.res.once('close', resolve);
+        });
+
+        if (!ctx.respond) {
+          return; // MCP handled the request
+        }
+      }
+
+      await next();
     });
 
     koa.use(parentRouter.routes());
@@ -145,9 +183,14 @@ export default class FrameworkMounter {
     const callback = this.getConnectCallback(false);
 
     if (adapter.constructor.name === 'ExpressAdapter') {
+      // MCP middleware at root - the callback handles its own path filtering
+      nestJs.use(this.getMcpMiddleware());
+      // Mount main forest routes
       nestJs.use(this.completeMountPrefix, callback);
     } else {
-      this.useCallbackOnFastify(nestJs, callback);
+      // Fastify adapter - MCP middleware at root
+      this.useCallbackOnFastify(nestJs, this.getMcpMiddleware(), '/');
+      this.useCallbackOnFastify(nestJs, callback, this.completeMountPrefix);
     }
 
     this.logger('Info', `Successfully mounted on NestJS`);
@@ -176,6 +219,27 @@ export default class FrameworkMounter {
     }
   }
 
+  private mcpCallback: HttpCallback | null = null;
+
+  /**
+   * Get a middleware that forwards requests to the MCP callback if available.
+   * The MCP callback itself handles path filtering and calls next() for non-MCP routes.
+   */
+  private getMcpMiddleware(): HttpCallback {
+    // Register to receive MCP callback updates
+    this.onEachStart.push(async (_router, mcpHttpCallback) => {
+      this.mcpCallback = mcpHttpCallback || null;
+    });
+
+    return (req, res, next) => {
+      if (this.mcpCallback) {
+        this.mcpCallback(req, res, next);
+      } else if (next) {
+        next();
+      }
+    };
+  }
+
   private getConnectCallback(nested: boolean): HttpCallback {
     let handler = null;
 
@@ -187,9 +251,26 @@ export default class FrameworkMounter {
       }
 
       handler = new Koa().use(router.routes()).callback();
+      mcpCallback = mcpHttpCallback || null;
     });
 
     return (req, res) => {
+      // For standalone server (nested), check MCP callback first
+      // The MCP callback handles its own path filtering
+      if (nested && mcpCallback) {
+        mcpCallback(req, res, () => {
+          // next() called means not an MCP route - forward to main handler
+          if (handler) {
+            handler(req, res);
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Agent is not started' }));
+          }
+        });
+
+        return;
+      }
+
       if (handler) {
         handler(req, res);
       } else {

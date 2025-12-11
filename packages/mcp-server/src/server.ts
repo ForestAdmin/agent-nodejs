@@ -1,3 +1,7 @@
+// Import polyfills FIRST - before any MCP SDK imports
+// This ensures URL.canParse is available for MCP SDK's Zod validation
+import './polyfills';
+
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
@@ -12,9 +16,32 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
-import ForestAdminOAuthProvider from './forest-oauth-provider';
+import ForestAdminOAuthProvider, { LogLevel, Logger } from './forest-oauth-provider';
 import declareListTool from './tools/list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
+import { NAME, VERSION } from './version';
+
+export type { Logger, LogLevel };
+
+export type HttpCallback = (
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  next?: () => void,
+) => void;
+
+/**
+ * Options for configuring the Forest Admin MCP Server
+ */
+export interface ForestAdminMCPServerOptions {
+  /** Forest Admin server URL */
+  forestServerUrl?: string;
+  /** Forest Admin environment secret */
+  envSecret?: string;
+  /** Forest Admin authentication secret */
+  authSecret?: string;
+  /** Optional logger function. Defaults to console logging. */
+  logger?: Logger;
+}
 
 /**
  * Forest Admin MCP Server
@@ -40,8 +67,8 @@ export default class ForestAdminMCPServer {
       process.env.FOREST_SERVER_URL || process.env.FOREST_URL || 'https://api.forestadmin.com';
 
     this.mcpServer = new McpServer({
-      name: '@forestadmin/mcp-server',
-      version: '0.1.0',
+      name: NAME,
+      version: VERSION,
     });
   }
 

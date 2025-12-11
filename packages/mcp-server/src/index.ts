@@ -1,15 +1,6 @@
-#!/usr/bin/env node
-
-import ForestAdminMCPServer from './server';
-
-// Export for library usage
-// eslint-disable-next-line import/prefer-default-export
+// Library exports only - no side effects
 export { default as ForestAdminMCPServer } from './server';
-
-// Start the server when run directly as CLI
-const server = new ForestAdminMCPServer();
-
-server.run().catch(error => {
-  console.error('[FATAL] Server crashed:', error);
-  process.exit(1);
-});
+export type { ForestAdminMCPServerOptions, HttpCallback } from './server';
+export { MCP_PATHS, isMcpRoute } from './mcp-paths';
+export { createMcpServer } from './factory';
+export type { McpFactoryContext, McpFactoryOptions } from './factory';
