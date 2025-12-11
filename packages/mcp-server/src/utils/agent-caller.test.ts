@@ -27,7 +27,7 @@ describe('buildClient', () => {
         token: 'test-auth-token',
         extra: {
           userId: 123,
-          renderingId: '456',
+          renderingId: 456,
           environmentId: 789,
           projectId: 101,
           environmentApiEndpoint: 'http://localhost:3310',
@@ -56,7 +56,7 @@ describe('buildClient', () => {
         token: 'test-token',
         extra: {
           userId: 999,
-          renderingId: '888',
+          renderingId: 888,
           environmentId: 777,
           projectId: 666,
           environmentApiEndpoint: 'http://localhost:3310',
@@ -68,7 +68,7 @@ describe('buildClient', () => {
 
     expect(result.authData).toEqual({
       userId: 999,
-      renderingId: '888',
+      renderingId: 888,
       environmentId: 777,
       projectId: 666,
       environmentApiEndpoint: 'http://localhost:3310',

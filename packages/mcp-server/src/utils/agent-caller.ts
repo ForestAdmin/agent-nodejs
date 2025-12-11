@@ -27,9 +27,10 @@ export default function buildClient(
     rpcClient,
     authData: request.authInfo?.extra as {
       userId: number;
-      renderingId: string;
-      environmentId: number;
-      projectId: number;
+      renderingId: number;
+      environmentId?: number;
+      projectId?: number;
+      environmentApiEndpoint: string;
     },
   };
 }
