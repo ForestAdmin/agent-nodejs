@@ -8,19 +8,20 @@ import net from 'net';
 import path from 'path';
 
 import { HttpCallback } from './types';
+import expressToKoa from './utils/express-to-koa';
 
 export default class FrameworkMounter {
   public standaloneServerPort: number;
 
   private readonly onFirstStart: (() => Promise<void>)[] = [];
-  private readonly onEachStart: ((
-    router: Router,
-    mcpHttpCallback?: HttpCallback,
-  ) => Promise<void>)[] = [];
+  private readonly onEachStart: ((router: Router) => Promise<void>)[] = [];
 
   private readonly onStop: (() => Promise<void>)[] = [];
   protected readonly prefix: string;
   private readonly logger: Logger;
+
+  /** MCP HTTP callback - stored here to avoid passing it through every method */
+  private mcpHttpCallback: HttpCallback | null = null;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
   private get completeMountPrefix(): string {
@@ -32,14 +33,21 @@ export default class FrameworkMounter {
     this.logger = logger;
   }
 
-  protected async mount(router: Router, mcpHttpCallback?: HttpCallback): Promise<void> {
-    for (const task of this.onFirstStart) await task(); // eslint-disable-line no-await-in-loop
-
-    await this.remount(router, mcpHttpCallback);
+  /**
+   * Set the MCP HTTP callback. Call this before mount() or remount().
+   */
+  protected setMcpCallback(callback: HttpCallback | null): void {
+    this.mcpHttpCallback = callback;
   }
 
-  protected async remount(router: Router, mcpHttpCallback?: HttpCallback): Promise<void> {
-    for (const task of this.onEachStart) await task(router, mcpHttpCallback); // eslint-disable-line no-await-in-loop
+  protected async mount(router: Router): Promise<void> {
+    for (const task of this.onFirstStart) await task(); // eslint-disable-line no-await-in-loop
+
+    await this.remount(router);
+  }
+
+  protected async remount(router: Router): Promise<void> {
+    for (const task of this.onEachStart) await task(router); // eslint-disable-line no-await-in-loop
   }
 
   public async stop(): Promise<void> {
@@ -136,43 +144,15 @@ export default class FrameworkMounter {
       ctx.response.body = { error: 'Agent is not started' };
     });
 
-    let mcpCallback: HttpCallback | null = null;
-
-    this.onEachStart.push(async (driverRouter, mcpHttpCallback) => {
+    this.onEachStart.push(async driverRouter => {
       // Unmounts previous routes
       parentRouter.stack = [];
       // Mounts new ones
       parentRouter.use(driverRouter.routes());
-      // Store the MCP callback
-      mcpCallback = mcpHttpCallback || null;
     });
 
     // MCP middleware - intercepts MCP routes before they reach Koa's body parser
-    koa.use(async (ctx: any, next: () => Promise<void>) => {
-      const currentMcpCallback = mcpCallback;
-
-      if (currentMcpCallback) {
-        // Handle with MCP callback, bypassing Koa processing
-        // The MCP callback will call next() if the route is not an MCP route
-        await new Promise<void>(resolve => {
-          ctx.respond = false;
-          currentMcpCallback(ctx.req, ctx.res, () => {
-            // next() called means not an MCP route - continue with Koa
-            ctx.respond = true;
-            resolve();
-          });
-          ctx.res.once('finish', resolve);
-          ctx.res.once('close', resolve);
-        });
-
-        if (!ctx.respond) {
-          return; // MCP handled the request
-        }
-      }
-
-      await next();
-    });
-
+    koa.use(this.getMcpKoaMiddleware());
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
 
@@ -243,32 +223,42 @@ export default class FrameworkMounter {
     }
   }
 
-  private mcpCallback: HttpCallback | null = null;
-
   /**
-   * Get a middleware that forwards requests to the MCP callback if available.
-   * The MCP callback itself handles path filtering and calls next() for non-MCP routes.
+   * Get an Express/Connect-style middleware that forwards requests to the MCP callback.
+   * The MCP callback handles path filtering and calls next() for non-MCP routes.
    */
   private getMcpMiddleware(): HttpCallback {
-    // Register to receive MCP callback updates
-    this.onEachStart.push(async (_router, mcpHttpCallback) => {
-      this.mcpCallback = mcpHttpCallback || null;
-    });
-
     return (req, res, next) => {
-      if (this.mcpCallback) {
-        this.mcpCallback(req, res, next);
+      if (this.mcpHttpCallback) {
+        this.mcpHttpCallback(req, res, next);
       } else if (next) {
         next();
       }
     };
   }
 
+  /**
+   * Get a Koa middleware that forwards requests to the MCP callback.
+   * Uses expressToKoa wrapper for proper Koa integration.
+   */
+  private getMcpKoaMiddleware(): Koa.Middleware {
+    return expressToKoa(
+      (req, res, next) => {
+        if (this.mcpHttpCallback) {
+          this.mcpHttpCallback(req, res, next);
+        } else if (next) {
+          next();
+        }
+      },
+      // MCP routes are at root: /.well-known/*, /oauth/*, /mcp
+      url => url.startsWith('/.well-known/') || url.startsWith('/oauth/') || url.startsWith('/mcp'),
+    );
+  }
+
   private getConnectCallback(nested: boolean): HttpCallback {
     let handler: ((req: any, res: any) => void) | null = null;
-    let mcpCallback: HttpCallback | null = null;
 
-    this.onEachStart.push(async (driverRouter, mcpHttpCallback) => {
+    this.onEachStart.push(async driverRouter => {
       let router = driverRouter;
 
       if (nested) {
@@ -276,14 +266,13 @@ export default class FrameworkMounter {
       }
 
       handler = new Koa().use(router.routes()).callback();
-      mcpCallback = mcpHttpCallback || null;
     });
 
     return (req, res) => {
       // For standalone server (nested), check MCP callback first
       // The MCP callback handles its own path filtering
-      if (nested && mcpCallback) {
-        mcpCallback(req, res, () => {
+      if (nested && this.mcpHttpCallback) {
+        this.mcpHttpCallback(req, res, () => {
           // next() called means not an MCP route - forward to main handler
           if (handler) {
             handler(req, res);
