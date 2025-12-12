@@ -80,7 +80,6 @@ export default function declareListTool(
         actionType = 'filter';
       }
 
-      // Log activity but don't block the main operation if it fails
       await createActivityLog(forestServerUrl, extra, actionType, {
         collectionName: options.collectionName,
       });
