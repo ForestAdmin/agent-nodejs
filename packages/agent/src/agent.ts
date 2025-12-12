@@ -90,7 +90,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     await this.options.forestAdminClient.subscribeToServerEvents();
     this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-    await this.mount(router, mcpHttpCallback);
+    this.setMcpCallback(mcpHttpCallback ?? null);
+    await this.mount(router);
   }
 
   /**
@@ -110,7 +111,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // We force sending schema when restarting
     const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
 
-    await this.remount(router, mcpHttpCallback);
+    this.setMcpCallback(mcpHttpCallback ?? null);
+    await this.remount(router);
   }
 
   /**
