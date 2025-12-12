@@ -42,8 +42,6 @@ export default class OptionsValidator {
       jsonLimit: '50mb',
     };
 
-    copyOptions.mcpServer = copyOptions.mcpServer || { enabled: false };
-
     if (copyOptions.instantCacheRefresh && copyOptions.permissionsCacheDurationInSeconds) {
       copyOptions.logger(
         'Warn',

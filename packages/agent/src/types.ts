@@ -88,25 +88,6 @@ export type AgentOptions = {
    */
   ignoreMissingSchemaElementErrors?: boolean;
   useUnsafeActionEndpoint?: boolean;
-  /**
-   * Options for the MCP (Model Context Protocol) server.
-   * When enabled, exposes an MCP server endpoint that allows AI assistants
-   * to interact with your Forest Admin data.
-   */
-  mcpServer?: {
-    /**
-     * Enable the MCP server endpoint.
-     * @default false
-     */
-    enabled?: boolean;
-    /**
-     * Optional override for the base URL where the agent is publicly accessible.
-     * If not provided, it will be automatically fetched from Forest Admin API
-     * (the environment's api_endpoint configuration).
-     * Example: 'https://my-app.example.com' or 'http://localhost:3000'
-     */
-    baseUrl?: string;
-  };
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

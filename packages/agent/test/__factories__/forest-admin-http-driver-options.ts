@@ -27,5 +27,4 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   },
   ignoreMissingSchemaElementErrors: false,
   useUnsafeActionEndpoint: false,
-  mcpServer: { enabled: false },
 }));

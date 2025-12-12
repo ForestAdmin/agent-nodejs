@@ -132,33 +132,39 @@ describe('ForestOAuthProvider', () => {
       mockServer.get('/liana/environment', { error: 'Unauthorized' }, 401);
       global.fetch = mockServer.fetch;
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      const testProvider = createProvider();
+      const loggerSpy = jest.fn();
+      const testProvider = new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger: loggerSpy,
+      });
 
       await testProvider.initialize();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Warn',
         expect.stringContaining('Failed to fetch environmentId from Forest Admin API'),
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should handle fetch network errors gracefully', async () => {
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      const testProvider = createProvider();
+      const loggerSpy = jest.fn();
+      const testProvider = new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger: loggerSpy,
+      });
 
       await testProvider.initialize();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Warn',
         expect.stringContaining('Failed to fetch environmentId from Forest Admin API'),
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should use correct forest server URL for API call', async () => {
