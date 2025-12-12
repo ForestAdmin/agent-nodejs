@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import bodyParser from '@koa/bodyparser';
 import Router from '@koa/router';
 import { createServer } from 'http';
 import Koa from 'koa';
