@@ -99,7 +99,7 @@ npm run clean
 
 The server consists of:
 
-- **ForestAdminMCPServer**: Main server class managing the MCP server lifecycle
+- **ForestMCPServer**: Main server class managing the MCP server lifecycle
 - **McpServer**: Core MCP protocol implementation
 - **StreamableHTTPServerTransport**: HTTP transport layer for MCP
 - **Express App**: HTTP server handling incoming requests
