@@ -8,6 +8,7 @@ import net from 'net';
 import path from 'path';
 
 import { HttpCallback } from './types';
+import expressToKoa from './utils/express-to-koa';
 
 export default class FrameworkMounter {
   public standaloneServerPort: number;
@@ -151,29 +152,7 @@ export default class FrameworkMounter {
     });
 
     // MCP middleware - intercepts MCP routes before they reach Koa's body parser
-    koa.use(async (ctx: any, next: () => Promise<void>) => {
-      if (this.mcpHttpCallback) {
-        // Handle with MCP callback, bypassing Koa processing
-        // The MCP callback will call next() if the route is not an MCP route
-        await new Promise<void>(resolve => {
-          ctx.respond = false;
-          this.mcpHttpCallback!(ctx.req, ctx.res, () => {
-            // next() called means not an MCP route - continue with Koa
-            ctx.respond = true;
-            resolve();
-          });
-          ctx.res.once('finish', resolve);
-          ctx.res.once('close', resolve);
-        });
-
-        if (!ctx.respond) {
-          return; // MCP handled the request
-        }
-      }
-
-      await next();
-    });
-
+    koa.use(this.getMcpKoaMiddleware());
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
 
@@ -245,8 +224,8 @@ export default class FrameworkMounter {
   }
 
   /**
-   * Get a middleware that forwards requests to the MCP callback if available.
-   * The MCP callback itself handles path filtering and calls next() for non-MCP routes.
+   * Get an Express/Connect-style middleware that forwards requests to the MCP callback.
+   * The MCP callback handles path filtering and calls next() for non-MCP routes.
    */
   private getMcpMiddleware(): HttpCallback {
     return (req, res, next) => {
@@ -256,6 +235,24 @@ export default class FrameworkMounter {
         next();
       }
     };
+  }
+
+  /**
+   * Get a Koa middleware that forwards requests to the MCP callback.
+   * Uses expressToKoa wrapper for proper Koa integration.
+   */
+  private getMcpKoaMiddleware(): Koa.Middleware {
+    return expressToKoa(
+      (req, res, next) => {
+        if (this.mcpHttpCallback) {
+          this.mcpHttpCallback(req, res, next);
+        } else if (next) {
+          next();
+        }
+      },
+      // MCP routes are at root: /.well-known/*, /oauth/*, /mcp
+      url => url.startsWith('/.well-known/') || url.startsWith('/oauth/') || url.startsWith('/mcp'),
+    );
   }
 
   private getConnectCallback(nested: boolean): HttpCallback {
