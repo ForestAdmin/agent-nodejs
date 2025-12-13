@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
+import { isMcpRoute } from '@forestadmin/mcp-server';
 import Router from '@koa/router';
 import { createServer } from 'http';
 import Koa from 'koa';
@@ -14,9 +15,13 @@ export default class FrameworkMounter {
 
   private readonly onFirstStart: (() => Promise<void>)[] = [];
   private readonly onEachStart: ((router: Router) => Promise<void>)[] = [];
+
   private readonly onStop: (() => Promise<void>)[] = [];
-  private readonly prefix: string;
+  protected readonly prefix: string;
   private readonly logger: Logger;
+
+  /** MCP Router - stored here to be mounted on various frameworks */
+  private mcpRouter: Router | null = null;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
   private get completeMountPrefix(): string {
@@ -26,6 +31,13 @@ export default class FrameworkMounter {
   constructor(prefix: string, logger: Logger) {
     this.prefix = prefix;
     this.logger = logger;
+  }
+
+  /**
+   * Set the MCP Router. Call this before mount() or remount().
+   */
+  protected setMcpRouter(router: Router | null): void {
+    this.mcpRouter = router;
   }
 
   protected async mount(router: Router): Promise<void> {
@@ -91,7 +103,12 @@ export default class FrameworkMounter {
    * @param express instance of the express app or router.
    */
   mountOnExpress(express: any): this {
+    // MCP middleware - uses the Koa router callback
+    express.use(this.getMcpMiddleware());
+
+    // Mount main forest routes at /{prefix}/forest
     express.use(this.completeMountPrefix, this.getConnectCallback(false));
+
     this.logger('Info', `Successfully mounted on Express.js`);
 
     return this;
@@ -102,8 +119,12 @@ export default class FrameworkMounter {
    * @param fastify instance of the fastify app, or of a fastify context
    */
   mountOnFastify(fastify: any): this {
+    // MCP middleware at root
+    this.useCallbackOnFastify(fastify, this.getMcpMiddleware(), '/');
+
+    // Mount main forest routes
     const callback = this.getConnectCallback(false);
-    this.useCallbackOnFastify(fastify, callback);
+    this.useCallbackOnFastify(fastify, callback, this.completeMountPrefix);
 
     this.logger('Info', `Successfully mounted on Fastify`);
 
@@ -130,6 +151,8 @@ export default class FrameworkMounter {
       parentRouter.use(driverRouter.routes());
     });
 
+    // MCP routes - mounted at root level (native Koa)
+    koa.use(this.getMcpKoaMiddleware());
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
 
@@ -145,9 +168,14 @@ export default class FrameworkMounter {
     const callback = this.getConnectCallback(false);
 
     if (adapter.constructor.name === 'ExpressAdapter') {
+      // MCP middleware at root
+      nestJs.use(this.getMcpMiddleware());
+      // Mount main forest routes
       nestJs.use(this.completeMountPrefix, callback);
     } else {
-      this.useCallbackOnFastify(nestJs, callback);
+      // Fastify adapter - MCP middleware at root
+      this.useCallbackOnFastify(nestJs, this.getMcpMiddleware(), '/');
+      this.useCallbackOnFastify(nestJs, callback, this.completeMountPrefix);
     }
 
     this.logger('Info', `Successfully mounted on NestJS`);
@@ -155,29 +183,100 @@ export default class FrameworkMounter {
     return this;
   }
 
-  private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
+  private fastifyExpressRegistered: Promise<void> | null = null;
+  private pendingFastifyCallbacks: Array<{ callback: HttpCallback; prefix: string }> = [];
+
+  private useCallbackOnFastify(fastify: any, callback: HttpCallback, prefix: string): void {
     try {
       // 'fastify 2' or 'middie' or 'fastify-express'
-      fastify.use(this.completeMountPrefix, callback);
+      fastify.use(prefix, callback);
     } catch (e) {
       // 'fastify 3'
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
-        fastify
-          .register(import('@fastify/express'))
-          .then(() => {
-            fastify.use(this.completeMountPrefix, callback);
-          })
-          .catch(err => {
-            this.logger('Error', err.message);
+        // Queue the callback to be registered after @fastify/express is loaded
+        this.pendingFastifyCallbacks.push({ callback, prefix });
+
+        // Only register @fastify/express once
+        if (!this.fastifyExpressRegistered) {
+          this.fastifyExpressRegistered = new Promise<void>((resolve, reject) => {
+            fastify.register(import('@fastify/express')).after((err: Error | null) => {
+              if (err) {
+                this.logger('Error', err.message);
+                reject(err);
+
+                return;
+              }
+
+              // Register all pending callbacks
+              for (const pending of this.pendingFastifyCallbacks) {
+                fastify.use(pending.prefix, pending.callback);
+              }
+
+              this.pendingFastifyCallbacks = [];
+              resolve();
+            });
           });
+        }
       } else {
         throw e;
       }
     }
   }
 
+  /**
+   * Get an Express/Connect-style middleware that forwards MCP requests to the Koa router.
+   * Non-MCP routes are passed to the next middleware.
+   */
+  private getMcpMiddleware(): HttpCallback {
+    return (req, res, next) => {
+      const url = req.url || '/';
+
+      if (!isMcpRoute(url)) {
+        if (next) next();
+
+        return;
+      }
+
+      if (this.mcpRouter) {
+        // Create a minimal Koa app to handle the request
+        const app = new Koa();
+        app.use(this.mcpRouter.routes());
+        app.use(this.mcpRouter.allowedMethods());
+        app.callback()(req, res);
+      } else if (next) {
+        next();
+      }
+    };
+  }
+
+  /**
+   * Get a Koa middleware that handles MCP routes using the native Koa router.
+   */
+  private getMcpKoaMiddleware(): Koa.Middleware {
+    return async (ctx, next) => {
+      if (!isMcpRoute(ctx.url)) {
+        await next();
+
+        return;
+      }
+
+      if (this.mcpRouter) {
+        // Create a minimal Koa app to handle the request with the router
+        const app = new Koa();
+        app.use(this.mcpRouter.routes());
+        app.use(this.mcpRouter.allowedMethods());
+
+        // Use the app callback directly on the raw request/response
+        await app.callback()(ctx.req, ctx.res);
+        ctx.respond = false; // Tell Koa we've handled the response
+      } else {
+        await next();
+      }
+    };
+  }
+
   private getConnectCallback(nested: boolean): HttpCallback {
-    let handler = null;
+    let handler: ((req: any, res: any) => void) | null = null;
 
     this.onEachStart.push(async driverRouter => {
       let router = driverRouter;
@@ -186,7 +285,16 @@ export default class FrameworkMounter {
         router = new Router({ prefix: this.completeMountPrefix }).use(router.routes());
       }
 
-      handler = new Koa().use(router.routes()).callback();
+      // Include MCP router in nested mode (standalone server)
+      const app = new Koa();
+
+      if (nested && this.mcpRouter) {
+        app.use(this.mcpRouter.routes());
+        app.use(this.mcpRouter.allowedMethods());
+      }
+
+      app.use(router.routes());
+      handler = app.callback();
     });
 
     return (req, res) => {
