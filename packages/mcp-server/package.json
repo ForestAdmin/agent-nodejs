@@ -18,9 +18,15 @@
   "dependencies": {
     "@forestadmin-experimental/agent-nodejs-testing": "^0.36.0",
     "@forestadmin/forestadmin-client": "^1.36.14",
+    "@hono/node-server": "^1.19.7",
+    "@koa/bodyparser": "^6.0.0",
+    "@koa/cors": "^5.0.0",
+    "@koa/router": "^15.1.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "koa": "^2.15.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "hono": "^4.10.8",
     "jsonapi-serializer": "^3.6.9",
     "jsonwebtoken": "^9.0.2",
     "zod": "^4.1.13"
