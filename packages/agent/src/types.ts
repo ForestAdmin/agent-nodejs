@@ -6,6 +6,19 @@ import { IncomingMessage, ServerResponse } from 'http';
 
 export type { AiConfiguration, AiProvider };
 
+/**
+ * Options for the MCP server.
+ */
+export interface McpOptions {
+  /**
+   * Optional override for the base URL where the agent is publicly accessible.
+   * If not provided, it will be automatically fetched from Forest Admin API
+   * (the environment's api_endpoint configuration).
+   * Example: 'https://my-app.example.com' or 'http://localhost:3000'
+   */
+  baseUrl?: string;
+}
+
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
   authSecret: string;
@@ -51,7 +64,7 @@ export type AgentOptions = {
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
-export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
+export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
 export enum HttpCode {
   BadRequest = 400,
