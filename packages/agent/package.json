@@ -14,7 +14,7 @@
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@fastify/express": "^1.1.0",
-    "@forestadmin/ai-proxy": "0.1.0",
+    "@forestadmin/ai-proxy": "1.0.0",
     "@forestadmin/datasource-customizer": "1.67.1",
     "@forestadmin/datasource-toolkit": "1.50.0",
     "@forestadmin/forestadmin-client": "1.36.14",
