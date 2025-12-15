@@ -83,6 +83,11 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
     .mountAiMcpServer()
+    .addAI({
+      model: 'ministral-8b-2512',
+      provider: 'mistral',
+      apiKey: process.env.MISTRAL_API_KEY,
+    })
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
