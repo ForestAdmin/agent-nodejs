@@ -20,13 +20,7 @@ import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import CustomizationService from './services/model-customizations/customization';
-import {
-  AgentOptions,
-  AgentOptionsWithDefaults,
-  HttpCallback,
-  McpFactory,
-  McpFactoryOptions,
-} from './types';
+import { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -47,11 +41,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
 
-  /** MCP factory and options registered via useMcp() */
-  private mcpConfig: {
-    factory: McpFactory<McpFactoryOptions>;
-    options?: McpFactoryOptions;
-  } | null = null;
+  /** Whether MCP server should be mounted */
+  private mcpEnabled = false;
 
   /**
    * Create a new Agent Builder.
@@ -208,18 +199,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Enable MCP (Model Context Protocol) server support.
    * This allows AI assistants to interact with your Forest Admin data.
    *
-   * @param factory MCP factory function from @forestadmin/mcp-server
-   * @param options Optional configuration for the MCP server
-   * @example
-   * import { createMcpServer } from '@forestadmin/mcp-server';
+   * The MCP server will be automatically initialized using @forestadmin/mcp-server.
+   * Make sure to install it: npm install @forestadmin/mcp-server
    *
-   * agent.useMcp(createMcpServer, { baseUrl: 'https://my-app.example.com' });
+   * @example
+   * agent.mountMcpServer();
    */
-  useMcp<TOptions extends McpFactoryOptions>(
-    factory: McpFactory<TOptions>,
-    options?: TOptions,
-  ): this {
-    this.mcpConfig = { factory, options };
+  mountMcpServer(): this {
+    this.mcpEnabled = true;
 
     return this;
   }
@@ -241,10 +228,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     await Promise.all(routes.map(route => route.bootstrap()));
 
-    // Initialize MCP server if configured via useMcp()
+    // Initialize MCP server if enabled via mountMcpServer()
     let mcpHttpCallback: HttpCallback | undefined;
 
-    if (this.mcpConfig) {
+    if (this.mcpEnabled) {
       mcpHttpCallback = await this.initializeMcpServer();
     }
 
@@ -265,30 +252,42 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
-   * Initialize the MCP server using the factory registered via useMcp().
+   * Initialize the MCP server by dynamically importing @forestadmin/mcp-server.
    */
   private async initializeMcpServer(): Promise<HttpCallback> {
-    if (!this.mcpConfig) {
-      throw new Error('MCP server not configured. Call useMcp() before start().');
-    }
-
     try {
-      const { factory, options } = this.mcpConfig;
+      // Dynamic import to avoid requiring @forestadmin/mcp-server as a direct dependency
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+      const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+        specifier: string,
+      ) => Promise<{
+        ForestMCPServer: new (options: unknown) => {
+          getHttpCallback: (baseUrl?: URL) => Promise<HttpCallback>;
+        };
+      }>;
 
-      const context = {
+      const { ForestMCPServer } = await dynamicImport('@forestadmin/mcp-server');
+
+      const mcpServer = new ForestMCPServer({
         forestServerUrl: this.options.forestServerUrl,
         envSecret: this.options.envSecret,
         authSecret: this.options.authSecret,
         logger: this.options.logger,
-      };
+      });
 
-      const httpCallback = await factory(context, options);
+      // baseUrl will be automatically fetched from Forest Admin API (environmentApiEndpoint)
+      const httpCallback = await mcpServer.getHttpCallback();
 
       this.options.logger('Info', 'MCP server initialized successfully');
 
       return httpCallback;
     } catch (error) {
-      this.options.logger('Error', `Failed to initialize MCP server: ${(error as Error).message}`);
+      const { message } = error as Error;
+      this.options.logger(
+        'Error',
+        `Failed to initialize MCP server: ${message}. ` +
+          'Make sure @forestadmin/mcp-server is installed: npm install @forestadmin/mcp-server',
+      );
       throw error;
     }
   }

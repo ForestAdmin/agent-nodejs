@@ -331,7 +331,7 @@ describe('Agent', () => {
   });
 
   describe('MCP server', () => {
-    test('should not initialize MCP server when useMcp() is not called', async () => {
+    test('should not initialize MCP server when mountMcpServer() is not called', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
 
@@ -342,53 +342,29 @@ describe('Agent', () => {
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
     });
 
-    test('should call MCP factory when useMcp() is configured', async () => {
-      const mockHttpCallback = jest.fn();
-      const mockMcpFactory = jest.fn().mockResolvedValue(mockHttpCallback);
-
+    test('mountMcpServer() should return this for chaining', () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
 
-      agent.useMcp(mockMcpFactory, { baseUrl: 'https://example.com' });
-      await agent.start();
+      const result = agent.mountMcpServer();
 
-      // Factory should have been called with context and options
-      expect(mockMcpFactory).toHaveBeenCalledWith(
-        {
-          forestServerUrl: options.forestServerUrl,
-          envSecret: options.envSecret,
-          authSecret: options.authSecret,
-          logger: options.logger,
-        },
-        { baseUrl: 'https://example.com' },
-      );
+      expect(result).toBe(agent);
     });
 
-    test('should log error and rethrow when MCP factory fails', async () => {
+    test('should log error when MCP module is not installed', async () => {
       const mockLogger = jest.fn();
-      const mockMcpFactory = jest.fn().mockRejectedValue(new Error('Factory error'));
-
       const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
       const agent = new Agent(options);
 
-      agent.useMcp(mockMcpFactory);
+      agent.mountMcpServer();
 
-      await expect(agent.start()).rejects.toThrow('Factory error');
+      // The dynamic import will fail since @forestadmin/mcp-server is not installed in test env
+      await expect(agent.start()).rejects.toThrow();
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Error',
-        'Failed to initialize MCP server: Factory error',
+        expect.stringContaining('Failed to initialize MCP server'),
       );
-    });
-
-    test('useMcp() should return this for chaining', () => {
-      const options = factories.forestAdminHttpDriverOptions.build();
-      const agent = new Agent(options);
-      const mockFactory = jest.fn();
-
-      const result = agent.useMcp(mockFactory);
-
-      expect(result).toBe(agent);
     });
   });
 });

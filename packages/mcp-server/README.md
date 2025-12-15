@@ -14,9 +14,26 @@ npm install @forestadmin/mcp-server
 
 ## Usage
 
-### Running the Server
+### With Forest Admin Agent
 
-You can start the server using the CLI:
+The easiest way to use this package is with the Forest Admin agent:
+
+```typescript
+import { createAgent } from '@forestadmin/agent';
+
+const agent = createAgent(options)
+  .addDataSource(myDataSource)
+  .mountMcpServer();
+
+agent.mountOnExpress(app);
+agent.start();
+```
+
+The MCP server will be automatically initialized and mounted on your application.
+
+### Standalone Server
+
+You can also run the MCP server standalone using the CLI:
 
 ```bash
 npx forest-mcp-server

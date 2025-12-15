@@ -2,50 +2,6 @@ import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolki
 import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import { IncomingMessage, ServerResponse } from 'http';
 
-/**
- * Context passed to MCP factory functions.
- * Contains the agent configuration needed to initialize the MCP server.
- */
-export interface McpFactoryContext {
-  /** Forest Admin server URL */
-  forestServerUrl: string;
-  /** Environment secret */
-  envSecret: string;
-  /** Authentication secret */
-  authSecret: string;
-  /** Logger function */
-  logger: Logger;
-}
-
-/**
- * Options that can be passed to MCP factory functions.
- */
-export interface McpFactoryOptions {
-  /**
-   * Optional override for the base URL where the agent is publicly accessible.
-   * If not provided, it will be automatically fetched from Forest Admin API
-   * (the environment's api_endpoint configuration).
-   * Example: 'https://my-app.example.com' or 'http://localhost:3000'
-   */
-  baseUrl?: string;
-}
-
-/**
- * Factory function type for creating MCP HTTP callbacks.
- * This is the type that MCP server implementations should export.
- *
- * @example
- * // In @forestadmin/mcp-server
- * export const createMcpServer: McpFactory = async (context, options) => {
- *   const server = new ForestAdminMCPServer(context);
- *   return server.getHttpCallback(options?.baseUrl ? new URL('/', options.baseUrl) : undefined);
- * };
- */
-export type McpFactory<TOptions extends McpFactoryOptions = McpFactoryOptions> = (
-  context: McpFactoryContext,
-  options?: TOptions,
-) => Promise<HttpCallback>;
-
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
   authSecret: string;
