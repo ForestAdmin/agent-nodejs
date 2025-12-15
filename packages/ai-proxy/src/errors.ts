@@ -39,6 +39,13 @@ export class OpenAIUnprocessableError extends AIUnprocessableError {
   }
 }
 
+export class MistralUnprocessableError extends AIUnprocessableError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MistralError';
+  }
+}
+
 export class AIToolUnprocessableError extends AIUnprocessableError {
   constructor(message: string) {
     super(message);
