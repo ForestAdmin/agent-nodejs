@@ -7,6 +7,7 @@ import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
+import { mockMcpGetHttpCallback } from './setup';
 import Agent from '../src/agent';
 
 // Mock routes
@@ -331,6 +332,10 @@ describe('Agent', () => {
   });
 
   describe('MCP server', () => {
+    beforeEach(() => {
+      mockMcpGetHttpCallback.mockResolvedValue(jest.fn());
+    });
+
     test('should not initialize MCP server when mountMcpServer() is not called', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
@@ -340,6 +345,8 @@ describe('Agent', () => {
 
       // The agent started successfully
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+      // MCP server should not be initialized
+      expect(mockMcpGetHttpCallback).not.toHaveBeenCalled();
     });
 
     test('mountMcpServer() should return this for chaining', () => {
@@ -351,15 +358,28 @@ describe('Agent', () => {
       expect(result).toBe(agent);
     });
 
-    test('should log error when MCP module is not installed', async () => {
+    test('should initialize MCP server when mountMcpServer() is called', async () => {
       const mockLogger = jest.fn();
       const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
       const agent = new Agent(options);
 
       agent.mountMcpServer();
+      await agent.start();
 
-      // The dynamic import will fail since @forestadmin/mcp-server is not installed in test env
-      await expect(agent.start()).rejects.toThrow();
+      expect(mockMcpGetHttpCallback).toHaveBeenCalled();
+      expect(mockLogger).toHaveBeenCalledWith('Info', 'MCP server initialized successfully');
+    });
+
+    test('should log error when MCP initialization fails', async () => {
+      const mockLogger = jest.fn();
+      const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
+      const agent = new Agent(options);
+
+      mockMcpGetHttpCallback.mockRejectedValue(new Error('MCP init failed'));
+
+      agent.mountMcpServer();
+
+      await expect(agent.start()).rejects.toThrow('MCP init failed');
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Error',

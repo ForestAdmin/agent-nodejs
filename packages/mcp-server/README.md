@@ -6,17 +6,11 @@ Model Context Protocol (MCP) server for Forest Admin with OAuth authentication s
 
 This MCP server provides HTTP REST API access to Forest Admin operations, enabling AI assistants and other MCP clients to interact with your Forest Admin data through a standardized protocol.
 
-## Installation
-
-```bash
-npm install @forestadmin/mcp-server
-```
-
 ## Usage
 
 ### With Forest Admin Agent
 
-The easiest way to use this package is with the Forest Admin agent:
+The MCP server is included with the Forest Admin agent. Simply call `mountMcpServer()`:
 
 ```typescript
 import { createAgent } from '@forestadmin/agent';
