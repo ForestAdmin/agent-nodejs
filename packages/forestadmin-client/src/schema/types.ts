@@ -6,6 +6,7 @@ export type ForestSchema = {
     liana: string;
     liana_version: string;
     liana_features: Record<string, string> | null;
+    ai_llms?: Array<{ provider: string }> | null;
     stack: {
       engine: string;
       engine_version: string;
