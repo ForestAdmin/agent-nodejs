@@ -80,7 +80,7 @@ export default function makeAgent() {
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
     .addAI({
-      model: 'ministral-8b-2512',
+      model: 'codestral-latest',
       provider: 'mistral',
       apiKey: process.env.MISTRAL_API_KEY,
     })
