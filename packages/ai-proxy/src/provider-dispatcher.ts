@@ -9,7 +9,8 @@ import { AINotConfiguredError, OpenAIUnprocessableError } from './errors';
 
 export type OpenAiConfiguration = ClientOptions & {
   provider: 'openai';
-  model: ChatCompletionCreateParamsNonStreaming['model'];
+  // Allow string to support custom models or new model versions without updating the package
+  model: ChatCompletionCreateParamsNonStreaming['model'] | string;
 };
 
 export type AiConfiguration = OpenAiConfiguration;
