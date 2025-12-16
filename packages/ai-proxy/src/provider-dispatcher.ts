@@ -2,8 +2,7 @@ import type { RemoteTools } from './remote-tools';
 import type { ClientOptions } from 'openai';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
-import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
-import { ChatMistralAI } from '@langchain/mistralai';
+import { Mistral } from '@mistralai/mistralai';
 import OpenAI from 'openai';
 
 import {
@@ -14,7 +13,6 @@ import {
 
 export type OpenAiConfiguration = ClientOptions & {
   provider: 'openai';
-  // Allow string to support custom models or new model versions without updating the package
   model: ChatCompletionCreateParamsNonStreaming['model'] | string;
 };
 
@@ -35,33 +33,26 @@ export type OpenAIBody = Pick<
 
 export type DispatchBody = OpenAIBody;
 
-type OpenAiClient = { client: OpenAI; model: ChatCompletionCreateParamsNonStreaming['model'] };
-type MistralClient = { client: ChatMistralAI; model: string };
-
 export class ProviderDispatcher {
-  private readonly openAiClient: OpenAiClient | null = null;
+  private readonly openAiClient: OpenAI | null = null;
 
-  private readonly mistralClient: MistralClient | null = null;
+  private readonly mistralClient: Mistral | null = null;
+
+  private readonly model: string;
 
   private readonly remoteTools: RemoteTools;
 
   constructor(configuration: AiConfiguration | null, remoteTools: RemoteTools) {
     this.remoteTools = remoteTools;
+    this.model = configuration?.model ?? '';
 
     if (configuration?.provider === 'openai' && configuration.apiKey) {
       const { provider, model, ...clientOptions } = configuration;
-      this.openAiClient = {
-        client: new OpenAI(clientOptions),
-        model,
-      };
+      this.openAiClient = new OpenAI(clientOptions);
     }
 
     if (configuration?.provider === 'mistral' && configuration.apiKey) {
-      const { model, apiKey } = configuration;
-      this.mistralClient = {
-        client: new ChatMistralAI({ apiKey, model }),
-        model,
-      };
+      this.mistralClient = new Mistral({ apiKey: configuration.apiKey });
     }
   }
 
@@ -80,15 +71,13 @@ export class ProviderDispatcher {
   private async dispatchOpenAI(body: DispatchBody): Promise<unknown> {
     const { tools, messages, tool_choice: toolChoice } = body;
 
-    const options = {
-      model: this.openAiClient.model,
-      tools: this.enhanceOpenAIRemoteTools(tools),
-      messages,
-      tool_choice: toolChoice,
-    } as ChatCompletionCreateParamsNonStreaming;
-
     try {
-      return await this.openAiClient.client.chat.completions.create(options);
+      return await this.openAiClient!.chat.completions.create({
+        model: this.model,
+        tools: this.enhanceRemoteTools(tools),
+        messages,
+        tool_choice: toolChoice,
+      } as ChatCompletionCreateParamsNonStreaming);
     } catch (error) {
       throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${(error as Error).message}`);
     }
@@ -98,21 +87,16 @@ export class ProviderDispatcher {
     const { tools, messages, tool_choice: toolChoice } = body;
 
     try {
-      const mistralTools = this.enhanceMistralRemoteTools(tools);
+      const response = await this.mistralClient!.chat.complete({
+        model: this.model,
+        tools: this.enhanceRemoteTools(tools) as Parameters<
+          typeof this.mistralClient.chat.complete
+        >[0]['tools'],
+        messages: messages as Parameters<typeof this.mistralClient.chat.complete>[0]['messages'],
+        toolChoice: toolChoice as 'auto' | 'none' | 'required',
+      });
 
-      let { client } = this.mistralClient as {
-        client: { invoke: (messages: unknown) => Promise<unknown> };
-      };
-
-      if (mistralTools && mistralTools.length > 0) {
-        client = this.mistralClient.client.bindTools(mistralTools, {
-          tool_choice: toolChoice as 'auto' | 'any' | 'none',
-        });
-      }
-
-      const response = await client.invoke(messages);
-
-      return this.serializeAIMessage(response);
+      return this.convertMistralToOpenAI(response);
     } catch (error) {
       throw new MistralUnprocessableError(
         `Error while calling Mistral: ${(error as Error).message}`,
@@ -120,86 +104,79 @@ export class ProviderDispatcher {
     }
   }
 
-  private serializeAIMessage(response: unknown): unknown {
-    const aiMessage = response as {
-      content: string;
-      tool_calls?: Array<{
-        id: string;
-        name: string;
-        args: Record<string, unknown>;
-      }>;
-      response_metadata?: {
-        tokenUsage?: {
-          completionTokens: number;
-          promptTokens: number;
-          totalTokens: number;
+  private convertMistralToOpenAI(response: unknown): unknown {
+    const mistralResponse = response as {
+      id?: string;
+      model?: string;
+      choices?: Array<{
+        index?: number;
+        message?: {
+          role?: string;
+          content?: string | null;
+          toolCalls?: Array<{
+            id?: string;
+            function?: { name?: string; arguments?: string };
+          }>;
         };
+        finishReason?: string;
+      }>;
+      usage?: {
+        promptTokens?: number;
+        completionTokens?: number;
+        totalTokens?: number;
       };
     };
 
-    const toolCalls = aiMessage.tool_calls?.map(tc => ({
-      id: tc.id,
-      type: 'function' as const,
-      function: {
-        name: tc.name,
-        arguments: JSON.stringify(tc.args),
-      },
-    }));
-
     return {
-      id: `chatcmpl-${Date.now()}`,
+      id: mistralResponse.id ?? `chatcmpl-${Date.now()}`,
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
-      model: this.mistralClient?.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: aiMessage.content || null,
-            ...(toolCalls && toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
-          },
-          finish_reason: toolCalls && toolCalls.length > 0 ? 'tool_calls' : 'stop',
+      model: mistralResponse.model ?? this.model,
+      choices: (mistralResponse.choices ?? []).map(choice => ({
+        index: choice.index ?? 0,
+        message: {
+          role: choice.message?.role ?? 'assistant',
+          content: choice.message?.content ?? null,
+          ...(choice.message?.toolCalls && choice.message.toolCalls.length > 0
+            ? {
+                tool_calls: choice.message.toolCalls.map(tc => ({
+                  id: tc.id,
+                  type: 'function',
+                  function: {
+                    name: tc.function?.name,
+                    arguments: tc.function?.arguments,
+                  },
+                })),
+              }
+            : {}),
         },
-      ],
-      usage: aiMessage.response_metadata?.tokenUsage
-        ? {
-            prompt_tokens: aiMessage.response_metadata.tokenUsage.promptTokens,
-            completion_tokens: aiMessage.response_metadata.tokenUsage.completionTokens,
-            total_tokens: aiMessage.response_metadata.tokenUsage.totalTokens,
-          }
-        : { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+        finish_reason: this.convertFinishReason(choice.finishReason),
+      })),
+      usage: {
+        prompt_tokens: mistralResponse.usage?.promptTokens ?? 0,
+        completion_tokens: mistralResponse.usage?.completionTokens ?? 0,
+        total_tokens: mistralResponse.usage?.totalTokens ?? 0,
+      },
     };
   }
 
-  private enhanceOpenAIRemoteTools(tools?: ChatCompletionCreateParamsNonStreaming['tools']) {
-    if (!tools || !Array.isArray(tools)) return tools;
+  private convertFinishReason(reason?: string): string {
+    if (reason === 'tool_calls') return 'tool_calls';
+    if (reason === 'stop') return 'stop';
+    if (reason === 'length') return 'length';
 
-    const remoteToolFunctions = this.remoteTools.tools.map(extendedTools =>
-      convertToOpenAIFunction(extendedTools.base),
-    );
-
-    return tools.map(tool => {
-      const remoteFunction = remoteToolFunctions.find(
-        functionDefinition => functionDefinition.name === tool.function.name,
-      );
-      if (remoteFunction) return { ...tool, function: remoteFunction };
-
-      return tool;
-    });
+    return 'stop';
   }
 
-  private enhanceMistralRemoteTools(tools?: ChatCompletionCreateParamsNonStreaming['tools']) {
+  private enhanceRemoteTools(tools?: ChatCompletionCreateParamsNonStreaming['tools']) {
     if (!tools || !Array.isArray(tools)) return tools;
 
     return tools.map(tool => {
-      const remoteTool = this.remoteTools.tools.find(
-        extendedTool => extendedTool.base.name === tool.function.name,
-      );
+      const remoteTool = this.remoteTools.tools.find(rt => rt.base.name === tool.function.name);
 
       if (remoteTool) {
         return {
-          ...tool,
+          type: 'function' as const,
           function: {
             name: remoteTool.base.name,
             description: remoteTool.base.description,
