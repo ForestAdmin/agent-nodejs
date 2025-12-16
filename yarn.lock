@@ -1819,31 +1819,6 @@
     superagent "^10.2.3"
     uuid "11.0.2"
 
-"@forestadmin/agent@file:packages/agent":
-  version "1.66.2"
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@fastify/express" "^1.1.0"
-    "@forestadmin/ai-proxy" "1.0.0"
-    "@forestadmin/datasource-customizer" "1.67.1"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    "@forestadmin/forestadmin-client" "1.36.14"
-    "@koa/bodyparser" "^6.0.0"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^13.1.0"
-    "@paralleldrive/cuid2" "2.2.2"
-    "@types/koa__router" "^12.0.4"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.0"
-    koa "^3.0.1"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^10.2.3"
-    uuid "11.0.2"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
@@ -2510,6 +2485,14 @@
   optionalDependencies:
     extended-eventsource "^1.7.0"
 
+"@langchain/mistralai@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@langchain/mistralai/-/mistralai-1.0.2.tgz#df23ac591ac81b73f29d77bc5f9303c6d984da35"
+  integrity sha512-l6N3ox4JLWXHoN+H9XBKMF9VyvvknTifopVh+T0WJFPQkMAWDU8EgESyNHLtRHEirMt1EQgl4DqKaU9lqfdGCA==
+  dependencies:
+    "@mistralai/mistralai" "^1.3.1"
+    uuid "^10.0.0"
+
 "@langchain/openai@>=0.1.0 <0.7.0", "@langchain/openai@>=0.2.0 <0.7.0":
   version "0.6.16"
   resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-0.6.16.tgz#fed8bc90127d15255e0e4ee527c7eadb75b21e9c"
@@ -2518,6 +2501,15 @@
     js-tiktoken "^1.0.12"
     openai "5.12.2"
     zod "^3.25.32"
+
+"@langchain/openai@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-1.2.0.tgz#18ea4258192d81010492fb89d7816b877a77b3ef"
+  integrity sha512-r2g5Be3Sygw7VTJ89WVM/M94RzYToNTwXf8me1v+kgKxzdHbd/8XPYDFxpXEp3REyPgUrtJs+Oplba9pkTH5ug==
+  dependencies:
+    js-tiktoken "^1.0.12"
+    openai "^6.10.0"
+    zod "^3.25.76 || ^4"
 
 "@langchain/textsplitters@>=0.0.0 <0.2.0":
   version "0.1.0"
@@ -2630,7 +2622,7 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
-"@mistralai/mistralai@^1.3.0":
+"@mistralai/mistralai@^1.3.1":
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/@mistralai/mistralai/-/mistralai-1.10.0.tgz#6c489b5e8429ece5e5d3967c42c8f4559529a16f"
   integrity sha512-tdIgWs4Le8vpvPiUEWne6tK0qbVc+jMenujnvTqOjogrJUsCSQhus0tHTU1avDDh5//Rq2dFgP9mWRAdIEoBqg==
@@ -14320,6 +14312,11 @@ openai@5.12.2:
   version "5.12.2"
   resolved "https://registry.yarnpkg.com/openai/-/openai-5.12.2.tgz#512ab6b80eb8414837436e208f1b951442b97761"
   integrity sha512-xqzHHQch5Tws5PcKR2xsZGX9xtch+JQFz5zb14dGqlshmmDAFBFEWmeIpf7wVqWV+w7Emj7jRgkNJakyKE0tYQ==
+
+openai@^6.10.0:
+  version "6.13.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-6.13.0.tgz#db1ddaace8fda170d518df367298c2024b961c72"
+  integrity sha512-yHbMo+EpNGPG3sRrXvmo0LhUPFN4bAURJw3G17bE+ax1G4tcTFCa9ZjvCWh3cvni0aHY0uWlk2IxcsPH4NR9Ow==
 
 openapi-types@^12.1.3:
   version "12.1.3"

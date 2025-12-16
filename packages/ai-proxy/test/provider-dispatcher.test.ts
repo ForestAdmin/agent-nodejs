@@ -2,18 +2,20 @@ import type { DispatchBody } from '../src';
 
 import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
 
-const openaiCreateMock = jest.fn();
-const mistralCompleteMock = jest.fn();
+const invokeMock = jest.fn();
+const bindToolsMock = jest.fn().mockReturnValue({ invoke: invokeMock });
 
-jest.mock('openai', () => {
-  return jest.fn().mockImplementation(() => ({
-    chat: { completions: { create: openaiCreateMock } },
-  }));
-});
+jest.mock('@langchain/openai', () => ({
+  ChatOpenAI: jest.fn().mockImplementation(() => ({
+    invoke: invokeMock,
+    bindTools: bindToolsMock,
+  })),
+}));
 
-jest.mock('@mistralai/mistralai', () => ({
-  Mistral: jest.fn().mockImplementation(() => ({
-    chat: { complete: mistralCompleteMock },
+jest.mock('@langchain/mistralai', () => ({
+  ChatMistralAI: jest.fn().mockImplementation(() => ({
+    invoke: invokeMock,
+    bindTools: bindToolsMock,
   })),
 }));
 
@@ -22,19 +24,14 @@ describe('ProviderDispatcher', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    openaiCreateMock.mockResolvedValue({
-      id: 'chatcmpl-123',
-      object: 'chat.completion',
-      created: 1234567890,
-      model: 'gpt-4o',
-      choices: [{ index: 0, message: { role: 'assistant', content: 'OpenAI response' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
-    });
-    mistralCompleteMock.mockResolvedValue({
-      id: 'mistral-123',
-      model: 'mistral-large-latest',
-      choices: [{ index: 0, message: { role: 'assistant', content: 'Mistral response' }, finishReason: 'stop' }],
-      usage: { promptTokens: 5, completionTokens: 10, totalTokens: 15 },
+    invokeMock.mockResolvedValue({
+      content: 'AI response',
+      tool_calls: [],
+      usage_metadata: {
+        input_tokens: 10,
+        output_tokens: 20,
+        total_tokens: 30,
+      },
     });
   });
 
@@ -52,7 +49,7 @@ describe('ProviderDispatcher', () => {
 
   describe('openai', () => {
     describe('when openai is configured', () => {
-      it('should return the response from openai directly', async () => {
+      it('should return the response in OpenAI format', async () => {
         const dispatcher = new ProviderDispatcher(
           { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
           new RemoteTools(apiKeys),
@@ -61,30 +58,20 @@ describe('ProviderDispatcher', () => {
         const response = (await dispatcher.dispatch({
           tools: [],
           messages: [{ role: 'user', content: 'Hello' }],
-        } as unknown as DispatchBody)) as { choices: Array<{ message: { content: string } }> };
+        } as unknown as DispatchBody)) as {
+          choices: Array<{ message: { content: string } }>;
+          object: string;
+          model: string;
+        };
 
-        expect(response.choices[0].message.content).toBe('OpenAI response');
+        expect(response.choices[0].message.content).toBe('AI response');
+        expect(response.object).toBe('chat.completion');
+        expect(response.model).toBe('gpt-4o');
       });
 
-      it('should call openai with the configured model', async () => {
-        const dispatcher = new ProviderDispatcher(
-          { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
-          new RemoteTools(apiKeys),
-        );
-
-        await dispatcher.dispatch({
-          tools: [],
-          messages: [{ role: 'user', content: 'Hello' }],
-        } as unknown as DispatchBody);
-
-        expect(openaiCreateMock).toHaveBeenCalledWith(
-          expect.objectContaining({ model: 'gpt-4o' }),
-        );
-      });
-
-      describe('when the openai client throws an error', () => {
+      describe('when the client throws an error', () => {
         it('should throw an OpenAIUnprocessableError', async () => {
-          openaiCreateMock.mockRejectedValueOnce(new Error('OpenAI error'));
+          invokeMock.mockRejectedValueOnce(new Error('OpenAI error'));
 
           const dispatcher = new ProviderDispatcher(
             { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
@@ -104,7 +91,19 @@ describe('ProviderDispatcher', () => {
 
   describe('mistral', () => {
     describe('when mistral is configured', () => {
-      it('should return the response converted to OpenAI format', async () => {
+      it('should return the response in OpenAI format', async () => {
+        invokeMock.mockResolvedValueOnce({
+          content: 'Mistral response',
+          tool_calls: [],
+          response_metadata: {
+            tokenUsage: {
+              promptTokens: 5,
+              completionTokens: 10,
+              totalTokens: 15,
+            },
+          },
+        });
+
         const dispatcher = new ProviderDispatcher(
           { provider: 'mistral', apiKey: 'mistral-key', model: 'mistral-large-latest' },
           new RemoteTools(apiKeys),
@@ -130,25 +129,9 @@ describe('ProviderDispatcher', () => {
         });
       });
 
-      it('should call mistral with the configured model', async () => {
-        const dispatcher = new ProviderDispatcher(
-          { provider: 'mistral', apiKey: 'mistral-key', model: 'mistral-large-latest' },
-          new RemoteTools(apiKeys),
-        );
-
-        await dispatcher.dispatch({
-          tools: [],
-          messages: [{ role: 'user', content: 'Hello' }],
-        } as unknown as DispatchBody);
-
-        expect(mistralCompleteMock).toHaveBeenCalledWith(
-          expect.objectContaining({ model: 'mistral-large-latest' }),
-        );
-      });
-
-      describe('when the mistral client throws an error', () => {
+      describe('when the client throws an error', () => {
         it('should throw a MistralUnprocessableError', async () => {
-          mistralCompleteMock.mockRejectedValueOnce(new Error('Mistral error'));
+          invokeMock.mockRejectedValueOnce(new Error('Mistral error'));
 
           const dispatcher = new ProviderDispatcher(
             { provider: 'mistral', apiKey: 'mistral-key', model: 'mistral-large-latest' },
@@ -165,28 +148,18 @@ describe('ProviderDispatcher', () => {
       });
     });
 
-    describe('when mistral returns tool calls', () => {
+    describe('when returning tool calls', () => {
       it('should convert tool calls to OpenAI format', async () => {
-        mistralCompleteMock.mockResolvedValueOnce({
-          id: 'mistral-123',
-          model: 'mistral-large-latest',
-          choices: [
+        invokeMock.mockResolvedValueOnce({
+          content: '',
+          tool_calls: [
             {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: null,
-                toolCalls: [
-                  {
-                    id: 'call_123',
-                    function: { name: 'myTool', arguments: '{"param1":"value1"}' },
-                  },
-                ],
-              },
-              finishReason: 'tool_calls',
+              id: 'call_123',
+              name: 'myTool',
+              args: { param1: 'value1' },
             },
           ],
-          usage: { promptTokens: 5, completionTokens: 10, totalTokens: 15 },
+          usage_metadata: { input_tokens: 5, output_tokens: 10, total_tokens: 15 },
         });
 
         const dispatcher = new ProviderDispatcher(
@@ -216,7 +189,41 @@ describe('ProviderDispatcher', () => {
     });
   });
 
-  describe('remote tools enhancement', () => {
+  describe('tools', () => {
+    it('should not bind tools when tools array is empty', async () => {
+      const dispatcher = new ProviderDispatcher(
+        { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+        new RemoteTools(apiKeys),
+      );
+
+      await dispatcher.dispatch({
+        tools: [],
+        messages: [{ role: 'user', content: 'Hello' }],
+      } as unknown as DispatchBody);
+
+      expect(bindToolsMock).not.toHaveBeenCalled();
+    });
+
+    it('should bind tools when provided', async () => {
+      const dispatcher = new ProviderDispatcher(
+        { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+        new RemoteTools(apiKeys),
+      );
+
+      await dispatcher.dispatch({
+        tools: [
+          {
+            type: 'function',
+            function: { name: 'myTool', description: 'A tool', parameters: {} },
+          },
+        ],
+        messages: [{ role: 'user', content: 'Hello' }],
+        tool_choice: 'auto',
+      } as unknown as DispatchBody);
+
+      expect(bindToolsMock).toHaveBeenCalled();
+    });
+
     it('should enhance remote tools with full definition', async () => {
       const remoteTools = new RemoteTools(apiKeys);
 
@@ -235,19 +242,16 @@ describe('ProviderDispatcher', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       } as unknown as DispatchBody);
 
-      expect(openaiCreateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tools: [
-            {
-              type: 'function',
-              function: {
-                name: remoteTools.tools[0].base.name,
-                description: remoteTools.tools[0].base.description,
-                parameters: remoteTools.tools[0].base.schema,
-              },
-            },
-          ],
-        }),
+      expect(bindToolsMock).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            function: expect.objectContaining({
+              name: remoteTools.tools[0].base.name,
+              description: remoteTools.tools[0].base.description,
+            }),
+          }),
+        ]),
+        expect.anything(),
       );
     });
   });
