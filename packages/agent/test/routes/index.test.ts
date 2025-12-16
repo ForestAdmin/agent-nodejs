@@ -34,6 +34,13 @@ import Logger from '../../src/routes/system/logger';
 import { RouteType } from '../../src/types';
 import * as factories from '../__factories__';
 
+// Mock the ai-proxy module to avoid langchain module resolution issues in tests
+jest.mock('@forestadmin/ai-proxy', () => ({
+  Router: jest.fn().mockImplementation(() => ({
+    route: jest.fn(),
+  })),
+}));
+
 describe('Route index', () => {
   it('should declare all the routes', () => {
     expect(ROOT_ROUTES_CTOR).toEqual([
@@ -296,6 +303,31 @@ describe('Route index', () => {
         const lqRoute = routes.find(route => route instanceof DataSourceNativeQueryRoute);
 
         expect(lqRoute).toBeTruthy();
+      });
+    });
+
+    describe('with AI configuration', () => {
+      test('should instantiate AI proxy route when aiConfiguration is provided', async () => {
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'books' }),
+        );
+        const aiConfiguration = { provider: 'openai' as const, apiKey: 'test-key', model: 'gpt-4' };
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+          aiConfiguration,
+        );
+
+        // Should have one more route than without AI configuration
+        const routesWithoutAi = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+        );
+
+        expect(routes.length).toEqual(routesWithoutAi.length + 1);
       });
     });
   });

@@ -12,6 +12,8 @@
 
 // eslint-disable-next-line max-classes-per-file
 export class AIError extends Error {
+  cause?: unknown;
+
   constructor(message: string) {
     super(message);
     this.name = 'AIError';
@@ -32,10 +34,31 @@ export class AINotConfiguredError extends AIError {
   }
 }
 
+export class AIUnsupportedProviderError extends AIError {
+  constructor(provider: string) {
+    super(`Unsupported AI provider: "${provider}". Supported providers are: openai, mistral.`);
+    this.name = 'AIUnsupportedProviderError';
+  }
+}
+
+export class AIMissingApiKeyError extends AIError {
+  constructor(provider: string) {
+    super(`API key is required for ${provider} provider.`);
+    this.name = 'AIMissingApiKeyError';
+  }
+}
+
 export class OpenAIUnprocessableError extends AIUnprocessableError {
   constructor(message: string) {
     super(message);
     this.name = 'OpenAIError';
+  }
+}
+
+export class MistralUnprocessableError extends AIUnprocessableError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MistralError';
   }
 }
 

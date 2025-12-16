@@ -127,6 +127,7 @@ describe('Agent', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: null,
+          ai_llms: null,
           stack: expect.anything(),
         },
       });
@@ -155,6 +156,7 @@ describe('Agent', () => {
           liana_features: {
             'webhook-custom-actions': expect.stringMatching(/\d+\.\d+\.\d+.*/),
           },
+          ai_llms: null,
           stack: expect.anything(),
         },
       });
@@ -327,6 +329,75 @@ describe('Agent', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('addAI', () => {
+    const options = factories.forestAdminHttpDriverOptions.build({
+      isProduction: false,
+      forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+    });
+
+    test('should store the AI configuration', () => {
+      const agent = new Agent(options);
+      const result = agent.addAI({
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4',
+      });
+
+      expect(result).toBe(agent);
+    });
+
+    test('should throw an error when called more than once', () => {
+      const agent = new Agent(options);
+
+      agent.addAI({
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4',
+      });
+
+      expect(() =>
+        agent.addAI({
+          provider: 'openai',
+          apiKey: 'another-key',
+          model: 'gpt-4-turbo',
+        }),
+      ).toThrow('addAI() can only be called once');
+    });
+
+    test('should include ai_llms in schema meta when AI is configured', async () => {
+      const agent = new Agent(options);
+      agent.addAI({
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4',
+      });
+
+      await agent.start();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meta: expect.objectContaining({
+            ai_llms: [{ provider: 'openai' }],
+          }),
+        }),
+      );
+    });
+
+    test('should not include ai_llms in schema meta when AI is not configured', async () => {
+      const agent = new Agent(options);
+
+      await agent.start();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meta: expect.objectContaining({
+            ai_llms: null,
+          }),
+        }),
+      );
     });
   });
 });

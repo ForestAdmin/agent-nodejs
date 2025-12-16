@@ -20,7 +20,7 @@ import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices, { ForestAdminHttpDriverServices } from './services';
 import CustomizationService from './services/model-customizations/customization';
-import { AgentOptions, AgentOptionsWithDefaults } from './types';
+import { AgentOptions, AgentOptionsWithDefaults, AiConfiguration } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -40,6 +40,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
+  protected aiConfiguration: AiConfiguration | null = null;
 
   /**
    * Create a new Agent Builder.
@@ -190,8 +191,53 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  /**
+   * Enable AI features for your Forest Admin panel.
+   *
+   * All AI requests from Forest Admin are forwarded to your agent and processed locally.
+   * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
+   *
+   * Supported providers:
+   * - `openai`: OpenAI models (gpt-4, gpt-4o, gpt-3.5-turbo, etc.)
+   * - `mistral`: Mistral AI models (mistral-large-latest, codestral-latest, etc.)
+   *
+   * This method can only be called once per agent.
+   *
+   * @param configuration - The AI provider configuration
+   * @param configuration.provider - The AI provider to use ('openai' or 'mistral')
+   * @param configuration.apiKey - Your API key for the chosen provider
+   * @param configuration.model - The model to use (e.g., 'gpt-4o', 'mistral-large-latest')
+   * @returns The agent instance for chaining
+   * @throws Error if addAI() has already been called
+   *
+   * @example
+   * // Using OpenAI
+   * agent.addAI({
+   *   provider: 'openai',
+   *   apiKey: process.env.OPENAI_API_KEY,
+   *   model: 'gpt-4o',
+   * });
+   *
+   * @example
+   * // Using Mistral
+   * agent.addAI({
+   *   provider: 'mistral',
+   *   apiKey: process.env.MISTRAL_API_KEY,
+   *   model: 'mistral-large-latest',
+   * });
+   */
+  addAI(configuration: AiConfiguration): this {
+    if (this.aiConfiguration) {
+      throw new Error('addAI() can only be called once');
+    }
+
+    this.aiConfiguration = configuration;
+
+    return this;
+  }
+
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services);
+    return makeRoutes(dataSource, this.options, services, this.aiConfiguration);
   }
 
   /**
@@ -261,7 +307,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Either load the schema from the file system or build it
     let schema: Pick<ForestSchema, 'collections'>;
 
-    const { meta } = SchemaGenerator.buildMetadata(this.customizationService.buildFeatures());
+    // Get the AI provider name if configured (e.g., 'openai')
+    const aiProvider = this.aiConfiguration?.provider ?? null;
+    const { meta } = SchemaGenerator.buildMetadata(
+      this.customizationService.buildFeatures(),
+      aiProvider,
+    );
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {
