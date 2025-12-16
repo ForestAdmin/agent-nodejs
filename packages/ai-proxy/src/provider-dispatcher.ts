@@ -138,11 +138,15 @@ export class ProviderDispatcher {
         : this.client;
 
     // Debug logging for Mistral tool issues
-    if (this.provider === 'mistral' && enhancedTools && enhancedTools.length > 0) {
+    if (this.provider === 'mistral') {
       // eslint-disable-next-line no-console
       console.log('[AI-Proxy] Mistral tools:', JSON.stringify(enhancedTools, null, 2));
       // eslint-disable-next-line no-console
       console.log('[AI-Proxy] Mistral tool_choice:', normalizedToolChoice);
+      // eslint-disable-next-line no-console
+      console.log('[AI-Proxy] Mistral messages:', JSON.stringify(messages, null, 2).slice(0, 1000));
+      // eslint-disable-next-line no-console
+      console.log('[AI-Proxy] Calling Mistral API...');
     }
 
     try {
@@ -153,11 +157,16 @@ export class ProviderDispatcher {
       // Debug logging for Mistral responses
       if (this.provider === 'mistral') {
         // eslint-disable-next-line no-console
-        console.log('[AI-Proxy] Mistral response:', JSON.stringify(response, null, 2).slice(0, 2000));
+        console.log('[AI-Proxy] Mistral response received:', JSON.stringify(response, null, 2).slice(0, 2000));
       }
 
       return this.convertAIMessageToOpenAI(response);
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[AI-Proxy] Error calling provider:', this.provider);
+      // eslint-disable-next-line no-console
+      console.error('[AI-Proxy] Error details:', error);
+
       const providerName = this.provider === 'mistral' ? 'Mistral' : 'OpenAI';
       const errorMessage = error instanceof Error ? error.message : String(error);
       const ErrorClass =
