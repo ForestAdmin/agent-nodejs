@@ -16,7 +16,6 @@
     "@forestadmin/datasource-toolkit": "1.50.0",
     "@forestadmin/forestadmin-client": "1.36.14",
     "jsonapi-serializer": "^3.6.9",
-    "jsonwebtoken": "^9.0.0",
     "superagent": "^10.2.3"
   },
   "peerDependencies": {
@@ -40,7 +39,6 @@
   },
   "devDependencies": {
     "@forestadmin/agent": "1.66.2",
-    "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9"
   }
 }

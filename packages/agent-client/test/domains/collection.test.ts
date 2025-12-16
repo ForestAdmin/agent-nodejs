@@ -6,7 +6,7 @@ jest.mock('../../src/action-fields/field-form-states');
 
 describe('Collection', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
-  let collection: Collection;
+  let collection: Collection<unknown>;
   const actionEndpoints = {
     users: {
       sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },

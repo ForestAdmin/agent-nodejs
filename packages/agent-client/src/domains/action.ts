@@ -1,7 +1,5 @@
 import type HttpRequester from '../http-requester';
 
-import jsonwebtoken from 'jsonwebtoken';
-
 import ActionField from '../action-fields/action-field';
 import ActionFieldCheckbox from '../action-fields/action-field-checkbox';
 import ActionFieldCheckboxGroup from '../action-fields/action-field-checkbox-group';
@@ -29,7 +27,7 @@ export type ActionEndpointsByCollection = {
   };
 };
 export default class Action<TypingsSchema> {
-  private readonly collectionName: keyof TypingsSchema;
+  private readonly collectionName: string;
 
   private readonly httpRequester: HttpRequester;
   protected readonly fieldsFormStates: FieldFormStates<TypingsSchema>;
@@ -37,7 +35,7 @@ export default class Action<TypingsSchema> {
   private actionPath: string;
 
   constructor(
-    collectionName: keyof TypingsSchema,
+    collectionName: string,
     httpRequester: HttpRequester,
     actionPath: string,
     fieldsFormStates: FieldFormStates<TypingsSchema>,

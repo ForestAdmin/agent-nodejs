@@ -11,15 +11,15 @@ import HttpRequester from '../http-requester';
 import QuerySerializer from '../query-serializer';
 
 export default class Collection<TypingsSchema> extends CollectionChart {
-  protected readonly name: keyof TypingsSchema;
+  protected readonly name: string;
   protected readonly actionEndpoints?: ActionEndpointsByCollection;
 
   constructor(
-    name: keyof TypingsSchema,
+    name: string,
     httpRequester: HttpRequester,
     actionEndpoints: ActionEndpointsByCollection,
   ) {
-    super(name as string, httpRequester);
+    super(name, httpRequester);
 
     this.name = name;
     this.actionEndpoints = actionEndpoints;
@@ -73,17 +73,17 @@ export default class Collection<TypingsSchema> extends CollectionChart {
   async list<Data = any>(options?: SelectOptions): Promise<Data[]> {
     return this.httpRequester.query<Data[]>({
       method: 'get',
-      path: `/forest/${this.name as string}`,
-      query: QuerySerializer.serialize(options, this.name as string),
+      path: `/forest/${this.name}`,
+      query: QuerySerializer.serialize(options, this.name),
     });
   }
 
   async exportCsv(stream: WriteStream, options?: ExportOptions): Promise<void> {
     await this.httpRequester.stream({
-      path: `/forest/${this.name as string}.csv`,
+      path: `/forest/${this.name}.csv`,
       contentType: 'text/csv',
       query: {
-        ...QuerySerializer.serialize(options, this.name as string),
+        ...QuerySerializer.serialize(options, this.name),
         ...{ header: JSON.stringify(options?.projection) },
       },
       stream,
@@ -95,8 +95,8 @@ export default class Collection<TypingsSchema> extends CollectionChart {
       (
         await this.httpRequester.query<{ count: number }>({
           method: 'get',
-          path: `/forest/${this.name as string}/count`,
-          query: QuerySerializer.serialize(options, this.name as string),
+          path: `/forest/${this.name}/count`,
+          query: QuerySerializer.serialize(options, this.name),
         })
       ).count,
     );
@@ -113,7 +113,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
 
     return this.httpRequester.query<Data>({
       method: 'delete',
-      path: `/forest/${this.name as string}`,
+      path: `/forest/${this.name}`,
       body: requestBody,
     });
   }
@@ -123,7 +123,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
 
     return this.httpRequester.query<Data>({
       method: 'post',
-      path: `/forest/${this.name as string}`,
+      path: `/forest/${this.name}`,
       body: requestBody,
     });
   }
@@ -136,27 +136,27 @@ export default class Collection<TypingsSchema> extends CollectionChart {
 
     return this.httpRequester.query<Data>({
       method: 'put',
-      path: `/forest/${this.name as string}/${id.toString()}`,
+      path: `/forest/${this.name}/${id.toString()}`,
       body: requestBody,
     });
   }
 
   private getActionPath(
     actionEndpoints: ActionEndpointsByCollection,
-    collectionName: keyof TypingsSchema,
+    collectionName: string,
     actionName: string,
   ): string {
-    const collection = actionEndpoints[collectionName as string];
-    if (!collection) throw new Error(`Collection ${collectionName as string} not found in schema`);
+    const collection = actionEndpoints[collectionName];
+    if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 
     const action = collection[actionName];
 
     if (!action) {
-      throw new Error(`Action ${actionName} not found in collection ${collectionName as string}`);
+      throw new Error(`Action ${actionName} not found in collection ${collectionName}`);
     }
 
     if (!action.endpoint) {
-      throw new Error(`Action ${actionName} not found in collection ${collectionName as string}`);
+      throw new Error(`Action ${actionName} not found in collection ${collectionName}`);
     }
 
     return action.endpoint;
