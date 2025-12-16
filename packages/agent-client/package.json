@@ -1,6 +1,6 @@
 {
-  "name": "@forestadmin/forestadmin-client",
-  "version": "1.36.14",
+  "name": "@forestadmin/agent-client",
+  "version": "0.1.0",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -9,15 +9,23 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
-    "directory": "packages/forestadmin-client"
+    "directory": "packages/agent-client"
   },
   "dependencies": {
-    "eventsource": "2.0.2",
-    "json-api-serializer": "^2.6.6",
+    "@forestadmin/datasource-customizer": "1.67.1",
+    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/forestadmin-client": "1.36.14",
+    "jsonapi-serializer": "^3.6.9",
     "jsonwebtoken": "^9.0.0",
-    "object-hash": "^3.0.0",
-    "openid-client": "^5.7.1",
     "superagent": "^10.2.3"
+  },
+  "peerDependencies": {
+    "@forestadmin/agent": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@forestadmin/agent": {
+      "optional": true
+    }
   },
   "files": [
     "dist/**/*.js",
@@ -31,9 +39,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/ai-proxy": "^1.0.0",
-    "@forestadmin/datasource-toolkit": "1.50.0",
-    "@types/json-api-serializer": "^2.6.3",
+    "@forestadmin/agent": "1.66.2",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9"
   }
