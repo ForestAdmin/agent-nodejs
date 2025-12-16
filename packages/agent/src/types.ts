@@ -8,6 +8,7 @@ export type AgentOptions = {
   envSecret: string;
   customizeErrorMessage?: ((error: Error) => string | null) | null;
   forestServerUrl?: string;
+  forestAppUrl?: string;
   logger?: Logger;
   loggerLevel?: LoggerLevel;
   prefix?: string;

@@ -24,6 +24,7 @@ import { Logger } from './server';
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
+  forestAppUrl: string;
   envSecret: string;
   authSecret: string;
   logger: Logger;
@@ -34,6 +35,7 @@ export interface ForestOAuthProviderOptions {
  */
 export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
+  private forestAppUrl: string;
   private envSecret: string;
   private authSecret: string;
   private forestClient: ForestAdminClient;
@@ -41,8 +43,15 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private environmentApiEndpoint?: string;
   private logger: Logger;
 
-  constructor({ forestServerUrl, envSecret, authSecret, logger }: ForestOAuthProviderOptions) {
+  constructor({
+    forestServerUrl,
+    forestAppUrl,
+    envSecret,
+    authSecret,
+    logger,
+  }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
+    this.forestAppUrl = forestAppUrl;
     this.envSecret = envSecret;
     this.authSecret = authSecret;
     this.logger = logger;
@@ -143,10 +152,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       }
 
       // Redirect to Forest Admin agent for actual authentication
-      const agentAuthUrl = new URL(
-        '/oauth/authorize',
-        process.env.FOREST_FRONTEND_HOSTNAME || 'https://app.forestadmin.com',
-      );
+      const agentAuthUrl = new URL('/oauth/authorize', this.forestAppUrl);
 
       agentAuthUrl.searchParams.set('redirect_uri', params.redirectUri);
       agentAuthUrl.searchParams.set('code_challenge', params.codeChallenge);

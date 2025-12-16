@@ -48,6 +48,8 @@ const defaultLogger: Logger = (level, message) => {
 export interface ForestMCPServerOptions {
   /** Forest Admin server URL */
   forestServerUrl?: string;
+  /** Forest Admin app URL (for OAuth redirects) */
+  forestAppUrl?: string;
   /** Forest Admin environment secret */
   envSecret?: string;
   /** Forest Admin authentication secret */
@@ -75,6 +77,7 @@ export default class ForestMCPServer {
   public httpServer?: http.Server;
   public expressApp?: Express;
   public forestServerUrl: string;
+  public forestAppUrl: string;
 
   private envSecret?: string;
   private authSecret?: string;
@@ -86,6 +89,9 @@ export default class ForestMCPServer {
       process.env.FOREST_SERVER_URL ||
       process.env.FOREST_URL ||
       'https://api.forestadmin.com';
+
+    this.forestAppUrl =
+      options?.forestAppUrl || process.env.FOREST_APP_URL || 'https://app.forestadmin.com';
 
     this.envSecret = options?.envSecret || process.env.FOREST_ENV_SECRET;
     this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
@@ -159,6 +165,7 @@ export default class ForestMCPServer {
     // Initialize OAuth provider
     const oauthProvider = new ForestOAuthProvider({
       forestServerUrl: this.forestServerUrl,
+      forestAppUrl: this.forestAppUrl,
       envSecret,
       authSecret,
       logger: this.logger,
