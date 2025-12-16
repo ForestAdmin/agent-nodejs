@@ -125,18 +125,21 @@ export class ProviderDispatcher {
     // Tool enhancement happens outside try-catch - if it fails, it's a programming error
     const enhancedTools = this.enhanceRemoteTools(tools);
 
+    // Convert OpenAI tool_choice to Mistral format
+    // OpenAI uses "required" while Mistral uses "any" to force tool use
+    const normalizedToolChoice =
+      this.provider === 'mistral' && toolChoice === 'required' ? 'any' : toolChoice;
+
     const clientWithTools =
       enhancedTools && enhancedTools.length > 0
-        ? this.client.bindTools(enhancedTools, { tool_choice: toolChoice })
+        ? this.client.bindTools(enhancedTools, { tool_choice: normalizedToolChoice })
         : this.client;
-
-    let response: AIMessage;
 
     try {
       // LangChain clients accept OpenAI message format and convert internally
-      response = await clientWithTools.invoke(
-        messages as unknown as Parameters<typeof clientWithTools.invoke>[0],
-      );
+      const response = await clientWithTools.invoke(messages as any);
+
+      return this.convertAIMessageToOpenAI(response);
     } catch (error) {
       const providerName = this.provider === 'mistral' ? 'Mistral' : 'OpenAI';
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -147,8 +150,6 @@ export class ProviderDispatcher {
       wrappedError.cause = error;
       throw wrappedError;
     }
-
-    return this.convertAIMessageToOpenAI(response);
   }
 
   private convertAIMessageToOpenAI(message: AIMessage): unknown {
