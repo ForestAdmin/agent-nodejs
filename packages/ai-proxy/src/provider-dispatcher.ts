@@ -223,24 +223,24 @@ export class ProviderDispatcher {
         };
       }
 
-      // Clean up tool for Mistral compatibility
-      if (tool?.function) {
-        const { $schema, ...cleanParameters } = (tool.function.parameters || {}) as Record<
-          string,
-          unknown
-        >;
+      // // Clean up tool for Mistral compatibility
+      // if (tool?.function) {
+      //   const { $schema, ...cleanParameters } = (tool.function.parameters || {}) as Record<
+      //     string,
+      //     unknown
+      //   >;
 
-        return {
-          ...tool,
-          function: {
-            ...tool.function,
-            // Ensure non-empty description (Mistral requires it)
-            description: tool.function.description?.trim() || `Tool: ${tool.function.name}`,
-            // Remove $schema from parameters (Mistral doesn't support it)
-            parameters: cleanParameters,
-          },
-        };
-      }
+      //   return {
+      //     ...tool,
+      //     function: {
+      //       ...tool.function,
+      //       // Ensure non-empty description (Mistral requires it)
+      //       description: tool.function.description?.trim() || `Tool: ${tool.function.name}`,
+      //       // Remove $schema from parameters (Mistral doesn't support it)
+      //       parameters: cleanParameters,
+      //     },
+      //   };
+      // }
 
       return tool;
     });
