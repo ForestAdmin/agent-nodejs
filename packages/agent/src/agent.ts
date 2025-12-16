@@ -212,17 +212,38 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
-   * Add AI configuration to the agent.
-   * This forwards all AI requests from Forest Admin to your agent through the
-   * /forest/_internal/ai-proxy/* endpoints. AI requests are processed locally
-   * and are not accessible by Forest Admin for privacy reasons.
+   * Enable AI features for your Forest Admin panel.
    *
-   * @param configuration AI client configuration
+   * All AI requests from Forest Admin are forwarded to your agent and processed locally.
+   * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
+   *
+   * Supported providers:
+   * - `openai`: OpenAI models (gpt-4, gpt-4o, gpt-3.5-turbo, etc.)
+   * - `mistral`: Mistral AI models (mistral-large-latest, codestral-latest, etc.)
+   *
+   * This method can only be called once per agent.
+   *
+   * @param configuration - The AI provider configuration
+   * @param configuration.provider - The AI provider to use ('openai' or 'mistral')
+   * @param configuration.apiKey - Your API key for the chosen provider
+   * @param configuration.model - The model to use (e.g., 'gpt-4o', 'mistral-large-latest')
+   * @returns The agent instance for chaining
+   * @throws Error if addAI() has already been called
+   *
    * @example
+   * // Using OpenAI
    * agent.addAI({
    *   provider: 'openai',
    *   apiKey: process.env.OPENAI_API_KEY,
-   *   model: 'gpt-4'
+   *   model: 'gpt-4o',
+   * });
+   *
+   * @example
+   * // Using Mistral
+   * agent.addAI({
+   *   provider: 'mistral',
+   *   apiKey: process.env.MISTRAL_API_KEY,
+   *   model: 'mistral-large-latest',
    * });
    */
   addAI(configuration: AiConfiguration): this {
