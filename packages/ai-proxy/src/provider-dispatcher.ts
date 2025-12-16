@@ -137,48 +137,12 @@ export class ProviderDispatcher {
         ? this.client.bindTools(enhancedTools, { tool_choice: normalizedToolChoice })
         : this.client;
 
-    // Debug logging for Mistral tool issues
-    if (this.provider === 'mistral') {
-      // eslint-disable-next-line no-console
-      console.log('[AI-Proxy] Mistral tools:', JSON.stringify(enhancedTools, null, 2));
-      // eslint-disable-next-line no-console
-      console.log('[AI-Proxy] Mistral tool_choice:', normalizedToolChoice);
-      // eslint-disable-next-line no-console
-      console.log('[AI-Proxy] Mistral messages:', JSON.stringify(messages, null, 2).slice(0, 1000));
-      // eslint-disable-next-line no-console
-      console.log('[AI-Proxy] Calling Mistral API...');
-    }
-
     try {
-      // LangChain clients accept OpenAI message format and convert internally
-      // Add timeout for Mistral to detect hanging requests
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const invokePromise = clientWithTools.invoke(messages as any);
-
-      let response;
-      if (this.provider === 'mistral') {
-        const timeoutMs = 60000; // 60 seconds
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error(`Mistral API timeout after ${timeoutMs / 1000}s`)), timeoutMs);
-        });
-        response = await Promise.race([invokePromise, timeoutPromise]);
-      } else {
-        response = await invokePromise;
-      }
-
-      // Debug logging for Mistral responses
-      if (this.provider === 'mistral') {
-        // eslint-disable-next-line no-console
-        console.log('[AI-Proxy] Mistral response received:', JSON.stringify(response, null, 2).slice(0, 2000));
-      }
+      const response = await clientWithTools.invoke(messages as any);
 
       return this.convertAIMessageToOpenAI(response);
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('[AI-Proxy] Error calling provider:', this.provider);
-      // eslint-disable-next-line no-console
-      console.error('[AI-Proxy] Error details:', error);
-
       const providerName = this.provider === 'mistral' ? 'Mistral' : 'OpenAI';
       const errorMessage = error instanceof Error ? error.message : String(error);
       const ErrorClass =
