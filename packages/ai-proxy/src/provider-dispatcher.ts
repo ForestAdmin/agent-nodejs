@@ -233,6 +233,17 @@ export class ProviderDispatcher {
         };
       }
 
+      // Ensure all tools have a non-empty description (Mistral requires it)
+      if (tool?.function && !tool.function.description?.trim()) {
+        return {
+          ...tool,
+          function: {
+            ...tool.function,
+            description: `Tool: ${tool.function.name}`,
+          },
+        };
+      }
+
       return tool;
     });
   }
