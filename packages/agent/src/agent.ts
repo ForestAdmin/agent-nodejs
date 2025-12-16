@@ -200,9 +200,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * This allows AI assistants to interact with your Forest Admin data.
    *
    * @example
-   * agent.mountMcpServer();
+   * agent.mountAiMcpServer();
    */
-  mountMcpServer(): this {
+  mountAiMcpServer(): this {
     this.mcpEnabled = true;
 
     return this;
@@ -225,7 +225,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     await Promise.all(routes.map(route => route.bootstrap()));
 
-    // Initialize MCP server if enabled via mountMcpServer()
+    // Initialize MCP server if enabled via mountAiMcpServer()
     let mcpHttpCallback: HttpCallback | undefined;
 
     if (this.mcpEnabled) {
@@ -253,7 +253,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   private async initializeMcpServer(): Promise<HttpCallback> {
     try {
-      // Dynamic import to defer loading until mountMcpServer() is actually used
+      // Dynamic import to defer loading until mountAiMcpServer() is actually used
       // This avoids loading the transitive dependency @forestadmin-experimental/agent-nodejs-testing
       // at startup for users who don't use MCP
       const { ForestMCPServer } = await import('@forestadmin/mcp-server');
@@ -265,7 +265,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         logger: this.options.logger,
       });
 
-      // baseUrl will be automatically fetched from Forest Admin API (environmentApiEndpoint)
       const httpCallback = await mcpServer.getHttpCallback();
 
       this.options.logger('Info', 'MCP server initialized successfully');

@@ -10,14 +10,14 @@ This MCP server provides HTTP REST API access to Forest Admin operations, enabli
 
 ### With Forest Admin Agent
 
-The MCP server is included with the Forest Admin agent. Simply call `mountMcpServer()`:
+The MCP server is included with the Forest Admin agent. Simply call `mountAiMcpServer()`:
 
 ```typescript
 import { createAgent } from '@forestadmin/agent';
 
 const agent = createAgent(options)
   .addDataSource(myDataSource)
-  .mountMcpServer();
+  .mountAiMcpServer();
 
 agent.mountOnExpress(app);
 agent.start();
