@@ -1,11 +1,11 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { createRemoteAgentClient } from '@forestadmin-experimental/agent-nodejs-testing';
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import buildClient from './agent-caller';
 
-jest.mock('@forestadmin-experimental/agent-nodejs-testing');
+jest.mock('@forestadmin/agent-client');
 
 const mockCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
   typeof createRemoteAgentClient

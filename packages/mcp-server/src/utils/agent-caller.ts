@@ -1,7 +1,7 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { createRemoteAgentClient } from '@forestadmin-experimental/agent-nodejs-testing';
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 export default function buildClient(
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,

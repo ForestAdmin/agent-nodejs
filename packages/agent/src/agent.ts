@@ -254,7 +254,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private async initializeMcpServer(): Promise<HttpCallback> {
     try {
       // Dynamic import to defer loading until mountAiMcpServer() is actually used
-      // This avoids loading the transitive dependency @forestadmin-experimental/agent-nodejs-testing
+      // This avoids loading the transitive dependency @forestadmin/agent-client
       // at startup for users who don't use MCP
       const { ForestMCPServer } = await import('@forestadmin/mcp-server');
 
