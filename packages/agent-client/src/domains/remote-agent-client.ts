@@ -1,5 +1,3 @@
-import type { TSchema } from '@forestadmin/agent';
-
 import { RawTreeWithSources } from '@forestadmin/forestadmin-client';
 
 import { ActionEndpointsByCollection } from './action';
@@ -34,7 +32,7 @@ export type PermissionsOverride = Record<
   }
 >;
 
-export default class RemoteAgentClient<TypingsSchema extends TSchema = TSchema> extends Chart {
+export default class RemoteAgentClient<TypingsSchema> extends Chart {
   protected actionEndpoints?: ActionEndpointsByCollection;
 
   private overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;

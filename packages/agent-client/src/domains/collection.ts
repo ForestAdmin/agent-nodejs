@@ -1,5 +1,4 @@
 import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
-import type { TSchema } from '@forestadmin/agent';
 
 import { WriteStream } from 'fs';
 
@@ -11,7 +10,7 @@ import FieldFormStates from '../action-fields/field-form-states';
 import HttpRequester from '../http-requester';
 import QuerySerializer from '../query-serializer';
 
-export default class Collection<TypingsSchema extends TSchema = TSchema> extends CollectionChart {
+export default class Collection<TypingsSchema> extends CollectionChart {
   protected readonly name: keyof TypingsSchema;
   protected readonly actionEndpoints?: ActionEndpointsByCollection;
 
