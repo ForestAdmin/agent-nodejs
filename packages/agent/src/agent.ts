@@ -213,7 +213,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /**
    * Add AI configuration to the agent.
-   * This enables AI-powered features through the /forest/_internal/ai-proxy/* endpoints.
+   * This forwards all AI requests from Forest Admin to your agent through the
+   * /forest/_internal/ai-proxy/* endpoints. AI requests are processed locally
+   * and are not accessible by Forest Admin for privacy reasons.
    *
    * @param configuration AI client configuration
    * @example
