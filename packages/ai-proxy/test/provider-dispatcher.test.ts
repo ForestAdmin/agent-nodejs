@@ -266,7 +266,7 @@ describe('ProviderDispatcher', () => {
   });
 
   describe('tools', () => {
-    it('should not pass tools to invoke when tools array is empty', async () => {
+    it('should not bind tools when tools array is empty', async () => {
       const dispatcher = new ProviderDispatcher(
         { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
         new RemoteTools(apiKeys),
@@ -277,17 +277,10 @@ describe('ProviderDispatcher', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       } as unknown as DispatchBody);
 
-      // When tools array is empty, invoke should be called with empty options
-      expect(invokeMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({}),
-      );
-      // Verify tools are NOT in the options
-      const invokeOptions = invokeMock.mock.calls[0][1];
-      expect(invokeOptions.tools).toBeUndefined();
+      expect(bindToolsMock).not.toHaveBeenCalled();
     });
 
-    it('should pass tools to invoke when provided', async () => {
+    it('should bind tools when provided', async () => {
       const dispatcher = new ProviderDispatcher(
         { provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
         new RemoteTools(apiKeys),
@@ -304,17 +297,13 @@ describe('ProviderDispatcher', () => {
         tool_choice: 'auto',
       } as unknown as DispatchBody);
 
-      // Tools should be passed directly to invoke
-      expect(invokeMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          tools: expect.arrayContaining([
-            expect.objectContaining({
-              function: expect.objectContaining({ name: 'myTool' }),
-            }),
-          ]),
-          tool_choice: 'auto',
-        }),
+      expect(bindToolsMock).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            function: expect.objectContaining({ name: 'myTool' }),
+          }),
+        ]),
+        expect.objectContaining({ tool_choice: 'auto' }),
       );
     });
 
@@ -336,19 +325,16 @@ describe('ProviderDispatcher', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       } as unknown as DispatchBody);
 
-      // Enhanced tools should be passed directly to invoke
-      expect(invokeMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          tools: expect.arrayContaining([
-            expect.objectContaining({
-              function: expect.objectContaining({
-                name: remoteTools.tools[0].base.name,
-                description: remoteTools.tools[0].base.description,
-              }),
+      expect(bindToolsMock).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            function: expect.objectContaining({
+              name: remoteTools.tools[0].base.name,
+              description: remoteTools.tools[0].base.description,
             }),
-          ]),
-        }),
+          }),
+        ]),
+        expect.anything(),
       );
     });
 
@@ -370,11 +356,9 @@ describe('ProviderDispatcher', () => {
       } as unknown as DispatchBody);
 
       // Mistral uses "any" instead of "required"
-      expect(invokeMock).toHaveBeenCalledWith(
+      expect(bindToolsMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          tool_choice: 'any',
-        }),
+        expect.objectContaining({ tool_choice: 'any' }),
       );
     });
   });

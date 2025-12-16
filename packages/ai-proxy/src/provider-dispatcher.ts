@@ -131,17 +131,30 @@ export class ProviderDispatcher {
     const normalizedToolChoice =
       this.provider === 'mistral' && toolChoice === 'required' ? 'any' : toolChoice;
 
-    try {
-      // Pass tools and tool_choice directly to invoke instead of using bindTools
-      // This ensures tool_choice is properly passed to the LLM API
-      const invokeOptions =
-        enhancedTools && enhancedTools.length > 0
-          ? { tools: enhancedTools, tool_choice: normalizedToolChoice }
-          : {};
+    // Bind tools to the client if provided
+    const clientWithTools =
+      enhancedTools && enhancedTools.length > 0
+        ? this.client.bindTools(enhancedTools, { tool_choice: normalizedToolChoice })
+        : this.client;
 
+    // Debug logging for Mistral tool issues
+    if (this.provider === 'mistral' && enhancedTools && enhancedTools.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log('[AI-Proxy] Mistral tools:', JSON.stringify(enhancedTools, null, 2));
+      // eslint-disable-next-line no-console
+      console.log('[AI-Proxy] Mistral tool_choice:', normalizedToolChoice);
+    }
+
+    try {
       // LangChain clients accept OpenAI message format and convert internally
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await this.client.invoke(messages as any, invokeOptions);
+      const response = await clientWithTools.invoke(messages as any);
+
+      // Debug logging for Mistral responses
+      if (this.provider === 'mistral') {
+        // eslint-disable-next-line no-console
+        console.log('[AI-Proxy] Mistral response:', JSON.stringify(response, null, 2).slice(0, 2000));
+      }
 
       return this.convertAIMessageToOpenAI(response);
     } catch (error) {
