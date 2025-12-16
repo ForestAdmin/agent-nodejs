@@ -4,6 +4,7 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage } from '@langchain/core/messages';
+import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import { ChatMistralAI, ChatMistralAIInput } from '@langchain/mistralai';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -210,7 +211,8 @@ export class ProviderDispatcher {
           function: {
             name: remoteTool.base.name,
             description: remoteTool.base.description,
-            parameters: remoteTool.base.schema,
+            // Convert Zod schema to JSON Schema for LLM compatibility
+            parameters: toJsonSchema(remoteTool.base.schema),
           },
         };
       }
