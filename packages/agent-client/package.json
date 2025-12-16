@@ -1,0 +1,46 @@
+{
+  "name": "@forestadmin/agent-client",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/agent-client"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-customizer": "1.67.1",
+    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/forestadmin-client": "1.36.14",
+    "jsonapi-serializer": "^3.6.9",
+    "jsonwebtoken": "^9.0.0",
+    "superagent": "^10.2.3"
+  },
+  "peerDependencies": {
+    "@forestadmin/agent": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@forestadmin/agent": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@forestadmin/agent": "1.66.2",
+    "@types/jsonwebtoken": "^9.0.1",
+    "@types/superagent": "^8.1.9"
+  }
+}
