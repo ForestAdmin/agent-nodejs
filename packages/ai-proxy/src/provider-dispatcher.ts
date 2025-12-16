@@ -131,14 +131,17 @@ export class ProviderDispatcher {
     const normalizedToolChoice =
       this.provider === 'mistral' && toolChoice === 'required' ? 'any' : toolChoice;
 
-    const clientWithTools =
-      enhancedTools && enhancedTools.length > 0
-        ? this.client.bindTools(enhancedTools, { tool_choice: normalizedToolChoice })
-        : this.client;
-
     try {
+      // Pass tools and tool_choice directly to invoke instead of using bindTools
+      // This ensures tool_choice is properly passed to the LLM API
+      const invokeOptions =
+        enhancedTools && enhancedTools.length > 0
+          ? { tools: enhancedTools, tool_choice: normalizedToolChoice }
+          : {};
+
       // LangChain clients accept OpenAI message format and convert internally
-      const response = await clientWithTools.invoke(messages as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await this.client.invoke(messages as any, invokeOptions);
 
       return this.convertAIMessageToOpenAI(response);
     } catch (error) {
