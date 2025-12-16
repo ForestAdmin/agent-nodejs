@@ -7,28 +7,43 @@ import { ChatMistralAI, ChatMistralAIInput } from '@langchain/mistralai';
 import { ChatOpenAI } from '@langchain/openai';
 
 import {
+  AIMissingApiKeyError,
   AINotConfiguredError,
+  AIUnsupportedProviderError,
   MistralUnprocessableError,
   OpenAIUnprocessableError,
 } from './types/errors';
 
-export type BaseConfiguration = {
-  provider: string;
-  model: string;
+// Utility type to preserve autocomplete for known values while allowing custom strings
+type WithAutocomplete<T extends string> = T | (string & NonNullable<unknown>);
+
+// Known Mistral model names for autocomplete
+type KnownMistralModels =
+  | 'mistral-large-latest'
+  | 'mistral-small-latest'
+  | 'mistral-medium-latest'
+  | 'open-mistral-7b'
+  | 'open-mixtral-8x7b'
+  | 'open-mixtral-8x22b'
+  | 'codestral-latest'
+  | 'ministral-8b-latest'
+  | 'ministral-3b-latest';
+
+const SUPPORTED_PROVIDERS = ['openai', 'mistral'] as const;
+type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+
+export type OpenAiConfiguration = Omit<ClientOptions, 'apiKey'> & {
+  provider: 'openai';
   apiKey: string;
+  // (string & NonNullable<unknown>) allows custom models while preserving autocomplete for known models
+  model: WithAutocomplete<ChatCompletionCreateParamsNonStreaming['model']>;
 };
 
-export type OpenAiConfiguration = ClientOptions &
-  BaseConfiguration & {
-    provider: 'openai';
-    // (string & NonNullable<unknown>) allows custom models while preserving autocomplete for known models
-    model: ChatCompletionCreateParamsNonStreaming['model'] | (string & NonNullable<unknown>);
-  };
-
-export type MistralConfiguration = ChatMistralAIInput &
-  BaseConfiguration & {
-    provider: 'mistral';
-  };
+export type MistralConfiguration = Omit<ChatMistralAIInput, 'model' | 'apiKey'> & {
+  provider: 'mistral';
+  apiKey: string;
+  model: WithAutocomplete<KnownMistralModels>;
+};
 
 export type AiConfiguration = OpenAiConfiguration | MistralConfiguration;
 
@@ -60,7 +75,21 @@ export class ProviderDispatcher {
     this.model = configuration?.model ?? '';
     this.provider = configuration?.provider ?? null;
 
-    if (configuration?.provider === 'openai' && configuration.apiKey) {
+    if (!configuration) {
+      return;
+    }
+
+    // Validate provider is supported
+    if (!SUPPORTED_PROVIDERS.includes(configuration.provider as SupportedProvider)) {
+      throw new AIUnsupportedProviderError(configuration.provider);
+    }
+
+    // Validate API key is provided
+    if (!configuration.apiKey) {
+      throw new AIMissingApiKeyError(configuration.provider);
+    }
+
+    if (configuration.provider === 'openai') {
       const { provider, model, apiKey, ...clientOptions } = configuration;
       this.client = new ChatOpenAI({
         apiKey,
@@ -69,7 +98,7 @@ export class ProviderDispatcher {
       }) as unknown as LangChainClient;
     }
 
-    if (configuration?.provider === 'mistral' && configuration.apiKey) {
+    if (configuration.provider === 'mistral') {
       const { provider, ...mistralOptions } = configuration;
       this.client = new ChatMistralAI(mistralOptions) as unknown as LangChainClient;
     }
@@ -82,26 +111,30 @@ export class ProviderDispatcher {
 
     const { tools, messages, tool_choice: toolChoice } = body;
 
+    // Tool enhancement happens outside try-catch - if it fails, it's a programming error
+    const enhancedTools = this.enhanceRemoteTools(tools);
+
+    const clientWithTools =
+      enhancedTools && enhancedTools.length > 0
+        ? this.client.bindTools(enhancedTools, { tool_choice: toolChoice })
+        : this.client;
+
+    let response: AIMessage;
+
     try {
-      const enhancedTools = this.enhanceRemoteTools(tools);
-
-      const clientWithTools =
-        enhancedTools && enhancedTools.length > 0
-          ? this.client.bindTools(enhancedTools, { tool_choice: toolChoice })
-          : this.client;
-
-      const response = await clientWithTools.invoke(messages);
-
-      return this.convertAIMessageToOpenAI(response);
+      response = await clientWithTools.invoke(messages);
     } catch (error) {
-      if (this.provider === 'mistral') {
-        throw new MistralUnprocessableError(
-          `Error while calling Mistral: ${(error as Error).message}`,
-        );
-      }
+      const providerName = this.provider === 'mistral' ? 'Mistral' : 'OpenAI';
+      const errorMessage = (error as Error).message;
+      const ErrorClass =
+        this.provider === 'mistral' ? MistralUnprocessableError : OpenAIUnprocessableError;
 
-      throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${(error as Error).message}`);
+      const wrappedError = new ErrorClass(`Error while calling ${providerName}: ${errorMessage}`);
+      wrappedError.cause = error;
+      throw wrappedError;
     }
+
+    return this.convertAIMessageToOpenAI(response);
   }
 
   private convertAIMessageToOpenAI(message: AIMessage): unknown {
@@ -151,7 +184,10 @@ export class ProviderDispatcher {
     if (!tools || !Array.isArray(tools)) return tools;
 
     return tools.map(tool => {
-      const remoteTool = this.remoteTools.tools.find(rt => rt.base.name === tool.function.name);
+      const toolName = tool?.function?.name;
+      const remoteTool = toolName
+        ? this.remoteTools.tools.find(rt => rt.base.name === toolName)
+        : null;
 
       if (remoteTool) {
         return {

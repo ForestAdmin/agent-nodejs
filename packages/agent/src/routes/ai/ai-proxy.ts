@@ -1,4 +1,11 @@
-import { Router as AiProxyRouter } from '@forestadmin/ai-proxy';
+import {
+  AIError,
+  AINotConfiguredError,
+  AIToolNotFoundError,
+  AIUnprocessableError,
+  Router as AiProxyRouter,
+} from '@forestadmin/ai-proxy';
+import { UnprocessableError } from '@forestadmin/datasource-toolkit';
 import KoaRouter from '@koa/router';
 import { Context } from 'koa';
 
@@ -27,12 +34,33 @@ export default class AiProxyRoute extends BaseRoute {
   }
 
   private async handleAiProxy(context: Context): Promise<void> {
-    context.response.body = await this.aiProxyRouter.route({
-      route: context.params.route,
-      body: context.request.body,
-      query: context.query,
-      mcpConfigs: await this.options.forestAdminClient.mcpServerConfigService.getConfiguration(),
-    });
-    context.response.status = HttpCode.Ok;
+    try {
+      context.response.body = await this.aiProxyRouter.route({
+        route: context.params.route,
+        body: context.request.body,
+        query: context.query,
+        mcpConfigs: await this.options.forestAdminClient.mcpServerConfigService.getConfiguration(),
+      });
+      context.response.status = HttpCode.Ok;
+    } catch (error) {
+      // Convert AI errors to framework errors for proper HTTP status codes
+      if (error instanceof AINotConfiguredError) {
+        throw new UnprocessableError(error.message);
+      }
+
+      if (error instanceof AIToolNotFoundError) {
+        throw new UnprocessableError(error.message);
+      }
+
+      if (error instanceof AIUnprocessableError) {
+        throw new UnprocessableError(error.message);
+      }
+
+      if (error instanceof AIError) {
+        throw new UnprocessableError(error.message);
+      }
+
+      throw error;
+    }
   }
 }
