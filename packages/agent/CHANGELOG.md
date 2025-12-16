@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.67.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.66.2...@forestadmin/agent@1.67.0) (2025-12-16)
+
+
+### Features
+
+* **forestadmin-client:** add MCP server configuration service ([#1356](https://github.com/ForestAdmin/agent-nodejs/issues/1356)) ([f91b9bc](https://github.com/ForestAdmin/agent-nodejs/commit/f91b9bc249d913f5382a4f42c431cf1fcc1db42b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.0
+
 ## @forestadmin/agent [1.66.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.66.1...@forestadmin/agent@1.66.2) (2025-10-30)
 
 
