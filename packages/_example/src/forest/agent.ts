@@ -84,7 +84,7 @@ export default function makeAgent() {
     })
     .mountAiMcpServer()
     .addAI({
-      model: 'ministral-8b-2512',
+      model: 'codestral-latest',
       provider: 'mistral',
       apiKey: process.env.MISTRAL_API_KEY,
     })

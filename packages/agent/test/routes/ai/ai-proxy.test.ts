@@ -1,5 +1,6 @@
-import { createMockContext } from '@shopify/jest-koa-mocks';
+/* eslint-disable max-classes-per-file */
 import { UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import AiProxyRoute from '../../../src/routes/ai/ai-proxy';
 import { RouteType } from '../../../src/types';
@@ -51,11 +52,8 @@ jest.mock('@forestadmin/ai-proxy', () => {
 });
 
 // Get mocked error classes for testing
-const {
-  AINotConfiguredError,
-  AIUnprocessableError,
-  AIToolNotFoundError,
-} = jest.requireMock('@forestadmin/ai-proxy');
+const { AIError, AINotConfiguredError, AIUnprocessableError, AIToolNotFoundError } =
+  jest.requireMock('@forestadmin/ai-proxy');
 
 describe('AiProxyRoute', () => {
   const services = factories.forestAdminHttpDriverServices.build();
@@ -181,6 +179,27 @@ describe('AiProxyRoute', () => {
 
       it('should convert AIToolNotFoundError to UnprocessableError', async () => {
         mockRoute.mockRejectedValueOnce(new AIToolNotFoundError('Tool not found'));
+
+        const mcpServerConfigService = {
+          getConfiguration: jest.fn().mockResolvedValue({ mcpServers: [] }),
+        };
+        const options = factories.forestAdminHttpDriverOptions.build({
+          forestAdminClient: { mcpServerConfigService } as never,
+        });
+        const aiConfiguration = { provider: 'openai' as const, apiKey: 'test-key', model: 'gpt-4' };
+
+        const route = new AiProxyRoute(services, options, aiConfiguration);
+        const context = createMockContext({
+          requestBody: {},
+          customProperties: { params: { route: 'chat' }, query: {} },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/dot-notation
+        await expect(route['handleAiProxy'](context)).rejects.toThrow(UnprocessableError);
+      });
+
+      it('should convert generic AIError to UnprocessableError', async () => {
+        mockRoute.mockRejectedValueOnce(new AIError('Generic AI error'));
 
         const mcpServerConfigService = {
           getConfiguration: jest.fn().mockResolvedValue({ mcpServers: [] }),

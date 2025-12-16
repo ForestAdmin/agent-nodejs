@@ -2,6 +2,7 @@ import type { RemoteTools } from './remote-tools';
 import type { ClientOptions } from 'openai';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage } from '@langchain/core/messages';
 import { ChatMistralAI, ChatMistralAIInput } from '@langchain/mistralai';
 import { ChatOpenAI } from '@langchain/openai';
@@ -14,23 +15,34 @@ import {
   OpenAIUnprocessableError,
 } from './types/errors';
 
-// Utility type to preserve autocomplete for known values while allowing custom strings
+/**
+ * Utility type that preserves IDE autocomplete for known values while allowing custom strings.
+ * The `(string & NonNullable<unknown>)` pattern prevents TypeScript from collapsing
+ * the union to just `string`, which would lose autocomplete for known values.
+ *
+ * @example
+ * type Model = WithAutocomplete<'gpt-4' | 'gpt-3.5-turbo'>;
+ * // Provides autocomplete for 'gpt-4' and 'gpt-3.5-turbo', but also accepts 'gpt-4-turbo'
+ */
 type WithAutocomplete<T extends string> = T | (string & NonNullable<unknown>);
 
 // Known Mistral model names for autocomplete
+// See: https://docs.mistral.ai/getting-started/models/models_overview
 type KnownMistralModels =
+  // Premier models (latest aliases)
   | 'mistral-large-latest'
-  | 'mistral-small-latest'
   | 'mistral-medium-latest'
-  | 'open-mistral-7b'
-  | 'open-mixtral-8x7b'
-  | 'open-mixtral-8x22b'
+  | 'mistral-small-latest'
   | 'codestral-latest'
+  // Generalist models
   | 'ministral-8b-latest'
-  | 'ministral-3b-latest';
-
-const SUPPORTED_PROVIDERS = ['openai', 'mistral'] as const;
-type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+  | 'ministral-3b-latest'
+  // Reasoning models
+  | 'magistral-medium-latest'
+  | 'magistral-small-latest'
+  // Free tier models
+  | 'pixtral-12b-latest'
+  | 'open-mistral-nemo';
 
 export type OpenAiConfiguration = Omit<ClientOptions, 'apiKey'> & {
   provider: 'openai';
@@ -56,13 +68,8 @@ export type OpenAIBody = Pick<
 
 export type DispatchBody = OpenAIBody;
 
-type LangChainClient = {
-  invoke: (messages: unknown) => Promise<AIMessage>;
-  bindTools: (tools: unknown, options?: unknown) => LangChainClient;
-};
-
 export class ProviderDispatcher {
-  private readonly client: LangChainClient | null = null;
+  private readonly client: BaseChatModel | null = null;
 
   private readonly provider: AiProvider | null = null;
 
@@ -79,28 +86,32 @@ export class ProviderDispatcher {
       return;
     }
 
-    // Validate provider is supported
-    if (!SUPPORTED_PROVIDERS.includes(configuration.provider as SupportedProvider)) {
-      throw new AIUnsupportedProviderError(configuration.provider);
+    // Validate provider is supported (using explicit check for proper type narrowing)
+    const { provider: configProvider } = configuration;
+
+    if (configProvider !== 'openai' && configProvider !== 'mistral') {
+      throw new AIUnsupportedProviderError(configProvider);
     }
 
-    // Validate API key is provided
-    if (!configuration.apiKey) {
+    // Validate API key is provided and not empty
+    if (!configuration.apiKey?.trim()) {
       throw new AIMissingApiKeyError(configuration.provider);
     }
 
     if (configuration.provider === 'openai') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { provider, model, apiKey, ...clientOptions } = configuration;
       this.client = new ChatOpenAI({
         apiKey,
         model,
         configuration: clientOptions,
-      }) as unknown as LangChainClient;
+      });
     }
 
     if (configuration.provider === 'mistral') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { provider, ...mistralOptions } = configuration;
-      this.client = new ChatMistralAI(mistralOptions) as unknown as LangChainClient;
+      this.client = new ChatMistralAI(mistralOptions);
     }
   }
 
@@ -122,10 +133,13 @@ export class ProviderDispatcher {
     let response: AIMessage;
 
     try {
-      response = await clientWithTools.invoke(messages);
+      // LangChain clients accept OpenAI message format and convert internally
+      response = await clientWithTools.invoke(
+        messages as unknown as Parameters<typeof clientWithTools.invoke>[0],
+      );
     } catch (error) {
       const providerName = this.provider === 'mistral' ? 'Mistral' : 'OpenAI';
-      const errorMessage = (error as Error).message;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       const ErrorClass =
         this.provider === 'mistral' ? MistralUnprocessableError : OpenAIUnprocessableError;
 

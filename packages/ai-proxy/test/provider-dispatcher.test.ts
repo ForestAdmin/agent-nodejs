@@ -62,7 +62,7 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('when API key is missing', () => {
-      it('should throw AIMissingApiKeyError for openai', () => {
+      it('should throw AIMissingApiKeyError for empty string', () => {
         expect(
           () =>
             new ProviderDispatcher(
@@ -77,6 +77,26 @@ describe('ProviderDispatcher', () => {
               new RemoteTools(apiKeys),
             ),
         ).toThrow('API key is required for openai provider.');
+      });
+
+      it('should throw AIMissingApiKeyError for whitespace-only string', () => {
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'openai', apiKey: '   ', model: 'gpt-4o' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow(AIMissingApiKeyError);
+      });
+
+      it('should throw AIMissingApiKeyError for undefined apiKey', () => {
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'openai', apiKey: undefined as unknown as string, model: 'gpt-4o' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow(AIMissingApiKeyError);
       });
 
       it('should throw AIMissingApiKeyError for mistral', () => {
