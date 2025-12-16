@@ -4,10 +4,10 @@
 import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import * as McpServer from '@forestadmin/mcp-server';
 import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
-import { mockMcpGetHttpCallback } from './setup';
 import Agent from '../src/agent';
 
 // Mock routes
@@ -332,8 +332,18 @@ describe('Agent', () => {
   });
 
   describe('MCP server', () => {
+    let mcpServerSpy: jest.SpyInstance;
+    let mockGetHttpCallback: jest.Mock;
+
     beforeEach(() => {
-      mockMcpGetHttpCallback.mockResolvedValue(jest.fn());
+      mockGetHttpCallback = jest.fn().mockResolvedValue(jest.fn());
+      mcpServerSpy = jest
+        .spyOn(McpServer, 'ForestMCPServer')
+        .mockImplementation(() => ({ getHttpCallback: mockGetHttpCallback } as any));
+    });
+
+    afterEach(() => {
+      mcpServerSpy.mockRestore();
     });
 
     test('should not initialize MCP server when mountAiMcpServer() is not called', async () => {
@@ -346,7 +356,7 @@ describe('Agent', () => {
       // The agent started successfully
       expect(mockSetupRoute).toHaveBeenCalledTimes(1);
       // MCP server should not be initialized
-      expect(mockMcpGetHttpCallback).not.toHaveBeenCalled();
+      expect(mcpServerSpy).not.toHaveBeenCalled();
     });
 
     test('mountAiMcpServer() should return this for chaining', () => {
@@ -366,7 +376,8 @@ describe('Agent', () => {
       agent.mountAiMcpServer();
       await agent.start();
 
-      expect(mockMcpGetHttpCallback).toHaveBeenCalled();
+      expect(mcpServerSpy).toHaveBeenCalled();
+      expect(mockGetHttpCallback).toHaveBeenCalled();
       expect(mockLogger).toHaveBeenCalledWith('Info', 'MCP server initialized successfully');
     });
 
@@ -375,7 +386,7 @@ describe('Agent', () => {
       const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
       const agent = new Agent(options);
 
-      mockMcpGetHttpCallback.mockRejectedValue(new Error('MCP init failed'));
+      mockGetHttpCallback.mockRejectedValue(new Error('MCP init failed'));
 
       agent.mountAiMcpServer();
 
