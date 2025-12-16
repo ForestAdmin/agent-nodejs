@@ -1,6 +1,12 @@
 import type { DispatchBody } from '../src';
 
-import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
+import {
+  AIMissingApiKeyError,
+  AINotConfiguredError,
+  AIUnsupportedProviderError,
+  ProviderDispatcher,
+  RemoteTools,
+} from '../src';
 
 const invokeMock = jest.fn();
 const bindToolsMock = jest.fn().mockReturnValue({ invoke: invokeMock });
@@ -32,6 +38,56 @@ describe('ProviderDispatcher', () => {
         output_tokens: 20,
         total_tokens: 30,
       },
+    });
+  });
+
+  describe('constructor validation', () => {
+    describe('when provider is not supported', () => {
+      it('should throw AIUnsupportedProviderError', () => {
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'anthropic' as 'openai', apiKey: 'key', model: 'model' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow(AIUnsupportedProviderError);
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'anthropic' as 'openai', apiKey: 'key', model: 'model' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow('Unsupported AI provider: "anthropic". Supported providers are: openai, mistral.');
+      });
+    });
+
+    describe('when API key is missing', () => {
+      it('should throw AIMissingApiKeyError for openai', () => {
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'openai', apiKey: '', model: 'gpt-4o' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow(AIMissingApiKeyError);
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'openai', apiKey: '', model: 'gpt-4o' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow('API key is required for openai provider.');
+      });
+
+      it('should throw AIMissingApiKeyError for mistral', () => {
+        expect(
+          () =>
+            new ProviderDispatcher(
+              { provider: 'mistral', apiKey: '', model: 'mistral-large-latest' },
+              new RemoteTools(apiKeys),
+            ),
+        ).toThrow(AIMissingApiKeyError);
+      });
     });
   });
 
