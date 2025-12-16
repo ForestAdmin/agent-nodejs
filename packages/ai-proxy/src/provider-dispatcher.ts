@@ -151,8 +151,20 @@ export class ProviderDispatcher {
 
     try {
       // LangChain clients accept OpenAI message format and convert internally
+      // Add timeout for Mistral to detect hanging requests
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await clientWithTools.invoke(messages as any);
+      const invokePromise = clientWithTools.invoke(messages as any);
+
+      let response;
+      if (this.provider === 'mistral') {
+        const timeoutMs = 60000; // 60 seconds
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Mistral API timeout after ${timeoutMs / 1000}s`)), timeoutMs);
+        });
+        response = await Promise.race([invokePromise, timeoutPromise]);
+      } else {
+        response = await invokePromise;
+      }
 
       // Debug logging for Mistral responses
       if (this.provider === 'mistral') {
