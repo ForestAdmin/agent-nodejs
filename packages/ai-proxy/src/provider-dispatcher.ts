@@ -231,24 +231,37 @@ export class ProviderDispatcher {
         : null;
 
       if (remoteTool) {
+        // Convert Zod schema to JSON Schema and remove $schema field for Mistral compatibility
+        const { $schema, ...cleanParameters } = toJsonSchema(remoteTool.base.schema) as Record<
+          string,
+          unknown
+        >;
+
         return {
           type: 'function' as const,
           function: {
             name: remoteTool.base.name,
-            description: remoteTool.base.description,
-            // Convert Zod schema to JSON Schema for LLM compatibility
-            parameters: toJsonSchema(remoteTool.base.schema),
+            description: remoteTool.base.description || `Tool: ${remoteTool.base.name}`,
+            parameters: cleanParameters,
           },
         };
       }
 
-      // Ensure all tools have a non-empty description (Mistral requires it)
-      if (tool?.function && !tool.function.description?.trim()) {
+      // Clean up tool for Mistral compatibility
+      if (tool?.function) {
+        const { $schema, ...cleanParameters } = (tool.function.parameters || {}) as Record<
+          string,
+          unknown
+        >;
+
         return {
           ...tool,
           function: {
             ...tool.function,
-            description: `Tool: ${tool.function.name}`,
+            // Ensure non-empty description (Mistral requires it)
+            description: tool.function.description?.trim() || `Tool: ${tool.function.name}`,
+            // Remove $schema from parameters (Mistral doesn't support it)
+            parameters: cleanParameters,
           },
         };
       }
