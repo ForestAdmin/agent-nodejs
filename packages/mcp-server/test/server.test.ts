@@ -3,7 +3,7 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import ForestMCPServer from './server';
+import ForestMCPServer from '../src/server';
 import MockServer from './test-utils/mock-server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {

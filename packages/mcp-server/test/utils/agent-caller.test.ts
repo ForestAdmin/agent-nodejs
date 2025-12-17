@@ -1,7 +1,7 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import buildClient from './agent-caller';
+import buildClient from '../../src/utils/agent-caller';
 
 describe('buildClient', () => {
   it('should create a remote agent client with the token from authInfo', () => {
