@@ -209,6 +209,22 @@ export default class ForestMCPServer {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
+    // Request logging middleware - logs every request with response status
+    app.use((req, res, next) => {
+      const startTime = Date.now();
+
+      // Capture the original end method to log after response is sent
+      const originalEnd = res.end.bind(res);
+      res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void)) => {
+        const duration = Date.now() - startTime;
+        this.logger('Info', `[${res.statusCode}] ${req.method} ${req.path} - ${duration}ms`);
+
+        return originalEnd(chunk, encoding as BufferEncoding);
+      }) as typeof res.end;
+
+      next();
+    });
+
     app.use(
       '/oauth/authorize',
       authorizationHandler({
@@ -243,6 +259,19 @@ export default class ForestMCPServer {
             // Use the shared transport instance that's already connected to the MCP server
             if (!this.mcpTransport) {
               throw new Error('MCP transport not initialized');
+            }
+
+            // Log tool calls with their parameters
+            type McpRequestBody = {
+              method?: string;
+              params?: { name?: string; arguments?: Record<string, unknown> };
+            };
+            const body = req.body as McpRequestBody;
+
+            if (body?.method === 'tools/call' && body.params?.name) {
+              const toolName = body.params.name;
+              const args = body.params.arguments || {};
+              this.logger('Info', `Tool call: ${toolName} - params: ${JSON.stringify(args)}`);
             }
 
             // Handle the incoming request through the connected transport
