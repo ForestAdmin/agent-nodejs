@@ -7,12 +7,18 @@ import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 
+// Preprocess to handle LLM sending filters as JSON string instead of object
+const filtersWithPreprocess = z.preprocess(
+  val => (typeof val === 'string' ? JSON.parse(val) : val),
+  filterSchema,
+);
+
 function createListArgumentShape(collectionNames: string[]) {
   return {
     collectionName:
       collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
     search: z.string().optional(),
-    filters: filterSchema.optional(),
+    filters: filtersWithPreprocess.optional(),
     sort: z
       .object({
         field: z.string(),
