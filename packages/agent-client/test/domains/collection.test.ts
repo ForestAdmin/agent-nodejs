@@ -209,11 +209,11 @@ describe('Collection', () => {
       });
     });
 
-    it('should include projection in header query param', async () => {
+    it('should include fields in header query param', async () => {
       const mockStream = {} as any;
       httpRequester.stream.mockResolvedValue(undefined);
 
-      await collection.exportCsv(mockStream, { projection: ['id', 'name'] });
+      await collection.exportCsv(mockStream, { fields: ['id', 'name'] });
 
       expect(httpRequester.stream).toHaveBeenCalledWith({
         path: '/forest/users.csv',

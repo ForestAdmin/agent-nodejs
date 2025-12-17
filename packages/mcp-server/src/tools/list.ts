@@ -1,6 +1,6 @@
 import type { Logger } from '../server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
@@ -43,40 +43,6 @@ function createListArgumentShape(collectionNames: string[]) {
   };
 }
 
-type ListParameters = {
-  filters?: Record<string, unknown>;
-  search?: string;
-  sort?: { field: string; ascending: boolean };
-  isSearchExtended?: boolean;
-  projection?: string[];
-};
-
-function getListParameters(options: ListArgument): ListParameters {
-  const parameters: ListParameters = {};
-
-  if (options.filters) {
-    parameters.filters = { conditionTree: options.filters as Record<string, unknown> };
-  }
-
-  if (options.search) {
-    parameters.search = options.search;
-  }
-
-  if (options.sort?.field && 'ascending' in options.sort) {
-    parameters.sort = options.sort as { field: string; ascending: boolean };
-  }
-
-  if (options.shouldSearchInRelation) {
-    parameters.isSearchExtended = true;
-  }
-
-  if (options.fields) {
-    parameters.projection = options.fields;
-  }
-
-  return parameters;
-}
-
 export default function declareListTool(
   mcpServer: McpServer,
   forestServerUrl: string,
@@ -109,9 +75,7 @@ export default function declareListTool(
       });
 
       try {
-        const result = await rpcClient
-          .collection(options.collectionName)
-          .list(getListParameters(options));
+        const result = await rpcClient.collection(options.collectionName).list(options);
 
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {

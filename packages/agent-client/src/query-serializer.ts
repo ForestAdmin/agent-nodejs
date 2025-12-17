@@ -14,13 +14,10 @@ export default class QuerySerializer {
       ...query.filters,
       sort: QuerySerializer.formatSort(query.sort),
       filters: QuerySerializer.formatFilters(query.filters),
-      searchExtended: !!query.isSearchExtended,
-      isSearchExtended: !!query.isSearchExtended,
+      searchExtended: !!query.shouldSearchInRelation,
       'page[size]': query.pagination?.size,
       'page[number]': query.pagination?.number,
-      ...(query.projection?.length
-        ? QuerySerializer.formatProjection(collectionName, query.projection)
-        : {}),
+      ...(query.fields?.length ? QuerySerializer.formatFields(collectionName, query.fields) : {}),
     };
   }
 
@@ -30,13 +27,13 @@ export default class QuerySerializer {
     return sort.ascending ? sort.field : `-${sort.field}`;
   }
 
-  private static formatFilters(filters: PlainFilter): string {
+  private static formatFilters(filters: PlainFilter['conditionTree']): string {
     if (!filters) return undefined;
 
-    return JSON.stringify(filters.conditionTree);
+    return JSON.stringify(filters);
   }
 
-  private static formatProjection(
+  private static formatFields(
     collectionName: string,
     fields: string[],
     depth = 0,
@@ -77,11 +74,7 @@ export default class QuerySerializer {
           projection[projectionName].push(trimmedRelation);
         }
 
-        const nestedProjection = this.formatProjection(
-          trimmedRelation,
-          [remainingField],
-          depth + 1,
-        );
+        const nestedProjection = this.formatFields(trimmedRelation, [remainingField], depth + 1);
         // Merge nested projection, combining arrays for the same key
         Object.entries(nestedProjection).forEach(([key, value]) => {
           if (projection[key]) {

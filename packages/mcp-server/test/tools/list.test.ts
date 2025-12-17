@@ -1,7 +1,6 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import declareListTool from '../../src/tools/list';
 import type { Logger } from '../../src/server';
@@ -275,25 +274,26 @@ describe('declareListTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should call list with empty parameters for basic request', async () => {
+      it('should call list with options for basic request', async () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockList).toHaveBeenCalledWith({});
+        expect(mockList).toHaveBeenCalledWith({ collectionName: 'users' });
       });
 
       it('should pass search parameter to list', async () => {
         await registeredToolHandler({ collectionName: 'users', search: 'test query' }, mockExtra);
 
-        expect(mockList).toHaveBeenCalledWith({ search: 'test query' });
+        expect(mockList).toHaveBeenCalledWith({ collectionName: 'users', search: 'test query' });
       });
 
-      it('should pass filters wrapped in conditionTree', async () => {
+      it('should pass filters directly', async () => {
         const filters = { field: 'name', operator: 'Equal', value: 'John' };
 
         await registeredToolHandler({ collectionName: 'users', filters }, mockExtra);
 
         expect(mockList).toHaveBeenCalledWith({
-          filters: { conditionTree: filters },
+          collectionName: 'users',
+          filters,
         });
       });
 
@@ -307,6 +307,7 @@ describe('declareListTool', () => {
         );
 
         expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
           sort: { field: 'createdAt', ascending: true },
         });
       });
@@ -321,11 +322,12 @@ describe('declareListTool', () => {
         );
 
         expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
           sort: { field: 'createdAt', ascending: false },
         });
       });
 
-      it('should not pass sort when only field is provided', async () => {
+      it('should pass sort even when only field is provided', async () => {
         await registeredToolHandler(
           {
             collectionName: 'users',
@@ -334,7 +336,10 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith({});
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          sort: { field: 'createdAt' },
+        });
       });
 
       it('should pass all parameters together', async () => {
@@ -354,41 +359,47 @@ describe('declareListTool', () => {
         );
 
         expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
           search: 'john',
-          filters: { conditionTree: filters },
+          filters,
           sort: { field: 'name', ascending: true },
         });
       });
 
       describe('shouldSearchInRelation parameter', () => {
-        it('should not pass searchExtended when shouldSearchInRelation is false', async () => {
+        it('should not pass shouldSearchInRelation when it is false', async () => {
           await registeredToolHandler(
             { collectionName: 'users', search: 'test', shouldSearchInRelation: false },
             mockExtra,
           );
 
-          expect(mockList).toHaveBeenCalledWith({ search: 'test' });
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            search: 'test',
+            shouldSearchInRelation: false,
+          });
         });
 
-        it('should not pass searchExtended when shouldSearchInRelation is not provided', async () => {
+        it('should not pass shouldSearchInRelation when it is not provided', async () => {
           await registeredToolHandler({ collectionName: 'users', search: 'test' }, mockExtra);
 
-          expect(mockList).toHaveBeenCalledWith({ search: 'test' });
+          expect(mockList).toHaveBeenCalledWith({ collectionName: 'users', search: 'test' });
         });
 
-        it('should pass isSearchExtended when shouldSearchInRelation is true', async () => {
+        it('should pass shouldSearchInRelation when shouldSearchInRelation is true', async () => {
           await registeredToolHandler(
             { collectionName: 'users', search: 'test', shouldSearchInRelation: true },
             mockExtra,
           );
 
           expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
             search: 'test',
-            isSearchExtended: true,
+            shouldSearchInRelation: true,
           });
         });
 
-        it('should pass isSearchExtended with other parameters', async () => {
+        it('should pass shouldSearchInRelation with other parameters', async () => {
           const filters = {
             aggregator: 'And',
             conditions: [{ field: 'active', operator: 'Equal', value: true }],
@@ -406,27 +417,29 @@ describe('declareListTool', () => {
           );
 
           expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
             search: 'john',
-            filters: { conditionTree: filters },
+            filters,
             sort: { field: 'name', ascending: true },
-            isSearchExtended: true,
+            shouldSearchInRelation: true,
           });
         });
 
-        it('should pass isSearchExtended even without search parameter', async () => {
+        it('should pass shouldSearchInRelation even without search parameter', async () => {
           await registeredToolHandler(
             { collectionName: 'users', shouldSearchInRelation: true },
             mockExtra,
           );
 
           expect(mockList).toHaveBeenCalledWith({
-            isSearchExtended: true,
+            collectionName: 'users',
+            shouldSearchInRelation: true,
           });
         });
       });
 
       describe('fields parameter', () => {
-        it('should pass fields as projection when fields is provided', async () => {
+        it('should pass fields when fields is provided', async () => {
           // Mock schema for field validation
           const mockSchema: schemaFetcher.ForestSchema = {
             collections: [
@@ -476,21 +489,23 @@ describe('declareListTool', () => {
           );
 
           expect(mockList).toHaveBeenCalledWith({
-            projection: ['id', 'name', 'email'],
+            collectionName: 'users',
+            fields: ['id', 'name', 'email'],
           });
         });
 
-        it('should not pass projection when fields is not provided', async () => {
+        it('should not pass fields when fields is not provided', async () => {
           await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-          expect(mockList).toHaveBeenCalledWith({});
+          expect(mockList).toHaveBeenCalledWith({ collectionName: 'users' });
         });
 
-        it('should not pass projection when fields is empty array', async () => {
+        it('should pass empty fields array when provided', async () => {
           await registeredToolHandler({ collectionName: 'users', fields: [] }, mockExtra);
 
           expect(mockList).toHaveBeenCalledWith({
-            projection: [],
+            collectionName: 'users',
+            fields: [],
           });
         });
 
@@ -545,10 +560,11 @@ describe('declareListTool', () => {
           );
 
           expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
             search: 'john',
-            filters: { conditionTree: filters },
+            filters,
             sort: { field: 'name', ascending: true },
-            projection: ['id', 'name'],
+            fields: ['id', 'name'],
           });
         });
 
@@ -559,7 +575,8 @@ describe('declareListTool', () => {
           );
 
           expect(mockList).toHaveBeenCalledWith({
-            projection: ['id', 'customer@@@name', 'customer@@@email'],
+            collectionName: 'orders',
+            fields: ['id', 'customer@@@name', 'customer@@@email'],
           });
         });
       });

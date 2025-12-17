@@ -23,8 +23,8 @@ describe('QuerySerializer', () => {
       expect(result['page[number]']).toBe(2);
     });
 
-    it('should serialize projection with escaped collection name', () => {
-      const result = QuerySerializer.serialize({ projection: ['id', 'name', 'email'] }, 'users');
+    it('should serialize fields with escaped collection name', () => {
+      const result = QuerySerializer.serialize({ fields: ['id', 'name', 'email'] }, 'users');
       expect(result['fields[users]']).toEqual(['id', 'name', 'email']);
     });
 
@@ -45,17 +45,17 @@ describe('QuerySerializer', () => {
     });
 
     it('should serialize filters with conditionTree', () => {
-      const conditionTree = {
+      const filters = {
         field: 'status',
         operator: 'Equal' as const,
         value: 'active',
       };
-      const result = QuerySerializer.serialize({ filters: { conditionTree } }, 'users');
-      expect(result.filters).toBe(JSON.stringify(conditionTree));
+      const result = QuerySerializer.serialize({ filters }, 'users');
+      expect(result.filters).toBe(JSON.stringify(filters));
     });
 
     it('should serialize complex query with multiple options', () => {
-      const conditionTree = {
+      const filters = {
         aggregator: 'And' as const,
         conditions: [
           { field: 'status', operator: 'Equal' as const, value: 'active' },
@@ -66,9 +66,9 @@ describe('QuerySerializer', () => {
         {
           search: 'john',
           pagination: { size: 20, number: 1 },
-          projection: ['id', 'name'],
+          fields: ['id', 'name'],
           sort: { field: 'createdAt', ascending: false },
-          filters: { conditionTree },
+          filters,
         },
         'users',
       );
@@ -78,11 +78,11 @@ describe('QuerySerializer', () => {
       expect(result['page[number]']).toBe(1);
       expect(result['fields[users]']).toEqual(['id', 'name']);
       expect(result.sort).toBe('-createdAt');
-      expect(result.filters).toBe(JSON.stringify(conditionTree));
+      expect(result.filters).toBe(JSON.stringify(filters));
     });
 
     it('should handle collection names with special characters', () => {
-      const result = QuerySerializer.serialize({ projection: ['id'] }, 'user+data');
+      const result = QuerySerializer.serialize({ fields: ['id'] }, 'user+data');
       expect(result['fields[user\\+data]']).toEqual(['id']);
     });
 
@@ -102,10 +102,10 @@ describe('QuerySerializer', () => {
       expect(result['page[number]']).toBeUndefined();
     });
 
-    describe('projection with @@@ separator for relations', () => {
+    describe('fields with @@@ separator for relations', () => {
       it('should handle single relation field with @@@ separator', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'customer@@@name'] },
+          { fields: ['id', 'customer@@@name'] },
           'orders',
         );
 
@@ -118,7 +118,7 @@ describe('QuerySerializer', () => {
 
       it('should handle multiple relation fields from the same relation', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'customer@@@name', 'customer@@@email'] },
+          { fields: ['id', 'customer@@@name', 'customer@@@email'] },
           'orders',
         );
 
@@ -132,7 +132,7 @@ describe('QuerySerializer', () => {
 
       it('should handle multiple different relations', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'customer@@@name', 'product@@@title'] },
+          { fields: ['id', 'customer@@@name', 'product@@@title'] },
           'orders',
         );
 
@@ -147,7 +147,7 @@ describe('QuerySerializer', () => {
 
       it('should handle nested relations with multiple @@@ separators', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'customer@@@address@@@city'] },
+          { fields: ['id', 'customer@@@address@@@city'] },
           'orders',
         );
 
@@ -162,7 +162,7 @@ describe('QuerySerializer', () => {
 
       it('should handle only relation fields without simple fields', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['customer@@@name', 'customer@@@email'] },
+          { fields: ['customer@@@name', 'customer@@@email'] },
           'orders',
         );
 
@@ -177,7 +177,7 @@ describe('QuerySerializer', () => {
 
       it('should escape special characters in relation names', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'user+data@@@name'] },
+          { fields: ['id', 'user+data@@@name'] },
           'orders',
         );
 
@@ -186,35 +186,35 @@ describe('QuerySerializer', () => {
         expect(result['fields[user\\+data]']).toContain('name');
       });
 
-      it('should handle empty projection array', () => {
-        const result = QuerySerializer.serialize({ projection: [] }, 'orders');
+      it('should handle empty fields array', () => {
+        const result = QuerySerializer.serialize({ fields: [] }, 'orders');
 
         // Empty array should not produce any fields key (no [""])
         expect(result['fields[orders]']).toBeUndefined();
       });
 
-      it('should skip empty strings in projection', () => {
-        const result = QuerySerializer.serialize({ projection: ['', 'name', ''] }, 'users');
+      it('should skip empty strings in fields', () => {
+        const result = QuerySerializer.serialize({ fields: ['', 'name', ''] }, 'users');
 
         expect(result['fields[users]']).toEqual(['name']);
       });
 
       it('should skip malformed @@@ separator with missing relation name', () => {
-        const result = QuerySerializer.serialize({ projection: ['id', '@@@fieldName'] }, 'orders');
+        const result = QuerySerializer.serialize({ fields: ['id', '@@@fieldName'] }, 'orders');
 
         // Should only include 'id', skip the malformed '@@@fieldName'
         expect(result['fields[orders]']).toEqual(['id']);
       });
 
       it('should skip malformed @@@ separator with missing field name', () => {
-        const result = QuerySerializer.serialize({ projection: ['id', 'customer@@@'] }, 'orders');
+        const result = QuerySerializer.serialize({ fields: ['id', 'customer@@@'] }, 'orders');
 
         // Should only include 'id', skip the malformed 'customer@@@'
         expect(result['fields[orders]']).toEqual(['id']);
       });
 
       it('should skip standalone @@@ separator', () => {
-        const result = QuerySerializer.serialize({ projection: ['id', '@@@'] }, 'orders');
+        const result = QuerySerializer.serialize({ fields: ['id', '@@@'] }, 'orders');
 
         // Should only include 'id', skip the malformed '@@@'
         expect(result['fields[orders]']).toEqual(['id']);
@@ -222,7 +222,7 @@ describe('QuerySerializer', () => {
 
       it('should not include duplicate relation names', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'customer@@@name', 'customer@@@email'] },
+          { fields: ['id', 'customer@@@name', 'customer@@@email'] },
           'orders',
         );
 
@@ -234,7 +234,7 @@ describe('QuerySerializer', () => {
 
       it('should not include duplicate field names', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['id', 'id', 'name', 'name'] },
+          { fields: ['id', 'id', 'name', 'name'] },
           'users',
         );
 
@@ -242,23 +242,23 @@ describe('QuerySerializer', () => {
       });
 
       it('should throw error when relation depth exceeds maximum', () => {
-        // Create a deeply nested projection (11 levels deep, exceeds max of 10)
-        const deepProjection = 'a@@@b@@@c@@@d@@@e@@@f@@@g@@@h@@@i@@@j@@@k';
+        // Create a deeply nested fields (11 levels deep, exceeds max of 10)
+        const deepFields = 'a@@@b@@@c@@@d@@@e@@@f@@@g@@@h@@@i@@@j@@@k';
 
-        expect(() => QuerySerializer.serialize({ projection: [deepProjection] }, 'orders')).toThrow(
+        expect(() => QuerySerializer.serialize({ fields: [deepFields] }, 'orders')).toThrow(
           'Maximum relation depth of 10 exceeded',
         );
       });
 
       it('should handle whitespace in field names', () => {
-        const result = QuerySerializer.serialize({ projection: ['  id  ', '  name  '] }, 'users');
+        const result = QuerySerializer.serialize({ fields: ['  id  ', '  name  '] }, 'users');
 
         expect(result['fields[users]']).toEqual(['id', 'name']);
       });
 
       it('should handle whitespace around @@@ separator', () => {
         const result = QuerySerializer.serialize(
-          { projection: ['  customer  @@@  name  '] },
+          { fields: ['  customer  @@@  name  '] },
           'orders',
         );
 
