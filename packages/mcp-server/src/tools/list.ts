@@ -12,10 +12,15 @@ import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetche
 import registerToolWithLogging from '../utils/tool-with-logging.js';
 
 // Preprocess to handle LLM sending filters as JSON string instead of object
-const filtersWithPreprocess = z.preprocess(
-  val => (typeof val === 'string' ? JSON.parse(val) : val),
-  filterSchema,
-);
+const filtersWithPreprocess = z.preprocess(val => {
+  if (typeof val !== 'string') return val;
+  try {
+    return JSON.parse(val);
+  } catch {
+    // Return original value to let Zod validation produce a proper error
+    return val;
+  }
+}, filterSchema);
 
 const listArgumentSchema = z.object({
   collectionName: z.string(),

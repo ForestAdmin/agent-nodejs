@@ -620,6 +620,17 @@ describe('declareListTool', () => {
           filters: { conditionTree: filters },
         });
       });
+
+      it('should throw validation error when filters is malformed JSON string', () => {
+        const malformedJson = '{ invalid json }';
+
+        const inputSchema = registeredToolConfig.inputSchema as Record<
+          string,
+          { parse: (value: unknown) => unknown }
+        >;
+
+        expect(() => inputSchema.filters.parse(malformedJson)).toThrow();
+      });
     });
 
     describe('error handling', () => {
