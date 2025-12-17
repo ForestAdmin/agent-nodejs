@@ -631,6 +631,17 @@ describe('declareListTool', () => {
 
         expect(() => inputSchema.filters.parse(malformedJson)).toThrow();
       });
+
+      it('should throw validation error when filters is a plain string', () => {
+        const plainString = 'not a json object';
+
+        const inputSchema = registeredToolConfig.inputSchema as Record<
+          string,
+          { parse: (value: unknown) => unknown }
+        >;
+
+        expect(() => inputSchema.filters.parse(plainString)).toThrow();
+      });
     });
 
     describe('error handling', () => {
