@@ -31,7 +31,7 @@ describe('QuerySerializer', () => {
         { projection: ['id', 'name', 'email'] },
         'users',
       );
-      expect(result['fields[users]']).toBe('id,name,email');
+      expect(result['fields[users]']).toEqual(['id', 'name', 'email']);
     });
 
     it('should serialize ascending sort', () => {
@@ -85,7 +85,7 @@ describe('QuerySerializer', () => {
       expect(result.search).toBe('john');
       expect(result['page[size]']).toBe(20);
       expect(result['page[number]']).toBe(1);
-      expect(result['fields[users]']).toBe('id,name');
+      expect(result['fields[users]']).toEqual(['id', 'name']);
       expect(result.sort).toBe('-createdAt');
       expect(result.filters).toBe(JSON.stringify(conditionTree));
     });
@@ -95,7 +95,7 @@ describe('QuerySerializer', () => {
         { projection: ['id'] },
         'user+data',
       );
-      expect(result['fields[user\\+data]']).toBe('id');
+      expect(result['fields[user\\+data]']).toEqual(['id']);
     });
 
     it('should handle undefined sort', () => {
@@ -112,6 +112,91 @@ describe('QuerySerializer', () => {
       const result = QuerySerializer.serialize({ pagination: undefined }, 'users');
       expect(result['page[size]']).toBeUndefined();
       expect(result['page[number]']).toBeUndefined();
+    });
+
+    describe('projection with @@@ separator for relations', () => {
+      it('should handle single relation field with @@@ separator', () => {
+        const result = QuerySerializer.serialize(
+          { projection: ['id', 'customer@@@name'] },
+          'orders',
+        );
+
+        // Main collection should have id and the relation name (customer)
+        expect(result['fields[orders]']).toContain('id');
+        expect(result['fields[orders]']).toContain('customer');
+        // Related collection should have the field name
+        expect(result['fields[customer]']).toContain('name');
+      });
+
+      it('should handle multiple relation fields from the same relation', () => {
+        const result = QuerySerializer.serialize(
+          { projection: ['id', 'customer@@@name', 'customer@@@email'] },
+          'orders',
+        );
+
+        // Main collection should have id and the relation name (customer) - may appear twice
+        expect(result['fields[orders]']).toContain('id');
+        expect(result['fields[orders]']).toContain('customer');
+        // Related collection should have both field names
+        expect(result['fields[customer]']).toContain('name');
+        expect(result['fields[customer]']).toContain('email');
+      });
+
+      it('should handle multiple different relations', () => {
+        const result = QuerySerializer.serialize(
+          { projection: ['id', 'customer@@@name', 'product@@@title'] },
+          'orders',
+        );
+
+        // Main collection should have id and both relation names
+        expect(result['fields[orders]']).toContain('id');
+        expect(result['fields[orders]']).toContain('customer');
+        expect(result['fields[orders]']).toContain('product');
+        // Each related collection should have its field
+        expect(result['fields[customer]']).toContain('name');
+        expect(result['fields[product]']).toContain('title');
+      });
+
+      it('should handle nested relations with multiple @@@ separators', () => {
+        const result = QuerySerializer.serialize(
+          { projection: ['id', 'customer@@@address@@@city'] },
+          'orders',
+        );
+
+        // Main collection should have id and customer relation
+        expect(result['fields[orders]']).toContain('id');
+        expect(result['fields[orders]']).toContain('customer');
+        // customer collection should have address relation
+        expect(result['fields[customer]']).toContain('address');
+        // address collection should have city field
+        expect(result['fields[address]']).toContain('city');
+      });
+
+      it('should handle only relation fields without simple fields', () => {
+        const result = QuerySerializer.serialize(
+          { projection: ['customer@@@name', 'customer@@@email'] },
+          'orders',
+        );
+
+        // Main collection should only have the relation name
+        expect(result['fields[orders]']).toContain('customer');
+        expect(result['fields[orders]']).not.toContain('name');
+        expect(result['fields[orders]']).not.toContain('email');
+        // Related collection should have both fields
+        expect(result['fields[customer]']).toContain('name');
+        expect(result['fields[customer]']).toContain('email');
+      });
+
+      it('should escape special characters in relation names', () => {
+        const result = QuerySerializer.serialize(
+          { projection: ['id', 'user+data@@@name'] },
+          'orders',
+        );
+
+        expect(result['fields[orders]']).toContain('id');
+        expect(result['fields[orders]']).toContain('user+data');
+        expect(result['fields[user\\+data]']).toContain('name');
+      });
     });
   });
 });

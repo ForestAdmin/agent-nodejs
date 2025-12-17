@@ -3,8 +3,8 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import ForestMCPServer from '../src/server';
 import MockServer from './test-utils/mock-server';
+import ForestMCPServer from '../src/server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
@@ -927,6 +927,8 @@ describe('ForestMCPServer Instance', () => {
         .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
 
       global.fetch = listMockServer.fetch;
+      // Setup superagent mock for agent-client RPC calls
+      listMockServer.setupSuperagentMock();
 
       listServer = new ForestMCPServer();
       listServer.run();
@@ -939,6 +941,7 @@ describe('ForestMCPServer Instance', () => {
     });
 
     afterAll(async () => {
+      listMockServer.restoreSuperagent();
       await new Promise<void>(resolve => {
         if (listServer?.httpServer) {
           (listServer.httpServer as http.Server).close(() => resolve());
@@ -1131,6 +1134,79 @@ describe('ForestMCPServer Instance', () => {
         id: 'users',
         type: 'collections',
       });
+    });
+
+    it('should include isSearchExtended and fields in list tool schema', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+        },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      const response = await request(listHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/list',
+          id: 6,
+        });
+
+      expect(response.status).toBe(200);
+
+      // Parse the response
+      let responseData: {
+        result: {
+          tools: Array<{
+            name: string;
+            inputSchema: { properties: Record<string, unknown> };
+          }>;
+        };
+      };
+
+      if (response.body && Object.keys(response.body).length > 0) {
+        responseData = response.body;
+      } else {
+        const textResponse = response.text;
+        const lines = textResponse.split('\n').filter((line: string) => line.trim());
+        const dataLine = lines.find((line: string) => line.startsWith('data: '));
+
+        if (dataLine) {
+          responseData = JSON.parse(dataLine.replace('data: ', ''));
+        } else {
+          responseData = JSON.parse(lines[lines.length - 1]);
+        }
+      }
+
+      const listTool = responseData.result.tools.find(
+        (tool: { name: string }) => tool.name === 'list',
+      );
+      expect(listTool).toBeDefined();
+
+      // Verify isSearchExtended is in the schema
+      expect(listTool.inputSchema.properties).toHaveProperty('isSearchExtended');
+      const isSearchExtendedSchema = listTool.inputSchema.properties.isSearchExtended as {
+        type: string;
+        description?: string;
+      };
+      expect(isSearchExtendedSchema.type).toBe('boolean');
+
+      // Verify fields is in the schema
+      expect(listTool.inputSchema.properties).toHaveProperty('fields');
+      const fieldsSchema = listTool.inputSchema.properties.fields as {
+        type: string;
+        description?: string;
+      };
+      expect(fieldsSchema.type).toBe('array');
+      expect(fieldsSchema.description).toContain('@@@');
+      expect(fieldsSchema.description).toContain('relationName@@@fieldName');
     });
   });
 

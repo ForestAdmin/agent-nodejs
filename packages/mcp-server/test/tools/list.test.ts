@@ -70,6 +70,21 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.inputSchema).toHaveProperty('search');
       expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
       expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('isSearchExtended');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('fields');
+    });
+
+    it('should have fields schema with description mentioning @@@ separator for relations', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com');
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const schema = registeredToolConfig.inputSchema as any;
+      // Zod schema: z.array().describe().optional()
+      // The description is stored in metadata, accessible via meta() on the inner type
+      const fieldsZodDef = Reflect.get(schema.fields, '_def');
+      const fieldsDescription = fieldsZodDef.innerType.meta().description;
+      expect(fieldsDescription).toContain('@@@');
+      expect(fieldsDescription).toContain('relationName@@@fieldName');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
@@ -342,6 +357,213 @@ describe('declareListTool', () => {
           search: 'john',
           filters: { conditionTree: filters },
           sort: { field: 'name', ascending: true },
+        });
+      });
+
+      describe('isSearchExtended parameter', () => {
+        it('should not pass searchExtended when isSearchExtended is false', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', search: 'test', isSearchExtended: false },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({ search: 'test' });
+        });
+
+        it('should not pass searchExtended when isSearchExtended is not provided', async () => {
+          await registeredToolHandler({ collectionName: 'users', search: 'test' }, mockExtra);
+
+          expect(mockList).toHaveBeenCalledWith({ search: 'test' });
+        });
+
+        it('should pass isSearchExtended and searchExtended when isSearchExtended is true', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', search: 'test', isSearchExtended: true },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            search: 'test',
+            isSearchExtended: true,
+            searchExtended: 1,
+          });
+        });
+
+        it('should pass isSearchExtended with other parameters', async () => {
+          const filters = {
+            aggregator: 'And',
+            conditions: [{ field: 'active', operator: 'Equal', value: true }],
+          };
+
+          await registeredToolHandler(
+            {
+              collectionName: 'users',
+              search: 'john',
+              filters,
+              sort: { field: 'name', ascending: true },
+              isSearchExtended: true,
+            },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            search: 'john',
+            filters: { conditionTree: filters },
+            sort: { field: 'name', ascending: true },
+            isSearchExtended: true,
+            searchExtended: 1,
+          });
+        });
+
+        it('should pass isSearchExtended even without search parameter', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', isSearchExtended: true },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            isSearchExtended: true,
+            searchExtended: 1,
+          });
+        });
+      });
+
+      describe('fields parameter', () => {
+        it('should pass fields as projection when fields is provided', async () => {
+          // Mock schema for field validation
+          const mockSchema: schemaFetcher.ForestSchema = {
+            collections: [
+              {
+                name: 'users',
+                fields: [
+                  {
+                    field: 'id',
+                    type: 'Number',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: true,
+                    isPrimaryKey: true,
+                  },
+                  {
+                    field: 'name',
+                    type: 'String',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: false,
+                    isPrimaryKey: false,
+                  },
+                  {
+                    field: 'email',
+                    type: 'String',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: false,
+                    isPrimaryKey: false,
+                  },
+                ],
+              },
+            ],
+          };
+          mockFetchForestSchema.mockResolvedValue(mockSchema);
+          mockGetFieldsOfCollection.mockReturnValue(mockSchema.collections[0].fields);
+
+          await registeredToolHandler(
+            { collectionName: 'users', fields: ['id', 'name', 'email'] },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            projection: ['id', 'name', 'email'],
+          });
+        });
+
+        it('should not pass projection when fields is not provided', async () => {
+          await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+          expect(mockList).toHaveBeenCalledWith({});
+        });
+
+        it('should not pass projection when fields is empty array', async () => {
+          await registeredToolHandler({ collectionName: 'users', fields: [] }, mockExtra);
+
+          expect(mockList).toHaveBeenCalledWith({
+            projection: [],
+          });
+        });
+
+        it('should pass fields with other parameters', async () => {
+          // Mock schema for field validation
+          const mockSchema: schemaFetcher.ForestSchema = {
+            collections: [
+              {
+                name: 'users',
+                fields: [
+                  {
+                    field: 'id',
+                    type: 'Number',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: true,
+                    isPrimaryKey: true,
+                  },
+                  {
+                    field: 'name',
+                    type: 'String',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: false,
+                    isPrimaryKey: false,
+                  },
+                ],
+              },
+            ],
+          };
+          mockFetchForestSchema.mockResolvedValue(mockSchema);
+          mockGetFieldsOfCollection.mockReturnValue(mockSchema.collections[0].fields);
+
+          const filters = {
+            aggregator: 'And',
+            conditions: [{ field: 'active', operator: 'Equal', value: true }],
+          };
+
+          await registeredToolHandler(
+            {
+              collectionName: 'users',
+              search: 'john',
+              filters,
+              sort: { field: 'name', ascending: true },
+              fields: ['id', 'name'],
+            },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            search: 'john',
+            filters: { conditionTree: filters },
+            sort: { field: 'name', ascending: true },
+            projection: ['id', 'name'],
+          });
+        });
+
+        it('should accept fields with @@@ separator for relation sub-fields', async () => {
+          await registeredToolHandler(
+            { collectionName: 'orders', fields: ['id', 'customer@@@name', 'customer@@@email'] },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            projection: ['id', 'customer@@@name', 'customer@@@email'],
+          });
         });
       });
     });

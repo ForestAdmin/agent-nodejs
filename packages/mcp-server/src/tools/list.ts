@@ -22,6 +22,17 @@ function createListArgumentShape(collectionNames: string[]) {
         ascending: z.boolean(),
       })
       .optional(),
+    isSearchExtended: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('Whether to search also on related collections'),
+    fields: z
+      .array(z.string())
+      .describe(
+        'Fields to include in the list. Reduces the amount of data returned. For sub fields, use "@@@" to separate relations, e.g. "relationName@@@fieldName".',
+      )
+      .optional(),
   };
 }
 
@@ -30,6 +41,8 @@ type ListArgument = {
   search?: string;
   filters?: z.infer<typeof filterSchema>;
   sort?: { field: string; ascending: boolean };
+  isSearchExtended?: boolean;
+  fields?: string[];
 };
 
 function getListParameters(options: ListArgument): {
@@ -41,6 +54,9 @@ function getListParameters(options: ListArgument): {
     filters?: Record<string, unknown>;
     search?: string;
     sort?: { field: string; ascending: boolean };
+    isSearchExtended?: boolean;
+    searchExtended?: 1 | 0;
+    projection?: string[];
   } = {};
 
   if (options.filters) {
@@ -53,6 +69,15 @@ function getListParameters(options: ListArgument): {
 
   if (options.sort?.field && 'ascending' in options.sort) {
     parameters.sort = options.sort as { field: string; ascending: boolean };
+  }
+
+  if (options.isSearchExtended) {
+    parameters.isSearchExtended = true;
+    parameters.searchExtended = 1;
+  }
+
+  if (options.fields) {
+    parameters.projection = options.fields;
   }
 
   return parameters;

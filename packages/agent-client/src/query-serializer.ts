@@ -7,8 +7,6 @@ export default class QuerySerializer {
   static serialize(query: SelectOptions, collectionName: string): Record<string, unknown> {
     if (!query) return {};
 
-    const projectionName = `fields[${HttpRequester.escapeUrlSlug(collectionName)}]`;
-
     return {
       ...query,
       ...query.filters,
@@ -16,7 +14,7 @@ export default class QuerySerializer {
       filters: QuerySerializer.formatFilters(query.filters),
       'page[size]': query.pagination?.size,
       'page[number]': query.pagination?.number,
-      [projectionName]: query.projection?.toString(),
+      ...QuerySerializer.formatProjection(collectionName, query.projection?.toString().split(',')),
     };
   }
 
@@ -30,5 +28,39 @@ export default class QuerySerializer {
     if (!filters) return undefined;
 
     return JSON.stringify(filters.conditionTree);
+  }
+
+  private static formatProjection(
+    collectionName: string,
+    fields: string[],
+  ): Record<string, string[]> {
+    if (!fields) return {};
+
+    const projectionName = `fields[${HttpRequester.escapeUrlSlug(collectionName)}]`;
+    const projection: Record<string, string[]> = {
+      [projectionName]: [],
+    };
+
+    fields.forEach(field => {
+      if (field.includes('@@@')) {
+        const [relatedCollection, ...relatedField] = field.split('@@@');
+        projection[projectionName].push(relatedCollection);
+        const nestedProjection = this.formatProjection(relatedCollection, [
+          relatedField.join('@@@'),
+        ]);
+        // Merge nested projection, combining arrays for the same key
+        Object.entries(nestedProjection).forEach(([key, value]) => {
+          if (projection[key]) {
+            projection[key] = [...projection[key], ...value];
+          } else {
+            projection[key] = value;
+          }
+        });
+      } else {
+        projection[projectionName].push(field);
+      }
+    });
+
+    return projection;
   }
 }
