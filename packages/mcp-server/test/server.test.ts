@@ -1136,7 +1136,7 @@ describe('ForestMCPServer Instance', () => {
       });
     });
 
-    it('should include isSearchExtended and fields in list tool schema', async () => {
+    it('should include shouldSearchInRelation and fields in list tool schema', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
         {
@@ -1190,13 +1190,15 @@ describe('ForestMCPServer Instance', () => {
       );
       expect(listTool).toBeDefined();
 
-      // Verify isSearchExtended is in the schema
-      expect(listTool.inputSchema.properties).toHaveProperty('isSearchExtended');
-      const isSearchExtendedSchema = listTool.inputSchema.properties.isSearchExtended as {
+      // Verify shouldSearchInRelation is in the schema
+      expect(listTool.inputSchema.properties).toHaveProperty('shouldSearchInRelation');
+      const shouldSearchInRelationSchema = listTool.inputSchema.properties
+        .shouldSearchInRelation as {
         type: string;
         description?: string;
       };
-      expect(isSearchExtendedSchema.type).toBe('boolean');
+      expect(shouldSearchInRelationSchema.type).toBe('boolean');
+      expect(shouldSearchInRelationSchema.description).toContain('related collections');
 
       // Verify fields is in the schema
       expect(listTool.inputSchema.properties).toHaveProperty('fields');

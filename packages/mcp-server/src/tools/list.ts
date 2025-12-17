@@ -22,7 +22,7 @@ function createListArgumentShape(collectionNames: string[]) {
         ascending: z.boolean(),
       })
       .optional(),
-    isSearchExtended: z
+    shouldSearchInRelation: z
       .boolean()
       .optional()
       .default(false)
@@ -41,7 +41,7 @@ type ListArgument = {
   search?: string;
   filters?: z.infer<typeof filterSchema>;
   sort?: { field: string; ascending: boolean };
-  isSearchExtended?: boolean;
+  shouldSearchInRelation?: boolean;
   fields?: string[];
 };
 
@@ -54,8 +54,8 @@ function getListParameters(options: ListArgument): {
     filters?: Record<string, unknown>;
     search?: string;
     sort?: { field: string; ascending: boolean };
-    isSearchExtended?: boolean;
-    searchExtended?: 1 | 0;
+    isSearchExtended?: boolean; // new parameter to indicate extended search
+    searchExtended?: boolean;
     projection?: string[];
   } = {};
 
@@ -71,9 +71,9 @@ function getListParameters(options: ListArgument): {
     parameters.sort = options.sort as { field: string; ascending: boolean };
   }
 
-  if (options.isSearchExtended) {
+  if (options.shouldSearchInRelation) {
     parameters.isSearchExtended = true;
-    parameters.searchExtended = 1;
+    parameters.searchExtended = true;
   }
 
   if (options.fields) {

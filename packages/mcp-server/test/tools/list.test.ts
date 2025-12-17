@@ -70,7 +70,7 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.inputSchema).toHaveProperty('search');
       expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
       expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('isSearchExtended');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('shouldSearchInRelation');
       expect(registeredToolConfig.inputSchema).toHaveProperty('fields');
     });
 
@@ -360,32 +360,32 @@ describe('declareListTool', () => {
         });
       });
 
-      describe('isSearchExtended parameter', () => {
-        it('should not pass searchExtended when isSearchExtended is false', async () => {
+      describe('shouldSearchInRelation parameter', () => {
+        it('should not pass searchExtended when shouldSearchInRelation is false', async () => {
           await registeredToolHandler(
-            { collectionName: 'users', search: 'test', isSearchExtended: false },
+            { collectionName: 'users', search: 'test', shouldSearchInRelation: false },
             mockExtra,
           );
 
           expect(mockList).toHaveBeenCalledWith({ search: 'test' });
         });
 
-        it('should not pass searchExtended when isSearchExtended is not provided', async () => {
+        it('should not pass searchExtended when shouldSearchInRelation is not provided', async () => {
           await registeredToolHandler({ collectionName: 'users', search: 'test' }, mockExtra);
 
           expect(mockList).toHaveBeenCalledWith({ search: 'test' });
         });
 
-        it('should pass isSearchExtended and searchExtended when isSearchExtended is true', async () => {
+        it('should pass isSearchExtended and searchExtended when shouldSearchInRelation is true', async () => {
           await registeredToolHandler(
-            { collectionName: 'users', search: 'test', isSearchExtended: true },
+            { collectionName: 'users', search: 'test', shouldSearchInRelation: true },
             mockExtra,
           );
 
           expect(mockList).toHaveBeenCalledWith({
             search: 'test',
             isSearchExtended: true,
-            searchExtended: 1,
+            searchExtended: true,
           });
         });
 
@@ -401,7 +401,7 @@ describe('declareListTool', () => {
               search: 'john',
               filters,
               sort: { field: 'name', ascending: true },
-              isSearchExtended: true,
+              shouldSearchInRelation: true,
             },
             mockExtra,
           );
@@ -411,19 +411,19 @@ describe('declareListTool', () => {
             filters: { conditionTree: filters },
             sort: { field: 'name', ascending: true },
             isSearchExtended: true,
-            searchExtended: 1,
+            searchExtended: true,
           });
         });
 
         it('should pass isSearchExtended even without search parameter', async () => {
           await registeredToolHandler(
-            { collectionName: 'users', isSearchExtended: true },
+            { collectionName: 'users', shouldSearchInRelation: true },
             mockExtra,
           );
 
           expect(mockList).toHaveBeenCalledWith({
             isSearchExtended: true,
-            searchExtended: 1,
+            searchExtended: true,
           });
         });
       });
