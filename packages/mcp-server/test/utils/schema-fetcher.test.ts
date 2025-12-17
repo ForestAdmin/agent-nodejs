@@ -1,9 +1,9 @@
 import {
-  type ForestSchema,
-  clearSchemaCache,
   fetchForestSchema,
   getCollectionNames,
+  clearSchemaCache,
   setSchemaCache,
+  type ForestSchema,
 } from '../../src/utils/schema-fetcher';
 
 describe('schema-fetcher', () => {
@@ -56,13 +56,16 @@ describe('schema-fetcher', () => {
 
       const result = await fetchForestSchema('https://api.forestadmin.com');
 
-      expect(mockFetch).toHaveBeenCalledWith('https://api.forestadmin.com/liana/forest-schema', {
-        method: 'GET',
-        headers: {
-          'forest-secret-key': 'test-env-secret',
-          'Content-Type': 'application/json',
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.forestadmin.com/liana/forest-schema',
+        {
+          method: 'GET',
+          headers: {
+            'forest-secret-key': 'test-env-secret',
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
       expect(result.collections).toHaveLength(2);
       expect(result.collections[0].name).toBe('users');
       expect(result.collections[1].name).toBe('products');

@@ -43,13 +43,6 @@ export default class MockServer {
     const createMockRequest = (method: string, reqUrl: string) => {
       let headers: Record<string, string> = {};
       let body: unknown = null;
-      let queryParams: Record<string, unknown> = {};
-
-      const executeRequest = () => {
-        const requestBody = body ?? (Object.keys(queryParams).length > 0 ? queryParams : null);
-
-        return this.handleSuperagentRequest(method, reqUrl, headers, requestBody);
-      };
 
       const mockRequest = {
         set: (key: string | Record<string, string>, value?: string) => {
@@ -62,22 +55,10 @@ export default class MockServer {
           return mockRequest;
         },
         timeout: () => mockRequest,
-        query: (params: Record<string, unknown>) => {
-          queryParams = { ...queryParams, ...params };
-
-          return mockRequest;
-        },
         send: async (data?: unknown) => {
           body = data;
 
-          return executeRequest();
-        },
-        // Make the request thenable so it can be awaited without calling send()
-        then: (
-          resolve: (value: { body: unknown; status: number }) => void,
-          reject: (reason: unknown) => void,
-        ) => {
-          return executeRequest().then(resolve, reject);
+          return this.handleSuperagentRequest(method, reqUrl, headers, body);
         },
       };
 
