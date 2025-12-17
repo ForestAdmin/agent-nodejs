@@ -588,7 +588,10 @@ describe('declareListTool', () => {
         // Simulate MCP SDK behavior: parse input through schema before calling handler
         const inputSchema = registeredToolConfig.inputSchema as Record<
           string,
-          { parse: (value: unknown) => unknown; optional: () => { parse: (value: unknown) => unknown } }
+          {
+            parse: (value: unknown) => unknown;
+            optional: () => { parse: (value: unknown) => unknown };
+          }
         >;
         const parsedFilters = inputSchema.filters.parse(filtersAsString);
 

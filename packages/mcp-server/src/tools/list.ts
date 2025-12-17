@@ -14,6 +14,7 @@ import registerToolWithLogging from '../utils/tool-with-logging.js';
 // Preprocess to handle LLM sending filters as JSON string instead of object
 const filtersWithPreprocess = z.preprocess(val => {
   if (typeof val !== 'string') return val;
+
   try {
     return JSON.parse(val);
   } catch {
