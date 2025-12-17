@@ -79,6 +79,7 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
+    .mountAiMcpServer()
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
