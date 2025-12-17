@@ -18,12 +18,15 @@ const mockJwtSign = jsonwebtoken.sign as jest.Mock;
 
 const TEST_ENV_SECRET = 'test-env-secret';
 const TEST_AUTH_SECRET = 'test-auth-secret';
+const TEST_FOREST_APP_URL = 'https://app.forestadmin.com';
 
 function createProvider(forestServerUrl = 'https://api.forestadmin.com') {
   return new ForestOAuthProvider({
     forestServerUrl,
+    forestAppUrl: TEST_FOREST_APP_URL,
     envSecret: TEST_ENV_SECRET,
     authSecret: TEST_AUTH_SECRET,
+    logger: console.info,
   });
 }
 
@@ -57,14 +60,28 @@ describe('ForestOAuthProvider', () => {
 
       expect(customProvider).toBeDefined();
     });
+
+    it('should create instance with custom forestAppUrl', () => {
+      const customProvider = new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: 'https://custom-app.forestadmin.com',
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger: console.info,
+      });
+
+      expect(customProvider).toBeDefined();
+    });
   });
 
   describe('initialize', () => {
     it('should not throw when envSecret is empty string', async () => {
       const customProvider = new ForestOAuthProvider({
         forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: TEST_FOREST_APP_URL,
         envSecret: '',
         authSecret: TEST_AUTH_SECRET,
+        logger: console.info,
       });
 
       await expect(customProvider.initialize()).resolves.not.toThrow();
@@ -130,35 +147,41 @@ describe('ForestOAuthProvider', () => {
       mockServer.get('/liana/environment', { error: 'Unauthorized' }, 401);
       global.fetch = mockServer.fetch;
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      const testProvider = createProvider();
+      const loggerSpy = jest.fn();
+      const testProvider = new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: TEST_FOREST_APP_URL,
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger: loggerSpy,
+      });
 
       await testProvider.initialize();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[WARN] Failed to fetch environmentId from Forest Admin API:',
-        expect.any(Error),
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('Failed to fetch environmentId from Forest Admin API'),
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should handle fetch network errors gracefully', async () => {
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      const testProvider = createProvider();
+      const loggerSpy = jest.fn();
+      const testProvider = new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: TEST_FOREST_APP_URL,
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger: loggerSpy,
+      });
 
       await testProvider.initialize();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[WARN] Failed to fetch environmentId from Forest Admin API:',
-        expect.any(Error),
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('Failed to fetch environmentId from Forest Admin API'),
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should use correct forest server URL for API call', async () => {
@@ -327,6 +350,46 @@ describe('ForestOAuthProvider', () => {
 
       expect(redirectCall).toContain('https://example.com/callback');
       expect(redirectCall).toContain('error=server_error');
+    });
+
+    it('should use custom forestAppUrl for redirect', async () => {
+      const customAppUrl = 'https://custom-app.forestadmin.com';
+      const customProvider = new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: customAppUrl,
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger: console.info,
+      });
+
+      // Mock fetch to return a valid response for initialize
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+          }),
+      });
+
+      await customProvider.initialize();
+
+      await customProvider.authorize(
+        mockClient,
+        {
+          redirectUri: 'https://example.com/callback',
+          codeChallenge: 'test-code-challenge',
+          state: 'test-state',
+          scopes: ['mcp:read'],
+          resource: new URL('https://localhost:3931'),
+        },
+        mockResponse as Response,
+      );
+
+      const redirectCall = (mockResponse.redirect as jest.Mock).mock.calls[0][0];
+      const url = new URL(redirectCall);
+
+      expect(url.hostname).toBe('custom-app.forestadmin.com');
+      expect(url.pathname).toBe('/oauth/authorize');
     });
   });
 

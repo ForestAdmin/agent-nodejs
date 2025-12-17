@@ -84,7 +84,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
       contentType: 'text/csv',
       query: {
         ...QuerySerializer.serialize(options, this.name),
-        ...{ header: JSON.stringify(options?.fields) },
+        ...{ header: JSON.stringify(options?.projection) },
       },
       stream,
     });

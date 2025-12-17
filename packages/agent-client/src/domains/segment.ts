@@ -37,7 +37,7 @@ export default class Segment<TypingsSchema> {
       contentType: 'text/csv',
       query: {
         ...this.serializeQuery(options),
-        ...{ header: JSON.stringify(options?.fields) },
+        ...{ header: JSON.stringify(options?.projection) },
       },
       stream,
     });
@@ -57,9 +57,9 @@ export default class Segment<TypingsSchema> {
       );
     }
 
-    return {
-      ...QuerySerializer.serialize(options, this.collectionName),
-      segment: this.name,
-    };
+    return QuerySerializer.serialize(
+      { ...options, ...{ filters: { segment: this.name } } },
+      this.collectionName,
+    );
   }
 }
