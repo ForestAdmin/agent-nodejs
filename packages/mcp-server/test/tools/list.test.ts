@@ -578,6 +578,46 @@ describe('declareListTool', () => {
             collectionName: 'orders',
             fields: ['id', 'customer@@@name', 'customer@@@email'],
           });
+      it('should parse filters sent as JSON string (LLM workaround)', async () => {
+        const filters = {
+          aggregator: 'And',
+          conditions: [{ field: 'status', operator: 'Equal', value: 'active' }],
+        };
+        const filtersAsString = JSON.stringify(filters);
+
+        // Simulate MCP SDK behavior: parse input through schema before calling handler
+        const inputSchema = registeredToolConfig.inputSchema as Record<
+          string,
+          { parse: (value: unknown) => unknown; optional: () => { parse: (value: unknown) => unknown } }
+        >;
+        const parsedFilters = inputSchema.filters.parse(filtersAsString);
+
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            filters: parsedFilters,
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          filters: { conditionTree: filters },
+        });
+      });
+
+      it('should handle filters as object when not sent as string', async () => {
+        const filters = { field: 'name', operator: 'Equal', value: 'John' };
+
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            filters,
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          filters: { conditionTree: filters },
         });
       });
     });
