@@ -50,7 +50,6 @@ type ListParameters = {
   search?: string;
   sort?: { field: string; ascending: boolean };
   isSearchExtended?: boolean;
-  searchExtended?: boolean;
   projection?: string[];
 };
 
@@ -71,7 +70,6 @@ function getListParameters(options: ListArgument): ListParameters {
 
   if (options.shouldSearchInRelation) {
     parameters.isSearchExtended = true;
-    parameters.searchExtended = true;
   }
 
   if (options.fields) {

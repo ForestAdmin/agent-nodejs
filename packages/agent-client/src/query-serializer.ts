@@ -14,6 +14,8 @@ export default class QuerySerializer {
       ...query.filters,
       sort: QuerySerializer.formatSort(query.sort),
       filters: QuerySerializer.formatFilters(query.filters),
+      searchExtended: !!query.isSearchExtended,
+      isSearchExtended: !!query.isSearchExtended,
       'page[size]': query.pagination?.size,
       'page[number]': query.pagination?.number,
       ...(query.projection?.length

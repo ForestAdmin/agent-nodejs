@@ -376,7 +376,7 @@ describe('declareListTool', () => {
           expect(mockList).toHaveBeenCalledWith({ search: 'test' });
         });
 
-        it('should pass isSearchExtended and searchExtended when shouldSearchInRelation is true', async () => {
+        it('should pass isSearchExtended when shouldSearchInRelation is true', async () => {
           await registeredToolHandler(
             { collectionName: 'users', search: 'test', shouldSearchInRelation: true },
             mockExtra,
@@ -385,7 +385,6 @@ describe('declareListTool', () => {
           expect(mockList).toHaveBeenCalledWith({
             search: 'test',
             isSearchExtended: true,
-            searchExtended: true,
           });
         });
 
@@ -411,7 +410,6 @@ describe('declareListTool', () => {
             filters: { conditionTree: filters },
             sort: { field: 'name', ascending: true },
             isSearchExtended: true,
-            searchExtended: true,
           });
         });
 
@@ -423,7 +421,6 @@ describe('declareListTool', () => {
 
           expect(mockList).toHaveBeenCalledWith({
             isSearchExtended: true,
-            searchExtended: true,
           });
         });
       });

@@ -5,7 +5,7 @@ export type BaseOptions = {
   sort?: PlainSortClause; // Sort clause for the query
   search?: string; // Search term for the query
   projection?: string[]; // Fields to include in the response
-  searchExtended?: boolean; // Whether to search also on related collections
+  isSearchExtended?: boolean; // Whether to search also on related collections
 };
 
 export type ExportOptions = BaseOptions;
