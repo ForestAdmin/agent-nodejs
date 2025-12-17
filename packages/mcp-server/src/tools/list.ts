@@ -45,19 +45,17 @@ type ListArgument = {
   fields?: string[];
 };
 
-function getListParameters(options: ListArgument): {
+type ListParameters = {
   filters?: Record<string, unknown>;
   search?: string;
   sort?: { field: string; ascending: boolean };
-} {
-  const parameters: {
-    filters?: Record<string, unknown>;
-    search?: string;
-    sort?: { field: string; ascending: boolean };
-    isSearchExtended?: boolean; // new parameter to indicate extended search
-    searchExtended?: boolean;
-    projection?: string[];
-  } = {};
+  isSearchExtended?: boolean;
+  searchExtended?: boolean;
+  projection?: string[];
+};
+
+function getListParameters(options: ListArgument): ListParameters {
+  const parameters: ListParameters = {};
 
   if (options.filters) {
     parameters.filters = { conditionTree: options.filters as Record<string, unknown> };
