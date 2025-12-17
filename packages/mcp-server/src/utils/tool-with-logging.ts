@@ -1,7 +1,11 @@
-import type { Logger } from '../server';
+import type { Logger } from '../server.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 
 type ZodRawShape = Record<string, z.ZodTypeAny>;
 
@@ -16,19 +20,64 @@ type ToolResult = {
   isError?: boolean;
 };
 
+// -----------------------------------------------------------------------------
+// Validation Helpers
+// -----------------------------------------------------------------------------
+
 /**
- * Formats a Zod error into a readable string.
+ * Formats a Zod error into a human-readable string.
+ * Example: "collectionName: Required, sort.field: Expected string"
  */
 function formatZodError(error: z.ZodError): string {
-  return error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+  return error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
 }
 
 /**
- * Registers a tool with validation error logging.
+ * Validates arguments against a schema and logs errors if validation fails.
+ * This is a pre-validation step for logging purposes only - the SDK handles actual validation.
+ */
+function logValidationErrorsIfAny(
+  args: unknown,
+  schema: z.ZodSchema,
+  toolName: string,
+  logger: Logger,
+): void {
+  const result = schema.safeParse(args);
+
+  if (!result.success) {
+    const errorMessage = formatZodError(result.error);
+    logger('Error', `[MCP] Tool "${toolName}" validation error: ${errorMessage}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tool Registration
+// -----------------------------------------------------------------------------
+
+/**
+ * Registers an MCP tool with automatic validation error logging.
  *
- * This helper pre-validates arguments and logs validation failures with detailed
- * field information. Execution errors and error results are logged by the SSE
- * interception in server.ts, so we don't duplicate that logging here.
+ * This wrapper logs validation errors with detailed field information,
+ * which helps debug tool calls when clients send invalid arguments.
+ *
+ * Note: Execution errors are logged by the SSE response interceptor in server.ts,
+ * so we don't duplicate that logging here.
+ *
+ * @example
+ * registerToolWithLogging(
+ *   mcpServer,
+ *   'list',
+ *   {
+ *     title: 'List Records',
+ *     description: 'Lists records from a collection',
+ *     inputSchema: { collectionName: z.string() },
+ *   },
+ *   async (args) => {
+ *     const records = await fetchRecords(args.collectionName);
+ *     return { content: [{ type: 'text', text: JSON.stringify(records) }] };
+ *   },
+ *   logger,
+ * );
  */
 export default function registerToolWithLogging<
   TSchema extends ZodRawShape,
@@ -48,16 +97,8 @@ export default function registerToolWithLogging<
     config,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (async (args: any, extra: any) => {
-      // Pre-validate arguments to log validation errors with field details
-      // The SDK will do the actual validation and return errors to client
-      const validationResult = schema.safeParse(args);
+      logValidationErrorsIfAny(args, schema, toolName, logger);
 
-      if (!validationResult.success) {
-        const errorMessage = formatZodError(validationResult.error);
-        logger('Error', `[MCP] Tool "${toolName}" validation error: ${errorMessage}`);
-      }
-
-      // Execution errors are caught and logged by SSE interception in server.ts
       return handler(args as TArgs, extra);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,

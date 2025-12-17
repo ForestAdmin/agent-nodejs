@@ -20,6 +20,7 @@ import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
 import declareListTool from './tools/list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
+import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
 
 export type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
@@ -42,7 +43,8 @@ const defaultLogger: Logger = (level, message) => {
   getDefaultLogFn(level)(message);
 };
 
-const SAFE_ARGUMENT_FOR_LOGGING: Record<string, string[]> = {
+/** Fields that are safe to log for each tool (non-sensitive data) */
+const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
 };
 
@@ -139,16 +141,59 @@ export default class ForestMCPServer {
     return { envSecret: this.envSecret, authSecret: this.authSecret };
   }
 
-  private getSafeArgs(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
-    const safeArgs = { ...args };
+  /**
+   * Filters tool arguments to only include non-sensitive fields for logging.
+   * Prevents accidentally logging sensitive data like search queries or filters.
+   */
+  private filterArgsForLogging(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const allowedFields = SAFE_ARGUMENTS_FOR_LOGGING[toolName] || [];
 
-    Object.keys(safeArgs).forEach(key => {
-      if (!SAFE_ARGUMENT_FOR_LOGGING[toolName]?.includes(key)) {
-        delete safeArgs[key];
-      }
-    });
+    return Object.fromEntries(Object.entries(args).filter(([key]) => allowedFields.includes(key)));
+  }
 
-    return safeArgs;
+  /**
+   * Logs tool call information if the request is a tools/call method.
+   */
+  private logToolCallIfPresent(req: express.Request): void {
+    interface McpToolCallBody {
+      method?: string;
+      params?: {
+        name?: string;
+        arguments?: Record<string, unknown>;
+      };
+    }
+
+    const body = req.body as McpToolCallBody;
+
+    if (body?.method !== 'tools/call' || !body.params?.name) {
+      return;
+    }
+
+    const toolName = body.params.name;
+    const args = body.params.arguments || {};
+    const safeArgs = this.filterArgsForLogging(toolName, args);
+
+    this.logger('Info', `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(safeArgs)}`);
+  }
+
+  /**
+   * Handles an incoming MCP request.
+   * Logs the request, intercepts the response for error logging, and delegates to the transport.
+   */
+  private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
+    this.logger('Info', `[MCP] Incoming ${req.method} ${req.path}`);
+
+    if (!this.mcpTransport) {
+      throw new Error('MCP transport not initialized');
+    }
+
+    this.logToolCallIfPresent(req);
+    interceptResponseForErrorLogging(res, this.logger);
+
+    await this.mcpTransport.handleRequest(req, res, req.body);
   }
 
   /**
@@ -277,134 +322,20 @@ export default class ForestMCPServer {
         requiredScopes: ['mcp:read'],
       }),
       (req, res) => {
-        void (async () => {
-          try {
-            this.logger('Info', `[MCP] Incoming ${req.method} ${req.path}`);
+        this.handleMcpRequest(req, res).catch(error => {
+          this.logger('Error', `MCP Error: ${error}`);
 
-            // Use the shared transport instance that's already connected to the MCP server
-            if (!this.mcpTransport) {
-              throw new Error('MCP transport not initialized');
-            }
-
-            // Log tool calls with their parameters
-            type McpRequestBody = {
-              method?: string;
-              params?: { name?: string; arguments?: Record<string, unknown> };
-            };
-            const body = req.body as McpRequestBody;
-
-            if (body?.method === 'tools/call' && body.params?.name) {
-              const toolName = body.params.name;
-              const args = body.params.arguments || {};
-              this.logger(
-                'Info',
-                `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(
-                  this.getSafeArgs(toolName, args),
-                )}`,
-              );
-            }
-
-            // Intercept response to log tool errors from SSE stream
-            // The MCP SDK sends errors as SSE events, not HTTP errors
-            const loggerRef = this.logger;
-
-            // Helper to parse and log errors from response data
-            const logErrorsFromData = (data: string) => {
-              try {
-                // SSE format: "event: message\ndata: {...}\n\n"
-                const dataMatch = data.match(/data:\s*({.+})/s);
-                if (!dataMatch) return;
-
-                const jsonData = JSON.parse(dataMatch[1]) as {
-                  result?: { isError?: boolean; content?: { text?: string }[] };
-                  error?: { message?: string };
-                };
-
-                // Log JSON-RPC errors
-                if (jsonData.error?.message) {
-                  loggerRef('Error', `[MCP] ${jsonData.error.message}`);
-                }
-
-                // Log tool errors (isError: true in result)
-                if (jsonData.result?.isError) {
-                  const errorText = jsonData.result.content?.[0]?.text || 'Unknown error';
-                  loggerRef('Error', `[MCP] Tool error: ${errorText}`);
-                }
-              } catch (error) {
-                // Only ignore SyntaxError from JSON.parse (expected for non-JSON SSE data)
-                if (!(error instanceof SyntaxError)) {
-                  loggerRef('Warn', `[MCP] Unexpected error parsing SSE response: ${error}`);
-                }
-              }
-            };
-
-            // Helper to convert chunk to string (handles Buffer, Uint8Array, string)
-            const chunkToString = (chunk: Buffer | string | Uint8Array): string => {
-              if (typeof chunk === 'string') return chunk;
-              // Handle both Node.js Buffer and Uint8Array from Web Streams
-              if (Buffer.isBuffer(chunk)) return chunk.toString('utf8');
-
-              // For Uint8Array, use TextDecoder
-              return new TextDecoder('utf8').decode(chunk);
-            };
-
-            // Intercept res.write for streaming responses
-            const originalWrite = res.write.bind(res);
-            res.write = function interceptWrite(
-              chunk: Buffer | string | Uint8Array,
-              encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
-              callback?: (error?: Error | null) => void,
-            ): boolean {
-              // Logging must never interfere with the actual response
-              try {
-                if (chunk != null) {
-                  const data = chunkToString(chunk);
-                  logErrorsFromData(data);
-                }
-              } catch (err) {
-                loggerRef('Warn', `[MCP] Failed to parse response for error logging: ${err}`);
-              }
-
-              return originalWrite(chunk, encodingOrCallback as BufferEncoding, callback);
-            } as typeof res.write;
-
-            // Intercept res.end for non-streaming responses
-            const originalEnd = res.end.bind(res);
-            res.end = function interceptEnd(
-              chunk?: Buffer | string | Uint8Array | (() => void),
-              encodingOrCallback?: BufferEncoding | (() => void),
-              callback?: () => void,
-            ): typeof res {
-              // Logging must never interfere with the actual response
-              try {
-                if (chunk && typeof chunk !== 'function') {
-                  const data = chunkToString(chunk as Buffer | string | Uint8Array);
-                  logErrorsFromData(data);
-                }
-              } catch (err) {
-                loggerRef('Warn', `[MCP] Failed to parse response for error logging: ${err}`);
-              }
-
-              return originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
-            } as typeof res.end;
-
-            // Handle the incoming request through the connected transport
-            await this.mcpTransport.handleRequest(req, res, req.body);
-          } catch (error) {
-            this.logger('Error', `MCP Error: ${error}`);
-
-            if (!res.headersSent) {
-              res.status(500).json({
-                jsonrpc: '2.0',
-                error: {
-                  code: -32603,
-                  message: (error as Error)?.message || 'Internal server error',
-                },
-                id: null,
-              });
-            }
+          if (!res.headersSent) {
+            res.status(500).json({
+              jsonrpc: '2.0',
+              error: {
+                code: -32603,
+                message: (error as Error)?.message || 'Internal server error',
+              },
+              id: null,
+            });
           }
-        })();
+        });
       },
     );
 
