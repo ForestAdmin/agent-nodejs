@@ -120,7 +120,7 @@ export default class ForestMCPServer {
       );
     }
 
-    declareListTool(this.mcpServer, this.forestServerUrl, collectionNames);
+    declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
@@ -301,6 +301,76 @@ export default class ForestMCPServer {
                 )}`,
               );
             }
+
+            // Intercept response to log tool errors from SSE stream
+            // The MCP SDK sends errors as SSE events, not HTTP errors
+            const loggerRef = this.logger;
+
+            // Helper to parse and log errors from response data
+            const logErrorsFromData = (data: string) => {
+              try {
+                // SSE format: "event: message\ndata: {...}\n\n"
+                const dataMatch = data.match(/data:\s*({.+})/s);
+
+                if (dataMatch) {
+                  const jsonData = JSON.parse(dataMatch[1]) as {
+                    result?: { isError?: boolean; content?: { text?: string }[] };
+                    error?: { message?: string };
+                  };
+
+                  // Log JSON-RPC errors
+                  if (jsonData.error?.message) {
+                    loggerRef('Error', `[MCP] ${jsonData.error.message}`);
+                  }
+
+                  // Log tool errors (isError: true in result)
+                  if (jsonData.result?.isError) {
+                    const errorText = jsonData.result.content?.[0]?.text || 'Unknown error';
+                    loggerRef('Error', `[MCP] Tool error: ${errorText}`);
+                  }
+                }
+              } catch {
+                // Ignore parsing errors - not all data is SSE JSON
+              }
+            };
+
+            // Helper to convert chunk to string (handles Buffer, Uint8Array, string)
+            const chunkToString = (chunk: Buffer | string | Uint8Array): string => {
+              if (typeof chunk === 'string') return chunk;
+              // Handle both Node.js Buffer and Uint8Array from Web Streams
+              if (Buffer.isBuffer(chunk)) return chunk.toString('utf8');
+
+              // For Uint8Array, use TextDecoder
+              return new TextDecoder('utf8').decode(chunk);
+            };
+
+            // Intercept res.write for streaming responses
+            const originalWrite = res.write.bind(res);
+            res.write = function interceptWrite(
+              chunk: Buffer | string | Uint8Array,
+              encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+              callback?: (error?: Error | null) => void,
+            ): boolean {
+              const data = chunkToString(chunk);
+              logErrorsFromData(data);
+
+              return originalWrite(chunk, encodingOrCallback as BufferEncoding, callback);
+            } as typeof res.write;
+
+            // Intercept res.end for non-streaming responses
+            const originalEnd = res.end.bind(res);
+            res.end = function interceptEnd(
+              chunk?: Buffer | string | Uint8Array | (() => void),
+              encodingOrCallback?: BufferEncoding | (() => void),
+              callback?: () => void,
+            ): typeof res {
+              if (chunk && typeof chunk !== 'function') {
+                const data = chunkToString(chunk as Buffer | string | Uint8Array);
+                logErrorsFromData(data);
+              }
+
+              return originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
+            } as typeof res.end;
 
             // Handle the incoming request through the connected transport
             await this.mcpTransport.handleRequest(req, res, req.body);

@@ -4,6 +4,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import declareListTool from '../../src/tools/list';
+import type { Logger } from '../../src/server';
 import createActivityLog from '../../src/utils/activity-logs-creator';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
@@ -11,6 +12,8 @@ import * as schemaFetcher from '../../src/utils/schema-fetcher';
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/activity-logs-creator');
 jest.mock('../../src/utils/schema-fetcher');
+
+const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
 const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
@@ -42,7 +45,7 @@ describe('declareListTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "list"', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com');
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'list',
@@ -52,7 +55,7 @@ describe('declareListTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com');
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       expect(registeredToolConfig.title).toBe('List records from a collection');
       expect(registeredToolConfig.description).toBe(
@@ -61,7 +64,7 @@ describe('declareListTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com');
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('search');
@@ -70,7 +73,7 @@ describe('declareListTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com');
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -83,7 +86,7 @@ describe('declareListTool', () => {
     });
 
     it('should use string type for collectionName when empty array provided', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', []);
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -96,7 +99,12 @@ describe('declareListTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', ['users', 'products', 'orders']);
+      declareListTool(
+        mcpServer,
+        'https://api.forestadmin.com',
+        mockLogger,
+        ['users', 'products', 'orders'],
+      );
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -124,7 +132,7 @@ describe('declareListTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com');
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
     });
 
     it('should call buildClient with the extra parameter', async () => {
