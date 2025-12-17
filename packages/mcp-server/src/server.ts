@@ -42,6 +42,10 @@ const defaultLogger: Logger = (level, message) => {
   getDefaultLogFn(level)(message);
 };
 
+const SAFE_ARGUMENT_FOR_LOGGING: Record<string, string[]> = {
+  list: ['collectionName'],
+};
+
 /**
  * Options for configuring the Forest Admin MCP Server
  */
@@ -133,6 +137,18 @@ export default class ForestMCPServer {
     }
 
     return { envSecret: this.envSecret, authSecret: this.authSecret };
+  }
+
+  private getSafeArgs(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
+    const safeArgs = { ...args };
+
+    Object.keys(safeArgs).forEach(key => {
+      if (!SAFE_ARGUMENT_FOR_LOGGING[toolName]?.includes(key)) {
+        delete safeArgs[key];
+      }
+    });
+
+    return safeArgs;
   }
 
   /**
@@ -278,7 +294,12 @@ export default class ForestMCPServer {
             if (body?.method === 'tools/call' && body.params?.name) {
               const toolName = body.params.name;
               const args = body.params.arguments || {};
-              this.logger('Info', `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(args)}`);
+              this.logger(
+                'Info',
+                `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(
+                  this.getSafeArgs(toolName, args),
+                )}`,
+              );
             }
 
             // Handle the incoming request through the connected transport
