@@ -18,17 +18,9 @@ type ToolResult = {
 
 /**
  * Formats a Zod error into a readable string.
- * Compatible with both Zod v3 and v4.
  */
 function formatZodError(error: z.ZodError): string {
-  // Zod v3 uses .errors, v4 uses .issues
-  const issues = 'issues' in error ? error.issues : (error as { errors?: z.ZodIssue[] }).errors;
-
-  if (!issues || !Array.isArray(issues)) {
-    return error.message || 'Validation failed';
-  }
-
-  return issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+  return error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
 }
 
 /**

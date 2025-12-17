@@ -311,26 +311,28 @@ export default class ForestMCPServer {
               try {
                 // SSE format: "event: message\ndata: {...}\n\n"
                 const dataMatch = data.match(/data:\s*({.+})/s);
+                if (!dataMatch) return;
 
-                if (dataMatch) {
-                  const jsonData = JSON.parse(dataMatch[1]) as {
-                    result?: { isError?: boolean; content?: { text?: string }[] };
-                    error?: { message?: string };
-                  };
+                const jsonData = JSON.parse(dataMatch[1]) as {
+                  result?: { isError?: boolean; content?: { text?: string }[] };
+                  error?: { message?: string };
+                };
 
-                  // Log JSON-RPC errors
-                  if (jsonData.error?.message) {
-                    loggerRef('Error', `[MCP] ${jsonData.error.message}`);
-                  }
-
-                  // Log tool errors (isError: true in result)
-                  if (jsonData.result?.isError) {
-                    const errorText = jsonData.result.content?.[0]?.text || 'Unknown error';
-                    loggerRef('Error', `[MCP] Tool error: ${errorText}`);
-                  }
+                // Log JSON-RPC errors
+                if (jsonData.error?.message) {
+                  loggerRef('Error', `[MCP] ${jsonData.error.message}`);
                 }
-              } catch {
-                // Ignore parsing errors - not all data is SSE JSON
+
+                // Log tool errors (isError: true in result)
+                if (jsonData.result?.isError) {
+                  const errorText = jsonData.result.content?.[0]?.text || 'Unknown error';
+                  loggerRef('Error', `[MCP] Tool error: ${errorText}`);
+                }
+              } catch (error) {
+                // Only ignore SyntaxError from JSON.parse (expected for non-JSON SSE data)
+                if (!(error instanceof SyntaxError)) {
+                  loggerRef('Warn', `[MCP] Unexpected error parsing SSE response: ${error}`);
+                }
               }
             };
 
@@ -351,8 +353,15 @@ export default class ForestMCPServer {
               encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
               callback?: (error?: Error | null) => void,
             ): boolean {
-              const data = chunkToString(chunk);
-              logErrorsFromData(data);
+              // Logging must never interfere with the actual response
+              try {
+                if (chunk != null) {
+                  const data = chunkToString(chunk);
+                  logErrorsFromData(data);
+                }
+              } catch (err) {
+                loggerRef('Warn', `[MCP] Failed to parse response for error logging: ${err}`);
+              }
 
               return originalWrite(chunk, encodingOrCallback as BufferEncoding, callback);
             } as typeof res.write;
@@ -364,9 +373,14 @@ export default class ForestMCPServer {
               encodingOrCallback?: BufferEncoding | (() => void),
               callback?: () => void,
             ): typeof res {
-              if (chunk && typeof chunk !== 'function') {
-                const data = chunkToString(chunk as Buffer | string | Uint8Array);
-                logErrorsFromData(data);
+              // Logging must never interfere with the actual response
+              try {
+                if (chunk && typeof chunk !== 'function') {
+                  const data = chunkToString(chunk as Buffer | string | Uint8Array);
+                  logErrorsFromData(data);
+                }
+              } catch (err) {
+                loggerRef('Warn', `[MCP] Failed to parse response for error logging: ${err}`);
               }
 
               return originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
