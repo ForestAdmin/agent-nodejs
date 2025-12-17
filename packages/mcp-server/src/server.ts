@@ -271,7 +271,7 @@ export default class ForestMCPServer {
             if (body?.method === 'tools/call' && body.params?.name) {
               const toolName = body.params.name;
               const args = body.params.arguments || {};
-              this.logger('Info', `Tool call: ${toolName} - params: ${JSON.stringify(args)}`);
+              this.logger('Info', `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(args)}`);
             }
 
             // Handle the incoming request through the connected transport
