@@ -99,12 +99,11 @@ describe('declareListTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareListTool(
-        mcpServer,
-        'https://api.forestadmin.com',
-        mockLogger,
-        ['users', 'products', 'orders'],
-      );
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
+        'users',
+        'products',
+        'orders',
+      ]);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
