@@ -10,40 +10,38 @@ import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
 
+const listArgumentSchema = z.object({
+  collectionName: z.string(),
+  search: z.string().optional(),
+  filters: filterSchema.optional(),
+  sort: z
+    .object({
+      field: z.string(),
+      ascending: z.boolean(),
+    })
+    .optional(),
+  shouldSearchInRelation: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to search also on related collections'),
+  fields: z
+    .array(z.string())
+    .describe(
+      'Fields to include in the list. Reduces the amount of data returned. For sub fields, use "@@@" to separate relations, e.g. "relationName@@@fieldName".',
+    )
+    .optional(),
+});
+
+type ListArgument = z.infer<typeof listArgumentSchema>;
+
 function createListArgumentShape(collectionNames: string[]) {
   return {
+    ...listArgumentSchema.shape,
     collectionName:
       collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
-    search: z.string().optional(),
-    filters: filterSchema.optional(),
-    sort: z
-      .object({
-        field: z.string(),
-        ascending: z.boolean(),
-      })
-      .optional(),
-    shouldSearchInRelation: z
-      .boolean()
-      .optional()
-      .default(false)
-      .describe('Whether to search also on related collections'),
-    fields: z
-      .array(z.string())
-      .describe(
-        'Fields to include in the list. Reduces the amount of data returned. For sub fields, use "@@@" to separate relations, e.g. "relationName@@@fieldName".',
-      )
-      .optional(),
   };
 }
-
-type ListArgument = {
-  collectionName: string;
-  search?: string;
-  filters?: z.infer<typeof filterSchema>;
-  sort?: { field: string; ascending: boolean };
-  shouldSearchInRelation?: boolean;
-  fields?: string[];
-};
 
 type ListParameters = {
   filters?: Record<string, unknown>;
