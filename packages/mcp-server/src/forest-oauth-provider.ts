@@ -20,11 +20,14 @@ import {
   UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
+import { Logger } from './server';
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
+  forestAppUrl: string;
   envSecret: string;
   authSecret: string;
+  logger: Logger;
 }
 
 /**
@@ -32,16 +35,26 @@ export interface ForestOAuthProviderOptions {
  */
 export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestServerUrl: string;
+  private forestAppUrl: string;
   private envSecret: string;
   private authSecret: string;
-  private environmentId?: number;
   private forestClient: ForestAdminClient;
-  private environmentApiEndpoint: string;
+  private environmentId?: number;
+  private environmentApiEndpoint?: string;
+  private logger: Logger;
 
-  constructor({ forestServerUrl, envSecret, authSecret }: ForestOAuthProviderOptions) {
+  constructor({
+    forestServerUrl,
+    forestAppUrl,
+    envSecret,
+    authSecret,
+    logger,
+  }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
+    this.forestAppUrl = forestAppUrl;
     this.envSecret = envSecret;
     this.authSecret = authSecret;
+    this.logger = logger;
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
@@ -54,7 +67,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     } catch (error) {
       // Log warning but don't throw - the MCP server can still partially function
       // The authorize method will return an appropriate error when environmentId is missing
-      console.error('[WARN] Failed to fetch environmentId from Forest Admin API:', error);
+      this.logger('Warn', `Failed to fetch environmentId from Forest Admin API: ${error}`);
     }
   }
 
@@ -110,8 +123,12 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           },
         });
 
-        // Return undefined if client is not found
+        // Log and return undefined for other errors (don't expose internal errors)
         if (!response.ok) {
+          console.error(
+            `[ForestOAuthProvider] Failed to fetch client ${clientId}: ${response.status} ${response.statusText}`,
+          );
+
           return undefined;
         }
 
@@ -135,10 +152,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       }
 
       // Redirect to Forest Admin agent for actual authentication
-      const agentAuthUrl = new URL(
-        '/oauth/authorize',
-        process.env.FOREST_FRONTEND_HOSTNAME || 'https://app.forestadmin.com',
-      );
+      const agentAuthUrl = new URL('/oauth/authorize', this.forestAppUrl);
 
       agentAuthUrl.searchParams.set('redirect_uri', params.redirectUri);
       agentAuthUrl.searchParams.set('code_challenge', params.codeChallenge);
@@ -156,12 +170,14 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
       res.redirect(agentAuthUrl.toString());
     } catch (error) {
-      console.error('[ForestOAuthProvider] Authorization error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger('Error', `[ForestOAuthProvider] Authorization error:: ${errorMessage}`);
 
+      // Don't expose internal error details to the client - use a generic message
+      // The actual error is logged above for debugging
       res.redirect(
         `${params.redirectUri}?error=server_error&error_description=${encodeURIComponent(
-          errorMessage,
+          'Authorization failed. Please try again or contact support.',
         )}`,
       );
     }
@@ -190,7 +206,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         code_verifier: codeVerifier,
       });
     } catch (error) {
-      throw new InvalidRequestError(`Failed to exchange authorization code: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new InvalidRequestError(`Failed to exchange authorization code: ${message}`);
     }
   }
 
@@ -233,7 +250,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         scopes,
       });
     } catch (error) {
-      throw new InvalidRequestError(`Failed to refresh token: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new InvalidRequestError(`Failed to refresh token: ${message}`);
     }
   }
 
@@ -268,20 +286,33 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       };
 
     // Get updated user info
-    const {
-      meta: { renderingId },
-      exp: expirationDate,
-      scope,
-    } = jsonwebtoken.decode(forestServerAccessToken) as {
+    const decodedAccessToken = jsonwebtoken.decode(forestServerAccessToken) as {
       meta: { renderingId: number };
       exp: number;
       iat: number;
       scope: string;
-    };
-    const { exp: refreshTokenExpirationDate } = jsonwebtoken.decode(forestServerRefreshToken) as {
+    } | null;
+
+    if (!decodedAccessToken) {
+      throw new Error('Failed to decode access token from Forest Admin server');
+    }
+
+    const {
+      meta: { renderingId },
+      exp: expirationDate,
+      scope,
+    } = decodedAccessToken;
+
+    const decodedRefreshToken = jsonwebtoken.decode(forestServerRefreshToken) as {
       exp: number;
       iat: number;
-    };
+    } | null;
+
+    if (!decodedRefreshToken) {
+      throw new Error('Failed to decode refresh token from Forest Admin server');
+    }
+
+    const { exp: refreshTokenExpirationDate } = decodedRefreshToken;
     const user = await this.forestClient.authService.getUserInfo(
       renderingId,
       forestServerAccessToken,
@@ -289,8 +320,9 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
     // Create new access token
     const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
+    const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
     const accessToken = jsonwebtoken.sign(
-      { ...user, serverToken: forestServerAccessToken },
+      { ...user, serverToken: forestServerAccessToken, scopes: tokenScopes },
       this.authSecret,
       { expiresIn },
     );
@@ -324,6 +356,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         email: string;
         renderingId: number;
         serverToken: string;
+        scopes?: string[];
         exp: number;
         iat: number;
       };
@@ -333,11 +366,14 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         throw new UnsupportedTokenTypeError('Cannot use refresh token as access token');
       }
 
+      // Use scopes from token if available, otherwise fall back to defaults
+      const scopes = decoded.scopes || ['mcp:read', 'mcp:write', 'mcp:action'];
+
       return {
         token,
         clientId: decoded.id.toString(),
         expiresAt: decoded.exp,
-        scopes: ['mcp:read', 'mcp:write', 'mcp:action'],
+        scopes,
         extra: {
           userId: decoded.id,
           email: decoded.email,
@@ -347,7 +383,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         },
       };
     } catch (error) {
-      console.error('Error verifying token:', error);
+      this.logger('Error', `Error verifying token: ${error}`);
 
       if (error instanceof jsonwebtoken.TokenExpiredError) {
         throw new InvalidTokenError('Access token has expired');
@@ -362,13 +398,13 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   }
 
   async revokeToken(
-    client: OAuthClientInformationFull,
-    request: OAuthTokenRevocationRequest,
+    _client: OAuthClientInformationFull,
+    _request: OAuthTokenRevocationRequest,
   ): Promise<void> {
-    // FIXME: To implement the revocation with Forest Admin server
-    if (request) {
-      // Remove this if
-    }
+    // Token revocation is not currently implemented.
+    // Per RFC 7009, the revocation endpoint should return success even if the token
+    // is already invalid or unknown, so we silently succeed here.
+    // TODO: Implement actual token revocation with Forest Admin server when supported.
   }
 
   // Skip PKCE validation to match original implementation

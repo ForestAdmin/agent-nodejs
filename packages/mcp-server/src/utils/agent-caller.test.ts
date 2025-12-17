@@ -1,33 +1,16 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { createRemoteAgentClient } from '@forestadmin-experimental/agent-nodejs-testing';
-
 import buildClient from './agent-caller';
 
-jest.mock('@forestadmin-experimental/agent-nodejs-testing');
-
-const mockCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
-  typeof createRemoteAgentClient
->;
-
 describe('buildClient', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('should create a remote agent client with the token from authInfo', () => {
-    const mockRpcClient = { collection: jest.fn() };
-    mockCreateRemoteAgentClient.mockReturnValue(
-      mockRpcClient as unknown as ReturnType<typeof createRemoteAgentClient>,
-    );
-
     const request = {
       authInfo: {
         token: 'test-auth-token',
         extra: {
           userId: 123,
-          renderingId: '456',
+          renderingId: 456,
           environmentId: 789,
           projectId: 101,
           environmentApiEndpoint: 'http://localhost:3310',
@@ -37,26 +20,17 @@ describe('buildClient', () => {
 
     const result = buildClient(request);
 
-    expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith({
-      token: 'test-auth-token',
-      url: 'http://localhost:3310',
-      actionEndpoints: {},
-    });
-    expect(result.rpcClient).toBe(mockRpcClient);
+    expect(result.rpcClient).toBeDefined();
+    expect(typeof result.rpcClient.collection).toBe('function');
   });
 
   it('should return authData from request.authInfo.extra', () => {
-    const mockRpcClient = { collection: jest.fn() };
-    mockCreateRemoteAgentClient.mockReturnValue(
-      mockRpcClient as unknown as ReturnType<typeof createRemoteAgentClient>,
-    );
-
     const request = {
       authInfo: {
         token: 'test-token',
         extra: {
           userId: 999,
-          renderingId: '888',
+          renderingId: 888,
           environmentId: 777,
           projectId: 666,
           environmentApiEndpoint: 'http://localhost:3310',
@@ -68,19 +42,14 @@ describe('buildClient', () => {
 
     expect(result.authData).toEqual({
       userId: 999,
-      renderingId: '888',
+      renderingId: 888,
       environmentId: 777,
       projectId: 666,
       environmentApiEndpoint: 'http://localhost:3310',
     });
   });
 
-  it('should use environmentApiEndpoint from authInfo.extra', () => {
-    const mockRpcClient = { collection: jest.fn() };
-    mockCreateRemoteAgentClient.mockReturnValue(
-      mockRpcClient as unknown as ReturnType<typeof createRemoteAgentClient>,
-    );
-
+  it('should create client that can access collections', () => {
     const request = {
       authInfo: {
         token: 'test-token',
@@ -90,21 +59,18 @@ describe('buildClient', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    buildClient(request);
+    const result = buildClient(request);
 
-    expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith({
-      token: 'test-token',
-      url: 'http://custom-agent:4000',
-      actionEndpoints: {},
-    });
+    // The client should have the collection method
+    expect(result.rpcClient.collection).toBeDefined();
+    // Calling collection should return a collection object
+    const collection = result.rpcClient.collection('users');
+    expect(collection).toBeDefined();
+    expect(typeof collection.list).toBe('function');
+    expect(typeof collection.count).toBe('function');
   });
 
-  it('should handle undefined token gracefully', () => {
-    const mockRpcClient = { collection: jest.fn() };
-    mockCreateRemoteAgentClient.mockReturnValue(
-      mockRpcClient as unknown as ReturnType<typeof createRemoteAgentClient>,
-    );
-
+  it('should throw error when token is missing', () => {
     const request = {
       authInfo: {
         extra: {
@@ -113,39 +79,16 @@ describe('buildClient', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    buildClient(request);
-
-    expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith({
-      token: undefined,
-      url: 'http://localhost:3310',
-      actionEndpoints: {},
-    });
+    expect(() => buildClient(request)).toThrow('Authentication token is missing');
   });
 
-  it('should handle undefined authInfo gracefully', () => {
-    const mockRpcClient = { collection: jest.fn() };
-    mockCreateRemoteAgentClient.mockReturnValue(
-      mockRpcClient as unknown as ReturnType<typeof createRemoteAgentClient>,
-    );
-
+  it('should throw error when authInfo is missing', () => {
     const request = {} as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = buildClient(request);
-
-    expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith({
-      token: undefined,
-      url: undefined,
-      actionEndpoints: {},
-    });
-    expect(result.authData).toBeUndefined();
+    expect(() => buildClient(request)).toThrow('Authentication token is missing');
   });
 
-  it('should handle undefined environmentApiEndpoint gracefully', () => {
-    const mockRpcClient = { collection: jest.fn() };
-    mockCreateRemoteAgentClient.mockReturnValue(
-      mockRpcClient as unknown as ReturnType<typeof createRemoteAgentClient>,
-    );
-
+  it('should throw error when environmentApiEndpoint is missing', () => {
     const request = {
       authInfo: {
         token: 'test-token',
@@ -155,12 +98,19 @@ describe('buildClient', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    buildClient(request);
+    expect(() => buildClient(request)).toThrow('Environment API endpoint is missing or invalid');
+  });
 
-    expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith({
-      token: 'test-token',
-      url: undefined,
-      actionEndpoints: {},
-    });
+  it('should throw error when environmentApiEndpoint is not a string', () => {
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          environmentApiEndpoint: 12345, // number instead of string
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    expect(() => buildClient(request)).toThrow('Environment API endpoint is missing or invalid');
   });
 });

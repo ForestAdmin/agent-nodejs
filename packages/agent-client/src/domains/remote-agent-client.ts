@@ -1,5 +1,3 @@
-import type { TSchema } from '@forestadmin/agent';
-
 import { RawTreeWithSources } from '@forestadmin/forestadmin-client';
 
 import { ActionEndpointsByCollection } from './action';
@@ -34,7 +32,11 @@ export type PermissionsOverride = Record<
   }
 >;
 
-export default class RemoteAgentClient<TypingsSchema extends TSchema = TSchema> extends Chart {
+type CollectionName<T> = keyof T & string;
+
+export default class RemoteAgentClient<
+  TypingsSchema extends Record<string, unknown> = Record<string, unknown>,
+> extends Chart {
   protected actionEndpoints?: ActionEndpointsByCollection;
 
   private overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
@@ -52,7 +54,7 @@ export default class RemoteAgentClient<TypingsSchema extends TSchema = TSchema> 
   }
 
   async overrideCollectionPermission(
-    collectionName: keyof TypingsSchema,
+    collectionName: CollectionName<TypingsSchema>,
     permissions: CollectionPermissionsOverride,
   ) {
     await this.overridePermissions?.({
@@ -64,7 +66,7 @@ export default class RemoteAgentClient<TypingsSchema extends TSchema = TSchema> 
   }
 
   async overrideActionPermission(
-    collectionName: keyof TypingsSchema,
+    collectionName: CollectionName<TypingsSchema>,
     actionName: string,
     permissions: SmartActionPermissionsOverride,
   ) {
@@ -82,7 +84,7 @@ export default class RemoteAgentClient<TypingsSchema extends TSchema = TSchema> 
     await this.overridePermissions?.({});
   }
 
-  collection(name: keyof TypingsSchema): Collection<TypingsSchema> {
+  collection(name: CollectionName<TypingsSchema>): Collection<TypingsSchema> {
     return new Collection<TypingsSchema>(name, this.httpRequester, this.actionEndpoints);
   }
 }
