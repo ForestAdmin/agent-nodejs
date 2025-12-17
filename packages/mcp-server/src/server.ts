@@ -279,6 +279,8 @@ export default class ForestMCPServer {
       (req, res) => {
         void (async () => {
           try {
+            this.logger('Info', `[MCP] Incoming ${req.method} ${req.path}`);
+
             // Use the shared transport instance that's already connected to the MCP server
             if (!this.mcpTransport) {
               throw new Error('MCP transport not initialized');
