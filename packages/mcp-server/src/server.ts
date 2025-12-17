@@ -156,6 +156,10 @@ export default class ForestMCPServer {
 
     const app = express();
 
+    // Trust proxy headers when behind a reverse proxy (e.g., load balancer, nginx)
+    // This is required for express-rate-limit to correctly identify clients
+    app.set('trust proxy', 1);
+
     app.use(
       cors({
         origin: '*',
@@ -217,7 +221,10 @@ export default class ForestMCPServer {
       const originalEnd = res.end.bind(res);
       res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void)) => {
         const duration = Date.now() - startTime;
-        this.logger('Info', `[${res.statusCode}] ${req.method} ${req.path} - ${duration}ms`);
+        this.logger(
+          'Info',
+          `[${res.statusCode}] ${req.method} ${req.baseUrl || req.path} - ${duration}ms`,
+        );
 
         return originalEnd(chunk, encoding as BufferEncoding);
       }) as typeof res.end;
