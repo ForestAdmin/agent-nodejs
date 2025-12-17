@@ -24,13 +24,11 @@ function formatZodError(error: z.ZodError): string {
 }
 
 /**
- * Registers a tool with automatic error logging.
+ * Registers a tool with validation error logging.
  *
- * This helper ensures that both validation errors and execution errors
- * are logged server-side for debugging purposes.
- *
- * - Validation errors: Pre-validates arguments and logs any Zod validation failures
- * - Execution errors: Wraps the handler to catch and log thrown errors
+ * This helper pre-validates arguments and logs validation failures with detailed
+ * field information. Execution errors and error results are logged by the SSE
+ * interception in server.ts, so we don't duplicate that logging here.
  */
 export default function registerToolWithLogging<
   TSchema extends ZodRawShape,
@@ -50,8 +48,8 @@ export default function registerToolWithLogging<
     config,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (async (args: any, extra: any) => {
-      // Pre-validate arguments to log validation errors
-      // We only log here - the SDK will do the actual validation and return errors to client
+      // Pre-validate arguments to log validation errors with field details
+      // The SDK will do the actual validation and return errors to client
       const validationResult = schema.safeParse(args);
 
       if (!validationResult.success) {
@@ -59,23 +57,8 @@ export default function registerToolWithLogging<
         logger('Error', `[MCP] Tool "${toolName}" validation error: ${errorMessage}`);
       }
 
-      try {
-        // Pass original args (not validated.data) to preserve original behavior
-        const result = await handler(args as TArgs, extra);
-
-        // Log if the tool returned an error result
-        if (result?.isError) {
-          const errorText = result.content?.[0]?.text || 'Unknown error';
-          logger('Error', `[MCP] Tool "${toolName}" returned error: ${errorText}`);
-        }
-
-        return result;
-      } catch (error) {
-        // Log the error before re-throwing
-        const errMessage = error instanceof Error ? error.message : String(error);
-        logger('Error', `[MCP] Tool "${toolName}" execution error: ${errMessage}`);
-        throw error;
-      }
+      // Execution errors are caught and logged by SSE interception in server.ts
+      return handler(args as TArgs, extra);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   );
