@@ -1,9 +1,9 @@
+import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareListTool from '../../src/tools/list';
-import type { Logger } from '../../src/server';
 import createActivityLog from '../../src/utils/activity-logs-creator';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
@@ -579,6 +579,66 @@ describe('declareListTool', () => {
             fields: ['id', 'customer@@@name', 'customer@@@email'],
           });
         });
+      });
+
+      it('should parse filters sent as JSON string (LLM workaround)', async () => {
+        const filters = {
+          aggregator: 'And',
+          conditions: [{ field: 'status', operator: 'Equal', value: 'active' }],
+        };
+        const filtersAsString = JSON.stringify(filters);
+
+        // Simulate MCP SDK behavior: parse input through schema before calling handler
+        const inputSchema = registeredToolConfig.inputSchema as Record<
+          string,
+          {
+            parse: (value: unknown) => unknown;
+            optional: () => { parse: (value: unknown) => unknown };
+          }
+        >;
+        const parsedFilters = inputSchema.filters.parse(filtersAsString);
+
+        // Verify the preprocess correctly parsed the JSON string into an object
+        expect(parsedFilters).toEqual(filters);
+      });
+
+      it('should handle filters as object when not sent as string', async () => {
+        const filters = { field: 'name', operator: 'Equal', value: 'John' };
+
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            filters,
+          },
+          mockExtra,
+        );
+
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          filters,
+        });
+      });
+
+      it('should throw validation error when filters is malformed JSON string', () => {
+        const malformedJson = '{ invalid json }';
+
+        const inputSchema = registeredToolConfig.inputSchema as Record<
+          string,
+          { parse: (value: unknown) => unknown }
+        >;
+
+        expect(() => inputSchema.filters.parse(malformedJson)).toThrow();
+      });
+
+      it('should throw validation error when filters is a plain string', () => {
+        const plainString = 'not a json object';
+
+        const inputSchema = registeredToolConfig.inputSchema as Record<
+          string,
+          { parse: (value: unknown) => unknown }
+        >;
+
+        expect(() => inputSchema.filters.parse(plainString)).toThrow();
       });
     });
 
