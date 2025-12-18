@@ -9,7 +9,7 @@ export default class FieldFormStates<TypingsSchema> {
   private readonly fields: FieldGetter[];
   private readonly actionName: string;
   private readonly actionPath: string;
-  private readonly collectionName: keyof TypingsSchema;
+  private readonly collectionName: string;
   private readonly httpRequester: HttpRequester;
   private readonly ids: string[];
   private readonly layout: ForestServerActionFormLayoutElement[];
@@ -17,7 +17,7 @@ export default class FieldFormStates<TypingsSchema> {
   constructor(
     actionName: string,
     actionPath: string,
-    collectionName: keyof TypingsSchema,
+    collectionName: string,
     httpRequester: HttpRequester,
     ids: string[],
   ) {

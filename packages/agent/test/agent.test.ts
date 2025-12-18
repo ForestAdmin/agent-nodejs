@@ -4,6 +4,7 @@
 import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import * as McpServer from '@forestadmin/mcp-server';
 import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
@@ -327,6 +328,74 @@ describe('Agent', () => {
           }),
         );
       });
+    });
+  });
+
+  describe('MCP server', () => {
+    let mcpServerSpy: jest.SpyInstance;
+    let mockGetHttpCallback: jest.Mock;
+
+    beforeEach(() => {
+      mockGetHttpCallback = jest.fn().mockResolvedValue(jest.fn());
+      mcpServerSpy = jest
+        .spyOn(McpServer, 'ForestMCPServer')
+        .mockImplementation(() => ({ getHttpCallback: mockGetHttpCallback } as any));
+    });
+
+    afterEach(() => {
+      mcpServerSpy.mockRestore();
+    });
+
+    test('should not initialize MCP server when mountAiMcpServer() is not called', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      // Agent should start without any issues when MCP is not configured
+      await agent.start();
+
+      // The agent started successfully
+      expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+      // MCP server should not be initialized
+      expect(mcpServerSpy).not.toHaveBeenCalled();
+    });
+
+    test('mountAiMcpServer() should return this for chaining', () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      const result = agent.mountAiMcpServer();
+
+      expect(result).toBe(agent);
+    });
+
+    test('should initialize MCP server when mountAiMcpServer() is called', async () => {
+      const mockLogger = jest.fn();
+      const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer();
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalled();
+      expect(mockGetHttpCallback).toHaveBeenCalled();
+      expect(mockLogger).toHaveBeenCalledWith('Info', 'MCP server initialized successfully');
+    });
+
+    test('should log error when MCP initialization fails', async () => {
+      const mockLogger = jest.fn();
+      const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
+      const agent = new Agent(options);
+
+      mockGetHttpCallback.mockRejectedValue(new Error('MCP init failed'));
+
+      agent.mountAiMcpServer();
+
+      await expect(agent.start()).rejects.toThrow('MCP init failed');
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('Failed to initialize MCP server'),
+      );
     });
   });
 });

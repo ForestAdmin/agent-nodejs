@@ -4,6 +4,7 @@ import makeAgent from './forest/agent';
 import startExpress from './frameworks/express-v4';
 import startFastifyV2 from './frameworks/fastify-v2';
 import startFastifyV3 from './frameworks/fastify-v3';
+import startFastifyV4 from './frameworks/fastify-v4';
 import startKoa from './frameworks/koa-v2';
 import startNestExpressV8 from './frameworks/nest-express-v8';
 import startNestFastifyV8 from './frameworks/nest-fastify-v8';
@@ -16,6 +17,7 @@ export default async () => {
   const koaAppV2 = startKoa();
   const fastifyAppV2 = startFastifyV2();
   const fastifyAppV3 = startFastifyV3();
+  const fastifyAppV4 = startFastifyV4();
   const nestExpressV8 = await startNestExpressV8();
   const nestFastifyV8 = await startNestFastifyV8();
 
@@ -26,6 +28,7 @@ export default async () => {
     .mountOnKoa(koaAppV2)
     .mountOnFastify(fastifyAppV2)
     .mountOnFastify(fastifyAppV3)
+    .mountOnFastify(fastifyAppV4)
     .mountOnNestJs(nestExpressV8)
     .mountOnNestJs(nestFastifyV8);
 
@@ -34,6 +37,7 @@ export default async () => {
   koaAppV2.listen(Number(process.env.HTTP_PORT_KOA));
   await fastifyAppV2.listen(Number(process.env.HTTP_PORT_FASTIFY_V2));
   await fastifyAppV3.listen(Number(process.env.HTTP_PORT_FASTIFY_V3));
+  await fastifyAppV4.listen(Number(process.env.HTTP_PORT_FASTIFY_V4));
   await nestExpressV8.listen(Number(process.env.HTTP_PORT_NEST_EXPRESS_V8));
   await nestFastifyV8.listen(Number(process.env.HTTP_PORT_NEST_FASTIFY_V8));
 

@@ -71,11 +71,11 @@ describe('Segment', () => {
         });
       });
 
-      it('should include projection in header', async () => {
+      it('should include fields in header', async () => {
         const mockStream = {} as any;
         httpRequester.stream.mockResolvedValue(undefined);
 
-        await segment.exportCsv(mockStream, { projection: ['id', 'name'] });
+        await segment.exportCsv(mockStream, { fields: ['id', 'name'] });
 
         expect(httpRequester.stream).toHaveBeenCalledWith({
           path: '/forest/users.csv',

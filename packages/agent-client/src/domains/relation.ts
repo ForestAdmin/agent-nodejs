@@ -5,13 +5,13 @@ import QuerySerializer from '../query-serializer';
 
 export default class Relation<TypingsSchema> {
   private readonly name: string;
-  private readonly collectionName: keyof TypingsSchema;
+  private readonly collectionName: string;
   private readonly parentId: string | number;
   private readonly httpRequester: HttpRequester;
 
   constructor(
     name: string,
-    collectionName: keyof TypingsSchema,
+    collectionName: string,
     parentId: string | number,
     httpRequester: HttpRequester,
   ) {
@@ -24,8 +24,8 @@ export default class Relation<TypingsSchema> {
   list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
     return this.httpRequester.query<Data[]>({
       method: 'get',
-      path: `/forest/${this.collectionName as string}/${this.parentId}/relationships/${this.name}`,
-      query: QuerySerializer.serialize(options, this.collectionName as string),
+      path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
+      query: QuerySerializer.serialize(options, this.collectionName),
     });
   }
 }

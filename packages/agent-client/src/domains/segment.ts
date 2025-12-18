@@ -7,13 +7,13 @@ import QuerySerializer from '../query-serializer';
 
 export default class Segment<TypingsSchema> {
   private readonly name?: string;
-  private readonly collectionName: keyof TypingsSchema;
+  private readonly collectionName: string;
   private readonly httpRequester: HttpRequester;
   private readonly liveQuerySegment?: LiveQueryOptions;
 
   constructor(
     name: string | undefined,
-    collectionName: keyof TypingsSchema,
+    collectionName: string,
     httpRequester: HttpRequester,
     liveQuerySegment?: LiveQueryOptions,
   ) {
@@ -26,18 +26,18 @@ export default class Segment<TypingsSchema> {
   async list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
     return this.httpRequester.query<Data[]>({
       method: 'get',
-      path: `/forest/${this.collectionName as string}`,
+      path: `/forest/${this.collectionName}`,
       query: this.serializeQuery(options),
     });
   }
 
   async exportCsv(stream: WriteStream, options?: ExportOptions): Promise<void> {
     await this.httpRequester.stream({
-      path: `/forest/${this.collectionName as string}.csv`,
+      path: `/forest/${this.collectionName}.csv`,
       contentType: 'text/csv',
       query: {
         ...this.serializeQuery(options),
-        ...{ header: JSON.stringify(options?.projection) },
+        ...{ header: JSON.stringify(options?.fields) },
       },
       stream,
     });
@@ -53,13 +53,13 @@ export default class Segment<TypingsSchema> {
             connectionName: this.liveQuerySegment.connectionName,
           },
         },
-        this.collectionName as string,
+        this.collectionName,
       );
     }
 
-    return QuerySerializer.serialize(
-      { ...options, ...{ filters: { segment: this.name } } },
-      this.collectionName as string,
-    );
+    return {
+      ...QuerySerializer.serialize(options, this.collectionName),
+      segment: this.name,
+    };
   }
 }

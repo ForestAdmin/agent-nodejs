@@ -7,6 +7,8 @@ import Koa from 'koa';
 import net from 'net';
 import path from 'path';
 
+import FastifyAdapter from './fastify-adapter';
+import McpMiddleware from './mcp-middleware';
 import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
@@ -14,9 +16,13 @@ export default class FrameworkMounter {
 
   private readonly onFirstStart: (() => Promise<void>)[] = [];
   private readonly onEachStart: ((router: Router) => Promise<void>)[] = [];
+
   private readonly onStop: (() => Promise<void>)[] = [];
-  private readonly prefix: string;
+  protected readonly prefix: string;
   private readonly logger: Logger;
+
+  private readonly fastifyAdapter: FastifyAdapter;
+  private readonly mcpMiddleware: McpMiddleware;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
   private get completeMountPrefix(): string {
@@ -26,6 +32,15 @@ export default class FrameworkMounter {
   constructor(prefix: string, logger: Logger) {
     this.prefix = prefix;
     this.logger = logger;
+    this.fastifyAdapter = new FastifyAdapter(logger);
+    this.mcpMiddleware = new McpMiddleware();
+  }
+
+  /**
+   * Set the MCP HTTP callback. Call this before mount() or remount().
+   */
+  protected setMcpCallback(callback: HttpCallback | null): void {
+    this.mcpMiddleware.setCallback(callback);
   }
 
   protected async mount(router: Router): Promise<void> {
@@ -91,7 +106,12 @@ export default class FrameworkMounter {
    * @param express instance of the express app or router.
    */
   mountOnExpress(express: any): this {
+    // MCP middleware - the callback handles its own path filtering and calls next() for non-MCP routes
+    express.use(this.mcpMiddleware.getExpressMiddleware());
+
+    // Mount main forest routes at /{prefix}/forest
     express.use(this.completeMountPrefix, this.getConnectCallback(false));
+
     this.logger('Info', `Successfully mounted on Express.js`);
 
     return this;
@@ -102,8 +122,12 @@ export default class FrameworkMounter {
    * @param fastify instance of the fastify app, or of a fastify context
    */
   mountOnFastify(fastify: any): this {
+    // MCP middleware at root - the callback handles its own path filtering
+    this.fastifyAdapter.useCallback(fastify, this.mcpMiddleware.getExpressMiddleware(), '/');
+
+    // Mount main forest routes
     const callback = this.getConnectCallback(false);
-    this.useCallbackOnFastify(fastify, callback);
+    this.fastifyAdapter.useCallback(fastify, callback, this.completeMountPrefix);
 
     this.logger('Info', `Successfully mounted on Fastify`);
 
@@ -130,6 +154,8 @@ export default class FrameworkMounter {
       parentRouter.use(driverRouter.routes());
     });
 
+    // MCP middleware - intercepts MCP routes before they reach Koa's body parser
+    koa.use(this.mcpMiddleware.getKoaMiddleware());
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
 
@@ -145,9 +171,14 @@ export default class FrameworkMounter {
     const callback = this.getConnectCallback(false);
 
     if (adapter.constructor.name === 'ExpressAdapter') {
+      // MCP middleware at root - the callback handles its own path filtering
+      nestJs.use(this.mcpMiddleware.getExpressMiddleware());
+      // Mount main forest routes
       nestJs.use(this.completeMountPrefix, callback);
     } else {
-      this.useCallbackOnFastify(nestJs, callback);
+      // Fastify adapter - MCP middleware at root
+      this.fastifyAdapter.useCallback(nestJs, this.mcpMiddleware.getExpressMiddleware(), '/');
+      this.fastifyAdapter.useCallback(nestJs, callback, this.completeMountPrefix);
     }
 
     this.logger('Info', `Successfully mounted on NestJS`);
@@ -155,29 +186,8 @@ export default class FrameworkMounter {
     return this;
   }
 
-  private useCallbackOnFastify(fastify: any, callback: HttpCallback): void {
-    try {
-      // 'fastify 2' or 'middie' or 'fastify-express'
-      fastify.use(this.completeMountPrefix, callback);
-    } catch (e) {
-      // 'fastify 3'
-      if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
-        fastify
-          .register(import('@fastify/express'))
-          .then(() => {
-            fastify.use(this.completeMountPrefix, callback);
-          })
-          .catch(err => {
-            this.logger('Error', err.message);
-          });
-      } else {
-        throw e;
-      }
-    }
-  }
-
   private getConnectCallback(nested: boolean): HttpCallback {
-    let handler = null;
+    let handler: ((req: any, res: any) => void) | null = null;
 
     this.onEachStart.push(async driverRouter => {
       let router = driverRouter;
@@ -190,6 +200,24 @@ export default class FrameworkMounter {
     });
 
     return (req, res) => {
+      // For standalone server (nested), check MCP callback first
+      // The MCP callback handles its own path filtering
+      const mcpCallback = this.mcpMiddleware.getCallback();
+
+      if (nested && mcpCallback) {
+        mcpCallback(req, res, () => {
+          // next() called means not an MCP route - forward to main handler
+          if (handler) {
+            handler(req, res);
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Agent is not started' }));
+          }
+        });
+
+        return;
+      }
+
       if (handler) {
         handler(req, res);
       } else {

@@ -31,6 +31,7 @@ export default class OptionsValidator {
     copyOptions.logger = copyOptions.logger || defaultLogger;
     copyOptions.schemaPath = copyOptions.schemaPath || '.forestadmin-schema.json';
     copyOptions.forestServerUrl = copyOptions.forestServerUrl || 'https://api.forestadmin.com';
+    copyOptions.forestAppUrl = copyOptions.forestAppUrl || 'https://app.forestadmin.com';
     copyOptions.typingsMaxDepth = copyOptions.typingsMaxDepth ?? 5;
     copyOptions.limitExportSize = copyOptions.limitExportSize ?? null;
     copyOptions.prefix = copyOptions.prefix || '';

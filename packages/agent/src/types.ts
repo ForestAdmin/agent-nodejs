@@ -8,6 +8,7 @@ export type AgentOptions = {
   envSecret: string;
   customizeErrorMessage?: ((error: Error) => string | null) | null;
   forestServerUrl?: string;
+  forestAppUrl?: string;
   logger?: Logger;
   loggerLevel?: LoggerLevel;
   prefix?: string;
@@ -47,7 +48,7 @@ export type AgentOptions = {
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
-export type HttpCallback = (req: IncomingMessage, res: ServerResponse) => void;
+export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
 export enum HttpCode {
   BadRequest = 400,

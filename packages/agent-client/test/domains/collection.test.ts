@@ -6,7 +6,7 @@ jest.mock('../../src/action-fields/field-form-states');
 
 describe('Collection', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
-  let collection: Collection;
+  let collection: Collection<unknown>;
   const actionEndpoints = {
     users: {
       sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },
@@ -209,11 +209,11 @@ describe('Collection', () => {
       });
     });
 
-    it('should include projection in header query param', async () => {
+    it('should include fields in header query param', async () => {
       const mockStream = {} as any;
       httpRequester.stream.mockResolvedValue(undefined);
 
-      await collection.exportCsv(mockStream, { projection: ['id', 'name'] });
+      await collection.exportCsv(mockStream, { fields: ['id', 'name'] });
 
       expect(httpRequester.stream).toHaveBeenCalledWith({
         path: '/forest/users.csv',
