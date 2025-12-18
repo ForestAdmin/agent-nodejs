@@ -201,7 +201,7 @@ describe('QuerySerializer', () => {
         expect(result['fields[product]']).toContain('title');
       });
 
-      it('should handle nested relations with multiple @@@ separators', () => {
+      it('should only process first level of relation with multiple @@@ separators', () => {
         const result = QuerySerializer.serialize(
           { fields: ['id', 'customer@@@address@@@city'] },
           'orders',
@@ -210,10 +210,10 @@ describe('QuerySerializer', () => {
         // Main collection should have id and customer relation
         expect(result['fields[orders]']).toContain('id');
         expect(result['fields[orders]']).toContain('customer');
-        // customer collection should have address relation
-        expect(result['fields[customer]']).toContain('address');
-        // address collection should have city field
-        expect(result['fields[address]']).toContain('city');
+        // Only first level is processed - "address@@@city" becomes the field name
+        expect(result['fields[customer]']).toContain('address@@@city');
+        // No further nesting - address collection should not exist
+        expect(result['fields[address]']).toBeUndefined();
       });
 
       it('should handle only relation fields without simple fields', () => {
@@ -295,15 +295,6 @@ describe('QuerySerializer', () => {
         );
 
         expect(result['fields[users]']).toEqual(['id', 'name']);
-      });
-
-      it('should throw error when relation depth exceeds maximum', () => {
-        // Create a deeply nested fields (11 levels deep, exceeds max of 10)
-        const deepFields = 'a@@@b@@@c@@@d@@@e@@@f@@@g@@@h@@@i@@@j@@@k';
-
-        expect(() => QuerySerializer.serialize({ fields: [deepFields] }, 'orders')).toThrow(
-          'Maximum relation depth of 10 exceeded',
-        );
       });
 
       it('should handle whitespace in field names', () => {
