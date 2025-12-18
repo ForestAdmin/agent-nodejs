@@ -12,7 +12,7 @@ describe('ActionAuthorizationService', () => {
     jest.resetAllMocks();
   });
 
-  const forestAdminClient: ForestAdminClient = factories.forestAdminClient.build();
+  const forestAdminClient: ForestAdminClient = x.forestAdminClient.build();
 
   const caller = factories.caller.build();
 
