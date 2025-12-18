@@ -1,4 +1,4 @@
-import { RecordData } from '@forestadmin/datasource-toolkit';
+import type { RecordData } from '@forestadmin/datasource-toolkit';
 
 export default class Serializer {
   static serialize(record: RecordData): RecordData {

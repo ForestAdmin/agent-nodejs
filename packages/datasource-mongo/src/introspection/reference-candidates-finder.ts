@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 
-import { ModelStudy, NodeStudy, Primitive } from './types';
+import type { ModelStudy, NodeStudy, Primitive } from './types';
 
 /**
  * Build the list of nodes which are reference candidates by model.

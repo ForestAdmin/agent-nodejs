@@ -1,4 +1,5 @@
-import { CollectionReplicaSchema, ReplicaDataSourceOptions } from '../../../src';
+import type { CollectionReplicaSchema, ReplicaDataSourceOptions } from '../../../src';
+
 import { makeReplicaDataSource } from '../factories';
 
 describe('flattener', () => {

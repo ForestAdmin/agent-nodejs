@@ -1,5 +1,6 @@
+import type HttpRequester from '../../src/http-requester';
+
 import Collection from '../../src/domains/collection';
-import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
 jest.mock('../../src/action-fields/field-form-states');

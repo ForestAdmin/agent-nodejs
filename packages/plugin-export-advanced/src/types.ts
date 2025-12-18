@@ -1,4 +1,4 @@
-import renderers from './renderers';
+import type renderers from './renderers';
 
 export type Options = {
   actionName?: string;

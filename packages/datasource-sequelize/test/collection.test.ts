@@ -1,13 +1,14 @@
+import type { DataSource, RecordData } from '@forestadmin/datasource-toolkit';
+import type { Dialect, ModelDefined } from 'sequelize';
+
 import {
   Aggregation,
   ConditionTreeLeaf,
-  DataSource,
   Filter,
   Projection,
-  RecordData,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import { DataTypes, Dialect, ModelDefined, Op, Sequelize } from 'sequelize';
+import { DataTypes, Op, Sequelize } from 'sequelize';
 
 import { SequelizeCollection } from '../src';
 

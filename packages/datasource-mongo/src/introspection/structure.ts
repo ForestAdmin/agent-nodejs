@@ -1,6 +1,5 @@
+import type { ModelStudy, MongoCollection, MongoDb, NodeStudy, Primitive } from './types';
 import type { Binary } from 'bson';
-
-import { ModelStudy, MongoCollection, MongoDb, NodeStudy, Primitive } from './types';
 
 export default class Structure {
   static async introspect(

@@ -1,5 +1,7 @@
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
+
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { ColumnSchema, MissingFieldError } from '@forestadmin/datasource-toolkit';
+import { MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import flattenRelation from '../src/flatten-relation';

@@ -1,26 +1,24 @@
-import {
+import type {
   AggregateResult,
   Aggregation,
-  BaseCollection,
   Caller,
-  CollectionUtils,
   ColumnSchema,
   DataSource,
   Filter,
   Logger,
   PaginatedFilter,
-  Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   BindOrReplacements,
-  DataTypes,
   FindOptions,
   ModelDefined,
   ProjectionAlias,
-  QueryTypes,
   Sequelize,
 } from 'sequelize';
+
+import { BaseCollection, CollectionUtils, Projection } from '@forestadmin/datasource-toolkit';
+import { DataTypes, QueryTypes } from 'sequelize';
 
 import AggregationUtils from './utils/aggregation';
 import handleErrors from './utils/error-handler';

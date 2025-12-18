@@ -49,6 +49,12 @@ module.exports = {
       },
     ],
 
+    // Enforce import type for type-only imports
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+    ],
+
     /***********************************/
     /* Stricter rules than airbnb-base */
     /***********************************/

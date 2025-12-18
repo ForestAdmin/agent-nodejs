@@ -1,5 +1,6 @@
+import type HttpRequester from '../../src/http-requester';
+
 import Segment from '../../src/domains/segment';
-import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
 

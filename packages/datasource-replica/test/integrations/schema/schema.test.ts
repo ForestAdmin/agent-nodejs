@@ -1,4 +1,5 @@
-import { ReplicaDataSourceOptions } from '../../../src';
+import type { ReplicaDataSourceOptions } from '../../../src';
+
 import { getAllRecords, makeReplicaDataSource } from '../factories';
 
 describe('schema', () => {
