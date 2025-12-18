@@ -1,3 +1,5 @@
+import type { Logger } from '../server';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
@@ -6,6 +8,7 @@ import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
+import registerToolWithLogging from '../utils/tool-with-logging.js';
 
 function createListArgumentShape(collectionNames: string[]) {
   return {
@@ -58,11 +61,13 @@ function getListParameters(options: ListArgument): {
 export default function declareListTool(
   mcpServer: McpServer,
   forestServerUrl: string,
+  logger: Logger,
   collectionNames: string[] = [],
 ): void {
   const listArgumentShape = createListArgumentShape(collectionNames);
 
-  mcpServer.registerTool(
+  registerToolWithLogging(
+    mcpServer,
     'list',
     {
       title: 'List records from a collection',
@@ -112,5 +117,6 @@ export default function declareListTool(
         throw errorDetail ? new Error(errorDetail) : error;
       }
     },
+    logger,
   );
 }

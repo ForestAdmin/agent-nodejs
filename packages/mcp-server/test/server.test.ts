@@ -1133,4 +1133,208 @@ describe('ForestMCPServer Instance', () => {
       });
     });
   });
+
+  describe('Logging', () => {
+    let loggingServer: ForestMCPServer;
+    let loggingHttpServer: http.Server;
+    let loggingMockServer: MockServer;
+    let mockLogger: jest.Mock;
+
+    beforeAll(async () => {
+      process.env.FOREST_ENV_SECRET = 'test-env-secret';
+      process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+      process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
+      process.env.AGENT_HOSTNAME = 'http://localhost:3310';
+      process.env.MCP_SERVER_PORT = '39331';
+
+      loggingMockServer = new MockServer();
+      loggingMockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
+        .get('/liana/forest-schema', {
+          data: [
+            {
+              id: 'users',
+              type: 'collections',
+              attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+            },
+          ],
+          meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+        })
+        .get(/\/oauth\/register\/registered-client/, {
+          client_id: 'registered-client',
+          redirect_uris: ['https://example.com/callback'],
+          client_name: 'Test Client',
+          scope: 'mcp:read mcp:write',
+        })
+        .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+      global.fetch = loggingMockServer.fetch;
+
+      mockLogger = jest.fn();
+      loggingServer = new ForestMCPServer({ logger: mockLogger });
+      loggingServer.run();
+
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      loggingHttpServer = loggingServer.httpServer as http.Server;
+    });
+
+    afterAll(async () => {
+      await new Promise<void>(resolve => {
+        if (loggingServer?.httpServer) {
+          (loggingServer.httpServer as http.Server).close(() => resolve());
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    beforeEach(() => {
+      mockLogger.mockClear();
+    });
+
+    it('should log incoming request at the start of /mcp processing', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456 },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      expect(mockLogger).toHaveBeenCalledWith('Info', '[MCP] Incoming POST /mcp');
+    });
+
+    it('should log tool calls with safe parameters', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'test-token' },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      loggingMockServer
+        .post('/api/activity-logs-requests', { success: true })
+        .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: { name: 'list', arguments: { collectionName: 'users', search: 'secret' } },
+          id: 2,
+        });
+
+      // Should log the tool call with only safe arguments (collectionName, not search)
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Info',
+        '[MCP] Tool call: list - params: {"collectionName":"users"}',
+      );
+    });
+
+    it('should log tool errors from SSE response', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'test-token' },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      // Mock agent to return an error
+      loggingMockServer
+        .post('/api/activity-logs-requests', { success: true })
+        .post('/forest/rpc', { error: 'Collection not found' }, 400);
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: { name: 'list', arguments: { collectionName: 'nonexistent' } },
+          id: 3,
+        });
+
+      // Should log the error from the tool response
+      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('[MCP]'));
+    });
+
+    it('should log HTTP response at the end with status and duration', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456 },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      // Should log HTTP response with status code and duration
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Info',
+        expect.stringMatching(/\[200\] POST \/mcp - \d+ms/),
+      );
+    });
+
+    it('should log in correct order: incoming, tool call, response', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'test-token' },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      loggingMockServer
+        .post('/api/activity-logs-requests', { success: true })
+        .post('/forest/rpc', { result: [{ id: 1 }] });
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: { name: 'list', arguments: { collectionName: 'users' } },
+          id: 4,
+        });
+
+      const calls = mockLogger.mock.calls;
+      const incomingIndex = calls.findIndex(
+        (c: [string, string]) => c[1] === '[MCP] Incoming POST /mcp',
+      );
+      const toolCallIndex = calls.findIndex((c: [string, string]) =>
+        c[1].includes('[MCP] Tool call: list'),
+      );
+      const responseIndex = calls.findIndex((c: [string, string]) =>
+        c[1].match(/\[200\] POST \/mcp/),
+      );
+
+      expect(incomingIndex).toBeGreaterThanOrEqual(0);
+      expect(toolCallIndex).toBeGreaterThan(incomingIndex);
+      expect(responseIndex).toBeGreaterThan(toolCallIndex);
+    });
+  });
 });
