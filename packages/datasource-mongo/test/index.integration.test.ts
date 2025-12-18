@@ -74,7 +74,7 @@ describe('Datasource Mongo', () => {
         'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
       );
 
-      connection.dropDatabase();
+      await connection.dropDatabase();
 
       try {
         const movieSchema = new Schema({ title: String });
@@ -108,7 +108,7 @@ describe('Datasource Mongo', () => {
           'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
         );
 
-        connection.dropDatabase();
+        await connection.dropDatabase();
 
         try {
           const movieSchema = new Schema({
