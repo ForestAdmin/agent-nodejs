@@ -1565,6 +1565,38 @@ describe('ForestMCPServer Instance', () => {
           expect(filters.aggregator).toBe('Or');
           expect(filters.conditions).toHaveLength(2);
         });
+
+        it('should parse filters sent as JSON string (LLM workaround)', async () => {
+          // LLMs sometimes send filters as a JSON string instead of an object
+          const filterObject = {
+            aggregator: 'And',
+            conditions: [{ field: 'name', operator: 'Equal', value: 'Jane' }],
+          };
+
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  // Send filters as a JSON string instead of an object
+                  filters: JSON.stringify(filterObject),
+                  pagination: {},
+                },
+              },
+              id: 33,
+            });
+
+          expect(response.status).toBe(200);
+          const filters = JSON.parse(capturedQueryParams.filters as string);
+          expect(filters).toEqual(filterObject);
+        });
       });
 
       describe('sort', () => {

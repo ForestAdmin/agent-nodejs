@@ -11,10 +11,22 @@ import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
 
+// Preprocess to handle LLM sending filters as JSON string instead of object
+const filtersWithPreprocess = z.preprocess(val => {
+  if (typeof val !== 'string') return val;
+
+  try {
+    return JSON.parse(val);
+  } catch {
+    // Return original value to let Zod validation produce a proper error
+    return val;
+  }
+}, filterSchema);
+
 const listArgumentSchema = z.object({
   collectionName: z.string(),
   search: z.string().optional(),
-  filters: filterSchema
+  filters: filtersWithPreprocess
     .describe(
       'Filters to apply on collection. To filter on a nested field, use "@@@" to separate relations, e.g. "relationName@@@fieldName". One level deep max.',
     )
