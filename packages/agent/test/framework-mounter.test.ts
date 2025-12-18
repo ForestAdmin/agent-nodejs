@@ -7,6 +7,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import express from 'express';
 import Fastify3 from 'fastify';
 import Fastify2 from 'fastify2';
+import Fastify4 from 'fastify4';
 import Koa from 'koa';
 import superagent from 'superagent';
 
@@ -21,6 +22,18 @@ const router = new Router().get('/', async ctx => {
 const newRouter = new Router().get('/resource', async ctx => {
   ctx.response.body = { message: 'Here is your resource' };
 });
+
+// Router with nested paths and query string echo for testing URL handling
+const nestedRouter = new Router()
+  .get('/', async ctx => {
+    ctx.response.body = { path: '/', query: ctx.query };
+  })
+  .get('/items', async ctx => {
+    ctx.response.body = { path: '/items', query: ctx.query };
+  })
+  .get('/items/:id', async ctx => {
+    ctx.response.body = { path: `/items/${ctx.params.id}`, query: ctx.query };
+  });
 
 describe('Builder > Agent', () => {
   describe('standalone mode', () => {
@@ -288,6 +301,7 @@ describe('Builder > Agent', () => {
   it.each([
     ['v2', Fastify2],
     ['v3', Fastify3],
+    ['v4', Fastify4],
   ])('should work in a fastify %s app', async (_, Fastify) => {
     const app = (Fastify as Function)(); // eslint-disable-line @typescript-eslint/ban-types
 
@@ -346,5 +360,223 @@ describe('Builder > Agent', () => {
     } finally {
       await app.close();
     }
+  });
+
+  // Non-regression tests for URL prefix stripping in Fastify
+  // These tests ensure nested routes work correctly after the fix for
+  // the 404 error caused by @fastify/express not stripping the prefix from req.url
+  describe('nested routes and query strings', () => {
+    it('should handle nested routes in NestJS/Fastify', async () => {
+      @Module({ imports: [], controllers: [], providers: [] })
+      class AppModule {}
+      const app = await NestFactory.create<NestFastifyApplication>(
+        AppModule,
+        new FastifyAdapter(),
+        {
+          logger: false,
+        },
+      );
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnNestJs(app);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(nestedRouter);
+
+      await app.listen(9994);
+
+      try {
+        // Test root path
+        const rootResponse = await superagent.get('http://localhost:9994/my-api/forest');
+        expect(rootResponse.body).toStrictEqual({ path: '/', query: {} });
+
+        // Test nested path - this was returning 404 before the fix
+        const itemsResponse = await superagent.get('http://localhost:9994/my-api/forest/items');
+        expect(itemsResponse.body).toStrictEqual({ path: '/items', query: {} });
+
+        // Test nested path with parameter
+        const itemResponse = await superagent.get('http://localhost:9994/my-api/forest/items/123');
+        expect(itemResponse.body).toStrictEqual({ path: '/items/123', query: {} });
+
+        // Test with query strings
+        const queryResponse = await superagent.get(
+          'http://localhost:9994/my-api/forest/items?timezone=Europe/Paris&search=test',
+        );
+        expect(queryResponse.body).toStrictEqual({
+          path: '/items',
+          query: { timezone: 'Europe/Paris', search: 'test' },
+        });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should handle nested routes in Express', async () => {
+      const app = express();
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnExpress(app);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(nestedRouter);
+
+      const server = app.listen(9993);
+
+      try {
+        // Test nested path
+        const itemsResponse = await superagent.get('http://localhost:9993/my-api/forest/items');
+        expect(itemsResponse.body).toStrictEqual({ path: '/items', query: {} });
+
+        // Test nested path with parameter
+        const itemResponse = await superagent.get('http://localhost:9993/my-api/forest/items/456');
+        expect(itemResponse.body).toStrictEqual({ path: '/items/456', query: {} });
+
+        // Test with query strings
+        const queryResponse = await superagent.get(
+          'http://localhost:9993/my-api/forest/items?page=1&limit=10',
+        );
+        expect(queryResponse.body).toStrictEqual({
+          path: '/items',
+          query: { page: '1', limit: '10' },
+        });
+      } finally {
+        server.close();
+      }
+    });
+
+    it('should handle nested routes in Koa', async () => {
+      const app = new Koa();
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnKoa(app);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(nestedRouter);
+
+      const server = app.listen(9992);
+
+      try {
+        // Test nested path
+        const itemsResponse = await superagent.get('http://localhost:9992/my-api/forest/items');
+        expect(itemsResponse.body).toStrictEqual({ path: '/items', query: {} });
+
+        // Test nested path with parameter
+        const itemResponse = await superagent.get('http://localhost:9992/my-api/forest/items/789');
+        expect(itemResponse.body).toStrictEqual({ path: '/items/789', query: {} });
+
+        // Test with query strings
+        const queryResponse = await superagent.get(
+          'http://localhost:9992/my-api/forest/items?filter=active',
+        );
+        expect(queryResponse.body).toStrictEqual({
+          path: '/items',
+          query: { filter: 'active' },
+        });
+      } finally {
+        server.close();
+      }
+    });
+
+    it('should handle nested routes in standalone mode', async () => {
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnStandaloneServer(9991, 'localhost');
+
+      try {
+        // @ts-expect-error: testing a protected method
+        await mounter.mount(nestedRouter);
+
+        // Test nested path
+        const itemsResponse = await superagent.get('http://localhost:9991/my-api/forest/items');
+        expect(itemsResponse.body).toStrictEqual({ path: '/items', query: {} });
+
+        // Test nested path with parameter
+        const itemResponse = await superagent.get('http://localhost:9991/my-api/forest/items/abc');
+        expect(itemResponse.body).toStrictEqual({ path: '/items/abc', query: {} });
+
+        // Test with query strings
+        const queryResponse = await superagent.get(
+          'http://localhost:9991/my-api/forest/items?sort=-createdAt',
+        );
+        expect(queryResponse.body).toStrictEqual({
+          path: '/items',
+          query: { sort: '-createdAt' },
+        });
+      } finally {
+        await mounter.stop();
+      }
+    });
+
+    // Non-regression tests for Fastify v3 and v4
+    // These test the auto-registration of @fastify/express and URL prefix stripping
+    it('should handle nested routes in Fastify v3', async () => {
+      const app = Fastify3();
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnFastify(app);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(nestedRouter);
+
+      await app.ready();
+      await app.listen(9990);
+
+      try {
+        // Test root path
+        const rootResponse = await superagent.get('http://localhost:9990/my-api/forest');
+        expect(rootResponse.body).toStrictEqual({ path: '/', query: {} });
+
+        // Test nested path - this was returning 404 before the fix
+        const itemsResponse = await superagent.get('http://localhost:9990/my-api/forest/items');
+        expect(itemsResponse.body).toStrictEqual({ path: '/items', query: {} });
+
+        // Test nested path with parameter
+        const itemResponse = await superagent.get('http://localhost:9990/my-api/forest/items/v3');
+        expect(itemResponse.body).toStrictEqual({ path: '/items/v3', query: {} });
+
+        // Test with query strings
+        const queryResponse = await superagent.get(
+          'http://localhost:9990/my-api/forest/items?version=3&framework=fastify',
+        );
+        expect(queryResponse.body).toStrictEqual({
+          path: '/items',
+          query: { version: '3', framework: 'fastify' },
+        });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('should handle nested routes in Fastify v4', async () => {
+      const app = Fastify4();
+
+      const mounter = new FrameworkMounter('my-api', logger);
+      mounter.mountOnFastify(app);
+      // @ts-expect-error: testing a protected method
+      await mounter.mount(nestedRouter);
+
+      await app.ready();
+      await app.listen({ port: 9989 });
+
+      try {
+        // Test root path
+        const rootResponse = await superagent.get('http://localhost:9989/my-api/forest');
+        expect(rootResponse.body).toStrictEqual({ path: '/', query: {} });
+
+        // Test nested path - this was returning 404 before the fix
+        const itemsResponse = await superagent.get('http://localhost:9989/my-api/forest/items');
+        expect(itemsResponse.body).toStrictEqual({ path: '/items', query: {} });
+
+        // Test nested path with parameter
+        const itemResponse = await superagent.get('http://localhost:9989/my-api/forest/items/v4');
+        expect(itemResponse.body).toStrictEqual({ path: '/items/v4', query: {} });
+
+        // Test with query strings
+        const queryResponse = await superagent.get(
+          'http://localhost:9989/my-api/forest/items?version=4&framework=fastify',
+        );
+        expect(queryResponse.body).toStrictEqual({
+          path: '/items',
+          query: { version: '4', framework: 'fastify' },
+        });
+      } finally {
+        await app.close();
+      }
+    });
   });
 });

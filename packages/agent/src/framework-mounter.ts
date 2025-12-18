@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
+import fastifyExpress from '@fastify/express';
 import Router from '@koa/router';
 import { createServer } from 'http';
 import Koa from 'koa';
@@ -187,19 +188,73 @@ export default class FrameworkMounter {
   private pendingFastifyCallbacks: Array<{ callback: HttpCallback; prefix: string }> = [];
 
   private useCallbackOnFastify(fastify: any, callback: HttpCallback, prefix: string): void {
+    // In Fastify v4+, fastify.use is undefined until @fastify/middie or @fastify/express is registered
+    // In Fastify v2/v3 with middie/express already registered, fastify.use exists
+    if (typeof fastify.use !== 'function') {
+      // Queue the callback to be registered after @fastify/express is loaded
+      this.pendingFastifyCallbacks.push({ callback, prefix });
+
+      // Only register @fastify/express once
+      if (!this.fastifyExpressRegistered) {
+        // Store reference to pendingCallbacks for use in after() callback
+        const pendingCallbacks = this.pendingFastifyCallbacks;
+
+        this.fastifyExpressRegistered = new Promise<void>((resolve, reject) => {
+          fastify.register(fastifyExpress).after((err: Error | null) => {
+            if (err) {
+              this.logger('Error', err.message);
+              reject(err);
+
+              return;
+            }
+
+            // Register all pending callbacks now that @fastify/express is loaded
+            // We use a wrapper that handles path filtering because @fastify/express's
+            // path-based middleware has issues with kRoutePrefix in the after() context
+            for (const pending of pendingCallbacks) {
+              const wrappedCallback = (req: any, res: any, next: any) => {
+                if (pending.prefix === '/') {
+                  pending.callback(req, res, next);
+                } else if (req.url.startsWith(pending.prefix)) {
+                  // Strip prefix from URL to simulate Express's prefix-based mounting behavior
+                  const originalUrl = req.url;
+                  req.url = req.url.slice(pending.prefix.length) || '/';
+                  pending.callback(req, res, () => {
+                    req.url = originalUrl;
+                    next();
+                  });
+                } else {
+                  next();
+                }
+              };
+
+              fastify.use(wrappedCallback);
+            }
+
+            this.pendingFastifyCallbacks = [];
+            resolve();
+          });
+        });
+      }
+
+      return;
+    }
+
     try {
-      // 'fastify 2' or 'middie' or 'fastify-express'
       fastify.use(prefix, callback);
     } catch (e) {
-      // 'fastify 3'
+      // Fastify 3 throws FST_ERR_MISSING_MIDDLEWARE if middleware support isn't loaded
       if (e.code === 'FST_ERR_MISSING_MIDDLEWARE') {
         // Queue the callback to be registered after @fastify/express is loaded
         this.pendingFastifyCallbacks.push({ callback, prefix });
 
         // Only register @fastify/express once
         if (!this.fastifyExpressRegistered) {
+          // Store reference to pendingCallbacks for use in after() callback
+          const pendingCallbacks = this.pendingFastifyCallbacks;
+
           this.fastifyExpressRegistered = new Promise<void>((resolve, reject) => {
-            fastify.register(import('@fastify/express')).after((err: Error | null) => {
+            fastify.register(fastifyExpress).after((err: Error | null) => {
               if (err) {
                 this.logger('Error', err.message);
                 reject(err);
@@ -207,9 +262,27 @@ export default class FrameworkMounter {
                 return;
               }
 
-              // Register all pending callbacks
-              for (const pending of this.pendingFastifyCallbacks) {
-                fastify.use(pending.prefix, pending.callback);
+              // Register all pending callbacks now that @fastify/express is loaded
+              // We use a wrapper that handles path filtering because @fastify/express's
+              // path-based middleware has issues with kRoutePrefix in the after() context
+              for (const pending of pendingCallbacks) {
+                const wrappedCallback = (req: any, res: any, next: any) => {
+                  if (pending.prefix === '/') {
+                    pending.callback(req, res, next);
+                  } else if (req.url.startsWith(pending.prefix)) {
+                    // Strip prefix from URL to simulate Express's prefix-based mounting behavior
+                    const originalUrl = req.url;
+                    req.url = req.url.slice(pending.prefix.length) || '/';
+                    pending.callback(req, res, () => {
+                      req.url = originalUrl;
+                      next();
+                    });
+                  } else {
+                    next();
+                  }
+                };
+
+                fastify.use(wrappedCallback);
               }
 
               this.pendingFastifyCallbacks = [];
