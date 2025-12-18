@@ -20,6 +20,7 @@ import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
 import declareListTool from './tools/list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
+import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
 
 export type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
@@ -40,6 +41,11 @@ function getDefaultLogFn(level: LogLevel): (message: string) => void {
 
 const defaultLogger: Logger = (level, message) => {
   getDefaultLogFn(level)(message);
+};
+
+/** Fields that are safe to log for each tool (non-sensitive data) */
+const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
+  list: ['collectionName'],
 };
 
 /**
@@ -116,7 +122,7 @@ export default class ForestMCPServer {
       );
     }
 
-    declareListTool(this.mcpServer, this.forestServerUrl, collectionNames);
+    declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
@@ -133,6 +139,61 @@ export default class ForestMCPServer {
     }
 
     return { envSecret: this.envSecret, authSecret: this.authSecret };
+  }
+
+  /**
+   * Filters tool arguments to only include non-sensitive fields for logging.
+   * Prevents accidentally logging sensitive data like search queries or filters.
+   */
+  private filterArgsForLogging(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const allowedFields = SAFE_ARGUMENTS_FOR_LOGGING[toolName] || [];
+
+    return Object.fromEntries(Object.entries(args).filter(([key]) => allowedFields.includes(key)));
+  }
+
+  /**
+   * Logs tool call information if the request is a tools/call method.
+   */
+  private logToolCallIfPresent(req: express.Request): void {
+    interface McpToolCallBody {
+      method?: string;
+      params?: {
+        name?: string;
+        arguments?: Record<string, unknown>;
+      };
+    }
+
+    const body = req.body as McpToolCallBody;
+
+    if (body?.method !== 'tools/call' || !body.params?.name) {
+      return;
+    }
+
+    const toolName = body.params.name;
+    const args = body.params.arguments || {};
+    const safeArgs = this.filterArgsForLogging(toolName, args);
+
+    this.logger('Info', `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(safeArgs)}`);
+  }
+
+  /**
+   * Handles an incoming MCP request.
+   * Logs the request, intercepts the response for error logging, and delegates to the transport.
+   */
+  private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
+    this.logger('Info', `[MCP] Incoming ${req.method} ${req.path}`);
+
+    if (!this.mcpTransport) {
+      throw new Error('MCP transport not initialized');
+    }
+
+    this.logToolCallIfPresent(req);
+    interceptResponseForErrorLogging(res, this.logger);
+
+    await this.mcpTransport.handleRequest(req, res, req.body);
   }
 
   /**
@@ -155,6 +216,10 @@ export default class ForestMCPServer {
     await this.mcpServer.connect(this.mcpTransport);
 
     const app = express();
+
+    // Trust proxy headers when behind a reverse proxy (e.g., load balancer, nginx)
+    // This is required for express-rate-limit to correctly identify clients
+    app.set('trust proxy', 1);
 
     app.use(
       cors({
@@ -209,6 +274,25 @@ export default class ForestMCPServer {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
+    // Request logging middleware - logs every request with response status
+    app.use((req, res, next) => {
+      const startTime = Date.now();
+
+      // Capture the original end method to log after response is sent
+      const originalEnd = res.end.bind(res);
+      res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void)) => {
+        const duration = Date.now() - startTime;
+        this.logger(
+          'Info',
+          `[${res.statusCode}] ${req.method} ${req.baseUrl || req.path} - ${duration}ms`,
+        );
+
+        return originalEnd(chunk, encoding as BufferEncoding);
+      }) as typeof res.end;
+
+      next();
+    });
+
     app.use(
       '/oauth/authorize',
       authorizationHandler({
@@ -238,30 +322,20 @@ export default class ForestMCPServer {
         requiredScopes: ['mcp:read'],
       }),
       (req, res) => {
-        void (async () => {
-          try {
-            // Use the shared transport instance that's already connected to the MCP server
-            if (!this.mcpTransport) {
-              throw new Error('MCP transport not initialized');
-            }
+        this.handleMcpRequest(req, res).catch(error => {
+          this.logger('Error', `MCP Error: ${error}`);
 
-            // Handle the incoming request through the connected transport
-            await this.mcpTransport.handleRequest(req, res, req.body);
-          } catch (error) {
-            this.logger('Error', `MCP Error: ${error}`);
-
-            if (!res.headersSent) {
-              res.status(500).json({
-                jsonrpc: '2.0',
-                error: {
-                  code: -32603,
-                  message: (error as Error)?.message || 'Internal server error',
-                },
-                id: null,
-              });
-            }
+          if (!res.headersSent) {
+            res.status(500).json({
+              jsonrpc: '2.0',
+              error: {
+                code: -32603,
+                message: (error as Error)?.message || 'Internal server error',
+              },
+              id: null,
+            });
           }
-        })();
+        });
       },
     );
 
