@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-mongo",
-  "version": "1.5.4",
+  "version": "1.6.0",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {

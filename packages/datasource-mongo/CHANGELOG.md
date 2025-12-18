@@ -1,3 +1,10 @@
+# @forestadmin/datasource-mongo [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.5.4...@forestadmin/datasource-mongo@1.6.0) (2025-12-18)
+
+
+### Features
+
+* **mcp:** introduce Forest mcp server ([#1338](https://github.com/ForestAdmin/agent-nodejs/issues/1338)) ([#1340](https://github.com/ForestAdmin/agent-nodejs/issues/1340)) ([093ab0a](https://github.com/ForestAdmin/agent-nodejs/commit/093ab0a826b1b2c3480d2fbbab52842ab7c64f85))
+
 ## @forestadmin/datasource-mongo [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.5.3...@forestadmin/datasource-mongo@1.5.4) (2025-08-28)
 
 
