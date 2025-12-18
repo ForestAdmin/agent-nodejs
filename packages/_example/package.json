@@ -21,6 +21,7 @@
     "express": "^4.18.2",
     "fastify": "^3.29.0",
     "fastify2": "npm:fastify@^2.15.3",
+    "fastify4": "npm:fastify@^4.29.0",
     "koa": "^3.0.1",
     "mariadb": "^3.0.2",
     "mongoose": "8.14.1",
