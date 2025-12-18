@@ -2376,7 +2376,7 @@ describe('ForestMCPServer Instance', () => {
       // Verify the body contains the correct data with relation label
       const body = JSON.parse(activityLogCall![1].body as string);
       expect(body.data.attributes.action).toBe('index');
-      expect(body.data.attributes.label).toBe('list hasMany relation "orders"');
+      expect(body.data.attributes.label).toBe('list relation "orders"');
       expect(body.data.relationships.collection.data).toEqual({
         id: 'users',
         type: 'collections',
@@ -2432,7 +2432,7 @@ describe('ForestMCPServer Instance', () => {
 
       expect(activityLogCall).toBeDefined();
       const body = JSON.parse(activityLogCall![1].body as string);
-      expect(body.data.attributes.label).toBe('list hasMany relation "orders"');
+      expect(body.data.attributes.label).toBe('list relation "orders"');
     });
   });
 });

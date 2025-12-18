@@ -38,7 +38,7 @@ export default function declareListRelatedTool(
     'listRelated',
     {
       title: 'List records from a relation',
-      description: 'Retrieve a list of records from the specified relation (hasMany).',
+      description: 'Retrieve a list of records from a one-to-many or many-to-many relation.',
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
@@ -47,7 +47,7 @@ export default function declareListRelatedTool(
       await createActivityLog(forestServerUrl, extra, 'index', {
         collectionName: options.collectionName,
         recordId: options.parentRecordId,
-        label: `list hasMany relation "${options.relationName}"`,
+        label: `list relation "${options.relationName}"`,
       });
 
       try {

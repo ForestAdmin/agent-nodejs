@@ -61,7 +61,7 @@ describe('declareListRelatedTool', () => {
 
       expect(registeredToolConfig.title).toBe('List records from a relation');
       expect(registeredToolConfig.description).toBe(
-        'Retrieve a list of records from the specified relation (hasMany).',
+        'Retrieve a list of records from a one-to-many or many-to-many relation.',
       );
     });
 
@@ -313,7 +313,7 @@ describe('declareListRelatedTool', () => {
           {
             collectionName: 'users',
             recordId: 42,
-            label: 'list hasMany relation "orders"',
+            label: 'list relation "orders"',
           },
         );
       });
@@ -331,7 +331,7 @@ describe('declareListRelatedTool', () => {
           {
             collectionName: 'products',
             recordId: 'prod-123',
-            label: 'list hasMany relation "reviews"',
+            label: 'list relation "reviews"',
           },
         );
       });
