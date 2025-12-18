@@ -4,7 +4,7 @@ import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
 import MockServer from './test-utils/mock-server';
-import { clearSchemaCache } from './utils/schema-fetcher.js';
+import { clearSchemaCache } from '../src/utils/schema-fetcher.js';
 import ForestMCPServer from '../src/server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
@@ -2154,11 +2154,11 @@ describe('ForestMCPServer Instance', () => {
   });
 
   /**
-   * Integration tests for the getHasMany tool
-   * Tests that the getHasMany tool is properly registered and accessible
+   * Integration tests for the listRelated tool
+   * Tests that the listRelated tool is properly registered and accessible
    */
-  describe('GetHasMany tool integration', () => {
-    let hasManyServer: ForestAdminMCPServer;
+  describe('listRelated tool integration', () => {
+    let hasManyServer: ForestMCPServer;
     let hasManyHttpServer: http.Server;
     let hasManyMockServer: MockServer;
 
@@ -2213,7 +2213,7 @@ describe('ForestMCPServer Instance', () => {
 
       global.fetch = hasManyMockServer.fetch;
 
-      hasManyServer = new ForestAdminMCPServer();
+      hasManyServer = new ForestMCPServer();
       hasManyServer.run();
 
       await new Promise(resolve => {
@@ -2233,7 +2233,7 @@ describe('ForestMCPServer Instance', () => {
       });
     });
 
-    it('should have getHasMany tool registered in the MCP server', async () => {
+    it('should have listRelated tool registered in the MCP server', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
         {
@@ -2290,24 +2290,24 @@ describe('ForestMCPServer Instance', () => {
       expect(responseData.result.tools).toBeDefined();
       expect(Array.isArray(responseData.result.tools)).toBe(true);
 
-      // Verify the 'getHasMany' tool is registered
-      const getHasManyTool = responseData.result.tools.find(
-        (tool: { name: string }) => tool.name === 'getHasMany',
+      // Verify the 'listRelated' tool is registered
+      const listRelatedTool = responseData.result.tools.find(
+        (tool: { name: string }) => tool.name === 'listRelated',
       );
-      expect(getHasManyTool).toBeDefined();
-      expect(getHasManyTool.description).toBe(
-        'Retrieve a list of records from the specified hasMany relationship.',
+      expect(listRelatedTool).toBeDefined();
+      expect(listRelatedTool.description).toBe(
+        'Retrieve a list of records from the specified relation (hasMany).',
       );
-      expect(getHasManyTool.inputSchema).toBeDefined();
-      expect(getHasManyTool.inputSchema.properties).toHaveProperty('collectionName');
-      expect(getHasManyTool.inputSchema.properties).toHaveProperty('relationName');
-      expect(getHasManyTool.inputSchema.properties).toHaveProperty('parentRecordId');
-      expect(getHasManyTool.inputSchema.properties).toHaveProperty('search');
-      expect(getHasManyTool.inputSchema.properties).toHaveProperty('filters');
-      expect(getHasManyTool.inputSchema.properties).toHaveProperty('sort');
+      expect(listRelatedTool.inputSchema).toBeDefined();
+      expect(listRelatedTool.inputSchema.properties).toHaveProperty('collectionName');
+      expect(listRelatedTool.inputSchema.properties).toHaveProperty('relationName');
+      expect(listRelatedTool.inputSchema.properties).toHaveProperty('parentRecordId');
+      expect(listRelatedTool.inputSchema.properties).toHaveProperty('search');
+      expect(listRelatedTool.inputSchema.properties).toHaveProperty('filters');
+      expect(listRelatedTool.inputSchema.properties).toHaveProperty('sort');
 
       // Verify collectionName has enum with the collection names from the mocked schema
-      const collectionNameSchema = getHasManyTool.inputSchema.properties.collectionName as {
+      const collectionNameSchema = listRelatedTool.inputSchema.properties.collectionName as {
         type: string;
         enum?: string[];
       };
@@ -2316,7 +2316,7 @@ describe('ForestMCPServer Instance', () => {
       expect(collectionNameSchema.enum).toEqual(['users', 'orders']);
     });
 
-    it('should create activity log with forestServerToken and relation label when calling getHasMany tool', async () => {
+    it('should create activity log with forestServerToken and relation label when calling listRelated tool', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const forestServerToken = 'original-forest-server-token-for-has-many';
 
@@ -2347,7 +2347,7 @@ describe('ForestMCPServer Instance', () => {
           jsonrpc: '2.0',
           method: 'tools/call',
           params: {
-            name: 'getHasMany',
+            name: 'listRelated',
             arguments: {
               collectionName: 'users',
               relationName: 'orders',
@@ -2383,7 +2383,7 @@ describe('ForestMCPServer Instance', () => {
       });
     });
 
-    it('should accept string parentRecordId when calling getHasMany tool', async () => {
+    it('should accept string parentRecordId when calling listRelated tool', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const forestServerToken = 'forest-token-for-string-id-test';
 
@@ -2412,7 +2412,7 @@ describe('ForestMCPServer Instance', () => {
           jsonrpc: '2.0',
           method: 'tools/call',
           params: {
-            name: 'getHasMany',
+            name: 'listRelated',
             arguments: {
               collectionName: 'users',
               relationName: 'orders',

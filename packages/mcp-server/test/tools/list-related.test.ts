@@ -3,8 +3,8 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import declareListHasManyTool from '../../src/tools/has-many.js';
 import { Logger } from '../../src/server.js';
+import declareListRelatedTool from '../../src/tools/list-related.js';
 import createActivityLog from '../../src/utils/activity-logs-creator.js';
 import buildClient from '../../src/utils/agent-caller.js';
 import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
@@ -22,7 +22,7 @@ const mockGetFieldsOfCollection = schemaFetcher.getFieldsOfCollection as jest.Mo
   typeof schemaFetcher.getFieldsOfCollection
 >;
 
-describe('declareListHasManyTool', () => {
+describe('declareListRelatedTool', () => {
   let mcpServer: McpServer;
   let mockLogger: Logger;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
@@ -46,27 +46,27 @@ describe('declareListHasManyTool', () => {
   });
 
   describe('tool registration', () => {
-    it('should register a tool named "getHasMany"', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+    it('should register a tool named "listRelated"', () => {
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
-        'getHasMany',
+        'listRelated',
         expect.any(Object),
         expect.any(Function),
       );
     });
 
     it('should register tool with correct title and description', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
-      expect(registeredToolConfig.title).toBe('List records from a hasMany relationship');
+      expect(registeredToolConfig.title).toBe('List records from a relation');
       expect(registeredToolConfig.description).toBe(
-        'Retrieve a list of records from the specified hasMany relationship.',
+        'Retrieve a list of records from the specified relation (hasMany).',
       );
     });
 
     it('should define correct input schema', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
@@ -77,7 +77,7 @@ describe('declareListHasManyTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -90,7 +90,7 @@ describe('declareListHasManyTool', () => {
     });
 
     it('should use string type for collectionName when empty array provided', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger, []);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger, []);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -103,7 +103,7 @@ describe('declareListHasManyTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
         'users',
         'products',
         'orders',
@@ -123,7 +123,7 @@ describe('declareListHasManyTool', () => {
     });
 
     it('should accept string parentRecordId', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -133,7 +133,7 @@ describe('declareListHasManyTool', () => {
     });
 
     it('should accept number parentRecordId', () => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -155,7 +155,7 @@ describe('declareListHasManyTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareListHasManyTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListRelatedTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -226,7 +226,7 @@ describe('declareListHasManyTool', () => {
       expect(mockRelation).toHaveBeenCalledWith('orders', 'uuid-123');
     });
 
-    it('should return results as JSON text content', async () => {
+    it('should return results as JSON text content with records wrapper', async () => {
       const mockData = [
         { id: 1, name: 'Order 1' },
         { id: 2, name: 'Order 2' },
@@ -245,8 +245,48 @@ describe('declareListHasManyTool', () => {
       );
 
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify(mockData) }],
+        content: [{ type: 'text', text: JSON.stringify({ records: mockData }) }],
       });
+    });
+
+    it('should return records with totalCount when enableCount is true', async () => {
+      const mockData = [{ id: 1, name: 'Order 1' }];
+      const mockList = jest.fn().mockResolvedValue(mockData);
+      const mockCount = jest.fn().mockResolvedValue(42);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList, count: mockCount });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 1, enableCount: true },
+        mockExtra,
+      );
+
+      expect(result).toEqual({
+        content: [{ type: 'text', text: JSON.stringify({ records: mockData, totalCount: 42 }) }],
+      });
+    });
+
+    it('should call list and count in parallel when enableCount is true', async () => {
+      const mockList = jest.fn().mockResolvedValue([]);
+      const mockCount = jest.fn().mockResolvedValue(0);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList, count: mockCount });
+      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      await registeredToolHandler(
+        { collectionName: 'users', relationName: 'orders', parentRecordId: 1, enableCount: true },
+        mockExtra,
+      );
+
+      expect(mockList).toHaveBeenCalled();
+      expect(mockCount).toHaveBeenCalled();
     });
 
     describe('activity logging', () => {
@@ -593,7 +633,7 @@ describe('declareListHasManyTool', () => {
             mockExtra,
           ),
         ).rejects.toThrow(
-          'The relation name provided is invalid for this collection. Available relation for the collection are users are: orders, reviews.',
+          'The relation name provided is invalid for this collection. Available relations for collection users are: orders, reviews.',
         );
       });
 
