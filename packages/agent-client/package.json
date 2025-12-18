@@ -12,7 +12,6 @@
     "directory": "packages/agent-client"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
     "@forestadmin/datasource-toolkit": "1.50.0",
     "@forestadmin/forestadmin-client": "1.36.14",
     "jsonapi-serializer": "^3.6.9",
