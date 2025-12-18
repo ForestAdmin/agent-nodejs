@@ -1,6 +1,7 @@
 import type { Logger } from '../server';
+import type { SelectOptions } from '@forestadmin/agent-client';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
@@ -10,52 +11,47 @@ import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
 
+const listArgumentSchema = z.object({
+  collectionName: z.string(),
+  search: z.string().optional(),
+  filters: filterSchema
+    .describe(
+      'Filters to apply on collection. To filter on a nested field, use "@@@" to separate relations, e.g. "relationName@@@fieldName". One level deep max.',
+    )
+    .optional(),
+  sort: z
+    .object({
+      field: z.string(),
+      ascending: z.boolean(),
+    })
+    .optional(),
+  shouldSearchInRelation: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Whether to search also on related collections'),
+  fields: z
+    .array(z.string())
+    .describe(
+      'Fields to include in the list. Reduces the amount of data returned. For sub fields, use "@@@" to separate relations, e.g. "relationName@@@fieldName".',
+    )
+    .optional(),
+  pagination: z
+    .object({
+      size: z.number().default(15).optional(),
+      number: z.number().default(1).optional(),
+    })
+    .optional(),
+});
+
+type ListArgument = z.infer<typeof listArgumentSchema>;
+
 function createListArgumentShape(collectionNames: string[]) {
   return {
+    ...listArgumentSchema.shape,
     collectionName:
       collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
-    search: z.string().optional(),
-    filters: filterSchema.optional(),
-    sort: z
-      .object({
-        field: z.string(),
-        ascending: z.boolean(),
-      })
-      .optional(),
   };
-}
-
-type ListArgument = {
-  collectionName: string;
-  search?: string;
-  filters?: z.infer<typeof filterSchema>;
-  sort?: { field: string; ascending: boolean };
-};
-
-function getListParameters(options: ListArgument): {
-  filters?: Record<string, unknown>;
-  search?: string;
-  sort?: { field: string; ascending: boolean };
-} {
-  const parameters: {
-    filters?: Record<string, unknown>;
-    search?: string;
-    sort?: { field: string; ascending: boolean };
-  } = {};
-
-  if (options.filters) {
-    parameters.filters = { conditionTree: options.filters as Record<string, unknown> };
-  }
-
-  if (options.search) {
-    parameters.search = options.search;
-  }
-
-  if (options.sort?.field && 'ascending' in options.sort) {
-    parameters.sort = options.sort as { field: string; ascending: boolean };
-  }
-
-  return parameters;
 }
 
 export default function declareListTool(
@@ -92,7 +88,7 @@ export default function declareListTool(
       try {
         const result = await rpcClient
           .collection(options.collectionName)
-          .list(getListParameters(options));
+          .list(options as SelectOptions);
 
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
