@@ -59,20 +59,16 @@ const leafSchema = z.object({
 // Build nested branch schemas iteratively (avoids z.lazy() which causes $ref issues)
 const MAX_NESTING_DEPTH = 3;
 
-function buildConditionSchema(): z.ZodTypeAny {
-  let schema: z.ZodTypeAny = leafSchema;
+let conditionSchema: z.ZodTypeAny = leafSchema;
 
-  for (let i = 0; i < MAX_NESTING_DEPTH; i += 1) {
-    schema = z.union([
-      leafSchema,
-      z.object({
-        aggregator: aggregatorEnum,
-        conditions: z.array(schema),
-      }),
-    ]);
-  }
-
-  return schema;
+for (let i = 0; i < MAX_NESTING_DEPTH; i += 1) {
+  conditionSchema = z.union([
+    leafSchema,
+    z.object({
+      aggregator: aggregatorEnum,
+      conditions: z.array(conditionSchema),
+    }),
+  ]);
 }
 
-export default buildConditionSchema();
+export default Object.freeze(conditionSchema);
