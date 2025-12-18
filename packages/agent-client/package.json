@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-client",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.50.0",
-    "@forestadmin/forestadmin-client": "1.36.14",
+    "@forestadmin/forestadmin-client": "1.37.0",
     "jsonapi-serializer": "^3.6.9",
     "superagent": "^10.2.3"
   },
