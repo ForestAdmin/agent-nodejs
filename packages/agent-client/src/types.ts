@@ -1,10 +1,11 @@
 import { PlainFilter, PlainSortClause } from '@forestadmin/datasource-toolkit';
 
 export type BaseOptions = {
-  filters?: PlainFilter; // Filters to apply to the query
+  filters?: PlainFilter['conditionTree']; // Filters to apply to the query
   sort?: PlainSortClause; // Sort clause for the query
   search?: string; // Search term for the query
-  projection?: string[]; // Fields to include in the response
+  fields?: string[]; // Fields to include in the response
+  shouldSearchInRelation?: boolean; // Whether to search also on related collections
 };
 
 export type ExportOptions = BaseOptions;

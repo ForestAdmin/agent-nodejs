@@ -17,3 +17,5 @@ export function createRemoteAgentClient(params: {
     overridePermissions: params.overridePermissions,
   });
 }
+
+export type { SelectOptions } from './types';

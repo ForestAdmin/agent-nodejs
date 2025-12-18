@@ -1,7 +1,6 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import declareListTool from '../../src/tools/list';
 import type { Logger } from '../../src/server';
@@ -70,6 +69,21 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.inputSchema).toHaveProperty('search');
       expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
       expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('shouldSearchInRelation');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('fields');
+    });
+
+    it('should have fields schema with description mentioning @@@ separator for relations', () => {
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const schema = registeredToolConfig.inputSchema as any;
+      // Zod schema: z.array().describe().optional()
+      // The description is stored in metadata, accessible via meta() on the inner type
+      const fieldsZodDef = Reflect.get(schema.fields, '_def');
+      const fieldsDescription = fieldsZodDef.innerType.meta().description;
+      expect(fieldsDescription).toContain('@@@');
+      expect(fieldsDescription).toContain('relationName@@@fieldName');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
@@ -260,25 +274,26 @@ describe('declareListTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should call list with empty parameters for basic request', async () => {
+      it('should call list with options for basic request', async () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockList).toHaveBeenCalledWith({});
+        expect(mockList).toHaveBeenCalledWith({ collectionName: 'users' });
       });
 
       it('should pass search parameter to list', async () => {
         await registeredToolHandler({ collectionName: 'users', search: 'test query' }, mockExtra);
 
-        expect(mockList).toHaveBeenCalledWith({ search: 'test query' });
+        expect(mockList).toHaveBeenCalledWith({ collectionName: 'users', search: 'test query' });
       });
 
-      it('should pass filters wrapped in conditionTree', async () => {
+      it('should pass filters directly', async () => {
         const filters = { field: 'name', operator: 'Equal', value: 'John' };
 
         await registeredToolHandler({ collectionName: 'users', filters }, mockExtra);
 
         expect(mockList).toHaveBeenCalledWith({
-          filters: { conditionTree: filters },
+          collectionName: 'users',
+          filters,
         });
       });
 
@@ -292,6 +307,7 @@ describe('declareListTool', () => {
         );
 
         expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
           sort: { field: 'createdAt', ascending: true },
         });
       });
@@ -306,11 +322,12 @@ describe('declareListTool', () => {
         );
 
         expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
           sort: { field: 'createdAt', ascending: false },
         });
       });
 
-      it('should not pass sort when only field is provided', async () => {
+      it('should pass sort even when only field is provided', async () => {
         await registeredToolHandler(
           {
             collectionName: 'users',
@@ -319,7 +336,10 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockList).toHaveBeenCalledWith({});
+        expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
+          sort: { field: 'createdAt' },
+        });
       });
 
       it('should pass all parameters together', async () => {
@@ -339,9 +359,225 @@ describe('declareListTool', () => {
         );
 
         expect(mockList).toHaveBeenCalledWith({
+          collectionName: 'users',
           search: 'john',
-          filters: { conditionTree: filters },
+          filters,
           sort: { field: 'name', ascending: true },
+        });
+      });
+
+      describe('shouldSearchInRelation parameter', () => {
+        it('should not pass shouldSearchInRelation when it is false', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', search: 'test', shouldSearchInRelation: false },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            search: 'test',
+            shouldSearchInRelation: false,
+          });
+        });
+
+        it('should not pass shouldSearchInRelation when it is not provided', async () => {
+          await registeredToolHandler({ collectionName: 'users', search: 'test' }, mockExtra);
+
+          expect(mockList).toHaveBeenCalledWith({ collectionName: 'users', search: 'test' });
+        });
+
+        it('should pass shouldSearchInRelation when shouldSearchInRelation is true', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', search: 'test', shouldSearchInRelation: true },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            search: 'test',
+            shouldSearchInRelation: true,
+          });
+        });
+
+        it('should pass shouldSearchInRelation with other parameters', async () => {
+          const filters = {
+            aggregator: 'And',
+            conditions: [{ field: 'active', operator: 'Equal', value: true }],
+          };
+
+          await registeredToolHandler(
+            {
+              collectionName: 'users',
+              search: 'john',
+              filters,
+              sort: { field: 'name', ascending: true },
+              shouldSearchInRelation: true,
+            },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            search: 'john',
+            filters,
+            sort: { field: 'name', ascending: true },
+            shouldSearchInRelation: true,
+          });
+        });
+
+        it('should pass shouldSearchInRelation even without search parameter', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', shouldSearchInRelation: true },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            shouldSearchInRelation: true,
+          });
+        });
+      });
+
+      describe('fields parameter', () => {
+        it('should pass fields when fields is provided', async () => {
+          // Mock schema for field validation
+          const mockSchema: schemaFetcher.ForestSchema = {
+            collections: [
+              {
+                name: 'users',
+                fields: [
+                  {
+                    field: 'id',
+                    type: 'Number',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: true,
+                    isPrimaryKey: true,
+                  },
+                  {
+                    field: 'name',
+                    type: 'String',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: false,
+                    isPrimaryKey: false,
+                  },
+                  {
+                    field: 'email',
+                    type: 'String',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: false,
+                    isPrimaryKey: false,
+                  },
+                ],
+              },
+            ],
+          };
+          mockFetchForestSchema.mockResolvedValue(mockSchema);
+          mockGetFieldsOfCollection.mockReturnValue(mockSchema.collections[0].fields);
+
+          await registeredToolHandler(
+            { collectionName: 'users', fields: ['id', 'name', 'email'] },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            fields: ['id', 'name', 'email'],
+          });
+        });
+
+        it('should not pass fields when fields is not provided', async () => {
+          await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+          expect(mockList).toHaveBeenCalledWith({ collectionName: 'users' });
+        });
+
+        it('should pass empty fields array when provided', async () => {
+          await registeredToolHandler({ collectionName: 'users', fields: [] }, mockExtra);
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            fields: [],
+          });
+        });
+
+        it('should pass fields with other parameters', async () => {
+          // Mock schema for field validation
+          const mockSchema: schemaFetcher.ForestSchema = {
+            collections: [
+              {
+                name: 'users',
+                fields: [
+                  {
+                    field: 'id',
+                    type: 'Number',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: true,
+                    isPrimaryKey: true,
+                  },
+                  {
+                    field: 'name',
+                    type: 'String',
+                    isSortable: true,
+                    enum: null,
+                    reference: null,
+                    isReadOnly: false,
+                    isRequired: false,
+                    isPrimaryKey: false,
+                  },
+                ],
+              },
+            ],
+          };
+          mockFetchForestSchema.mockResolvedValue(mockSchema);
+          mockGetFieldsOfCollection.mockReturnValue(mockSchema.collections[0].fields);
+
+          const filters = {
+            aggregator: 'And',
+            conditions: [{ field: 'active', operator: 'Equal', value: true }],
+          };
+
+          await registeredToolHandler(
+            {
+              collectionName: 'users',
+              search: 'john',
+              filters,
+              sort: { field: 'name', ascending: true },
+              fields: ['id', 'name'],
+            },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            search: 'john',
+            filters,
+            sort: { field: 'name', ascending: true },
+            fields: ['id', 'name'],
+          });
+        });
+
+        it('should accept fields with @@@ separator for relation sub-fields', async () => {
+          await registeredToolHandler(
+            { collectionName: 'orders', fields: ['id', 'customer@@@name', 'customer@@@email'] },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'orders',
+            fields: ['id', 'customer@@@name', 'customer@@@email'],
+          });
         });
       });
     });
