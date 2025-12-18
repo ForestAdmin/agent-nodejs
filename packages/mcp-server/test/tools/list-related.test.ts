@@ -494,6 +494,9 @@ describe('declareListRelatedTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
+        mockFetchForestSchema.mockResolvedValue({ collections: [] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
+
         await expect(
           registeredToolHandler(
             { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
@@ -510,6 +513,9 @@ describe('declareListRelatedTool', () => {
         };
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
+
+        mockFetchForestSchema.mockResolvedValue({ collections: [] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
 
         await expect(
           registeredToolHandler(
@@ -634,6 +640,50 @@ describe('declareListRelatedTool', () => {
           ),
         ).rejects.toThrow(
           'The relation name provided is invalid for this collection. Available relations for collection users are: orders, reviews.',
+        );
+      });
+
+      it('should include BelongsToMany relations in available relations error message', async () => {
+        const agentError = new Error('Relation not found');
+        mockList.mockRejectedValue(agentError);
+
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'orders',
+            type: 'HasMany',
+            isSortable: false,
+            enum: null,
+            reference: 'orders',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'HasMany',
+          },
+          {
+            field: 'tags',
+            type: 'BelongsToMany',
+            isSortable: false,
+            enum: null,
+            reference: 'tags',
+            isReadOnly: true,
+            isRequired: false,
+            isPrimaryKey: false,
+            relationship: 'BelongsToMany',
+          },
+        ];
+        const mockSchema: schemaFetcher.ForestSchema = {
+          collections: [{ name: 'users', fields: mockFields }],
+        };
+        mockFetchForestSchema.mockResolvedValue(mockSchema);
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', relationName: 'invalidRelation', parentRecordId: 1 },
+            mockExtra,
+          ),
+        ).rejects.toThrow(
+          'The relation name provided is invalid for this collection. Available relations for collection users are: orders, tags.',
         );
       });
 
