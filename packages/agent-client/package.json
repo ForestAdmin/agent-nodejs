@@ -12,19 +12,10 @@
     "directory": "packages/agent-client"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
     "@forestadmin/datasource-toolkit": "1.50.0",
     "@forestadmin/forestadmin-client": "1.36.14",
     "jsonapi-serializer": "^3.6.9",
     "superagent": "^10.2.3"
-  },
-  "peerDependencies": {
-    "@forestadmin/agent": "^1.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@forestadmin/agent": {
-      "optional": true
-    }
   },
   "files": [
     "dist/**/*.js",
@@ -38,7 +29,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/agent": "1.66.2",
     "@types/superagent": "^8.1.9"
   }
 }
