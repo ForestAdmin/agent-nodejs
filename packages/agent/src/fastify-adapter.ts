@@ -5,18 +5,39 @@ import fastifyExpress from '@fastify/express';
 
 import { HttpCallback } from './types';
 
+interface FastifyState {
+  registered: Promise<void> | null;
+  pendingCallbacks: Array<{ callback: HttpCallback; prefix: string }>;
+}
+
 /**
  * Handles mounting Express-style middleware on Fastify instances.
  * Manages the complexity of different Fastify versions (v2, v3, v4) and
  * automatic registration of @fastify/express when needed.
+ *
+ * Uses a WeakMap to track state per Fastify instance, allowing the same
+ * adapter to be used for multiple Fastify instances (v2, v3, v4).
  */
 export default class FastifyAdapter {
-  private fastifyExpressRegistered: Promise<void> | null = null;
-  private pendingCallbacks: Array<{ callback: HttpCallback; prefix: string }> = [];
   private readonly logger: Logger;
+  private readonly fastifyStates = new WeakMap<any, FastifyState>();
 
   constructor(logger: Logger) {
     this.logger = logger;
+  }
+
+  /**
+   * Get or create state for a Fastify instance.
+   */
+  private getState(fastify: any): FastifyState {
+    let state = this.fastifyStates.get(fastify);
+
+    if (!state) {
+      state = { registered: null, pendingCallbacks: [] };
+      this.fastifyStates.set(fastify, state);
+    }
+
+    return state;
   }
 
   /**
@@ -45,21 +66,21 @@ export default class FastifyAdapter {
   }
 
   /**
-   * Queue a callback and register @fastify/express if not already done.
-   * This is called when fastify.use is not available or throws FST_ERR_MISSING_MIDDLEWARE.
+   * Queue a callback and register @fastify/express if not already done for this Fastify instance.
    */
   private queueAndRegister(fastify: any, callback: HttpCallback, prefix: string): void {
-    this.pendingCallbacks.push({ callback, prefix });
+    const state = this.getState(fastify);
+    state.pendingCallbacks.push({ callback, prefix });
 
-    // Only register @fastify/express once
-    if (this.fastifyExpressRegistered) {
+    // Only register @fastify/express once per Fastify instance
+    if (state.registered) {
       return;
     }
 
     // Store reference to pendingCallbacks for use in after() callback
-    const { pendingCallbacks } = this;
+    const { pendingCallbacks } = state;
 
-    this.fastifyExpressRegistered = new Promise<void>((resolve, reject) => {
+    state.registered = new Promise<void>((resolve, reject) => {
       fastify.register(fastifyExpress).after((err: Error | null) => {
         if (err) {
           this.logger('Error', err.message);
@@ -70,7 +91,7 @@ export default class FastifyAdapter {
 
         // Register all pending callbacks now that @fastify/express is loaded
         this.registerPendingCallbacks(fastify, pendingCallbacks);
-        this.pendingCallbacks = [];
+        state.pendingCallbacks = [];
         resolve();
       });
     });
