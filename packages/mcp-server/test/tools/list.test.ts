@@ -74,7 +74,7 @@ describe('declareListTool', () => {
     });
 
     it('should have fields schema with description mentioning @@@ separator for relations', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com');
+      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const schema = registeredToolConfig.inputSchema as any;

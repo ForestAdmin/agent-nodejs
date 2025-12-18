@@ -14,7 +14,11 @@ import registerToolWithLogging from '../utils/tool-with-logging.js';
 const listArgumentSchema = z.object({
   collectionName: z.string(),
   search: z.string().optional(),
-  filters: filterSchema.optional(),
+  filters: filterSchema
+    .describe(
+      'Filters to apply on collection. To filter on a nested field, use "@@@" to separate relations, e.g. "relationName@@@fieldName". One level deep max.',
+    )
+    .optional(),
   sort: z
     .object({
       field: z.string(),
@@ -31,6 +35,12 @@ const listArgumentSchema = z.object({
     .describe(
       'Fields to include in the list. Reduces the amount of data returned. For sub fields, use "@@@" to separate relations, e.g. "relationName@@@fieldName".',
     )
+    .optional(),
+  pagination: z
+    .object({
+      size: z.number().default(15).optional(),
+      number: z.number().default(1).optional(),
+    })
     .optional(),
 });
 

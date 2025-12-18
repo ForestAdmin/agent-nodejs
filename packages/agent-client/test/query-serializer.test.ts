@@ -17,10 +17,72 @@ describe('QuerySerializer', () => {
       expect(result.search).toBe('john');
     });
 
-    it('should serialize pagination', () => {
-      const result = QuerySerializer.serialize({ pagination: { size: 10, number: 2 } }, 'users');
-      expect(result['page[size]']).toBe(10);
-      expect(result['page[number]']).toBe(2);
+    describe('pagination', () => {
+      it('should serialize pagination with both size and number', () => {
+        const result = QuerySerializer.serialize({ pagination: { size: 10, number: 2 } }, 'users');
+        expect(result['page[size]']).toBe(10);
+        expect(result['page[number]']).toBe(2);
+      });
+
+      it('should serialize pagination with only size', () => {
+        const result = QuerySerializer.serialize({ pagination: { size: 25 } }, 'users');
+        expect(result['page[size]']).toBe(25);
+        expect(result['page[number]']).toBeUndefined();
+      });
+
+      it('should serialize pagination with only number', () => {
+        const result = QuerySerializer.serialize({ pagination: { number: 5 } }, 'users');
+        expect(result['page[size]']).toBeUndefined();
+        expect(result['page[number]']).toBe(5);
+      });
+
+      it('should handle pagination with size of 0', () => {
+        const result = QuerySerializer.serialize({ pagination: { size: 0, number: 1 } }, 'users');
+        expect(result['page[size]']).toBe(0);
+        expect(result['page[number]']).toBe(1);
+      });
+
+      it('should handle pagination with number of 0', () => {
+        const result = QuerySerializer.serialize({ pagination: { size: 10, number: 0 } }, 'users');
+        expect(result['page[size]']).toBe(10);
+        expect(result['page[number]']).toBe(0);
+      });
+
+      it('should handle large pagination values', () => {
+        const result = QuerySerializer.serialize(
+          { pagination: { size: 1000000, number: 999999 } },
+          'users',
+        );
+        expect(result['page[size]']).toBe(1000000);
+        expect(result['page[number]']).toBe(999999);
+      });
+
+      it('should handle empty pagination object', () => {
+        const result = QuerySerializer.serialize({ pagination: {} }, 'users');
+        expect(result['page[size]']).toBeUndefined();
+        expect(result['page[number]']).toBeUndefined();
+      });
+
+      it('should handle undefined pagination', () => {
+        const result = QuerySerializer.serialize({ pagination: undefined }, 'users');
+        expect(result['page[size]']).toBeUndefined();
+        expect(result['page[number]']).toBeUndefined();
+      });
+
+      it('should serialize pagination combined with other options', () => {
+        const result = QuerySerializer.serialize(
+          {
+            search: 'john',
+            pagination: { size: 15, number: 3 },
+            fields: ['id', 'name'],
+          },
+          'users',
+        );
+        expect(result.search).toBe('john');
+        expect(result['page[size]']).toBe(15);
+        expect(result['page[number]']).toBe(3);
+        expect(result['fields[users]']).toEqual(['id', 'name']);
+      });
     });
 
     it('should serialize fields with escaped collection name', () => {
@@ -94,12 +156,6 @@ describe('QuerySerializer', () => {
     it('should handle undefined filters', () => {
       const result = QuerySerializer.serialize({ filters: undefined }, 'users');
       expect(result.filters).toBeUndefined();
-    });
-
-    it('should handle undefined pagination', () => {
-      const result = QuerySerializer.serialize({ pagination: undefined }, 'users');
-      expect(result['page[size]']).toBeUndefined();
-      expect(result['page[number]']).toBeUndefined();
     });
 
     describe('fields with @@@ separator for relations', () => {

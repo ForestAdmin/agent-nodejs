@@ -1210,6 +1210,514 @@ describe('ForestMCPServer Instance', () => {
       expect(fieldsSchema.description).toContain('@@@');
       expect(fieldsSchema.description).toContain('relationName@@@fieldName');
     });
+
+    describe('list tool call integration', () => {
+      let validToken: string;
+      let capturedQueryParams: Record<string, unknown>;
+
+      beforeEach(() => {
+        const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+        validToken = jsonwebtoken.sign(
+          {
+            id: 123,
+            email: 'user@example.com',
+            renderingId: 456,
+            serverToken: 'forest-server-token',
+          },
+          authSecret,
+          { expiresIn: '1h' },
+        );
+
+        // Reset captured params
+        capturedQueryParams = {};
+
+        // Reset mock server and capture query parameters from GET requests to /forest/*
+        listMockServer.reset();
+        listMockServer
+          .get('/liana/environment', {
+            data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+          })
+          .get('/liana/forest-schema', {
+            data: [
+              {
+                id: 'users',
+                type: 'collections',
+                attributes: {
+                  name: 'users',
+                  fields: [
+                    { field: 'id', type: 'Number', isSortable: true },
+                    { field: 'name', type: 'String', isSortable: true },
+                    { field: 'email', type: 'String', isSortable: true },
+                    { field: 'createdAt', type: 'Date', isSortable: true },
+                  ],
+                },
+              },
+              {
+                id: 'orders',
+                type: 'collections',
+                attributes: {
+                  name: 'orders',
+                  fields: [
+                    { field: 'id', type: 'Number', isSortable: true },
+                    { field: 'total', type: 'Number', isSortable: true },
+                    { field: 'customer', type: 'BelongsTo', isSortable: false },
+                  ],
+                },
+              },
+            ],
+            meta: {
+              liana: 'forest-express-sequelize',
+              liana_version: '9.0.0',
+              liana_features: null,
+            },
+          })
+          .post('/api/activity-logs-requests', { success: true })
+          // Capture GET requests to /forest/* collections (via superagent mock)
+          // The superagent mock passes query params as the body
+          .get(/\/forest\/\w+/, (_url, options) => {
+            capturedQueryParams = (options?.body as unknown as Record<string, unknown>) ?? {};
+
+            return {
+              data: [
+                {
+                  id: '1',
+                  type: 'users',
+                  attributes: { id: 1, name: 'Test User', email: 'test@example.com' },
+                },
+              ],
+            };
+          });
+
+        listMockServer.setupSuperagentMock();
+      });
+
+      const parseResponse = (response: request.Response) => {
+        if (response.body && Object.keys(response.body).length > 0) {
+          return response.body;
+        }
+
+        const textResponse = response.text;
+        const lines = textResponse.split('\n').filter((line: string) => line.trim());
+        const dataLine = lines.find((line: string) => line.startsWith('data: '));
+
+        if (dataLine) {
+          return JSON.parse(dataLine.replace('data: ', ''));
+        }
+
+        return JSON.parse(lines[lines.length - 1]);
+      };
+
+      describe('pagination', () => {
+        it('should pass pagination parameters to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  pagination: { size: 25, number: 3 },
+                },
+              },
+              id: 10,
+            });
+
+          expect(response.status).toBe(200);
+          const responseData = parseResponse(response);
+          expect(responseData.result).toBeDefined();
+
+          // Verify query params were captured with pagination
+          expect(capturedQueryParams['page[size]']).toBe(25);
+          expect(capturedQueryParams['page[number]']).toBe(3);
+        });
+
+        it('should handle pagination with only size', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  pagination: { size: 50 },
+                },
+              },
+              id: 11,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams['page[size]']).toBe(50);
+        });
+
+        it('should handle pagination with only page number', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  pagination: { number: 5 },
+                },
+              },
+              id: 12,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams['page[number]']).toBe(5);
+        });
+
+        it('should handle large pagination values', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  pagination: { size: 1000, number: 999 },
+                },
+              },
+              id: 13,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams['page[size]']).toBe(1000);
+          expect(capturedQueryParams['page[number]']).toBe(999);
+        });
+      });
+
+      describe('search', () => {
+        it('should pass search parameter to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  search: 'john doe',
+                  pagination: {},
+                },
+              },
+              id: 20,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams.search).toBe('john doe');
+        });
+
+        it('should pass shouldSearchInRelation with search', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  search: 'test',
+                  shouldSearchInRelation: true,
+                  pagination: {},
+                },
+              },
+              id: 21,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams.search).toBe('test');
+          expect(capturedQueryParams.searchExtended).toBe(true);
+        });
+      });
+
+      describe('filters', () => {
+        it('should pass simple filter to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  filters: {
+                    aggregator: 'And',
+                    conditions: [{ field: 'name', operator: 'Equal', value: 'John' }],
+                  },
+                  pagination: {},
+                },
+              },
+              id: 30,
+            });
+
+          expect(response.status).toBe(200);
+          const filters = JSON.parse(capturedQueryParams.filters as string);
+          expect(filters).toEqual({
+            aggregator: 'And',
+            conditions: [{ field: 'name', operator: 'Equal', value: 'John' }],
+          });
+        });
+
+        it('should pass complex filter with aggregator to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  filters: {
+                    aggregator: 'And',
+                    conditions: [
+                      { field: 'name', operator: 'Contains', value: 'John' },
+                      { field: 'email', operator: 'EndsWith', value: '@example.com' },
+                    ],
+                  },
+                  pagination: {},
+                },
+              },
+              id: 31,
+            });
+
+          expect(response.status).toBe(200);
+          const filters = JSON.parse(capturedQueryParams.filters as string);
+          expect(filters).toEqual({
+            aggregator: 'And',
+            conditions: [
+              { field: 'name', operator: 'Contains', value: 'John' },
+              { field: 'email', operator: 'EndsWith', value: '@example.com' },
+            ],
+          });
+        });
+
+        it('should pass nested filters with Or aggregator', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  filters: {
+                    aggregator: 'Or',
+                    conditions: [
+                      { field: 'name', operator: 'Equal', value: 'Admin' },
+                      {
+                        aggregator: 'And',
+                        conditions: [
+                          { field: 'email', operator: 'Present' },
+                          { field: 'createdAt', operator: 'After', value: '2024-01-01' },
+                        ],
+                      },
+                    ],
+                  },
+                  pagination: {},
+                },
+              },
+              id: 32,
+            });
+
+          expect(response.status).toBe(200);
+          const filters = JSON.parse(capturedQueryParams.filters as string);
+          expect(filters.aggregator).toBe('Or');
+          expect(filters.conditions).toHaveLength(2);
+        });
+      });
+
+      describe('sort', () => {
+        it('should pass ascending sort to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  sort: { field: 'name', ascending: true },
+                  pagination: {},
+                },
+              },
+              id: 40,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams.sort).toBe('name');
+        });
+
+        it('should pass descending sort to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  sort: { field: 'createdAt', ascending: false },
+                  pagination: {},
+                },
+              },
+              id: 41,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams.sort).toBe('-createdAt');
+        });
+      });
+
+      describe('fields', () => {
+        it('should pass simple fields to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  fields: ['id', 'name', 'email'],
+                  pagination: {},
+                },
+              },
+              id: 50,
+            });
+
+          expect(response.status).toBe(200);
+          expect(capturedQueryParams['fields[users]']).toEqual(['id', 'name', 'email']);
+        });
+
+        it('should pass relation fields with @@@ separator to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  fields: ['id', 'name', 'company@@@name', 'company@@@address'],
+                  pagination: {},
+                },
+              },
+              id: 51,
+            });
+
+          expect(response.status).toBe(200);
+          // Main collection should have the relation name
+          expect(capturedQueryParams['fields[users]']).toContain('id');
+          expect(capturedQueryParams['fields[users]']).toContain('name');
+          expect(capturedQueryParams['fields[users]']).toContain('company');
+          // Related collection should have the field names
+          expect(capturedQueryParams['fields[company]']).toContain('name');
+          expect(capturedQueryParams['fields[company]']).toContain('address');
+        });
+      });
+
+      describe('combined parameters', () => {
+        it('should pass all parameters together to the agent', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  search: 'john',
+                  shouldSearchInRelation: true,
+                  filters: {
+                    aggregator: 'And',
+                    conditions: [{ field: 'email', operator: 'Present' }],
+                  },
+                  sort: { field: 'name', ascending: true },
+                  fields: ['id', 'name', 'email'],
+                  pagination: { size: 20, number: 2 },
+                },
+              },
+              id: 60,
+            });
+
+          expect(response.status).toBe(200);
+
+          expect(capturedQueryParams.search).toBe('john');
+          expect(capturedQueryParams.searchExtended).toBe(true);
+          expect(capturedQueryParams.sort).toBe('name');
+          expect(capturedQueryParams['fields[users]']).toEqual(['id', 'name', 'email']);
+          expect(capturedQueryParams['page[size]']).toBe(20);
+          expect(capturedQueryParams['page[number]']).toBe(2);
+
+          const filters = JSON.parse(capturedQueryParams.filters as string);
+          expect(filters).toEqual({
+            aggregator: 'And',
+            conditions: [{ field: 'email', operator: 'Present' }],
+          });
+        });
+      });
+    });
   });
 
   describe('Logging', () => {
@@ -1399,7 +1907,7 @@ describe('ForestMCPServer Instance', () => {
           id: 4,
         });
 
-      const calls = mockLogger.mock.calls;
+      const { calls } = mockLogger.mock;
       const incomingIndex = calls.findIndex(
         (c: [string, string]) => c[1] === '[MCP] Incoming POST /mcp',
       );
