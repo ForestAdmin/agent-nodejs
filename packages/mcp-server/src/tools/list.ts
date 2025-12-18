@@ -1,4 +1,5 @@
 import type { Logger } from '../server';
+import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
@@ -75,7 +76,9 @@ export default function declareListTool(
       });
 
       try {
-        const result = await rpcClient.collection(options.collectionName).list(options);
+        const result = await rpcClient
+          .collection(options.collectionName)
+          .list(options as SelectOptions);
 
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
