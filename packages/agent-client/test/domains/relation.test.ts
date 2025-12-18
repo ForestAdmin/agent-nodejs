@@ -70,4 +70,55 @@ describe('Relation', () => {
       expect(result).toEqual(expectedData);
     });
   });
+
+  describe('count', () => {
+    it('should call httpRequester.query with correct count path', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue({ count: 42 });
+
+      const result = await relation.count();
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/1/relationships/posts/count',
+        query: expect.any(Object),
+      });
+      expect(result).toBe(42);
+    });
+
+    it('should handle string parent id', async () => {
+      const relation = new Relation('posts', 'users', 'abc-123', httpRequester);
+      httpRequester.query.mockResolvedValue({ count: 10 });
+
+      await relation.count();
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/abc-123/relationships/posts/count',
+        query: expect.any(Object),
+      });
+    });
+
+    it('should pass options to query serializer', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue({ count: 5 });
+
+      await relation.count({ search: 'title' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/1/relationships/posts/count',
+        query: expect.objectContaining({ search: 'title' }),
+      });
+    });
+
+    it('should return number from count response', async () => {
+      const relation = new Relation('posts', 'users', 1, httpRequester);
+      httpRequester.query.mockResolvedValue({ count: '100' });
+
+      const result = await relation.count();
+
+      expect(result).toBe(100);
+    });
+  });
 });

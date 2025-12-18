@@ -1,9 +1,9 @@
+import type { ListArgument } from './list.js';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import type { ListArgument } from './list.js';
 import { createListArgumentShape } from './list.js';
 import { Logger } from '../server.js';
 import createActivityLog from '../utils/activity-logs-creator.js';
@@ -25,7 +25,7 @@ type HasManyArgument = ListArgument & {
   parentRecordId: string | number;
 };
 
-export default function declareListHasManyTool(
+export default function declareListRelatedTool(
   mcpServer: McpServer,
   forestServerUrl: string,
   logger: Logger,
@@ -35,10 +35,10 @@ export default function declareListHasManyTool(
 
   registerToolWithLogging(
     mcpServer,
-    'getHasMany',
+    'listRelated',
     {
-      title: 'List records from a hasMany relationship',
-      description: 'Retrieve a list of records from the specified hasMany relationship.',
+      title: 'List records from a relation',
+      description: 'Retrieve a list of records from the specified relation (hasMany).',
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
@@ -51,12 +51,22 @@ export default function declareListHasManyTool(
       });
 
       try {
-        const result = await rpcClient
+        const relation = rpcClient
           .collection(options.collectionName)
-          .relation(options.relationName, options.parentRecordId)
-          .list(options as SelectOptions);
+          .relation(options.relationName, options.parentRecordId);
 
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        if (options.enableCount) {
+          const [records, totalCount] = await Promise.all([
+            relation.list(options as SelectOptions),
+            relation.count(options as SelectOptions),
+          ]);
+
+          return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
+        }
+
+        const records = await relation.list(options as SelectOptions);
+
+        return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);
@@ -73,7 +83,7 @@ export default function declareListHasManyTool(
             .some(field => field.field === options.relationName)
         ) {
           throw new Error(
-            `The relation name provided is invalid for this collection. Available relation for the collection are ${
+            `The relation name provided is invalid for this collection. Available relations for collection ${
               options.collectionName
             } are: ${fields
               .filter(field => field.relationship === 'HasMany')
