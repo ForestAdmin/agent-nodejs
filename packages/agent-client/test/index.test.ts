@@ -1,5 +1,5 @@
-import { createRemoteAgentClient } from '../src/index';
 import RemoteAgentClient from '../src/domains/remote-agent-client';
+import { createRemoteAgentClient } from '../src/index';
 
 describe('createRemoteAgentClient', () => {
   it('should create a RemoteAgentClient instance', () => {

@@ -18,14 +18,6 @@
     "jsonapi-serializer": "^3.6.9",
     "superagent": "^10.2.3"
   },
-  "peerDependencies": {
-    "@forestadmin/agent": "^1.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@forestadmin/agent": {
-      "optional": true
-    }
-  },
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts"
@@ -38,7 +30,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/agent": "1.66.2",
     "@types/superagent": "^8.1.9"
   }
 }
