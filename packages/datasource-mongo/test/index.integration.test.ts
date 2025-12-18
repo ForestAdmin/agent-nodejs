@@ -105,7 +105,7 @@ describe('Datasource Mongo', () => {
     describe('with a direct connection', () => {
       beforeEach(async () => {
         const connection = await mongoose.createConnection(
-          'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
+          'mongodb://forest:secret@127.0.0.1:27017/movies_datasource_test?authSource=admin',
         );
 
         await connection.dropDatabase();
@@ -142,7 +142,7 @@ describe('Datasource Mongo', () => {
       it('should work to connect to the DB with collection names using dots and flatten relationships', async () => {
         // Bug with collections having a dot in their name
         const factory = createMongoDataSource({
-          uri: 'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
+          uri: 'mongodb://forest:secret@127.0.0.1:27017/movies_datasource_test?authSource=admin',
           dataSource: {
             flattenMode: 'auto',
           },
@@ -150,10 +150,10 @@ describe('Datasource Mongo', () => {
 
         const dataSource = await factory(jest.fn(), jest.fn());
 
-        expect(dataSource.collections).toHaveLength(2);
-        expect(dataSource.collections.map(c => c.name)).toEqual(
-          expect.arrayContaining(['super_movies', 'super_movies_actors']),
-        );
+        expect(dataSource.collections.map(c => c.name).sort()).toEqual([
+          'super_movies',
+          'super_movies_actors',
+        ]);
       });
     });
   });
