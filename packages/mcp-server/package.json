@@ -17,13 +17,13 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "0.1.0",
-    "@forestadmin/forestadmin-client": "^1.36.14",
-    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@forestadmin/forestadmin-client": "^1.37.0",
+    "@modelcontextprotocol/sdk": "^1.25.1",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
+    "express": "^5.2.1",
     "jsonapi-serializer": "^3.6.9",
-    "jsonwebtoken": "^9.0.2",
-    "zod": "^4.1.13"
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^4.2.1"
   },
   "files": [
     "dist/**/*.js",
