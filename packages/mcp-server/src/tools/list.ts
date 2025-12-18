@@ -54,6 +54,11 @@ const listArgumentSchema = z.object({
       number: z.number().default(1).optional(),
     })
     .optional(),
+  enableCount: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('When true, also returns totalCount of matching records'),
 });
 
 type ListArgument = z.infer<typeof listArgumentSchema>;
@@ -98,11 +103,20 @@ export default function declareListTool(
       });
 
       try {
-        const result = await rpcClient
-          .collection(options.collectionName)
-          .list(options as SelectOptions);
+        const collection = rpcClient.collection(options.collectionName);
 
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        if (options.enableCount) {
+          const [records, totalCount] = await Promise.all([
+            collection.list(options as SelectOptions),
+            collection.count(options as SelectOptions),
+          ]);
+
+          return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
+        }
+
+        const records = await collection.list(options as SelectOptions);
+
+        return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);

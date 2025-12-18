@@ -39,9 +39,9 @@ Or programmatically:
 node dist/index.js
 ```
 
-### Environment Variables
+#### Environment Variables
 
-The following environment variables are required to run the server:
+The following environment variables are required to run the server as a standalone:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -49,7 +49,7 @@ The following environment variables are required to run the server:
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 
-### Example Configuration
+#### Example Configuration
 
 ```bash
 export FOREST_ENV_SECRET="your-env-secret"

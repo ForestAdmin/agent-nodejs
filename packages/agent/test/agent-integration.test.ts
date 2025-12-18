@@ -563,7 +563,11 @@ describe('Agent Integration Tests', () => {
         );
         expect(textContent).toBeDefined();
 
-        const users = JSON.parse(textContent.text);
+        const result = JSON.parse(textContent.text);
+
+        // Response format is { records: [...] }
+        expect(result).toHaveProperty('records');
+        const users = result.records;
 
         // Verify we got the 3 seeded users from SQLite
         expect(users).toHaveLength(3);
