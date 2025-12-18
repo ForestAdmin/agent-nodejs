@@ -71,6 +71,7 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
       expect(registeredToolConfig.inputSchema).toHaveProperty('shouldSearchInRelation');
       expect(registeredToolConfig.inputSchema).toHaveProperty('fields');
+      expect(registeredToolConfig.inputSchema).toHaveProperty('enableCount');
     });
 
     it('should have fields schema with description mentioning @@@ separator for relations', () => {
@@ -174,7 +175,7 @@ describe('declareListTool', () => {
       expect(mockCollection).toHaveBeenCalledWith('products');
     });
 
-    it('should return results as JSON text content', async () => {
+    it('should return results as JSON text content with records wrapper', async () => {
       const mockData = [
         { id: 1, name: 'Product 1' },
         { id: 2, name: 'Product 2' },
@@ -189,7 +190,7 @@ describe('declareListTool', () => {
       const result = await registeredToolHandler({ collectionName: 'products' }, mockExtra);
 
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify(mockData) }],
+        content: [{ type: 'text', text: JSON.stringify({ records: mockData }) }],
       });
     });
 
@@ -578,6 +579,110 @@ describe('declareListTool', () => {
             collectionName: 'orders',
             fields: ['id', 'customer@@@name', 'customer@@@email'],
           });
+        });
+      });
+
+      describe('enableCount parameter', () => {
+        let listMock: jest.Mock;
+        let countMock: jest.Mock;
+        let collectionMock: jest.Mock;
+
+        beforeEach(() => {
+          listMock = jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]);
+          countMock = jest.fn().mockResolvedValue(42);
+          collectionMock = jest.fn().mockReturnValue({ list: listMock, count: countMock });
+          mockBuildClient.mockReturnValue({
+            rpcClient: { collection: collectionMock },
+            authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+          } as unknown as ReturnType<typeof buildClient>);
+        });
+
+        it('should not call count when enableCount is false (default)', async () => {
+          const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+          expect(listMock).toHaveBeenCalled();
+          expect(countMock).not.toHaveBeenCalled();
+          expect(result).toEqual({
+            content: [{ type: 'text', text: JSON.stringify({ records: [{ id: 1 }, { id: 2 }] }) }],
+          });
+        });
+
+        it('should call both list and count when enableCount is true', async () => {
+          const result = await registeredToolHandler(
+            { collectionName: 'users', enableCount: true },
+            mockExtra,
+          );
+
+          expect(listMock).toHaveBeenCalled();
+          expect(countMock).toHaveBeenCalled();
+          expect(result).toEqual({
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ records: [{ id: 1 }, { id: 2 }], totalCount: 42 }),
+              },
+            ],
+          });
+        });
+
+        it('should pass the same options to both list and count', async () => {
+          const filters = { field: 'status', operator: 'Equal', value: 'active' };
+
+          await registeredToolHandler(
+            {
+              collectionName: 'users',
+              filters,
+              search: 'test',
+              enableCount: true,
+            },
+            mockExtra,
+          );
+
+          expect(listMock).toHaveBeenCalledWith({
+            collectionName: 'users',
+            filters,
+            search: 'test',
+            enableCount: true,
+          });
+          expect(countMock).toHaveBeenCalledWith({
+            collectionName: 'users',
+            filters,
+            search: 'test',
+            enableCount: true,
+          });
+        });
+
+        it('should execute list and count in parallel', async () => {
+          // Track call order
+          const callOrder: string[] = [];
+          listMock.mockImplementation(async () => {
+            callOrder.push('list-start');
+            await new Promise<void>(resolve => {
+              setTimeout(resolve, 10);
+            });
+            callOrder.push('list-end');
+
+            return [{ id: 1 }];
+          });
+          countMock.mockImplementation(async () => {
+            callOrder.push('count-start');
+            await new Promise<void>(resolve => {
+              setTimeout(resolve, 10);
+            });
+            callOrder.push('count-end');
+
+            return 10;
+          });
+
+          await registeredToolHandler({ collectionName: 'users', enableCount: true }, mockExtra);
+
+          // Both should start before either ends (parallel execution)
+          expect(callOrder.indexOf('list-start')).toBeLessThan(callOrder.indexOf('list-end'));
+          expect(callOrder.indexOf('count-start')).toBeLessThan(callOrder.indexOf('count-end'));
+          // Both starts should happen before both ends
+          expect(
+            callOrder.indexOf('list-start') < 2 && callOrder.indexOf('count-start') < 2,
+          ).toBe(true);
         });
       });
 

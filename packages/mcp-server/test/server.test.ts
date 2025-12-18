@@ -1057,6 +1057,7 @@ describe('ForestMCPServer Instance', () => {
       expect(listTool.inputSchema.properties).toHaveProperty('search');
       expect(listTool.inputSchema.properties).toHaveProperty('filters');
       expect(listTool.inputSchema.properties).toHaveProperty('sort');
+      expect(listTool.inputSchema.properties).toHaveProperty('enableCount');
 
       // Verify collectionName has enum with the collection names from the mocked schema
       const collectionNameSchema = listTool.inputSchema.properties.collectionName as {
@@ -1702,6 +1703,201 @@ describe('ForestMCPServer Instance', () => {
           // Related collection should have the field names
           expect(capturedQueryParams['fields[company]']).toContain('name');
           expect(capturedQueryParams['fields[company]']).toContain('address');
+        });
+      });
+
+      describe('enableCount', () => {
+        it('should return records wrapped in object when enableCount is false (default)', async () => {
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                },
+              },
+              id: 70,
+            });
+
+          expect(response.status).toBe(200);
+          const responseData = parseResponse(response);
+          expect(responseData.result).toBeDefined();
+
+          // Parse the content text to get the actual result
+          const content = responseData.result.content[0];
+          expect(content.type).toBe('text');
+          const resultData = JSON.parse(content.text);
+
+          // Should have records property but NOT totalCount
+          expect(resultData).toHaveProperty('records');
+          expect(resultData).not.toHaveProperty('totalCount');
+          expect(Array.isArray(resultData.records)).toBe(true);
+        });
+
+        it('should return records with totalCount when enableCount is true', async () => {
+          // Setup mock to also handle /count endpoint
+          listMockServer.reset();
+          listMockServer
+            .get('/liana/environment', {
+              data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+            })
+            .get('/liana/forest-schema', {
+              data: [
+                {
+                  id: 'users',
+                  type: 'collections',
+                  attributes: {
+                    name: 'users',
+                    fields: [
+                      { field: 'id', type: 'Number', isSortable: true },
+                      { field: 'name', type: 'String', isSortable: true },
+                    ],
+                  },
+                },
+              ],
+              meta: {
+                liana: 'forest-express-sequelize',
+                liana_version: '9.0.0',
+                liana_features: null,
+              },
+            })
+            .post('/api/activity-logs-requests', { success: true })
+            .get(/\/forest\/users\/count/, () => ({
+              count: 42,
+            }))
+            .get(/\/forest\/users/, () => ({
+              data: [
+                {
+                  id: '1',
+                  type: 'users',
+                  attributes: { id: 1, name: 'Test User' },
+                },
+                {
+                  id: '2',
+                  type: 'users',
+                  attributes: { id: 2, name: 'Another User' },
+                },
+              ],
+            }));
+
+          listMockServer.setupSuperagentMock();
+
+          const response = await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  enableCount: true,
+                },
+              },
+              id: 71,
+            });
+
+          expect(response.status).toBe(200);
+          const responseData = parseResponse(response);
+          expect(responseData.result).toBeDefined();
+
+          // Parse the content text to get the actual result
+          const content = responseData.result.content[0];
+          expect(content.type).toBe('text');
+          const resultData = JSON.parse(content.text);
+
+          // Should have both records and totalCount
+          expect(resultData).toHaveProperty('records');
+          expect(resultData).toHaveProperty('totalCount');
+          expect(Array.isArray(resultData.records)).toBe(true);
+          expect(resultData.totalCount).toBe(42);
+        });
+
+        it('should pass filters to both list and count when enableCount is true', async () => {
+          const listCalls: string[] = [];
+          const countCalls: string[] = [];
+
+          listMockServer.reset();
+          listMockServer
+            .get('/liana/environment', {
+              data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+            })
+            .get('/liana/forest-schema', {
+              data: [
+                {
+                  id: 'users',
+                  type: 'collections',
+                  attributes: {
+                    name: 'users',
+                    fields: [{ field: 'id', type: 'Number', isSortable: true }],
+                  },
+                },
+              ],
+              meta: {
+                liana: 'forest-express-sequelize',
+                liana_version: '9.0.0',
+                liana_features: null,
+              },
+            })
+            .post('/api/activity-logs-requests', { success: true })
+            .get(/\/forest\/users\/count/, (_url, options) => {
+              countCalls.push(JSON.stringify(options?.body));
+
+              return { count: 10 };
+            })
+            .get(/\/forest\/users/, (_url, options) => {
+              listCalls.push(JSON.stringify(options?.body));
+
+              return {
+                data: [{ id: '1', type: 'users', attributes: { id: 1 } }],
+              };
+            });
+
+          listMockServer.setupSuperagentMock();
+
+          const filterCondition = {
+            aggregator: 'And',
+            conditions: [{ field: 'id', operator: 'GreaterThan', value: 5 }],
+          };
+
+          await request(listHttpServer)
+            .post('/mcp')
+            .set('Authorization', `Bearer ${validToken}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'application/json, text/event-stream')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              params: {
+                name: 'list',
+                arguments: {
+                  collectionName: 'users',
+                  filters: filterCondition,
+                  enableCount: true,
+                },
+              },
+              id: 72,
+            });
+
+          // Both list and count should have been called
+          expect(listCalls.length).toBeGreaterThan(0);
+          expect(countCalls.length).toBeGreaterThan(0);
+
+          // Both should have received the same filters
+          const listParams = JSON.parse(listCalls[0]);
+          const countParams = JSON.parse(countCalls[0]);
+
+          expect(JSON.parse(listParams.filters)).toEqual(filterCondition);
+          expect(JSON.parse(countParams.filters)).toEqual(filterCondition);
         });
       });
 
