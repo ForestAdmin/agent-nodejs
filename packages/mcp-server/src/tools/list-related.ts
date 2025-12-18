@@ -76,19 +76,18 @@ export default function declareListRelatedTool(
           options.collectionName,
         );
 
+        const toManyRelations = fields.filter(
+          field => field.relationship === 'HasMany' || field.relationship === 'BelongsToMany',
+        );
+
         if (
           error.message?.toLowerCase()?.includes('not found') &&
-          !fields
-            .filter(field => field.relationship === 'HasMany')
-            .some(field => field.field === options.relationName)
+          !toManyRelations.some(field => field.field === options.relationName)
         ) {
           throw new Error(
             `The relation name provided is invalid for this collection. Available relations for collection ${
               options.collectionName
-            } are: ${fields
-              .filter(field => field.relationship === 'HasMany')
-              .map(field => field.field)
-              .join(', ')}.`,
+            } are: ${toManyRelations.map(field => field.field).join(', ')}.`,
           );
         }
 
