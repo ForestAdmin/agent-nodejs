@@ -22,6 +22,7 @@ import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
+import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
@@ -131,6 +132,12 @@ export default class ForestMCPServer {
       );
     }
 
+    declareDescribeCollectionTool(
+      this.mcpServer,
+      this.forestServerUrl,
+      this.logger,
+      collectionNames,
+    );
     declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
