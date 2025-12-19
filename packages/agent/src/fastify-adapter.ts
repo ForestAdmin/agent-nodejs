@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Logger } from '@forestadmin/datasource-toolkit';
-
 import type { HttpCallback } from './types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
 
 interface FastifyState {
   registered: Promise<void> | null;
