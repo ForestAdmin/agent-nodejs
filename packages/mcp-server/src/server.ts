@@ -92,17 +92,12 @@ export default class ForestMCPServer {
   private logger: Logger;
 
   constructor(options?: ForestMCPServerOptions) {
-    this.forestServerUrl =
-      options?.forestServerUrl ||
-      process.env.FOREST_SERVER_URL ||
-      process.env.FOREST_URL ||
-      'https://api.forestadmin.com';
+    this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
 
-    this.forestAppUrl =
-      options?.forestAppUrl || process.env.FOREST_APP_URL || 'https://app.forestadmin.com';
+    this.forestAppUrl = options?.forestAppUrl || 'https://app.forestadmin.com';
 
-    this.envSecret = options?.envSecret || process.env.FOREST_ENV_SECRET;
-    this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
+    this.envSecret = options?.envSecret;
+    this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
 
     this.mcpServer = new McpServer({
