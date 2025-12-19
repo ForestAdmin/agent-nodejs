@@ -207,10 +207,9 @@ describe('declareDescribeCollectionTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockSchema.collections[0].fields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.collection).toBe('users');
@@ -278,10 +277,9 @@ describe('declareDescribeCollectionTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockSchema.collections[0].fields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.fields).toEqual([
@@ -356,13 +354,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'HasMany',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'users', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'users', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         // Should only include non-relation fields
@@ -395,13 +394,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'HasMany',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'users', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'users', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.relations).toContainEqual({
@@ -425,13 +425,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'BelongsToMany',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'posts', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'posts', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'posts' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'posts' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.relations).toContainEqual({
@@ -455,13 +456,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'BelongsTo',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'orders', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'orders', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'orders' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'orders' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.relations).toContainEqual({
@@ -485,13 +487,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'HasOne',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'users', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'users', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.relations).toContainEqual({
@@ -515,13 +518,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'CustomRelation' as schemaFetcher.ForestField['relationship'],
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'test', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'test', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'test' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'test' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.relations).toContainEqual({
@@ -545,13 +549,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'HasMany',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'test', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'test', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'test' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'test' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.relations).toContainEqual({
@@ -574,10 +579,9 @@ describe('declareDescribeCollectionTool', () => {
         mockFetchForestSchema.mockResolvedValue({ collections: [] });
         mockGetFieldsOfCollection.mockReturnValue([]);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         // Check that JSON is formatted (has newlines)
         expect(result.content[0].text).toContain('\n');
@@ -617,13 +621,14 @@ describe('declareDescribeCollectionTool', () => {
             relationship: 'HasMany',
           },
         ];
-        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'users', fields: mockFields }] });
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'users', fields: mockFields }],
+        });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        const result = (await registeredToolHandler(
-          { collectionName: 'users' },
-          mockExtra,
-        )) as { content: { type: string; text: string }[] };
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed).toHaveProperty('collection', 'users');

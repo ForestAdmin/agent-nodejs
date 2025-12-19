@@ -20,9 +20,12 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
+import declareCreateTool from './tools/create';
+import declareDeleteTool from './tools/delete';
 import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
+import declareUpdateTool from './tools/update';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
@@ -50,6 +53,9 @@ const defaultLogger: Logger = (level, message) => {
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
+  create: ['collectionName'],
+  update: ['collectionName', 'recordId'],
+  delete: ['collectionName', 'recordIds'],
 };
 
 /**
@@ -134,6 +140,9 @@ export default class ForestMCPServer {
     );
     declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareUpdateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareDeleteTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
