@@ -1794,47 +1794,10 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent@1.67.0":
-  version "1.67.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.67.0.tgz#c5866a1e90dddfde2be6c0ee27c83ecd4caefa28"
-  integrity sha512-Ia+inSQJU/o4nzKv6l0KEYP0g2FxtWk9auMpDcouXLigQV1BKYNkNKaJqIc2gJ06zVJIAgtnjR4wiR7VUEI69w==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@fastify/express" "^1.1.0"
-    "@forestadmin/datasource-customizer" "1.67.1"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    "@forestadmin/forestadmin-client" "1.37.0"
-    "@koa/bodyparser" "^6.0.0"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^13.1.0"
-    "@paralleldrive/cuid2" "2.2.2"
-    "@types/koa__router" "^12.0.4"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.0"
-    koa "^3.0.1"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^10.2.3"
-    uuid "11.0.2"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
-
-"@forestadmin/datasource-mongo@1.5.4":
-  version "1.5.4"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongo/-/datasource-mongo-1.5.4.tgz#1371f14fa0d1867cd297b2c83f7fd1bb631e851e"
-  integrity sha512-v8obO5yjmAEsD92XkooPsPWGIiT480J5KXvhft3nDh+wmRVBOeF0yAt/KUhn1wgx5eGGnS0D8Py5cLgwOJIijg==
-  dependencies:
-    "@forestadmin/datasource-mongoose" "1.12.4"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    json-stringify-pretty-compact "^3.0.0"
-    mongoose "8.14.1"
-    tunnel-ssh "^5.2.0"
 
 "@forestadmin/datasource-sequelize@1.10.5":
   version "1.10.5"

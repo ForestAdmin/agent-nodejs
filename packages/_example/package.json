@@ -5,9 +5,9 @@
   "private": true,
   "dependencies": {
     "@faker-js/faker": "^7.6.0",
-    "@forestadmin/agent": "1.67.0",
+    "@forestadmin/agent": "1.68.0",
     "@forestadmin/datasource-dummy": "1.1.59",
-    "@forestadmin/datasource-mongo": "1.5.4",
+    "@forestadmin/datasource-mongo": "1.6.0",
     "@forestadmin/datasource-mongoose": "1.12.4",
     "@forestadmin/datasource-sequelize": "1.13.0",
     "@forestadmin/datasource-sql": "1.17.1",
