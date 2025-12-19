@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.68.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.68.0...@forestadmin/agent@1.68.1) (2025-12-19)
+
+
+### Bug Fixes
+
+* **run:** fix running a project without fastify ([#1382](https://github.com/ForestAdmin/agent-nodejs/issues/1382)) ([7863676](https://github.com/ForestAdmin/agent-nodejs/commit/78636766acfb42155a9cff856a92368c52d9d39f))
+
 # @forestadmin/agent [1.68.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.67.0...@forestadmin/agent@1.68.0) (2025-12-19)
 
 
