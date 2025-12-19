@@ -10,15 +10,7 @@ A skill that guides Claude to effectively query Forest Admin data through MCP to
 
 **Installation:**
 
-Copy the `forest-mcp` folder to your Claude skills directory:
-```bash
-cp -r forest-mcp ~/.claude/skills/
-```
-
-Or create a symlink:
-```bash
-ln -s $(pwd)/forest-mcp ~/.claude/skills/forest-mcp
-```
+Add this skill from the [Claude Code Marketplace](https://marketplace.claudecode.dev).
 
 **Usage:**
 
