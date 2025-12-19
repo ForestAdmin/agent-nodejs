@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import fastifyExpress from '@fastify/express';
-
-import { HttpCallback } from './types';
+import type { HttpCallback } from './types';
 
 interface FastifyState {
   registered: Promise<void> | null;
@@ -81,19 +79,23 @@ export default class FastifyAdapter {
     const { pendingCallbacks } = state;
 
     state.registered = new Promise<void>((resolve, reject) => {
-      fastify.register(fastifyExpress).after((err: Error | null) => {
-        if (err) {
-          this.logger('Error', err.message);
-          reject(err);
+      import('@fastify/express')
+        .then(({ default: fastifyExpress }) => {
+          fastify.register(fastifyExpress).after((err: Error | null) => {
+            if (err) {
+              this.logger('Error', err.message);
+              reject(err);
 
-          return;
-        }
+              return;
+            }
 
-        // Register all pending callbacks now that @fastify/express is loaded
-        this.registerPendingCallbacks(fastify, pendingCallbacks);
-        state.pendingCallbacks = [];
-        resolve();
-      });
+            // Register all pending callbacks now that @fastify/express is loaded
+            this.registerPendingCallbacks(fastify, pendingCallbacks);
+            state.pendingCallbacks = [];
+            resolve();
+          });
+        })
+        .catch(reject);
     });
   }
 

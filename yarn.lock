@@ -1794,19 +1794,20 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent@1.66.0":
-  version "1.66.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.66.0.tgz#94c3143ced404e15288c45588be6739338051ad8"
-  integrity sha512-WqfDZzvAozelYaQPMl1BWIZTgT7oO6FdrZqipezpyc+wUMrWzsJ3akOwH2L8OLgIkWTnf4die/nzg7Q6XLc8BQ==
+"@forestadmin/agent@1.67.0":
+  version "1.67.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.67.0.tgz#c5866a1e90dddfde2be6c0ee27c83ecd4caefa28"
+  integrity sha512-Ia+inSQJU/o4nzKv6l0KEYP0g2FxtWk9auMpDcouXLigQV1BKYNkNKaJqIc2gJ06zVJIAgtnjR4wiR7VUEI69w==
   dependencies:
     "@fast-csv/format" "^4.3.5"
     "@fastify/express" "^1.1.0"
     "@forestadmin/datasource-customizer" "1.67.1"
     "@forestadmin/datasource-toolkit" "1.50.0"
-    "@forestadmin/forestadmin-client" "1.36.14"
+    "@forestadmin/forestadmin-client" "1.37.0"
     "@koa/bodyparser" "^6.0.0"
     "@koa/cors" "^5.0.0"
     "@koa/router" "^13.1.0"
+    "@paralleldrive/cuid2" "2.2.2"
     "@types/koa__router" "^12.0.4"
     forest-ip-utils "^1.0.1"
     json-api-serializer "^2.6.6"
@@ -1863,18 +1864,6 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
-
-"@forestadmin/forestadmin-client@1.36.14":
-  version "1.36.14"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.36.14.tgz#8e35f0adfba4ca8490652456524d0615c4491f3a"
-  integrity sha512-jdcU8BuegQoskwJv9k1GBLL3l52SeefKgDLgGxaMlG2Sj1ZRAGhC5KsPHxHXONLX2qYZmYonJ1vhrUk1uYS7Rg==
-  dependencies:
-    eventsource "2.0.2"
-    json-api-serializer "^2.6.6"
-    jsonwebtoken "^9.0.0"
-    object-hash "^3.0.0"
-    openid-client "^5.7.1"
-    superagent "^10.2.3"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
