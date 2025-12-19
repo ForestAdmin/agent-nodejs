@@ -32,7 +32,7 @@ export default function declareDescribeCollectionTool(
     {
       title: 'Describe a collection',
       description:
-        'Get detailed information about a collection including its fields, data types, available filter operators, and relations to other collections.',
+        'Get detailed information about a collection including its fields, data types, available filter operators, and relations to other collections. Use this tool first before querying data to understand the collection structure and build accurate filters.',
       inputSchema: argumentShape,
     },
     async (options: DescribeCollectionArgument, extra) => {
