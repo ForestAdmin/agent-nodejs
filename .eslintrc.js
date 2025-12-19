@@ -17,7 +17,7 @@ module.exports = {
     sourceType: 'module',
     project: ['./tsconfig.eslint.json'],
   },
-  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting'],
+  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting', 'unused-imports'],
   rules: {
     /**********/
     /** Style */
@@ -59,8 +59,13 @@ module.exports = {
     /* Stricter rules than airbnb-base */
     /***********************************/
 
-    // No unused variables
-    '@typescript-eslint/no-unused-vars': ['error'],
+    // No unused variables and imports
+    '@typescript-eslint/no-unused-vars': 'off',
+    'unused-imports/no-unused-imports': 'error',
+    'unused-imports/no-unused-vars': [
+      'error',
+      { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
+    ],
 
     // No reassigning function parameters
     'no-param-reassign': ['error', { props: false }],
