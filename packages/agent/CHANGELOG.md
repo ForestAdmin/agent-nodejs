@@ -1,3 +1,24 @@
+# @forestadmin/agent [1.68.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.67.0...@forestadmin/agent@1.68.0) (2025-12-19)
+
+
+### Bug Fixes
+
+* **mcp server:** fix build of the mcp server ([#1378](https://github.com/ForestAdmin/agent-nodejs/issues/1378)) ([e746e99](https://github.com/ForestAdmin/agent-nodejs/commit/e746e99f31b6d5e61e02c2012699c2bb1a21a943))
+
+
+### Features
+
+* **mcp-server:** add enableCount option to list tool ([#1374](https://github.com/ForestAdmin/agent-nodejs/issues/1374)) ([b43de39](https://github.com/ForestAdmin/agent-nodejs/commit/b43de398384e469679ad44ec4d31ff3d4170e7fc))
+* **mcp:** introduce Forest mcp server ([#1338](https://github.com/ForestAdmin/agent-nodejs/issues/1338)) ([#1340](https://github.com/ForestAdmin/agent-nodejs/issues/1340)) ([093ab0a](https://github.com/ForestAdmin/agent-nodejs/commit/093ab0a826b1b2c3480d2fbbab52842ab7c64f85))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.0.1
+
 # @forestadmin/agent [1.67.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.66.2...@forestadmin/agent@1.67.0) (2025-12-16)
 
 
