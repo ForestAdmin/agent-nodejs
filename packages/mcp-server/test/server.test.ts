@@ -2296,7 +2296,7 @@ describe('ForestMCPServer Instance', () => {
       );
       expect(listRelatedTool).toBeDefined();
       expect(listRelatedTool.description).toBe(
-        'Retrieve a list of records from the specified relation (hasMany).',
+        'Retrieve a list of records from a one-to-many or many-to-many relation.',
       );
       expect(listRelatedTool.inputSchema).toBeDefined();
       expect(listRelatedTool.inputSchema.properties).toHaveProperty('collectionName');

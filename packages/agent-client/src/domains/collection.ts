@@ -102,6 +102,22 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     );
   }
 
+  async capabilities(): Promise<{
+    fields: { name: string; type: string; operators: string[] }[];
+  }> {
+    const result = await this.httpRequester.query<{
+      collections: { name: string; fields: { name: string; type: string; operators: string[] }[] }[];
+    }>({
+      method: 'post',
+      path: '/forest/_internal/capabilities',
+      body: { collectionNames: [this.name] },
+    });
+
+    const collection = result.collections.find(c => c.name === this.name);
+
+    return { fields: collection?.fields || [] };
+  }
+
   async delete<Data = any>(ids: string[] | number[]): Promise<Data> {
     const serializedIds = ids.map((id: string | number) => id.toString());
     const requestBody = {

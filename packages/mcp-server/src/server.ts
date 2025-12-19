@@ -20,8 +20,9 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
-import declareListRelatedTool from './tools/list-related';
+import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
+import declareListRelatedTool from './tools/list-related';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
@@ -125,6 +126,12 @@ export default class ForestMCPServer {
       );
     }
 
+    declareDescribeCollectionTool(
+      this.mcpServer,
+      this.forestServerUrl,
+      this.logger,
+      collectionNames,
+    );
     declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
