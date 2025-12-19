@@ -680,9 +680,9 @@ describe('declareListTool', () => {
           expect(callOrder.indexOf('list-start')).toBeLessThan(callOrder.indexOf('list-end'));
           expect(callOrder.indexOf('count-start')).toBeLessThan(callOrder.indexOf('count-end'));
           // Both starts should happen before both ends
-          expect(
-            callOrder.indexOf('list-start') < 2 && callOrder.indexOf('count-start') < 2,
-          ).toBe(true);
+          expect(callOrder.indexOf('list-start') < 2 && callOrder.indexOf('count-start') < 2).toBe(
+            true,
+          );
         });
       });
 

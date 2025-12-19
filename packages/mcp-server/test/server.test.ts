@@ -5,6 +5,7 @@ import request from 'supertest';
 
 import MockServer from './test-utils/mock-server';
 import ForestMCPServer from '../src/server';
+import { clearSchemaCache } from '../src/utils/schema-fetcher.js';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
