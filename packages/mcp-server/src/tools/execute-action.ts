@@ -37,6 +37,59 @@ interface ExecuteActionArgument {
   values?: Record<string, unknown>;
 }
 
+// Full action result as returned by the agent (agent-client types are too restrictive)
+interface ActionResultFromAgent {
+  // Success result
+  success?: string;
+  html?: string;
+  refresh?: { relationships: string[] };
+  // Error result (returned with HTTP 400, but caught and re-thrown)
+  error?: string;
+  // Webhook result
+  webhook?: {
+    url: string;
+    method: 'GET' | 'POST';
+    headers: Record<string, string>;
+    body: unknown;
+  };
+  // Redirect result
+  redirectTo?: string;
+  // Note: File results are streams and cannot be handled via JSON-based MCP protocol
+}
+
+function formatActionResult(result: ActionResultFromAgent): {
+  type: 'Success' | 'Webhook' | 'Redirect';
+  message?: string;
+  html?: string;
+  invalidatedRelations?: string[];
+  webhook?: { url: string; method: string; headers: Record<string, string>; body: unknown };
+  redirectTo?: string;
+} {
+  // Webhook result
+  if (result.webhook) {
+    return {
+      type: 'Webhook',
+      webhook: result.webhook,
+    };
+  }
+
+  // Redirect result
+  if (result.redirectTo) {
+    return {
+      type: 'Redirect',
+      redirectTo: result.redirectTo,
+    };
+  }
+
+  // Success result (default)
+  return {
+    type: 'Success',
+    message: result.success || 'Action executed successfully',
+    html: result.html || null,
+    invalidatedRelations: result.refresh?.relationships || [],
+  };
+}
+
 function createArgumentShape(collectionNames: string[]) {
   return {
     collectionName:
@@ -68,7 +121,7 @@ export default function declareExecuteActionTool(
     {
       title: 'Execute an action',
       description:
-        'Execute an action on a collection with optional form values. For actions with forms, use getActionForm first to see required fields. For dynamic forms, setting field values may change other fields.',
+        'Execute an action on a collection with optional form values. For actions with forms, use getActionForm first to see required fields. Returns result with type: Success (message, html, invalidatedRelations), Webhook (url, method, headers, body), or Redirect (redirectTo). File downloads are not supported via MCP.',
       inputSchema: argumentShape,
     },
     async (options: ExecuteActionArgument, extra) => {
@@ -90,21 +143,15 @@ export default function declareExecuteActionTool(
           await action.setFields(options.values);
         }
 
-        // Execute the action
-        const result = await action.execute();
+        // Execute the action - cast to ActionResultFromAgent since agent-client types are too restrictive
+        const result = (await action.execute()) as unknown as ActionResultFromAgent;
+        const formattedResult = formatActionResult(result);
 
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(
-                {
-                  success: result.success,
-                  html: result.html || null,
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(formattedResult, null, 2),
             },
           ],
         };

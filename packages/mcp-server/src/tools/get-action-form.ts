@@ -53,6 +53,42 @@ function createArgumentShape(collectionNames: string[]) {
   };
 }
 
+// Widget parameters as returned by the agent (varies by widget type)
+interface WidgetParameters {
+  // Common
+  placeholder?: string | null;
+  // Options (for dropdown, radio, checkboxes)
+  static?: {
+    options?: { label: string; value: string | number }[];
+  };
+  isSearchable?: boolean;
+  searchType?: 'dynamic' | null;
+  // Number fields
+  min?: number | null;
+  max?: number | null;
+  step?: number | null;
+  // Text area
+  rows?: number | null;
+  // Date picker
+  format?: string | null;
+  minDate?: string | null;
+  maxDate?: string | null;
+  // Color picker
+  enableOpacity?: boolean;
+  quickPalette?: string[] | null;
+  // Currency
+  currency?: string | null;
+  base?: 'Unit' | 'Cents' | null;
+  // File picker
+  filesExtensions?: string[] | null;
+  filesSizeLimit?: number | null;
+  filesCountLimit?: number | null;
+  // List fields
+  enableReorder?: boolean;
+  allowDuplicate?: boolean;
+  allowEmptyValue?: boolean;
+}
+
 interface PlainField {
   field: string;
   type: string;
@@ -61,13 +97,12 @@ interface PlainField {
   isRequired: boolean;
   isReadOnly: boolean;
   widgetEdit?: {
-    parameters: {
-      static: {
-        options?: { label: string; value: string }[];
-      };
-    };
+    name: string;
+    parameters: WidgetParameters;
   };
   enums?: string[];
+  // For Collection fields
+  reference?: string | null;
 }
 
 interface ActionFieldInfo {
@@ -80,6 +115,39 @@ interface ActionFieldInfo {
 
 function formatFieldForResponse(field: ActionFieldInfo) {
   const plainField = field.getPlainField?.();
+  const widgetEdit = plainField?.widgetEdit;
+  const params = widgetEdit?.parameters;
+
+  // Build widget configuration object with all relevant metadata
+  const widget: Record<string, unknown> = {};
+
+  if (widgetEdit?.name) {
+    widget.type = widgetEdit.name;
+  }
+
+  // Extract all widget parameters that are set
+  if (params) {
+    if (params.placeholder != null) widget.placeholder = params.placeholder;
+    if (params.min != null) widget.min = params.min;
+    if (params.max != null) widget.max = params.max;
+    if (params.step != null) widget.step = params.step;
+    if (params.rows != null) widget.rows = params.rows;
+    if (params.format != null) widget.format = params.format;
+    if (params.minDate != null) widget.minDate = params.minDate;
+    if (params.maxDate != null) widget.maxDate = params.maxDate;
+    if (params.enableOpacity != null) widget.enableOpacity = params.enableOpacity;
+    if (params.quickPalette != null) widget.quickPalette = params.quickPalette;
+    if (params.currency != null) widget.currency = params.currency;
+    if (params.base != null) widget.currencyBase = params.base;
+    if (params.filesExtensions != null) widget.allowedExtensions = params.filesExtensions;
+    if (params.filesSizeLimit != null) widget.maxSizeMb = params.filesSizeLimit;
+    if (params.filesCountLimit != null) widget.maxFiles = params.filesCountLimit;
+    if (params.enableReorder != null) widget.enableReorder = params.enableReorder;
+    if (params.allowDuplicate != null) widget.allowDuplicates = params.allowDuplicate;
+    if (params.allowEmptyValue != null) widget.allowEmptyValues = params.allowEmptyValue;
+    if (params.isSearchable != null) widget.isSearchable = params.isSearchable;
+    if (params.searchType === 'dynamic') widget.hasDynamicSearch = true;
+  }
 
   return {
     name: field.getName(),
@@ -89,7 +157,11 @@ function formatFieldForResponse(field: ActionFieldInfo) {
     isReadOnly: plainField?.isReadOnly ?? false,
     description: plainField?.description ?? null,
     enums: plainField?.enums ?? null,
-    options: plainField?.widgetEdit?.parameters?.static?.options ?? null,
+    options: params?.static?.options ?? null,
+    // Include widget config only if it has any properties
+    widget: Object.keys(widget).length > 0 ? widget : null,
+    // For Collection fields, include the reference
+    reference: plainField?.reference ?? null,
   };
 }
 
