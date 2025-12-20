@@ -1,6 +1,25 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+// Mapping from internal action names to API-accepted action names
+// The API only accepts specific action names like 'read', 'action', 'create', 'update', 'delete', etc.
+const actionMapping: Record<string, { apiAction: string; type: 'read' | 'write' }> = {
+  index: { apiAction: 'index', type: 'read' },
+  search: { apiAction: 'search', type: 'read' },
+  filter: { apiAction: 'filter', type: 'read' },
+  listHasMany: { apiAction: 'index', type: 'read' },
+  actionForm: { apiAction: 'read', type: 'read' },
+  action: { apiAction: 'action', type: 'write' },
+  create: { apiAction: 'create', type: 'write' },
+  update: { apiAction: 'update', type: 'write' },
+  delete: { apiAction: 'delete', type: 'write' },
+  availableActions: { apiAction: 'read', type: 'read' },
+  availableCollections: { apiAction: 'read', type: 'read' },
+  // Action-related MCP tools
+  getActionForm: { apiAction: 'read', type: 'read' },
+  executeAction: { apiAction: 'action', type: 'write' },
+};
+
 export default async function createActivityLog(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
@@ -12,25 +31,13 @@ export default async function createActivityLog(
     label?: string;
   },
 ) {
-  const actionToType = {
-    index: 'read',
-    search: 'read',
-    filter: 'read',
-    listHasMany: 'read',
-    actionForm: 'read',
-    action: 'write',
-    create: 'write',
-    update: 'write',
-    delete: 'write',
-    availableActions: 'read',
-    availableCollections: 'read',
-  };
+  const mapping = actionMapping[action];
 
-  if (!actionToType[action]) {
+  if (!mapping) {
     throw new Error(`Unknown action type: ${action}`);
   }
 
-  const type = actionToType[action] as 'read' | 'write';
+  const { apiAction, type } = mapping;
 
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
@@ -49,7 +56,7 @@ export default async function createActivityLog(
         type: 'activity-logs-requests',
         attributes: {
           type,
-          action,
+          action: apiAction,
           label: extra?.label,
           records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
         },

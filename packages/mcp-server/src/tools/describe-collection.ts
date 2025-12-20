@@ -4,7 +4,11 @@ import { z } from 'zod';
 
 import { Logger } from '../server.js';
 import buildClient from '../utils/agent-caller.js';
-import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
+import {
+  fetchForestSchema,
+  getActionsOfCollection,
+  getFieldsOfCollection,
+} from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
 
 interface DescribeCollectionArgument {
@@ -118,10 +122,21 @@ export default function declareDescribeCollectionTool(
           };
         });
 
+      // Extract actions from schema
+      const schemaActions = getActionsOfCollection(schema, options.collectionName);
+      const actions = schemaActions.map(action => ({
+        name: action.name,
+        type: action.type, // 'single', 'bulk', or 'global'
+        description: action.description || null,
+        hasForm: action.fields.length > 0 || action.hooks.load,
+        download: action.download,
+      }));
+
       const result = {
         collection: options.collectionName,
         fields,
         relations,
+        actions,
       };
 
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };

@@ -3,8 +3,11 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
+export type ActionEndpointsMap = Record<string, Record<string, { name: string; endpoint: string }>>;
+
 export default function buildClient(
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  actionEndpoints: ActionEndpointsMap = {},
 ) {
   const token = request.authInfo?.token;
   const url = request.authInfo?.extra?.environmentApiEndpoint;
@@ -20,7 +23,7 @@ export default function buildClient(
   const rpcClient = createRemoteAgentClient({
     token,
     url,
-    actionEndpoints: {},
+    actionEndpoints,
   });
 
   return {

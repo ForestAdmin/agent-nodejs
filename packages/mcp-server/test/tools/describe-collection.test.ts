@@ -19,6 +19,9 @@ const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunc
 const mockGetFieldsOfCollection = schemaFetcher.getFieldsOfCollection as jest.MockedFunction<
   typeof schemaFetcher.getFieldsOfCollection
 >;
+const mockGetActionsOfCollection = schemaFetcher.getActionsOfCollection as jest.MockedFunction<
+  typeof schemaFetcher.getActionsOfCollection
+>;
 
 describe('declareDescribeCollectionTool', () => {
   let mcpServer: McpServer;
@@ -27,6 +30,9 @@ describe('declareDescribeCollectionTool', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Default mock for actions - return empty array
+    mockGetActionsOfCollection.mockReturnValue([]);
 
     // Create a mock MCP server that captures the registered tool
     mcpServer = {
