@@ -158,7 +158,7 @@ function formatJsonResult(result: ActionResultFromAgent): FormattedResult {
   return {
     type: 'Success',
     message: result.success || 'Action executed successfully',
-    html: result.html || null,
+    html: result.html || undefined,
     invalidatedRelations: result.refresh?.relationships || [],
   };
 }

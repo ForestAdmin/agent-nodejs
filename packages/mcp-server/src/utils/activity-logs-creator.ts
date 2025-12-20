@@ -20,6 +20,10 @@ const actionMapping: Record<string, { apiAction: string; type: 'read' | 'write' 
   executeAction: { apiAction: 'action', type: 'write' },
 };
 
+/**
+ * Creates an activity log entry in Forest Admin.
+ * This function is non-blocking - failures are logged but don't prevent the main operation.
+ */
 export default async function createActivityLog(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
@@ -30,11 +34,14 @@ export default async function createActivityLog(
     recordIds?: string[] | number[];
     label?: string;
   },
-) {
+): Promise<void> {
   const mapping = actionMapping[action];
 
   if (!mapping) {
-    throw new Error(`Unknown action type: ${action}`);
+    // Unknown action type - log warning but don't block the operation
+    console.warn(`[ActivityLog] Unknown action type: ${action} - skipping activity log`);
+
+    return;
   }
 
   const { apiAction, type } = mapping;
@@ -42,45 +49,52 @@ export default async function createActivityLog(
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
 
-  const response = await fetch(`${forestServerUrl}/api/activity-logs-requests`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Forest-Application-Source': 'MCP',
-      Authorization: `Bearer ${forestServerToken}`,
-      // 'forest-secret-key': process.env.FOREST_ENV_SECRET || '',
-    },
-    body: JSON.stringify({
-      data: {
-        id: 1,
-        type: 'activity-logs-requests',
-        attributes: {
-          type,
-          action: apiAction,
-          label: extra?.label,
-          records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
-        },
-        relationships: {
-          rendering: {
-            data: {
-              id: renderingId,
-              type: 'renderings',
+  try {
+    const response = await fetch(`${forestServerUrl}/api/activity-logs-requests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Forest-Application-Source': 'MCP',
+        Authorization: `Bearer ${forestServerToken}`,
+      },
+      body: JSON.stringify({
+        data: {
+          id: 1,
+          type: 'activity-logs-requests',
+          attributes: {
+            type,
+            action: apiAction,
+            label: extra?.label,
+            records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
+          },
+          relationships: {
+            rendering: {
+              data: {
+                id: renderingId,
+                type: 'renderings',
+              },
+            },
+            collection: {
+              data: extra?.collectionName
+                ? {
+                    id: extra.collectionName,
+                    type: 'collections',
+                  }
+                : null,
             },
           },
-          collection: {
-            data: extra?.collectionName
-              ? {
-                  id: extra.collectionName,
-                  type: 'collections',
-                }
-              : null,
-          },
         },
-      },
-    }),
-  });
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to create activity log: ${await response.text()}`);
+    if (!response.ok) {
+      // Log warning but don't block the main operation
+      console.warn(`[ActivityLog] Failed to create activity log: ${await response.text()}`);
+    }
+  } catch (error) {
+    // Log error but don't block the main operation
+    console.warn(
+      `[ActivityLog] Error creating activity log: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

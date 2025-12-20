@@ -55,9 +55,13 @@ const defaultLogger: Logger = (level, message) => {
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
+  listRelated: ['collectionName', 'relationName', 'parentRecordId'],
   create: ['collectionName'],
   update: ['collectionName', 'recordId'],
   delete: ['collectionName', 'recordIds'],
+  describeCollection: ['collectionName'],
+  getActionForm: ['collectionName', 'actionName'],
+  executeAction: ['collectionName', 'actionName'],
 };
 
 /**

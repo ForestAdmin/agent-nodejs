@@ -15,6 +15,7 @@ describe('Action', () => {
 
     httpRequester = {
       query: jest.fn(),
+      queryWithFileSupport: jest.fn(),
     } as any;
 
     fieldsFormStates = {
@@ -314,6 +315,94 @@ describe('Action', () => {
       fieldsFormStates.getField.mockReturnValue(null);
 
       expect(action.doesFieldExist('nonexistent')).toBe(false);
+    });
+  });
+
+  describe('executeWithFileSupport', () => {
+    it('should call httpRequester.queryWithFileSupport with correct parameters', async () => {
+      httpRequester.queryWithFileSupport.mockResolvedValue({
+        type: 'json',
+        data: { success: 'Action executed' },
+      });
+
+      const result = await action.executeWithFileSupport();
+
+      expect(httpRequester.queryWithFileSupport).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/actions/send-email',
+        body: {
+          data: {
+            attributes: {
+              collection_name: 'users',
+              ids: ['1', '2'],
+              values: { email: 'test@example.com' },
+              signed_approval_request: undefined,
+            },
+            type: 'custom-action-requests',
+          },
+        },
+      });
+      expect(result).toEqual({
+        type: 'json',
+        data: { success: 'Action executed' },
+      });
+    });
+
+    it('should include signed approval request when provided', async () => {
+      httpRequester.queryWithFileSupport.mockResolvedValue({
+        type: 'json',
+        data: { success: 'Action executed' },
+      });
+      const signedApprovalRequest = { token: 'approval-token', requesterId: '123' };
+
+      await action.executeWithFileSupport(signedApprovalRequest);
+
+      expect(httpRequester.queryWithFileSupport).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/actions/send-email',
+        body: {
+          data: {
+            attributes: expect.objectContaining({
+              signed_approval_request: signedApprovalRequest,
+            }),
+            type: 'custom-action-requests',
+          },
+        },
+      });
+    });
+
+    it('should return json result type correctly', async () => {
+      httpRequester.queryWithFileSupport.mockResolvedValue({
+        type: 'json',
+        data: { success: 'Email sent', html: '<p>Done</p>' },
+      });
+
+      const result = await action.executeWithFileSupport();
+
+      expect(result.type).toBe('json');
+      expect(result).toHaveProperty('data');
+      if (result.type === 'json') {
+        expect(result.data).toEqual({ success: 'Email sent', html: '<p>Done</p>' });
+      }
+    });
+
+    it('should return file result type correctly', async () => {
+      const fileBuffer = Buffer.from('Hello, World!');
+      httpRequester.queryWithFileSupport.mockResolvedValue({
+        type: 'file',
+        buffer: fileBuffer,
+        mimeType: 'text/plain',
+        fileName: 'report.txt',
+      });
+
+      const result = await action.executeWithFileSupport();
+
+      expect(result.type).toBe('file');
+      if (result.type === 'file') {
+        expect(result.buffer).toEqual(fileBuffer);
+        expect(result.mimeType).toBe('text/plain');
+        expect(result.fileName).toBe('report.txt');
+      }
     });
   });
 });

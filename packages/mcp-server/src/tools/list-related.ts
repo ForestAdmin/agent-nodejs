@@ -70,36 +70,48 @@ export default function declareListRelatedTool(
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
 
-        const fields = getFieldsOfCollection(
-          await fetchForestSchema(forestServerUrl),
-          options.collectionName,
-        );
-
-        const toManyRelations = fields.filter(
-          field => field.relationship === 'HasMany' || field.relationship === 'BelongsToMany',
-        );
-
-        if (
-          error.message?.toLowerCase()?.includes('not found') &&
-          !toManyRelations.some(field => field.field === options.relationName)
-        ) {
-          throw new Error(
-            `The relation name provided is invalid for this collection. Available relations for collection ${
-              options.collectionName
-            } are: ${toManyRelations.map(field => field.field).join(', ')}.`,
+        // Try to provide helpful context, but don't let this fail the error reporting
+        try {
+          const fields = getFieldsOfCollection(
+            await fetchForestSchema(forestServerUrl),
+            options.collectionName,
           );
-        }
 
-        if (errorDetail?.includes('Invalid sort')) {
-          throw new Error(
-            `The sort field provided is invalid for this collection. Available fields for the collection ${
-              options.collectionName
-            } are: ${fields
-              .filter(field => field.isSortable)
-              .map(field => field.field)
-              .join(', ')}.`,
+          const toManyRelations = fields.filter(
+            field => field.relationship === 'HasMany' || field.relationship === 'BelongsToMany',
           );
+
+          if (
+            errorMessage?.toLowerCase()?.includes('not found') &&
+            !toManyRelations.some(field => field.field === options.relationName)
+          ) {
+            throw new Error(
+              `The relation name provided is invalid for this collection. Available relations for collection ${
+                options.collectionName
+              } are: ${toManyRelations.map(field => field.field).join(', ')}.`,
+            );
+          }
+
+          if (errorDetail?.includes('Invalid sort')) {
+            throw new Error(
+              `The sort field provided is invalid for this collection. Available fields for the collection ${
+                options.collectionName
+              } are: ${fields
+                .filter(field => field.isSortable)
+                .map(field => field.field)
+                .join(', ')}.`,
+            );
+          }
+        } catch (schemaError) {
+          // Schema fetch failed in error handler, fall through to return original error
+          if (schemaError instanceof Error && schemaError.message.includes('relation name')) {
+            throw schemaError; // Re-throw our custom error messages
+          }
+          if (schemaError instanceof Error && schemaError.message.includes('sort field')) {
+            throw schemaError;
+          }
         }
 
         throw errorDetail ? new Error(errorDetail) : error;
