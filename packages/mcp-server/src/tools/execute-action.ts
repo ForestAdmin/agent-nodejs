@@ -60,6 +60,7 @@ function isFileValue(value: unknown): value is FileValue {
 function fileToDataUri(file: FileValue): string {
   // Format: data:mimeType;name=filename;base64,content
   const encodedName = encodeURIComponent(file.name);
+
   return `data:${file.mimeType};name=${encodedName};base64,${file.contentBase64}`;
 }
 
@@ -163,11 +164,7 @@ function formatJsonResult(result: ActionResultFromAgent): FormattedResult {
   };
 }
 
-function formatFileResult(
-  buffer: Buffer,
-  mimeType: string,
-  fileName: string,
-): FormattedResult {
+function formatFileResult(buffer: Buffer, mimeType: string, fileName: string): FormattedResult {
   const sizeBytes = buffer.length;
 
   if (sizeBytes > MAX_FILE_SIZE_BYTES) {

@@ -106,6 +106,7 @@ export default class HttpRequester {
         // Format: attachment; filename="report.pdf" or attachment; filename=report.pdf
         const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         let fileName = 'download';
+
         if (fileNameMatch && fileNameMatch[1]) {
           fileName = fileNameMatch[1].replace(/['"]/g, '');
         }
@@ -128,7 +129,11 @@ export default class HttpRequester {
         // Log the failure - this is important for debugging schema mismatches
         console.warn(
           `[HttpRequester] Failed to deserialize JSON:API response, returning raw JSON. ` +
-            `Error: ${deserializationError instanceof Error ? deserializationError.message : String(deserializationError)}`,
+            `Error: ${
+              deserializationError instanceof Error
+                ? deserializationError.message
+                : String(deserializationError)
+            }`,
         );
 
         return { type: 'json', data: jsonBody as Data };

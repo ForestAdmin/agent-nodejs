@@ -109,6 +109,7 @@ export default function declareListRelatedTool(
           if (schemaError instanceof Error && schemaError.message.includes('relation name')) {
             throw schemaError; // Re-throw our custom error messages
           }
+
           if (schemaError instanceof Error && schemaError.message.includes('sort field')) {
             throw schemaError;
           }

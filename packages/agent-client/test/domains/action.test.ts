@@ -1,5 +1,5 @@
-import Action from '../../src/domains/action';
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import Action from '../../src/domains/action';
 import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
@@ -381,6 +381,7 @@ describe('Action', () => {
 
       expect(result.type).toBe('json');
       expect(result).toHaveProperty('data');
+
       if (result.type === 'json') {
         expect(result.data).toEqual({ success: 'Email sent', html: '<p>Done</p>' });
       }
@@ -398,6 +399,7 @@ describe('Action', () => {
       const result = await action.executeWithFileSupport();
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.buffer).toEqual(fileBuffer);
         expect(result.mimeType).toBe('text/plain');

@@ -94,7 +94,9 @@ export default async function createActivityLog(
   } catch (error) {
     // Log error but don't block the main operation
     console.warn(
-      `[ActivityLog] Error creating activity log: ${error instanceof Error ? error.message : String(error)}`,
+      `[ActivityLog] Error creating activity log: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
   }
 }

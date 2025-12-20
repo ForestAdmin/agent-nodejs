@@ -302,6 +302,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('json');
+
       if (result.type === 'json') {
         expect(result.data).toHaveProperty('name', 'John');
         expect(result.data).toHaveProperty('email', 'john@example.com');
@@ -328,6 +329,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.buffer).toEqual(fileContent);
         expect(result.mimeType).toBe('text/plain');
@@ -355,6 +357,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.fileName).toBe('report.pdf');
       }
@@ -380,6 +383,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.fileName).toBe('export.csv');
       }
@@ -405,6 +409,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.fileName).toBe('download');
       }
@@ -430,6 +435,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.mimeType).toBe('image/png');
       }
@@ -455,6 +461,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('json');
+
       if (result.type === 'json') {
         expect(result.data).toEqual({ customData: 'not JSON:API format', value: 42 });
       }
@@ -563,6 +570,7 @@ describe('HttpRequester', () => {
       });
 
       expect(result.type).toBe('file');
+
       if (result.type === 'file') {
         expect(result.mimeType).toBe('text/plain');
       }
@@ -645,17 +653,15 @@ describe('HttpRequester', () => {
       const mockStream = {} as any;
       const error = new Error('Stream error');
 
-      mockPipeResult.on = jest.fn().mockImplementation(function (
-        this: any,
-        event: string,
-        callback: (err?: Error) => void,
-      ) {
-        if (event === 'error') {
-          setImmediate(() => callback(error));
-        }
+      mockPipeResult.on = jest
+        .fn()
+        .mockImplementation(function (this: any, event: string, callback: (err?: Error) => void) {
+          if (event === 'error') {
+            setImmediate(() => callback(error));
+          }
 
-        return this;
-      });
+          return this;
+        });
 
       await expect(
         requester.stream({
