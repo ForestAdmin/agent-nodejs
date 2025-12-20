@@ -3,9 +3,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import declareGetActionFormTool from '../../src/tools/get-action-form';
-import createActivityLog from '../../src/utils/activity-logs-creator';
-import buildClient from '../../src/utils/agent-caller';
+import declareGetActionFormTool from '../../src/tools/get-action-form.js';
+import createActivityLog from '../../src/utils/activity-logs-creator.js';
+import buildClient from '../../src/utils/agent-caller.js';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/activity-logs-creator');
@@ -85,17 +85,19 @@ describe('declareGetActionFormTool', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const createMockField = (overrides: Partial<{
-      name: string;
-      type: string;
-      value: unknown;
-      isRequired: boolean;
-      isReadOnly: boolean;
-      description: string;
-      enums: string[];
-      widgetEdit: { name: string; parameters: Record<string, unknown> };
-      reference: string;
-    }> = {}) => {
+    const createMockField = (
+      overrides: Partial<{
+        name: string;
+        type: string;
+        value: unknown;
+        isRequired: boolean;
+        isReadOnly: boolean;
+        description: string;
+        enums: string[];
+        widgetEdit: { name: string; parameters: Record<string, unknown> };
+        reference: string;
+      }> = {},
+    ) => {
       const plainField = {
         field: overrides.name || 'testField',
         type: overrides.type || 'String',
