@@ -59,6 +59,82 @@ export default class HttpRequester {
     }
   }
 
+  /**
+   * Execute a request that may return either JSON or a file (binary data).
+   * Returns the response with additional metadata to determine the response type.
+   */
+  async queryWithFileSupport<Data = unknown>({
+    method,
+    path,
+    body,
+    query,
+    maxTimeAllowed,
+  }: {
+    method: 'get' | 'post' | 'put' | 'delete';
+    path: string;
+    body?: Record<string, unknown>;
+    query?: Record<string, unknown>;
+    maxTimeAllowed?: number;
+  }): Promise<
+    | { type: 'json'; data: Data }
+    | { type: 'file'; buffer: Buffer; mimeType: string; fileName: string }
+  > {
+    try {
+      const url = new URL(`${this.baseUrl}${HttpRequester.escapeUrlSlug(path)}`).toString();
+
+      const req = superagent[method](url)
+        .timeout(maxTimeAllowed ?? 10_000)
+        .responseType('arraybuffer') // Get raw buffer for any response
+        .set('Authorization', `Bearer ${this.token}`)
+        .set('Content-Type', 'application/json')
+        .query({ timezone: 'Europe/Paris', ...query });
+
+      if (body) req.send(body);
+
+      const response = await req;
+
+      const contentType = response.headers['content-type'] || '';
+      const contentDisposition = response.headers['content-disposition'] || '';
+
+      // Check if this is a file download (non-JSON content type with attachment)
+      const isFile =
+        contentDisposition.includes('attachment') ||
+        (!contentType.includes('application/json') && !contentType.includes('text/'));
+
+      if (isFile) {
+        // Extract filename from Content-Disposition header
+        // Format: attachment; filename="report.pdf" or attachment; filename=report.pdf
+        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        let fileName = 'download';
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = fileNameMatch[1].replace(/['"]/g, '');
+        }
+
+        return {
+          type: 'file',
+          buffer: Buffer.from(response.body),
+          mimeType: contentType.split(';')[0].trim(),
+          fileName,
+        };
+      }
+
+      // Parse as JSON
+      const jsonString = Buffer.from(response.body).toString('utf-8');
+      const jsonBody = JSON.parse(jsonString);
+
+      try {
+        return { type: 'json', data: (await this.deserializer.deserialize(jsonBody)) as Data };
+      } catch {
+        return { type: 'json', data: jsonBody as Data };
+      }
+    } catch (error: any) {
+      if (!error.response) throw error;
+      throw new Error(
+        JSON.stringify({ error: error.response.error as Record<string, string>, body }, null, 4),
+      );
+    }
+  }
+
   async stream({
     path: reqPath,
     query,

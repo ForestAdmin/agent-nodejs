@@ -37,6 +37,54 @@ interface ExecuteActionArgument {
   values?: Record<string, unknown>;
 }
 
+// File value format accepted from MCP clients
+interface FileValue {
+  name: string;
+  mimeType: string;
+  contentBase64: string;
+}
+
+function isFileValue(value: unknown): value is FileValue {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    'mimeType' in value &&
+    'contentBase64' in value &&
+    typeof (value as FileValue).name === 'string' &&
+    typeof (value as FileValue).mimeType === 'string' &&
+    typeof (value as FileValue).contentBase64 === 'string'
+  );
+}
+
+function fileToDataUri(file: FileValue): string {
+  // Format: data:mimeType;name=filename;base64,content
+  const encodedName = encodeURIComponent(file.name);
+  return `data:${file.mimeType};name=${encodedName};base64,${file.contentBase64}`;
+}
+
+/**
+ * Convert file values in the form data to data URI format expected by the agent.
+ * Supports both single files and file arrays.
+ */
+function convertFileValuesToDataUri(values: Record<string, unknown>): Record<string, unknown> {
+  const converted: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(values)) {
+    if (isFileValue(value)) {
+      // Single file
+      converted[key] = fileToDataUri(value);
+    } else if (Array.isArray(value) && value.length > 0 && value.every(isFileValue)) {
+      // File array (FileList)
+      converted[key] = value.map(fileToDataUri);
+    } else {
+      converted[key] = value;
+    }
+  }
+
+  return converted;
+}
+
 // Full action result as returned by the agent (agent-client types are too restrictive)
 interface ActionResultFromAgent {
   // Success result
@@ -54,17 +102,42 @@ interface ActionResultFromAgent {
   };
   // Redirect result
   redirectTo?: string;
-  // Note: File results are streams and cannot be handled via JSON-based MCP protocol
 }
 
-function formatActionResult(result: ActionResultFromAgent): {
-  type: 'Success' | 'Webhook' | 'Redirect';
-  message?: string;
-  html?: string;
-  invalidatedRelations?: string[];
-  webhook?: { url: string; method: string; headers: Record<string, string>; body: unknown };
-  redirectTo?: string;
-} {
+// Maximum file size to return inline (5MB)
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
+type FormattedResult =
+  | {
+      type: 'Success';
+      message?: string;
+      html?: string;
+      invalidatedRelations?: string[];
+    }
+  | {
+      type: 'Webhook';
+      webhook: { url: string; method: string; headers: Record<string, string>; body: unknown };
+    }
+  | {
+      type: 'Redirect';
+      redirectTo: string;
+    }
+  | {
+      type: 'File';
+      fileName: string;
+      mimeType: string;
+      contentBase64: string;
+      sizeBytes: number;
+    }
+  | {
+      type: 'FileTooLarge';
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      maxSizeBytes: number;
+    };
+
+function formatJsonResult(result: ActionResultFromAgent): FormattedResult {
   // Webhook result
   if (result.webhook) {
     return {
@@ -87,6 +160,32 @@ function formatActionResult(result: ActionResultFromAgent): {
     message: result.success || 'Action executed successfully',
     html: result.html || null,
     invalidatedRelations: result.refresh?.relationships || [],
+  };
+}
+
+function formatFileResult(
+  buffer: Buffer,
+  mimeType: string,
+  fileName: string,
+): FormattedResult {
+  const sizeBytes = buffer.length;
+
+  if (sizeBytes > MAX_FILE_SIZE_BYTES) {
+    return {
+      type: 'FileTooLarge',
+      fileName,
+      mimeType,
+      sizeBytes,
+      maxSizeBytes: MAX_FILE_SIZE_BYTES,
+    };
+  }
+
+  return {
+    type: 'File',
+    fileName,
+    mimeType,
+    contentBase64: buffer.toString('base64'),
+    sizeBytes,
   };
 }
 
@@ -121,7 +220,7 @@ export default function declareExecuteActionTool(
     {
       title: 'Execute an action',
       description:
-        'Execute an action on a collection with optional form values. For actions with forms, use getActionForm first to see required fields. Returns result with type: Success (message, html, invalidatedRelations), Webhook (url, method, headers, body), or Redirect (redirectTo). File downloads are not supported via MCP.',
+        'Execute an action on a collection with optional form values. For actions with forms, use getActionForm first to see required fields. File uploads: pass { name, mimeType, contentBase64 } as field value. Returns result with type: Success, Webhook, Redirect, or File (for small files < 5MB).',
       inputSchema: argumentShape,
     },
     async (options: ExecuteActionArgument, extra) => {
@@ -138,14 +237,24 @@ export default function declareExecuteActionTool(
           .collection(options.collectionName)
           .action(options.actionName, { recordIds });
 
-        // Set form values if provided
+        // Set form values if provided (convert file values to data URI format)
         if (options.values && Object.keys(options.values).length > 0) {
-          await action.setFields(options.values);
+          const convertedValues = convertFileValuesToDataUri(options.values);
+          await action.setFields(convertedValues);
         }
 
-        // Execute the action - cast to ActionResultFromAgent since agent-client types are too restrictive
-        const result = (await action.execute()) as unknown as ActionResultFromAgent;
-        const formattedResult = formatActionResult(result);
+        // Execute the action with file support
+        const result = await action.executeWithFileSupport();
+
+        let formattedResult: FormattedResult;
+
+        if (result.type === 'file') {
+          // File download response
+          formattedResult = formatFileResult(result.buffer, result.mimeType, result.fileName);
+        } else {
+          // JSON response (Success, Webhook, Redirect, Error)
+          formattedResult = formatJsonResult(result.data as ActionResultFromAgent);
+        }
 
         return {
           content: [
