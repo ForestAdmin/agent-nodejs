@@ -672,5 +672,105 @@ describe('declareGetActionFormTool', () => {
         ).rejects.toEqual(agentError);
       });
     });
+
+    describe('form hints', () => {
+      it('should indicate canExecute=false when required fields are missing', async () => {
+        const mockField = createMockField({
+          name: 'Title',
+          type: 'String',
+          value: undefined,
+          isRequired: true,
+        });
+        const mockSetFields = jest.fn();
+        const mockGetFields = jest.fn().mockReturnValue([mockField]);
+        const mockGetLayout = jest.fn().mockReturnValue({});
+        const mockAction = jest.fn().mockResolvedValue({
+          setFields: mockSetFields,
+          getFields: mockGetFields,
+          getLayout: mockGetLayout,
+        });
+        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        const result = (await registeredToolHandler(
+          { collectionName: 'dvds', actionName: 'Add DVD', recordIds: [] },
+          mockExtra,
+        )) as { content: { type: string; text: string }[] };
+
+        const parsedResult = JSON.parse(result.content[0].text);
+        expect(parsedResult.hints.canExecute).toBe(false);
+        expect(parsedResult.hints.requiredFieldsMissing).toContain('Title');
+      });
+
+      it('should indicate canExecute=true when all required fields are filled', async () => {
+        const mockField = createMockField({
+          name: 'Title',
+          type: 'String',
+          value: 'The Matrix',
+          isRequired: true,
+        });
+        const mockSetFields = jest.fn();
+        const mockGetFields = jest.fn().mockReturnValue([mockField]);
+        const mockGetLayout = jest.fn().mockReturnValue({});
+        const mockAction = jest.fn().mockResolvedValue({
+          setFields: mockSetFields,
+          getFields: mockGetFields,
+          getLayout: mockGetLayout,
+        });
+        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        const result = (await registeredToolHandler(
+          { collectionName: 'dvds', actionName: 'Add DVD', recordIds: [] },
+          mockExtra,
+        )) as { content: { type: string; text: string }[] };
+
+        const parsedResult = JSON.parse(result.content[0].text);
+        expect(parsedResult.hints.canExecute).toBe(true);
+        expect(parsedResult.hints.requiredFieldsMissing).toHaveLength(0);
+      });
+
+      it('should list multiple missing required fields', async () => {
+        const mockFields = [
+          createMockField({ name: 'Title', type: 'String', value: undefined, isRequired: true }),
+          createMockField({ name: 'Genre', type: 'Enum', value: null, isRequired: true }),
+          createMockField({ name: 'Description', type: 'String', value: '', isRequired: true }),
+          createMockField({
+            name: 'Optional',
+            type: 'String',
+            value: undefined,
+            isRequired: false,
+          }),
+        ];
+        const mockSetFields = jest.fn();
+        const mockGetFields = jest.fn().mockReturnValue(mockFields);
+        const mockGetLayout = jest.fn().mockReturnValue({});
+        const mockAction = jest.fn().mockResolvedValue({
+          setFields: mockSetFields,
+          getFields: mockGetFields,
+          getLayout: mockGetLayout,
+        });
+        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        const result = (await registeredToolHandler(
+          { collectionName: 'dvds', actionName: 'Add DVD', recordIds: [] },
+          mockExtra,
+        )) as { content: { type: string; text: string }[] };
+
+        const parsedResult = JSON.parse(result.content[0].text);
+        expect(parsedResult.hints.canExecute).toBe(false);
+        expect(parsedResult.hints.requiredFieldsMissing).toEqual(['Title', 'Genre', 'Description']);
+      });
+    });
   });
 });

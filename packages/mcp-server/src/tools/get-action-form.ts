@@ -201,6 +201,31 @@ function formatLayoutForResponse(layout: LayoutElement[]): unknown {
   };
 }
 
+interface FormHints {
+  canExecute: boolean;
+  requiredFieldsMissing: string[];
+}
+
+function computeFormHints(fields: ActionFieldInfo[]): FormHints {
+  const requiredFieldsMissing: string[] = [];
+
+  for (const field of fields) {
+    const value = field.getValue();
+    const isRequired = field.isRequired();
+    const name = field.getName();
+
+    // Check for missing required fields
+    if (isRequired && (value === undefined || value === null || value === '')) {
+      requiredFieldsMissing.push(name);
+    }
+  }
+
+  return {
+    canExecute: requiredFieldsMissing.length === 0,
+    requiredFieldsMissing,
+  };
+}
+
 export default function declareGetActionFormTool(
   mcpServer: McpServer,
   forestServerUrl: string,
@@ -216,7 +241,7 @@ export default function declareGetActionFormTool(
     {
       title: 'Get action form',
       description:
-        'Load the form fields for an action. Supports dynamic forms: pass values to trigger change hooks and discover fields that depend on other fields. For multi-page forms, the layout shows page structure. Call multiple times with progressive values to handle complex dynamic forms across pages.',
+        'Load the form fields for an action. Forms can be dynamic: changing a field value may reveal or hide other fields. To handle this, fill fields from top to bottom and call getActionForm again with the updated values to see if new fields appeared. The response includes "hints" with canExecute (all required fields filled?) and requiredFieldsMissing (list of required fields without values).',
       inputSchema: argumentShape,
     },
     async (options: GetActionFormArgument, extra) => {
@@ -244,8 +269,12 @@ export default function declareGetActionFormTool(
         // Get layout for multi-page forms
         const layout = action.getLayout();
         const formattedLayout = formatLayoutForResponse(
+          // eslint-disable-next-line @typescript-eslint/dot-notation
           layout?.['layout'] as LayoutElement[] | undefined,
         );
+
+        // Compute hints to guide the LLM on form completion
+        const hints = computeFormHints(fields);
 
         return {
           content: [
@@ -257,6 +286,7 @@ export default function declareGetActionFormTool(
                   actionName: options.actionName,
                   fields: formattedFields,
                   layout: formattedLayout,
+                  hints,
                 },
                 null,
                 2,
