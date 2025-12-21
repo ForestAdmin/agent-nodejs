@@ -3,7 +3,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 // Mapping from internal action names to API-accepted action names
 // The API only accepts specific action names like 'read', 'action', 'create', 'update', 'delete', etc.
-const actionMapping: Record<string, { apiAction: string; type: 'read' | 'write' }> = {
+const actionMapping = {
   index: { apiAction: 'index', type: 'read' },
   search: { apiAction: 'search', type: 'read' },
   filter: { apiAction: 'filter', type: 'read' },
@@ -18,7 +18,9 @@ const actionMapping: Record<string, { apiAction: string; type: 'read' | 'write' 
   // Action-related MCP tools
   getActionForm: { apiAction: 'read', type: 'read' },
   executeAction: { apiAction: 'action', type: 'write' },
-};
+} as const;
+
+export type ActivityLogAction = keyof typeof actionMapping;
 
 /**
  * Creates an activity log entry in Forest Admin.
@@ -27,7 +29,7 @@ const actionMapping: Record<string, { apiAction: string; type: 'read' | 'write' 
 export default async function createActivityLog(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  action: string,
+  action: ActivityLogAction,
   extra?: {
     collectionName?: string;
     recordId?: string | number;

@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createActivityLog, { ActivityLogAction } from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -90,7 +90,7 @@ export default function declareListTool(
     async (options: ListArgument, extra) => {
       const { rpcClient } = await buildClient(extra);
 
-      let actionType = 'index';
+      let actionType: ActivityLogAction = 'index';
 
       if (options.search) {
         actionType = 'search';

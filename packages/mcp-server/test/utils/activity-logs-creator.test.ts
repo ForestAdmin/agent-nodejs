@@ -1,7 +1,7 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import createActivityLog from '../../src/utils/activity-logs-creator';
+import createActivityLog, { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 
 describe('createActivityLog', () => {
   const originalFetch = global.fetch;
@@ -46,7 +46,7 @@ describe('createActivityLog', () => {
     ])('should map action "%s" to type "%s"', async (action, expectedType) => {
       const request = createMockRequest();
 
-      await createActivityLog('https://api.forestadmin.com', request, action);
+      await createActivityLog('https://api.forestadmin.com', request, action as ActivityLogAction);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.forestadmin.com/api/activity-logs-requests',
@@ -60,7 +60,12 @@ describe('createActivityLog', () => {
       const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
       const request = createMockRequest();
 
-      await createActivityLog('https://api.forestadmin.com', request, 'unknownAction');
+      // Cast to bypass TypeScript - tests runtime safety check
+      await createActivityLog(
+        'https://api.forestadmin.com',
+        request,
+        'unknownAction' as unknown as ActivityLogAction,
+      );
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[ActivityLog] Unknown action type: unknownAction - skipping activity log',
