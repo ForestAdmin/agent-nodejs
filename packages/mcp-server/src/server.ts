@@ -151,13 +151,7 @@ export default class ForestMCPServer {
     declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareUpdateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareDeleteTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
-    declareGetActionFormTool(
-      this.mcpServer,
-      this.forestServerUrl,
-      this.logger,
-      collectionNames,
-      actionEndpoints,
-    );
+    declareGetActionFormTool(this.mcpServer, this.logger, collectionNames, actionEndpoints);
     declareExecuteActionTool(
       this.mcpServer,
       this.forestServerUrl,

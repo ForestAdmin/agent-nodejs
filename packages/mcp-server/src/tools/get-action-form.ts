@@ -3,7 +3,6 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient, { ActionEndpointsMap } from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
@@ -228,7 +227,6 @@ function computeFormHints(fields: ActionFieldInfo[]): FormHints {
 
 export default function declareGetActionFormTool(
   mcpServer: McpServer,
-  forestServerUrl: string,
   logger: Logger,
   collectionNames: string[] = [],
   actionEndpoints: ActionEndpointsMap = {},
@@ -246,11 +244,6 @@ export default function declareGetActionFormTool(
     },
     async (options: GetActionFormArgument, extra) => {
       const { rpcClient } = await buildClient(extra, actionEndpoints);
-
-      await createActivityLog(forestServerUrl, extra, 'getActionForm', {
-        collectionName: options.collectionName,
-        label: options.actionName,
-      });
 
       try {
         const recordIds = options.recordIds as string[] | number[] | undefined;

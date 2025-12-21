@@ -4,16 +4,13 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareGetActionFormTool from '../../src/tools/get-action-form.js';
-import createActivityLog from '../../src/utils/activity-logs-creator.js';
 import buildClient from '../../src/utils/agent-caller.js';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/activity-logs-creator');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
 
 describe('declareGetActionFormTool', () => {
   let mcpServer: McpServer;
@@ -29,13 +26,11 @@ describe('declareGetActionFormTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
-
-    mockCreateActivityLog.mockResolvedValue(undefined);
   });
 
   describe('tool registration', () => {
     it('should register a tool named "getActionForm"', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'getActionForm',
@@ -45,14 +40,14 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Get action form');
       expect(registeredToolConfig.description).toContain('Load the form fields for an action');
     });
 
     it('should define correct input schema', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('actionName');
@@ -61,10 +56,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
-        'users',
-        'products',
-      ]);
+      declareGetActionFormTool(mcpServer, mockLogger, ['users', 'products']);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -120,7 +112,7 @@ describe('declareGetActionFormTool', () => {
     };
 
     beforeEach(() => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockLogger);
     });
 
     it('should call buildClient with the extra parameter and actionEndpoints', async () => {
@@ -566,38 +558,6 @@ describe('declareGetActionFormTool', () => {
             },
           ],
         });
-      });
-    });
-
-    describe('activity logging', () => {
-      beforeEach(() => {
-        const mockSetFields = jest.fn();
-        const mockGetFields = jest.fn().mockReturnValue([]);
-        const mockGetLayout = jest.fn().mockReturnValue({});
-        const mockAction = jest.fn().mockResolvedValue({
-          setFields: mockSetFields,
-          getFields: mockGetFields,
-          getLayout: mockGetLayout,
-        });
-        const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-      });
-
-      it('should create activity log with "getActionForm" action type and label', async () => {
-        await registeredToolHandler(
-          { collectionName: 'users', actionName: 'Send Reminder', recordIds: [42] },
-          mockExtra,
-        );
-
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'getActionForm',
-          { collectionName: 'users', label: 'Send Reminder' },
-        );
       });
     });
 

@@ -16,7 +16,6 @@ const actionMapping = {
   availableActions: { apiAction: 'read', type: 'read' },
   availableCollections: { apiAction: 'read', type: 'read' },
   // Action-related MCP tools
-  getActionForm: { apiAction: 'read', type: 'read' },
   executeAction: { apiAction: 'action', type: 'write' },
 } as const;
 
