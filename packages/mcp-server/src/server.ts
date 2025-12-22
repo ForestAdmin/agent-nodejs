@@ -20,6 +20,7 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
+import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
 import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
@@ -52,6 +53,7 @@ const defaultLogger: Logger = (level, message) => {
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
   listRelated: ['collectionName', 'relationName', 'parentRecordId'],
+  create: ['collectionName'],
   delete: ['collectionName', 'recordIds'],
   describeCollection: ['collectionName'],
 };
@@ -138,6 +140,7 @@ export default class ForestMCPServer {
     );
     declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareDeleteTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
