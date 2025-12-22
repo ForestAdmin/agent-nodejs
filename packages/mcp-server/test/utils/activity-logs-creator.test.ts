@@ -1,7 +1,7 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import createActivityLog from '../../src/utils/activity-logs-creator';
+import createActivityLog, { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 
 describe('createActivityLog', () => {
   const originalFetch = global.fetch;
@@ -46,7 +46,7 @@ describe('createActivityLog', () => {
     ])('should map action "%s" to type "%s"', async (action, expectedType) => {
       const request = createMockRequest();
 
-      await createActivityLog('https://api.forestadmin.com', request, action);
+      await createActivityLog('https://api.forestadmin.com', request, action as ActivityLogAction);
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.forestadmin.com/api/activity-logs-requests',
@@ -56,12 +56,22 @@ describe('createActivityLog', () => {
       );
     });
 
-    it('should throw error for unknown action type', async () => {
+    it('should warn and skip for unknown action type', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
       const request = createMockRequest();
 
-      await expect(
-        createActivityLog('https://api.forestadmin.com', request, 'unknownAction'),
-      ).rejects.toThrow('Unknown action type: unknownAction');
+      // Cast to bypass TypeScript - tests runtime safety check
+      await createActivityLog(
+        'https://api.forestadmin.com',
+        request,
+        'unknownAction' as unknown as ActivityLogAction,
+      );
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[ActivityLog] Unknown action type: unknownAction - skipping activity log',
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
     });
   });
 
@@ -273,7 +283,8 @@ describe('createActivityLog', () => {
   });
 
   describe('error handling', () => {
-    it('should throw error when response is not ok', async () => {
+    it('should warn but not throw when response is not ok', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
       mockFetch.mockResolvedValue({
         ok: false,
         text: () => Promise.resolve('Server error message'),
@@ -281,9 +292,12 @@ describe('createActivityLog', () => {
 
       const request = createMockRequest();
 
-      await expect(
-        createActivityLog('https://api.forestadmin.com', request, 'index'),
-      ).rejects.toThrow('Failed to create activity log: Server error message');
+      await createActivityLog('https://api.forestadmin.com', request, 'index');
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[ActivityLog] Failed to create activity log: Server error message',
+      );
+      consoleWarnSpy.mockRestore();
     });
 
     it('should not throw when response is ok', async () => {

@@ -21,11 +21,56 @@ export interface ForestField {
   validations?: unknown[];
   defaultValue?: unknown;
   isPrimaryKey: boolean;
+  relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
+}
+
+export interface ForestAction {
+  id: string;
+  name: string;
+  type: 'single' | 'bulk' | 'global';
+  endpoint: string;
+  description?: string;
+  submitButtonLabel?: string;
+  download: boolean;
+  fields: ForestActionField[];
+  layout?: ForestActionLayoutElement[];
+  hooks: {
+    load: boolean;
+    change: unknown[];
+  };
+}
+
+export interface ForestActionField {
+  field: string;
+  label: string;
+  type: string;
+  description?: string | null;
+  isRequired: boolean;
+  isReadOnly: boolean;
+  value?: unknown;
+  defaultValue?: unknown;
+  enums?: string[] | null;
+  reference?: string | null;
+  widgetEdit?: {
+    name: string;
+    parameters: Record<string, unknown>;
+  } | null;
+}
+
+export interface ForestActionLayoutElement {
+  component: 'separator' | 'htmlBlock' | 'row' | 'input' | 'page';
+  content?: string;
+  fieldId?: string;
+  fields?: ForestActionLayoutElement[];
+  elements?: ForestActionLayoutElement[];
+  nextButtonLabel?: string;
+  previousButtonLabel?: string;
 }
 
 export interface ForestCollection {
   name: string;
   fields: ForestField[];
+  actions?: ForestAction[];
 }
 
 export interface ForestSchema {
@@ -119,6 +164,47 @@ export function getFieldsOfCollection(schema: ForestSchema, collectionName: stri
   }
 
   return collection.fields;
+}
+
+/**
+ * Extracts actions from a collection in the Forest Admin schema.
+ */
+export function getActionsOfCollection(
+  schema: ForestSchema,
+  collectionName: string,
+): ForestAction[] {
+  const collection = schema.collections.find(col => col.name === collectionName);
+
+  if (!collection) {
+    throw new Error(`Collection "${collectionName}" not found in schema`);
+  }
+
+  return collection.actions || [];
+}
+
+/**
+ * Builds action endpoints map for all collections in the schema.
+ * This map is used by the agent-client to resolve action endpoints.
+ */
+export function getActionEndpoints(
+  schema: ForestSchema,
+): Record<string, Record<string, { name: string; endpoint: string }>> {
+  const endpoints: Record<string, Record<string, { name: string; endpoint: string }>> = {};
+
+  for (const collection of schema.collections) {
+    if (collection.actions && collection.actions.length > 0) {
+      endpoints[collection.name] = {};
+
+      for (const action of collection.actions) {
+        endpoints[collection.name][action.name] = {
+          name: action.name,
+          endpoint: action.endpoint,
+        };
+      }
+    }
+  }
+
+  return endpoints;
 }
 
 /**

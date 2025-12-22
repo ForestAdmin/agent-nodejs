@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createActivityLog, { ActivityLogAction } from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -61,9 +61,9 @@ const listArgumentSchema = z.object({
     .describe('When true, also returns totalCount of matching records'),
 });
 
-type ListArgument = z.infer<typeof listArgumentSchema>;
+export type ListArgument = z.infer<typeof listArgumentSchema>;
 
-function createListArgumentShape(collectionNames: string[]) {
+export function createListArgumentShape(collectionNames: string[]) {
   return {
     ...listArgumentSchema.shape,
     collectionName:
@@ -90,7 +90,7 @@ export default function declareListTool(
     async (options: ListArgument, extra) => {
       const { rpcClient } = await buildClient(extra);
 
-      let actionType = 'index';
+      let actionType: ActivityLogAction = 'index';
 
       if (options.search) {
         actionType = 'search';
