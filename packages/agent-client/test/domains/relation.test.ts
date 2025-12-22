@@ -114,4 +114,107 @@ describe('Relation', () => {
       });
     });
   });
+
+  describe('associate', () => {
+    it('should call httpRequester.query with POST method and correct body', async () => {
+      const relation = new Relation('tags', 'posts', 1, httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.associate(42);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/posts/1/relationships/tags',
+        body: {
+          data: [{ id: '42', type: 'tags' }],
+        },
+      });
+    });
+
+    it('should handle string target record id', async () => {
+      const relation = new Relation('tags', 'posts', 'abc', httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.associate('xyz-123');
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/posts/abc/relationships/tags',
+        body: {
+          data: [{ id: 'xyz-123', type: 'tags' }],
+        },
+      });
+    });
+  });
+
+  describe('dissociate', () => {
+    it('should call httpRequester.query with DELETE method and correct body', async () => {
+      const relation = new Relation('tags', 'posts', 1, httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.dissociate([42, 43]);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'delete',
+        path: '/forest/posts/1/relationships/tags',
+        body: {
+          data: {
+            attributes: {
+              ids: ['42', '43'],
+              collection_name: 'tags',
+              all_records: false,
+              all_records_ids_excluded: [],
+            },
+            type: 'action-requests',
+          },
+        },
+      });
+    });
+
+    it('should handle string target record ids', async () => {
+      const relation = new Relation('tags', 'posts', 'abc', httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.dissociate(['xyz', 'def']);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'delete',
+        path: '/forest/posts/abc/relationships/tags',
+        body: {
+          data: {
+            attributes: {
+              ids: ['xyz', 'def'],
+              collection_name: 'tags',
+              all_records: false,
+              all_records_ids_excluded: [],
+            },
+            type: 'action-requests',
+          },
+        },
+      });
+    });
+
+    it('should handle single record dissociation', async () => {
+      const relation = new Relation('tags', 'posts', 1, httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.dissociate([99]);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'delete',
+        path: '/forest/posts/1/relationships/tags',
+        body: {
+          data: {
+            attributes: {
+              ids: ['99'],
+              collection_name: 'tags',
+              all_records: false,
+              all_records_ids_excluded: [],
+            },
+            type: 'action-requests',
+          },
+        },
+      });
+    });
+  });
 });
