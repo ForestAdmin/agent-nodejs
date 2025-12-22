@@ -27,6 +27,13 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   listRelatedData: 'read',
 };
 
+type ActivityLogResponse = {
+  id: string;
+  attributes: {
+    index: string;
+  };
+};
+
 export default async function createActivityLog(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
@@ -58,6 +65,7 @@ export default async function createActivityLog(
           type,
           action,
           label: extra?.label,
+          status: 'pending',
           records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
         },
         relationships: {
@@ -83,4 +91,57 @@ export default async function createActivityLog(
   if (!response.ok) {
     throw new Error(`Failed to create activity log: ${await response.text()}`);
   }
+
+  const { data: activityLog } = (await response.json()) as { data: ActivityLogResponse };
+
+  return activityLog;
+}
+
+function updateActivityLogStatus(
+  forestServerUrl: string,
+  request: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  activityLog: ActivityLogResponse,
+  status: 'succeeded' | 'failed',
+  errorMessage?: string,
+) {
+  const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
+
+  return fetch(
+    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Forest-Application-Source': 'MCP',
+        Authorization: `Bearer ${forestServerToken}`,
+      },
+      body: JSON.stringify({
+        data: {
+          id: activityLog.id,
+          type: 'activity-logs-requests',
+          attributes: {
+            status,
+            ...(errorMessage && { errorMessage }),
+          },
+        },
+      }),
+    },
+  );
+}
+
+export function markActivityLogAsFailed(
+  forestServerUrl: string,
+  request: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  activityLog: ActivityLogResponse,
+  errorMessage: string,
+) {
+  return updateActivityLogStatus(forestServerUrl, request, activityLog, 'failed', errorMessage);
+}
+
+export function markActivityLogAsSucceeded(
+  forestServerUrl: string,
+  request: RequestHandlerExtra<ServerRequest, ServerNotification>,
+  activityLog: ActivityLogResponse,
+) {
+  return updateActivityLogStatus(forestServerUrl, request, activityLog, 'succeeded');
 }

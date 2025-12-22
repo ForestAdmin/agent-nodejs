@@ -5,7 +5,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -98,7 +101,7 @@ export default function declareListTool(
         actionType = 'filter';
       }
 
-      await createActivityLog(forestServerUrl, extra, actionType, {
+      const activityLog = await createActivityLog(forestServerUrl, extra, actionType, {
         collectionName: options.collectionName,
       });
 
@@ -111,15 +114,26 @@ export default function declareListTool(
             collection.count(options as SelectOptions),
           ]);
 
+          await markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
+
           return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
         }
 
         const records = await collection.list(options as SelectOptions);
 
+        await markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
+
         return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);
+
+        await markActivityLogAsFailed(
+          forestServerUrl,
+          extra,
+          activityLog,
+          errorDetail || error.message,
+        );
 
         if (errorDetail?.includes('Invalid sort')) {
           const fields = getFieldsOfCollection(

@@ -1093,7 +1093,9 @@ describe('ForestMCPServer Instance', () => {
       // Setup mock to capture the activity log API call and mock agent response
       listMockServer.clear();
       listMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       const response = await request(listHttpServer)
@@ -1272,7 +1274,9 @@ describe('ForestMCPServer Instance', () => {
               liana_features: null,
             },
           })
-          .post('/api/activity-logs-requests', { success: true })
+          .post('/api/activity-logs-requests', {
+            data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+          })
           // Capture GET requests to /forest/* collections (via superagent mock)
           // The superagent mock passes query params as the body
           .get(/\/forest\/\w+/, (_url, options) => {
@@ -1767,7 +1771,9 @@ describe('ForestMCPServer Instance', () => {
                 liana_features: null,
               },
             })
-            .post('/api/activity-logs-requests', { success: true })
+            .post('/api/activity-logs-requests', {
+              data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+            })
             .get(/\/forest\/users\/count/, () => ({
               count: 42,
             }))
@@ -1848,7 +1854,9 @@ describe('ForestMCPServer Instance', () => {
                 liana_features: null,
               },
             })
-            .post('/api/activity-logs-requests', { success: true })
+            .post('/api/activity-logs-requests', {
+              data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+            })
             .get(/\/forest\/users\/count/, (_url, options) => {
               countCalls.push(JSON.stringify(options?.body));
 
@@ -2038,7 +2046,9 @@ describe('ForestMCPServer Instance', () => {
       );
 
       loggingMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       await request(loggingHttpServer)
@@ -2070,7 +2080,9 @@ describe('ForestMCPServer Instance', () => {
 
       // Mock agent to return an error
       loggingMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { error: 'Collection not found' }, 400);
 
       await request(loggingHttpServer)
@@ -2120,7 +2132,9 @@ describe('ForestMCPServer Instance', () => {
       );
 
       loggingMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { result: [{ id: 1 }] });
 
       await request(loggingHttpServer)

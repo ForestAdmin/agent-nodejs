@@ -1,7 +1,11 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import createActivityLog, { ActivityLogAction } from '../../src/utils/activity-logs-creator';
+import createActivityLog, {
+  ActivityLogAction,
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../../src/utils/activity-logs-creator';
 
 describe('createActivityLog', () => {
   const originalFetch = global.fetch;
@@ -240,6 +244,7 @@ describe('createActivityLog', () => {
             type: 'read',
             action: 'index',
             label: 'View Product',
+            status: 'pending',
             records: [1],
           },
           relationships: {
@@ -300,5 +305,133 @@ describe('createActivityLog', () => {
         expect.any(Object),
       );
     });
+  });
+});
+
+describe('markActivityLogAsFailed', () => {
+  const originalFetch = global.fetch;
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = jest.fn().mockResolvedValue({ ok: true });
+    global.fetch = mockFetch;
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
+  function createMockRequest(): RequestHandlerExtra<ServerRequest, ServerNotification> {
+    return {
+      authInfo: {
+        token: 'mock-token',
+        clientId: 'mock-client-id',
+        scopes: ['mcp:read'],
+        extra: {
+          forestServerToken: 'test-forest-token',
+          renderingId: '12345',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+  }
+
+  it('should send PATCH request with failed status and error message', async () => {
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+
+    await markActivityLogAsFailed(
+      'https://api.forestadmin.com',
+      request,
+      activityLog,
+      'Something went wrong',
+    );
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Forest-Application-Source': 'MCP',
+          Authorization: 'Bearer test-forest-token',
+        },
+        body: JSON.stringify({
+          data: {
+            id: 'log-123',
+            type: 'activity-logs-requests',
+            attributes: {
+              status: 'failed',
+              errorMessage: 'Something went wrong',
+            },
+          },
+        }),
+      },
+    );
+  });
+});
+
+describe('markActivityLogAsSucceeded', () => {
+  const originalFetch = global.fetch;
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = jest.fn().mockResolvedValue({ ok: true });
+    global.fetch = mockFetch;
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
+  function createMockRequest(): RequestHandlerExtra<ServerRequest, ServerNotification> {
+    return {
+      authInfo: {
+        token: 'mock-token',
+        clientId: 'mock-client-id',
+        scopes: ['mcp:read'],
+        extra: {
+          forestServerToken: 'test-forest-token',
+          renderingId: '12345',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+  }
+
+  it('should send PATCH request with succeeded status', async () => {
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+
+    await markActivityLogAsSucceeded('https://api.forestadmin.com', request, activityLog);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Forest-Application-Source': 'MCP',
+          Authorization: 'Bearer test-forest-token',
+        },
+        body: JSON.stringify({
+          data: {
+            id: 'log-123',
+            type: 'activity-logs-requests',
+            attributes: {
+              status: 'succeeded',
+            },
+          },
+        }),
+      },
+    );
+  });
+
+  it('should not include errorMessage in succeeded status', async () => {
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+
+    await markActivityLogAsSucceeded('https://api.forestadmin.com', request, activityLog);
+
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(callBody.data.attributes).not.toHaveProperty('errorMessage');
   });
 });
