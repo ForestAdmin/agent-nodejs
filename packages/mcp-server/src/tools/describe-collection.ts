@@ -36,7 +36,7 @@ export default function declareDescribeCollectionTool(
     {
       title: 'Describe a collection',
       description:
-        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data.",
+        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data. Check `_meta` for data availability context.",
       inputSchema: argumentShape,
     },
     async (options: DescribeCollectionArgument, extra) => {
@@ -152,6 +152,11 @@ export default function declareDescribeCollectionTool(
         actions,
         _meta: {
           capabilitiesAvailable: !!collectionCapabilities,
+          ...(collectionCapabilities
+            ? {}
+            : {
+                note: "Operators unavailable (older agent). Empty arrays mean 'unknown', not 'none'.",
+              }),
         },
       };
 

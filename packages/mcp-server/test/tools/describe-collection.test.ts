@@ -59,7 +59,7 @@ describe('declareDescribeCollectionTool', () => {
 
       expect(registeredToolConfig.title).toBe('Describe a collection');
       expect(registeredToolConfig.description).toBe(
-        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data.",
+        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data. Check `_meta` for data availability context.",
       );
     });
 
@@ -828,7 +828,7 @@ describe('declareDescribeCollectionTool', () => {
         expect(parsed.actions).toBeInstanceOf(Array);
       });
 
-      it('should set _meta.capabilitiesAvailable to true when capabilities succeed', async () => {
+      it('should set _meta.capabilitiesAvailable to true without note when capabilities succeed', async () => {
         const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
         mockBuildClient.mockReturnValue({
@@ -845,9 +845,10 @@ describe('declareDescribeCollectionTool', () => {
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed._meta.capabilitiesAvailable).toBe(true);
+        expect(parsed._meta.note).toBeUndefined();
       });
 
-      it('should set _meta.capabilitiesAvailable to false when capabilities fail with 404', async () => {
+      it('should set _meta.capabilitiesAvailable to false with note when capabilities fail with 404', async () => {
         const mockCapabilities = jest.fn().mockRejectedValue(new Error('404 Not Found'));
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
         mockBuildClient.mockReturnValue({
@@ -864,6 +865,9 @@ describe('declareDescribeCollectionTool', () => {
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed._meta.capabilitiesAvailable).toBe(false);
+        expect(parsed._meta.note).toBe(
+          "Operators unavailable (older agent). Empty arrays mean 'unknown', not 'none'.",
+        );
       });
     });
   });
