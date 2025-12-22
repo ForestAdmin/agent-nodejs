@@ -23,10 +23,12 @@ import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
 import declareDescribeCollectionTool from './tools/describe-collection';
+import declareExecuteActionTool from './tools/execute-action';
+import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
-import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
+import { fetchForestSchema, getActionEndpoints, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
 
@@ -58,6 +60,8 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   update: ['collectionName', 'recordId'],
   delete: ['collectionName', 'recordIds'],
   describeCollection: ['collectionName'],
+  getActionForm: ['collectionName', 'actionName'],
+  executeAction: ['collectionName', 'actionName'],
 };
 
 /**
@@ -123,10 +127,12 @@ export default class ForestMCPServer {
 
   private async setupTools(): Promise<void> {
     let collectionNames: string[] = [];
+    let actionEndpoints: Record<string, Record<string, { name: string; endpoint: string }>> = {};
 
     try {
       const schema = await fetchForestSchema(this.forestServerUrl);
       collectionNames = getCollectionNames(schema);
+      actionEndpoints = getActionEndpoints(schema);
     } catch (error) {
       this.logger(
         'Warn',
@@ -145,6 +151,14 @@ export default class ForestMCPServer {
     declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareUpdateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
     declareDeleteTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareGetActionFormTool(this.mcpServer, this.logger, collectionNames, actionEndpoints);
+    declareExecuteActionTool(
+      this.mcpServer,
+      this.forestServerUrl,
+      this.logger,
+      collectionNames,
+      actionEndpoints,
+    );
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
