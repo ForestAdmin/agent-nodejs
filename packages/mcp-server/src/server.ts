@@ -22,6 +22,7 @@ import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
 import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
+import declareListRelatedTool from './tools/list-related';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
@@ -49,6 +50,7 @@ const defaultLogger: Logger = (level, message) => {
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
+  listRelated: ['collectionName', 'relationName', 'parentRecordId'],
   describeCollection: ['collectionName'],
 };
 
@@ -133,6 +135,7 @@ export default class ForestMCPServer {
       collectionNames,
     );
     declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
