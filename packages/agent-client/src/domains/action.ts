@@ -70,6 +70,33 @@ export default class Action<TypingsSchema> {
     });
   }
 
+  /**
+   * Execute the action with support for file download responses.
+   * Returns either a JSON result or a file (buffer + metadata).
+   */
+  async executeWithFileSupport(signedApprovalRequest?: Record<string, unknown>): Promise<
+    | { type: 'json'; data: Record<string, unknown> }
+    | { type: 'file'; buffer: Buffer; mimeType: string; fileName: string }
+  > {
+    const requestBody = {
+      data: {
+        attributes: {
+          collection_name: this.collectionName,
+          ids: this.ids,
+          values: this.fieldsFormStates.getFieldValues(),
+          signed_approval_request: signedApprovalRequest,
+        },
+        type: 'custom-action-requests',
+      },
+    };
+
+    return this.httpRequester.queryWithFileSupport<Record<string, unknown>>({
+      method: 'post',
+      path: this.actionPath,
+      body: requestBody,
+    });
+  }
+
   async setFields(fields: Record<string, unknown>): Promise<void> {
     for (const [fieldName, value] of Object.entries(fields)) {
       // eslint-disable-next-line no-await-in-loop

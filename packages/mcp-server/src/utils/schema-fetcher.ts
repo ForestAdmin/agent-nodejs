@@ -24,6 +24,33 @@ export interface ForestField {
   relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
 }
 
+export interface ForestActionField {
+  field: string;
+  label: string;
+  type: string;
+  description?: string | null;
+  isRequired: boolean;
+  isReadOnly: boolean;
+  value?: unknown;
+  defaultValue?: unknown;
+  enums?: string[] | null;
+  reference?: string | null;
+  widgetEdit?: {
+    name: string;
+    parameters: Record<string, unknown>;
+  } | null;
+}
+
+export interface ForestActionLayoutElement {
+  component: 'separator' | 'htmlBlock' | 'row' | 'input' | 'page';
+  content?: string;
+  fieldId?: string;
+  fields?: ForestActionLayoutElement[];
+  elements?: ForestActionLayoutElement[];
+  nextButtonLabel?: string;
+  previousButtonLabel?: string;
+}
+
 export interface ForestAction {
   id: string;
   name: string;
@@ -32,7 +59,8 @@ export interface ForestAction {
   description?: string;
   submitButtonLabel?: string;
   download: boolean;
-  fields: { field: string }[];
+  fields: ForestActionField[];
+  layout?: ForestActionLayoutElement[];
   hooks: {
     load: boolean;
     change: unknown[];
@@ -169,4 +197,29 @@ export function getActionsOfCollection(
   }
 
   return collection.actions || [];
+}
+
+/**
+ * Builds action endpoints map for all collections in the schema.
+ * This map is used by the agent-client to resolve action endpoints.
+ */
+export function getActionEndpoints(
+  schema: ForestSchema,
+): Record<string, Record<string, { name: string; endpoint: string }>> {
+  const endpoints: Record<string, Record<string, { name: string; endpoint: string }>> = {};
+
+  for (const collection of schema.collections) {
+    if (collection.actions && collection.actions.length > 0) {
+      endpoints[collection.name] = {};
+
+      for (const action of collection.actions) {
+        endpoints[collection.name][action.name] = {
+          name: action.name,
+          endpoint: action.endpoint,
+        };
+      }
+    }
+  }
+
+  return endpoints;
 }
