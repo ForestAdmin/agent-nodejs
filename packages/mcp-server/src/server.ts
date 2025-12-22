@@ -24,6 +24,7 @@ import declareCreateTool from './tools/create';
 import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
+import declareUpdateTool from './tools/update';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
@@ -53,6 +54,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
   listRelated: ['collectionName', 'relationName', 'parentRecordId'],
   create: ['collectionName'],
+  update: ['collectionName', 'recordId'],
   describeCollection: ['collectionName'],
 };
 
@@ -135,6 +137,7 @@ export default class ForestMCPServer {
       declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
       declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
       declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+      declareUpdateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
     ];
 
     this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
