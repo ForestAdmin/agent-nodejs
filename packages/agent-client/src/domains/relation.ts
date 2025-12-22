@@ -28,4 +28,16 @@ export default class Relation<TypingsSchema> {
       query: QuerySerializer.serialize(options, this.collectionName),
     });
   }
+
+  async count(options?: SelectOptions): Promise<number> {
+    return Number(
+      (
+        await this.httpRequester.query<{ count: number }>({
+          method: 'get',
+          path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}/count`,
+          query: QuerySerializer.serialize(options, this.collectionName),
+        })
+      ).count,
+    );
+  }
 }
