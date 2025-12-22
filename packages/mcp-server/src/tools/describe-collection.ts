@@ -55,11 +55,24 @@ export default function declareDescribeCollectionTool(
       try {
         collectionCapabilities = await rpcClient.collection(options.collectionName).capabilities();
       } catch (error) {
-        // Capabilities route not available, we'll use schema info only
-        logger(
-          'Warn',
-          `Failed to fetch capabilities for collection ${options.collectionName}: ${error}`,
-        );
+        // Check if it's a 404 (route not available on older agents)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found');
+
+        if (is404) {
+          // Capabilities route not available on older agent versions, fall back to schema
+          logger(
+            'Debug',
+            `Capabilities route not available for collection ${options.collectionName}, using schema fallback`,
+          );
+        } else {
+          // Unexpected error - log and re-throw
+          logger(
+            'Error',
+            `Failed to fetch capabilities for collection ${options.collectionName}: ${error}`,
+          );
+          throw error;
+        }
       }
 
       // Build fields array - use capabilities if available, otherwise fall back to schema
@@ -137,6 +150,9 @@ export default function declareDescribeCollectionTool(
         fields,
         relations,
         actions,
+        _meta: {
+          capabilitiesAvailable: !!collectionCapabilities,
+        },
       };
 
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };

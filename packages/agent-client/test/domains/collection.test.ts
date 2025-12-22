@@ -265,4 +265,69 @@ describe('Collection', () => {
       );
     });
   });
+
+  describe('capabilities', () => {
+    it('should call POST /forest/_internal/capabilities with collection name', async () => {
+      httpRequester.query.mockResolvedValue({
+        collections: [
+          {
+            name: 'users',
+            fields: [{ name: 'id', type: 'Number', operators: ['Equal', 'NotEqual'] }],
+          },
+        ],
+      });
+
+      const result = await collection.capabilities();
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/_internal/capabilities',
+        body: { collectionNames: ['users'] },
+      });
+      expect(result.fields).toEqual([
+        { name: 'id', type: 'Number', operators: ['Equal', 'NotEqual'] },
+      ]);
+    });
+
+    it('should return fields from the matching collection', async () => {
+      httpRequester.query.mockResolvedValue({
+        collections: [
+          { name: 'other', fields: [{ name: 'x', type: 'String', operators: [] }] },
+          {
+            name: 'users',
+            fields: [
+              { name: 'id', type: 'Number', operators: ['Equal'] },
+              { name: 'email', type: 'String', operators: ['Contains'] },
+            ],
+          },
+        ],
+      });
+
+      const result = await collection.capabilities();
+
+      expect(result.fields).toHaveLength(2);
+      expect(result.fields[0].name).toBe('id');
+      expect(result.fields[1].name).toBe('email');
+    });
+
+    it('should throw error when collection not found in response', async () => {
+      httpRequester.query.mockResolvedValue({
+        collections: [{ name: 'other', fields: [] }],
+      });
+
+      await expect(collection.capabilities()).rejects.toThrow(
+        'Collection "users" not found in capabilities response. Available: other',
+      );
+    });
+
+    it('should throw error with empty available list when no collections in response', async () => {
+      httpRequester.query.mockResolvedValue({
+        collections: [],
+      });
+
+      await expect(collection.capabilities()).rejects.toThrow(
+        'Collection "users" not found in capabilities response. Available: none',
+      );
+    });
+  });
 });

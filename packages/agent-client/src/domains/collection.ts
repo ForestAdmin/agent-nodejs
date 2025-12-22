@@ -115,7 +115,14 @@ export default class Collection<TypingsSchema> extends CollectionChart {
 
     const collection = result.collections.find(c => c.name === this.name);
 
-    return { fields: collection?.fields || [] };
+    if (!collection) {
+      throw new Error(
+        `Collection "${this.name}" not found in capabilities response. ` +
+          `Available: ${result.collections.map(c => c.name).join(', ') || 'none'}`,
+      );
+    }
+
+    return { fields: collection.fields };
   }
 
   async delete<Data = any>(ids: string[] | number[]): Promise<Data> {

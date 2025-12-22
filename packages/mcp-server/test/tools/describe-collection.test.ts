@@ -59,7 +59,7 @@ describe('declareDescribeCollectionTool', () => {
 
       expect(registeredToolConfig.title).toBe('Describe a collection');
       expect(registeredToolConfig.description).toBe(
-        'Get detailed information about a collection including its fields, data types, available filter operators, and relations to other collections. Use this tool first before querying data to understand the collection structure and build accurate filters.',
+        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data.",
       );
     });
 
@@ -244,7 +244,7 @@ describe('declareDescribeCollectionTool', () => {
 
     describe('when capabilities are not available (older agent)', () => {
       it('should fall back to schema fields with empty operators', async () => {
-        const mockCapabilities = jest.fn().mockRejectedValue(new Error('Not found'));
+        const mockCapabilities = jest.fn().mockRejectedValue(new Error('404 Not Found'));
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
         mockBuildClient.mockReturnValue({
           rpcClient: { collection: mockCollection },
@@ -310,8 +310,8 @@ describe('declareDescribeCollectionTool', () => {
         ]);
       });
 
-      it('should log a warning when capabilities fail', async () => {
-        const mockCapabilities = jest.fn().mockRejectedValue(new Error('Not found'));
+      it('should log at Debug level when capabilities return 404', async () => {
+        const mockCapabilities = jest.fn().mockRejectedValue(new Error('404 Not Found'));
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
         mockBuildClient.mockReturnValue({
           rpcClient: { collection: mockCollection },
@@ -324,13 +324,34 @@ describe('declareDescribeCollectionTool', () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
         expect(mockLogger).toHaveBeenCalledWith(
-          'Warn',
+          'Debug',
+          expect.stringContaining('Capabilities route not available for collection users'),
+        );
+      });
+
+      it('should throw and log Error for non-404 capabilities errors', async () => {
+        const mockCapabilities = jest.fn().mockRejectedValue(new Error('Server error'));
+        const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        mockFetchForestSchema.mockResolvedValue({ collections: [] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Server error',
+        );
+
+        expect(mockLogger).toHaveBeenCalledWith(
+          'Error',
           expect.stringContaining('Failed to fetch capabilities for collection users'),
         );
       });
 
       it('should exclude relation fields from schema fallback', async () => {
-        const mockCapabilities = jest.fn().mockRejectedValue(new Error('Not found'));
+        const mockCapabilities = jest.fn().mockRejectedValue(new Error('404 Not Found'));
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
         mockBuildClient.mockReturnValue({
           rpcClient: { collection: mockCollection },
@@ -573,6 +594,166 @@ describe('declareDescribeCollectionTool', () => {
       });
     });
 
+    describe('actions extraction', () => {
+      beforeEach(() => {
+        const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
+        const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        mockFetchForestSchema.mockResolvedValue({ collections: [] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
+      });
+
+      it('should return actions with correct structure', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'send-email',
+            name: 'Send Email',
+            type: 'single',
+            endpoint: '/forest/actions/send-email',
+            description: 'Send an email to the user',
+            fields: [{ field: 'subject' }],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions).toEqual([
+          {
+            name: 'Send Email',
+            type: 'single',
+            description: 'Send an email to the user',
+            hasForm: true,
+            download: false,
+          },
+        ]);
+      });
+
+      it('should set hasForm true when action has fields', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'action-with-fields',
+            name: 'Action With Fields',
+            type: 'bulk',
+            endpoint: '/forest/actions/action-with-fields',
+            fields: [{ field: 'reason' }],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions[0].hasForm).toBe(true);
+      });
+
+      it('should set hasForm true when action has load hook', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'action-with-hook',
+            name: 'Action With Hook',
+            type: 'single',
+            endpoint: '/forest/actions/action-with-hook',
+            fields: [],
+            hooks: { load: true, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions[0].hasForm).toBe(true);
+      });
+
+      it('should set hasForm false when action has no fields and no load hook', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'simple-action',
+            name: 'Simple Action',
+            type: 'global',
+            endpoint: '/forest/actions/simple-action',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions[0].hasForm).toBe(false);
+      });
+
+      it('should handle null description', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'no-description',
+            name: 'No Description Action',
+            type: 'single',
+            endpoint: '/forest/actions/no-description',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions[0].description).toBeNull();
+      });
+
+      it('should include download property', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'export-action',
+            name: 'Export Action',
+            type: 'bulk',
+            endpoint: '/forest/actions/export-action',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: true,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions[0].download).toBe(true);
+      });
+
+      it('should return empty actions array when collection has no actions', async () => {
+        mockGetActionsOfCollection.mockReturnValue([]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions).toEqual([]);
+      });
+    });
+
     describe('response format', () => {
       it('should return JSON formatted with indentation', async () => {
         const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
@@ -640,8 +821,49 @@ describe('declareDescribeCollectionTool', () => {
         expect(parsed).toHaveProperty('collection', 'users');
         expect(parsed).toHaveProperty('fields');
         expect(parsed).toHaveProperty('relations');
+        expect(parsed).toHaveProperty('actions');
+        expect(parsed).toHaveProperty('_meta');
         expect(parsed.fields).toBeInstanceOf(Array);
         expect(parsed.relations).toBeInstanceOf(Array);
+        expect(parsed.actions).toBeInstanceOf(Array);
+      });
+
+      it('should set _meta.capabilitiesAvailable to true when capabilities succeed', async () => {
+        const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
+        const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        mockFetchForestSchema.mockResolvedValue({ collections: [] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed._meta.capabilitiesAvailable).toBe(true);
+      });
+
+      it('should set _meta.capabilitiesAvailable to false when capabilities fail with 404', async () => {
+        const mockCapabilities = jest.fn().mockRejectedValue(new Error('404 Not Found'));
+        const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        mockFetchForestSchema.mockResolvedValue({ collections: [] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed._meta.capabilitiesAvailable).toBe(false);
       });
     });
   });
