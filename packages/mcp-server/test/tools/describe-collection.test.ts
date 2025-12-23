@@ -4,15 +4,18 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareDescribeCollectionTool from '../../src/tools/describe-collection.js';
+import createActivityLog from '../../src/utils/activity-logs-creator.js';
 import buildClient from '../../src/utils/agent-caller.js';
 import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/schema-fetcher');
+jest.mock('../../src/utils/activity-logs-creator');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
+const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -132,6 +135,27 @@ describe('declareDescribeCollectionTool', () => {
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
       expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+    });
+
+    it('should create activity log with index action', async () => {
+      const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
+      const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      mockFetchForestSchema.mockResolvedValue({ collections: [] });
+      mockGetFieldsOfCollection.mockReturnValue([]);
+
+      await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+      expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        'https://api.forestadmin.com',
+        mockExtra,
+        'describeCollection',
+        { collectionName: 'users' },
+      );
     });
 
     it('should fetch forest schema', async () => {

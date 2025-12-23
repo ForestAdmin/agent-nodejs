@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { Logger } from '../server.js';
+import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import {
   fetchForestSchema,
@@ -93,6 +94,10 @@ export default function declareDescribeCollectionTool(
     },
     async (options: DescribeCollectionArgument, extra) => {
       const { rpcClient } = buildClient(extra);
+
+      await createActivityLog(forestServerUrl, extra, 'describeCollection', {
+        collectionName: options.collectionName,
+      });
 
       // Get schema from forest server (relations, isFilterable, isSortable, etc.)
       const schema = await fetchForestSchema(forestServerUrl);
