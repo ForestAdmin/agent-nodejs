@@ -15,11 +15,45 @@ interface DescribeCollectionArgument {
   collectionName: string;
 }
 
+interface CollectionCapabilities {
+  fields: { name: string; type: string; operators: string[] }[];
+}
+
 function createDescribeCollectionArgumentShape(collectionNames: string[]) {
   return {
     collectionName:
       collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
   };
+}
+
+/**
+ * Try to fetch capabilities from the agent.
+ * Returns undefined if the route is not available (older agent versions).
+ * Throws for unexpected errors (network, 500, etc.).
+ */
+async function tryFetchCapabilities(
+  rpcClient: ReturnType<typeof buildClient>['rpcClient'],
+  collectionName: string,
+  logger: Logger,
+): Promise<CollectionCapabilities | undefined> {
+  try {
+    return await rpcClient.collection(collectionName).capabilities();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found');
+
+    if (is404) {
+      logger(
+        'Debug',
+        `Capabilities route not available for collection ${collectionName}, using schema fallback`,
+      );
+
+      return undefined;
+    }
+
+    logger('Error', `Failed to fetch capabilities for collection ${collectionName}: ${error}`);
+    throw error;
+  }
 }
 
 export default function declareDescribeCollectionTool(
@@ -46,34 +80,12 @@ export default function declareDescribeCollectionTool(
       const schema = await fetchForestSchema(forestServerUrl);
       const schemaFields = getFieldsOfCollection(schema, options.collectionName);
 
-      // Try to get capabilities from agent (fields with types and operators)
-      // This may fail on older agent versions
-      let collectionCapabilities:
-        | { fields: { name: string; type: string; operators: string[] }[] }
-        | undefined;
-
-      try {
-        collectionCapabilities = await rpcClient.collection(options.collectionName).capabilities();
-      } catch (error) {
-        // Check if it's a 404 (route not available on older agents)
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found');
-
-        if (is404) {
-          // Capabilities route not available on older agent versions, fall back to schema
-          logger(
-            'Debug',
-            `Capabilities route not available for collection ${options.collectionName}, using schema fallback`,
-          );
-        } else {
-          // Unexpected error - log and re-throw
-          logger(
-            'Error',
-            `Failed to fetch capabilities for collection ${options.collectionName}: ${error}`,
-          );
-          throw error;
-        }
-      }
+      // Try to get capabilities from agent (may be unavailable on older versions)
+      const collectionCapabilities = await tryFetchCapabilities(
+        rpcClient,
+        options.collectionName,
+        logger,
+      );
 
       // Build fields array - use capabilities if available, otherwise fall back to schema
       const fields = collectionCapabilities?.fields
@@ -95,7 +107,7 @@ export default function declareDescribeCollectionTool(
             .map(schemaField => ({
               name: schemaField.field,
               type: schemaField.type,
-              operators: [], // Not available without capabilities route
+              operators: null, // Not available without capabilities route
               isPrimaryKey: schemaField.isPrimaryKey,
               isReadOnly: schemaField.isReadOnly,
               isRequired: schemaField.isRequired,
@@ -155,7 +167,7 @@ export default function declareDescribeCollectionTool(
           ...(collectionCapabilities
             ? {}
             : {
-                note: "Operators unavailable (older agent). Empty arrays mean 'unknown', not 'none'.",
+                note: 'Operators unavailable (older agent version). Fields have operators: null.',
               }),
         },
       };

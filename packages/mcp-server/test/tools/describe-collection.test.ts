@@ -292,7 +292,7 @@ describe('declareDescribeCollectionTool', () => {
           {
             name: 'id',
             type: 'Number',
-            operators: [],
+            operators: null,
             isPrimaryKey: true,
             isReadOnly: false,
             isRequired: true,
@@ -301,7 +301,7 @@ describe('declareDescribeCollectionTool', () => {
           {
             name: 'email',
             type: 'String',
-            operators: [],
+            operators: null,
             isPrimaryKey: false,
             isReadOnly: false,
             isRequired: false,
@@ -866,7 +866,7 @@ describe('declareDescribeCollectionTool', () => {
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed._meta.capabilitiesAvailable).toBe(false);
         expect(parsed._meta.note).toBe(
-          "Operators unavailable (older agent). Empty arrays mean 'unknown', not 'none'.",
+          'Operators unavailable (older agent version). Fields have operators: null.',
         );
       });
     });
