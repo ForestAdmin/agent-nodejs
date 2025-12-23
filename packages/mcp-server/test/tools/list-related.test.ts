@@ -396,7 +396,7 @@ describe('declareListRelatedTool', () => {
           {
             collectionName: 'users',
             recordId: 1,
-            label: 'list relation "orders" with search with filter',
+            label: 'list relation "orders" with search and filter',
           },
         );
       });
