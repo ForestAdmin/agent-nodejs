@@ -1,7 +1,7 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import createActivityLog from '../../src/utils/activity-logs-creator';
+import createActivityLog, { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 
 describe('createActivityLog', () => {
   const originalFetch = global.fetch;
@@ -31,14 +31,11 @@ describe('createActivityLog', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>);
 
   describe('action type mapping', () => {
-    it.each([
+    it.each<[ActivityLogAction, 'read' | 'write']>([
       ['index', 'read'],
       ['search', 'read'],
       ['filter', 'read'],
-      ['listHasMany', 'read'],
-      ['actionForm', 'read'],
-      ['availableActions', 'read'],
-      ['availableCollections', 'read'],
+      ['listRelatedData', 'read'],
       ['action', 'write'],
       ['create', 'write'],
       ['update', 'write'],
@@ -54,14 +51,6 @@ describe('createActivityLog', () => {
           body: expect.stringContaining(`"type":"${expectedType}"`),
         }),
       );
-    });
-
-    it('should throw error for unknown action type', async () => {
-      const request = createMockRequest();
-
-      await expect(
-        createActivityLog('https://api.forestadmin.com', request, 'unknownAction'),
-      ).rejects.toThrow('Unknown action type: unknownAction');
     });
   });
 

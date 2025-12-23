@@ -92,7 +92,7 @@ export default function declareDescribeCollectionTool(
       inputSchema: argumentShape,
     },
     async (options: DescribeCollectionArgument, extra) => {
-      const { rpcClient } = await buildClient(extra);
+      const { rpcClient } = buildClient(extra);
 
       // Get schema from forest server (relations, isFilterable, isSortable, etc.)
       const schema = await fetchForestSchema(forestServerUrl);

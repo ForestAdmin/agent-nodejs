@@ -1,10 +1,36 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+/**
+ * Valid activity log actions.
+ * These must match ActivityLogActions enum in forestadmin-server.
+ * @see packages/private-api/src/config/activity-logs.ts
+ */
+export type ActivityLogAction =
+  | 'index'
+  | 'search'
+  | 'filter'
+  | 'action'
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'listRelatedData';
+
+const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
+  index: 'read',
+  search: 'read',
+  filter: 'read',
+  action: 'write',
+  create: 'write',
+  update: 'write',
+  delete: 'write',
+  listRelatedData: 'read',
+};
+
 export default async function createActivityLog(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  action: string,
+  action: ActivityLogAction,
   extra?: {
     collectionName?: string;
     recordId?: string | number;
@@ -12,25 +38,7 @@ export default async function createActivityLog(
     label?: string;
   },
 ) {
-  const actionToType = {
-    index: 'read',
-    search: 'read',
-    filter: 'read',
-    listHasMany: 'read',
-    actionForm: 'read',
-    action: 'write',
-    create: 'write',
-    update: 'write',
-    delete: 'write',
-    availableActions: 'read',
-    availableCollections: 'read',
-  };
-
-  if (!actionToType[action]) {
-    throw new Error(`Unknown action type: ${action}`);
-  }
-
-  const type = actionToType[action] as 'read' | 'write';
+  const type = ACTION_TO_TYPE[action];
 
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
@@ -41,7 +49,6 @@ export default async function createActivityLog(
       'Content-Type': 'application/json',
       'Forest-Application-Source': 'MCP',
       Authorization: `Bearer ${forestServerToken}`,
-      // 'forest-secret-key': process.env.FOREST_ENV_SECRET || '',
     },
     body: JSON.stringify({
       data: {
