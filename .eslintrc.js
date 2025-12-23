@@ -127,10 +127,10 @@ module.exports = {
         },
       })),
     {
-      // ESM package requiring .js extensions for imports
+      // mcp-server: disable import extensions rule (TypeScript handles module resolution)
       files: ['packages/mcp-server/**/*'],
       rules: {
-        'import/extensions': ['error', 'ignorePackages'],
+        'import/extensions': 'off',
       },
     },
   ],

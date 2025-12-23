@@ -106,7 +106,10 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     fields: { name: string; type: string; operators: string[] }[];
   }> {
     const result = await this.httpRequester.query<{
-      collections: { name: string; fields: { name: string; type: string; operators: string[] }[] }[];
+      collections: {
+        name: string;
+        fields: { name: string; type: string; operators: string[] }[];
+      }[];
     }>({
       method: 'post',
       path: '/forest/_internal/capabilities',

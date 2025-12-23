@@ -844,7 +844,9 @@ describe('declareDescribeCollectionTool', () => {
         };
 
         const parsed = JSON.parse(result.content[0].text);
+        // eslint-disable-next-line no-underscore-dangle
         expect(parsed._meta.capabilitiesAvailable).toBe(true);
+        // eslint-disable-next-line no-underscore-dangle
         expect(parsed._meta.note).toBeUndefined();
       });
 
@@ -864,7 +866,9 @@ describe('declareDescribeCollectionTool', () => {
         };
 
         const parsed = JSON.parse(result.content[0].text);
+        // eslint-disable-next-line no-underscore-dangle
         expect(parsed._meta.capabilitiesAvailable).toBe(false);
+        // eslint-disable-next-line no-underscore-dangle
         expect(parsed._meta.note).toBe(
           'Operators unavailable (older agent version). Fields have operators: null.',
         );

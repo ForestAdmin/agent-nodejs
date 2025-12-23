@@ -34,7 +34,8 @@ export class ProviderDispatcher {
     this.remoteTools = remoteTools;
 
     if (configuration?.provider === 'openai' && configuration.apiKey) {
-      const { provider, model, ...clientOptions } = configuration;
+      const { model, provider, ...clientOptions } = configuration;
+      void provider; // Destructured to exclude from clientOptions
       this.aiClient = {
         client: new OpenAI(clientOptions),
         model,
