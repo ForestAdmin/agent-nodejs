@@ -49,7 +49,6 @@ export default async function createActivityLog(
       'Content-Type': 'application/json',
       'Forest-Application-Source': 'MCP',
       Authorization: `Bearer ${forestServerToken}`,
-      // 'forest-secret-key': process.env.FOREST_ENV_SECRET || '',
     },
     body: JSON.stringify({
       data: {
