@@ -1,3 +1,18 @@
+# @forestadmin/mcp-server [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.1.0...@forestadmin/mcp-server@1.2.0) (2025-12-23)
+
+
+### Features
+
+* **mcp-server:** add listRelated tool for relations ([#1386](https://github.com/ForestAdmin/agent-nodejs/issues/1386)) ([bf64cf2](https://github.com/ForestAdmin/agent-nodejs/commit/bf64cf204267a2048b96f5a51945a3ecf8a0f834))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.2.0
+
 # @forestadmin/mcp-server [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.0.1...@forestadmin/mcp-server@1.1.0) (2025-12-23)
 
 
