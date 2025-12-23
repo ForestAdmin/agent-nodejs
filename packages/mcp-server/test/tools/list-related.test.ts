@@ -300,7 +300,7 @@ describe('declareListRelatedTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should create activity log with "index" action and relation label', async () => {
+      it('should create activity log with "listRelatedData" action and relation label', async () => {
         await registeredToolHandler(
           { collectionName: 'users', relationName: 'orders', parentRecordId: 42 },
           mockExtra,
@@ -332,6 +332,71 @@ describe('declareListRelatedTool', () => {
             collectionName: 'products',
             recordId: 'prod-123',
             label: 'list relation "reviews"',
+          },
+        );
+      });
+
+      it('should include "with search" in label when search is used', async () => {
+        await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1, search: 'test' },
+          mockExtra,
+        );
+
+        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+          'https://api.forestadmin.com',
+          mockExtra,
+          'listRelatedData',
+          {
+            collectionName: 'users',
+            recordId: 1,
+            label: 'list relation "orders" with search',
+          },
+        );
+      });
+
+      it('should include "with filter" in label when filters are used', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            relationName: 'orders',
+            parentRecordId: 1,
+            filters: { field: 'status', operator: 'Equal', value: 'pending' },
+          },
+          mockExtra,
+        );
+
+        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+          'https://api.forestadmin.com',
+          mockExtra,
+          'listRelatedData',
+          {
+            collectionName: 'users',
+            recordId: 1,
+            label: 'list relation "orders" with filter',
+          },
+        );
+      });
+
+      it('should include both "with search" and "with filter" in label when both are used', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'users',
+            relationName: 'orders',
+            parentRecordId: 1,
+            search: 'test',
+            filters: { field: 'status', operator: 'Equal', value: 'pending' },
+          },
+          mockExtra,
+        );
+
+        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+          'https://api.forestadmin.com',
+          mockExtra,
+          'listRelatedData',
+          {
+            collectionName: 'users',
+            recordId: 1,
+            label: 'list relation "orders" with search with filter',
           },
         );
       });

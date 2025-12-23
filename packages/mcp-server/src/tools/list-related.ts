@@ -92,12 +92,22 @@ export default function declareListRelatedTool(
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
-      const { rpcClient } = await buildClient(extra);
+      const { rpcClient } = buildClient(extra);
+
+      const labelParts = [`list relation "${options.relationName}"`];
+
+      if (options.search) {
+        labelParts.push('with search');
+      }
+
+      if (options.filters) {
+        labelParts.push('with filter');
+      }
 
       await createActivityLog(forestServerUrl, extra, 'listRelatedData', {
         collectionName: options.collectionName,
         recordId: options.parentRecordId,
-        label: `list relation "${options.relationName}"`,
+        label: labelParts.join(' '),
       });
 
       try {

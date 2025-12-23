@@ -13,7 +13,8 @@ export type ActivityLogAction =
   | 'action'
   | 'create'
   | 'update'
-  | 'delete';
+  | 'delete'
+  | 'listRelatedData';
 
 const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   index: 'read',
@@ -23,6 +24,7 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   create: 'write',
   update: 'write',
   delete: 'write',
+  listRelatedData: 'read',
 };
 
 export default async function createActivityLog(
@@ -36,25 +38,7 @@ export default async function createActivityLog(
     label?: string;
   },
 ) {
-  const actionToType = {
-    index: 'read',
-    search: 'read',
-    filter: 'read',
-    listRelatedData: 'read',
-    actionForm: 'read',
-    action: 'write',
-    create: 'write',
-    update: 'write',
-    delete: 'write',
-    availableActions: 'read',
-    availableCollections: 'read',
-  };
-
-  if (!actionToType[action]) {
-    throw new Error(`Unknown action type: ${action}`);
-  }
-
-  const type = actionToType[action] as 'read' | 'write';
+  const type = ACTION_TO_TYPE[action];
 
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
