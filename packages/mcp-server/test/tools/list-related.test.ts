@@ -309,7 +309,7 @@ describe('declareListRelatedTool', () => {
         expect(mockCreateActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
-          'listHasMany',
+          'index',
           {
             collectionName: 'users',
             recordId: 42,
@@ -327,7 +327,7 @@ describe('declareListRelatedTool', () => {
         expect(mockCreateActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
-          'listHasMany',
+          'index',
           {
             collectionName: 'products',
             recordId: 'prod-123',

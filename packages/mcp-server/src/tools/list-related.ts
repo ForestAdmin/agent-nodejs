@@ -94,7 +94,15 @@ export default function declareListRelatedTool(
     async (options: HasManyArgument, extra) => {
       const { rpcClient } = await buildClient(extra);
 
-      await createActivityLog(forestServerUrl, extra, 'listHasMany', {
+      let actionType: 'index' | 'search' | 'filter' = 'index';
+
+      if (options.search) {
+        actionType = 'search';
+      } else if (options.filters) {
+        actionType = 'filter';
+      }
+
+      await createActivityLog(forestServerUrl, extra, actionType, {
         collectionName: options.collectionName,
         recordId: options.parentRecordId,
         label: `list relation "${options.relationName}"`,

@@ -90,7 +90,7 @@ export default function declareListTool(
     async (options: ListArgument, extra) => {
       const { rpcClient } = await buildClient(extra);
 
-      let actionType = 'index';
+      let actionType: 'index' | 'search' | 'filter' = 'index';
 
       if (options.search) {
         actionType = 'search';
