@@ -1,3 +1,18 @@
+# @forestadmin/mcp-server [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.0.1...@forestadmin/mcp-server@1.1.0) (2025-12-23)
+
+
+### Features
+
+* **mcp-server:** add describeCollection tool ([#1385](https://github.com/ForestAdmin/agent-nodejs/issues/1385)) ([a3e9bb7](https://github.com/ForestAdmin/agent-nodejs/commit/a3e9bb778aac948b1013840be4c8695dcd822c95))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.1.0
+
 ## @forestadmin/mcp-server [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.0.0...@forestadmin/mcp-server@1.0.1) (2025-12-19)
 
 
