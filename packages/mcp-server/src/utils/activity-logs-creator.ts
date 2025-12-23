@@ -36,7 +36,25 @@ export default async function createActivityLog(
     label?: string;
   },
 ) {
-  const type = ACTION_TO_TYPE[action];
+  const actionToType = {
+    index: 'read',
+    search: 'read',
+    filter: 'read',
+    listRelatedData: 'read',
+    actionForm: 'read',
+    action: 'write',
+    create: 'write',
+    update: 'write',
+    delete: 'write',
+    availableActions: 'read',
+    availableCollections: 'read',
+  };
+
+  if (!actionToType[action]) {
+    throw new Error(`Unknown action type: ${action}`);
+  }
+
+  const type = actionToType[action] as 'read' | 'write';
 
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
