@@ -21,11 +21,28 @@ export interface ForestField {
   validations?: unknown[];
   defaultValue?: unknown;
   isPrimaryKey: boolean;
+  relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
+}
+
+export interface ForestAction {
+  id: string;
+  name: string;
+  type: 'single' | 'bulk' | 'global';
+  endpoint: string;
+  description?: string;
+  submitButtonLabel?: string;
+  download: boolean;
+  fields: { field: string }[];
+  hooks: {
+    load: boolean;
+    change: unknown[];
+  };
 }
 
 export interface ForestCollection {
   name: string;
   fields: ForestField[];
+  actions?: ForestAction[];
 }
 
 export interface ForestSchema {
@@ -136,4 +153,20 @@ export function setSchemaCache(schema: ForestSchema, fetchedAt?: number): void {
     schema,
     fetchedAt: fetchedAt ?? Date.now(),
   };
+}
+
+/**
+ * Extracts actions from a collection in the Forest Admin schema.
+ */
+export function getActionsOfCollection(
+  schema: ForestSchema,
+  collectionName: string,
+): ForestAction[] {
+  const collection = schema.collections.find(col => col.name === collectionName);
+
+  if (!collection) {
+    throw new Error(`Collection "${collectionName}" not found in schema`);
+  }
+
+  return collection.actions || [];
 }
