@@ -56,6 +56,24 @@ async function tryFetchCapabilities(
   }
 }
 
+/**
+ * Maps Forest Admin relationship types to simpler relation type names.
+ */
+function mapRelationType(relationship: string | undefined): string {
+  switch (relationship) {
+    case 'HasMany':
+      return 'one-to-many';
+    case 'BelongsToMany':
+      return 'many-to-many';
+    case 'BelongsTo':
+      return 'many-to-one';
+    case 'HasOne':
+      return 'one-to-one';
+    default:
+      return relationship || 'unknown';
+  }
+}
+
 export default function declareDescribeCollectionTool(
   mcpServer: McpServer,
   forestServerUrl: string,
@@ -117,35 +135,11 @@ export default function declareDescribeCollectionTool(
       // Extract relations from schema
       const relations = schemaFields
         .filter(f => f.relationship)
-        .map(f => {
-          // reference format is "collectionName.fieldName"
-          const targetCollection = f.reference?.split('.')[0] || null;
-
-          let relationType: string;
-
-          switch (f.relationship) {
-            case 'HasMany':
-              relationType = 'one-to-many';
-              break;
-            case 'BelongsToMany':
-              relationType = 'many-to-many';
-              break;
-            case 'BelongsTo':
-              relationType = 'many-to-one';
-              break;
-            case 'HasOne':
-              relationType = 'one-to-one';
-              break;
-            default:
-              relationType = f.relationship || 'unknown';
-          }
-
-          return {
-            name: f.field,
-            type: relationType,
-            targetCollection,
-          };
-        });
+        .map(f => ({
+          name: f.field,
+          type: mapRelationType(f.relationship),
+          targetCollection: f.reference?.split('.')[0] || null,
+        }));
 
       // Extract actions from schema
       const schemaActions = getActionsOfCollection(schema, options.collectionName);
