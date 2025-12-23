@@ -88,7 +88,7 @@ export default function declareListTool(
       inputSchema: listArgumentShape,
     },
     async (options: ListArgument, extra) => {
-      const { rpcClient } = await buildClient(extra);
+      const { rpcClient } = buildClient(extra);
 
       let actionType: 'index' | 'search' | 'filter' = 'index';
 
