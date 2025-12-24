@@ -3,7 +3,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { Logger } from '../server.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import {
   fetchForestSchema,
@@ -95,83 +98,101 @@ export default function declareDescribeCollectionTool(
     async (options: DescribeCollectionArgument, extra) => {
       const { rpcClient } = buildClient(extra);
 
-      await createActivityLog(forestServerUrl, extra, 'describeCollection', {
+      const activityLog = await createActivityLog(forestServerUrl, extra, 'describeCollection', {
         collectionName: options.collectionName,
       });
 
-      // Get schema from forest server (relations, isFilterable, isSortable, etc.)
-      const schema = await fetchForestSchema(forestServerUrl);
-      const schemaFields = getFieldsOfCollection(schema, options.collectionName);
+      try {
+        // Get schema from forest server (relations, isFilterable, isSortable, etc.)
+        const schema = await fetchForestSchema(forestServerUrl);
+        const schemaFields = getFieldsOfCollection(schema, options.collectionName);
 
-      // Try to get capabilities from agent (may be unavailable on older versions)
-      const collectionCapabilities = await tryFetchCapabilities(
-        rpcClient,
-        options.collectionName,
-        logger,
-      );
+        // Try to get capabilities from agent (may be unavailable on older versions)
+        const collectionCapabilities = await tryFetchCapabilities(
+          rpcClient,
+          options.collectionName,
+          logger,
+        );
 
-      // Build fields array - use capabilities if available, otherwise fall back to schema
-      const fields = collectionCapabilities?.fields
-        ? collectionCapabilities.fields.map(capField => {
-            const schemaField = schemaFields.find(f => f.field === capField.name);
+        // Build fields array - use capabilities if available, otherwise fall back to schema
+        const fields = collectionCapabilities?.fields
+          ? collectionCapabilities.fields.map(capField => {
+              const schemaField = schemaFields.find(f => f.field === capField.name);
 
-            return {
-              name: capField.name,
-              type: capField.type,
-              operators: capField.operators,
-              isPrimaryKey: schemaField?.isPrimaryKey || false,
-              isReadOnly: schemaField?.isReadOnly || false,
-              isRequired: schemaField?.isRequired || false,
-              isSortable: schemaField?.isSortable || false,
-            };
-          })
-        : schemaFields
-            .filter(f => !f.relationship) // Only non-relation fields
-            .map(schemaField => ({
-              name: schemaField.field,
-              type: schemaField.type,
-              operators: null, // Not available without capabilities route
-              isPrimaryKey: schemaField.isPrimaryKey,
-              isReadOnly: schemaField.isReadOnly,
-              isRequired: schemaField.isRequired,
-              isSortable: schemaField.isSortable || false,
-            }));
+              return {
+                name: capField.name,
+                type: capField.type,
+                operators: capField.operators,
+                isPrimaryKey: schemaField?.isPrimaryKey || false,
+                isReadOnly: schemaField?.isReadOnly || false,
+                isRequired: schemaField?.isRequired || false,
+                isSortable: schemaField?.isSortable || false,
+              };
+            })
+          : schemaFields
+              .filter(f => !f.relationship) // Only non-relation fields
+              .map(schemaField => ({
+                name: schemaField.field,
+                type: schemaField.type,
+                operators: null, // Not available without capabilities route
+                isPrimaryKey: schemaField.isPrimaryKey,
+                isReadOnly: schemaField.isReadOnly,
+                isRequired: schemaField.isRequired,
+                isSortable: schemaField.isSortable || false,
+              }));
 
-      // Extract relations from schema
-      const relations = schemaFields
-        .filter(f => f.relationship)
-        .map(f => ({
-          name: f.field,
-          type: mapRelationType(f.relationship),
-          targetCollection: f.reference?.split('.')[0] || null,
+        // Extract relations from schema
+        const relations = schemaFields
+          .filter(f => f.relationship)
+          .map(f => ({
+            name: f.field,
+            type: mapRelationType(f.relationship),
+            targetCollection: f.reference?.split('.')[0] || null,
+          }));
+
+        // Extract actions from schema
+        const schemaActions = getActionsOfCollection(schema, options.collectionName);
+        const actions = schemaActions.map(action => ({
+          name: action.name,
+          type: action.type, // 'single', 'bulk', or 'global'
+          description: action.description || null,
+          hasForm: action.fields.length > 0 || action.hooks.load,
+          download: action.download,
         }));
 
-      // Extract actions from schema
-      const schemaActions = getActionsOfCollection(schema, options.collectionName);
-      const actions = schemaActions.map(action => ({
-        name: action.name,
-        type: action.type, // 'single', 'bulk', or 'global'
-        description: action.description || null,
-        hasForm: action.fields.length > 0 || action.hooks.load,
-        download: action.download,
-      }));
+        const result = {
+          collection: options.collectionName,
+          fields,
+          relations,
+          actions,
+          _meta: {
+            capabilitiesAvailable: !!collectionCapabilities,
+            ...(collectionCapabilities
+              ? {}
+              : {
+                  note: 'Operators unavailable (older agent version). Fields have operators: null.',
+                }),
+          },
+        };
 
-      const result = {
-        collection: options.collectionName,
-        fields,
-        relations,
-        actions,
-        _meta: {
-          capabilitiesAvailable: !!collectionCapabilities,
-          ...(collectionCapabilities
-            ? {}
-            : {
-                note: 'Operators unavailable (older agent version). Fields have operators: null.',
-              }),
-        },
-      };
+        markActivityLogAsSucceeded({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          logger,
+        });
 
-      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        markActivityLogAsFailed({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          logger,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     },
     logger,
   );

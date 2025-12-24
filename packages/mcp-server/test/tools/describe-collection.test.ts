@@ -4,7 +4,10 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareDescribeCollectionTool from '../../src/tools/describe-collection.js';
-import createActivityLog from '../../src/utils/activity-logs-creator.js';
+import createActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../../src/utils/activity-logs-creator.js';
 import buildClient from '../../src/utils/agent-caller.js';
 import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
 
@@ -16,6 +19,12 @@ const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
 const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockMarkActivityLogAsSucceeded = markActivityLogAsSucceeded as jest.MockedFunction<
+  typeof markActivityLogAsSucceeded
+>;
+const mockMarkActivityLogAsFailed = markActivityLogAsFailed as jest.MockedFunction<
+  typeof markActivityLogAsFailed
+>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -156,6 +165,84 @@ describe('declareDescribeCollectionTool', () => {
         'describeCollection',
         { collectionName: 'users' },
       );
+    });
+
+    it('should mark activity log as succeeded after successful describe', async () => {
+      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+      mockCreateActivityLog.mockResolvedValue(mockActivityLog);
+
+      const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
+      const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      mockFetchForestSchema.mockResolvedValue({ collections: [] });
+      mockGetFieldsOfCollection.mockReturnValue([]);
+
+      await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+      expect(mockMarkActivityLogAsSucceeded).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        request: mockExtra,
+        activityLog: mockActivityLog,
+        logger: mockLogger,
+      });
+    });
+
+    it('should mark activity log as failed when describe throws an error', async () => {
+      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+      mockCreateActivityLog.mockResolvedValue(mockActivityLog);
+
+      const mockCapabilities = jest.fn().mockResolvedValue({ fields: [] });
+      const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      mockFetchForestSchema.mockRejectedValue(new Error('Schema fetch failed'));
+      mockGetFieldsOfCollection.mockReturnValue([]);
+
+      await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+        'Schema fetch failed',
+      );
+
+      expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        request: mockExtra,
+        activityLog: mockActivityLog,
+        errorMessage: 'Schema fetch failed',
+        logger: mockLogger,
+      });
+    });
+
+    it('should mark activity log as failed when capabilities throws a non-404 error', async () => {
+      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+      mockCreateActivityLog.mockResolvedValue(mockActivityLog);
+
+      const mockCapabilities = jest.fn().mockRejectedValue(new Error('Server error'));
+      const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+
+      mockFetchForestSchema.mockResolvedValue({ collections: [] });
+      mockGetFieldsOfCollection.mockReturnValue([]);
+
+      await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+        'Server error',
+      );
+
+      expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        request: mockExtra,
+        activityLog: mockActivityLog,
+        errorMessage: 'Server error',
+        logger: mockLogger,
+      });
     });
 
     it('should fetch forest schema', async () => {
