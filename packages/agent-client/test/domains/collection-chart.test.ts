@@ -18,7 +18,7 @@ const originalEscapeUrlSlug = jest.requireActual('../../src/http-requester').def
 
 describe('CollectionChart (via Collection)', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
-  let collection: Collection<unknown>;
+  let collection: Collection;
 
   beforeEach(() => {
     jest.clearAllMocks();
