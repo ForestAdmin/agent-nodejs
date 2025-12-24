@@ -51,11 +51,10 @@ export default class HttpRequester {
       } catch {
         return (response.body ?? response.text) as Data;
       }
-    } catch (error: any) {
-      if (!error.response) throw error;
-      throw new Error(
-        JSON.stringify({ error: error.response.error as Record<string, string>, body }, null, 4),
-      );
+    } catch (error) {
+      const superagentError = error as { response?: { error?: Record<string, string> } };
+      if (!superagentError.response) throw error;
+      throw new Error(JSON.stringify({ error: superagentError.response.error, body }, null, 4));
     }
   }
 

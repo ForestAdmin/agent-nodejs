@@ -33,7 +33,7 @@ export default abstract class ActionField {
     return this.fieldsFormStates.getMultipleChoiceField(this.name);
   }
 
-  protected isValueUndefinedOrNull(value: any): boolean {
+  protected isValueUndefinedOrNull(value: unknown): boolean {
     return value === undefined || value === null;
   }
 

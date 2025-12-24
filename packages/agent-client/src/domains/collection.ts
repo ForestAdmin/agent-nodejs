@@ -57,11 +57,11 @@ export default class Collection extends CollectionChart {
     return new Relation(name, this.name, parentId, this.httpRequester);
   }
 
-  async search<Data = any>(content: string): Promise<Data[]> {
+  async search<Data = unknown>(content: string): Promise<Data[]> {
     return this.list({ search: content });
   }
 
-  async list<Data = any>(options?: SelectOptions): Promise<Data[]> {
+  async list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
     return this.httpRequester.query<Data[]>({
       method: 'get',
       path: `/forest/${this.name}`,
@@ -119,7 +119,7 @@ export default class Collection extends CollectionChart {
     return { fields: collection.fields };
   }
 
-  async delete<Data = any>(ids: string[] | number[]): Promise<Data> {
+  async delete<Data = unknown>(ids: string[] | number[]): Promise<Data> {
     const serializedIds = ids.map((id: string | number) => id.toString());
     const requestBody = {
       data: {
@@ -135,7 +135,7 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  async create<Data = any>(attributes: Record<string, unknown>): Promise<Data> {
+  async create<Data = unknown>(attributes: Record<string, unknown>): Promise<Data> {
     const requestBody = { data: { attributes, type: this.name } };
 
     return this.httpRequester.query<Data>({
@@ -145,7 +145,7 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  async update<Data = any>(
+  async update<Data = unknown>(
     id: string | number,
     attributes: Record<string, unknown>,
   ): Promise<Data> {
