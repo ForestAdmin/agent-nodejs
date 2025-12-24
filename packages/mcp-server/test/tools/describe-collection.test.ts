@@ -1,12 +1,12 @@
 import type { Logger } from '../../src/server';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import declareDescribeCollectionTool from '../../src/tools/describe-collection.js';
-import buildClient from '../../src/utils/agent-caller.js';
-import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
-import withActivityLog from '../../src/utils/with-activity-log.js';
+import declareDescribeCollectionTool from '../../src/tools/describe-collection';
+import buildClient from '../../src/utils/agent-caller';
+import * as schemaFetcher from '../../src/utils/schema-fetcher';
+import withActivityLog from '../../src/utils/with-activity-log';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/schema-fetcher');
@@ -849,9 +849,9 @@ describe('declareDescribeCollectionTool', () => {
           content: { type: string; text: string }[];
         };
 
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed._meta.capabilitiesAvailable).toBe(true);
-        expect(parsed._meta.note).toBeUndefined();
+        const { _meta: meta } = JSON.parse(result.content[0].text);
+        expect(meta.capabilitiesAvailable).toBe(true);
+        expect(meta.note).toBeUndefined();
       });
 
       it('should set _meta.capabilitiesAvailable to false with note when capabilities fail with 404', async () => {
@@ -869,9 +869,9 @@ describe('declareDescribeCollectionTool', () => {
           content: { type: string; text: string }[];
         };
 
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed._meta.capabilitiesAvailable).toBe(false);
-        expect(parsed._meta.note).toBe(
+        const { _meta: meta } = JSON.parse(result.content[0].text);
+        expect(meta.capabilitiesAvailable).toBe(false);
+        expect(meta.note).toBe(
           'Operators unavailable (older agent version). Fields have operators: null.',
         );
       });

@@ -15,7 +15,7 @@ describe('Segment', () => {
   });
 
   describe('with named segment', () => {
-    let segment: Segment<any>;
+    let segment: Segment;
 
     beforeEach(() => {
       segment = new Segment('active-users', 'users', httpRequester);
@@ -90,7 +90,7 @@ describe('Segment', () => {
   });
 
   describe('with live query segment', () => {
-    let segment: Segment<any>;
+    let segment: Segment;
     const liveQueryOptions = {
       connectionName: 'main',
       query: 'SELECT * FROM users WHERE active = true',

@@ -4,11 +4,11 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import filterSchema from '../schemas/filter.js';
-import buildClient from '../utils/agent-caller.js';
-import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
-import registerToolWithLogging from '../utils/tool-with-logging.js';
-import withActivityLog from '../utils/with-activity-log.js';
+import filterSchema from '../schemas/filter';
+import buildClient from '../utils/agent-caller';
+import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
+import registerToolWithLogging from '../utils/tool-with-logging';
+import withActivityLog from '../utils/with-activity-log';
 
 // Preprocess to handle LLM sending filters as JSON string instead of object
 const filtersWithPreprocess = z.preprocess(val => {

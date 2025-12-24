@@ -6,7 +6,7 @@ jest.mock('../../src/action-fields/field-form-states');
 
 describe('Collection', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
-  let collection: Collection<unknown>;
+  let collection: Collection;
   const actionEndpoints = {
     users: {
       sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },
@@ -263,6 +263,53 @@ describe('Collection', () => {
       await expect(collection.action('unknownAction')).rejects.toThrow(
         'Action unknownAction not found in collection users',
       );
+    });
+
+    it('should throw error if action has no endpoint', async () => {
+      const endpointsWithNoEndpoint = {
+        users: {
+          noEndpointAction: { name: 'No Endpoint Action' },
+        },
+      } as any;
+      const collectionWithBadAction = new Collection(
+        'users',
+        httpRequester,
+        endpointsWithNoEndpoint,
+      );
+
+      await expect(collectionWithBadAction.action('noEndpointAction')).rejects.toThrow(
+        'Action noEndpointAction not found in collection users',
+      );
+    });
+
+    it('should return an Action instance when action is found', async () => {
+      const result = await collection.action('sendEmail');
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle recordId in action context', async () => {
+      const result = await collection.action('sendEmail', { recordId: '123' });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle recordIds array in action context', async () => {
+      const result = await collection.action('sendEmail', { recordIds: ['1', '2', '3'] });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle numeric recordId in action context', async () => {
+      const result = await collection.action('sendEmail', { recordId: 456 });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should handle empty action context', async () => {
+      const result = await collection.action('sendEmail', {});
+
+      expect(result).toBeDefined();
     });
   });
 

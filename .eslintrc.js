@@ -66,7 +66,7 @@ module.exports = {
     // Allow `function (arg1, arg2) { void arg1; void arg2; }` to work around unused arguments
     'no-void': ['error', { allowAsStatement: true }],
 
-    'curly': ['error', 'multi-line', 'consistent'],
+    curly: ['error', 'multi-line', 'consistent'],
 
     // Allow methods that do not use `this` (notably private methods)
     'class-methods-use-this': 'off',
@@ -94,8 +94,8 @@ module.exports = {
     'import/no-cycle': 'off',
 
     // padding around describe and tests
-    "jest-formatting/padding-around-describe-blocks": 2,
-    "jest-formatting/padding-around-test-blocks": 2
+    'jest-formatting/padding-around-describe-blocks': 2,
+    'jest-formatting/padding-around-test-blocks': 2,
   },
   overrides: [
     ...readdirSync(resolve(__dirname, 'packages'))
@@ -116,10 +116,25 @@ module.exports = {
         },
       })),
     {
-      // ESM package requiring .js extensions for imports
-      files: ['packages/mcp-server/**/*'],
+      // MCP server needs .js extensions for @modelcontextprotocol/sdk imports
+      // because the SDK uses ESM exports that require explicit file extensions
+      files: ['packages/mcp-server/src/**/*'],
       rules: {
-        'import/extensions': ['error', 'ignorePackages'],
+        'import/extensions': [
+          'error',
+          {
+            pattern: {
+              js: 'never',
+              ts: 'never',
+            },
+            pathGroupOverrides: [
+              {
+                pattern: '@modelcontextprotocol/sdk/**/*.js',
+                action: 'ignore',
+              },
+            ],
+          },
+        ],
       },
     },
   ],

@@ -1,6 +1,6 @@
 import ActionField from './action-field';
 
-export default class ActionFieldCheckbox<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldCheckbox extends ActionField {
   async check() {
     await this.setValue(true);
   }

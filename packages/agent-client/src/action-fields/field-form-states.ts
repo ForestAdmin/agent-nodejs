@@ -5,7 +5,7 @@ import FieldGetter from './field-getter';
 import { PlainField, ResponseBody } from './types';
 import HttpRequester from '../http-requester';
 
-export default class FieldFormStates<TypingsSchema> {
+export default class FieldFormStates {
   private readonly fields: FieldGetter[];
   private readonly actionName: string;
   private readonly actionPath: string;

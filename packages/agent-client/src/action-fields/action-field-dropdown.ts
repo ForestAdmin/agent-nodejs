@@ -1,7 +1,7 @@
 import ActionField from './action-field';
 import { PlainFieldOption } from './types';
 
-export default class ActionFieldDropdown<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldDropdown extends ActionField {
   getOptions(): PlainFieldOption[] | undefined {
     return this.getMultipleChoiceField().getOptions();
   }

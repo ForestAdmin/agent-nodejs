@@ -1,9 +1,9 @@
 import { Plugin } from '@forestadmin/datasource-customizer';
 import { ForestAdminClient, ModelCustomization } from '@forestadmin/forestadmin-client';
 
+import { AgentOptionsWithDefaults } from '../../types';
 import UpdateRecordActionsPlugin from './actions/update-record/update-record-plugin';
 import WebhookActionsPlugin from './actions/webhook/webhook-plugin';
-import { AgentOptionsWithDefaults } from '../../types';
 
 type ExperimentalOptions = AgentOptionsWithDefaults['experimental'];
 

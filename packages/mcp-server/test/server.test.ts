@@ -22,18 +22,10 @@ function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
  */
 describe('ForestMCPServer Instance', () => {
   let server: ForestMCPServer;
-  let originalEnv: NodeJS.ProcessEnv;
-  let modifiedEnv: NodeJS.ProcessEnv;
   let mockServer: MockServer;
   const originalFetch = global.fetch;
 
   beforeAll(() => {
-    originalEnv = { ...process.env };
-    process.env.FOREST_ENV_SECRET = 'test-env-secret';
-    process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
-    process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
-    process.env.AGENT_HOSTNAME = 'http://localhost:3310';
-
     // Setup mock for Forest Admin server
     mockServer = new MockServer();
     mockServer
@@ -66,17 +58,11 @@ describe('ForestMCPServer Instance', () => {
   });
 
   afterAll(async () => {
-    process.env = originalEnv;
     global.fetch = originalFetch;
   });
 
   beforeEach(() => {
-    modifiedEnv = { ...process.env };
     mockServer.clear();
-  });
-
-  afterEach(async () => {
-    process.env = modifiedEnv;
   });
 
   describe('constructor', () => {

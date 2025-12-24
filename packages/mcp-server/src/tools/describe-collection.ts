@@ -2,15 +2,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import { Logger } from '../server.js';
-import buildClient from '../utils/agent-caller.js';
+import { Logger } from '../server';
+import buildClient from '../utils/agent-caller';
 import {
   fetchForestSchema,
   getActionsOfCollection,
   getFieldsOfCollection,
-} from '../utils/schema-fetcher.js';
-import registerToolWithLogging from '../utils/tool-with-logging.js';
-import withActivityLog from '../utils/with-activity-log.js';
+} from '../utils/schema-fetcher';
+import registerToolWithLogging from '../utils/tool-with-logging';
+import withActivityLog from '../utils/with-activity-log';
 
 interface DescribeCollectionArgument {
   collectionName: string;
@@ -38,7 +38,9 @@ async function tryFetchCapabilities(
   logger: Logger,
 ): Promise<CollectionCapabilities | undefined> {
   try {
-    return await rpcClient.collection(collectionName).capabilities();
+    const capabilities = await rpcClient.collection(collectionName).capabilities();
+
+    return capabilities;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found');

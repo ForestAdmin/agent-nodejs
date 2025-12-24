@@ -26,11 +26,11 @@ export type ActionEndpointsByCollection = {
     [actionName: string]: { name: string; endpoint: string };
   };
 };
-export default class Action<TypingsSchema> {
+export default class Action {
   private readonly collectionName: string;
 
   private readonly httpRequester: HttpRequester;
-  protected readonly fieldsFormStates: FieldFormStates<TypingsSchema>;
+  protected readonly fieldsFormStates: FieldFormStates;
   private readonly ids: (string | number)[];
   private actionPath: string;
 
@@ -38,7 +38,7 @@ export default class Action<TypingsSchema> {
     collectionName: string,
     httpRequester: HttpRequester,
     actionPath: string,
-    fieldsFormStates: FieldFormStates<TypingsSchema>,
+    fieldsFormStates: FieldFormStates,
     ids?: (string | number)[],
   ) {
     this.collectionName = collectionName;
@@ -83,7 +83,7 @@ export default class Action<TypingsSchema> {
     });
   }
 
-  getField(fieldName: string): ActionField<TypingsSchema> {
+  getField(fieldName: string): ActionField {
     const field = this.fieldsFormStates.getField(fieldName);
     const type =
       typeof field.getType() === 'string' ? field.getType() : JSON.stringify(field.getType());
@@ -111,52 +111,52 @@ export default class Action<TypingsSchema> {
     }
   }
 
-  getFieldNumber(fieldName: string): ActionFieldNumber<TypingsSchema> {
-    return new ActionFieldNumber<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getFieldNumber(fieldName: string): ActionFieldNumber {
+    return new ActionFieldNumber(fieldName, this.fieldsFormStates);
   }
 
-  getFieldJson(fieldName: string): ActionFieldJson<TypingsSchema> {
-    return new ActionFieldJson<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getFieldJson(fieldName: string): ActionFieldJson {
+    return new ActionFieldJson(fieldName, this.fieldsFormStates);
   }
 
-  getFieldNumberList(fieldName: string): ActionFieldNumberList<TypingsSchema> {
-    return new ActionFieldNumberList<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getFieldNumberList(fieldName: string): ActionFieldNumberList {
+    return new ActionFieldNumberList(fieldName, this.fieldsFormStates);
   }
 
-  getFieldString(fieldName: string): ActionFieldString<TypingsSchema> {
-    return new ActionFieldString<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getFieldString(fieldName: string): ActionFieldString {
+    return new ActionFieldString(fieldName, this.fieldsFormStates);
   }
 
-  getFieldStringList(fieldName: string): ActionFieldStringList<TypingsSchema> {
-    return new ActionFieldStringList<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getFieldStringList(fieldName: string): ActionFieldStringList {
+    return new ActionFieldStringList(fieldName, this.fieldsFormStates);
   }
 
-  getDropdownField(fieldName: string): ActionFieldDropdown<TypingsSchema> {
-    return new ActionFieldDropdown<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getDropdownField(fieldName: string): ActionFieldDropdown {
+    return new ActionFieldDropdown(fieldName, this.fieldsFormStates);
   }
 
-  getCheckboxField(fieldName: string): ActionFieldCheckbox<TypingsSchema> {
-    return new ActionFieldCheckbox<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getCheckboxField(fieldName: string): ActionFieldCheckbox {
+    return new ActionFieldCheckbox(fieldName, this.fieldsFormStates);
   }
 
-  getCheckboxGroupField(fieldName: string): ActionFieldCheckboxGroup<TypingsSchema> {
-    return new ActionFieldCheckboxGroup<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getCheckboxGroupField(fieldName: string): ActionFieldCheckboxGroup {
+    return new ActionFieldCheckboxGroup(fieldName, this.fieldsFormStates);
   }
 
-  getColorPickerField(fieldName: string): ActionFieldColorPicker<TypingsSchema> {
-    return new ActionFieldColorPicker<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getColorPickerField(fieldName: string): ActionFieldColorPicker {
+    return new ActionFieldColorPicker(fieldName, this.fieldsFormStates);
   }
 
-  getDateField(fieldName: string): ActionFieldDate<TypingsSchema> {
-    return new ActionFieldDate<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getDateField(fieldName: string): ActionFieldDate {
+    return new ActionFieldDate(fieldName, this.fieldsFormStates);
   }
 
-  getEnumField(fieldName: string): ActionFieldEnum<TypingsSchema> {
-    return new ActionFieldEnum<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getEnumField(fieldName: string): ActionFieldEnum {
+    return new ActionFieldEnum(fieldName, this.fieldsFormStates);
   }
 
-  getRadioGroupField(fieldName: string): ActionFieldRadioGroup<TypingsSchema> {
-    return new ActionFieldRadioGroup<TypingsSchema>(fieldName, this.fieldsFormStates);
+  getRadioGroupField(fieldName: string): ActionFieldRadioGroup {
+    return new ActionFieldRadioGroup(fieldName, this.fieldsFormStates);
   }
 
   getLayout() {

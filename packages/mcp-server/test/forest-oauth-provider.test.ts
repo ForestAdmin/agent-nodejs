@@ -1,11 +1,11 @@
-import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
+import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth';
 import type { Response } from 'express';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import jsonwebtoken from 'jsonwebtoken';
 
-import ForestOAuthProvider from '../src/forest-oauth-provider';
 import MockServer from './test-utils/mock-server';
+import ForestOAuthProvider from '../src/forest-oauth-provider';
 
 jest.mock('jsonwebtoken');
 jest.mock('@forestadmin/forestadmin-client');

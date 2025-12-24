@@ -32,7 +32,7 @@ export default class ActionLayoutElement {
   }
 
   rowElement(n: number) {
-    if (!this.isRow) {
+    if (!this.isRow()) {
       throw new NotRightElementError('a row', this.layoutItem);
     }
 

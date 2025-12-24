@@ -1,7 +1,7 @@
 import ActionField from './action-field';
 import { PlainFieldOption } from './types';
 
-export default class ActionFieldRadioGroup<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldRadioGroup extends ActionField {
   async getOptions(): Promise<PlainFieldOption[] | undefined> {
     return this.getMultipleChoiceField().getOptions();
   }

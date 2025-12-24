@@ -5,7 +5,7 @@ import { WriteStream } from 'node:fs';
 
 import QuerySerializer from '../query-serializer';
 
-export default class Segment<TypingsSchema> {
+export default class Segment {
   private readonly name?: string;
   private readonly collectionName: string;
   private readonly httpRequester: HttpRequester;

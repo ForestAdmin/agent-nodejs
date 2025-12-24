@@ -3,7 +3,7 @@ import type { SelectOptions } from '../types';
 
 import QuerySerializer from '../query-serializer';
 
-export default class Relation<TypingsSchema> {
+export default class Relation {
   private readonly name: string;
   private readonly collectionName: string;
   private readonly parentId: string | number;

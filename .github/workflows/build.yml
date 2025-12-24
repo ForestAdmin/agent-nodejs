@@ -62,7 +62,9 @@ jobs:
       matrix:
         package:
           - agent
+          - agent-client
           - forest-cloud
+          - mcp-server
           - datasource-customizer
           - datasource-dummy
           - datasource-mongoose

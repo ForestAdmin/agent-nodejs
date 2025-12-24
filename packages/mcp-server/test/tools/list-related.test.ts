@@ -1,17 +1,17 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
-import { Logger } from '../../src/server.js';
-import declareListRelatedTool from '../../src/tools/list-related.js';
-import buildClient from '../../src/utils/agent-caller.js';
-import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
-import withActivityLog from '../../src/utils/with-activity-log.js';
+import { Logger } from '../../src/server';
+import declareListRelatedTool from '../../src/tools/list-related';
+import buildClient from '../../src/utils/agent-caller';
+import * as schemaFetcher from '../../src/utils/schema-fetcher';
+import withActivityLog from '../../src/utils/with-activity-log';
 
-jest.mock('../../src/utils/agent-caller.js');
-jest.mock('../../src/utils/with-activity-log.js');
-jest.mock('../../src/utils/schema-fetcher.js');
+jest.mock('../../src/utils/agent-caller');
+jest.mock('../../src/utils/with-activity-log');
+jest.mock('../../src/utils/schema-fetcher');
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
 const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;

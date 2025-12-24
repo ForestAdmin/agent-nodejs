@@ -1,8 +1,8 @@
 import { Caller, Collection } from '@forestadmin/datasource-toolkit';
 
 import AgentCustomizationContext from './agent-context';
-import RelaxedCollection from './relaxed-wrappers/collection';
 import { TCollectionName, TSchema } from '../templates';
+import RelaxedCollection from './relaxed-wrappers/collection';
 
 export default class CollectionCustomizationContext<
   S extends TSchema = TSchema,

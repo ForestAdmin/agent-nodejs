@@ -10,7 +10,7 @@ import FieldFormStates from '../action-fields/field-form-states';
 import HttpRequester from '../http-requester';
 import QuerySerializer from '../query-serializer';
 
-export default class Collection<TypingsSchema> extends CollectionChart {
+export default class Collection extends CollectionChart {
   protected readonly name: string;
   protected readonly actionEndpoints?: ActionEndpointsByCollection;
 
@@ -25,10 +25,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     this.actionEndpoints = actionEndpoints;
   }
 
-  async action(
-    actionName: string,
-    actionContext?: BaseActionContext,
-  ): Promise<Action<TypingsSchema>> {
+  async action(actionName: string, actionContext?: BaseActionContext): Promise<Action> {
     const actionPath = this.getActionPath(this.actionEndpoints, this.name, actionName);
     const ids = (actionContext?.recordIds ?? [actionContext?.recordId]).filter(Boolean).map(String);
 
@@ -40,37 +37,31 @@ export default class Collection<TypingsSchema> extends CollectionChart {
       ids,
     );
 
-    const action = new Action<TypingsSchema>(
-      this.name,
-      this.httpRequester,
-      actionPath,
-      fieldsFormStates,
-      ids,
-    );
+    const action = new Action(this.name, this.httpRequester, actionPath, fieldsFormStates, ids);
 
     await fieldsFormStates.loadInitialState();
 
     return action;
   }
 
-  segment(name: string): Segment<TypingsSchema> {
-    return new Segment<TypingsSchema>(name, this.name, this.httpRequester);
+  segment(name: string): Segment {
+    return new Segment(name, this.name, this.httpRequester);
   }
 
-  liveQuerySegment(options: LiveQueryOptions): Segment<TypingsSchema> {
+  liveQuerySegment(options: LiveQueryOptions): Segment {
     // there is no name for live query
-    return new Segment<TypingsSchema>(undefined, this.name, this.httpRequester, options);
+    return new Segment(undefined, this.name, this.httpRequester, options);
   }
 
-  relation(name: string, parentId: string | number): Relation<TypingsSchema> {
-    return new Relation<TypingsSchema>(name, this.name, parentId, this.httpRequester);
+  relation(name: string, parentId: string | number): Relation {
+    return new Relation(name, this.name, parentId, this.httpRequester);
   }
 
-  async search<Data = any>(content: string): Promise<Data[]> {
+  async search<Data = unknown>(content: string): Promise<Data[]> {
     return this.list({ search: content });
   }
 
-  async list<Data = any>(options?: SelectOptions): Promise<Data[]> {
+  async list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
     return this.httpRequester.query<Data[]>({
       method: 'get',
       path: `/forest/${this.name}`,
@@ -106,7 +97,10 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     fields: { name: string; type: string; operators: string[] }[];
   }> {
     const result = await this.httpRequester.query<{
-      collections: { name: string; fields: { name: string; type: string; operators: string[] }[] }[];
+      collections: {
+        name: string;
+        fields: { name: string; type: string; operators: string[] }[];
+      }[];
     }>({
       method: 'post',
       path: '/forest/_internal/capabilities',
@@ -125,7 +119,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     return { fields: collection.fields };
   }
 
-  async delete<Data = any>(ids: string[] | number[]): Promise<Data> {
+  async delete<Data = unknown>(ids: string[] | number[]): Promise<Data> {
     const serializedIds = ids.map((id: string | number) => id.toString());
     const requestBody = {
       data: {
@@ -141,7 +135,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     });
   }
 
-  async create<Data = any>(attributes: Record<string, unknown>): Promise<Data> {
+  async create<Data = unknown>(attributes: Record<string, unknown>): Promise<Data> {
     const requestBody = { data: { attributes, type: this.name } };
 
     return this.httpRequester.query<Data>({
@@ -151,7 +145,7 @@ export default class Collection<TypingsSchema> extends CollectionChart {
     });
   }
 
-  async update<Data = any>(
+  async update<Data = unknown>(
     id: string | number,
     attributes: Record<string, unknown>,
   ): Promise<Data> {

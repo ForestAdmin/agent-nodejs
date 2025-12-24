@@ -1,5 +1,5 @@
-import Action from '../../src/domains/action';
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import Action from '../../src/domains/action';
 import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
@@ -7,8 +7,8 @@ jest.mock('../../src/action-fields/field-form-states');
 
 describe('Action', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
-  let fieldsFormStates: jest.Mocked<FieldFormStates<any>>;
-  let action: Action<any>;
+  let fieldsFormStates: jest.Mocked<FieldFormStates>;
+  let action: Action;
 
   beforeEach(() => {
     jest.clearAllMocks();
