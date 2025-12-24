@@ -4,7 +4,10 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareListTool from '../../src/tools/list';
-import createActivityLog from '../../src/utils/activity-logs-creator';
+import createPendingActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../../src/utils/activity-logs-creator';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
 
@@ -15,7 +18,15 @@ jest.mock('../../src/utils/schema-fetcher');
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockMarkActivityLogAsSucceeded = markActivityLogAsSucceeded as jest.MockedFunction<
+  typeof markActivityLogAsSucceeded
+>;
+const mockMarkActivityLogAsFailed = markActivityLogAsFailed as jest.MockedFunction<
+  typeof markActivityLogAsFailed
+>;
+const mockCreatePendingActivityLog = createPendingActivityLog as jest.MockedFunction<
+  typeof createPendingActivityLog
+>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -39,7 +50,7 @@ describe('declareListTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreateActivityLog.mockResolvedValue(undefined);
+    mockCreatePendingActivityLog.mockResolvedValue(undefined);
   });
 
   describe('tool registration', () => {
@@ -207,7 +218,7 @@ describe('declareListTool', () => {
       it('should create activity log with "index" action type for basic list', async () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'index',
@@ -218,7 +229,7 @@ describe('declareListTool', () => {
       it('should create activity log with "search" action type when search is provided', async () => {
         await registeredToolHandler({ collectionName: 'users', search: 'john' }, mockExtra);
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'search',
@@ -235,7 +246,7 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'filter',
@@ -253,12 +264,89 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'search',
           { collectionName: 'users' },
         );
+      });
+
+      it('should mark activity log as succeeded after successful list', async () => {
+        const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
+
+        const mockList = jest.fn().mockResolvedValue([{ id: 1 }]);
+        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+
+        expect(mockMarkActivityLogAsSucceeded).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          activityLog: mockActivityLog,
+          logger: mockLogger,
+        });
+      });
+
+      it('should mark activity log as failed when list throws an error', async () => {
+        const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
+
+        const mockList = jest.fn().mockRejectedValue(new Error('Database error'));
+        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Database error',
+        );
+
+        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          activityLog: mockActivityLog,
+          errorMessage: 'Database error',
+          logger: mockLogger,
+        });
+      });
+
+      it('should mark activity log as failed with parsed error detail', async () => {
+        const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
+
+        const errorPayload = {
+          error: {
+            status: 400,
+            text: JSON.stringify({
+              errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
+            }),
+          },
+        };
+        const mockList = jest.fn().mockRejectedValue(new Error(JSON.stringify(errorPayload)));
+        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Invalid field value',
+        );
+
+        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          activityLog: mockActivityLog,
+          errorMessage: 'Invalid field value',
+          logger: mockLogger,
+        });
       });
     });
 
@@ -582,6 +670,67 @@ describe('declareListTool', () => {
         });
       });
 
+      describe('pagination parameter', () => {
+        it('should pass pagination when provided', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', pagination: { size: 10, number: 2 } },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            pagination: { size: 10, number: 2 },
+          });
+        });
+
+        it('should pass pagination with only size', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', pagination: { size: 25 } },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            pagination: { size: 25 },
+          });
+        });
+
+        it('should pass pagination with only page number', async () => {
+          await registeredToolHandler(
+            { collectionName: 'users', pagination: { number: 3 } },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            pagination: { number: 3 },
+          });
+        });
+
+        it('should pass pagination with other parameters', async () => {
+          const filters = { field: 'active', operator: 'Equal', value: true };
+
+          await registeredToolHandler(
+            {
+              collectionName: 'users',
+              search: 'john',
+              filters,
+              sort: { field: 'name', ascending: true },
+              pagination: { size: 20, number: 1 },
+            },
+            mockExtra,
+          );
+
+          expect(mockList).toHaveBeenCalledWith({
+            collectionName: 'users',
+            search: 'john',
+            filters,
+            sort: { field: 'name', ascending: true },
+            pagination: { size: 20, number: 1 },
+          });
+        });
+      });
+
       describe('enableCount parameter', () => {
         let listMock: jest.Mock;
         let countMock: jest.Mock;
@@ -680,9 +829,9 @@ describe('declareListTool', () => {
           expect(callOrder.indexOf('list-start')).toBeLessThan(callOrder.indexOf('list-end'));
           expect(callOrder.indexOf('count-start')).toBeLessThan(callOrder.indexOf('count-end'));
           // Both starts should happen before both ends
-          expect(
-            callOrder.indexOf('list-start') < 2 && callOrder.indexOf('count-start') < 2,
-          ).toBe(true);
+          expect(callOrder.indexOf('list-start') < 2 && callOrder.indexOf('count-start') < 2).toBe(
+            true,
+          );
         });
       });
 

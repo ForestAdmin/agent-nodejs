@@ -6,7 +6,10 @@ import { z } from 'zod';
 
 import { createListArgumentShape } from './list.js';
 import { Logger } from '../server.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createPendingActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -106,30 +109,51 @@ export default function declareListRelatedTool(
 
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
-      await createActivityLog(forestServerUrl, extra, 'listRelatedData', {
-        collectionName: options.collectionName,
-        recordId: options.parentRecordId,
-        label: `list relation "${options.relationName}"${extraLabel}`,
-      });
+      const activityLog = await createPendingActivityLog(
+        forestServerUrl,
+        extra,
+        'listRelatedData',
+        {
+          collectionName: options.collectionName,
+          recordId: options.parentRecordId,
+          label: `list relation "${options.relationName}"${extraLabel}`,
+        },
+      );
 
       try {
         const relation = rpcClient
           .collection(options.collectionName)
           .relation(options.relationName, options.parentRecordId);
 
+        let response: { records: unknown[]; totalCount?: number };
+
         if (options.enableCount) {
           const [records, totalCount] = await Promise.all([
             relation.list(options as SelectOptions),
             relation.count(options as SelectOptions),
           ]);
-
-          return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
+          response = { records, totalCount };
+        } else {
+          const records = await relation.list(options as SelectOptions);
+          response = { records };
         }
 
-        const records = await relation.list(options as SelectOptions);
+        markActivityLogAsSucceeded({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          logger,
+        });
 
-        return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {
+        markActivityLogAsFailed({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          errorMessage: (error as Error)?.message,
+          logger,
+        });
         throw await enhanceErrorWithContext(error, forestServerUrl, options);
       }
     },

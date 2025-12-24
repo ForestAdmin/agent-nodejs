@@ -5,7 +5,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { Logger } from '../../src/server.js';
 import declareListRelatedTool from '../../src/tools/list-related.js';
-import createActivityLog from '../../src/utils/activity-logs-creator.js';
+import createPendingActivityLog from '../../src/utils/activity-logs-creator.js';
 import buildClient from '../../src/utils/agent-caller.js';
 import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
 
@@ -14,7 +14,9 @@ jest.mock('../../src/utils/activity-logs-creator.js');
 jest.mock('../../src/utils/schema-fetcher.js');
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockCreatePendingActivityLog = createPendingActivityLog as jest.MockedFunction<
+  typeof createPendingActivityLog
+>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -42,7 +44,7 @@ describe('declareListRelatedTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreateActivityLog.mockResolvedValue(undefined);
+    mockCreatePendingActivityLog.mockResolvedValue(undefined);
   });
 
   describe('tool registration', () => {
@@ -306,7 +308,7 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'listRelatedData',
@@ -324,7 +326,7 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'listRelatedData',
@@ -342,7 +344,7 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'listRelatedData',
@@ -365,7 +367,7 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'listRelatedData',
@@ -389,7 +391,7 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'listRelatedData',

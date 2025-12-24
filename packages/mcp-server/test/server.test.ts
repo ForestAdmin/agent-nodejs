@@ -81,37 +81,32 @@ describe('ForestMCPServer Instance', () => {
 
   describe('constructor', () => {
     it('should create server instance', () => {
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       expect(server).toBeDefined();
       expect(server).toBeInstanceOf(ForestMCPServer);
     });
 
-    it('should initialize with FOREST_SERVER_URL', () => {
-      process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
-      server = new ForestMCPServer();
+    it('should initialize with forestServerUrl', () => {
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerUrl: 'https://custom.forestadmin.com',
+      });
 
       expect(server.forestServerUrl).toBe('https://custom.forestadmin.com');
-    });
-
-    it('should fallback to FOREST_URL', () => {
-      delete process.env.FOREST_SERVER_URL;
-      process.env.FOREST_URL = 'https://fallback.forestadmin.com';
-      server = new ForestMCPServer();
-
-      expect(server.forestServerUrl).toBe('https://fallback.forestadmin.com');
     });
 
     it('should use default URL when neither is provided', () => {
       delete process.env.FOREST_SERVER_URL;
       delete process.env.FOREST_URL;
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       expect(server.forestServerUrl).toBe('https://api.forestadmin.com');
     });
 
     it('should create MCP server instance', () => {
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       expect(server.mcpServer).toBeDefined();
     });
@@ -120,7 +115,7 @@ describe('ForestMCPServer Instance', () => {
   describe('environment validation', () => {
     it('should throw error when FOREST_ENV_SECRET is missing', async () => {
       delete process.env.FOREST_ENV_SECRET;
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET' });
 
       await expect(server.run()).rejects.toThrow(
         'FOREST_ENV_SECRET is not set. Provide it via options.envSecret or FOREST_ENV_SECRET environment variable.',
@@ -129,7 +124,7 @@ describe('ForestMCPServer Instance', () => {
 
     it('should throw error when FOREST_AUTH_SECRET is missing', async () => {
       delete process.env.FOREST_AUTH_SECRET;
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ envSecret: 'ENV_SECRET' });
 
       await expect(server.run()).rejects.toThrow(
         'FOREST_AUTH_SECRET is not set. Provide it via options.authSecret or FOREST_AUTH_SECRET environment variable.',
@@ -146,7 +141,7 @@ describe('ForestMCPServer Instance', () => {
       const testPort = 39310; // Use a different port for testing
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       // Start the server without awaiting (it runs indefinitely)
       server.run();
@@ -172,7 +167,7 @@ describe('ForestMCPServer Instance', () => {
       const testPort = 39311;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
       server.run();
 
       await new Promise(resolve => {
@@ -187,10 +182,17 @@ describe('ForestMCPServer Instance', () => {
     let httpServer: http.Server;
 
     beforeAll(async () => {
+      process.env.FOREST_ENV_SECRET = 'test-env-secret';
+      process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+      process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
       const testPort = 39312;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+      });
       server.run();
 
       await new Promise(resolve => {
@@ -269,10 +271,13 @@ describe('ForestMCPServer Instance', () => {
         // Clean up previous server
         await shutDownHttpServer(server?.httpServer as http.Server);
 
-        process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
         process.env.MCP_SERVER_PORT = '39314';
 
-        server = new ForestMCPServer();
+        server = new ForestMCPServer({
+          authSecret: 'AUTH_SECRET',
+          envSecret: 'ENV_SECRET',
+          forestServerUrl: 'https://custom.forestadmin.com',
+        });
         server.run();
 
         await new Promise(resolve => {
@@ -487,7 +492,11 @@ describe('ForestMCPServer Instance', () => {
       mcpMockServer.setupSuperagentMock();
 
       // Create and start server
-      mcpServer = new ForestMCPServer();
+      mcpServer = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+      });
       mcpServer.run();
 
       await new Promise(resolve => {
@@ -930,7 +939,11 @@ describe('ForestMCPServer Instance', () => {
       // Setup superagent mock for agent-client RPC calls
       listMockServer.setupSuperagentMock();
 
-      listServer = new ForestMCPServer();
+      listServer = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+      });
       listServer.run();
 
       await new Promise(resolve => {
@@ -1093,7 +1106,9 @@ describe('ForestMCPServer Instance', () => {
       // Setup mock to capture the activity log API call and mock agent response
       listMockServer.clear();
       listMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       const response = await request(listHttpServer)
@@ -1272,7 +1287,9 @@ describe('ForestMCPServer Instance', () => {
               liana_features: null,
             },
           })
-          .post('/api/activity-logs-requests', { success: true })
+          .post('/api/activity-logs-requests', {
+            data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+          })
           // Capture GET requests to /forest/* collections (via superagent mock)
           // The superagent mock passes query params as the body
           .get(/\/forest\/\w+/, (_url, options) => {
@@ -1767,7 +1784,9 @@ describe('ForestMCPServer Instance', () => {
                 liana_features: null,
               },
             })
-            .post('/api/activity-logs-requests', { success: true })
+            .post('/api/activity-logs-requests', {
+              data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+            })
             .get(/\/forest\/users\/count/, () => ({
               count: 42,
             }))
@@ -1848,7 +1867,9 @@ describe('ForestMCPServer Instance', () => {
                 liana_features: null,
               },
             })
-            .post('/api/activity-logs-requests', { success: true })
+            .post('/api/activity-logs-requests', {
+              data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+            })
             .get(/\/forest\/users\/count/, (_url, options) => {
               countCalls.push(JSON.stringify(options?.body));
 
@@ -1987,7 +2008,12 @@ describe('ForestMCPServer Instance', () => {
       global.fetch = loggingMockServer.fetch;
 
       mockLogger = jest.fn();
-      loggingServer = new ForestMCPServer({ logger: mockLogger });
+      loggingServer = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+        logger: mockLogger,
+      });
       loggingServer.run();
 
       await new Promise(resolve => {
@@ -2038,7 +2064,9 @@ describe('ForestMCPServer Instance', () => {
       );
 
       loggingMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { result: [{ id: 1, name: 'Test' }] });
 
       await request(loggingHttpServer)
@@ -2070,7 +2098,9 @@ describe('ForestMCPServer Instance', () => {
 
       // Mock agent to return an error
       loggingMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { error: 'Collection not found' }, 400);
 
       await request(loggingHttpServer)
@@ -2120,7 +2150,9 @@ describe('ForestMCPServer Instance', () => {
       );
 
       loggingMockServer
-        .post('/api/activity-logs-requests', { success: true })
+        .post('/api/activity-logs-requests', {
+          data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+        })
         .post('/forest/rpc', { result: [{ id: 1 }] });
 
       await request(loggingHttpServer)

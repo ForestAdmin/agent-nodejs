@@ -163,7 +163,9 @@ export default class MockForestServer {
     this.post('/liana/scopes', { success: true });
 
     // Activity logs endpoint (used by MCP server)
-    this.post('/api/activity-logs-requests', { success: true });
+    this.post('/api/activity-logs-requests', {
+      data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
+    });
 
     // Server events (SSE endpoint mock)
     this.get('/liana/v4/subscriptions/server-events', {

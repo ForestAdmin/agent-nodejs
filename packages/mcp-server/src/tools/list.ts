@@ -5,7 +5,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createPendingActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -98,12 +101,14 @@ export default function declareListTool(
         actionType = 'filter';
       }
 
-      await createActivityLog(forestServerUrl, extra, actionType, {
+      const activityLog = await createPendingActivityLog(forestServerUrl, extra, actionType, {
         collectionName: options.collectionName,
       });
 
       try {
         const collection = rpcClient.collection(options.collectionName);
+
+        let response: { records: unknown[]; totalCount?: number };
 
         if (options.enableCount) {
           const [records, totalCount] = await Promise.all([
@@ -111,15 +116,31 @@ export default function declareListTool(
             collection.count(options as SelectOptions),
           ]);
 
-          return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
+          response = { records, totalCount };
+        } else {
+          const records = await collection.list(options as SelectOptions);
+          response = { records };
         }
 
-        const records = await collection.list(options as SelectOptions);
+        markActivityLogAsSucceeded({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          logger,
+        });
 
-        return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);
+
+        markActivityLogAsFailed({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          errorMessage: errorDetail || error.message,
+          logger,
+        });
 
         if (errorDetail?.includes('Invalid sort')) {
           const fields = getFieldsOfCollection(
