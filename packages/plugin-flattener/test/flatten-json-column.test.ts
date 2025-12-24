@@ -1,5 +1,7 @@
+import type { ColumnType, DataSource } from '@forestadmin/datasource-toolkit';
+
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { ColumnType, DataSource, Projection } from '@forestadmin/datasource-toolkit';
+import { Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import flattenJsonColumn from '../src/flatten-json-column';

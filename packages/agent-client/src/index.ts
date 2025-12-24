@@ -1,5 +1,7 @@
-import { ActionEndpointsByCollection } from './domains/action';
-import RemoteAgentClient, { PermissionsOverride } from './domains/remote-agent-client';
+import type { ActionEndpointsByCollection } from './domains/action';
+import type { PermissionsOverride } from './domains/remote-agent-client';
+
+import RemoteAgentClient from './domains/remote-agent-client';
 import HttpRequester from './http-requester';
 
 // eslint-disable-next-line import/prefer-default-export

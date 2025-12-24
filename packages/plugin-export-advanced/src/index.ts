@@ -1,4 +1,5 @@
 /* eslint-disable import/prefer-default-export */
+import type { Options } from './types';
 import type {
   ActionGlobal,
   CollectionCustomizer,
@@ -6,7 +7,6 @@ import type {
 } from '@forestadmin/datasource-customizer';
 
 import renderers from './renderers';
-import { Options } from './types';
 
 function getFields(
   dataSource: DataSourceCustomizer,

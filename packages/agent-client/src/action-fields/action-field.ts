@@ -1,4 +1,4 @@
-import FieldFormStates from './field-form-states';
+import type FieldFormStates from './field-form-states';
 
 export default abstract class ActionField<TypingsSchema> {
   private readonly fieldsFormStates: FieldFormStates<TypingsSchema>;

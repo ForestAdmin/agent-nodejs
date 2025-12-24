@@ -1,5 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
-import { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 export class NotRightElementError extends Error {
   constructor(elementName: string, element: ForestServerActionFormLayoutElement) {

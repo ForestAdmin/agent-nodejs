@@ -1,4 +1,4 @@
-import { Connection } from 'mongoose';
+import type { Connection } from 'mongoose';
 
 export type MongoDb = Connection['db'];
 export type MongoCollection = ReturnType<MongoDb['collection']>;

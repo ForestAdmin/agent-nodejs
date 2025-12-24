@@ -1,4 +1,7 @@
-import { AgentOptions, createAgent } from '@forestadmin/agent';
+import type { Schema } from './typings';
+import type { AgentOptions } from '@forestadmin/agent';
+
+import { createAgent } from '@forestadmin/agent';
 import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -16,7 +19,6 @@ import customizeReview from './customizations/review';
 import customizeSales from './customizations/sale';
 import customizeStore from './customizations/store';
 import createTypicode from './datasources/typicode';
-import { Schema } from './typings';
 import mongoose, { connectionString } from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';

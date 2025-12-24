@@ -1,17 +1,16 @@
 import type TriggerSyncDataSourceDecorator from './data-source';
 import type { TFilter, TPaginatedFilter } from '@forestadmin/datasource-customizer';
-
-import {
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 export default class SyncCollectionDecorator extends CollectionDecorator {
   override dataSource: TriggerSyncDataSourceDecorator;

@@ -4,8 +4,9 @@ import type {
   HookBeforeUpdateContext,
   TConditionTree,
 } from '@forestadmin/datasource-customizer';
+import type { ColumnType } from '@forestadmin/datasource-toolkit';
 
-import { ColumnType, ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
 import hashRecord from 'object-hash';
 
 import { deepUpdateInPlace, getValue, unflattenPathsInPlace } from './helpers';

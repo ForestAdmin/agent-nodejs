@@ -1,14 +1,14 @@
-import {
+import type {
   TAggregateResult,
   TAggregation,
   TFilter,
   TPaginatedFilter,
   TRow,
 } from '@forestadmin/datasource-customizer';
+import type { Caller, Collection } from '@forestadmin/datasource-toolkit';
+
 import {
   Aggregation,
-  Caller,
-  Collection,
   ConditionTreeFactory,
   Filter,
   Page,

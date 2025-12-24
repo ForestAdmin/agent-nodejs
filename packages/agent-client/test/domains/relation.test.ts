@@ -1,5 +1,6 @@
+import type HttpRequester from '../../src/http-requester';
+
 import Relation from '../../src/domains/relation';
-import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
 

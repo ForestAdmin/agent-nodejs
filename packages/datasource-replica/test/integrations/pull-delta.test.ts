@@ -1,7 +1,8 @@
+import type { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '../../src';
+
 import Croner from 'croner';
 
 import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
-import { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '../../src';
 
 describe('pull delta', () => {
   describe('when the schema is not provided', () => {

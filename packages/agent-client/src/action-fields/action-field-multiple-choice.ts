@@ -1,5 +1,6 @@
+import type { PlainFieldOption } from './types';
+
 import FieldGetter from './field-getter';
-import { PlainFieldOption } from './types';
 
 export default class ActionFieldMultipleChoice extends FieldGetter {
   getOptions(): PlainFieldOption[] | undefined {

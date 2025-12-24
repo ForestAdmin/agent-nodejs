@@ -1,4 +1,4 @@
-import { PlainFilter, PlainSortClause } from '@forestadmin/datasource-toolkit';
+import type { PlainFilter, PlainSortClause } from '@forestadmin/datasource-toolkit';
 
 export type BaseOptions = {
   filters?: PlainFilter['conditionTree']; // Filters to apply to the query

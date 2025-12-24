@@ -1,9 +1,4 @@
-import { IntrospectionFormatError } from '@forestadmin/datasource-toolkit';
-
-import ReferenceCandidateFinder from './reference-candidates-finder';
-import ReferenceCandidateVerifier from './reference-candidates-verifier';
-import Structure from './structure';
-import {
+import type {
   Introspection,
   ModelAnalysis,
   ModelStudy,
@@ -11,7 +6,13 @@ import {
   NodeStudy,
   PrimitiveDefinition,
 } from './types';
-import { IntrospectionOptions } from '../types';
+import type { IntrospectionOptions } from '../types';
+
+import { IntrospectionFormatError } from '@forestadmin/datasource-toolkit';
+
+import ReferenceCandidateFinder from './reference-candidates-finder';
+import ReferenceCandidateVerifier from './reference-candidates-verifier';
+import Structure from './structure';
 
 export default class Introspector {
   static readonly FORMAT_VERSION = 1;

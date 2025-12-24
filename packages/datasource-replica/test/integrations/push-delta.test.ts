@@ -1,5 +1,6 @@
+import type { ReplicaDataSourceOptions } from '../../src';
+
 import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
-import { ReplicaDataSourceOptions } from '../../src';
 
 describe('push delta', () => {
   describe('when the delta is finished', () => {

@@ -1,7 +1,10 @@
-import { DataSource, Filter, Logger, Projection } from '@forestadmin/datasource-toolkit';
+import type { ReplicaDataSourceOptions } from '../../src';
+import type { DataSource, Logger } from '@forestadmin/datasource-toolkit';
+
+import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { ReplicaDataSourceOptions, createReplicaDataSource } from '../../src';
+import { createReplicaDataSource } from '../../src';
 
 const makeLogger = () => jest.fn();
 

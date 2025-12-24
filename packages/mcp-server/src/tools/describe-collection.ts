@@ -1,8 +1,8 @@
+import type { Logger } from '../server.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import { Logger } from '../server.js';
 import buildClient from '../utils/agent-caller.js';
 import {
   fetchForestSchema,

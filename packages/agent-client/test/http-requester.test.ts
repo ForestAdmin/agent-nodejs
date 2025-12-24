@@ -303,17 +303,15 @@ describe('HttpRequester', () => {
       const mockStream = {} as any;
       const error = new Error('Stream error');
 
-      mockPipeResult.on = jest.fn().mockImplementation(function (
-        this: any,
-        event: string,
-        callback: (err?: Error) => void,
-      ) {
-        if (event === 'error') {
-          setImmediate(() => callback(error));
-        }
+      mockPipeResult.on = jest
+        .fn()
+        .mockImplementation(function (this: any, event: string, callback: (err?: Error) => void) {
+          if (event === 'error') {
+            setImmediate(() => callback(error));
+          }
 
-        return this;
-      });
+          return this;
+        });
 
       await expect(
         requester.stream({

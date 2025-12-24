@@ -160,10 +160,7 @@ describe('QuerySerializer', () => {
 
     describe('fields with @@@ separator for relations', () => {
       it('should handle single relation field with @@@ separator', () => {
-        const result = QuerySerializer.serialize(
-          { fields: ['id', 'customer@@@name'] },
-          'orders',
-        );
+        const result = QuerySerializer.serialize({ fields: ['id', 'customer@@@name'] }, 'orders');
 
         // Main collection should have id and the relation name (customer)
         expect(result['fields[orders]']).toContain('id');
@@ -232,10 +229,7 @@ describe('QuerySerializer', () => {
       });
 
       it('should escape special characters in relation names', () => {
-        const result = QuerySerializer.serialize(
-          { fields: ['id', 'user+data@@@name'] },
-          'orders',
-        );
+        const result = QuerySerializer.serialize({ fields: ['id', 'user+data@@@name'] }, 'orders');
 
         expect(result['fields[orders]']).toContain('id');
         expect(result['fields[orders]']).toContain('user+data');
@@ -289,10 +283,7 @@ describe('QuerySerializer', () => {
       });
 
       it('should not include duplicate field names', () => {
-        const result = QuerySerializer.serialize(
-          { fields: ['id', 'id', 'name', 'name'] },
-          'users',
-        );
+        const result = QuerySerializer.serialize({ fields: ['id', 'id', 'name', 'name'] }, 'users');
 
         expect(result['fields[users]']).toEqual(['id', 'name']);
       });
@@ -304,10 +295,7 @@ describe('QuerySerializer', () => {
       });
 
       it('should handle whitespace around @@@ separator', () => {
-        const result = QuerySerializer.serialize(
-          { fields: ['  customer  @@@  name  '] },
-          'orders',
-        );
+        const result = QuerySerializer.serialize({ fields: ['  customer  @@@  name  '] }, 'orders');
 
         expect(result['fields[orders]']).toContain('customer');
         expect(result['fields[customer]']).toContain('name');
