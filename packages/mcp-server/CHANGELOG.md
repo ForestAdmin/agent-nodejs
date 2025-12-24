@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.2.1...@forestadmin/mcp-server@1.3.0) (2025-12-24)
+
+
+### Features
+
+* **forest mcp:** create pending activity logs before applying a tool ([#1392](https://github.com/ForestAdmin/agent-nodejs/issues/1392)) ([a997149](https://github.com/ForestAdmin/agent-nodejs/commit/a9971490dcff26a119e94d04385c7df3e1f51db2))
+
 ## @forestadmin/mcp-server [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.2.0...@forestadmin/mcp-server@1.2.1) (2025-12-23)
 
 
