@@ -8,7 +8,7 @@ export default class ActionFieldNumberList extends ActionField {
 
   async remove(value: number) {
     const values = this.field?.getValue() as number[];
-    if (values.includes(value)) throw new Error(`Value ${value} is not in the list`);
+    if (!values.includes(value)) throw new Error(`Value ${value} is not in the list`);
 
     await this.setValue((values || []).filter(val => val !== value));
   }
