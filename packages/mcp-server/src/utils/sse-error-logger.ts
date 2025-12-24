@@ -1,4 +1,4 @@
-import type { Logger } from '../server.js';
+import type { Logger } from '../server';
 import type { Response } from 'express';
 
 // -----------------------------------------------------------------------------

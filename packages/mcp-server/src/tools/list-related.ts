@@ -1,15 +1,15 @@
-import type { ListArgument } from './list.js';
-import type { Logger } from '../server.js';
+import type { ListArgument } from './list';
+import type { Logger } from '../server';
 import type { SelectOptions } from '@forestadmin/agent-client';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 import { z } from 'zod';
 
-import { createListArgumentShape } from './list.js';
-import buildClient from '../utils/agent-caller.js';
-import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
-import registerToolWithLogging from '../utils/tool-with-logging.js';
-import withActivityLog from '../utils/with-activity-log.js';
+import { createListArgumentShape } from './list';
+import buildClient from '../utils/agent-caller';
+import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
+import registerToolWithLogging from '../utils/tool-with-logging';
+import withActivityLog from '../utils/with-activity-log';
 
 function createHasManyArgumentShape(collectionNames: string[]) {
   return {

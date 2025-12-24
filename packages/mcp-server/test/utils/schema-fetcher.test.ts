@@ -4,7 +4,7 @@ import {
   fetchForestSchema,
   getCollectionNames,
   setSchemaCache,
-} from '../../src/utils/schema-fetcher.js';
+} from '../../src/utils/schema-fetcher';
 
 describe('schema-fetcher', () => {
   const originalFetch = global.fetch;

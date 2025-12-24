@@ -1,4 +1,4 @@
-import filterSchema from '../../src/schemas/filter.js';
+import filterSchema from '../../src/schemas/filter';
 
 describe('filterSchema', () => {
   describe('leaf conditions', () => {

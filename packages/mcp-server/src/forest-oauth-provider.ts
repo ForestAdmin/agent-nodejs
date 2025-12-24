@@ -1,16 +1,16 @@
-import type { Logger } from './server.js';
+import type { Logger } from './server';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
-import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
+import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients';
 import type {
   AuthorizationParams,
   OAuthServerProvider,
-} from '@modelcontextprotocol/sdk/server/auth/provider.js';
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
+} from '@modelcontextprotocol/sdk/server/auth/provider';
+import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types';
 import type {
   OAuthClientInformationFull,
   OAuthTokenRevocationRequest,
   OAuthTokens,
-} from '@modelcontextprotocol/sdk/shared/auth.js';
+} from '@modelcontextprotocol/sdk/shared/auth';
 import type { Response } from 'express';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
@@ -20,7 +20,7 @@ import {
   InvalidRequestError,
   InvalidTokenError,
   UnsupportedTokenTypeError,
-} from '@modelcontextprotocol/sdk/server/auth/errors.js';
+} from '@modelcontextprotocol/sdk/server/auth/errors';
 import jsonwebtoken from 'jsonwebtoken';
 
 export interface ForestOAuthProviderOptions {

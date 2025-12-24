@@ -1,4 +1,4 @@
-import type { Logger } from '../server.js';
+import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 

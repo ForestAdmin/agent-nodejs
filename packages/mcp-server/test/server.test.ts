@@ -3,8 +3,8 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import MockServer from './test-utils/mock-server.js';
-import ForestMCPServer from '../src/server.js';
+import MockServer from './test-utils/mock-server';
+import ForestMCPServer from '../src/server';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();

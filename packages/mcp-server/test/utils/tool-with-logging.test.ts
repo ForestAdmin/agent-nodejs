@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import registerToolWithLogging from '../../src/utils/tool-with-logging.js';
+import registerToolWithLogging from '../../src/utils/tool-with-logging';
 
 describe('registerToolWithLogging', () => {
   let mockMcpServer: { registerTool: jest.Mock };
