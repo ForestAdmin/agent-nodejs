@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import { createListArgumentShape } from './list.js';
 import { Logger } from '../server.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
+import createPendingActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -106,7 +106,7 @@ export default function declareListRelatedTool(
 
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
-      await createActivityLog(forestServerUrl, extra, 'listRelatedData', {
+      await createPendingActivityLog(forestServerUrl, extra, 'listRelatedData', {
         collectionName: options.collectionName,
         recordId: options.parentRecordId,
         label: `list relation "${options.relationName}"${extraLabel}`,

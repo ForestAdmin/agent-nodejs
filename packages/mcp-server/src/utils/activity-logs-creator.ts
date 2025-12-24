@@ -34,7 +34,7 @@ type ActivityLogResponse = {
   };
 };
 
-export default async function createActivityLog(
+export default async function createPendingActivityLog(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
   action: ActivityLogAction,

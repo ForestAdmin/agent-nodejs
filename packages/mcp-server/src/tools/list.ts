@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
-import createActivityLog, {
+import createPendingActivityLog, {
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
 } from '../utils/activity-logs-creator.js';
@@ -101,7 +101,7 @@ export default function declareListTool(
         actionType = 'filter';
       }
 
-      const activityLog = await createActivityLog(forestServerUrl, extra, actionType, {
+      const activityLog = await createPendingActivityLog(forestServerUrl, extra, actionType, {
         collectionName: options.collectionName,
       });
 

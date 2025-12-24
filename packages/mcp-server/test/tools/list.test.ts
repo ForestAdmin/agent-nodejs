@@ -4,7 +4,7 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareListTool from '../../src/tools/list';
-import createActivityLog, {
+import createPendingActivityLog, {
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
 } from '../../src/utils/activity-logs-creator';
@@ -24,7 +24,9 @@ const mockMarkActivityLogAsSucceeded = markActivityLogAsSucceeded as jest.Mocked
 const mockMarkActivityLogAsFailed = markActivityLogAsFailed as jest.MockedFunction<
   typeof markActivityLogAsFailed
 >;
-const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockCreateActivityLog = createPendingActivityLog as jest.MockedFunction<
+  typeof createPendingActivityLog
+>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
