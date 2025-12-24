@@ -1,4 +1,6 @@
-import { Caller, ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type { QueryContext } from './generated-parser/QueryParser';
+import type { Caller, ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
+
 import { CharStream, CommonTokenStream, ParseTreeWalker } from 'antlr4';
 
 import ConditionTreeQueryWalker from './custom-parser/condition-tree-query-walker';
@@ -15,7 +17,6 @@ import CustomQueryParser from './custom-parser/custom-query-parser';
  */
 import FieldsQueryWalker from './custom-parser/fields-query-walker';
 import QueryLexer from './generated-parser/QueryLexer';
-import { QueryContext } from './generated-parser/QueryParser';
 
 export function parseQuery(query: string): QueryContext {
   const chars = new CharStream(query?.trim()); // replace this with a FileStream as required

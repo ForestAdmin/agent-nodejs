@@ -1,7 +1,8 @@
-import { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-import { AbstractDataType, AbstractDataTypeConstructor, DataTypes } from 'sequelize';
+import type { ArrayDataTypeExt } from '../type-overrides';
+import type { ColumnType, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { AbstractDataType, AbstractDataTypeConstructor } from 'sequelize';
 
-import { ArrayDataTypeExt } from '../type-overrides';
+import { DataTypes } from 'sequelize';
 
 export default class TypeConverter {
   private static getColumnTypeFromDataType(dataType: AbstractDataType): PrimitiveTypes {

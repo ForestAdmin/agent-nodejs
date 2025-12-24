@@ -1,21 +1,21 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable no-underscore-dangle */
-import {
+import type { Stack } from './types';
+import type {
   AggregateResult,
   Aggregation,
-  BaseCollection,
   Caller,
   DataSource,
   Filter,
   PaginatedFilter,
-  Projection,
   RecordData,
-  ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { Error, Model, PipelineStage } from 'mongoose';
+import type { Model, PipelineStage } from 'mongoose';
+
+import { BaseCollection, Projection, ValidationError } from '@forestadmin/datasource-toolkit';
+import { Error } from 'mongoose';
 
 import MongooseSchema from './mongoose/schema';
-import { Stack } from './types';
 import addNullValues from './utils/add-null-values';
 import {
   buildSubdocumentPatch,

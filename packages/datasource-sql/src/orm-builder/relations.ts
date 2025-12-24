@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import type { Relation } from './types';
+import type { LatestIntrospection, Table } from '../introspection/types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
 
 import RelationExtractor from './helpers/relation-extractor';
 import RelationNameGenerator from './helpers/relation-name-generator';
-import { Relation } from './types';
-import { LatestIntrospection, Table } from '../introspection/types';
 
 export default class RelationBuilder {
   static defineRelations(

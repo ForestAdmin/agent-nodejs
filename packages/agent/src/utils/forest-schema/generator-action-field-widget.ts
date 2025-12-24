@@ -1,4 +1,4 @@
-import {
+import type {
   ActionField,
   ActionFieldAddressAutocomplete,
   ActionFieldCheckboxGroupAll,
@@ -14,7 +14,7 @@ import {
   ActionFieldTextInputList,
   ActionFieldUserDropdown,
 } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   ForestServerActionField,
   ForestServerActionFieldAddressAutocompleteOptions,
   ForestServerActionFieldCheckboxGroupOptions,

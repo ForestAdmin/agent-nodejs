@@ -1,13 +1,14 @@
+import type { RecordData } from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
 import {
   ConditionTreeFactory,
   Filter,
   ProjectionFactory,
-  RecordData,
   RecordValidator,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
 
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';

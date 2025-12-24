@@ -1,7 +1,10 @@
-import { CollectionDecorator, CollectionSchema, ColumnType } from '@forestadmin/datasource-toolkit';
+import type SchemaDataSourceDecorator from './data-source';
+import type { Field, LeafField } from '../../types';
+import type { CollectionSchema, ColumnType } from '@forestadmin/datasource-toolkit';
 
-import SchemaDataSourceDecorator from './data-source';
-import { Field, LeafField, isLeafField } from '../../types';
+import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
+
+import { isLeafField } from '../../types';
 
 export default class SchemaCollectionDecorator extends CollectionDecorator {
   override dataSource: SchemaDataSourceDecorator;

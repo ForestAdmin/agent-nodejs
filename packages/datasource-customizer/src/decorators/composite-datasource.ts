@@ -1,11 +1,12 @@
-import {
+import type {
   Caller,
   Chart,
   Collection,
   DataSource,
   DataSourceSchema,
-  MissingCollectionError,
 } from '@forestadmin/datasource-toolkit';
+
+import { MissingCollectionError } from '@forestadmin/datasource-toolkit';
 
 export default class CompositeDatasource<T extends Collection = Collection>
   implements DataSource<T>

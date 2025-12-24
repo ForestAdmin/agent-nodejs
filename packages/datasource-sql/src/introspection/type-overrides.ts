@@ -1,7 +1,7 @@
 // Override the types from sequelize to add properties from private fields and methods
 // that we use in the datasource-sequelize package, but that are not exported by sequelize.
 
-import {
+import type {
   AbstractDataType,
   AbstractDataTypeConstructor,
   ColumnDescription,

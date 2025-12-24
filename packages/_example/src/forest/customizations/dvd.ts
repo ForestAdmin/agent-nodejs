@@ -1,5 +1,6 @@
+import type { DvdCustomizer } from '../typings';
+
 import sequelizeMsSql from '../../connections/sequelize-mssql';
-import { DvdCustomizer } from '../typings';
 
 export default (collection: DvdCustomizer) =>
   collection

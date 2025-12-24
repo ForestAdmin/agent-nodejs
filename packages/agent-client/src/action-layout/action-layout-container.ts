@@ -1,4 +1,4 @@
-import { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import ActionLayoutElement from './action-layout-element';
 import { NotFoundElementError, NotRightElementError } from './errors';

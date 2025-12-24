@@ -1,21 +1,24 @@
-import {
+import type {
   ConditionTree,
   ConditionTreeBranch,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
   Operator,
-  Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   Dialect,
   IncludeOptions,
   ModelDefined,
-  Op,
   OrderItem,
   Sequelize,
   WhereOptions,
 } from 'sequelize';
+
+import {
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
+import { Op } from 'sequelize';
 
 import unAmbigousField from './un-ambigous';
 

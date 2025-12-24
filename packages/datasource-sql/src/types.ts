@@ -1,7 +1,6 @@
-import { Options } from 'sequelize/types';
-import { ConnectConfig } from 'ssh2';
-
-import { SupportedIntrospection } from './introspection/types';
+import type { SupportedIntrospection } from './introspection/types';
+import type { Options } from 'sequelize/types';
+import type { ConnectConfig } from 'ssh2';
 
 type SupportedSequelizeOptions = Pick<
   Options,

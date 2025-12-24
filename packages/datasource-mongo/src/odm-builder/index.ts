@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Connection, Mongoose, Schema } from 'mongoose';
+import type { ModelAnalysis, ModelDefinition, PrimitiveDefinition } from '../introspection/types';
+import type { Connection, Mongoose } from 'mongoose';
 
-import { ModelAnalysis, ModelDefinition, PrimitiveDefinition } from '../introspection/types';
+import { Schema } from 'mongoose';
 
 export default class OdmBuilder {
   private static readonly primitives: Partial<Record<PrimitiveDefinition, unknown>> = {

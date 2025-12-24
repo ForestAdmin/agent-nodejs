@@ -1,12 +1,12 @@
+import type { TSchema } from '../templates';
+import type { Caller, DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
-  Caller,
-  DataSource,
   ForbiddenError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-import { TSchema } from '../templates';
 import RelaxedDataSource from './relaxed-wrappers/datasource';
 
 export default class AgentCustomizationContext<S extends TSchema = TSchema> {

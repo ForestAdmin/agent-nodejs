@@ -1,4 +1,4 @@
-import { Model, PipelineStage } from 'mongoose';
+import type { Model, PipelineStage } from 'mongoose';
 
 import ConditionGenerator from './condition-generator';
 import MongooseSchema from '../../mongoose/schema';

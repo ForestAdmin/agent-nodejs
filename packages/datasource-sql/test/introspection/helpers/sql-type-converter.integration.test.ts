@@ -1,11 +1,13 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import type { ColumnDescription } from '../../../src/introspection/dialects/dialect.interface';
+import type IntrospectionDialect from '../../../src/introspection/dialects/dialect.interface';
+import type { ConnectionDetails } from '../../_helpers/connection-details';
+import type { Sequelize } from 'sequelize';
+
+import { DataTypes } from 'sequelize';
 
 import introspectorDialectFactory from '../../../src/introspection/dialects/dialect-factory';
-import IntrospectionDialect, {
-  ColumnDescription,
-} from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
-import { CONNECTION_DETAILS, ConnectionDetails } from '../../_helpers/connection-details';
+import { CONNECTION_DETAILS } from '../../_helpers/connection-details';
 import setupEmptyDatabase from '../../_helpers/setup-empty-database';
 
 const SCALAR_TYPES: [string, string, string[]?][] = [

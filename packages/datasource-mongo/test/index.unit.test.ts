@@ -1,9 +1,10 @@
+import type { IntrospectorParams } from '../src';
+import type { Introspection } from '../src/introspection/types';
 import type { Connection } from 'mongoose';
 
-import { IntrospectorParams, buildMongooseInstance, introspect } from '../src';
+import { buildMongooseInstance, introspect } from '../src';
 import createConnection from '../src/connection/create-connection';
 import Introspector from '../src/introspection/introspector';
-import { Introspection } from '../src/introspection/types';
 import OdmBuilder from '../src/odm-builder';
 
 jest.mock('@forestadmin/datasource-mongoose');

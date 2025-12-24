@@ -1,14 +1,13 @@
+import type { AggregateResult, Collection, RecordData } from '@forestadmin/datasource-toolkit';
+
 import {
-  AggregateResult,
   Aggregation,
-  Collection,
   ConditionTreeBranch,
   ConditionTreeLeaf,
   DataSourceDecorator,
   Filter,
   PaginatedFilter,
   Projection,
-  RecordData,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 

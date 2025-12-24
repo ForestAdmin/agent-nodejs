@@ -1,6 +1,6 @@
-import { Collection, ManyToOneSchema } from '@forestadmin/datasource-toolkit';
+import type MongooseCollection from '../../collection';
+import type { Collection, ManyToOneSchema } from '@forestadmin/datasource-toolkit';
 
-import MongooseCollection from '../../collection';
 import MongooseSchema from '../../mongoose/schema';
 import { escape } from '../helpers';
 

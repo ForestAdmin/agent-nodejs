@@ -1,4 +1,4 @@
-import { CollectionActionEvent, CustomActionEvent } from './types';
+import type { CollectionActionEvent, CustomActionEvent } from './types';
 
 export function generateCustomActionIdentifier(
   actionEventName: CustomActionEvent,

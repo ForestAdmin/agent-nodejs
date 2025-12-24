@@ -1,8 +1,9 @@
-import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   Collection,
   DataSource,
 } from '@forestadmin/datasource-toolkit/dist/src/interfaces/collection';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ChartCollectionDecorator from '../../../src/decorators/chart/collection';

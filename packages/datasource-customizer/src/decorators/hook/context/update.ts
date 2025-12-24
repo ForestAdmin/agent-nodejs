@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
-import { Caller, Collection, Filter, RecordData } from '@forestadmin/datasource-toolkit';
+import type { TCollectionName, TFilter, TRow, TSchema } from '../../../templates';
+import type { Caller, Collection, Filter, RecordData } from '@forestadmin/datasource-toolkit';
 
 import HookContext from './hook';
-import { TCollectionName, TFilter, TRow, TSchema } from '../../../templates';
 
 export class HookBeforeUpdateContext<
   S extends TSchema = TSchema,

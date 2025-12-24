@@ -1,10 +1,13 @@
-import { ColumnSchema, DataSource, FieldSchema, TypeGetter } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
+import type { ForestAdminHttpDriverServices } from '../services';
+import type { AgentOptionsWithDefaults } from '../types';
+import type { ColumnSchema, DataSource, FieldSchema } from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
+import { TypeGetter } from '@forestadmin/datasource-toolkit';
 
 import BaseRoute from './base-route';
-import { ForestAdminHttpDriverServices } from '../services';
-import { AgentOptionsWithDefaults, HttpCode, RouteType } from '../types';
+import { HttpCode, RouteType } from '../types';
 
 export default class Capabilities extends BaseRoute {
   readonly type = RouteType.PrivateRoute;

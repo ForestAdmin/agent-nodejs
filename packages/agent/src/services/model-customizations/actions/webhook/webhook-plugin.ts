@@ -1,5 +1,8 @@
-import { Plugin } from '@forestadmin/datasource-customizer';
-import { ModelCustomization, WebhookActionConfiguration } from '@forestadmin/forestadmin-client';
+import type { Plugin } from '@forestadmin/datasource-customizer';
+import type {
+  ModelCustomization,
+  WebhookActionConfiguration,
+} from '@forestadmin/forestadmin-client';
 
 import executeWebhook from './execute-webhook';
 import getActions from '../get-actions';

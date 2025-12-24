@@ -1,7 +1,9 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable jest/no-disabled-tests */
 
-import { Connection, Schema, model } from 'mongoose';
+import type { Connection } from 'mongoose';
+
+import { Schema, model } from 'mongoose';
 
 import MongooseCollection from '../src/collection';
 import MongooseDatasource from '../src/datasource';

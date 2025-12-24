@@ -1,7 +1,7 @@
+import type { ColumnType, PrimitiveTypes } from '../interfaces/schema';
+
 import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
-
-import { ColumnType, PrimitiveTypes } from '../interfaces/schema';
 
 export default class TypeGetter {
   static get(value: unknown, typeContext: PrimitiveTypes): PrimitiveTypes {

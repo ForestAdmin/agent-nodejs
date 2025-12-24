@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ModelDefined } from 'sequelize/types';
+import type { ModelDefined } from 'sequelize/types';
 
 function getRealFieldName(model: ModelDefined<any, any>, fieldName: string) {
   const fields = model.getAttributes();

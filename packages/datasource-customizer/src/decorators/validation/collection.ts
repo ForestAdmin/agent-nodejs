@@ -1,14 +1,17 @@
-import {
+import type {
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ColumnSchemaValidation,
-  ConditionTreeFactory,
   ConditionTreeLeaf,
-  FieldValidator,
   Filter,
   RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionDecorator,
+  ConditionTreeFactory,
+  FieldValidator,
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';

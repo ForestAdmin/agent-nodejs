@@ -1,4 +1,4 @@
-import { Operator } from '@forestadmin/datasource-toolkit';
+import type { Operator } from '@forestadmin/datasource-toolkit';
 
 export default class FrontendFilterableUtils {
   /**

@@ -1,4 +1,5 @@
-import {
+import type { AgentOptionsWithDefaults } from '../../types';
+import type {
   ActionField,
   ActionFormElement,
   ActionLayoutElement,
@@ -6,20 +7,20 @@ import {
   DataSource,
   LayoutElementInput,
   PrimitiveTypes,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   ForestServerAction,
   ForestServerActionField,
   ForestServerActionFormElementFieldReference,
   ForestServerActionFormLayoutElement,
 } from '@forestadmin/forestadmin-client';
+
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 import path from 'path';
 
 import ActionFields from './action-fields';
 import ForestValueConverter from './action-values';
 import GeneratorActionFieldWidget from './generator-action-field-widget';
-import { AgentOptionsWithDefaults } from '../../types';
 
 export default class SchemaGeneratorActions {
   private readonly useUnsafeActionEndpoint: boolean;

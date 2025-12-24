@@ -1,7 +1,8 @@
+import type { Operator } from '@forestadmin/datasource-toolkit';
+
 import {
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  Operator,
   allOperators,
 } from '@forestadmin/datasource-toolkit';
 

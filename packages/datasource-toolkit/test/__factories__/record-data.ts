@@ -1,5 +1,5 @@
-import { Factory } from 'fishery';
+import type { RecordData } from '../../src/interfaces/record';
 
-import { RecordData } from '../../src/interfaces/record';
+import { Factory } from 'fishery';
 
 export default Factory.define<RecordData>(() => ({}));

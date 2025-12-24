@@ -1,4 +1,4 @@
-import Router from '@koa/router';
+import type Router from '@koa/router';
 
 import Logger from '../../../src/routes/system/logger';
 import * as factories from '../../__factories__';

@@ -1,17 +1,20 @@
-import {
+import type { WriteDefinition } from './types';
+import type {
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   DataSourceDecorator,
-  FieldValidator,
   Filter,
   RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionDecorator,
+  FieldValidator,
   RecordValidator,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import WriteCustomizationContext from './context';
-import { WriteDefinition } from './types';
 
 export default class WriteReplacerCollectionDecorator extends CollectionDecorator {
   private handlers: Record<string, WriteDefinition> = {};

@@ -1,5 +1,5 @@
-import { Operator } from '../interfaces/query/condition-tree/nodes/operators';
-import { PrimitiveTypes } from '../interfaces/schema';
+import type { Operator } from '../interfaces/query/condition-tree/nodes/operators';
+import type { PrimitiveTypes } from '../interfaces/schema';
 
 const BASE_OPERATORS: Operator[] = ['Blank', 'Equal', 'Missing', 'NotEqual', 'Present'];
 

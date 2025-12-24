@@ -1,14 +1,15 @@
+import type BootstrapPathManager from './bootstrap-path-manager';
+import type { EnvironmentVariables } from '../types';
+
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
 
-import BootstrapPathManager from './bootstrap-path-manager';
 import { defaultEnvs } from './environment-variables';
 import generateDatasourceConfigFile from './generate-datasource-config-file';
 import HttpServer from './http-server';
 import { updateTypings } from './update-typings';
 import { BusinessError } from '../errors';
-import { EnvironmentVariables } from '../types';
 
 async function tryToClearBootstrap(paths: BootstrapPathManager): Promise<string | null> {
   try {

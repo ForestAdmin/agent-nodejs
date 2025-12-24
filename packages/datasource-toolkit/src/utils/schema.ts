@@ -1,11 +1,4 @@
-import {
-  AlreadyDefinedFieldError,
-  MissingColumnError,
-  MissingFieldError,
-  MissingRelationError,
-  RelationFieldAccessDeniedError,
-} from '../errors';
-import {
+import type {
   CollectionSchema,
   ColumnSchema,
   FieldSchema,
@@ -13,6 +6,14 @@ import {
   OneToManySchema,
   RelationSchema,
 } from '../interfaces/schema';
+
+import {
+  AlreadyDefinedFieldError,
+  MissingColumnError,
+  MissingFieldError,
+  MissingRelationError,
+  RelationFieldAccessDeniedError,
+} from '../errors';
 
 export default class SchemaUtils {
   static throwIfAlreadyDefinedField(

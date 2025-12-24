@@ -1,4 +1,6 @@
-import mongoose, { Schema } from 'mongoose';
+import type { Schema } from 'mongoose';
+
+import mongoose from 'mongoose';
 
 import isSchemaType from './schema/is-schema-type';
 

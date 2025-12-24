@@ -1,6 +1,8 @@
-import { ActionContext, TSchema } from '@forestadmin/datasource-customizer';
-import { ActionResult, BusinessError } from '@forestadmin/datasource-toolkit';
-import { UpdateRecordAction } from '@forestadmin/forestadmin-client';
+import type { ActionContext, TSchema } from '@forestadmin/datasource-customizer';
+import type { ActionResult } from '@forestadmin/datasource-toolkit';
+import type { UpdateRecordAction } from '@forestadmin/forestadmin-client';
+
+import { BusinessError } from '@forestadmin/datasource-toolkit';
 
 const genericErrorMessage = actionName =>
   `The no-code action <strong>${actionName}</strong> cannot be triggered due to a` +

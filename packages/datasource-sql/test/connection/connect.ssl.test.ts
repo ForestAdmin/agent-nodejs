@@ -1,8 +1,9 @@
+import type { SslMode } from '../../src/types';
+
 import { Sequelize } from 'sequelize';
 
 import connect from '../../src/connection';
 import ConnectionOptions from '../../src/connection/connection-options';
-import { SslMode } from '../../src/types';
 import {
   MARIADB_DETAILS,
   MSSQL_DETAILS,

@@ -1,9 +1,8 @@
+import type { Caller, ColumnSchema, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
 import {
-  Caller,
-  ColumnSchema,
   ConditionTreeFactory,
   ConditionTreeLeaf,
-  PrimitiveTypes,
   allOperators,
 } from '@forestadmin/datasource-toolkit';
 

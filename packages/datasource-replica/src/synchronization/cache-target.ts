@@ -7,9 +7,9 @@ import type {
   SynchronizationTarget,
 } from '../types';
 import type { Logger, RecordData } from '@forestadmin/datasource-toolkit';
-import type { Sequelize } from 'sequelize';
+import type { Sequelize, Transaction } from 'sequelize';
 
-import { Op, Transaction } from 'sequelize';
+import { Op } from 'sequelize';
 
 import flattenRecord from '../flattener';
 import { escape, getRecordId } from '../utils';

@@ -1,8 +1,9 @@
+import type BootstrapPathManager from '../../src/services/bootstrap-path-manager';
+
 import fs from 'fs/promises';
 
 import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
-import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import { defaultEnvs } from '../../src/services/environment-variables';
 
 describe('bootstrap command', () => {

@@ -1,6 +1,6 @@
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
-  Collection,
-  DataSource,
   DataSourceDecorator,
   MissingFieldError,
   RelationFieldAccessDeniedError,

@@ -1,4 +1,6 @@
 /* eslint-disable no-underscore-dangle */
+import type { Connection } from 'mongoose';
+
 import {
   ConditionTreeLeaf,
   Filter,
@@ -6,7 +8,7 @@ import {
   Projection,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import mongoose, { Connection, Schema, Types, mongo } from 'mongoose';
+import mongoose, { Schema, Types, mongo } from 'mongoose';
 
 import setupFlattener, { setupConnection } from './_build-models';
 import MongooseDatasource from '../../../src/datasource';

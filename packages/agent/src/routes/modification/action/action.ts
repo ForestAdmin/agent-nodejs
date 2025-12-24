@@ -1,22 +1,23 @@
-import {
-  ConditionTreeFactory,
-  DataSource,
-  Filter,
-  FilterFactory,
-  UnprocessableError,
-} from '@forestadmin/datasource-toolkit';
-import { UserInfo } from '@forestadmin/forestadmin-client';
-import Router from '@koa/router';
-import { Context, Next } from 'koa';
-
-import ActionAuthorizationService from './action-authorization';
-import { ForestAdminHttpDriverServices } from '../../../services';
-import {
+import type { ForestAdminHttpDriverServices } from '../../../services';
+import type {
   SmartActionApprovalRequestBody,
   SmartActionHookRequestBody,
   SmartActionRequestBody,
 } from '../../../services/authorization/types';
-import { AgentOptionsWithDefaults, HttpCode } from '../../../types';
+import type { AgentOptionsWithDefaults } from '../../../types';
+import type { DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import type { UserInfo } from '@forestadmin/forestadmin-client';
+import type Router from '@koa/router';
+import type { Context, Next } from 'koa';
+
+import {
+  ConditionTreeFactory,
+  FilterFactory,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
+
+import ActionAuthorizationService from './action-authorization';
+import { HttpCode } from '../../../types';
 import BodyParser from '../../../utils/body-parser';
 import ContextFilterFactory from '../../../utils/context-filter-factory';
 import ForestValueConverter from '../../../utils/forest-schema/action-values';

@@ -1,17 +1,20 @@
-import { IntrospectionFormatError, Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize } from 'sequelize';
-
-import introspectionDialectFactory from './dialects/dialect-factory';
-import IntrospectionDialect, { ColumnDescription } from './dialects/dialect.interface';
-import DefaultValueParser from './helpers/default-value-parser';
-import SqlTypeConverter from './helpers/sql-type-converter';
-import {
+import type { ColumnDescription } from './dialects/dialect.interface';
+import type IntrospectionDialect from './dialects/dialect.interface';
+import type {
   QueryInterfaceExt,
   SequelizeReference,
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from './type-overrides';
-import { Introspection, LatestIntrospection, SupportedIntrospection, Table } from './types';
+import type { Introspection, LatestIntrospection, SupportedIntrospection, Table } from './types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Dialect, Sequelize } from 'sequelize';
+
+import { IntrospectionFormatError } from '@forestadmin/datasource-toolkit';
+
+import introspectionDialectFactory from './dialects/dialect-factory';
+import DefaultValueParser from './helpers/default-value-parser';
+import SqlTypeConverter from './helpers/sql-type-converter';
 
 export default class Introspector {
   static readonly FORMAT_VERSION = 3;

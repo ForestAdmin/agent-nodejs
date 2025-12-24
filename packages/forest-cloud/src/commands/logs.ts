@@ -1,4 +1,6 @@
-import { Command } from 'commander';
+import type { Log, Logger, MakeCommands } from '../types';
+import type { Command } from 'commander';
+
 import Joi from 'joi';
 
 import actionRunner from '../dialogs/action-runner';
@@ -10,7 +12,6 @@ import {
 } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
 import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
-import { Log, Logger, MakeCommands } from '../types';
 
 const levelToLog = {
   Info: 'info',

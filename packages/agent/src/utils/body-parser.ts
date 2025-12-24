@@ -1,8 +1,8 @@
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
+import type { SelectionIds } from '../types';
+import type { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import type { Context } from 'koa';
 
 import IdUtils from './id';
-import { SelectionIds } from '../types';
 
 export default class BodyParser {
   static parseSelectionIds(schema: CollectionSchema, context: Context): SelectionIds {

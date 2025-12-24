@@ -1,18 +1,21 @@
-import {
-  Aggregation,
+import type {
   Caller,
-  CollectionUtils,
   CompositeId,
   ConditionTree,
+  ManyToOneSchema,
+  OneToOneSchema,
+} from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
+import {
+  Aggregation,
+  CollectionUtils,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Filter,
-  ManyToOneSchema,
-  OneToOneSchema,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';

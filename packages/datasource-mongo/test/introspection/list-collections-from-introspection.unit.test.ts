@@ -1,5 +1,6 @@
+import type { Introspection } from '../../src/introspection/types';
+
 import listCollectionsFromIntrospection from '../../src/introspection/list-collections-from-introspection';
-import { Introspection } from '../../src/introspection/types';
 
 describe('listCollectionsFromIntrospection', () => {
   it('should return an empty array if introspection is falsy', () => {

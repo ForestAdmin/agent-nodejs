@@ -1,6 +1,7 @@
+import type { CollectionReplicaSchema, RecordDataWithCollection } from '../src/types';
+
 import flattenRecord from '../src/flattener';
 import { flattenCollectionSchema } from '../src/options/flattener/schema';
-import { CollectionReplicaSchema, RecordDataWithCollection } from '../src/types';
 
 describe('flattener', () => {
   const schema: CollectionReplicaSchema = {

@@ -1,8 +1,9 @@
+import type DistPathManager from './dist-path-manager';
+import type HttpServer from './http-server';
+
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
 
-import DistPathManager from './dist-path-manager';
-import HttpServer from './http-server';
 import { BusinessError } from '../errors';
 
 function getKeyFromPolicy(policy: string) {

@@ -1,3 +1,6 @@
+import type { Stack } from '../../../src/types';
+import type { Model } from 'mongoose';
+
 import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
@@ -5,9 +8,8 @@ import {
   PaginatedFilter,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import mongoose, { Model, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-import { Stack } from '../../../src/types';
 import FilterGenerator, { FilterAtStage } from '../../../src/utils/pipeline/filter';
 
 describe('FilterGenerator', () => {

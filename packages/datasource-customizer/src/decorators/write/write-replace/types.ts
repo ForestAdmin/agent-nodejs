@@ -1,5 +1,12 @@
+import type {
+  TCollectionName,
+  TFieldName,
+  TFieldType,
+  TPartialRow,
+  TSchema,
+} from '../../../templates';
+
 import WriteCustomizationContext from './context';
-import { TCollectionName, TFieldName, TFieldType, TPartialRow, TSchema } from '../../../templates';
 
 export { WriteCustomizationContext };
 

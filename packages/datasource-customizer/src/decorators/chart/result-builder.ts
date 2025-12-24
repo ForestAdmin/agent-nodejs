@@ -1,4 +1,4 @@
-import {
+import type {
   DateOperation,
   DistributionChart,
   LeaderboardChart,
@@ -9,7 +9,9 @@ import {
   TimeBasedChart,
   ValueChart,
 } from '@forestadmin/datasource-toolkit';
-import { DateTime, DateTimeUnit } from 'luxon';
+import type { DateTimeUnit } from 'luxon';
+
+import { DateTime } from 'luxon';
 
 export default class ResultBuilder {
   private static readonly formats: Record<DateOperation, string> = {

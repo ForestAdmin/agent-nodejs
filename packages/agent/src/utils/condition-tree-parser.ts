@@ -1,14 +1,17 @@
-import {
+import type {
   Aggregator,
   Collection,
-  CollectionUtils,
   ColumnSchema,
   ColumnType,
   ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
   Operator,
   PlainConditionTreeLeaf,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionUtils,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
 
 const STRING_TO_BOOLEAN = {

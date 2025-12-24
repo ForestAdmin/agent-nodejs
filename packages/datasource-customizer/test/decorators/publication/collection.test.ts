@@ -1,7 +1,9 @@
-import { Collection, DataSource, MissingFieldError } from '@forestadmin/datasource-toolkit';
+import type PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
+import { MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import PublicationCollectionDecorator from '../../../src/decorators/publication/collection';
 import PublicationDataSourceDecorator from '../../../src/decorators/publication/datasource';
 
 describe('PublicationCollectionDecorator', () => {

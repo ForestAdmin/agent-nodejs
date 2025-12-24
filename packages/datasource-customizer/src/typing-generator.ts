@@ -1,12 +1,14 @@
-import type { Logger, ManyToOneSchema, OneToOneSchema } from '@forestadmin/datasource-toolkit';
-
-import {
+import type {
   Collection,
-  CollectionUtils,
   ColumnSchema,
   ColumnType,
   DataSource,
+  Logger,
+  ManyToOneSchema,
+  OneToOneSchema,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {

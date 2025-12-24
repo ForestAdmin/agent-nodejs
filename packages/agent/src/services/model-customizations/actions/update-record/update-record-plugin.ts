@@ -1,5 +1,5 @@
-import { Plugin } from '@forestadmin/datasource-customizer';
-import {
+import type { Plugin } from '@forestadmin/datasource-customizer';
+import type {
   ModelCustomization,
   UpdateRecordActionConfiguration,
 } from '@forestadmin/forestadmin-client';

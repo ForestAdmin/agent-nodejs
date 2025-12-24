@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import type { Caller } from './interfaces/caller';
+import type { Chart } from './interfaces/chart';
+import type { Collection, DataSource } from './interfaces/collection';
+import type { DataSourceSchema } from './interfaces/schema';
+
 import { MissingCollectionError } from './errors';
-import { Caller } from './interfaces/caller';
-import { Chart } from './interfaces/chart';
-import { Collection, DataSource } from './interfaces/collection';
-import { DataSourceSchema } from './interfaces/schema';
 
 export default class BaseDataSource<T extends Collection = Collection> implements DataSource {
   protected _collections: { [collectionName: string]: T } = {};

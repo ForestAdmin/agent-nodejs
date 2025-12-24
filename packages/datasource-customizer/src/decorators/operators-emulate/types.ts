@@ -1,5 +1,11 @@
-import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TColumnName, TConditionTree, TFieldType, TSchema } from '../../templates';
+import type CollectionCustomizationContext from '../../context/collection-context';
+import type {
+  TCollectionName,
+  TColumnName,
+  TConditionTree,
+  TFieldType,
+  TSchema,
+} from '../../templates';
 
 export type OperatorDefinition<
   S extends TSchema = TSchema,

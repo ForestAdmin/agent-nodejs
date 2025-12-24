@@ -1,4 +1,4 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
 
 import makeRoutes, {
   CAPABILITIES_ROUTES_CTOR,

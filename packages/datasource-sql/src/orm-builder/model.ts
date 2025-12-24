@@ -1,11 +1,13 @@
-import { Logger } from '@forestadmin/datasource-toolkit';
-import { ModelAttributes, Sequelize, UUIDV4 } from 'sequelize';
-import { ModelAttributeColumnOptions } from 'sequelize/types/model';
-import { Literal } from 'sequelize/types/utils';
+import type { LatestIntrospection, Table } from '../introspection/types';
+import type { SqlDatasourceOptions } from '../types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { ModelAttributes } from 'sequelize';
+import type { ModelAttributeColumnOptions } from 'sequelize/types/model';
+import type { Literal } from 'sequelize/types/utils';
+
+import { Sequelize, UUIDV4 } from 'sequelize';
 
 import SequelizeTypeFactory from './helpers/sequelize-type';
-import { LatestIntrospection, Table } from '../introspection/types';
-import { SqlDatasourceOptions } from '../types';
 
 type TableOrView = Table & { view?: boolean };
 

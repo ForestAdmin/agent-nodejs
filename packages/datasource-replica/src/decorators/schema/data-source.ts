@@ -1,7 +1,9 @@
-import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import type { CollectionReplicaSchema, ResolvedOptions } from '../../types';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import SchemaCollectionDecorator from './collection';
-import { CollectionReplicaSchema, ResolvedOptions } from '../../types';
 
 export default class SchemaDataSourceDecorator extends DataSourceDecorator<SchemaCollectionDecorator> {
   private readonly flatSchema: CollectionReplicaSchema[];

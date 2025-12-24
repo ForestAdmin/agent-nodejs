@@ -1,14 +1,14 @@
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
-
-import { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
-import AuthService from '../auth';
-import { ModelCustomization } from '../model-customizations/types';
-import {
+import type { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
+import type { ModelCustomization } from '../model-customizations/types';
+import type {
   ForestAdminAuthServiceInterface,
   ForestAdminClientOptions,
   ForestAdminClientOptionsWithDefaults,
   ForestAdminServerInterface,
 } from '../types';
+import type { McpConfiguration } from '@forestadmin/ai-proxy';
+
+import AuthService from '../auth';
 import ServerUtils from '../utils/server';
 
 export type HttpOptions = Pick<

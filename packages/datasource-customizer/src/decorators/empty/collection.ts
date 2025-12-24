@@ -1,15 +1,18 @@
-import {
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionDecorator,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
 
 /**

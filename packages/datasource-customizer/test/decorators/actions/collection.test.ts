@@ -1,17 +1,12 @@
-import {
-  ActionScope,
-  Collection,
-  DataSource,
-  DataSourceDecorator,
-  File,
-  Filter,
-} from '@forestadmin/datasource-toolkit';
+import type ActionContextSingle from '../../../src/decorators/actions/context/single';
+import type { DynamicField } from '../../../src/decorators/actions/types/fields';
+import type { TSchema } from '../../../src/templates';
+import type { ActionScope, Collection, DataSource, File } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator, Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import ActionCollection from '../../../src/decorators/actions/collection';
-import ActionContextSingle from '../../../src/decorators/actions/context/single';
-import { DynamicField } from '../../../src/decorators/actions/types/fields';
-import { TSchema } from '../../../src/templates';
 
 describe('ActionDecorator', () => {
   // State

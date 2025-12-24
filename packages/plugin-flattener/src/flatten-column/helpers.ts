@@ -1,4 +1,4 @@
-import { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
+import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
 
 /**
  * Given the name of a column, its type and the maximum allowed depth, compute the list of paths

@@ -1,5 +1,6 @@
+import type { Context } from 'koa';
+
 import { PaginatedFilter } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 
 import SegmentQueryHandler from '../../src/services/segment-query-handler';
 

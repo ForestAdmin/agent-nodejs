@@ -1,12 +1,15 @@
-import {
-  Aggregation,
+import type {
   Collection,
   ColumnSchema,
-  ConditionTreeLeaf,
   DataSource,
+  ManyToManySchema,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  Aggregation,
+  ConditionTreeLeaf,
   DataSourceDecorator,
   Filter,
-  ManyToManySchema,
   MissingColumnError,
   PaginatedFilter,
   Projection,

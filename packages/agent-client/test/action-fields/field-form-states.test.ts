@@ -1,5 +1,6 @@
+import type HttpRequester from '../../src/http-requester';
+
 import FieldFormStates from '../../src/action-fields/field-form-states';
-import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
 

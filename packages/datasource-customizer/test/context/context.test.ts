@@ -1,4 +1,5 @@
-import { Caller, Collection } from '@forestadmin/datasource-toolkit';
+import type { Caller, Collection } from '@forestadmin/datasource-toolkit';
+
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import CollectionCustomizationContext from '../../src/context/collection-context';

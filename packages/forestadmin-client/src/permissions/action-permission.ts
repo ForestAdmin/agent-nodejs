@@ -1,10 +1,8 @@
+import type { ActionPermissions } from './generate-actions-from-permissions';
 import type { RawTreeWithSources } from './types';
-import type { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
-import generateActionsFromPermissions, {
-  ActionPermissions,
-} from './generate-actions-from-permissions';
-import { ForestAdminServerInterface } from '../types';
+import generateActionsFromPermissions from './generate-actions-from-permissions';
 import TTLCache from '../utils/ttl-cache';
 
 export default class ActionPermissionService {

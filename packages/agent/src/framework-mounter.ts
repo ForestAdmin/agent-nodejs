@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { HttpCallback } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
+import type net from 'net';
 
 import Router from '@koa/router';
 import { createServer } from 'http';
 import Koa from 'koa';
-import net from 'net';
 import path from 'path';
 
 import FastifyAdapter from './fastify-adapter';
 import McpMiddleware from './mcp-middleware';
-import { HttpCallback } from './types';
 
 export default class FrameworkMounter {
   public standaloneServerPort: number;

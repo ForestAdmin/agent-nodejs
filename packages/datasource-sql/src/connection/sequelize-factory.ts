@@ -1,7 +1,7 @@
-import { Sequelize } from 'sequelize';
-import { Options as SequelizeOptions } from 'sequelize/types/sequelize';
+import type Service from './services/service';
+import type { Options as SequelizeOptions } from 'sequelize/types/sequelize';
 
-import Service from './services/service';
+import { Sequelize } from 'sequelize';
 
 export default class SequelizeFactory {
   static build(

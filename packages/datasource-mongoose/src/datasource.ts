@@ -1,9 +1,11 @@
-import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
-import { Connection, Model, Mongoose } from 'mongoose';
+import type { MongooseOptions, Stack } from './types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Connection, Model, Mongoose } from 'mongoose';
+
+import { BaseDataSource } from '@forestadmin/datasource-toolkit';
 
 import MongooseCollection from './collection';
 import MongooseSchema from './mongoose/schema';
-import { MongooseOptions, Stack } from './types';
 import { unnest } from './utils/helpers';
 import OptionsParser from './utils/options';
 import RelationGenerator from './utils/schema/relations';

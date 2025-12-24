@@ -1,9 +1,10 @@
-import { Alternative } from '../equivalence';
+import type { Alternative } from '../equivalence';
+import type ConditionTree from '../nodes/base';
+import type { Operator } from '../nodes/operators';
+
 import ConditionTreeFactory from '../factory';
-import ConditionTree from '../nodes/base';
 import ConditionTreeBranch from '../nodes/branch';
 import ConditionTreeLeaf from '../nodes/leaf';
-import { Operator } from '../nodes/operators';
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
   Blank: [

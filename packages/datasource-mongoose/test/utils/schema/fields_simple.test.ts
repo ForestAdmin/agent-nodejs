@@ -1,4 +1,5 @@
-import { ColumnSchema, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema, Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+
 import { Schema } from 'mongoose';
 
 import FieldsGenerator from '../../../src/utils/schema/fields';

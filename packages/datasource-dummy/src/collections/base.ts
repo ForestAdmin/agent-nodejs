@@ -1,8 +1,7 @@
-import {
+import type {
   ActionResult,
   AggregateResult,
   Aggregation,
-  BaseCollection,
   Caller,
   DataSource,
   FieldSchema,
@@ -12,6 +11,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
+import { BaseCollection } from '@forestadmin/datasource-toolkit';
 
 export default class BaseDummyCollection extends BaseCollection {
   private static supportedOperators = new Set<Operator>([

@@ -1,11 +1,8 @@
-import {
-  Caller,
-  CollectionUtils,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
+import type { Caller, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
+import { CollectionUtils } from '@forestadmin/datasource-toolkit';
 import { Readable } from 'stream';
 
 import ContextFilterFactory from '../../utils/context-filter-factory';

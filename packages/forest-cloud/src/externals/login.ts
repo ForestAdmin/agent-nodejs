@@ -1,6 +1,6 @@
-import { exec } from 'child_process';
+import type { Logger } from '../types';
 
-import { Logger } from '../types';
+import { exec } from 'child_process';
 
 export default async function login(logger: Logger) {
   return new Promise<void>((resolve, reject) => {

@@ -1,10 +1,11 @@
+import type { Introspection, ModelStudy, MongoDb } from '../../src/introspection/types';
+
 import mongoose from 'mongoose';
 
 import Introspector from '../../src/introspection/introspector';
 import ReferenceCandidateFinder from '../../src/introspection/reference-candidates-finder';
 import ReferenceCandidateVerifier from '../../src/introspection/reference-candidates-verifier';
 import Structure from '../../src/introspection/structure';
-import { Introspection, ModelStudy, MongoDb } from '../../src/introspection/types';
 
 const { ObjectId } = mongoose.mongo;
 

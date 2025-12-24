@@ -1,10 +1,13 @@
-import ConditionTree, { PlainConditionTree } from './base';
-import { Operator, allOperators, intervalOperators } from './operators';
+import type { PlainConditionTree } from './base';
+import type { Operator } from './operators';
+import type { Collection } from '../../../collection';
+import type { RecordData } from '../../../record';
+import type { ColumnSchema } from '../../../schema';
+
+import ConditionTree from './base';
+import { allOperators, intervalOperators } from './operators';
 import CollectionUtils from '../../../../utils/collection';
 import RecordUtils from '../../../../utils/record';
-import { Collection } from '../../../collection';
-import { RecordData } from '../../../record';
-import { ColumnSchema } from '../../../schema';
 import Projection from '../../projection';
 import ConditionTreeEquivalent from '../equivalence';
 import ConditionTreeFactory from '../factory';

@@ -1,12 +1,9 @@
-import {
-  Caller,
-  ConditionTreeLeaf,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import type SequelizeCollection from '../../../src/collection';
+import type { Caller } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeLeaf, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import { DataTypes, Sequelize } from 'sequelize';
 
-import SequelizeCollection from '../../../src/collection';
 import { createSequelizeDataSource } from '../../../src/index';
 import CONNECTIONS from '../../__tests/connections';
 

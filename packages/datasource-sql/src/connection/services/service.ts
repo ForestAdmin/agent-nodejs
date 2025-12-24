@@ -1,4 +1,4 @@
-import net from 'net';
+import type net from 'net';
 
 export type ConnectionCallback = (socket: net.Socket) => Promise<net.Socket>;
 export type StopCallback = () => Promise<void>;

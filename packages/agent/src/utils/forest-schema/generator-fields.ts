@@ -1,6 +1,5 @@
-import {
+import type {
   Collection,
-  CollectionUtils,
   ColumnSchema,
   ColumnType,
   FieldTypes,
@@ -9,10 +8,10 @@ import {
   OneToManySchema,
   OneToOneSchema,
   PrimitiveTypes,
-  SchemaUtils,
-  ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerColumnType, ForestServerField } from '@forestadmin/forestadmin-client';
+import type { ForestServerColumnType, ForestServerField } from '@forestadmin/forestadmin-client';
+
+import { CollectionUtils, SchemaUtils, ValidationError } from '@forestadmin/datasource-toolkit';
 
 import ColumnSchemaValidator from './column-schema-validator';
 import FrontendFilterableUtils from './filterable';

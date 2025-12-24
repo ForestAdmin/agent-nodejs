@@ -1,6 +1,6 @@
-import { LoggerLevel } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context, Next } from 'koa';
+import type { LoggerLevel } from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context, Next } from 'koa';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';

@@ -1,14 +1,14 @@
+import type { File, Options } from '../types';
+import type { ObjectCannedACL } from '@aws-sdk/client-s3';
+import type { Readable } from 'stream';
+
 import {
   DeleteObjectCommand,
   GetObjectCommand,
-  ObjectCannedACL,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Readable } from 'stream';
-
-import { File, Options } from '../types';
 
 export default class Client {
   private client: S3Client;

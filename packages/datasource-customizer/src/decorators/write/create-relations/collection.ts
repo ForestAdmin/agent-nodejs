@@ -1,11 +1,14 @@
-import {
+import type {
   Caller,
-  CollectionDecorator,
-  ConditionTreeLeaf,
-  Filter,
   ManyToOneSchema,
   OneToOneSchema,
   RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionDecorator,
+  ConditionTreeLeaf,
+  Filter,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 

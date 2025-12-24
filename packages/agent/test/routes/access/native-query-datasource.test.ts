@@ -1,6 +1,7 @@
+import type { Context } from 'koa';
+
 import { UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { ChartType } from '@forestadmin/forestadmin-client';
-import { Context } from 'koa';
 
 import makeRoutes from '../../../src/routes';
 import DataSourceNativeQueryRoute from '../../../src/routes/access/native-query-datasource';

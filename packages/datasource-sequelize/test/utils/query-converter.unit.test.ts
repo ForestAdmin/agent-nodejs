@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion,@typescript-eslint/no-explicit-any */
 
+import type { Aggregator, ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
+import type { Dialect } from 'sequelize';
+
 import {
-  Aggregator,
-  ConditionTree,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  Operator,
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import { DataTypes, Dialect, Op, Sequelize } from 'sequelize';
+import { DataTypes, Op, Sequelize } from 'sequelize';
 
 import QueryConverter from '../../src/utils/query-converter';
 

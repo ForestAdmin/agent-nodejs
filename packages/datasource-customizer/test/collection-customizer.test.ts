@@ -1,22 +1,18 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import {
-  ColumnSchema,
-  ConditionTreeLeaf,
-  MissingFieldError,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
-import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-
-import {
+import type {
   CollectionCustomizationContext,
-  CollectionCustomizer,
   ComputedDefinition,
   DataSourceChartDefinition,
-  DataSourceCustomizer,
 } from '../src';
-import { ActionDefinition } from '../src/decorators/actions/types/actions';
-import { WriteDefinition } from '../src/decorators/write/write-replace/types';
+import type { ActionDefinition } from '../src/decorators/actions/types/actions';
+import type { WriteDefinition } from '../src/decorators/write/write-replace/types';
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeLeaf, MissingFieldError, Sort } from '@forestadmin/datasource-toolkit';
+import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
+
+import { CollectionCustomizer, DataSourceCustomizer } from '../src';
 
 describe('Builder > Collection', () => {
   const logger = () => {};

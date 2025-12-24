@@ -1,3 +1,5 @@
+import type { Context } from 'koa';
+
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -5,7 +7,6 @@ import {
   EmptySQLQueryError,
   NonSelectSQLQueryError,
 } from '@forestadmin/forestadmin-client';
-import { Context } from 'koa';
 
 import AuthorizationService from '../../../src/services/authorization/authorization';
 import { HttpCode } from '../../../src/types';

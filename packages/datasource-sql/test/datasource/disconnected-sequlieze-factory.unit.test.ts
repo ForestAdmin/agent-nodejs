@@ -1,6 +1,8 @@
+import type { SupportedIntrospection } from '../../src';
+
 import { Sequelize } from 'sequelize';
 
-import { SupportedIntrospection, buildDisconnectedSequelizeInstance } from '../../src';
+import { buildDisconnectedSequelizeInstance } from '../../src';
 
 describe('buildDisconnectedSequelizeInstance', () => {
   const introspection: SupportedIntrospection = {

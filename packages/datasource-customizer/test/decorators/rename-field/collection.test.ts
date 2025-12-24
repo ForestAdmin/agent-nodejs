@@ -1,9 +1,9 @@
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
   Aggregation,
-  Collection,
   ConditionTreeBranch,
   ConditionTreeLeaf,
-  DataSource,
   DataSourceDecorator,
   Filter,
   MissingFieldError,

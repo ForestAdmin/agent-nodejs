@@ -1,6 +1,7 @@
+import type { Spinner } from '../../src/types';
+
 import actionRunner from '../../src/dialogs/action-runner';
 import { BusinessError } from '../../src/errors';
-import { Spinner } from '../../src/types';
 
 describe('actionRunner', () => {
   const setup = () => {

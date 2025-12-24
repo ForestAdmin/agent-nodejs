@@ -1,27 +1,30 @@
-import {
-  Aggregation,
+import type {
   Caller,
-  CollectionUtils,
   ConditionTreeBranch,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
   DateOperation,
   Filter,
-  FilterFactory,
-  SchemaUtils,
-  ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   Chart,
-  ChartType,
   LeaderboardChart,
   LineChart,
   ObjectiveChart,
   PieChart,
   ValueChart,
 } from '@forestadmin/forestadmin-client';
-import Router from '@koa/router';
-import { Context } from 'koa';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
+import {
+  Aggregation,
+  CollectionUtils,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
+  FilterFactory,
+  SchemaUtils,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
+import { ChartType } from '@forestadmin/forestadmin-client';
 import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 

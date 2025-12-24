@@ -1,20 +1,21 @@
-import {
+import type { SearchOptions } from './collection-search-context';
+import type { SearchDefinition } from './types';
+import type {
   Caller,
   Collection,
-  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ConditionTree,
-  ConditionTreeFactory,
   DataSourceDecorator,
   PaginatedFilter,
   PlainConditionTree,
 } from '@forestadmin/datasource-toolkit';
 
-import CollectionSearchContext, { SearchOptions } from './collection-search-context';
+import { CollectionDecorator, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+
+import CollectionSearchContext from './collection-search-context';
 import normalizeName from './normalize-name';
 import { extractSpecifiedFields, generateConditionTree, parseQuery } from './parse-query';
-import { SearchDefinition } from './types';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<SearchCollectionDecorator>;

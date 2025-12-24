@@ -1,5 +1,6 @@
+import type { SupportedIntrospection } from './types';
+
 import Introspector from './introspector';
-import { SupportedIntrospection } from './types';
 
 export default function listCollectionsFromIntrospection(
   introspection: SupportedIntrospection,
