@@ -1,7 +1,7 @@
 import ActionField from './action-field';
 import { PlainFieldOption } from './types';
 
-export default class ActionFieldCheckboxGroup<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldCheckboxGroup extends ActionField {
   getOptions(): PlainFieldOption[] | undefined {
     return this.getMultipleChoiceField().getOptions();
   }

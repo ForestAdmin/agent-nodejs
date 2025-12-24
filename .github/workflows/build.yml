@@ -64,7 +64,7 @@ jobs:
           - agent
           - agent-client
           - forest-cloud
-          # mcp-server excluded temporarily - has pre-existing lint errors (see PR #TBD)
+          - mcp-server
           - datasource-customizer
           - datasource-dummy
           - datasource-mongoose

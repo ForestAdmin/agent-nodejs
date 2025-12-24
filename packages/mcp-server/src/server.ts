@@ -1,6 +1,6 @@
 // Import polyfills FIRST - before any MCP SDK imports
 // This ensures URL.canParse is available for MCP SDK's Zod validation
-import './polyfills';
+import './polyfills.js';
 
 import type { Express } from 'express';
 

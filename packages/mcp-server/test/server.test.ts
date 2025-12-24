@@ -3,8 +3,8 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import MockServer from './test-utils/mock-server';
-import ForestMCPServer from '../src/server';
+import MockServer from './test-utils/mock-server.js';
+import ForestMCPServer from '../src/server.js';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
@@ -22,18 +22,10 @@ function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
  */
 describe('ForestMCPServer Instance', () => {
   let server: ForestMCPServer;
-  let originalEnv: NodeJS.ProcessEnv;
-  let modifiedEnv: NodeJS.ProcessEnv;
   let mockServer: MockServer;
   const originalFetch = global.fetch;
 
   beforeAll(() => {
-    originalEnv = { ...process.env };
-    process.env.FOREST_ENV_SECRET = 'test-env-secret';
-    process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
-    process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
-    process.env.AGENT_HOSTNAME = 'http://localhost:3310';
-
     // Setup mock for Forest Admin server
     mockServer = new MockServer();
     mockServer
@@ -66,32 +58,11 @@ describe('ForestMCPServer Instance', () => {
   });
 
   afterAll(async () => {
-    // Restore deleted env vars (process.env = assignment doesn't work for deleted keys)
-    for (const key of Object.keys(originalEnv)) {
-      if (process.env[key] === undefined && originalEnv[key] !== undefined) {
-        process.env[key] = originalEnv[key];
-      }
-    }
-
-    Object.assign(process.env, originalEnv);
     global.fetch = originalFetch;
   });
 
   beforeEach(() => {
-    modifiedEnv = { ...process.env };
     mockServer.clear();
-  });
-
-  afterEach(async () => {
-    // Restore deleted env vars (process.env = assignment doesn't work for deleted keys)
-    for (const key of Object.keys(modifiedEnv)) {
-      if (process.env[key] === undefined && modifiedEnv[key] !== undefined) {
-        process.env[key] = modifiedEnv[key];
-      }
-    }
-
-    // Restore modified env vars
-    Object.assign(process.env, modifiedEnv);
   });
 
   describe('constructor', () => {

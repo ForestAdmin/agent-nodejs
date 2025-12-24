@@ -1,4 +1,4 @@
-import type { Logger } from './server';
+import type { Logger } from './server.js';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
 import type {
@@ -399,13 +399,15 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   }
 
   async revokeToken(
-    _client: OAuthClientInformationFull,
-    _request: OAuthTokenRevocationRequest,
+    client: OAuthClientInformationFull,
+    request: OAuthTokenRevocationRequest,
   ): Promise<void> {
     // Token revocation is not currently implemented.
     // Per RFC 7009, the revocation endpoint should return success even if the token
     // is already invalid or unknown, so we silently succeed here.
     // TODO: Implement actual token revocation with Forest Admin server when supported.
+    void client;
+    void request;
   }
 
   // Skip PKCE validation to match original implementation

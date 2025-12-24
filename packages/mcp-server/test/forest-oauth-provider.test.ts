@@ -4,8 +4,8 @@ import type { Response } from 'express';
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import jsonwebtoken from 'jsonwebtoken';
 
-import ForestOAuthProvider from '../src/forest-oauth-provider';
-import MockServer from './test-utils/mock-server';
+import MockServer from './test-utils/mock-server.js';
+import ForestOAuthProvider from '../src/forest-oauth-provider.js';
 
 jest.mock('jsonwebtoken');
 jest.mock('@forestadmin/forestadmin-client');

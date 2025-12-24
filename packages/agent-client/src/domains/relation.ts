@@ -3,8 +3,7 @@ import type { SelectOptions } from '../types';
 
 import QuerySerializer from '../query-serializer';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default class Relation<TypingsSchema = unknown> {
+export default class Relation {
   private readonly name: string;
   private readonly collectionName: string;
   private readonly parentId: string | number;

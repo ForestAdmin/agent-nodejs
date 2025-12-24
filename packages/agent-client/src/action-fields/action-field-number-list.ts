@@ -1,6 +1,6 @@
 import ActionField from './action-field';
 
-export default class ActionFieldNumberList<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldNumberList extends ActionField {
   async add(value: number) {
     const values = this.field?.getValue() as number[];
     await this.setValue([...(values || []), value]);

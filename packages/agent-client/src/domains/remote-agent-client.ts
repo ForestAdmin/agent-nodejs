@@ -84,7 +84,7 @@ export default class RemoteAgentClient<
     await this.overridePermissions?.({});
   }
 
-  collection(name: CollectionName<TypingsSchema>): Collection<TypingsSchema> {
-    return new Collection<TypingsSchema>(name, this.httpRequester, this.actionEndpoints);
+  collection(name: CollectionName<TypingsSchema>): Collection {
+    return new Collection(name, this.httpRequester, this.actionEndpoints);
   }
 }

@@ -5,7 +5,7 @@ import createPendingActivityLog, {
   ActivityLogAction,
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
-} from '../../src/utils/activity-logs-creator';
+} from '../../src/utils/activity-logs-creator.js';
 
 describe('createPendingActivityLog', () => {
   const originalFetch = global.fetch;

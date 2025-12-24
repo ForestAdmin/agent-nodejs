@@ -38,7 +38,9 @@ async function tryFetchCapabilities(
   logger: Logger,
 ): Promise<CollectionCapabilities | undefined> {
   try {
-    return await rpcClient.collection(collectionName).capabilities();
+    const capabilities = await rpcClient.collection(collectionName).capabilities();
+
+    return capabilities;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found');

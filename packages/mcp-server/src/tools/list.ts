@@ -1,4 +1,4 @@
-import type { Logger } from '../server';
+import type { Logger } from '../server.js';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 

@@ -7,8 +7,8 @@ jest.mock('../../src/action-fields/field-form-states');
 
 describe('Action', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
-  let fieldsFormStates: jest.Mocked<FieldFormStates<any>>;
-  let action: Action<any>;
+  let fieldsFormStates: jest.Mocked<FieldFormStates>;
+  let action: Action;
 
   beforeEach(() => {
     jest.clearAllMocks();

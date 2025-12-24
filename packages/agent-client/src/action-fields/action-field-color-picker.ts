@@ -1,6 +1,6 @@
 import ActionField from './action-field';
 
-export default class ActionFieldColorPicker<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldColorPicker extends ActionField {
   async fill(value?: number | string) {
     await this.setValue(this.isValueUndefinedOrNull(value) ? value : value.toString());
   }

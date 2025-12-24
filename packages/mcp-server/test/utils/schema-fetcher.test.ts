@@ -4,7 +4,7 @@ import {
   fetchForestSchema,
   getCollectionNames,
   setSchemaCache,
-} from '../../src/utils/schema-fetcher';
+} from '../../src/utils/schema-fetcher.js';
 
 describe('schema-fetcher', () => {
   const originalFetch = global.fetch;
@@ -179,25 +179,6 @@ describe('schema-fetcher', () => {
   });
 
   describe('clearSchemaCache', () => {
-    // Helper to create JSON:API formatted schema response
-    const createJsonApiSchema = (
-      collections: Array<{ name: string; fields: Array<{ field: string; type: string }> }>,
-    ) => ({
-      data: collections.map((col, index) => ({
-        id: `collection-${index}`,
-        type: 'collections',
-        attributes: {
-          name: col.name,
-          fields: col.fields,
-        },
-      })),
-      meta: {
-        liana: 'forest-express-sequelize',
-        liana_version: '9.0.0',
-        liana_features: null,
-      },
-    });
-
     it('should clear the cache so next fetch makes API call', async () => {
       const jsonApiResponse = createJsonApiSchema([{ name: 'test', fields: [] }]);
 
@@ -220,25 +201,6 @@ describe('schema-fetcher', () => {
   });
 
   describe('setSchemaCache', () => {
-    // Helper to create JSON:API formatted schema response
-    const createJsonApiSchema = (
-      collections: Array<{ name: string; fields: Array<{ field: string; type: string }> }>,
-    ) => ({
-      data: collections.map((col, index) => ({
-        id: `collection-${index}`,
-        type: 'collections',
-        attributes: {
-          name: col.name,
-          fields: col.fields,
-        },
-      })),
-      meta: {
-        liana: 'forest-express-sequelize',
-        liana_version: '9.0.0',
-        liana_features: null,
-      },
-    });
-
     it('should set cache with current timestamp by default', async () => {
       const schema: ForestSchema = {
         collections: [{ name: 'cached', fields: [] }],

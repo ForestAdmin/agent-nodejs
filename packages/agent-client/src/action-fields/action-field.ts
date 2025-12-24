@@ -1,10 +1,10 @@
 import FieldFormStates from './field-form-states';
 
-export default abstract class ActionField<TypingsSchema> {
-  private readonly fieldsFormStates: FieldFormStates<TypingsSchema>;
+export default abstract class ActionField {
+  private readonly fieldsFormStates: FieldFormStates;
   protected readonly name: string;
 
-  constructor(name: string, fieldsFormStates: FieldFormStates<TypingsSchema>) {
+  constructor(name: string, fieldsFormStates: FieldFormStates) {
     this.name = name;
     this.fieldsFormStates = fieldsFormStates;
   }

@@ -1,6 +1,6 @@
 import ActionField from './action-field';
 
-export default class ActionFieldEnum<TypingsSchema> extends ActionField<TypingsSchema> {
+export default class ActionFieldEnum extends ActionField {
   getOptions(): string[] | undefined {
     return this.field.getPlainField().enums;
   }

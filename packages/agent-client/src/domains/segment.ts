@@ -5,8 +5,7 @@ import { WriteStream } from 'node:fs';
 
 import QuerySerializer from '../query-serializer';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default class Segment<TypingsSchema = unknown> {
+export default class Segment {
   private readonly name?: string;
   private readonly collectionName: string;
   private readonly httpRequester: HttpRequester;
