@@ -6,7 +6,10 @@ import { z } from 'zod';
 
 import { createListArgumentShape } from './list.js';
 import { Logger } from '../server.js';
-import createPendingActivityLog from '../utils/activity-logs-creator.js';
+import createPendingActivityLog, {
+  markActivityLogAsFailed,
+  markActivityLogAsSucceeded,
+} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
 import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
@@ -106,11 +109,16 @@ export default function declareListRelatedTool(
 
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
-      await createPendingActivityLog(forestServerUrl, extra, 'listRelatedData', {
-        collectionName: options.collectionName,
-        recordId: options.parentRecordId,
-        label: `list relation "${options.relationName}"${extraLabel}`,
-      });
+      const activityLog = await createPendingActivityLog(
+        forestServerUrl,
+        extra,
+        'listRelatedData',
+        {
+          collectionName: options.collectionName,
+          recordId: options.parentRecordId,
+          label: `list relation "${options.relationName}"${extraLabel}`,
+        },
+      );
 
       try {
         const relation = rpcClient
@@ -128,8 +136,11 @@ export default function declareListRelatedTool(
 
         const records = await relation.list(options as SelectOptions);
 
+        markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
+
         return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
       } catch (error) {
+        markActivityLogAsFailed(forestServerUrl, extra, activityLog, (error as Error)?.message);
         throw await enhanceErrorWithContext(error, forestServerUrl, options);
       }
     },

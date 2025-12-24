@@ -97,16 +97,19 @@ export default async function createPendingActivityLog(
   return activityLog;
 }
 
-function updateActivityLogStatus(
-  forestServerUrl: string,
-  request: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  activityLog: ActivityLogResponse,
-  status: 'succeeded' | 'failed',
-  errorMessage?: string,
-) {
+interface UpdateActivityLogOptions {
+  forestServerUrl: string;
+  request: RequestHandlerExtra<ServerRequest, ServerNotification>;
+  activityLog: ActivityLogResponse;
+  status: 'succeeded' | 'failed';
+  errorMessage?: string;
+}
+
+async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promise<void> {
+  const { forestServerUrl, request, activityLog, status, errorMessage } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
-  return fetch(
+  const response = await fetch(
     `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}`,
     {
       method: 'PATCH',
@@ -127,6 +130,10 @@ function updateActivityLogStatus(
       }),
     },
   );
+
+  if (!response.ok) {
+    throw new Error(`Failed to update activity log status: ${await response.text()}`);
+  }
 }
 
 export function markActivityLogAsFailed(
@@ -134,14 +141,27 @@ export function markActivityLogAsFailed(
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
   activityLog: ActivityLogResponse,
   errorMessage: string,
-) {
-  return updateActivityLogStatus(forestServerUrl, request, activityLog, 'failed', errorMessage);
+): void {
+  // Fire-and-forget: don't block error response on activity log update
+  updateActivityLogStatus({
+    forestServerUrl,
+    request,
+    activityLog,
+    status: 'failed',
+    errorMessage,
+  }).catch(() => {});
 }
 
 export function markActivityLogAsSucceeded(
   forestServerUrl: string,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
   activityLog: ActivityLogResponse,
-) {
-  return updateActivityLogStatus(forestServerUrl, request, activityLog, 'succeeded');
+): void {
+  // Fire-and-forget: don't block successful response on activity log update
+  updateActivityLogStatus({
+    forestServerUrl,
+    request,
+    activityLog,
+    status: 'succeeded',
+  }).catch(() => {});
 }

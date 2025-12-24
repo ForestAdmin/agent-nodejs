@@ -187,10 +187,17 @@ describe('ForestMCPServer Instance', () => {
     let httpServer: http.Server;
 
     beforeAll(async () => {
+      process.env.FOREST_ENV_SECRET = 'test-env-secret';
+      process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+      process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
       const testPort = 39312;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+      });
       server.run();
 
       await new Promise(resolve => {
@@ -487,7 +494,11 @@ describe('ForestMCPServer Instance', () => {
       mcpMockServer.setupSuperagentMock();
 
       // Create and start server
-      mcpServer = new ForestMCPServer();
+      mcpServer = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+      });
       mcpServer.run();
 
       await new Promise(resolve => {
@@ -930,7 +941,11 @@ describe('ForestMCPServer Instance', () => {
       // Setup superagent mock for agent-client RPC calls
       listMockServer.setupSuperagentMock();
 
-      listServer = new ForestMCPServer();
+      listServer = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+      });
       listServer.run();
 
       await new Promise(resolve => {
@@ -1995,7 +2010,12 @@ describe('ForestMCPServer Instance', () => {
       global.fetch = loggingMockServer.fetch;
 
       mockLogger = jest.fn();
-      loggingServer = new ForestMCPServer({ logger: mockLogger });
+      loggingServer = new ForestMCPServer({
+        envSecret: 'test-env-secret',
+        authSecret: 'test-auth-secret',
+        forestServerUrl: 'https://test.forestadmin.com',
+        logger: mockLogger,
+      });
       loggingServer.run();
 
       await new Promise(resolve => {

@@ -24,7 +24,7 @@ const mockMarkActivityLogAsSucceeded = markActivityLogAsSucceeded as jest.Mocked
 const mockMarkActivityLogAsFailed = markActivityLogAsFailed as jest.MockedFunction<
   typeof markActivityLogAsFailed
 >;
-const mockCreateActivityLog = createPendingActivityLog as jest.MockedFunction<
+const mockCreatePendingActivityLog = createPendingActivityLog as jest.MockedFunction<
   typeof createPendingActivityLog
 >;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
@@ -50,7 +50,7 @@ describe('declareListTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreateActivityLog.mockResolvedValue(undefined);
+    mockCreatePendingActivityLog.mockResolvedValue(undefined);
   });
 
   describe('tool registration', () => {
@@ -218,7 +218,7 @@ describe('declareListTool', () => {
       it('should create activity log with "index" action type for basic list', async () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'index',
@@ -229,7 +229,7 @@ describe('declareListTool', () => {
       it('should create activity log with "search" action type when search is provided', async () => {
         await registeredToolHandler({ collectionName: 'users', search: 'john' }, mockExtra);
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'search',
@@ -246,7 +246,7 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'filter',
@@ -264,7 +264,7 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
+        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
           'https://api.forestadmin.com',
           mockExtra,
           'search',
@@ -274,7 +274,7 @@ describe('declareListTool', () => {
 
       it('should mark activity log as succeeded after successful list', async () => {
         const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-        mockCreateActivityLog.mockResolvedValue(mockActivityLog);
+        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
 
         const mockList = jest.fn().mockResolvedValue([{ id: 1 }]);
         const mockCollection = jest.fn().mockReturnValue({ list: mockList });
@@ -294,7 +294,7 @@ describe('declareListTool', () => {
 
       it('should mark activity log as failed when list throws an error', async () => {
         const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-        mockCreateActivityLog.mockResolvedValue(mockActivityLog);
+        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
 
         const mockList = jest.fn().mockRejectedValue(new Error('Database error'));
         const mockCollection = jest.fn().mockReturnValue({ list: mockList });
@@ -317,7 +317,7 @@ describe('declareListTool', () => {
 
       it('should mark activity log as failed with parsed error detail', async () => {
         const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-        mockCreateActivityLog.mockResolvedValue(mockActivityLog);
+        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
 
         const errorPayload = {
           error: {

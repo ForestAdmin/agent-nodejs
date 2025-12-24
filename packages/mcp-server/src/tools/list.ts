@@ -114,26 +114,21 @@ export default function declareListTool(
             collection.count(options as SelectOptions),
           ]);
 
-          await markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
+          markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
 
           return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
         }
 
         const records = await collection.list(options as SelectOptions);
 
-        await markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
+        markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
 
         return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);
 
-        await markActivityLogAsFailed(
-          forestServerUrl,
-          extra,
-          activityLog,
-          errorDetail || error.message,
-        );
+        markActivityLogAsFailed(forestServerUrl, extra, activityLog, errorDetail || error.message);
 
         if (errorDetail?.includes('Invalid sort')) {
           const fields = getFieldsOfCollection(
