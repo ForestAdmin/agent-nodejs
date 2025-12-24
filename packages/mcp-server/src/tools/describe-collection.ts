@@ -98,7 +98,7 @@ export default function declareDescribeCollectionTool(
       return withActivityLog({
         forestServerUrl,
         request: extra,
-        action: 'index',
+        action: 'describeCollection',
         context: { collectionName: options.collectionName },
         logger,
         operation: async () => {

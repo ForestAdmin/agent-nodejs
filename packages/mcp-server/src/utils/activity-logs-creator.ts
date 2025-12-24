@@ -15,7 +15,8 @@ export type ActivityLogAction =
   | 'create'
   | 'update'
   | 'delete'
-  | 'listRelatedData';
+  | 'listRelatedData'
+  | 'describeCollection';
 
 const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   index: 'read',
@@ -26,6 +27,7 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   update: 'write',
   delete: 'write',
   listRelatedData: 'read',
+  describeCollection: 'read',
 };
 
 type ActivityLogResponse = {

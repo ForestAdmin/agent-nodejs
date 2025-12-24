@@ -32,6 +32,8 @@ interface WithActivityLogOptions<T> {
 export default async function withActivityLog<T>(options: WithActivityLogOptions<T>): Promise<T> {
   const { forestServerUrl, request, action, context, logger, operation } = options;
 
+  // We want to create the activity log before executing the operation
+  // If activity log creation fails, we must prevent the execution of the operation
   const activityLog = await createPendingActivityLog(forestServerUrl, request, action, context);
 
   try {
