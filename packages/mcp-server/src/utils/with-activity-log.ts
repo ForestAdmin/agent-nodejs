@@ -1,4 +1,4 @@
-import type { Logger } from '../server.js';
+import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
@@ -6,8 +6,8 @@ import createPendingActivityLog, {
   ActivityLogAction,
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
-} from './activity-logs-creator.js';
-import parseAgentError from './error-parser.js';
+} from './activity-logs-creator';
+import parseAgentError from './error-parser';
 
 interface ActivityLogContext {
   collectionName?: string;

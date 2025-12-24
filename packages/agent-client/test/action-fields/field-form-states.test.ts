@@ -53,7 +53,13 @@ describe('FieldFormStates', () => {
     it('should populate fields from the response', async () => {
       const mockResponse = {
         fields: [
-          { field: 'email', type: 'String', isRequired: true, isReadOnly: false, value: 'test@test.com' },
+          {
+            field: 'email',
+            type: 'String',
+            isRequired: true,
+            isReadOnly: false,
+            value: 'test@test.com',
+          },
         ],
         layout: [],
       };
@@ -68,10 +74,7 @@ describe('FieldFormStates', () => {
     });
 
     it('should populate layout from the response', async () => {
-      const mockLayout = [
-        { component: 'input', fieldId: 'name' },
-        { component: 'separator' },
-      ];
+      const mockLayout = [{ component: 'input', fieldId: 'name' }, { component: 'separator' }];
       httpRequester.query.mockResolvedValue({ fields: [], layout: mockLayout });
 
       await fieldFormStates.loadInitialState();
@@ -133,7 +136,13 @@ describe('FieldFormStates', () => {
         fields: [
           { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'John' },
           { field: 'age', type: 'Number', isRequired: false, isReadOnly: false, value: 30 },
-          { field: 'empty', type: 'String', isRequired: false, isReadOnly: false, value: undefined },
+          {
+            field: 'empty',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: undefined,
+          },
         ],
         layout: [],
       });
@@ -148,7 +157,13 @@ describe('FieldFormStates', () => {
     it('should return empty object when no fields have values', async () => {
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'field1', type: 'String', isRequired: false, isReadOnly: false, value: undefined },
+          {
+            field: 'field1',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: undefined,
+          },
         ],
         layout: [],
       });

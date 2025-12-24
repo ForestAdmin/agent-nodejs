@@ -1,11 +1,11 @@
 import type { Logger } from '../server';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 import { z } from 'zod';
 
-import buildClient from '../utils/agent-caller.js';
-import registerToolWithLogging from '../utils/tool-with-logging.js';
-import withActivityLog from '../utils/with-activity-log.js';
+import buildClient from '../utils/agent-caller';
+import registerToolWithLogging from '../utils/tool-with-logging';
+import withActivityLog from '../utils/with-activity-log';
 
 // Preprocess to handle LLM sending attributes as JSON string instead of object
 const attributesWithPreprocess = z.preprocess(val => {

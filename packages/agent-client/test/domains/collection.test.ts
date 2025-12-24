@@ -271,7 +271,11 @@ describe('Collection', () => {
           noEndpointAction: { name: 'No Endpoint Action' },
         },
       } as any;
-      const collectionWithBadAction = new Collection('users', httpRequester, endpointsWithNoEndpoint);
+      const collectionWithBadAction = new Collection(
+        'users',
+        httpRequester,
+        endpointsWithNoEndpoint,
+      );
 
       await expect(collectionWithBadAction.action('noEndpointAction')).rejects.toThrow(
         'Action noEndpointAction not found in collection users',

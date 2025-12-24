@@ -61,7 +61,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldCheckbox('accepted', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'accepted', type: 'Boolean', isRequired: false, isReadOnly: false, value: false },
+          {
+            field: 'accepted',
+            type: 'Boolean',
+            isRequired: false,
+            isReadOnly: false,
+            value: false,
+          },
         ],
         layout: [],
       });
@@ -208,7 +214,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldColorPicker('color', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'color', type: 'String', isRequired: false, isReadOnly: false, value: '#ffffff' },
+          {
+            field: 'color',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: '#ffffff',
+          },
         ],
         layout: [],
       });
@@ -222,7 +234,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldColorPicker('color', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'color', type: 'String', isRequired: false, isReadOnly: false, value: '16777215' },
+          {
+            field: 'color',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: '16777215',
+          },
         ],
         layout: [],
       });
@@ -236,7 +254,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldColorPicker('color', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'color', type: 'String', isRequired: false, isReadOnly: false, value: undefined },
+          {
+            field: 'color',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: undefined,
+          },
         ],
         layout: [],
       });
@@ -271,7 +295,13 @@ describe('ActionField implementations', () => {
       const date = new Date('2023-06-15T10:30:00Z');
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'birthDate', type: 'Date', isRequired: false, isReadOnly: false, value: date.toISOString() },
+          {
+            field: 'birthDate',
+            type: 'Date',
+            isRequired: false,
+            isReadOnly: false,
+            value: date.toISOString(),
+          },
         ],
         layout: [],
       });
@@ -286,7 +316,13 @@ describe('ActionField implementations', () => {
       const timestamp = 1686824400000; // 2023-06-15
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'birthDate', type: 'Date', isRequired: false, isReadOnly: false, value: new Date(timestamp).toISOString() },
+          {
+            field: 'birthDate',
+            type: 'Date',
+            isRequired: false,
+            isReadOnly: false,
+            value: new Date(timestamp).toISOString(),
+          },
         ],
         layout: [],
       });
@@ -300,7 +336,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldDate('birthDate', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'birthDate', type: 'Date', isRequired: false, isReadOnly: false, value: undefined },
+          {
+            field: 'birthDate',
+            type: 'Date',
+            isRequired: false,
+            isReadOnly: false,
+            value: undefined,
+          },
         ],
         layout: [],
       });
@@ -483,7 +525,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldNumber('quantity', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'quantity', type: 'Number', isRequired: false, isReadOnly: false, value: undefined },
+          {
+            field: 'quantity',
+            type: 'Number',
+            isRequired: false,
+            isReadOnly: false,
+            value: undefined,
+          },
         ],
         layout: [],
       });
@@ -497,7 +545,13 @@ describe('ActionField implementations', () => {
   describe('ActionFieldNumberList', () => {
     beforeEach(async () => {
       await setupFields([
-        { field: 'scores', type: 'NumberList', isRequired: false, isReadOnly: false, value: [10, 20] },
+        {
+          field: 'scores',
+          type: 'NumberList',
+          isRequired: false,
+          isReadOnly: false,
+          value: [10, 20],
+        },
       ]);
     });
 
@@ -505,7 +559,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldNumberList('scores', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'scores', type: 'NumberList', isRequired: false, isReadOnly: false, value: [10, 20, 30] },
+          {
+            field: 'scores',
+            type: 'NumberList',
+            isRequired: false,
+            isReadOnly: false,
+            value: [10, 20, 30],
+          },
         ],
         layout: [],
       });
@@ -534,12 +594,24 @@ describe('ActionField implementations', () => {
 
     it('should remove a number from the list', async () => {
       await setupFields([
-        { field: 'scores', type: 'NumberList', isRequired: false, isReadOnly: false, value: [10, 20, 30] },
+        {
+          field: 'scores',
+          type: 'NumberList',
+          isRequired: false,
+          isReadOnly: false,
+          value: [10, 20, 30],
+        },
       ]);
       const field = new ActionFieldNumberList('scores', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'scores', type: 'NumberList', isRequired: false, isReadOnly: false, value: [10, 30] },
+          {
+            field: 'scores',
+            type: 'NumberList',
+            isRequired: false,
+            isReadOnly: false,
+            value: [10, 30],
+          },
         ],
         layout: [],
       });
@@ -609,7 +681,13 @@ describe('ActionField implementations', () => {
   describe('ActionFieldStringList', () => {
     beforeEach(async () => {
       await setupFields([
-        { field: 'tags', type: 'StringList', isRequired: false, isReadOnly: false, value: ['a', 'b'] },
+        {
+          field: 'tags',
+          type: 'StringList',
+          isRequired: false,
+          isReadOnly: false,
+          value: ['a', 'b'],
+        },
       ]);
     });
 
@@ -617,7 +695,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldStringList('tags', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'tags', type: 'StringList', isRequired: false, isReadOnly: false, value: ['a', 'b', 'c'] },
+          {
+            field: 'tags',
+            type: 'StringList',
+            isRequired: false,
+            isReadOnly: false,
+            value: ['a', 'b', 'c'],
+          },
         ],
         layout: [],
       });
@@ -634,7 +718,13 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldStringList('tags', fieldFormStates);
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'tags', type: 'StringList', isRequired: false, isReadOnly: false, value: ['first'] },
+          {
+            field: 'tags',
+            type: 'StringList',
+            isRequired: false,
+            isReadOnly: false,
+            value: ['first'],
+          },
         ],
         layout: [],
       });

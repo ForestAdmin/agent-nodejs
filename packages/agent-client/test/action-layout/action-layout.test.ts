@@ -165,9 +165,7 @@ describe('Action Layout', () => {
         } as any);
 
         expect(() => element.rowElement(0)).toThrow(NotRightElementError);
-        expect(() => element.rowElement(0)).toThrow(
-          "This is not a row, it's a input element",
-        );
+        expect(() => element.rowElement(0)).toThrow("This is not a row, it's a input element");
       });
     });
   });
@@ -176,10 +174,7 @@ describe('Action Layout', () => {
     it('should create a page with elements', () => {
       const pageLayout = {
         component: 'page',
-        elements: [
-          { component: 'input', fieldId: 'name' },
-          { component: 'separator' },
-        ],
+        elements: [{ component: 'input', fieldId: 'name' }, { component: 'separator' }],
         nextButtonLabel: 'Next',
         previousButtonLabel: 'Back',
       } as any;
@@ -288,10 +283,7 @@ describe('Action Layout', () => {
 
     describe('element', () => {
       it('should return element at specified index', () => {
-        const layout = [
-          { component: 'input', fieldId: 'test' },
-          { component: 'separator' },
-        ] as any;
+        const layout = [{ component: 'input', fieldId: 'test' }, { component: 'separator' }] as any;
 
         const root = new ActionLayoutRoot(layout);
         const element = root.element(0);
