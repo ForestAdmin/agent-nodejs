@@ -118,10 +118,11 @@ module.exports = {
     {
       // MCP server needs .js extensions for @modelcontextprotocol/sdk imports
       // because the SDK uses ESM exports that require explicit file extensions
-      files: ['packages/mcp-server/src/**/*'],
+      files: ['packages/mcp-server/**/*'],
       rules: {
         'import/extensions': [
           'error',
+          'never',
           {
             pattern: {
               js: 'never',
