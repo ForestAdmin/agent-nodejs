@@ -20,6 +20,7 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { isMcpRoute } from './mcp-paths';
+import declareCreateTool from './tools/create';
 import declareDescribeCollectionTool from './tools/describe-collection';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
@@ -51,6 +52,7 @@ const defaultLogger: Logger = (level, message) => {
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
   listRelated: ['collectionName', 'relationName', 'parentRecordId'],
+  create: ['collectionName'],
   describeCollection: ['collectionName'],
 };
 
@@ -123,14 +125,19 @@ export default class ForestMCPServer {
       );
     }
 
-    declareDescribeCollectionTool(
-      this.mcpServer,
-      this.forestServerUrl,
-      this.logger,
-      collectionNames,
-    );
-    declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
-    declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    const toolNames = [
+      declareDescribeCollectionTool(
+        this.mcpServer,
+        this.forestServerUrl,
+        this.logger,
+        collectionNames,
+      ),
+      declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+      declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+      declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+    ];
+
+    this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {

@@ -354,7 +354,7 @@ describe('markActivityLogAsFailed', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
+      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123/status',
       {
         method: 'PATCH',
         headers: {
@@ -363,16 +363,116 @@ describe('markActivityLogAsFailed', () => {
           Authorization: 'Bearer test-forest-token',
         },
         body: JSON.stringify({
-          data: {
-            id: 'log-123',
-            type: 'activity-logs-requests',
-            attributes: {
-              status: 'failed',
-              errorMessage: 'Something went wrong',
-            },
-          },
+          status: 'failed',
+          errorMessage: 'Something went wrong',
         }),
       },
+    );
+  });
+
+  it('should retry up to 5 times on 404 response', async () => {
+    jest.useFakeTimers();
+
+    const notFoundResponse = {
+      ok: false,
+      status: 404,
+      text: jest.fn().mockResolvedValue('Not found'),
+    };
+    mockFetch
+      .mockResolvedValueOnce(notFoundResponse)
+      .mockResolvedValueOnce(notFoundResponse)
+      .mockResolvedValueOnce(notFoundResponse)
+      .mockResolvedValueOnce(notFoundResponse)
+      .mockResolvedValueOnce({ ok: true, status: 200 });
+
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsFailed({
+      forestServerUrl: 'https://api.forestadmin.com',
+      request,
+      activityLog,
+      errorMessage: 'Something went wrong',
+      logger: mockLogger,
+    });
+
+    // Advance timers for all retries (4 retries * 1000ms delay)
+    await jest.advanceTimersByTimeAsync(4000);
+
+    expect(mockFetch).toHaveBeenCalledTimes(5);
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Debug',
+      'Activity log not found (attempt 1/5), retrying...',
+    );
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Debug',
+      'Activity log not found (attempt 4/5), retrying...',
+    );
+
+    jest.useRealTimers();
+  });
+
+  it('should stop retrying after 5 failed attempts and log error', async () => {
+    jest.useFakeTimers();
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: jest.fn().mockResolvedValue('Not found'),
+    });
+
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsFailed({
+      forestServerUrl: 'https://api.forestadmin.com',
+      request,
+      activityLog,
+      errorMessage: 'Something went wrong',
+      logger: mockLogger,
+    });
+
+    // Advance timers for all retries (4 retries * 1000ms delay)
+    await jest.advanceTimersByTimeAsync(4000);
+
+    expect(mockFetch).toHaveBeenCalledTimes(5);
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      "Failed to update activity log status to 'failed': Not found",
+    );
+
+    jest.useRealTimers();
+  });
+
+  it('should not retry on non-404 errors', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: jest.fn().mockResolvedValue('Internal server error'),
+    });
+
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsFailed({
+      forestServerUrl: 'https://api.forestadmin.com',
+      request,
+      activityLog,
+      errorMessage: 'Something went wrong',
+      logger: mockLogger,
+    });
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      "Failed to update activity log status to 'failed': Internal server error",
     );
   });
 });
@@ -404,7 +504,7 @@ describe('markActivityLogAsSucceeded', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
   }
 
-  it('should send PATCH request with succeeded status', async () => {
+  it('should send PATCH request with completed status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -422,7 +522,7 @@ describe('markActivityLogAsSucceeded', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
+      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123/status',
       {
         method: 'PATCH',
         headers: {
@@ -431,19 +531,13 @@ describe('markActivityLogAsSucceeded', () => {
           Authorization: 'Bearer test-forest-token',
         },
         body: JSON.stringify({
-          data: {
-            id: 'log-123',
-            type: 'activity-logs-requests',
-            attributes: {
-              status: 'succeeded',
-            },
-          },
+          status: 'completed',
         }),
       },
     );
   });
 
-  it('should not include errorMessage in succeeded status', async () => {
+  it('should not include errorMessage in completed status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -461,6 +555,6 @@ describe('markActivityLogAsSucceeded', () => {
     });
 
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(callBody.data.attributes).not.toHaveProperty('errorMessage');
+    expect(callBody).not.toHaveProperty('errorMessage');
   });
 });

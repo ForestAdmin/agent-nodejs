@@ -37,6 +37,20 @@ describe('registerToolWithLogging', () => {
         expect.any(Function),
       );
     });
+
+    it('should return the tool name', () => {
+      const handler = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
+
+      const result = registerToolWithLogging(
+        mockMcpServer as never,
+        'my-tool',
+        toolConfig,
+        handler,
+        mockLogger,
+      );
+
+      expect(result).toBe('my-tool');
+    });
   });
 
   describe('validation error logging', () => {

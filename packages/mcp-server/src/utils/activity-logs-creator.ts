@@ -15,7 +15,8 @@ export type ActivityLogAction =
   | 'create'
   | 'update'
   | 'delete'
-  | 'listRelatedData';
+  | 'listRelatedData'
+  | 'describeCollection';
 
 const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   index: 'read',
@@ -26,6 +27,7 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   update: 'write',
   delete: 'write',
   listRelatedData: 'read',
+  describeCollection: 'read',
 };
 
 type ActivityLogResponse = {
@@ -102,17 +104,23 @@ interface UpdateActivityLogOptions {
   forestServerUrl: string;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
-  status: 'succeeded' | 'failed';
+  status: 'completed' | 'failed';
   errorMessage?: string;
   logger: Logger;
 }
 
-async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promise<void> {
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 500;
+
+async function updateActivityLogStatus(
+  options: UpdateActivityLogOptions,
+  attempt = 1,
+): Promise<void> {
   const { forestServerUrl, request, activityLog, status, errorMessage, logger } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
   const response = await fetch(
-    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}`,
+    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
     {
       method: 'PATCH',
       headers: {
@@ -121,17 +129,20 @@ async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promi
         Authorization: `Bearer ${forestServerToken}`,
       },
       body: JSON.stringify({
-        data: {
-          id: activityLog.id,
-          type: 'activity-logs-requests',
-          attributes: {
-            status,
-            ...(errorMessage && { errorMessage }),
-          },
-        },
+        status,
+        ...(errorMessage && { errorMessage }),
       }),
     },
   );
+
+  if (response.status === 404 && attempt < MAX_RETRIES) {
+    logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, RETRY_DELAY_MS);
+    });
+
+    return updateActivityLogStatus(options, attempt + 1);
+  }
 
   if (!response.ok) {
     const responseText = await response.text();
@@ -176,7 +187,7 @@ export function markActivityLogAsSucceeded(options: MarkActivityLogAsSucceededOp
     forestServerUrl,
     request,
     activityLog,
-    status: 'succeeded',
+    status: 'completed',
     logger,
   }).catch(error => {
     logger('Error', `Unexpected error updating activity log to 'succeeded': ${error}`);

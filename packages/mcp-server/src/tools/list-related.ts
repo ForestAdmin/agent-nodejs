@@ -1,19 +1,15 @@
 import type { ListArgument } from './list.js';
+import type { Logger } from '../server.js';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
 import { createListArgumentShape } from './list.js';
-import { Logger } from '../server.js';
-import createPendingActivityLog, {
-  markActivityLogAsFailed,
-  markActivityLogAsSucceeded,
-} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
-import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
+import withActivityLog from '../utils/with-activity-log.js';
 
 function createHasManyArgumentShape(collectionNames: string[]) {
   return {
@@ -29,53 +25,48 @@ type HasManyArgument = ListArgument & {
 };
 
 /**
+ * Creates an error enhancer for list-related operations.
  * Enhances error messages with helpful context about available relations and sortable fields.
- * Returns an enhanced error or the original error if enhancement fails.
  */
-async function enhanceErrorWithContext(
-  error: unknown,
+function createErrorEnhancer(
   forestServerUrl: string,
   options: HasManyArgument,
-): Promise<Error> {
-  const errorDetail = parseAgentError(error);
-  const errorMessage = error instanceof Error ? error.message : String(error);
-
-  try {
-    const fields = getFieldsOfCollection(
-      await fetchForestSchema(forestServerUrl),
-      options.collectionName,
-    );
-
-    const toManyRelations = fields.filter(
-      field => field.relationship === 'HasMany' || field.relationship === 'BelongsToMany',
-    );
-
-    if (
-      errorMessage?.toLowerCase()?.includes('not found') &&
-      !toManyRelations.some(field => field.field === options.relationName)
-    ) {
-      return new Error(
-        `The relation name provided is invalid for this collection. Available relations for collection ${
-          options.collectionName
-        } are: ${toManyRelations.map(field => field.field).join(', ')}.`,
+  logger: Logger,
+): (errorMessage: string) => Promise<string> {
+  return async (errorMessage: string) => {
+    try {
+      const fields = getFieldsOfCollection(
+        await fetchForestSchema(forestServerUrl),
+        options.collectionName,
       );
-    }
 
-    if (errorDetail?.includes('Invalid sort')) {
-      return new Error(
-        `The sort field provided is invalid for this collection. Available fields for the collection ${
+      const toManyRelations = fields.filter(
+        field => field.relationship === 'HasMany' || field.relationship === 'BelongsToMany',
+      );
+
+      if (
+        errorMessage?.toLowerCase()?.includes('not found') &&
+        !toManyRelations.some(field => field.field === options.relationName)
+      ) {
+        return `The relation name provided is invalid for this collection. Available relations for collection ${
+          options.collectionName
+        } are: ${toManyRelations.map(field => field.field).join(', ')}.`;
+      }
+
+      if (errorMessage?.includes('Invalid sort')) {
+        return `The sort field provided is invalid for this collection. Available fields for the collection ${
           options.collectionName
         } are: ${fields
           .filter(field => field.isSortable)
           .map(field => field.field)
-          .join(', ')}.`,
-      );
+          .join(', ')}.`;
+      }
+    } catch (schemaError) {
+      logger('Debug', `Failed to fetch schema for error enhancement: ${schemaError}`);
     }
-  } catch {
-    // Schema fetch failed, fall through to return original error
-  }
 
-  return errorDetail ? new Error(errorDetail) : (error as Error);
+    return errorMessage;
+  };
 }
 
 export default function declareListRelatedTool(
@@ -83,10 +74,10 @@ export default function declareListRelatedTool(
   forestServerUrl: string,
   logger: Logger,
   collectionNames: string[] = [],
-): void {
+): string {
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
 
-  registerToolWithLogging(
+  return registerToolWithLogging(
     mcpServer,
     'listRelated',
     {
@@ -109,53 +100,38 @@ export default function declareListRelatedTool(
 
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
-      const activityLog = await createPendingActivityLog(
+      return withActivityLog({
         forestServerUrl,
-        extra,
-        'listRelatedData',
-        {
+        request: extra,
+        action: 'listRelatedData',
+        context: {
           collectionName: options.collectionName,
           recordId: options.parentRecordId,
           label: `list relation "${options.relationName}"${extraLabel}`,
         },
-      );
+        logger,
+        operation: async () => {
+          const relation = rpcClient
+            .collection(options.collectionName)
+            .relation(options.relationName, options.parentRecordId);
 
-      try {
-        const relation = rpcClient
-          .collection(options.collectionName)
-          .relation(options.relationName, options.parentRecordId);
+          let response: { records: unknown[]; totalCount?: number };
 
-        let response: { records: unknown[]; totalCount?: number };
+          if (options.enableCount) {
+            const [records, totalCount] = await Promise.all([
+              relation.list(options as SelectOptions),
+              relation.count(options as SelectOptions),
+            ]);
+            response = { records, totalCount };
+          } else {
+            const records = await relation.list(options as SelectOptions);
+            response = { records };
+          }
 
-        if (options.enableCount) {
-          const [records, totalCount] = await Promise.all([
-            relation.list(options as SelectOptions),
-            relation.count(options as SelectOptions),
-          ]);
-          response = { records, totalCount };
-        } else {
-          const records = await relation.list(options as SelectOptions);
-          response = { records };
-        }
-
-        markActivityLogAsSucceeded({
-          forestServerUrl,
-          request: extra,
-          activityLog,
-          logger,
-        });
-
-        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
-      } catch (error) {
-        markActivityLogAsFailed({
-          forestServerUrl,
-          request: extra,
-          activityLog,
-          errorMessage: (error as Error)?.message,
-          logger,
-        });
-        throw await enhanceErrorWithContext(error, forestServerUrl, options);
-      }
+          return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+        },
+        errorEnhancer: createErrorEnhancer(forestServerUrl, options, logger),
+      });
     },
     logger,
   );

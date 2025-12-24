@@ -4,29 +4,18 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareListTool from '../../src/tools/list';
-import createPendingActivityLog, {
-  markActivityLogAsFailed,
-  markActivityLogAsSucceeded,
-} from '../../src/utils/activity-logs-creator';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
+import withActivityLog from '../../src/utils/with-activity-log';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/activity-logs-creator');
+jest.mock('../../src/utils/with-activity-log');
 jest.mock('../../src/utils/schema-fetcher');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockMarkActivityLogAsSucceeded = markActivityLogAsSucceeded as jest.MockedFunction<
-  typeof markActivityLogAsSucceeded
->;
-const mockMarkActivityLogAsFailed = markActivityLogAsFailed as jest.MockedFunction<
-  typeof markActivityLogAsFailed
->;
-const mockCreatePendingActivityLog = createPendingActivityLog as jest.MockedFunction<
-  typeof createPendingActivityLog
->;
+const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -50,7 +39,36 @@ describe('declareListTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreatePendingActivityLog.mockResolvedValue(undefined);
+    // By default, withActivityLog executes the operation and handles errors with enhancement
+    mockWithActivityLog.mockImplementation(async options => {
+      try {
+        return await options.operation();
+      } catch (error) {
+        let errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Try to parse JSON:API error format
+        try {
+          const parsed = JSON.parse(errorMessage);
+
+          if (parsed.error?.text) {
+            const textParsed = JSON.parse(parsed.error.text);
+
+            if (textParsed.errors?.[0]?.detail) {
+              errorMessage = textParsed.errors[0].detail;
+            }
+          }
+        } catch {
+          // Not a JSON error, use as-is
+        }
+
+        // Apply error enhancer if provided
+        if (options.errorEnhancer) {
+          errorMessage = await options.errorEnhancer(errorMessage, error);
+        }
+
+        throw new Error(errorMessage);
+      }
+    });
   });
 
   describe('tool registration', () => {
@@ -215,29 +233,35 @@ describe('declareListTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should create activity log with "index" action type for basic list', async () => {
+      it('should call withActivityLog with "index" action type for basic list', async () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'index',
-          { collectionName: 'users' },
-        );
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'index',
+          context: { collectionName: 'users' },
+          logger: mockLogger,
+          operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
+        });
       });
 
-      it('should create activity log with "search" action type when search is provided', async () => {
+      it('should call withActivityLog with "search" action type when search is provided', async () => {
         await registeredToolHandler({ collectionName: 'users', search: 'john' }, mockExtra);
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'search',
-          { collectionName: 'users' },
-        );
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'search',
+          context: { collectionName: 'users' },
+          logger: mockLogger,
+          operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
+        });
       });
 
-      it('should create activity log with "filter" action type when filters are provided', async () => {
+      it('should call withActivityLog with "filter" action type when filters are provided', async () => {
         await registeredToolHandler(
           {
             collectionName: 'users',
@@ -246,12 +270,15 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'filter',
-          { collectionName: 'users' },
-        );
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'filter',
+          context: { collectionName: 'users' },
+          logger: mockLogger,
+          operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
+        });
       });
 
       it('should prioritize "search" over "filter" when both are provided', async () => {
@@ -264,18 +291,18 @@ describe('declareListTool', () => {
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'search',
-          { collectionName: 'users' },
-        );
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'search',
+          context: { collectionName: 'users' },
+          logger: mockLogger,
+          operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
+        });
       });
 
-      it('should mark activity log as succeeded after successful list', async () => {
-        const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
-
+      it('should wrap the list operation with activity logging', async () => {
         const mockList = jest.fn().mockResolvedValue([{ id: 1 }]);
         const mockCollection = jest.fn().mockReturnValue({ list: mockList });
         mockBuildClient.mockReturnValue({
@@ -285,68 +312,9 @@ describe('declareListTool', () => {
 
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockMarkActivityLogAsSucceeded).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
-          request: mockExtra,
-          activityLog: mockActivityLog,
-          logger: mockLogger,
-        });
-      });
-
-      it('should mark activity log as failed when list throws an error', async () => {
-        const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
-
-        const mockList = jest.fn().mockRejectedValue(new Error('Database error'));
-        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Database error',
-        );
-
-        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
-          request: mockExtra,
-          activityLog: mockActivityLog,
-          errorMessage: 'Database error',
-          logger: mockLogger,
-        });
-      });
-
-      it('should mark activity log as failed with parsed error detail', async () => {
-        const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-        mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
-
-        const errorPayload = {
-          error: {
-            status: 400,
-            text: JSON.stringify({
-              errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
-            }),
-          },
-        };
-        const mockList = jest.fn().mockRejectedValue(new Error(JSON.stringify(errorPayload)));
-        const mockCollection = jest.fn().mockReturnValue({ list: mockList });
-        mockBuildClient.mockReturnValue({
-          rpcClient: { collection: mockCollection },
-          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-        } as unknown as ReturnType<typeof buildClient>);
-
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Invalid field value',
-        );
-
-        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
-          request: mockExtra,
-          activityLog: mockActivityLog,
-          errorMessage: 'Invalid field value',
-          logger: mockLogger,
-        });
+        // Verify the operation was executed through withActivityLog
+        expect(mockWithActivityLog).toHaveBeenCalled();
+        expect(mockList).toHaveBeenCalled();
       });
     });
 
@@ -965,13 +933,12 @@ describe('declareListTool', () => {
         );
       });
 
-      it('should rethrow original error when no parsable error found', async () => {
-        // An object without a message property
-        const agentError = { unknownProperty: 'some value' };
-        mockList.mockRejectedValue(agentError);
+      it('should handle string errors thrown directly', async () => {
+        // Some libraries throw string errors directly
+        mockList.mockRejectedValue('Connection failed');
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toEqual(
-          agentError,
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Connection failed',
         );
       });
 
