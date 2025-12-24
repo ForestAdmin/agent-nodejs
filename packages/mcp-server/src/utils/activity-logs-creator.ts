@@ -109,7 +109,13 @@ interface UpdateActivityLogOptions {
   logger: Logger;
 }
 
-async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promise<void> {
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 200;
+
+async function updateActivityLogStatus(
+  options: UpdateActivityLogOptions,
+  attempt = 1,
+): Promise<void> {
   const { forestServerUrl, request, activityLog, status, errorMessage, logger } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
@@ -128,6 +134,15 @@ async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promi
       }),
     },
   );
+
+  if (response.status === 404 && attempt < MAX_RETRIES) {
+    logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
+    await new Promise<void>(resolve => {
+      setTimeout(resolve, RETRY_DELAY_MS);
+    });
+
+    return updateActivityLogStatus(options, attempt + 1);
+  }
 
   if (!response.ok) {
     const responseText = await response.text();
