@@ -5,14 +5,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import filterSchema from '../schemas/filter.js';
-import createPendingActivityLog, {
-  markActivityLogAsFailed,
-  markActivityLogAsSucceeded,
-} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
-import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
+import withActivityLog from '../utils/with-activity-log.js';
 
 // Preprocess to handle LLM sending filters as JSON string instead of object
 const filtersWithPreprocess = z.preprocess(val => {
@@ -101,48 +97,38 @@ export default function declareListTool(
         actionType = 'filter';
       }
 
-      const activityLog = await createPendingActivityLog(forestServerUrl, extra, actionType, {
-        collectionName: options.collectionName,
-      });
-
       try {
-        const collection = rpcClient.collection(options.collectionName);
-
-        let response: { records: unknown[]; totalCount?: number };
-
-        if (options.enableCount) {
-          const [records, totalCount] = await Promise.all([
-            collection.list(options as SelectOptions),
-            collection.count(options as SelectOptions),
-          ]);
-
-          response = { records, totalCount };
-        } else {
-          const records = await collection.list(options as SelectOptions);
-          response = { records };
-        }
-
-        markActivityLogAsSucceeded({
+        return await withActivityLog({
           forestServerUrl,
           request: extra,
-          activityLog,
+          action: actionType,
+          context: { collectionName: options.collectionName },
           logger,
-        });
+          operation: async () => {
+            const collection = rpcClient.collection(options.collectionName);
 
-        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+            let response: { records: unknown[]; totalCount?: number };
+
+            if (options.enableCount) {
+              const [records, totalCount] = await Promise.all([
+                collection.list(options as SelectOptions),
+                collection.count(options as SelectOptions),
+              ]);
+
+              response = { records, totalCount };
+            } else {
+              const records = await collection.list(options as SelectOptions);
+              response = { records };
+            }
+
+            return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+          },
+        });
       } catch (error) {
-        // Parse error text if it's a JSON string from the agent
-        const errorDetail = parseAgentError(error);
+        // Enhance "Invalid sort" errors with available sortable fields
+        const errorMessage = error instanceof Error ? error.message : String(error);
 
-        markActivityLogAsFailed({
-          forestServerUrl,
-          request: extra,
-          activityLog,
-          errorMessage: errorDetail || error.message,
-          logger,
-        });
-
-        if (errorDetail?.includes('Invalid sort')) {
+        if (errorMessage?.includes('Invalid sort')) {
           const fields = getFieldsOfCollection(
             await fetchForestSchema(forestServerUrl),
             options.collectionName,
@@ -157,7 +143,7 @@ export default function declareListTool(
           );
         }
 
-        throw errorDetail ? new Error(errorDetail) : error;
+        throw error;
       }
     },
     logger,

@@ -6,13 +6,16 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import declareDescribeCollectionTool from '../../src/tools/describe-collection.js';
 import buildClient from '../../src/utils/agent-caller.js';
 import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
+import withActivityLog from '../../src/utils/with-activity-log.js';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/schema-fetcher');
+jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
+const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -30,6 +33,9 @@ describe('declareDescribeCollectionTool', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Mock withActivityLog to execute the operation directly
+    mockWithActivityLog.mockImplementation(async options => options.operation());
 
     // Default mock for actions - return empty array
     mockGetActionsOfCollection.mockReturnValue([]);

@@ -5,18 +5,16 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { Logger } from '../../src/server.js';
 import declareListRelatedTool from '../../src/tools/list-related.js';
-import createPendingActivityLog from '../../src/utils/activity-logs-creator.js';
 import buildClient from '../../src/utils/agent-caller.js';
 import * as schemaFetcher from '../../src/utils/schema-fetcher.js';
+import withActivityLog from '../../src/utils/with-activity-log.js';
 
 jest.mock('../../src/utils/agent-caller.js');
-jest.mock('../../src/utils/activity-logs-creator.js');
+jest.mock('../../src/utils/with-activity-log.js');
 jest.mock('../../src/utils/schema-fetcher.js');
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockCreatePendingActivityLog = createPendingActivityLog as jest.MockedFunction<
-  typeof createPendingActivityLog
->;
+const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 const mockFetchForestSchema = schemaFetcher.fetchForestSchema as jest.MockedFunction<
   typeof schemaFetcher.fetchForestSchema
 >;
@@ -44,7 +42,8 @@ describe('declareListRelatedTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreatePendingActivityLog.mockResolvedValue(undefined);
+    // By default, withActivityLog executes the operation and returns its result
+    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
@@ -302,40 +301,44 @@ describe('declareListRelatedTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should create activity log with "listRelatedData" action and relation label', async () => {
+      it('should call withActivityLog with "listRelatedData" action and relation label', async () => {
         await registeredToolHandler(
           { collectionName: 'users', relationName: 'orders', parentRecordId: 42 },
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'listRelatedData',
-          {
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'listRelatedData',
+          context: {
             collectionName: 'users',
             recordId: 42,
             label: 'list relation "orders"',
           },
-        );
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
       });
 
-      it('should include parentRecordId in activity log', async () => {
+      it('should include parentRecordId in activity log context', async () => {
         await registeredToolHandler(
           { collectionName: 'products', relationName: 'reviews', parentRecordId: 'prod-123' },
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'listRelatedData',
-          {
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'listRelatedData',
+          context: {
             collectionName: 'products',
             recordId: 'prod-123',
             label: 'list relation "reviews"',
           },
-        );
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
       });
 
       it('should include "with search" in label when search is used', async () => {
@@ -344,16 +347,18 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'listRelatedData',
-          {
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'listRelatedData',
+          context: {
             collectionName: 'users',
             recordId: 1,
             label: 'list relation "orders" with search',
           },
-        );
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
       });
 
       it('should include "with filter" in label when filters are used', async () => {
@@ -367,19 +372,21 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'listRelatedData',
-          {
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'listRelatedData',
+          context: {
             collectionName: 'users',
             recordId: 1,
             label: 'list relation "orders" with filter',
           },
-        );
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
       });
 
-      it('should include both "with search" and "with filter" in label when both are used', async () => {
+      it('should include "with search and filter" in label when both are used', async () => {
         await registeredToolHandler(
           {
             collectionName: 'users',
@@ -391,16 +398,18 @@ describe('declareListRelatedTool', () => {
           mockExtra,
         );
 
-        expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          'listRelatedData',
-          {
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'listRelatedData',
+          context: {
             collectionName: 'users',
             recordId: 1,
             label: 'list relation "orders" with search and filter',
           },
-        );
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
       });
     });
 

@@ -4,16 +4,16 @@ import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/proto
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareCreateTool from '../../src/tools/create';
-import createActivityLog from '../../src/utils/activity-logs-creator';
 import buildClient from '../../src/utils/agent-caller';
+import withActivityLog from '../../src/utils/with-activity-log';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/activity-logs-creator');
+jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 
 describe('declareCreateTool', () => {
   let mcpServer: McpServer;
@@ -30,7 +30,8 @@ describe('declareCreateTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreateActivityLog.mockResolvedValue(undefined);
+    // By default, withActivityLog executes the operation and returns its result
+    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
@@ -179,18 +180,38 @@ describe('declareCreateTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should create activity log with "create" action type', async () => {
+      it('should call withActivityLog with correct parameters', async () => {
         await registeredToolHandler(
           { collectionName: 'users', attributes: { name: 'John' } },
           mockExtra,
         );
 
-        expect(mockCreateActivityLog).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          action: 'create',
+          context: { collectionName: 'users' },
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
+      });
+
+      it('should wrap the create operation with activity logging', async () => {
+        const mockCreate = jest.fn().mockResolvedValue({ id: 1, name: 'John' });
+        const mockCollection = jest.fn().mockReturnValue({ create: mockCreate });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        await registeredToolHandler(
+          { collectionName: 'users', attributes: { name: 'John' } },
           mockExtra,
-          'create',
-          { collectionName: 'users' },
         );
+
+        // Verify the operation was executed through withActivityLog
+        expect(mockWithActivityLog).toHaveBeenCalled();
+        expect(mockCreate).toHaveBeenCalledWith({ name: 'John' });
       });
     });
 

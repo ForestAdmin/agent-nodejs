@@ -3,10 +3,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import createActivityLog from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
-import parseAgentError from '../utils/error-parser.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
+import withActivityLog from '../utils/with-activity-log.js';
 
 // Preprocess to handle LLM sending attributes as JSON string instead of object
 const attributesWithPreprocess = z.preprocess(val => {
@@ -51,22 +50,22 @@ export default function declareCreateTool(
       inputSchema: argumentShape,
     },
     async (options: CreateArgument, extra) => {
-      const { rpcClient } = await buildClient(extra);
+      const { rpcClient } = buildClient(extra);
 
-      await createActivityLog(forestServerUrl, extra, 'create', {
-        collectionName: options.collectionName,
+      return withActivityLog({
+        forestServerUrl,
+        request: extra,
+        action: 'create',
+        context: { collectionName: options.collectionName },
+        logger,
+        operation: async () => {
+          const record = await rpcClient
+            .collection(options.collectionName)
+            .create(options.attributes);
+
+          return { content: [{ type: 'text', text: JSON.stringify({ record }) }] };
+        },
       });
-
-      try {
-        const record = await rpcClient
-          .collection(options.collectionName)
-          .create(options.attributes);
-
-        return { content: [{ type: 'text', text: JSON.stringify({ record }) }] };
-      } catch (error) {
-        const errorDetail = parseAgentError(error);
-        throw errorDetail ? new Error(errorDetail) : error;
-      }
     },
     logger,
   );

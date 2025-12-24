@@ -6,14 +6,10 @@ import { z } from 'zod';
 
 import { createListArgumentShape } from './list.js';
 import { Logger } from '../server.js';
-import createPendingActivityLog, {
-  markActivityLogAsFailed,
-  markActivityLogAsSucceeded,
-} from '../utils/activity-logs-creator.js';
 import buildClient from '../utils/agent-caller.js';
-import parseAgentError from '../utils/error-parser.js';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher.js';
 import registerToolWithLogging from '../utils/tool-with-logging.js';
+import withActivityLog from '../utils/with-activity-log.js';
 
 function createHasManyArgumentShape(collectionNames: string[]) {
   return {
@@ -33,12 +29,11 @@ type HasManyArgument = ListArgument & {
  * Returns an enhanced error or the original error if enhancement fails.
  */
 async function enhanceErrorWithContext(
-  error: unknown,
+  error: Error,
   forestServerUrl: string,
   options: HasManyArgument,
 ): Promise<Error> {
-  const errorDetail = parseAgentError(error);
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorMessage = error.message;
 
   try {
     const fields = getFieldsOfCollection(
@@ -61,7 +56,7 @@ async function enhanceErrorWithContext(
       );
     }
 
-    if (errorDetail?.includes('Invalid sort')) {
+    if (errorMessage?.includes('Invalid sort')) {
       return new Error(
         `The sort field provided is invalid for this collection. Available fields for the collection ${
           options.collectionName
@@ -75,7 +70,7 @@ async function enhanceErrorWithContext(
     // Schema fetch failed, fall through to return original error
   }
 
-  return errorDetail ? new Error(errorDetail) : (error as Error);
+  return error;
 }
 
 export default function declareListRelatedTool(
@@ -109,52 +104,41 @@ export default function declareListRelatedTool(
 
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
-      const activityLog = await createPendingActivityLog(
-        forestServerUrl,
-        extra,
-        'listRelatedData',
-        {
-          collectionName: options.collectionName,
-          recordId: options.parentRecordId,
-          label: `list relation "${options.relationName}"${extraLabel}`,
-        },
-      );
-
       try {
-        const relation = rpcClient
-          .collection(options.collectionName)
-          .relation(options.relationName, options.parentRecordId);
-
-        let response: { records: unknown[]; totalCount?: number };
-
-        if (options.enableCount) {
-          const [records, totalCount] = await Promise.all([
-            relation.list(options as SelectOptions),
-            relation.count(options as SelectOptions),
-          ]);
-          response = { records, totalCount };
-        } else {
-          const records = await relation.list(options as SelectOptions);
-          response = { records };
-        }
-
-        markActivityLogAsSucceeded({
+        return await withActivityLog({
           forestServerUrl,
           request: extra,
-          activityLog,
+          action: 'listRelatedData',
+          context: {
+            collectionName: options.collectionName,
+            recordId: options.parentRecordId,
+            label: `list relation "${options.relationName}"${extraLabel}`,
+          },
           logger,
-        });
+          operation: async () => {
+            const relation = rpcClient
+              .collection(options.collectionName)
+              .relation(options.relationName, options.parentRecordId);
 
-        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+            let response: { records: unknown[]; totalCount?: number };
+
+            if (options.enableCount) {
+              const [records, totalCount] = await Promise.all([
+                relation.list(options as SelectOptions),
+                relation.count(options as SelectOptions),
+              ]);
+              response = { records, totalCount };
+            } else {
+              const records = await relation.list(options as SelectOptions);
+              response = { records };
+            }
+
+            return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+          },
+        });
       } catch (error) {
-        markActivityLogAsFailed({
-          forestServerUrl,
-          request: extra,
-          activityLog,
-          errorMessage: (error as Error)?.message,
-          logger,
-        });
-        throw await enhanceErrorWithContext(error, forestServerUrl, options);
+        // Enhance error with context about available relations and sortable fields
+        throw await enhanceErrorWithContext(error as Error, forestServerUrl, options);
       }
     },
     logger,
