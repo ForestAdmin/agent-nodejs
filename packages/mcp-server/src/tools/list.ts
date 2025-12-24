@@ -108,27 +108,39 @@ export default function declareListTool(
       try {
         const collection = rpcClient.collection(options.collectionName);
 
+        let response: { records: unknown[]; totalCount?: number };
+
         if (options.enableCount) {
           const [records, totalCount] = await Promise.all([
             collection.list(options as SelectOptions),
             collection.count(options as SelectOptions),
           ]);
 
-          markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
-
-          return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
+          response = { records, totalCount };
+        } else {
+          const records = await collection.list(options as SelectOptions);
+          response = { records };
         }
 
-        const records = await collection.list(options as SelectOptions);
+        markActivityLogAsSucceeded({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          logger,
+        });
 
-        markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
-
-        return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {
         // Parse error text if it's a JSON string from the agent
         const errorDetail = parseAgentError(error);
 
-        markActivityLogAsFailed(forestServerUrl, extra, activityLog, errorDetail || error.message);
+        markActivityLogAsFailed({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          errorMessage: errorDetail || error.message,
+          logger,
+        });
 
         if (errorDetail?.includes('Invalid sort')) {
           const fields = getFieldsOfCollection(

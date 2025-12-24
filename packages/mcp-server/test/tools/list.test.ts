@@ -285,11 +285,12 @@ describe('declareListTool', () => {
 
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-        expect(mockMarkActivityLogAsSucceeded).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          mockActivityLog,
-        );
+        expect(mockMarkActivityLogAsSucceeded).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          activityLog: mockActivityLog,
+          logger: mockLogger,
+        });
       });
 
       it('should mark activity log as failed when list throws an error', async () => {
@@ -307,12 +308,13 @@ describe('declareListTool', () => {
           'Database error',
         );
 
-        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          mockActivityLog,
-          'Database error',
-        );
+        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          activityLog: mockActivityLog,
+          errorMessage: 'Database error',
+          logger: mockLogger,
+        });
       });
 
       it('should mark activity log as failed with parsed error detail', async () => {
@@ -338,12 +340,13 @@ describe('declareListTool', () => {
           'Invalid field value',
         );
 
-        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith(
-          'https://api.forestadmin.com',
-          mockExtra,
-          mockActivityLog,
-          'Invalid field value',
-        );
+        expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockExtra,
+          activityLog: mockActivityLog,
+          errorMessage: 'Invalid field value',
+          logger: mockLogger,
+        });
       });
     });
 

@@ -338,13 +338,20 @@ describe('markActivityLogAsFailed', () => {
   it('should send PATCH request with failed status and error message', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
 
-    await markActivityLogAsFailed(
-      'https://api.forestadmin.com',
+    markActivityLogAsFailed({
+      forestServerUrl: 'https://api.forestadmin.com',
       request,
       activityLog,
-      'Something went wrong',
-    );
+      errorMessage: 'Something went wrong',
+      logger: mockLogger,
+    });
+
+    // Wait for the fire-and-forget promise to resolve
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
@@ -400,8 +407,19 @@ describe('markActivityLogAsSucceeded', () => {
   it('should send PATCH request with succeeded status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
 
-    await markActivityLogAsSucceeded('https://api.forestadmin.com', request, activityLog);
+    markActivityLogAsSucceeded({
+      forestServerUrl: 'https://api.forestadmin.com',
+      request,
+      activityLog,
+      logger: mockLogger,
+    });
+
+    // Wait for the fire-and-forget promise to resolve
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
@@ -428,8 +446,19 @@ describe('markActivityLogAsSucceeded', () => {
   it('should not include errorMessage in succeeded status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
 
-    await markActivityLogAsSucceeded('https://api.forestadmin.com', request, activityLog);
+    markActivityLogAsSucceeded({
+      forestServerUrl: 'https://api.forestadmin.com',
+      request,
+      activityLog,
+      logger: mockLogger,
+    });
+
+    // Wait for the fire-and-forget promise to resolve
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
 
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(callBody.data.attributes).not.toHaveProperty('errorMessage');

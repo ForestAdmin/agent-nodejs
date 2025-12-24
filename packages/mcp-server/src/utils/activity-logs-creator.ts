@@ -1,3 +1,4 @@
+import type { Logger } from '../server.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
@@ -103,10 +104,11 @@ interface UpdateActivityLogOptions {
   activityLog: ActivityLogResponse;
   status: 'succeeded' | 'failed';
   errorMessage?: string;
+  logger: Logger;
 }
 
 async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promise<void> {
-  const { forestServerUrl, request, activityLog, status, errorMessage } = options;
+  const { forestServerUrl, request, activityLog, status, errorMessage, logger } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
   const response = await fetch(
@@ -132,16 +134,21 @@ async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promi
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to update activity log status: ${await response.text()}`);
+    const responseText = await response.text();
+    logger('Error', `Failed to update activity log status to '${status}': ${responseText}`);
   }
 }
 
-export function markActivityLogAsFailed(
-  forestServerUrl: string,
-  request: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  activityLog: ActivityLogResponse,
-  errorMessage: string,
-): void {
+interface MarkActivityLogAsFailedOptions {
+  forestServerUrl: string;
+  request: RequestHandlerExtra<ServerRequest, ServerNotification>;
+  activityLog: ActivityLogResponse;
+  errorMessage: string;
+  logger: Logger;
+}
+
+export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions): void {
+  const { forestServerUrl, request, activityLog, errorMessage, logger } = options;
   // Fire-and-forget: don't block error response on activity log update
   updateActivityLogStatus({
     forestServerUrl,
@@ -149,19 +156,29 @@ export function markActivityLogAsFailed(
     activityLog,
     status: 'failed',
     errorMessage,
-  }).catch(() => {});
+    logger,
+  }).catch(error => {
+    logger('Error', `Unexpected error updating activity log to 'failed': ${error}`);
+  });
 }
 
-export function markActivityLogAsSucceeded(
-  forestServerUrl: string,
-  request: RequestHandlerExtra<ServerRequest, ServerNotification>,
-  activityLog: ActivityLogResponse,
-): void {
+interface MarkActivityLogAsSucceededOptions {
+  forestServerUrl: string;
+  request: RequestHandlerExtra<ServerRequest, ServerNotification>;
+  activityLog: ActivityLogResponse;
+  logger: Logger;
+}
+
+export function markActivityLogAsSucceeded(options: MarkActivityLogAsSucceededOptions): void {
+  const { forestServerUrl, request, activityLog, logger } = options;
   // Fire-and-forget: don't block successful response on activity log update
   updateActivityLogStatus({
     forestServerUrl,
     request,
     activityLog,
     status: 'succeeded',
-  }).catch(() => {});
+    logger,
+  }).catch(error => {
+    logger('Error', `Unexpected error updating activity log to 'succeeded': ${error}`);
+  });
 }

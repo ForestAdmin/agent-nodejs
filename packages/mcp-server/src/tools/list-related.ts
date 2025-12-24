@@ -125,22 +125,35 @@ export default function declareListRelatedTool(
           .collection(options.collectionName)
           .relation(options.relationName, options.parentRecordId);
 
+        let response: { records: unknown[]; totalCount?: number };
+
         if (options.enableCount) {
           const [records, totalCount] = await Promise.all([
             relation.list(options as SelectOptions),
             relation.count(options as SelectOptions),
           ]);
-
-          return { content: [{ type: 'text', text: JSON.stringify({ records, totalCount }) }] };
+          response = { records, totalCount };
+        } else {
+          const records = await relation.list(options as SelectOptions);
+          response = { records };
         }
 
-        const records = await relation.list(options as SelectOptions);
+        markActivityLogAsSucceeded({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          logger,
+        });
 
-        markActivityLogAsSucceeded(forestServerUrl, extra, activityLog);
-
-        return { content: [{ type: 'text', text: JSON.stringify({ records }) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {
-        markActivityLogAsFailed(forestServerUrl, extra, activityLog, (error as Error)?.message);
+        markActivityLogAsFailed({
+          forestServerUrl,
+          request: extra,
+          activityLog,
+          errorMessage: (error as Error)?.message,
+          logger,
+        });
         throw await enhanceErrorWithContext(error, forestServerUrl, options);
       }
     },
