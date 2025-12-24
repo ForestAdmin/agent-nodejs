@@ -38,10 +38,10 @@ export default function declareCreateTool(
   forestServerUrl: string,
   logger: Logger,
   collectionNames: string[] = [],
-): void {
+): string {
   const argumentShape = createArgumentShape(collectionNames);
 
-  registerToolWithLogging(
+  return registerToolWithLogging(
     mcpServer,
     'create',
     {

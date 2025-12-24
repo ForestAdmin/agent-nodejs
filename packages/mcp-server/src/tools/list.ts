@@ -75,10 +75,10 @@ export default function declareListTool(
   forestServerUrl: string,
   logger: Logger,
   collectionNames: string[] = [],
-): void {
+): string {
   const listArgumentShape = createListArgumentShape(collectionNames);
 
-  registerToolWithLogging(
+  return registerToolWithLogging(
     mcpServer,
     'list',
     {

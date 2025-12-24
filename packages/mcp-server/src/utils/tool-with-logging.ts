@@ -89,7 +89,7 @@ export default function registerToolWithLogging<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: (args: TArgs, extra: any) => Promise<ToolResult>,
   logger: Logger,
-): void {
+): string {
   const schema = z.object(config.inputSchema);
 
   mcpServer.registerTool(
@@ -103,4 +103,6 @@ export default function registerToolWithLogging<
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   );
+
+  return toolName;
 }

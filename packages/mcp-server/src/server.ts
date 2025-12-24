@@ -125,18 +125,19 @@ export default class ForestMCPServer {
       );
     }
 
-    declareDescribeCollectionTool(
-      this.mcpServer,
-      this.forestServerUrl,
-      this.logger,
-      collectionNames,
-    );
-    declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
-    declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
-    declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames);
+    const toolNames = [
+      declareDescribeCollectionTool(
+        this.mcpServer,
+        this.forestServerUrl,
+        this.logger,
+        collectionNames,
+      ),
+      declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+      declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+      declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+    ];
 
-    const toolNames = ['describeCollection', 'list', 'listRelated', 'create'];
-    this.logger('Info', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {

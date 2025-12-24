@@ -268,7 +268,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       const httpCallback = await mcpServer.getHttpCallback();
 
-      this.options.logger('Info', 'MCP server initialized successfully');
+      this.options.logger('Info', '[MCP] Server initialized successfully');
 
       return httpCallback;
     } catch (error) {

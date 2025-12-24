@@ -80,10 +80,10 @@ export default function declareDescribeCollectionTool(
   forestServerUrl: string,
   logger: Logger,
   collectionNames: string[] = [],
-): void {
+): string {
   const argumentShape = createDescribeCollectionArgumentShape(collectionNames);
 
-  registerToolWithLogging(
+  return registerToolWithLogging(
     mcpServer,
     'describeCollection',
     {

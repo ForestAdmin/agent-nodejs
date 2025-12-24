@@ -74,10 +74,10 @@ export default function declareListRelatedTool(
   forestServerUrl: string,
   logger: Logger,
   collectionNames: string[] = [],
-): void {
+): string {
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
 
-  registerToolWithLogging(
+  return registerToolWithLogging(
     mcpServer,
     'listRelated',
     {
