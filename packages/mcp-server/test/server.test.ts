@@ -81,37 +81,32 @@ describe('ForestMCPServer Instance', () => {
 
   describe('constructor', () => {
     it('should create server instance', () => {
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       expect(server).toBeDefined();
       expect(server).toBeInstanceOf(ForestMCPServer);
     });
 
-    it('should initialize with FOREST_SERVER_URL', () => {
-      process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
-      server = new ForestMCPServer();
+    it('should initialize with forestServerUrl', () => {
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerUrl: 'https://custom.forestadmin.com',
+      });
 
       expect(server.forestServerUrl).toBe('https://custom.forestadmin.com');
-    });
-
-    it('should fallback to FOREST_URL', () => {
-      delete process.env.FOREST_SERVER_URL;
-      process.env.FOREST_URL = 'https://fallback.forestadmin.com';
-      server = new ForestMCPServer();
-
-      expect(server.forestServerUrl).toBe('https://fallback.forestadmin.com');
     });
 
     it('should use default URL when neither is provided', () => {
       delete process.env.FOREST_SERVER_URL;
       delete process.env.FOREST_URL;
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       expect(server.forestServerUrl).toBe('https://api.forestadmin.com');
     });
 
     it('should create MCP server instance', () => {
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       expect(server.mcpServer).toBeDefined();
     });
@@ -120,7 +115,7 @@ describe('ForestMCPServer Instance', () => {
   describe('environment validation', () => {
     it('should throw error when FOREST_ENV_SECRET is missing', async () => {
       delete process.env.FOREST_ENV_SECRET;
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET' });
 
       await expect(server.run()).rejects.toThrow(
         'FOREST_ENV_SECRET is not set. Provide it via options.envSecret or FOREST_ENV_SECRET environment variable.',
@@ -129,7 +124,7 @@ describe('ForestMCPServer Instance', () => {
 
     it('should throw error when FOREST_AUTH_SECRET is missing', async () => {
       delete process.env.FOREST_AUTH_SECRET;
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ envSecret: 'ENV_SECRET' });
 
       await expect(server.run()).rejects.toThrow(
         'FOREST_AUTH_SECRET is not set. Provide it via options.authSecret or FOREST_AUTH_SECRET environment variable.',
@@ -146,7 +141,7 @@ describe('ForestMCPServer Instance', () => {
       const testPort = 39310; // Use a different port for testing
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
 
       // Start the server without awaiting (it runs indefinitely)
       server.run();
@@ -172,7 +167,7 @@ describe('ForestMCPServer Instance', () => {
       const testPort = 39311;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer();
+      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
       server.run();
 
       await new Promise(resolve => {
@@ -276,10 +271,13 @@ describe('ForestMCPServer Instance', () => {
         // Clean up previous server
         await shutDownHttpServer(server?.httpServer as http.Server);
 
-        process.env.FOREST_SERVER_URL = 'https://custom.forestadmin.com';
         process.env.MCP_SERVER_PORT = '39314';
 
-        server = new ForestMCPServer();
+        server = new ForestMCPServer({
+          authSecret: 'AUTH_SECRET',
+          envSecret: 'ENV_SECRET',
+          forestServerUrl: 'https://custom.forestadmin.com',
+        });
         server.run();
 
         await new Promise(resolve => {
