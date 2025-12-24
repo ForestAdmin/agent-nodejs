@@ -371,6 +371,8 @@ describe('markActivityLogAsFailed', () => {
   });
 
   it('should retry up to 5 times on 404 response', async () => {
+    jest.useFakeTimers();
+
     const notFoundResponse = {
       ok: false,
       status: 404,
@@ -395,10 +397,8 @@ describe('markActivityLogAsFailed', () => {
       logger: mockLogger,
     });
 
-    // Wait for all retries to complete (5 attempts * 200ms delay + buffer)
-    await new Promise(resolve => {
-      setTimeout(resolve, 1200);
-    });
+    // Advance timers for all retries (4 retries * 1000ms delay)
+    await jest.advanceTimersByTimeAsync(4000);
 
     expect(mockFetch).toHaveBeenCalledTimes(5);
     expect(mockLogger).toHaveBeenCalledWith(
@@ -409,9 +409,13 @@ describe('markActivityLogAsFailed', () => {
       'Debug',
       'Activity log not found (attempt 4/5), retrying...',
     );
+
+    jest.useRealTimers();
   });
 
   it('should stop retrying after 5 failed attempts and log error', async () => {
+    jest.useFakeTimers();
+
     mockFetch.mockResolvedValue({
       ok: false,
       status: 404,
@@ -430,16 +434,16 @@ describe('markActivityLogAsFailed', () => {
       logger: mockLogger,
     });
 
-    // Wait for all retries to complete
-    await new Promise(resolve => {
-      setTimeout(resolve, 1200);
-    });
+    // Advance timers for all retries (4 retries * 1000ms delay)
+    await jest.advanceTimersByTimeAsync(4000);
 
     expect(mockFetch).toHaveBeenCalledTimes(5);
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
       "Failed to update activity log status to 'failed': Not found",
     );
+
+    jest.useRealTimers();
   });
 
   it('should not retry on non-404 errors', async () => {

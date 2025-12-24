@@ -110,7 +110,7 @@ interface UpdateActivityLogOptions {
 }
 
 const MAX_RETRIES = 5;
-const RETRY_DELAY_MS = 200;
+const RETRY_DELAY_MS = 500;
 
 async function updateActivityLogStatus(
   options: UpdateActivityLogOptions,
