@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.3.0...@forestadmin/mcp-server@1.4.0) (2025-12-24)
+
+
+### Features
+
+* **mcp-server:** add create tool ([#1388](https://github.com/ForestAdmin/agent-nodejs/issues/1388)) ([7961086](https://github.com/ForestAdmin/agent-nodejs/commit/7961086bf3e45fac8cfc600ed78d890d167a5f48))
+
 # @forestadmin/mcp-server [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.2.1...@forestadmin/mcp-server@1.3.0) (2025-12-24)
 
 
