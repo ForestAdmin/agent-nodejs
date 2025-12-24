@@ -166,6 +166,7 @@ describe('withActivityLog', () => {
   it('should handle non-Error throws', async () => {
     const operation = jest.fn().mockRejectedValue('string error');
 
+    // withActivityLog now always wraps errors in an Error object
     await expect(
       withActivityLog({
         forestServerUrl: 'https://api.forestadmin.com',
@@ -174,7 +175,7 @@ describe('withActivityLog', () => {
         logger: mockLogger,
         operation,
       }),
-    ).rejects.toBe('string error');
+    ).rejects.toThrow('string error');
 
     expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
       forestServerUrl: 'https://api.forestadmin.com',
@@ -230,5 +231,84 @@ describe('withActivityLog', () => {
         label: 'Bulk delete orders',
       },
     );
+  });
+
+  describe('errorEnhancer', () => {
+    it('should apply errorEnhancer to error message when provided', async () => {
+      const operation = jest.fn().mockRejectedValue(new Error('Original error'));
+      const errorEnhancer = jest.fn().mockResolvedValue('Enhanced error message');
+
+      await expect(
+        withActivityLog({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockRequest,
+          action: 'index',
+          logger: mockLogger,
+          operation,
+          errorEnhancer,
+        }),
+      ).rejects.toThrow('Enhanced error message');
+
+      expect(errorEnhancer).toHaveBeenCalledWith('Original error', expect.any(Error));
+      expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        request: mockRequest,
+        activityLog: mockActivityLog,
+        errorMessage: 'Enhanced error message',
+        logger: mockLogger,
+      });
+    });
+
+    it('should use original error message when errorEnhancer throws', async () => {
+      const operation = jest.fn().mockRejectedValue(new Error('Original error'));
+      const errorEnhancer = jest.fn().mockRejectedValue(new Error('Enhancement failed'));
+
+      await expect(
+        withActivityLog({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockRequest,
+          action: 'index',
+          logger: mockLogger,
+          operation,
+          errorEnhancer,
+        }),
+      ).rejects.toThrow('Original error');
+
+      expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
+        forestServerUrl: 'https://api.forestadmin.com',
+        request: mockRequest,
+        activityLog: mockActivityLog,
+        errorMessage: 'Original error',
+        logger: mockLogger,
+      });
+    });
+
+    it('should pass parsed agent error detail to errorEnhancer', async () => {
+      // parseAgentError expects an Error with a JSON message containing error details
+      const errorPayload = {
+        error: {
+          status: 400,
+          text: JSON.stringify({
+            errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
+          }),
+        },
+      };
+      const agentError = new Error(JSON.stringify(errorPayload));
+      const operation = jest.fn().mockRejectedValue(agentError);
+      const errorEnhancer = jest.fn().mockImplementation(msg => Promise.resolve(`Context: ${msg}`));
+
+      await expect(
+        withActivityLog({
+          forestServerUrl: 'https://api.forestadmin.com',
+          request: mockRequest,
+          action: 'index',
+          logger: mockLogger,
+          operation,
+          errorEnhancer,
+        }),
+      ).rejects.toThrow('Context: Invalid field value');
+
+      expect(errorEnhancer).toHaveBeenCalledWith('Invalid field value', agentError);
+    });
   });
 });

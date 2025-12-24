@@ -42,8 +42,36 @@ describe('declareListRelatedTool', () => {
       }),
     } as unknown as McpServer;
 
-    // By default, withActivityLog executes the operation and returns its result
-    mockWithActivityLog.mockImplementation(async options => options.operation());
+    // By default, withActivityLog executes the operation and handles errors with enhancement
+    mockWithActivityLog.mockImplementation(async options => {
+      try {
+        return await options.operation();
+      } catch (error) {
+        let errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Try to parse JSON:API error format
+        try {
+          const parsed = JSON.parse(errorMessage);
+
+          if (parsed.error?.text) {
+            const textParsed = JSON.parse(parsed.error.text);
+
+            if (textParsed.errors?.[0]?.detail) {
+              errorMessage = textParsed.errors[0].detail;
+            }
+          }
+        } catch {
+          // Not a JSON error, use as-is
+        }
+
+        // Apply error enhancer if provided
+        if (options.errorEnhancer) {
+          errorMessage = await options.errorEnhancer(errorMessage, error);
+        }
+
+        throw new Error(errorMessage);
+      }
+    });
   });
 
   describe('tool registration', () => {
@@ -318,6 +346,7 @@ describe('declareListRelatedTool', () => {
           },
           logger: mockLogger,
           operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
         });
       });
 
@@ -338,6 +367,7 @@ describe('declareListRelatedTool', () => {
           },
           logger: mockLogger,
           operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
         });
       });
 
@@ -358,6 +388,7 @@ describe('declareListRelatedTool', () => {
           },
           logger: mockLogger,
           operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
         });
       });
 
@@ -383,6 +414,7 @@ describe('declareListRelatedTool', () => {
           },
           logger: mockLogger,
           operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
         });
       });
 
@@ -409,6 +441,7 @@ describe('declareListRelatedTool', () => {
           },
           logger: mockLogger,
           operation: expect.any(Function),
+          errorEnhancer: expect.any(Function),
         });
       });
     });
@@ -825,9 +858,9 @@ describe('declareListRelatedTool', () => {
         ).rejects.toThrow('Plain error message');
       });
 
-      it('should rethrow original error when no parsable error found', async () => {
-        const agentError = { unknownProperty: 'some value' };
-        mockList.mockRejectedValue(agentError);
+      it('should handle string errors thrown directly', async () => {
+        // Some libraries throw string errors directly
+        mockList.mockRejectedValue('Connection failed');
 
         const mockFields: schemaFetcher.ForestField[] = [
           {
@@ -852,7 +885,7 @@ describe('declareListRelatedTool', () => {
             { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
             mockExtra,
           ),
-        ).rejects.toEqual(agentError);
+        ).rejects.toThrow('Connection failed');
       });
     });
   });

@@ -97,54 +97,54 @@ export default function declareListTool(
         actionType = 'filter';
       }
 
-      try {
-        return await withActivityLog({
-          forestServerUrl,
-          request: extra,
-          action: actionType,
-          context: { collectionName: options.collectionName },
-          logger,
-          operation: async () => {
-            const collection = rpcClient.collection(options.collectionName);
+      return withActivityLog({
+        forestServerUrl,
+        request: extra,
+        action: actionType,
+        context: { collectionName: options.collectionName },
+        logger,
+        operation: async () => {
+          const collection = rpcClient.collection(options.collectionName);
 
-            let response: { records: unknown[]; totalCount?: number };
+          let response: { records: unknown[]; totalCount?: number };
 
-            if (options.enableCount) {
-              const [records, totalCount] = await Promise.all([
-                collection.list(options as SelectOptions),
-                collection.count(options as SelectOptions),
-              ]);
+          if (options.enableCount) {
+            const [records, totalCount] = await Promise.all([
+              collection.list(options as SelectOptions),
+              collection.count(options as SelectOptions),
+            ]);
 
-              response = { records, totalCount };
-            } else {
-              const records = await collection.list(options as SelectOptions);
-              response = { records };
+            response = { records, totalCount };
+          } else {
+            const records = await collection.list(options as SelectOptions);
+            response = { records };
+          }
+
+          return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+        },
+        errorEnhancer: async errorMessage => {
+          // Enhance "Invalid sort" errors with available sortable fields
+          if (errorMessage?.includes('Invalid sort')) {
+            try {
+              const fields = getFieldsOfCollection(
+                await fetchForestSchema(forestServerUrl),
+                options.collectionName,
+              );
+
+              return `The sort field provided is invalid for this collection. Available fields for the collection ${
+                options.collectionName
+              } are: ${fields
+                .filter(field => field.isSortable)
+                .map(field => field.field)
+                .join(', ')}.`;
+            } catch (schemaError) {
+              logger('Debug', `Failed to fetch schema for error enhancement: ${schemaError}`);
             }
+          }
 
-            return { content: [{ type: 'text', text: JSON.stringify(response) }] };
-          },
-        });
-      } catch (error) {
-        // Enhance "Invalid sort" errors with available sortable fields
-        const errorMessage = error instanceof Error ? error.message : String(error);
-
-        if (errorMessage?.includes('Invalid sort')) {
-          const fields = getFieldsOfCollection(
-            await fetchForestSchema(forestServerUrl),
-            options.collectionName,
-          );
-          throw new Error(
-            `The sort field provided is invalid for this collection. Available fields for the collection ${
-              options.collectionName
-            } are: ${fields
-              .filter(field => field.isSortable)
-              .map(field => field.field)
-              .join(', ')}.`,
-          );
-        }
-
-        throw error;
-      }
+          return errorMessage;
+        },
+      });
     },
     logger,
   );

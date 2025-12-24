@@ -23,6 +23,12 @@ interface WithActivityLogOptions<T> {
   context?: ActivityLogContext;
   logger: Logger;
   operation: () => Promise<T>;
+  /**
+   * Optional function to enhance error messages before logging and throwing.
+   * Receives the parsed error message and the original error.
+   * Should return the enhanced error message to use.
+   */
+  errorEnhancer?: (parsedMessage: string, originalError: unknown) => Promise<string>;
 }
 
 /**
@@ -30,7 +36,7 @@ interface WithActivityLogOptions<T> {
  * Creates a pending activity log, executes the operation, and marks it as succeeded or failed.
  */
 export default async function withActivityLog<T>(options: WithActivityLogOptions<T>): Promise<T> {
-  const { forestServerUrl, request, action, context, logger, operation } = options;
+  const { forestServerUrl, request, action, context, logger, operation, errorEnhancer } = options;
 
   // We want to create the activity log before executing the operation
   // If activity log creation fails, we must prevent the execution of the operation
@@ -49,7 +55,16 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
     return result;
   } catch (error) {
     const errorDetail = parseAgentError(error);
-    const errorMessage = errorDetail || (error instanceof Error ? error.message : String(error));
+    let errorMessage = errorDetail || (error instanceof Error ? error.message : String(error));
+
+    // Apply error enhancer if provided (e.g., to add helpful context about available fields)
+    if (errorEnhancer) {
+      try {
+        errorMessage = await errorEnhancer(errorMessage, error);
+      } catch {
+        // If enhancement fails, use the original parsed message
+      }
+    }
 
     markActivityLogAsFailed({
       forestServerUrl,
@@ -59,6 +74,6 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
       logger,
     });
 
-    throw errorDetail ? new Error(errorDetail) : error;
+    throw new Error(errorMessage);
   }
 }
