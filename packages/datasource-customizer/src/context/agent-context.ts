@@ -6,8 +6,8 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-import RelaxedDataSource from './relaxed-wrappers/datasource';
 import { TSchema } from '../templates';
+import RelaxedDataSource from './relaxed-wrappers/datasource';
 
 export default class AgentCustomizationContext<S extends TSchema = TSchema> {
   private realDataSource: DataSource;

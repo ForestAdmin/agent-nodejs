@@ -1,5 +1,5 @@
-import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
-import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 

@@ -4,16 +4,16 @@ import './polyfills';
 
 import type { Express } from 'express';
 
-import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize';
-import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token';
-import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods';
-import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth';
+import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
+import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
+import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import {
   createOAuthMetadata,
   mcpAuthMetadataRouter,
-} from '@modelcontextprotocol/sdk/server/auth/router';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
+} from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import cors from 'cors';
 import express from 'express';
 import * as http from 'http';

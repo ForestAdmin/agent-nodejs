@@ -1,7 +1,7 @@
 import type { ListArgument } from './list';
 import type { Logger } from '../server';
 import type { SelectOptions } from '@forestadmin/agent-client';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
