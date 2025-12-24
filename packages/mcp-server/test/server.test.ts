@@ -72,6 +72,7 @@ describe('ForestMCPServer Instance', () => {
         process.env[key] = originalEnv[key];
       }
     }
+
     Object.assign(process.env, originalEnv);
     global.fetch = originalFetch;
   });
@@ -88,6 +89,7 @@ describe('ForestMCPServer Instance', () => {
         process.env[key] = modifiedEnv[key];
       }
     }
+
     // Restore modified env vars
     Object.assign(process.env, modifiedEnv);
   });
