@@ -66,7 +66,13 @@ describe('ForestMCPServer Instance', () => {
   });
 
   afterAll(async () => {
-    process.env = originalEnv;
+    // Restore deleted env vars (process.env = assignment doesn't work for deleted keys)
+    for (const key of Object.keys(originalEnv)) {
+      if (process.env[key] === undefined && originalEnv[key] !== undefined) {
+        process.env[key] = originalEnv[key];
+      }
+    }
+    Object.assign(process.env, originalEnv);
     global.fetch = originalFetch;
   });
 
@@ -76,7 +82,14 @@ describe('ForestMCPServer Instance', () => {
   });
 
   afterEach(async () => {
-    process.env = modifiedEnv;
+    // Restore deleted env vars (process.env = assignment doesn't work for deleted keys)
+    for (const key of Object.keys(modifiedEnv)) {
+      if (process.env[key] === undefined && modifiedEnv[key] !== undefined) {
+        process.env[key] = modifiedEnv[key];
+      }
+    }
+    // Restore modified env vars
+    Object.assign(process.env, modifiedEnv);
   });
 
   describe('constructor', () => {
