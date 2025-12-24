@@ -354,7 +354,7 @@ describe('markActivityLogAsFailed', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
+      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123/status',
       {
         method: 'PATCH',
         headers: {
@@ -363,14 +363,8 @@ describe('markActivityLogAsFailed', () => {
           Authorization: 'Bearer test-forest-token',
         },
         body: JSON.stringify({
-          data: {
-            id: 'log-123',
-            type: 'activity-logs-requests',
-            attributes: {
-              status: 'failed',
-              errorMessage: 'Something went wrong',
-            },
-          },
+          status: 'failed',
+          errorMessage: 'Something went wrong',
         }),
       },
     );
@@ -404,7 +398,7 @@ describe('markActivityLogAsSucceeded', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
   }
 
-  it('should send PATCH request with succeeded status', async () => {
+  it('should send PATCH request with completed status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -422,7 +416,7 @@ describe('markActivityLogAsSucceeded', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123',
+      'https://api.forestadmin.com/api/activity-logs-requests/idx-456/log-123/status',
       {
         method: 'PATCH',
         headers: {
@@ -431,19 +425,13 @@ describe('markActivityLogAsSucceeded', () => {
           Authorization: 'Bearer test-forest-token',
         },
         body: JSON.stringify({
-          data: {
-            id: 'log-123',
-            type: 'activity-logs-requests',
-            attributes: {
-              status: 'succeeded',
-            },
-          },
+          status: 'completed',
         }),
       },
     );
   });
 
-  it('should not include errorMessage in succeeded status', async () => {
+  it('should not include errorMessage in completed status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -461,6 +449,6 @@ describe('markActivityLogAsSucceeded', () => {
     });
 
     const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(callBody.data.attributes).not.toHaveProperty('errorMessage');
+    expect(callBody).not.toHaveProperty('errorMessage');
   });
 });

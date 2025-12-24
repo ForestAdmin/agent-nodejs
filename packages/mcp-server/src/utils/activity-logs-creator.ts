@@ -104,7 +104,7 @@ interface UpdateActivityLogOptions {
   forestServerUrl: string;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
-  status: 'succeeded' | 'failed';
+  status: 'completed' | 'failed';
   errorMessage?: string;
   logger: Logger;
 }
@@ -114,7 +114,7 @@ async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promi
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
   const response = await fetch(
-    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}`,
+    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
     {
       method: 'PATCH',
       headers: {
@@ -123,14 +123,8 @@ async function updateActivityLogStatus(options: UpdateActivityLogOptions): Promi
         Authorization: `Bearer ${forestServerToken}`,
       },
       body: JSON.stringify({
-        data: {
-          id: activityLog.id,
-          type: 'activity-logs-requests',
-          attributes: {
-            status,
-            ...(errorMessage && { errorMessage }),
-          },
-        },
+        status,
+        ...(errorMessage && { errorMessage }),
       }),
     },
   );
@@ -178,7 +172,7 @@ export function markActivityLogAsSucceeded(options: MarkActivityLogAsSucceededOp
     forestServerUrl,
     request,
     activityLog,
-    status: 'succeeded',
+    status: 'completed',
     logger,
   }).catch(error => {
     logger('Error', `Unexpected error updating activity log to 'succeeded': ${error}`);
