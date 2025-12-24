@@ -1,3 +1,5 @@
+import type Client from './utils/s3';
+import type { ObjectCannedACL } from '@aws-sdk/client-s3';
 import type {
   TCollectionName,
   TColumnName,
@@ -7,10 +9,6 @@ import type {
 } from '@forestadmin/datasource-customizer';
 import type CollectionCustomizationContext from '@forestadmin/datasource-customizer/dist/context/collection-context';
 import type WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
-
-import { ObjectCannedACL } from '@aws-sdk/client-s3';
-
-import Client from './utils/s3';
 
 export type File = {
   name: string;

@@ -1,6 +1,6 @@
-import hashObject from 'object-hash';
+import type { Chart, ChartKeys } from '../charts/types';
 
-import { Chart, ChartKeys } from '../charts/types';
+import hashObject from 'object-hash';
 
 function hashChart(chart: Chart): string {
   const knownChartKeys: ChartKeys[] = [

@@ -1,4 +1,4 @@
-import { OwnerCustomizer } from '../typings';
+import type { OwnerCustomizer } from '../typings';
 
 export default (collection: OwnerCustomizer) =>
   collection

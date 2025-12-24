@@ -1,4 +1,4 @@
-import { PostCustomizer } from '../typings';
+import type { PostCustomizer } from '../typings';
 
 export default (collection: PostCustomizer) =>
   collection

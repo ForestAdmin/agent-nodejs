@@ -1,8 +1,9 @@
-import { Projection } from '@forestadmin/datasource-toolkit';
-import { Model, PipelineStage } from 'mongoose';
+import type { SchemaNode } from '../../mongoose/schema';
+import type { Stack } from '../../types';
+import type { Projection } from '@forestadmin/datasource-toolkit';
+import type { Model, PipelineStage } from 'mongoose';
 
-import MongooseSchema, { SchemaNode } from '../../mongoose/schema';
-import { Stack } from '../../types';
+import MongooseSchema from '../../mongoose/schema';
 
 export type LookupOptions = {
   include?: Set<string>;

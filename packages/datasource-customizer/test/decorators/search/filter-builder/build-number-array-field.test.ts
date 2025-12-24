@@ -1,4 +1,6 @@
-import { ConditionTreeFactory, ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
+import type { Operator } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import buildBasicArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-basic-array-field-filter';
 import buildNumberArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-number-array-field-filter';

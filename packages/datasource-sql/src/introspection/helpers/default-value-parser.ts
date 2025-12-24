@@ -1,7 +1,7 @@
-import { literal } from 'sequelize';
+import type { ColumnDescription } from '../dialects/dialect.interface';
+import type { ColumnType } from '../types';
 
-import { ColumnDescription } from '../dialects/dialect.interface';
-import { ColumnType } from '../types';
+import { literal } from 'sequelize';
 
 export default class DefaultValueParser {
   static parse(

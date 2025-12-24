@@ -1,6 +1,6 @@
+import type { Collection, CollectionSchema } from '@forestadmin/datasource-toolkit';
+
 import {
-  Collection,
-  CollectionSchema,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   DataSourceDecorator,

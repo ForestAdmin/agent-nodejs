@@ -1,8 +1,10 @@
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
-import { Collection, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import type { Table } from '../introspection/types';
+import type { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import type { Collection } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import ViewDecorator from './view-decorator';
-import { Table } from '../introspection/types';
 
 export default class SqlDatasource extends DataSourceDecorator<Collection> {
   private readonly viewNames: Set<string> = new Set();

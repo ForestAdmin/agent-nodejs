@@ -1,8 +1,10 @@
-import { Collection, DataSource, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import type { ForestAdminHttpDriverServices } from '../services';
+import type { AgentOptionsWithDefaults } from '../types';
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import CollectionRoute from './collection-route';
-import { ForestAdminHttpDriverServices } from '../services';
-import { AgentOptionsWithDefaults } from '../types';
 
 export default abstract class RelationRoute extends CollectionRoute {
   protected readonly relationName: string;

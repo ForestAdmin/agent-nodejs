@@ -1,24 +1,25 @@
-import ChartHandler from './charts/chart-handler';
-import {
+import type ChartHandler from './charts/chart-handler';
+import type {
   BaseEventsSubscriptionService,
   RefreshEventsHandlerService,
 } from './events-subscription/types';
-import IpWhiteListService from './ip-whitelist';
-import { IpWhitelistConfiguration } from './ip-whitelist/types';
-import { McpServerConfigService } from './mcp-server-config';
-import { ModelCustomizationService } from './model-customizations/types';
-import RenderingPermissionService from './permissions/rendering-permission';
-import { RawTree } from './permissions/types';
-import verifyAndExtractApproval from './permissions/verify-approval';
-import SchemaService from './schema';
-import { ForestSchema } from './schema/types';
-import {
+import type IpWhiteListService from './ip-whitelist';
+import type { IpWhitelistConfiguration } from './ip-whitelist/types';
+import type { McpServerConfigService } from './mcp-server-config';
+import type { ModelCustomizationService } from './model-customizations/types';
+import type RenderingPermissionService from './permissions/rendering-permission';
+import type { RawTree } from './permissions/types';
+import type SchemaService from './schema';
+import type { ForestSchema } from './schema/types';
+import type {
   ForestAdminAuthServiceInterface,
   ForestAdminClient,
   ForestAdminClientOptionsWithDefaults,
   PermissionService,
 } from './types';
-import ContextVariablesInstantiator from './utils/context-variables-instantiator';
+import type ContextVariablesInstantiator from './utils/context-variables-instantiator';
+
+import verifyAndExtractApproval from './permissions/verify-approval';
 
 export default class ForestAdminClientWithCache implements ForestAdminClient {
   constructor(

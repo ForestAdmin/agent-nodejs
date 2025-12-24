@@ -1,7 +1,8 @@
+import type { ForestAdminClient, ForestAdminClientOptions } from './types';
+
 import buildApplicationServices from './build-application-services';
 import ForestAdminClientWithCache from './forest-admin-client-with-cache';
 import ForestHttpApi from './permissions/forest-http-api';
-import { ForestAdminClient, ForestAdminClientOptions } from './types';
 
 export { default as JTWTokenExpiredError } from './permissions/errors/jwt-token-expired-error';
 export { default as JTWUnableToVerifyError } from './permissions/errors/jwt-unable-to-verify-error';

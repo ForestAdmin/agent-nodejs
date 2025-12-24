@@ -1,4 +1,5 @@
-import Router from '@koa/router';
+import type Router from '@koa/router';
+
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import ScopeInvalidation from '../../../src/routes/security/scope-invalidation';

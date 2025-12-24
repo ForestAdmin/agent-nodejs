@@ -1,8 +1,8 @@
+import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import createPendingActivityLog, {
-  ActivityLogAction,
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
 } from '../../src/utils/activity-logs-creator';

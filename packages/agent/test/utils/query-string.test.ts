@@ -1,6 +1,7 @@
+import type { Context } from 'koa';
+
 import { Projection, UnprocessableError, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import { Context } from 'koa';
 
 import QueryStringParser from '../../src/utils/query-string';
 import * as factories from '../__factories__';

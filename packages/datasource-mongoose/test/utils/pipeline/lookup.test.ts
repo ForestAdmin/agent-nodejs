@@ -1,7 +1,9 @@
-import { Projection } from '@forestadmin/datasource-toolkit';
-import mongoose, { Model, Schema } from 'mongoose';
+import type { Stack } from '../../../src/types';
+import type { Model } from 'mongoose';
 
-import { Stack } from '../../../src/types';
+import { Projection } from '@forestadmin/datasource-toolkit';
+import mongoose, { Schema } from 'mongoose';
+
 import LookupGenerator from '../../../src/utils/pipeline/lookup';
 
 describe('LookupGenerator', () => {

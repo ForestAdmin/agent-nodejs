@@ -1,6 +1,7 @@
+import type ConnectionOptions from './connection-options';
+
 import { BaseError as SequelizeError } from 'sequelize';
 
-import ConnectionOptions from './connection-options';
 import {
   DatabaseConnectError,
   ProxyForwardError,

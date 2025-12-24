@@ -1,8 +1,8 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
-import { ForestSchema } from '@forestadmin/forestadmin-client';
+import type { AgentOptionsWithDefaults } from '../../types';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorCollection from './generator-collection';
-import { AgentOptionsWithDefaults } from '../../types';
 
 export default class SchemaGenerator {
   private readonly schemaGeneratorCollection: SchemaGeneratorCollection;

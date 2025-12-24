@@ -1,4 +1,6 @@
-import { Model, Mongoose, Schema, mongo } from 'mongoose';
+import type { Model } from 'mongoose';
+
+import { Mongoose, Schema, mongo } from 'mongoose';
 
 import OptionsParser from '../../src/utils/options';
 

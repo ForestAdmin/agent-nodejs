@@ -1,6 +1,6 @@
-import { Projection, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import type ComputedCollection from '../collection';
 
-import ComputedCollection from '../collection';
+import { Projection, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 export default function rewriteField(collection: ComputedCollection, path: string): Projection {
   // Projection is targeting a field on another collection => recurse.

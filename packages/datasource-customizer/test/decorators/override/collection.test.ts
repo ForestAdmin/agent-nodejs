@@ -1,4 +1,6 @@
-import { Collection, DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import OverrideCollectionDecorator from '../../../src/decorators/override/collection';

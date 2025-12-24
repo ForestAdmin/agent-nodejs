@@ -1,7 +1,6 @@
 import type HttpRequester from '../http-requester';
 import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
-
-import { WriteStream } from 'node:fs';
+import type { WriteStream } from 'node:fs';
 
 import QuerySerializer from '../query-serializer';
 

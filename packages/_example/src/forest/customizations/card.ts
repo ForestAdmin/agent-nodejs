@@ -1,4 +1,4 @@
-import { CardCustomizer } from '../typings';
+import type { CardCustomizer } from '../typings';
 
 export default (collection: CardCustomizer) =>
   collection

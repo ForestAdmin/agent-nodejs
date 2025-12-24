@@ -1,5 +1,5 @@
-import { AggregateResult, Aggregation, ValidationError } from '@forestadmin/datasource-toolkit';
-import {
+import type { AggregateResult, Aggregation } from '@forestadmin/datasource-toolkit';
+import type {
   Dialect,
   GroupOption,
   Model,
@@ -8,7 +8,9 @@ import {
   ProjectionAlias,
   Sequelize,
 } from 'sequelize';
-import { Fn } from 'sequelize/types/utils';
+import type { Fn } from 'sequelize/types/utils';
+
+import { ValidationError } from '@forestadmin/datasource-toolkit';
 
 import DateAggregationConverter from './date-aggregation-converter';
 import Serializer from './serializer';

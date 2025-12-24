@@ -1,7 +1,9 @@
-import { QueryTypes, Sequelize } from 'sequelize';
+import type { ColumnDescription } from './dialect.interface';
+import type IntrospectionDialect from './dialect.interface';
+import type { SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
+import type { Sequelize } from 'sequelize';
 
-import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
+import { QueryTypes } from 'sequelize';
 
 type DBColumn = {
   cid: number;

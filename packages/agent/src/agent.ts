@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
+import type { ForestAdminHttpDriverServices } from './services';
+import type { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
+import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
-  DataSourceCustomizer,
   DataSourceOptions,
   Plugin,
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
-import { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
-import { ForestSchema } from '@forestadmin/forestadmin-client';
+import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import type { ForestSchema } from '@forestadmin/forestadmin-client';
+
+import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import Router from '@koa/router';
@@ -18,9 +21,8 @@ import stringify from 'json-stringify-pretty-compact';
 
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
-import makeServices, { ForestAdminHttpDriverServices } from './services';
+import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
-import { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 

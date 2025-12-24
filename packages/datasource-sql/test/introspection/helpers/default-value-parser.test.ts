@@ -1,7 +1,8 @@
+import type { ScalarSubType } from '../../../src/introspection/types';
+
 import { literal } from 'sequelize';
 
 import DefaultValueParser from '../../../src/introspection/helpers/default-value-parser';
-import { ScalarSubType } from '../../../src/introspection/types';
 
 describe('DefaultValueParser', () => {
   describe('parse', () => {

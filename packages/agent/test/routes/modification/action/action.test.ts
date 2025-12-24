@@ -1,10 +1,6 @@
-import {
-  ActionResult,
-  DataSource,
-  Filter,
-  ForbiddenError,
-  UnprocessableError,
-} from '@forestadmin/datasource-toolkit';
+import type { ActionResult, DataSource } from '@forestadmin/datasource-toolkit';
+
+import { Filter, ForbiddenError, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { Readable } from 'stream';
 

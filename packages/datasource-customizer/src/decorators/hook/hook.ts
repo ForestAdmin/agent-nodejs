@@ -1,5 +1,5 @@
-import HookContext from './context/hook';
-import { HookHandler, HookPosition } from './types';
+import type HookContext from './context/hook';
+import type { HookHandler, HookPosition } from './types';
 
 export default class Hooks<B extends HookContext, A extends HookContext> {
   private before: HookHandler<B>[] = [];

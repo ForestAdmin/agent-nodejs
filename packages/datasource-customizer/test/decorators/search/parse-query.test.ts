@@ -1,9 +1,6 @@
-import {
-  Caller,
-  ColumnSchema,
-  ConditionTreeFactory,
-  Operator,
-} from '@forestadmin/datasource-toolkit';
+import type { Caller, ColumnSchema, Operator } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
 import { generateConditionTree, parseQuery } from '../../../src/decorators/search/parse-query';
 

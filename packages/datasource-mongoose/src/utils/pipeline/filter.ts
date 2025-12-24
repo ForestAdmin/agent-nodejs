@@ -1,15 +1,12 @@
-import {
-  ConditionTree,
-  ConditionTreeBranch,
-  ConditionTreeLeaf,
-  Operator,
-  PaginatedFilter,
-} from '@forestadmin/datasource-toolkit';
+import type { Stack } from '../../types';
+import type { ConditionTree, Operator, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import type { Model, PipelineStage } from 'mongoose';
+
+import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
-import { Model, PipelineStage, Types, isValidObjectId } from 'mongoose';
+import { Types, isValidObjectId } from 'mongoose';
 
 import MongooseSchema from '../../mongoose/schema';
-import { Stack } from '../../types';
 import VersionManager from '../version-manager';
 
 const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];

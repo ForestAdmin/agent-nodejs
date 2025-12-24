@@ -1,4 +1,6 @@
-import { DataSource, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import RenameCollectionCollectionDecorator from './collection';
 

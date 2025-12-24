@@ -1,5 +1,6 @@
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
+
 import {
-  ColumnSchema,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   allOperators,

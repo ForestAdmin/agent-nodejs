@@ -1,18 +1,13 @@
-import {
-  Caller,
-  CollectionDecorator,
-  Filter,
-  RecordData,
-  SchemaUtils,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
+import type { CreateOverrideHandler, DeleteOverrideHandler, UpdateOverrideHandler } from './types';
+import type { Caller, Filter, RecordData } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator, SchemaUtils, ValidationError } from '@forestadmin/datasource-toolkit';
 
 import {
   CreateOverrideCustomizationContext,
   DeleteOverrideCustomizationContext,
   UpdateOverrideCustomizationContext,
 } from './context';
-import { CreateOverrideHandler, DeleteOverrideHandler, UpdateOverrideHandler } from './types';
 
 export default class OverrideCollectionDecorator extends CollectionDecorator {
   private createHandler: CreateOverrideHandler;

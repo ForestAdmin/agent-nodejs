@@ -1,8 +1,8 @@
-import {
+import type { BinaryMode } from './types';
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
   ColumnType,
@@ -14,11 +14,10 @@ import {
   PaginatedFilter,
   Projection,
   RecordData,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import FileType from 'file-type';
 
-import { BinaryMode } from './types';
+import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import FileType from 'file-type';
 
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data

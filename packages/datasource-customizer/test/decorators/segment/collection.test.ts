@@ -1,8 +1,8 @@
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
   BusinessError,
-  Collection,
   ConditionTreeLeaf,
-  DataSource,
   MissingFieldError,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';

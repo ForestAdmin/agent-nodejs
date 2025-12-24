@@ -1,6 +1,5 @@
-import ChartHandlerService, { ChartRequest } from '../../src/charts/chart-handler';
-import {
-  ChartType,
+import type { ChartRequest } from '../../src/charts/chart-handler';
+import type {
   LeaderboardChart,
   LineChart,
   ObjectiveChart,
@@ -8,7 +7,10 @@ import {
   QueryChart,
   ValueChart,
 } from '../../src/charts/types';
-import { RawTree } from '../../src/permissions/types';
+import type { RawTree } from '../../src/permissions/types';
+
+import ChartHandlerService from '../../src/charts/chart-handler';
+import { ChartType } from '../../src/charts/types';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 import contextVariablesInstantiatorFactory from '../__factories__/utils/context-variables-instantiator';
 

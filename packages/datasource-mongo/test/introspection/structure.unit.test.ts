@@ -1,8 +1,9 @@
+import type { MongoDb } from '../../src/introspection/types';
+
 import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 
 import Structure from '../../src/introspection/structure';
-import { MongoDb } from '../../src/introspection/types';
 
 const { Decimal128, Int32, Long, Timestamp, ObjectId, Binary } = mongoose.mongo;
 

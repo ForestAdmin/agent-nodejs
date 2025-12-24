@@ -1,21 +1,20 @@
-import {
+import type { ComputedDefinition } from './types';
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   DataSourceDecorator,
-  FieldValidator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator, FieldValidator, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import computeFromRecords from './helpers/compute-fields';
 import rewriteField from './helpers/rewrite-projection';
-import { ComputedDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 
 /** Decorator injects computed fields */

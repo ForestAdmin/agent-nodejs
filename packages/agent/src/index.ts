@@ -1,7 +1,7 @@
-import { TSchema } from '@forestadmin/datasource-customizer';
+import type { AgentOptions } from './types';
+import type { TSchema } from '@forestadmin/datasource-customizer';
 
 import Agent from './agent';
-import { AgentOptions } from './types';
 
 export function createAgent<S extends TSchema = TSchema>(options: AgentOptions): Agent<S> {
   return new Agent<S>(options);

@@ -1,4 +1,4 @@
-import { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { Operator, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 import FilterOperatorsGenerator from '../../../src/utils/schema/filter-operators';
 

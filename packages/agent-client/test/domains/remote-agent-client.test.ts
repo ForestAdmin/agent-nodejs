@@ -1,5 +1,6 @@
+import type HttpRequester from '../../src/http-requester';
+
 import RemoteAgentClient from '../../src/domains/remote-agent-client';
-import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
 

@@ -1,13 +1,16 @@
-import {
+import type {
   Collection,
   ColumnSchema,
-  ConditionTreeLeaf,
   DataSource,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  ConditionTreeLeaf,
   DataSourceDecorator,
   MissingFieldError,
   PaginatedFilter,
   Projection,
-  RecordData,
   RelationFieldAccessDeniedError,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';

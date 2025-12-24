@@ -1,5 +1,6 @@
+import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+
 import { ForbiddenError } from '@forestadmin/datasource-toolkit';
-import { ForestAdminClient } from '@forestadmin/forestadmin-client';
 
 import ActionAuthorizationService from '../../../../src/routes/modification/action/action-authorization';
 import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/custom-action-trigger-forbidden-error';

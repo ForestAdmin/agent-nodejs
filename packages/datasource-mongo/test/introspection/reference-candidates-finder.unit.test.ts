@@ -1,7 +1,8 @@
+import type { ModelStudy } from '../../src/introspection/types';
+
 import mongoose from 'mongoose';
 
 import ReferenceCandidateFinder from '../../src/introspection/reference-candidates-finder';
-import { ModelStudy } from '../../src/introspection/types';
 
 const { ObjectId } = mongoose.mongo;
 

@@ -1,4 +1,5 @@
-import { Command } from 'commander';
+import type { Logger, MakeCommands } from '../types';
+import type { Command } from 'commander';
 
 import actionRunner from '../dialogs/action-runner';
 import askToOverwriteCustomizations from '../dialogs/ask-to-overwrite-customizations';
@@ -8,7 +9,6 @@ import { validateEnvironmentVariables } from '../services/environment-variables'
 import HttpServer from '../services/http-server';
 import publish from '../services/publish';
 import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
-import { Logger, MakeCommands } from '../types';
 
 const askToOverwriteCustomizationsOrAbortCommand = async (
   logger: Logger,

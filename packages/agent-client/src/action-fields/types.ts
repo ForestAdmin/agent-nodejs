@@ -1,4 +1,4 @@
-import { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 export type ResponseBody = {
   fields: PlainField[];

@@ -1,10 +1,10 @@
-import { Command } from 'commander';
+import type { MakeCommands } from '../types';
+import type { Command } from 'commander';
 
 import actionRunner from '../dialogs/action-runner';
 import checkLatestVersion from '../dialogs/check-latest-version';
 import { validateServerUrl } from '../services/environment-variables';
 import HttpServer from '../services/http-server';
-import { MakeCommands } from '../types';
 
 export default (program: Command, context: MakeCommands) => {
   const { logger, getCurrentVersion, getEnvironmentVariables, login } = context;

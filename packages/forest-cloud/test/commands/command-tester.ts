@@ -1,11 +1,12 @@
-import { Command } from 'commander';
+import type { MakeCommandsForTests } from './utils';
+import type { Logger } from '../../src/types';
+import type { Command } from 'commander';
+
 import * as process from 'process';
 import readline from 'readline';
 
 import { LoggerTester, QuestionTester, SpinnerTester } from './testers';
-import { MakeCommandsForTests } from './utils';
 import makeCommands from '../../src/make-commands';
-import { Logger } from '../../src/types';
 
 export default class CommandTester {
   private readonly command: Command;

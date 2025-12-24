@@ -1,5 +1,9 @@
-import { Aggregation, AggregationOperation, DateOperation } from '@forestadmin/datasource-toolkit';
-import { AccumulatorOperator, PipelineStage } from 'mongoose';
+import type {
+  Aggregation,
+  AggregationOperation,
+  DateOperation,
+} from '@forestadmin/datasource-toolkit';
+import type { AccumulatorOperator, PipelineStage } from 'mongoose';
 
 /** Transform a forest admin aggregation into mongo pipeline */
 export default class GroupGenerator {

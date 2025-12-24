@@ -1,6 +1,6 @@
-import { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
-import { ForestAdminClient } from '@forestadmin/forestadmin-client';
-import { IncomingMessage, ServerResponse } from 'http';
+import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {

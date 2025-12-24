@@ -1,4 +1,6 @@
-import { PermissionLevel, RawTree } from '../../src/permissions/types';
+import type { RawTree } from '../../src/permissions/types';
+
+import { PermissionLevel } from '../../src/permissions/types';
 import ContextVariables from '../../src/utils/context-variables';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 

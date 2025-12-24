@@ -1,14 +1,14 @@
-import { AgentOptions, createAgent } from '@forestadmin/agent';
-import {
-  ConnectionParams,
-  MongoDatasourceParams,
-  createMongoDataSource,
-} from '@forestadmin/datasource-mongo';
-import { ConnectionOptions, createSqlDataSource } from '@forestadmin/datasource-sql';
+import type DistPathManager from './dist-path-manager';
+import type { AgentOptions } from '@forestadmin/agent';
+import type { ConnectionParams, MongoDatasourceParams } from '@forestadmin/datasource-mongo';
+import type { ConnectionOptions } from '@forestadmin/datasource-sql';
+
+import { createAgent } from '@forestadmin/agent';
+import { createMongoDataSource } from '@forestadmin/datasource-mongo';
+import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import fs from 'fs/promises';
 
 import { throwIfNoBuiltCode } from './access-file';
-import DistPathManager from './dist-path-manager';
 import loadCustomization from './load-customization';
 import { BusinessError } from '../errors';
 

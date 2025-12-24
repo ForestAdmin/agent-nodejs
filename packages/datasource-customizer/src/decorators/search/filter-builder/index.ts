@@ -1,12 +1,12 @@
-import {
+import type {
   Caller,
   ColumnSchema,
   ColumnType,
   ConditionTree,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import buildBooleanFieldFilter from './build-boolean-field-filter';
 import buildDateFieldFilter from './build-date-field-filter';

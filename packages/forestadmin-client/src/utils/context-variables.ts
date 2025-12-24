@@ -1,4 +1,4 @@
-import { Team, UserPermissionV4 } from '../permissions/types';
+import type { Team, UserPermissionV4 } from '../permissions/types';
 
 export type RequestContextVariables = {
   [key: string]: string | number | boolean;

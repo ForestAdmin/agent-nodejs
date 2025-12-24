@@ -1,6 +1,5 @@
-import { Sequelize } from 'sequelize';
-
-import { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
+import type { SequelizeColumn, SequelizeTableIdentifier } from '../type-overrides';
+import type { Sequelize } from 'sequelize';
 
 export type ColumnDescription = Omit<SequelizeColumn, 'defaultValue'> & {
   name: string;

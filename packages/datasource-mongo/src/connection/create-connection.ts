@@ -1,11 +1,11 @@
 import type { ConnectionParams } from '../types';
-import type { Server } from 'net';
+import type { Connection } from 'mongoose';
+import type { AddressInfo, Server } from 'net';
 import type { Client } from 'ssh2';
-import type { SshOptions } from 'tunnel-ssh';
+import type { ForwardOptions, ServerOptions, SshOptions, TunnelOptions } from 'tunnel-ssh';
 
-import mongoose, { Connection } from 'mongoose';
-import { AddressInfo } from 'net';
-import { ForwardOptions, ServerOptions, TunnelOptions, createTunnel } from 'tunnel-ssh';
+import mongoose from 'mongoose';
+import { createTunnel } from 'tunnel-ssh';
 
 import { ConnectionError, SshConnectError } from '../errors';
 

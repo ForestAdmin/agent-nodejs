@@ -1,9 +1,8 @@
+import type { Caller, Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
   Aggregation,
-  Caller,
-  Collection,
   ConditionTreeLeaf,
-  DataSource,
   Filter,
   MissingFieldError,
   Page,

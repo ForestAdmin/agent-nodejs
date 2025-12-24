@@ -1,8 +1,8 @@
-import { DataSourceFactory } from '@forestadmin/datasource-toolkit';
-import { Connection, Mongoose } from 'mongoose';
+import type { MongooseOptions } from './types';
+import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import type { Connection, Mongoose } from 'mongoose';
 
 import MongooseDatasource from './datasource';
-import { MongooseOptions } from './types';
 
 export { default as MongooseCollection } from './collection';
 export { default as MongooseDatasource } from './datasource';

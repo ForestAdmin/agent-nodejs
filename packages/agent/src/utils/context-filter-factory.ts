@@ -1,11 +1,7 @@
-import {
-  Collection,
-  ConditionTree,
-  ConditionTreeFactory,
-  Filter,
-  PaginatedFilter,
-} from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
+import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type { Context } from 'koa';
+
+import { ConditionTreeFactory, Filter, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 
 import QueryStringParser from './query-string';
 

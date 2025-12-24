@@ -1,11 +1,15 @@
-import { Caller, DataSource, UnprocessableError } from '@forestadmin/datasource-toolkit';
-import { ChartType, QueryChart } from '@forestadmin/forestadmin-client';
-import Router from '@koa/router';
-import { Context } from 'koa';
+import type { ForestAdminHttpDriverServices } from '../../services';
+import type { AgentOptionsWithDefaults } from '../../types';
+import type { Caller, DataSource } from '@forestadmin/datasource-toolkit';
+import type { QueryChart } from '@forestadmin/forestadmin-client';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
+import { UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { ChartType } from '@forestadmin/forestadmin-client';
 import { v1 as uuidv1 } from 'uuid';
 
-import { ForestAdminHttpDriverServices } from '../../services';
-import { AgentOptionsWithDefaults, RouteType } from '../../types';
+import { RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 function isQueryChartRequest(body): body is QueryChart {

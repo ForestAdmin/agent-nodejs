@@ -1,6 +1,7 @@
+import type { ReplicaDataSourceOptions } from '../../../src';
+
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
-import { ReplicaDataSourceOptions } from '../../../src';
 import { makeReplicaDataSource, makeSchemaWithId } from '../factories';
 
 describe('create', () => {

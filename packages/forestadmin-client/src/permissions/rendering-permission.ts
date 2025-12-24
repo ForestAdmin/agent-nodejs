@@ -1,17 +1,13 @@
+import type { CollectionRenderingPermissionV4, RawTree, Team, UserPermissionV4 } from './types';
+import type UserPermissionService from './user-permission';
+import type { Chart, QueryChart } from '../charts/types';
+import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
+
 import { hashChartRequest, hashServerCharts } from './hash-chart';
 import isSegmentQueryAllowedOnConnection from './is-segment-query-allowed-on-connection';
 import isSegmentQueryAllowed from './is-segment-query-authorized';
-import {
-  CollectionRenderingPermissionV4,
-  PermissionLevel,
-  RawTree,
-  Team,
-  UserPermissionV4,
-} from './types';
-import UserPermissionService from './user-permission';
+import { PermissionLevel } from './types';
 import verifySQLQuery from './verify-sql-query';
-import { Chart, QueryChart } from '../charts/types';
-import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
 import TTLCache from '../utils/ttl-cache';

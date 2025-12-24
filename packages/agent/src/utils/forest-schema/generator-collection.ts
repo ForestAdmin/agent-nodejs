@@ -1,15 +1,17 @@
-import { Collection, SchemaUtils } from '@forestadmin/datasource-toolkit';
-import {
+import type { AgentOptionsWithDefaults } from '../../types';
+import type { Collection } from '@forestadmin/datasource-toolkit';
+import type {
   ForestServerAction,
   ForestServerCollection,
   ForestServerField,
   ForestServerSegment,
 } from '@forestadmin/forestadmin-client';
 
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+
 import SchemaGeneratorActions from './generator-actions';
 import SchemaGeneratorFields from './generator-fields';
 import SchemaGeneratorSegments from './generator-segments';
-import { AgentOptionsWithDefaults } from '../../types';
 
 export default class SchemaGeneratorCollection {
   private readonly schemaGeneratorActions: SchemaGeneratorActions;

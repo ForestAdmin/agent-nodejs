@@ -1,4 +1,6 @@
-import mongoose, { Model, Schema } from 'mongoose';
+import type { Model } from 'mongoose';
+
+import mongoose, { Schema } from 'mongoose';
 
 import MongooseSchema from '../src/mongoose/schema';
 

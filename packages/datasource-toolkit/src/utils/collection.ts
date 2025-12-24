@@ -1,14 +1,16 @@
+import type { Caller } from '../interfaces/caller';
+import type { Collection } from '../interfaces/collection';
+import type { AggregateResult } from '../interfaces/query/aggregation';
+import type Aggregation from '../interfaces/query/aggregation';
+import type PaginatedFilter from '../interfaces/query/filter/paginated';
+import type { CompositeId, RecordData } from '../interfaces/record';
+import type { FieldSchema, RelationSchema } from '../interfaces/schema';
+
 import SchemaUtils from './schema';
-import { Caller } from '../interfaces/caller';
-import { Collection } from '../interfaces/collection';
-import Aggregation, { AggregateResult } from '../interfaces/query/aggregation';
 import ConditionTreeFactory from '../interfaces/query/condition-tree/factory';
 import FilterFactory from '../interfaces/query/filter/factory';
-import PaginatedFilter from '../interfaces/query/filter/paginated';
 import Filter from '../interfaces/query/filter/unpaginated';
 import Projection from '../interfaces/query/projection';
-import { CompositeId, RecordData } from '../interfaces/record';
-import { FieldSchema, RelationSchema } from '../interfaces/schema';
 
 export default class CollectionUtils {
   static getFieldSchema(collection: Collection, path: string): FieldSchema {

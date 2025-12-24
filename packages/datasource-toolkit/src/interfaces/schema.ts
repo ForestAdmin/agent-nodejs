@@ -1,4 +1,4 @@
-import { Operator } from './query/condition-tree/nodes/operators';
+import type { Operator } from './query/condition-tree/nodes/operators';
 
 export type ActionScope = 'Single' | 'Bulk' | 'Global';
 

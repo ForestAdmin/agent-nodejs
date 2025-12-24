@@ -1,7 +1,7 @@
-import { Plugin } from '@forestadmin/datasource-customizer';
-import { ForestAdminClient, ModelCustomization } from '@forestadmin/forestadmin-client';
+import type { AgentOptionsWithDefaults } from '../../types';
+import type { Plugin } from '@forestadmin/datasource-customizer';
+import type { ForestAdminClient, ModelCustomization } from '@forestadmin/forestadmin-client';
 
-import { AgentOptionsWithDefaults } from '../../types';
 import UpdateRecordActionsPlugin from './actions/update-record/update-record-plugin';
 import WebhookActionsPlugin from './actions/webhook/webhook-plugin';
 

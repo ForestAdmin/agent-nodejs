@@ -1,4 +1,4 @@
-import { RecordData } from '../record';
+import type { RecordData } from '../record';
 
 export type PlainPage = { skip: number; limit: number };
 

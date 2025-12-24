@@ -1,8 +1,7 @@
+import type { CollectionSchema, CompositeId, RecordData } from '@forestadmin/datasource-toolkit';
+
 import {
-  CollectionSchema,
-  CompositeId,
   FieldValidator,
-  RecordData,
   SchemaUtils,
   UnprocessableError,
   ValidationError,

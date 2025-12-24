@@ -1,25 +1,27 @@
-import {
+import type { RelationDefinition } from './types';
+import type {
   AggregateResult,
   Aggregation,
   Caller,
   Collection,
-  CollectionDecorator,
   CollectionSchema,
-  CollectionUtils,
   ColumnSchema,
   ConditionTree,
-  ConditionTreeLeaf,
   DataSourceDecorator,
-  Filter,
   PaginatedFilter,
-  Projection,
   RecordData,
-  RecordUtils,
   RelationSchema,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import { RelationDefinition } from './types';
+import {
+  CollectionDecorator,
+  CollectionUtils,
+  ConditionTreeLeaf,
+  Filter,
+  Projection,
+  RecordUtils,
+  SchemaUtils,
+} from '@forestadmin/datasource-toolkit';
 
 export default class RelationCollectionDecorator extends CollectionDecorator {
   override readonly dataSource: DataSourceDecorator<RelationCollectionDecorator>;

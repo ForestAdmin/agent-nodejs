@@ -1,16 +1,11 @@
 /* eslint-disable no-underscore-dangle */
 
-import {
-  Aggregator,
-  ConditionTreeLeaf,
-  Operator,
-  Page,
-  PaginatedFilter,
-  Projection,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
+import type { Aggregator, ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
+import type { Connection } from 'mongoose';
+
+import { Page, PaginatedFilter, Projection, Sort } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import { Connection, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 import setupReview from './_build-models';
 import MongooseDatasource from '../../../src/datasource';

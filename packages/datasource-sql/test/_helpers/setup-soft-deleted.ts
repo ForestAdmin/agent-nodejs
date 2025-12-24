@@ -1,6 +1,8 @@
-import { DataTypes, Sequelize } from 'sequelize';
+import type { ConnectionDetails } from './connection-details';
+import type { Sequelize } from 'sequelize';
 
-import { ConnectionDetails } from './connection-details';
+import { DataTypes } from 'sequelize';
+
 import setupEmptyDatabase from './setup-empty-database';
 
 export default async function setupSoftDeleted(

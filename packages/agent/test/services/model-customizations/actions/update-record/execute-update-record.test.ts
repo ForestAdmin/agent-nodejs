@@ -1,6 +1,7 @@
-import { ActionContext } from '@forestadmin/datasource-customizer';
+import type { ActionContext } from '@forestadmin/datasource-customizer';
+import type { UpdateRecordAction } from '@forestadmin/forestadmin-client/src/model-customizations/types';
+
 import { BusinessError } from '@forestadmin/datasource-toolkit';
-import { UpdateRecordAction } from '@forestadmin/forestadmin-client/src/model-customizations/types';
 
 import executeUpdateRecord from '../../../../../src/services/model-customizations/actions/update-record/execute-update-record';
 

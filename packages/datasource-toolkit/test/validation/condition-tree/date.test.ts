@@ -1,4 +1,6 @@
-import { Operator, allOperators } from '../../../src';
+import type { Operator } from '../../../src';
+
+import { allOperators } from '../../../src';
 import ConditionTreeValidator from '../../../src/validation/condition-tree';
 import * as factories from '../../__factories__';
 

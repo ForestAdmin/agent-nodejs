@@ -1,14 +1,14 @@
-import { PlainConditionTreeBranch } from './branch';
-import {
+import type { PlainConditionTreeBranch } from './branch';
+import type {
   AsyncLeafReplacer,
   LeafCallback,
   LeafReplacer,
   LeafTester,
   PlainConditionTreeLeaf,
 } from './leaf';
-import { Collection } from '../../../collection';
-import { RecordData } from '../../../record';
-import Projection from '../../projection';
+import type { Collection } from '../../../collection';
+import type { RecordData } from '../../../record';
+import type Projection from '../../projection';
 
 export type PlainConditionTree = PlainConditionTreeBranch | PlainConditionTreeLeaf;
 

@@ -1,10 +1,12 @@
-import { DateTime, DateTimeUnit } from 'luxon';
+import type { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
+import type { ColumnSchema } from '../../src/interfaces/schema';
+import type { DateTimeUnit } from 'luxon';
+
+import { DateTime } from 'luxon';
 
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
-import { Operator } from '../../src/interfaces/query/condition-tree/nodes/operators';
 import FilterFactory from '../../src/interfaces/query/filter/factory';
 import Filter from '../../src/interfaces/query/filter/unpaginated';
-import { ColumnSchema } from '../../src/interfaces/schema';
 import * as factories from '../__factories__';
 
 const TEST_TIMEZONE = 'Europe/Dublin';

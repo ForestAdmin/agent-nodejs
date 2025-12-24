@@ -1,17 +1,16 @@
+import type { SegmentDefinition } from './types';
+import type { Caller, CollectionSchema, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+
 import {
   BusinessError,
-  Caller,
   CollectionDecorator,
-  CollectionSchema,
   ConditionTree,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   ConditionTreeValidator,
-  PaginatedFilter,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import { SegmentDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 
 export default class SegmentCollectionDecorator extends CollectionDecorator {

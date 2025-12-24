@@ -1,15 +1,11 @@
+import type { Tokens, UserInfo } from './auth/types';
 import type { ChartRequest } from './charts/chart-handler';
 import type { Chart, QueryChart } from './charts/types';
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
-
-import { ParsedUrlQuery } from 'querystring';
-
-import { Tokens, UserInfo } from './auth/types';
-import { IpWhitelistConfiguration } from './ip-whitelist/types';
-import { McpServerConfigService } from './mcp-server-config/types';
-import { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
-import { HttpOptions } from './permissions/forest-http-api';
-import {
+import type { IpWhitelistConfiguration } from './ip-whitelist/types';
+import type { McpServerConfigService } from './mcp-server-config/types';
+import type { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
+import type { HttpOptions } from './permissions/forest-http-api';
+import type {
   CollectionActionEvent,
   EnvironmentPermissionsV4,
   RawTree,
@@ -17,8 +13,11 @@ import {
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
-import { ForestSchema } from './schema/types';
-import ContextVariables, { RequestContextVariables } from './utils/context-variables';
+import type { ForestSchema } from './schema/types';
+import type { RequestContextVariables } from './utils/context-variables';
+import type ContextVariables from './utils/context-variables';
+import type { McpConfiguration } from '@forestadmin/ai-proxy';
+import type { ParsedUrlQuery } from 'querystring';
 
 export type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
 

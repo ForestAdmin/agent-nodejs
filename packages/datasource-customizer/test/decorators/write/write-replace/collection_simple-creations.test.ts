@@ -1,8 +1,10 @@
-import { Collection, MissingFieldError } from '@forestadmin/datasource-toolkit';
+import type WriteReplacerCollectionDecorator from '../../../../src/decorators/write/write-replace/collection';
+import type { Collection } from '@forestadmin/datasource-toolkit';
+
+import { MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDataSourceDecorator from '../../../../src/decorators/write/datasource';
-import WriteReplacerCollectionDecorator from '../../../../src/decorators/write/write-replace/collection';
 
 const caller = factories.caller.build();
 

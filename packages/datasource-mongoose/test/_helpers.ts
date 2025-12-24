@@ -1,5 +1,7 @@
 /* eslint-disable import/prefer-default-export */
-import { Model, Schema, deleteModel, model } from 'mongoose';
+import type { Model, Schema } from 'mongoose';
+
+import { deleteModel, model } from 'mongoose';
 
 export function buildModel(schema: Schema, modelName = 'aModel'): Model<unknown> {
   try {

@@ -1,12 +1,9 @@
-import {
-  Caller,
-  Collection,
-  CompositeId,
-  ConditionTreeFactory,
-} from '@forestadmin/datasource-toolkit';
+import type { TCollectionName, TConditionTree, TFieldName, TRow, TSchema } from '../../templates';
+import type { Caller, Collection, CompositeId } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TConditionTree, TFieldName, TRow, TSchema } from '../../templates';
 
 export default class CollectionChartContext<
   S extends TSchema = TSchema,

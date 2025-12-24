@@ -1,12 +1,15 @@
-import {
+import type {
   Caller,
-  CollectionDecorator,
   CollectionSchema,
-  CollectionUtils,
   ColumnSchema,
-  ConditionTreeEquivalent,
   FieldSchema,
   PaginatedFilter,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionDecorator,
+  CollectionUtils,
+  ConditionTreeEquivalent,
   allOperators,
 } from '@forestadmin/datasource-toolkit';
 

@@ -1,7 +1,8 @@
+import type { PlainConnectionOptionsOrUri } from '../src/types';
+
 import { Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource, preprocessOptions } from '../src';
-import { PlainConnectionOptionsOrUri } from '../src/types';
 
 jest.mock('sequelize');
 
