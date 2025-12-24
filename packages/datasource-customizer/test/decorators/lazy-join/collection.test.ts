@@ -1,10 +1,6 @@
-import {
-  Aggregation,
-  Collection,
-  DataSource,
-  DataSourceDecorator,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
+import { Aggregation, DataSourceDecorator, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import LazyJoinDecorator from '../../../src/decorators/lazy-join/collection';

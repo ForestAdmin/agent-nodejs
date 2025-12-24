@@ -1,4 +1,4 @@
-import { RentalCustomizer } from '../typings';
+import type { RentalCustomizer } from '../typings';
 
 export default (collection: RentalCustomizer) =>
   collection

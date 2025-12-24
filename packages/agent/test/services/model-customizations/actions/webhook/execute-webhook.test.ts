@@ -1,9 +1,10 @@
-import { ActionContext } from '@forestadmin/datasource-customizer';
-import { SchemaUtils } from '@forestadmin/datasource-toolkit';
-import {
+import type { ActionContext } from '@forestadmin/datasource-customizer';
+import type {
   ActionScope,
   WebhookAction,
 } from '@forestadmin/forestadmin-client/src/model-customizations/types';
+
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 import superagent from 'superagent';
 
 import executeWebhook from '../../../../../src/services/model-customizations/actions/webhook/execute-webhook';

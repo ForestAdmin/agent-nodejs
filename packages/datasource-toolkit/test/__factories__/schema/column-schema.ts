@@ -1,6 +1,7 @@
+import type { ColumnSchema } from '../../../src/interfaces/schema';
+
 import { Factory } from 'fishery';
 
-import { ColumnSchema } from '../../../src/interfaces/schema';
 import { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE } from '../../../src/validation/rules';
 
 export class ColumnSchemaFactory extends Factory<ColumnSchema> {

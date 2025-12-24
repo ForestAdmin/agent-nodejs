@@ -1,7 +1,8 @@
+import type { Introspection } from '../src';
+
 import mongoose, { Schema } from 'mongoose';
 
 import {
-  Introspection,
   buildDisconnectedMongooseInstance,
   buildMongooseInstance,
   createMongoDataSource,

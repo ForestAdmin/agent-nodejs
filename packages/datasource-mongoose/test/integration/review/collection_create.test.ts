@@ -1,8 +1,9 @@
 /* eslint-disable no-underscore-dangle */
 
+import type { Connection } from 'mongoose';
+
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import { Connection } from 'mongoose';
 
 import setupReview from './_build-models';
 import MongooseDatasource from '../../../src/datasource';

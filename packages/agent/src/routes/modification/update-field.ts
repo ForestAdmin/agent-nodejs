@@ -1,3 +1,6 @@
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
 import {
   ConditionTreeFactory,
   FieldValidator,
@@ -5,8 +8,6 @@ import {
   Projection,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';

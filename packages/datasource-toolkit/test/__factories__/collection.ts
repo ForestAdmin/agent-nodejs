@@ -1,10 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
+
+import type { ActionFormElement } from '../../src/interfaces/action';
+import type { Collection } from '../../src/interfaces/collection';
+import type { ActionSchema } from '../../src/interfaces/schema';
+
 import { Factory } from 'fishery';
 
 import collectionSchemaFactory from './schema/collection-schema';
-import { ActionFormElement } from '../../src/interfaces/action';
-import { Collection } from '../../src/interfaces/collection';
-import { ActionSchema } from '../../src/interfaces/schema';
 
 export class CollectionFactory extends Factory<Collection> {
   buildWithAction(

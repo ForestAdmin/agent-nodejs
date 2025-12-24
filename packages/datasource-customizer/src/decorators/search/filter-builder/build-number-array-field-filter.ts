@@ -1,4 +1,4 @@
-import { ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
+import type { ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
 
 import buildBasicArrayFieldFilter from './build-basic-array-field-filter';
 import buildDefaultCondition from './utils/build-default-condition';

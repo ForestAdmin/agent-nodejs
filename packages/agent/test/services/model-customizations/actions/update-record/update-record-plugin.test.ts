@@ -1,9 +1,8 @@
-import { ActionContext, CollectionCustomizer } from '@forestadmin/datasource-customizer';
-import { ActionScope } from '@forestadmin/datasource-toolkit';
-import {
-  ActionType,
-  ModelCustomizationType,
-} from '@forestadmin/forestadmin-client/src/model-customizations/types';
+import type { ActionContext, CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { ActionScope } from '@forestadmin/datasource-toolkit';
+import type { ActionType } from '@forestadmin/forestadmin-client/src/model-customizations/types';
+
+import { ModelCustomizationType } from '@forestadmin/forestadmin-client/src/model-customizations/types';
 
 import executeUpdateRecord from '../../../../../src/services/model-customizations/actions/update-record/execute-update-record';
 import UpdateRecordActionsPlugin from '../../../../../src/services/model-customizations/actions/update-record/update-record-plugin';

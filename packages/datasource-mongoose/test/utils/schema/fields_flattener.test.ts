@@ -1,5 +1,7 @@
-import { ColumnSchema } from '@forestadmin/datasource-toolkit/src/interfaces/schema';
-import { Model, Schema } from 'mongoose';
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit/src/interfaces/schema';
+import type { Model } from 'mongoose';
+
+import { Schema } from 'mongoose';
 
 import FieldsGenerator from '../../../src/utils/schema/fields';
 import { buildModel } from '../../_helpers';

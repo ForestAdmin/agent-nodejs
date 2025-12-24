@@ -1,8 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Model, Schema, SchemaType } from 'mongoose';
+import type { Stack } from '../types';
+import type { Model, SchemaType } from 'mongoose';
 
-import { Stack } from '../types';
+import { Schema } from 'mongoose';
+
 import { recursiveDelete, recursiveSet } from '../utils/helpers';
 import isShemaType from '../utils/schema/is-schema-type';
 import VersionManager from '../utils/version-manager';

@@ -1,17 +1,15 @@
 /* eslint-disable max-classes-per-file */
+import type { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
+import type { Caller, Collection, CompositeId, RecordData } from '@forestadmin/datasource-toolkit';
+
 import {
-  Caller,
-  Collection,
-  CompositeId,
   Deferred,
   Projection,
   ProjectionValidator,
-  RecordData,
   RecordUtils,
 } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../../context/collection-context';
-import { TCollectionName, TFieldName, TFilter, TRow, TSchema } from '../../../templates';
 
 export default class ActionContext<
   S extends TSchema = TSchema,

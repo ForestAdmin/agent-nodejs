@@ -1,11 +1,7 @@
 /* eslint-disable no-continue */
-import {
-  ColumnType,
-  ConditionTree,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
-  Operator,
-} from '@forestadmin/datasource-toolkit';
+import type { ColumnType, ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 
 import buildDefaultCondition from './utils/build-default-condition';

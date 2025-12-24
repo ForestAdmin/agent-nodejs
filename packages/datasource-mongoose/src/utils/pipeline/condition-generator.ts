@@ -1,4 +1,4 @@
-import { AnyExpression } from 'mongoose';
+import type { AnyExpression } from 'mongoose';
 
 export const FOREST_RECORD_DOES_NOT_EXIST = 'FOREST_RECORD_DOES_NOT_EXIST';
 export default class ConditionGenerator {

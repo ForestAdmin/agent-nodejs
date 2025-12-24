@@ -1,4 +1,6 @@
-import { Table } from '@forestadmin/datasource-sql';
+import type { EnvironmentVariables } from '../../src/types';
+import type { Table } from '@forestadmin/datasource-sql';
+
 import AdmZip from 'adm-zip';
 import * as fs from 'fs';
 import * as fsP from 'fs/promises';
@@ -8,7 +10,6 @@ import bootstrap from '../../src/services/bootstrap';
 import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import HttpServer from '../../src/services/http-server';
 import { updateTypings } from '../../src/services/update-typings';
-import { EnvironmentVariables } from '../../src/types';
 
 jest.mock('adm-zip');
 jest.mock('fs');

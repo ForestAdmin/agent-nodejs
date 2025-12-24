@@ -1,10 +1,13 @@
-import { ObjectCannedACL } from '@aws-sdk/client-s3';
+import type { Options } from '../src';
+import type { ObjectCannedACL } from '@aws-sdk/client-s3';
+import type { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { ColumnSchema, DataSource, Projection, Sort } from '@forestadmin/datasource-toolkit';
+import { Projection, Sort } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Readable } from 'stream';
 
-import { Options, createFileField } from '../src';
+import { createFileField } from '../src';
 
 const logger = () => {};
 

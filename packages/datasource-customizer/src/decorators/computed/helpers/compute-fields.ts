@@ -1,8 +1,10 @@
-import { Projection, RecordData } from '@forestadmin/datasource-toolkit';
+import type CollectionCustomizationContext from '../../../context/collection-context';
+import type ComputedCollection from '../collection';
+import type { ComputedDefinition } from '../types';
+import type { RecordData } from '@forestadmin/datasource-toolkit';
 
-import CollectionCustomizationContext from '../../../context/collection-context';
-import ComputedCollection from '../collection';
-import { ComputedDefinition } from '../types';
+import { Projection } from '@forestadmin/datasource-toolkit';
+
 import transformUniqueValues from '../utils/deduplication';
 import { flatten, unflatten, withNullMarkers } from '../utils/flattener';
 

@@ -1,10 +1,6 @@
-import {
-  Collection,
-  ColumnSchema,
-  ConditionTreeLeaf,
-  PaginatedFilter,
-  Projection,
-} from '@forestadmin/datasource-toolkit';
+import type { Collection, ColumnSchema } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeLeaf, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import OperatorsDecorator from '../../../src/decorators/operators-equivalence/collection';

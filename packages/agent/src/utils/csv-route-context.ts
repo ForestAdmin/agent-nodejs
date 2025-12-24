@@ -1,4 +1,4 @@
-import { Context } from 'koa';
+import type { Context } from 'koa';
 
 export default class CsvRouteContext {
   static buildResponse(context: Context): void {

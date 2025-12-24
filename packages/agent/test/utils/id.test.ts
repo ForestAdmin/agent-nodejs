@@ -1,4 +1,4 @@
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import type { CollectionSchema } from '@forestadmin/datasource-toolkit';
 
 import IdUtils from '../../src/utils/id';
 import * as factories from '../__factories__';

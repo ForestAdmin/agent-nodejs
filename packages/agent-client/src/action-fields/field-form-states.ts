@@ -1,9 +1,9 @@
-import { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type { PlainField, ResponseBody } from './types';
+import type HttpRequester from '../http-requester';
+import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
-import { PlainField, ResponseBody } from './types';
-import HttpRequester from '../http-requester';
 
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];

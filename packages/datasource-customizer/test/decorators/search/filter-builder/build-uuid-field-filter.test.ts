@@ -1,4 +1,6 @@
-import { ConditionTreeFactory, ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
+import type { Operator } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import buildUuidFieldFilter from '../../../../src/decorators/search/filter-builder/build-uuid-field-filter';
 

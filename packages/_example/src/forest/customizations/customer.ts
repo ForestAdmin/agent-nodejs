@@ -1,4 +1,4 @@
-import { CustomerCustomizer } from '../typings';
+import type { CustomerCustomizer } from '../typings';
 
 export default (collection: CustomerCustomizer) =>
   collection

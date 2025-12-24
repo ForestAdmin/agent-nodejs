@@ -1,8 +1,8 @@
 import type { Caller, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import type { ContextVariablesInstantiatorInterface } from '@forestadmin/forestadmin-client';
+import type { Context } from 'koa';
 
 import { ContextVariablesInjector } from '@forestadmin/forestadmin-client';
-import { Context } from 'koa';
 
 export default class SegmentQueryHandler {
   private readonly contextVariablesInstantiator: ContextVariablesInstantiatorInterface;

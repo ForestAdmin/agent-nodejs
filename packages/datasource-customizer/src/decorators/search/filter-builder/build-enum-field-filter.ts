@@ -1,9 +1,6 @@
-import {
-  ColumnSchema,
-  ConditionTree,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
-} from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import buildDefaultCondition from './utils/build-default-condition';
 import findEnumValue from './utils/find-enum-value';

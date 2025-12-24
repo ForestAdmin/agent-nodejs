@@ -1,4 +1,4 @@
-import { File } from '../types';
+import type { File } from '../types';
 
 export function parseDataUri(dataUri: string): File {
   if (!dataUri) return null;

@@ -1,4 +1,5 @@
-import ConditionTree, { PlainConditionTree } from '../condition-tree/nodes/base';
+import type { PlainConditionTree } from '../condition-tree/nodes/base';
+import type ConditionTree from '../condition-tree/nodes/base';
 
 export type LiveQuerySegment = {
   query: string;

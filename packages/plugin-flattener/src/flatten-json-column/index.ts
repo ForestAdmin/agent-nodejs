@@ -2,8 +2,9 @@ import type {
   CollectionCustomizer,
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
+import type { ColumnType } from '@forestadmin/datasource-toolkit';
 
-import { ColumnType, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import flattenColumn from '../flatten-column';
 

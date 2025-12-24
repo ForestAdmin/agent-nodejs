@@ -1,7 +1,7 @@
-import { Caller } from '../interfaces/caller';
-import { Chart } from '../interfaces/chart';
-import { Collection, DataSource } from '../interfaces/collection';
-import { DataSourceSchema } from '../interfaces/schema';
+import type { Caller } from '../interfaces/caller';
+import type { Chart } from '../interfaces/chart';
+import type { Collection, DataSource } from '../interfaces/collection';
+import type { DataSourceSchema } from '../interfaces/schema';
 
 type CollectionDecoratorConstructor<CollectionDecorator extends Collection> = {
   new (c: Collection, d: DataSource): CollectionDecorator;

@@ -1,4 +1,5 @@
-import { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import type { CollectionSchema } from '@forestadmin/datasource-toolkit';
+
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import BodyParser from '../../src/utils/body-parser';

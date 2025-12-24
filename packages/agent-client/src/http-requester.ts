@@ -1,4 +1,5 @@
-import { WriteStream } from 'fs';
+import type { WriteStream } from 'fs';
+
 import { Deserializer } from 'jsonapi-serializer';
 import superagent from 'superagent';
 

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { RecordData } from '@forestadmin/datasource-toolkit';
+import type { RecordData } from '@forestadmin/datasource-toolkit';
+
 import { Types, isValidObjectId } from 'mongoose';
 
 /**

@@ -1,10 +1,7 @@
-import {
-  CollectionDecorator,
-  CollectionSchema,
-  FieldSchema,
-} from '@forestadmin/datasource-toolkit';
+import type CollectionRenameDataSourceDecorator from './datasource';
+import type { CollectionSchema, FieldSchema } from '@forestadmin/datasource-toolkit';
 
-import CollectionRenameDataSourceDecorator from './datasource';
+import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
 
 /**
  * This decorator renames collections.

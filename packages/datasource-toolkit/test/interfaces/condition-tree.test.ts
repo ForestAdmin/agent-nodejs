@@ -1,5 +1,6 @@
+import type { PlainConditionTree } from '../../src/interfaces/query/condition-tree/nodes/base';
+
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
-import { PlainConditionTree } from '../../src/interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import * as factories from '../__factories__';

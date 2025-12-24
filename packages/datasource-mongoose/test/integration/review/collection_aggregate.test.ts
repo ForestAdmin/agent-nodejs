@@ -1,8 +1,10 @@
 /* eslint-disable no-underscore-dangle */
 
-import { Aggregation, Collection, DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import type { Connection } from 'mongoose';
+
+import { Aggregation, Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
-import { Connection } from 'mongoose';
 
 import setupReview from './_build-models';
 import MongooseDatasource from '../../../src/datasource';

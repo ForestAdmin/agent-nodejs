@@ -1,8 +1,8 @@
-import { Projection } from '@forestadmin/datasource-toolkit';
-import { AnyExpression, Model, PipelineStage } from 'mongoose';
+import type { Stack } from '../../types';
+import type { Projection } from '@forestadmin/datasource-toolkit';
+import type { AnyExpression, Model, PipelineStage } from 'mongoose';
 
 import ConditionGenerator from './condition-generator';
-import { Stack } from '../../types';
 
 /**
  * When using the `asModel` options, users can request/filter on the virtual _id and parentId fields

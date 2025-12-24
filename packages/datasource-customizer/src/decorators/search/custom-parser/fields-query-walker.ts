@@ -1,5 +1,6 @@
+import type { PropertyMatchingContext } from '../generated-parser/QueryParser';
+
 import QueryListener from '../generated-parser/QueryListener';
-import { PropertyMatchingContext } from '../generated-parser/QueryParser';
 
 export default class FieldsQueryWalker extends QueryListener {
   public fields: string[] = [];

@@ -1,18 +1,15 @@
-import {
-  Caller,
-  ColumnSchema,
-  ConditionTree,
-  ConditionTreeFactory,
-} from '@forestadmin/datasource-toolkit';
-
-import buildFieldFilter from '../filter-builder/index';
-import QueryListener from '../generated-parser/QueryListener';
-import {
+import type {
   NegatedContext,
   PropertyMatchingContext,
   QuotedContext,
   WordContext,
 } from '../generated-parser/QueryParser';
+import type { Caller, ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+
+import buildFieldFilter from '../filter-builder/index';
+import QueryListener from '../generated-parser/QueryListener';
 import normalizeName from '../normalize-name';
 
 export default class ConditionTreeQueryWalker extends QueryListener {

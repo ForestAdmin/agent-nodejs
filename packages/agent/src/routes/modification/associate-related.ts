@@ -1,16 +1,19 @@
-import {
+import type {
   Caller,
-  CollectionUtils,
   CompositeId,
   ConditionTree,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
   ManyToManySchema,
   OneToManySchema,
+} from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
+import {
+  CollectionUtils,
+  ConditionTreeFactory,
+  ConditionTreeLeaf,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
 
 import { HttpCode } from '../../types';
 import ContextFilterFactory from '../../utils/context-filter-factory';

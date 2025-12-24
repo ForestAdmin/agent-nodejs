@@ -1,8 +1,8 @@
-import { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
-import { Sequelize } from 'sequelize';
+import type { SequelizeDatasourceOptions } from './types';
+import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
 
 import SequelizeDataSource from './datasource';
-import { SequelizeDatasourceOptions } from './types';
 
 export { default as SequelizeCollection } from './collection';
 export { default as SequelizeDataSource } from './datasource';

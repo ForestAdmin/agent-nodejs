@@ -1,10 +1,15 @@
-import { BaseClient, ClientAuthMethod, Issuer, IssuerMetadata, errors } from 'openid-client';
-import { ParsedUrlQuery } from 'querystring';
+import type { ClientExt } from './type-overrides';
+import type { Tokens, UserInfo } from './types';
+import type {
+  ForestAdminAuthServiceInterface,
+  ForestAdminClientOptionsWithDefaults,
+} from '../types';
+import type { BaseClient, ClientAuthMethod, IssuerMetadata } from 'openid-client';
+import type { ParsedUrlQuery } from 'querystring';
+
+import { Issuer, errors } from 'openid-client';
 
 import { AuthenticationError } from './errors';
-import { ClientExt } from './type-overrides';
-import { Tokens, UserInfo } from './types';
-import { ForestAdminAuthServiceInterface, ForestAdminClientOptionsWithDefaults } from '../types';
 import ServerUtils from '../utils/server';
 
 export default class AuthService implements ForestAdminAuthServiceInterface {

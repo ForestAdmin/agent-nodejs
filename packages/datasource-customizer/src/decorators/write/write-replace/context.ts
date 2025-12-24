@@ -1,7 +1,7 @@
-import { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
+import type { TCollectionName, TFilter, TPartialSimpleRow, TSchema } from '../../../templates';
+import type { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../../context/collection-context';
-import { TCollectionName, TFilter, TPartialSimpleRow, TSchema } from '../../../templates';
 
 export default class WriteCustomizationContext<
   S extends TSchema = TSchema,

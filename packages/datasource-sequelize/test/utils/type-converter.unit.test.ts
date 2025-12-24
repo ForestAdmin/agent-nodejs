@@ -1,4 +1,5 @@
-import { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
+import type { ColumnType, Operator } from '@forestadmin/datasource-toolkit';
+
 import { DataTypes } from 'sequelize';
 
 import TypeConverter from '../../src/utils/type-converter';

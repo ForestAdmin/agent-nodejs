@@ -1,3 +1,5 @@
+import type { ConnectionDetails } from '../../_helpers/connection-details';
+
 import { DataTypes, Sequelize } from 'sequelize';
 
 import MariadbDialect from '../../../src/introspection/dialects/mariadb-dialect';
@@ -6,7 +8,6 @@ import MySQLDialect from '../../../src/introspection/dialects/mysql-dialect';
 import PostgreSQLDialect from '../../../src/introspection/dialects/postgresql-dialect';
 import SQLiteDialect from '../../../src/introspection/dialects/sqlite-dialect';
 import {
-  ConnectionDetails,
   MARIADB_DETAILS,
   MSSQL_DETAILS,
   MYSQL_DETAILS,

@@ -1,9 +1,8 @@
-import { Logger, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
-
-import CollectionCustomizer from './collection-customizer';
-import CollectionCustomizationContext from './context/collection-context';
-import DataSourceCustomizer from './datasource-customizer';
-import { TCollectionName, TFieldName, TRow, TSchema } from './templates';
+import type CollectionCustomizer from './collection-customizer';
+import type CollectionCustomizationContext from './context/collection-context';
+import type DataSourceCustomizer from './datasource-customizer';
+import type { TCollectionName, TFieldName, TRow, TSchema } from './templates';
+import type { Logger, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type OneToManyEmbeddedDefinition<
   S extends TSchema = TSchema,

@@ -1,8 +1,6 @@
-import {
-  CollectionDecorator,
-  CollectionSchema,
-  UnprocessableError,
-} from '@forestadmin/datasource-toolkit';
+import type { CollectionSchema } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator, UnprocessableError } from '@forestadmin/datasource-toolkit';
 
 export default class ViewDecorator extends CollectionDecorator {
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {

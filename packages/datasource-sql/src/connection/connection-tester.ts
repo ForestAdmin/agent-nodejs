@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import type { Sequelize } from 'sequelize';
 
 import { DatabaseConnectError } from './errors';
 

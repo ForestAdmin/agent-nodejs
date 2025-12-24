@@ -1,9 +1,10 @@
-import net from 'net';
+import type { ProxyOptions } from '../../types';
+import type net from 'net';
+import type { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
+
 import { SocksClient } from 'socks';
-import { SocksClientEstablishedEvent } from 'socks/typings/common/constants';
 
 import Service from './service';
-import { ProxyOptions } from '../../types';
 import { ProxyConnectError, ProxyForwardError } from '../errors';
 
 export default class SocksProxy extends Service {

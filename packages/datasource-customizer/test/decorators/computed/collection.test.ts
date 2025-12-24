@@ -1,7 +1,7 @@
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
   Aggregation,
-  Collection,
-  DataSource,
   DataSourceDecorator,
   MissingFieldError,
   PaginatedFilter,

@@ -1,5 +1,6 @@
+import type HttpRequester from '../../src/http-requester';
+
 import Chart from '../../src/domains/chart';
-import HttpRequester from '../../src/http-requester';
 
 // Create a concrete implementation for testing since Chart is abstract
 class TestChart extends Chart {

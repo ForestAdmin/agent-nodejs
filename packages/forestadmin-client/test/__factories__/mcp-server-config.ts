@@ -1,4 +1,4 @@
-import { McpServerConfigService } from '../../src/mcp-server-config/types';
+import type { McpServerConfigService } from '../../src/mcp-server-config/types';
 
 const mcpServerConfig = {
   build: (overrides?: Partial<McpServerConfigService>): McpServerConfigService => ({

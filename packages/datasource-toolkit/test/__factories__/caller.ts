@@ -1,6 +1,6 @@
-import { Factory } from 'fishery';
+import type { Caller } from '../../src/interfaces/caller';
 
-import { Caller } from '../../src/interfaces/caller';
+import { Factory } from 'fishery';
 
 export default Factory.define<Caller>(() => ({
   email: 'user@domain.com',

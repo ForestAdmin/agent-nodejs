@@ -1,9 +1,10 @@
+import type { AgentOptionsWithDefaults } from '../../../src/types';
+
 import { AuthenticationError, ForbiddenError } from '@forestadmin/forestadmin-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import { errors } from 'openid-client';
 
 import Authentication from '../../../src/routes/security/authentication';
-import { AgentOptionsWithDefaults } from '../../../src/types';
 import * as factories from '../../__factories__';
 
 describe('Authentication', () => {

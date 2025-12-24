@@ -1,4 +1,4 @@
-import { ActionField, CompositeId, DataSource, File } from '@forestadmin/datasource-toolkit';
+import type { ActionField, CompositeId, DataSource, File } from '@forestadmin/datasource-toolkit';
 
 import ActionFields from './action-fields';
 import SchemaGeneratorActions from './generator-actions';

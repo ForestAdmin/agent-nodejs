@@ -1,5 +1,5 @@
-import { Alternative } from '../equivalence';
-import { Operator } from '../nodes/operators';
+import type { Alternative } from '../equivalence';
+import type { Operator } from '../nodes/operators';
 
 function likes(getPattern: (pattern: string) => string, caseSensitive: boolean): Alternative {
   const operator = caseSensitive ? 'Like' : 'ILike';

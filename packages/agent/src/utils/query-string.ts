@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Caller, Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type { Context } from 'koa';
+
 import {
-  Caller,
-  Collection,
-  ConditionTree,
   ConditionTreeValidator,
   Page,
   Projection,
@@ -14,7 +14,6 @@ import {
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { Context } from 'koa';
 import { v4 as uuidv4 } from 'uuid';
 
 import ConditionTreeParser from './condition-tree-parser';

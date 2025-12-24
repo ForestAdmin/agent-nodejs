@@ -1,8 +1,11 @@
-import { BaseDataSource, Logger } from '@forestadmin/datasource-toolkit';
-import { QueryTypes, Sequelize } from 'sequelize';
+import type { SequelizeDatasourceOptions } from './types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
+
+import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+import { QueryTypes } from 'sequelize';
 
 import SequelizeCollection from './collection';
-import { SequelizeDatasourceOptions } from './types';
 
 interface NativeQueryConnection {
   instance: Sequelize;

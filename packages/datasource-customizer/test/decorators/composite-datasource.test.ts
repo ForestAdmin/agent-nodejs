@@ -1,4 +1,6 @@
-import { Collection, MissingCollectionError } from '@forestadmin/datasource-toolkit';
+import type { Collection } from '@forestadmin/datasource-toolkit';
+
+import { MissingCollectionError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import CompositeDataSource from '../../src/decorators/composite-datasource';

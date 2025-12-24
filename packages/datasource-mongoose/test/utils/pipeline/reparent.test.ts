@@ -1,4 +1,6 @@
-import mongoose, { Model, Schema } from 'mongoose';
+import type { Model } from 'mongoose';
+
+import mongoose, { Schema } from 'mongoose';
 
 import ConditionGenerator from '../../../src/utils/pipeline/condition-generator';
 import ReparentGenerator from '../../../src/utils/pipeline/reparent';

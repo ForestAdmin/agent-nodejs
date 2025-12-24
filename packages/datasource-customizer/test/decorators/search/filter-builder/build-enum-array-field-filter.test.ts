@@ -1,8 +1,6 @@
-import {
-  ColumnSchema,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
-} from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import buildBasicArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-basic-array-field-filter';
 import buildEnumArrayFieldFilter from '../../../../src/decorators/search/filter-builder/build-enum-array-field-filter';

@@ -1,13 +1,12 @@
-import {
+import type PublicationDataSourceDecorator from './datasource';
+import type {
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   FieldSchema,
   RecordData,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import PublicationDataSourceDecorator from './datasource';
+import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 /** This decorator allows hiding fields */
 export default class PublicationCollectionDecorator extends CollectionDecorator {

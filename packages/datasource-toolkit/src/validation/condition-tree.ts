@@ -1,3 +1,7 @@
+import type { Collection } from '../interfaces/collection';
+import type ConditionTree from '../interfaces/query/condition-tree/nodes/base';
+import type { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
+
 import FieldValidator from './field';
 import {
   MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE,
@@ -5,11 +9,8 @@ import {
   MAP_ALLOWED_TYPES_FOR_OPERATOR_CONDITION_TREE,
 } from './rules';
 import { ValidationError } from '../errors';
-import { Collection } from '../interfaces/collection';
-import ConditionTree from '../interfaces/query/condition-tree/nodes/base';
 import ConditionTreeBranch from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
-import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 import CollectionUtils from '../utils/collection';
 
 export default class ConditionTreeValidator {

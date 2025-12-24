@@ -1,4 +1,5 @@
-import { ActionHeaders, ActionResult } from '@forestadmin/datasource-toolkit';
+import type { ActionHeaders, ActionResult } from '@forestadmin/datasource-toolkit';
+
 import { Readable } from 'stream';
 
 export default class ResultBuilder {

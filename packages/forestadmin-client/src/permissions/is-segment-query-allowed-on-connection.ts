@@ -1,4 +1,4 @@
-import { CollectionRenderingPermissionV4 } from './types';
+import type { CollectionRenderingPermissionV4 } from './types';
 
 export default function isSegmentQueryAllowedOnConnection(
   collectionPermissions: CollectionRenderingPermissionV4,

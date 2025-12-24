@@ -1,4 +1,4 @@
-import { PlainField } from './types';
+import type { PlainField } from './types';
 
 export default class FieldGetter {
   private readonly plainField: PlainField;

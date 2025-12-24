@@ -1,6 +1,7 @@
+import type HttpServer from '../services/http-server';
+import type { Spinner } from '../types';
+
 import { CloudToolkitVersionError } from '../errors';
-import HttpServer from '../services/http-server';
-import { Spinner } from '../types';
 
 export default async function checkLatestVersion(
   spinner: Spinner,

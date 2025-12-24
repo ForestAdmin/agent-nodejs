@@ -1,3 +1,5 @@
+import type { RawTree } from '../../src/permissions/types';
+
 import { ChartType } from '../../src/charts/types';
 import ChainedSQLQueryError from '../../src/permissions/errors/chained-sql-query-error';
 import EmptySQLQueryError from '../../src/permissions/errors/empty-sql-query-error';
@@ -6,7 +8,7 @@ import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-c
 import isSegmentQueryAllowedOnConnection from '../../src/permissions/is-segment-query-allowed-on-connection';
 import isSegmentQueryAllowed from '../../src/permissions/is-segment-query-authorized';
 import RenderingPermissionService from '../../src/permissions/rendering-permission';
-import { PermissionLevel, RawTree } from '../../src/permissions/types';
+import { PermissionLevel } from '../../src/permissions/types';
 import verifySQLQuery from '../../src/permissions/verify-sql-query';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
 import * as factories from '../__factories__';

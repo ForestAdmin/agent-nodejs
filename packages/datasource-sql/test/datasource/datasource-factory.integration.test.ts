@@ -1,8 +1,10 @@
-import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import type { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
+import type { Dialect, Model, ModelStatic } from 'sequelize';
+
 import { Projection } from '@forestadmin/datasource-toolkit';
 import { caller, filter } from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { stringify } from 'querystring';
-import { DataTypes, Dialect, Model, ModelStatic, Op, Sequelize } from 'sequelize';
+import { DataTypes, Op, Sequelize } from 'sequelize';
 
 import { buildSequelizeInstance, createSqlDataSource, introspect } from '../../src';
 import Introspector from '../../src/introspection/introspector';

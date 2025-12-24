@@ -1,10 +1,10 @@
-import { ChartHandlerInterface } from '@forestadmin/forestadmin-client';
+import type { AgentOptionsWithDefaults } from '../types';
+import type AuthorizationService from './authorization/authorization';
+import type { ChartHandlerInterface } from '@forestadmin/forestadmin-client';
 
 import authorizationServiceFactory from './authorization';
-import AuthorizationService from './authorization/authorization';
 import SegmentQueryHandler from './segment-query-handler';
 import Serializer from './serializer';
-import { AgentOptionsWithDefaults } from '../types';
 
 export type ForestAdminHttpDriverServices = {
   serializer: Serializer;

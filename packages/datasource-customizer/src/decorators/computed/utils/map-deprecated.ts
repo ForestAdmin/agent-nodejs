@@ -1,5 +1,5 @@
-import { TCollectionName, TSchema } from '../../../templates';
-import { ComputedDefinition } from '../types';
+import type { TCollectionName, TSchema } from '../../../templates';
+import type { ComputedDefinition } from '../types';
 
 /**
  * transforms deprecated computed fields into their new definition

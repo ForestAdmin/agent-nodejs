@@ -1,7 +1,8 @@
-import { IpWhitelistConfiguration } from '@forestadmin/forestadmin-client';
-import Router from '@koa/router';
+import type { IpWhitelistConfiguration } from '@forestadmin/forestadmin-client';
+import type Router from '@koa/router';
+import type { Context, Next } from 'koa';
+
 import IpUtil from 'forest-ip-utils';
-import { Context, Next } from 'koa';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';

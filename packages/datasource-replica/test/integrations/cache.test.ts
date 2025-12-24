@@ -1,8 +1,9 @@
+import type { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '../../src';
+
 import { Aggregation, Filter } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
-import { PullDeltaRequest, PullDeltaResponse, ReplicaDataSourceOptions } from '../../src';
 
 describe('cache', () => {
   describe('when reading cache inside a pull delta', () => {

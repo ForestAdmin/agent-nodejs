@@ -1,6 +1,7 @@
+import type ActionField from '../action-fields/action-field';
+import type FieldFormStates from '../action-fields/field-form-states';
 import type HttpRequester from '../http-requester';
 
-import ActionField from '../action-fields/action-field';
 import ActionFieldCheckbox from '../action-fields/action-field-checkbox';
 import ActionFieldCheckboxGroup from '../action-fields/action-field-checkbox-group';
 import ActionFieldColorPicker from '../action-fields/action-field-color-picker';
@@ -13,7 +14,6 @@ import ActionFieldNumberList from '../action-fields/action-field-number-list';
 import ActionFieldRadioGroup from '../action-fields/action-field-radio-group';
 import ActionFieldString from '../action-fields/action-field-string';
 import ActionFieldStringList from '../action-fields/action-field-string-list';
-import FieldFormStates from '../action-fields/field-form-states';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
 
 export type BaseActionContext = {

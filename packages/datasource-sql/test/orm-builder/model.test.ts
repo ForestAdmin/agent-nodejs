@@ -1,6 +1,7 @@
+import type { ColumnType, Introspection, Table } from '../../src/introspection/types';
+
 import { Sequelize, UUIDV4 } from 'sequelize';
 
-import { ColumnType, Introspection, Table } from '../../src/introspection/types';
 import ModelBuilder from '../../src/orm-builder/model';
 
 const baseColumn = {

@@ -1,9 +1,8 @@
+import type { Logger } from '../../src/server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-
-import { Logger } from '../../src/server';
 import declareListRelatedTool from '../../src/tools/list-related';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';

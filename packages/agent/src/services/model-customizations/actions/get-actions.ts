@@ -1,9 +1,10 @@
-import {
+import type {
   ActionConfiguration,
   ActionType,
   ModelCustomization,
-  ModelCustomizationType,
 } from '@forestadmin/forestadmin-client';
+
+import { ModelCustomizationType } from '@forestadmin/forestadmin-client';
 
 export default function getActions<TConfiguration extends ActionConfiguration>(
   type: ActionType,

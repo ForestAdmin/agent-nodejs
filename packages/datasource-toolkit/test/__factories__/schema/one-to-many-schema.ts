@@ -1,6 +1,6 @@
-import { Factory } from 'fishery';
+import type { OneToManySchema } from '../../../src/interfaces/schema';
 
-import { OneToManySchema } from '../../../src/interfaces/schema';
+import { Factory } from 'fishery';
 
 export default Factory.define<OneToManySchema>(() => ({
   type: 'OneToMany',

@@ -1,13 +1,14 @@
-import ConditionTree from './base';
-import {
+import type {
   AsyncLeafReplacer,
   LeafCallback,
   LeafReplacer,
   LeafTester,
   PlainConditionTreeLeaf,
 } from './leaf';
-import { Collection } from '../../../collection';
-import { RecordData } from '../../../record';
+import type { Collection } from '../../../collection';
+import type { RecordData } from '../../../record';
+
+import ConditionTree from './base';
 import Projection from '../../projection';
 
 export type Aggregator = 'And' | 'Or';

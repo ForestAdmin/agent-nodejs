@@ -1,8 +1,10 @@
-import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
+import type { SelectionIds } from '../../types';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
 
-import { HttpCode, SelectionIds } from '../../types';
+import { ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
+
+import { HttpCode } from '../../types';
 import BodyParser from '../../utils/body-parser';
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import IdUtils from '../../utils/id';

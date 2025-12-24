@@ -1,3 +1,5 @@
+import type { MakeCommands } from './types';
+
 import { Command } from 'commander';
 
 import makeBootstrapCommand from './commands/bootstrap';
@@ -8,7 +10,6 @@ import makePublishCommand from './commands/publish';
 import makeStartCommand from './commands/start';
 import makeUpdateTypingsCommand from './commands/update-typings';
 import makeVersionCommand from './commands/version';
-import { MakeCommands } from './types';
 
 export default function makeCommands(context: MakeCommands): Command {
   // it's very important to use a new instance of Command each time for testing purposes

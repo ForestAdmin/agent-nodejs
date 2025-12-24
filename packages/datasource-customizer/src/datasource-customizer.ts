@@ -1,4 +1,7 @@
-import {
+import type { DataSourceChartDefinition } from './decorators/chart/types';
+import type { TCollectionName, TSchema } from './templates';
+import type { DataSourceOptions, Plugin } from './types';
+import type {
   Collection,
   DataSource,
   DataSourceFactory,
@@ -7,14 +10,11 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizer from './collection-customizer';
-import { DataSourceChartDefinition } from './decorators/chart/types';
 import CompositeDatasource from './decorators/composite-datasource';
 import DecoratorsStack from './decorators/decorators-stack';
 import DecoratorsStackNoCode from './decorators/decorators-stack-no-code';
 import PublicationDataSourceDecorator from './decorators/publication/datasource';
 import RenameCollectionDataSourceDecorator from './decorators/rename-collection/datasource';
-import { TCollectionName, TSchema } from './templates';
-import { DataSourceOptions, Plugin } from './types';
 import TypingGenerator from './typing-generator';
 
 export type Options = {

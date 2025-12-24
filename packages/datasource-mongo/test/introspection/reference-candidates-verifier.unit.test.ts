@@ -1,7 +1,8 @@
+import type { MongoDb, NodeStudy } from '../../src/introspection/types';
+
 import mongoose from 'mongoose';
 
 import ReferenceCandidatesVerifier from '../../src/introspection/reference-candidates-verifier';
-import { MongoDb, NodeStudy } from '../../src/introspection/types';
 
 const { ObjectId, Binary } = mongoose.mongo;
 

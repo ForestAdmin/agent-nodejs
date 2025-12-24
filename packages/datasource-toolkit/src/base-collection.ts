@@ -1,15 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import type { ActionField, ActionResult } from './interfaces/action';
+import type { Caller } from './interfaces/caller';
+import type { Chart } from './interfaces/chart';
+import type { Collection, DataSource, GetFormMetas } from './interfaces/collection';
+import type { AggregateResult } from './interfaces/query/aggregation';
+import type Aggregation from './interfaces/query/aggregation';
+import type PaginatedFilter from './interfaces/query/filter/paginated';
+import type Filter from './interfaces/query/filter/unpaginated';
+import type Projection from './interfaces/query/projection';
+import type { CompositeId, RecordData } from './interfaces/record';
+import type { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
+
 import { SchemaUtils } from './index';
-import { ActionField, ActionResult } from './interfaces/action';
-import { Caller } from './interfaces/caller';
-import { Chart } from './interfaces/chart';
-import { Collection, DataSource, GetFormMetas } from './interfaces/collection';
-import Aggregation, { AggregateResult } from './interfaces/query/aggregation';
-import PaginatedFilter from './interfaces/query/filter/paginated';
-import Filter from './interfaces/query/filter/unpaginated';
-import Projection from './interfaces/query/projection';
-import { CompositeId, RecordData } from './interfaces/record';
-import { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
 
 export default abstract class BaseCollection implements Collection {
   readonly dataSource: DataSource;

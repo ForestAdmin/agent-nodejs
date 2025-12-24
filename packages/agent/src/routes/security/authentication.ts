@@ -1,8 +1,9 @@
+import type Router from '@koa/router';
+import type { Context, Next } from 'koa';
+
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 import { AuthenticationError, ForbiddenError } from '@forestadmin/forestadmin-client';
-import Router from '@koa/router';
 import jsonwebtoken from 'jsonwebtoken';
-import { Context, Next } from 'koa';
 import jwt from 'koa-jwt';
 
 import { RouteType } from '../../types';

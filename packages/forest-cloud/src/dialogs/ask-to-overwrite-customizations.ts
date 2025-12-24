@@ -1,7 +1,8 @@
+import type HttpServer from '../services/http-server';
+import type { Spinner } from '../types';
+
 import askQuestion from './ask-question';
 import displayCustomizationInfo from './display-customization-info';
-import HttpServer from '../services/http-server';
-import { Spinner } from '../types';
 
 export default async function askToOverwriteCustomizations(
   spinner: Spinner,

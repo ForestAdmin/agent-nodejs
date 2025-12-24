@@ -1,3 +1,5 @@
+import type { EnvironmentVariables, MakeCommands } from '../../src/types';
+
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -5,7 +7,6 @@ import path from 'path';
 import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 import DistPathManager from '../../src/services/dist-path-manager';
 import HttpServer from '../../src/services/http-server';
-import { EnvironmentVariables, MakeCommands } from '../../src/types';
 
 export type MakeCommandsForTests = Omit<MakeCommands, 'logger'>;
 const presignedPost = {

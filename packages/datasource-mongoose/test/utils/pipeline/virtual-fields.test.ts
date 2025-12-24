@@ -1,5 +1,7 @@
+import type { Model } from 'mongoose';
+
 import { Projection } from '@forestadmin/datasource-toolkit';
-import mongoose, { Model, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 import ConditionGenerator from '../../../src/utils/pipeline/condition-generator';
 import VirtualFieldsGenerator from '../../../src/utils/pipeline/virtual-fields';

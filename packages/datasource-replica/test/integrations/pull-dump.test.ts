@@ -1,7 +1,8 @@
+import type { PullDumpRequest, ReplicaDataSourceOptions } from '../../src';
+
 import Croner from 'croner';
 
 import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
-import { PullDumpRequest, ReplicaDataSourceOptions } from '../../src';
 
 describe('pull dump', () => {
   describe('when the dump fails', () => {

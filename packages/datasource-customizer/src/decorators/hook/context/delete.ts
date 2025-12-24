@@ -1,9 +1,9 @@
 /* eslint-disable max-classes-per-file */
 
-import { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
+import type { TCollectionName, TFilter, TSchema } from '../../../templates';
+import type { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
 
 import HookContext from './hook';
-import { TCollectionName, TFilter, TSchema } from '../../../templates';
 
 export class HookBeforeDeleteContext<
   S extends TSchema = TSchema,

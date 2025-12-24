@@ -1,6 +1,7 @@
+import type { ColumnDescription } from '../../../src/introspection/dialects/dialect.interface';
+
 import { DataTypes } from 'sequelize';
 
-import { ColumnDescription } from '../../../src/introspection/dialects/dialect.interface';
 import SqlTypeConverter from '../../../src/introspection/helpers/sql-type-converter';
 
 const makeColumnDescription = (description: Partial<ColumnDescription>) => {

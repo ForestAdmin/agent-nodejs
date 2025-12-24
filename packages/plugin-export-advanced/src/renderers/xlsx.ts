@@ -1,5 +1,6 @@
+import type { Readable } from 'stream';
+
 import xl from 'excel4node';
-import { Readable } from 'stream';
 
 import getFieldValue from '../utils/get-field-value';
 

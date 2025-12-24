@@ -1,21 +1,4 @@
-import {
-  ActionFormElement,
-  ActionResult,
-  Aggregation,
-  Caller,
-  Collection,
-  CollectionSchema,
-  ConditionTreeFactory,
-  Filter,
-  Page,
-  PaginatedFilter,
-  Projection,
-  RecordData,
-  RecordValidator,
-  Sort,
-} from '@forestadmin/datasource-toolkit';
-
-import {
+import type {
   TAggregateResult,
   TAggregation,
   TCollectionName,
@@ -26,6 +9,25 @@ import {
   TRow,
   TSchema,
 } from '../../templates';
+import type {
+  ActionFormElement,
+  ActionResult,
+  Caller,
+  Collection,
+  CollectionSchema,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  Aggregation,
+  ConditionTreeFactory,
+  Filter,
+  Page,
+  PaginatedFilter,
+  Projection,
+  RecordValidator,
+  Sort,
+} from '@forestadmin/datasource-toolkit';
 
 /** Collection wrapper which accepts plain objects in all methods */
 export default class RelaxedCollection<

@@ -1,4 +1,6 @@
-import { InMemoryCache, NormalizedCacheObject } from 'apollo-cache-inmemory';
+import type { NormalizedCacheObject } from 'apollo-cache-inmemory';
+
+import { InMemoryCache } from 'apollo-cache-inmemory';
 import { ApolloClient } from 'apollo-client';
 import { WebSocketLink } from 'apollo-link-ws';
 import gql from 'graphql-tag';

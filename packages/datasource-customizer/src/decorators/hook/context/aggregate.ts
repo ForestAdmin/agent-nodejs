@@ -1,15 +1,15 @@
 /* eslint-disable max-classes-per-file */
 
-import { Aggregation, Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
-
-import HookContext from './hook';
-import {
+import type {
   TAggregateResult,
   TAggregation,
   TCollectionName,
   TFilter,
   TSchema,
 } from '../../../templates';
+import type { Aggregation, Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
+
+import HookContext from './hook';
 
 export class HookBeforeAggregateContext<
   S extends TSchema = TSchema,

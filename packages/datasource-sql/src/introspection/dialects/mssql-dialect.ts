@@ -1,7 +1,13 @@
-import { QueryTypes, Sequelize } from 'sequelize';
+import type { ColumnDescription } from './dialect.interface';
+import type IntrospectionDialect from './dialect.interface';
+import type {
+  SequelizeColumn,
+  SequelizeTableIdentifier,
+  SequelizeWithOptions,
+} from '../type-overrides';
+import type { Sequelize } from 'sequelize';
 
-import IntrospectionDialect, { ColumnDescription } from './dialect.interface';
-import { SequelizeColumn, SequelizeTableIdentifier, SequelizeWithOptions } from '../type-overrides';
+import { QueryTypes } from 'sequelize';
 
 type DBColumn = {
   Schema: string;

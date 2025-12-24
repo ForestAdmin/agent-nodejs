@@ -1,5 +1,6 @@
+import type { DataSource, FileResult } from '@forestadmin/datasource-toolkit';
+
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { DataSource, FileResult } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { addExportAdvanced } from '../src/index';

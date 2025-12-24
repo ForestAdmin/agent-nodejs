@@ -1,10 +1,11 @@
 /* eslint-disable max-classes-per-file */
 
+import type { Caller } from '../../src/interfaces/caller';
+import type { Collection } from '../../src/interfaces/collection';
+import type PaginatedFilter from '../../src/interfaces/query/filter/paginated';
+import type { CollectionSchema } from '../../src/interfaces/schema';
+
 import CollectionDecorator from '../../src/decorators/collection-decorator';
-import { Caller } from '../../src/interfaces/caller';
-import { Collection } from '../../src/interfaces/collection';
-import PaginatedFilter from '../../src/interfaces/query/filter/paginated';
-import { CollectionSchema } from '../../src/interfaces/schema';
 import * as factories from '../__factories__';
 
 class DecoratedCollection extends CollectionDecorator {

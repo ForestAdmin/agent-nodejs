@@ -1,4 +1,6 @@
-import { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
+import type { DataSource, Logger } from '@forestadmin/datasource-toolkit';
+
+import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import PublicationCollectionDecorator from './collection';
 
