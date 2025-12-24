@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.69.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.68.4...@forestadmin/agent@1.69.0) (2025-12-24)
+
+
+### Features
+
+* **forest mcp:** create pending activity logs before applying a tool ([#1392](https://github.com/ForestAdmin/agent-nodejs/issues/1392)) ([a997149](https://github.com/ForestAdmin/agent-nodejs/commit/a9971490dcff26a119e94d04385c7df3e1f51db2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.3.0
+
 ## @forestadmin/agent [1.68.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.68.3...@forestadmin/agent@1.68.4) (2025-12-23)
 
 
