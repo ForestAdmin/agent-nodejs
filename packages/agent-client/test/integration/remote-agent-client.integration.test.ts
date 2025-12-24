@@ -32,7 +32,7 @@ describe('RemoteAgentClient Integration', () => {
         },
   });
 
-  beforeAll(done => {
+  beforeAll(() => {
     requestLog = [];
 
     server = http.createServer((req, res) => {
@@ -153,14 +153,18 @@ describe('RemoteAgentClient Integration', () => {
       });
     });
 
-    server.listen(0, () => {
-      serverPort = (server.address() as any).port;
-      done();
+    return new Promise<void>(resolve => {
+      server.listen(0, () => {
+        serverPort = (server.address() as any).port;
+        resolve();
+      });
     });
   });
 
-  afterAll(done => {
-    server.close(done);
+  afterAll(() => {
+    return new Promise<void>(resolve => {
+      server.close(() => resolve());
+    });
   });
 
   beforeEach(() => {

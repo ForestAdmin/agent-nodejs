@@ -5,7 +5,8 @@ import FieldGetter from './field-getter';
 import { PlainField, ResponseBody } from './types';
 import HttpRequester from '../http-requester';
 
-export default class FieldFormStates<TypingsSchema> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default class FieldFormStates<TypingsSchema = unknown> {
   private readonly fields: FieldGetter[];
   private readonly actionName: string;
   private readonly actionPath: string;

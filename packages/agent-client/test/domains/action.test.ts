@@ -1,5 +1,5 @@
-import Action from '../../src/domains/action';
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import Action from '../../src/domains/action';
 import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
