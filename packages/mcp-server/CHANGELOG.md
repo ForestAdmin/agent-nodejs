@@ -1,3 +1,11 @@
+# @forestadmin/mcp-server [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.4.0...@forestadmin/mcp-server@1.5.0) (2025-12-24)
+
+
+### Features
+
+* **mcp-server:** add delete tool ([#1387](https://github.com/ForestAdmin/agent-nodejs/issues/1387)) ([d633d5c](https://github.com/ForestAdmin/agent-nodejs/commit/d633d5c1b481618789d74a4ae61ad43389a66d13))
+* **mcp-server:** add update tool ([#1389](https://github.com/ForestAdmin/agent-nodejs/issues/1389)) ([93f352d](https://github.com/ForestAdmin/agent-nodejs/commit/93f352db076a04370d2431865cfab6a68fd17a41))
+
 # @forestadmin/mcp-server [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.3.0...@forestadmin/mcp-server@1.4.0) (2025-12-24)
 
 
