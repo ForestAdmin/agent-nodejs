@@ -249,6 +249,21 @@ export interface UpdateActivityLogStatusParams {
   errorMessage?: string;
 }
 
+/**
+ * Service interface for activity logs operations (MCP-related).
+ */
+export interface ActivityLogsServiceInterface {
+  createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
+  updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
+}
+
+/**
+ * Service interface for schema operations (extended for MCP).
+ */
+export interface SchemaServiceInterface {
+  getSchema: () => Promise<ForestSchemaCollection[]>;
+}
+
 export interface ForestAdminServerInterface {
   getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
   getUsers: (...args) => Promise<UserPermissionV4[]>;
@@ -256,15 +271,4 @@ export interface ForestAdminServerInterface {
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
   getMcpServerConfigs: (options: HttpOptions) => Promise<McpConfiguration>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
-
-  // MCP-specific methods
-  getSchema: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
-  createActivityLog: (
-    options: HttpOptions,
-    params: CreateActivityLogParams,
-  ) => Promise<ActivityLogResponse>;
-  updateActivityLogStatus: (
-    options: HttpOptions,
-    params: UpdateActivityLogStatusParams,
-  ) => Promise<Response>;
 }

@@ -272,20 +272,16 @@ describe('markActivityLogAsFailed', () => {
     });
   });
 
-  it('should retry up to 5 times on 404 response', async () => {
+  it('should retry up to 5 times on 404 errors', async () => {
     jest.useFakeTimers();
 
-    const notFoundResponse = {
-      ok: false,
-      status: 404,
-      text: jest.fn().mockResolvedValue('Not found'),
-    };
+    const notFoundError = new Error('404 Not Found');
     mockHttpClient.updateActivityLogStatus
-      .mockResolvedValueOnce(notFoundResponse as unknown as Response)
-      .mockResolvedValueOnce(notFoundResponse as unknown as Response)
-      .mockResolvedValueOnce(notFoundResponse as unknown as Response)
-      .mockResolvedValueOnce(notFoundResponse as unknown as Response)
-      .mockResolvedValueOnce({ ok: true, status: 200 } as unknown as Response);
+      .mockRejectedValueOnce(notFoundError)
+      .mockRejectedValueOnce(notFoundError)
+      .mockRejectedValueOnce(notFoundError)
+      .mockRejectedValueOnce(notFoundError)
+      .mockResolvedValueOnce(undefined);
 
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
@@ -318,11 +314,8 @@ describe('markActivityLogAsFailed', () => {
   it('should stop retrying after 5 failed attempts and log error', async () => {
     jest.useFakeTimers();
 
-    mockHttpClient.updateActivityLogStatus.mockResolvedValue({
-      ok: false,
-      status: 404,
-      text: jest.fn().mockResolvedValue('Not found'),
-    } as unknown as Response);
+    const notFoundError = new Error('404 Not found');
+    mockHttpClient.updateActivityLogStatus.mockRejectedValue(notFoundError);
 
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
@@ -342,18 +335,15 @@ describe('markActivityLogAsFailed', () => {
     expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledTimes(5);
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
-      "Failed to update activity log status to 'failed': Not found",
+      "Failed to update activity log status to 'failed': 404 Not found",
     );
 
     jest.useRealTimers();
   });
 
   it('should not retry on non-404 errors', async () => {
-    mockHttpClient.updateActivityLogStatus.mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: jest.fn().mockResolvedValue('Internal server error'),
-    } as unknown as Response);
+    const serverError = new Error('Internal server error');
+    mockHttpClient.updateActivityLogStatus.mockRejectedValue(serverError);
 
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };

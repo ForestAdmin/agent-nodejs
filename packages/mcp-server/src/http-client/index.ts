@@ -2,13 +2,13 @@ export { default as McpHttpClientImpl } from './mcp-http-client';
 export type {
   ActivityLogAction,
   ActivityLogResponse,
+  ActivityLogsServiceInterface,
   ActivityLogType,
   CreateActivityLogParams,
   McpHttpClient,
   UpdateActivityLogStatusParams,
-  ForestAdminServerInterface,
   ForestSchemaCollection,
   ForestSchemaField,
   ForestSchemaAction,
-  HttpOptions,
+  SchemaServiceInterface,
 } from './types';

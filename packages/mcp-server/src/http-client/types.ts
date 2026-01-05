@@ -2,12 +2,12 @@ import type {
   ActivityLogAction,
   ActivityLogResponse,
   ActivityLogType,
+  ActivityLogsServiceInterface,
   CreateActivityLogParams,
-  ForestAdminServerInterface,
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
-  HttpOptions,
+  SchemaServiceInterface,
   UpdateActivityLogStatusParams,
 } from '@forestadmin/forestadmin-client';
 
@@ -15,13 +15,13 @@ import type {
 export type {
   ActivityLogAction,
   ActivityLogResponse,
+  ActivityLogsServiceInterface,
   ActivityLogType,
   CreateActivityLogParams,
-  ForestAdminServerInterface,
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
-  HttpOptions,
+  SchemaServiceInterface,
   UpdateActivityLogStatusParams,
 };
 
@@ -43,5 +43,5 @@ export interface McpHttpClient {
   /**
    * Updates an activity log status.
    */
-  updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<Response>;
+  updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void>;
 }

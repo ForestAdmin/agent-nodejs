@@ -1,37 +1,32 @@
 import type {
   ActivityLogResponse,
+  ActivityLogsServiceInterface,
   CreateActivityLogParams,
-  ForestAdminServerInterface,
   ForestSchemaCollection,
-  HttpOptions,
   McpHttpClient,
+  SchemaServiceInterface,
   UpdateActivityLogStatusParams,
 } from './types';
 
 /**
- * Default implementation of McpHttpClient that wraps ForestAdminServerInterface.
- * This provides a convenient API that doesn't require passing HttpOptions on each call.
+ * Default implementation of McpHttpClient that uses SchemaService and ActivityLogsService.
+ * This provides a convenient API for MCP server operations.
  */
 export default class McpHttpClientImpl implements McpHttpClient {
-  private readonly httpOptions: HttpOptions;
-
   constructor(
-    private readonly serverInterface: ForestAdminServerInterface,
-    forestServerUrl: string,
-    envSecret: string,
-  ) {
-    this.httpOptions = { forestServerUrl, envSecret };
-  }
+    private readonly schemaService: SchemaServiceInterface,
+    private readonly activityLogsService: ActivityLogsServiceInterface,
+  ) {}
 
   async fetchSchema(): Promise<ForestSchemaCollection[]> {
-    return this.serverInterface.getSchema(this.httpOptions);
+    return this.schemaService.getSchema();
   }
 
   async createActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse> {
-    return this.serverInterface.createActivityLog(this.httpOptions, params);
+    return this.activityLogsService.createActivityLog(params);
   }
 
-  async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<Response> {
-    return this.serverInterface.updateActivityLogStatus(this.httpOptions, params);
+  async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
+    return this.activityLogsService.updateActivityLogStatus(params);
   }
 }

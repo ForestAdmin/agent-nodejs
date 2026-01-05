@@ -7,6 +7,8 @@ import { ForbiddenError } from '..';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
 
+type BearerHttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'forestServerUrl'>;
+
 export default class ServerUtils {
   /** Query Forest-Admin server */
   static async query<T = unknown>(
@@ -17,13 +19,51 @@ export default class ServerUtils {
     body?: string | object,
     maxTimeAllowed = 10000, // Set a default value if not provided
   ): Promise<T> {
+    return this.queryWithHeaders(
+      options,
+      method,
+      path,
+      { 'forest-secret-key': options.envSecret, ...headers },
+      body,
+      maxTimeAllowed,
+    );
+  }
+
+  /** Query Forest-Admin server with Bearer token authentication */
+  static async queryWithBearerToken<T = unknown>(
+    options: BearerHttpOptions,
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    path: string,
+    bearerToken: string,
+    headers: Record<string, string> = {},
+    body?: string | object,
+    maxTimeAllowed = 10000,
+  ): Promise<T> {
+    return this.queryWithHeaders(
+      options,
+      method,
+      path,
+      { Authorization: `Bearer ${bearerToken}`, ...headers },
+      body,
+      maxTimeAllowed,
+    );
+  }
+
+  /** Internal method to query with arbitrary headers */
+  private static async queryWithHeaders<T = unknown>(
+    options: BearerHttpOptions,
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    path: string,
+    headers: Record<string, string>,
+    body?: string | object,
+    maxTimeAllowed = 10000,
+  ): Promise<T> {
     let url;
 
     try {
       url = new URL(path, options.forestServerUrl).toString();
       const request = superagent[method](url).timeout(maxTimeAllowed);
 
-      request.set('forest-secret-key', options.envSecret);
       if (headers) request.set(headers);
 
       const response = await request.send(body);

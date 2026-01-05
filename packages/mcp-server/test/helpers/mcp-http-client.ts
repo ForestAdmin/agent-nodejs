@@ -9,7 +9,7 @@ export default function createMockHttpClient(
       id: 'mock-log-id',
       attributes: { index: 'mock-index' },
     }),
-    updateActivityLogStatus: jest.fn().mockResolvedValue({ ok: true, status: 200 }),
+    updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<McpHttpClient>;
 }

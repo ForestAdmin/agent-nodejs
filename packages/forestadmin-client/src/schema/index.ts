@@ -1,5 +1,5 @@
 import type { ForestSchema } from './types';
-import type { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { ForestAdminClientOptionsWithDefaults, ForestSchemaCollection } from '../types';
 
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
@@ -8,8 +8,13 @@ import ServerUtils from '../utils/server';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
+export type SchemaServiceOptions = Pick<
+  ForestAdminClientOptionsWithDefaults,
+  'envSecret' | 'forestServerUrl'
+>;
+
 export default class SchemaService {
-  constructor(private options: ForestAdminClientOptionsWithDefaults) {}
+  constructor(private options: ForestAdminClientOptionsWithDefaults | SchemaServiceOptions) {}
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     const apimap = SchemaService.serialize(schema);
@@ -23,9 +28,34 @@ export default class SchemaService {
       ? 'Schema was updated, sending new version'
       : 'Schema was not updated since last run';
 
-    this.options.logger('Info', `${message} (hash: ${apimap.meta.schemaFileHash})`);
+    const optionsWithLogger = this.options as ForestAdminClientOptionsWithDefaults;
+
+    if (optionsWithLogger.logger) {
+      optionsWithLogger.logger('Info', `${message} (hash: ${apimap.meta.schemaFileHash})`);
+    }
 
     return shouldSend;
+  }
+
+  async getSchema(): Promise<ForestSchemaCollection[]> {
+    const response = await ServerUtils.query<{
+      data: Array<{ id: string; type: string; attributes: Record<string, unknown> }>;
+      included?: Array<{ id: string; type: string; attributes: Record<string, unknown> }>;
+    }>(this.options, 'get', '/liana/forest-schema');
+
+    const serializer = new JSONAPISerializer();
+    serializer.register('collections', {
+      relationships: {
+        fields: { type: 'fields' },
+        actions: { type: 'actions' },
+        segments: { type: 'segments' },
+      },
+    });
+    serializer.register('fields', {});
+    serializer.register('actions', {});
+    serializer.register('segments', {});
+
+    return serializer.deserialize('collections', response) as ForestSchemaCollection[];
   }
 
   static serialize(schema: ForestSchema): SerializedSchema {

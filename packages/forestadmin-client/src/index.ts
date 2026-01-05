@@ -28,6 +28,9 @@ export {
   ActivityLogType,
   CreateActivityLogParams,
   UpdateActivityLogStatusParams,
+  // Service interfaces for MCP
+  ActivityLogsServiceInterface,
+  SchemaServiceInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
 
@@ -86,6 +89,7 @@ export { default as buildApplicationServices } from './build-application-service
 export { HttpOptions } from './permissions/forest-http-api';
 export { default as ForestHttpApi } from './permissions/forest-http-api';
 // export is necessary for the agent-generator package
-export { default as SchemaService } from './schema';
+export { default as SchemaService, SchemaServiceOptions } from './schema';
+export { default as ActivityLogsService, ActivityLogsOptions } from './activity-logs';
 
 export * from './auth/errors';

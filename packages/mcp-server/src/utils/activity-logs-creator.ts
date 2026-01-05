@@ -69,25 +69,27 @@ async function updateActivityLogStatus(
   const { httpClient, request, activityLog, status, errorMessage, logger } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
-  const response = await httpClient.updateActivityLogStatus({
-    forestServerToken,
-    activityLog,
-    status,
-    errorMessage,
-  });
-
-  if (response.status === 404 && attempt < MAX_RETRIES) {
-    logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
-    await new Promise<void>(resolve => {
-      setTimeout(resolve, RETRY_DELAY_MS);
+  try {
+    await httpClient.updateActivityLogStatus({
+      forestServerToken,
+      activityLog,
+      status,
+      errorMessage,
     });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
 
-    return updateActivityLogStatus(options, attempt + 1);
-  }
+    // Retry on 404 errors (activity log may not be immediately available)
+    if (errorMsg.includes('404') && attempt < MAX_RETRIES) {
+      logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, RETRY_DELAY_MS);
+      });
 
-  if (!response.ok) {
-    const responseText = await response.text();
-    logger('Error', `Failed to update activity log status to '${status}': ${responseText}`);
+      return updateActivityLogStatus(options, attempt + 1);
+    }
+
+    logger('Error', `Failed to update activity log status to '${status}': ${errorMsg}`);
   }
 }
 
