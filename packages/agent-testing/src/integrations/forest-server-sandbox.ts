@@ -58,7 +58,6 @@ export default class ForestServerSandbox {
 
   private routes(req: http.IncomingMessage, res: http.ServerResponse) {
     const agentSchemaCacheIdentifier = req.headers['forest-secret-key'] as string;
-    console.log(`Handling request`, req.url);
 
     const sendResponse = (statusCode: number, data?: object) => {
       if (!res.headersSent) {
