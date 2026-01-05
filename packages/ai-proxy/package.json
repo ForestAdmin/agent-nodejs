@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/ai-proxy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "openai": "4.95.0",
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "@langchain/community": "0.3.57",
     "@langchain/core": "1.1.4",
     "@langchain/langgraph": "1.0.4",
