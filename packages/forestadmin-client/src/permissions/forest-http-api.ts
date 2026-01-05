@@ -79,8 +79,16 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     options: HttpOptions,
     params: CreateActivityLogParams,
   ): Promise<ActivityLogResponse> {
-    const { forestServerToken, renderingId, action, type, collectionName, recordId, recordIds, label } =
-      params;
+    const {
+      forestServerToken,
+      renderingId,
+      action,
+      type,
+      collectionName,
+      recordId,
+      recordIds,
+      label,
+    } = params;
 
     const response = await fetch(`${options.forestServerUrl}/api/activity-logs-requests`, {
       method: 'POST',

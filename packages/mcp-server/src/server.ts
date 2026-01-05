@@ -4,6 +4,7 @@ import './polyfills';
 
 import type { Express } from 'express';
 
+import { ForestHttpApi } from '@forestadmin/forestadmin-client';
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
@@ -17,8 +18,6 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
-
-import { ForestHttpApi } from '@forestadmin/forestadmin-client';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { ForestAdminServerInterface, McpHttpClient, McpHttpClientImpl } from './http-client';
