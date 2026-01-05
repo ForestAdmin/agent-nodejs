@@ -57,6 +57,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
   listRelated: ['collectionName', 'relationName', 'parentRecordId'],
   create: ['collectionName'],
+  update: ['collectionName', 'recordId'],
   delete: ['collectionName', 'recordIds'],
   describeCollection: ['collectionName'],
 };

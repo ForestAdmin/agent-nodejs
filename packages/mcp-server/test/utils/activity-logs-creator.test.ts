@@ -33,6 +33,7 @@ describe('createPendingActivityLog', () => {
       ['search', 'read'],
       ['filter', 'read'],
       ['listRelatedData', 'read'],
+      ['describeCollection', 'read'],
       ['action', 'write'],
       ['create', 'write'],
       ['update', 'write'],
