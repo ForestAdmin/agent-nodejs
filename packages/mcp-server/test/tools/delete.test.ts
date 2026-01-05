@@ -1,3 +1,4 @@
+import type { McpHttpClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
@@ -6,6 +7,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import declareDeleteTool from '../../src/tools/delete';
 import buildClient from '../../src/utils/agent-caller';
 import withActivityLog from '../../src/utils/with-activity-log';
+import createMockHttpClient from '../helpers/mcp-http-client';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/with-activity-log');
@@ -17,11 +19,14 @@ const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withAc
 
 describe('declareDeleteTool', () => {
   let mcpServer: McpServer;
+  let mockHttpClient: jest.Mocked<McpHttpClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
   let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockHttpClient = createMockHttpClient();
 
     mcpServer = {
       registerTool: jest.fn((name, config, handler) => {
@@ -36,7 +41,7 @@ describe('declareDeleteTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "delete"', () => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'delete',
@@ -46,7 +51,7 @@ describe('declareDeleteTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Delete records');
       expect(registeredToolConfig.description).toBe(
@@ -55,14 +60,14 @@ describe('declareDeleteTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('recordIds');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -73,10 +78,7 @@ describe('declareDeleteTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
-        'users',
-        'products',
-      ]);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger, ['users', 'products']);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -88,7 +90,7 @@ describe('declareDeleteTool', () => {
     });
 
     it('should accept array of strings or numbers for recordIds', () => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -112,7 +114,7 @@ describe('declareDeleteTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareDeleteTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareDeleteTool(mcpServer, mockHttpClient, mockLogger);
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -206,7 +208,7 @@ describe('declareDeleteTool', () => {
         await registeredToolHandler({ collectionName: 'users', recordIds }, mockExtra);
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          httpClient: mockHttpClient,
           request: mockExtra,
           action: 'delete',
           context: { collectionName: 'users', recordIds },

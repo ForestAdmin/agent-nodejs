@@ -1,3 +1,4 @@
+import type { McpHttpClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
@@ -6,6 +7,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import declareCreateTool from '../../src/tools/create';
 import buildClient from '../../src/utils/agent-caller';
 import withActivityLog from '../../src/utils/with-activity-log';
+import createMockHttpClient from '../helpers/mcp-http-client';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/with-activity-log');
@@ -17,11 +19,14 @@ const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withAc
 
 describe('declareCreateTool', () => {
   let mcpServer: McpServer;
+  let mockHttpClient: jest.Mocked<McpHttpClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
   let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockHttpClient = createMockHttpClient();
 
     mcpServer = {
       registerTool: jest.fn((name, config, handler) => {
@@ -36,7 +41,7 @@ describe('declareCreateTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "create"', () => {
-      declareCreateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareCreateTool(mcpServer, mockHttpClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'create',
@@ -46,7 +51,7 @@ describe('declareCreateTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareCreateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareCreateTool(mcpServer, mockHttpClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Create a record');
       expect(registeredToolConfig.description).toBe(
@@ -55,14 +60,14 @@ describe('declareCreateTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareCreateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareCreateTool(mcpServer, mockHttpClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('attributes');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareCreateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareCreateTool(mcpServer, mockHttpClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -73,10 +78,7 @@ describe('declareCreateTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareCreateTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
-        'users',
-        'products',
-      ]);
+      declareCreateTool(mcpServer, mockHttpClient, mockLogger, ['users', 'products']);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -100,7 +102,7 @@ describe('declareCreateTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareCreateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareCreateTool(mcpServer, mockHttpClient, mockLogger);
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -187,7 +189,7 @@ describe('declareCreateTool', () => {
         );
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          httpClient: mockHttpClient,
           request: mockExtra,
           action: 'create',
           context: { collectionName: 'users' },

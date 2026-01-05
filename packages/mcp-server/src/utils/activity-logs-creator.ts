@@ -1,24 +1,16 @@
+import type {
+  ActivityLogAction,
+  ActivityLogResponse,
+  ActivityLogType,
+  McpHttpClient,
+} from '../http-client';
 import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
-/**
- * Valid activity log actions.
- * These must match ActivityLogActions enum in forestadmin-server.
- * @see packages/private-api/src/config/activity-logs.ts
- */
-export type ActivityLogAction =
-  | 'index'
-  | 'search'
-  | 'filter'
-  | 'action'
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'listRelatedData'
-  | 'describeCollection';
+export type { ActivityLogAction, ActivityLogResponse };
 
-const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
+const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   index: 'read',
   search: 'read',
   filter: 'read',
@@ -30,15 +22,8 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   describeCollection: 'read',
 };
 
-type ActivityLogResponse = {
-  id: string;
-  attributes: {
-    index: string;
-  };
-};
-
 export default async function createPendingActivityLog(
-  forestServerUrl: string,
+  httpClient: McpHttpClient,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
   action: ActivityLogAction,
   extra?: {
@@ -53,55 +38,20 @@ export default async function createPendingActivityLog(
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
 
-  const response = await fetch(`${forestServerUrl}/api/activity-logs-requests`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Forest-Application-Source': 'MCP',
-      Authorization: `Bearer ${forestServerToken}`,
-    },
-    body: JSON.stringify({
-      data: {
-        id: 1,
-        type: 'activity-logs-requests',
-        attributes: {
-          type,
-          action,
-          label: extra?.label,
-          status: 'pending',
-          records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
-        },
-        relationships: {
-          rendering: {
-            data: {
-              id: renderingId,
-              type: 'renderings',
-            },
-          },
-          collection: {
-            data: extra?.collectionName
-              ? {
-                  id: extra.collectionName,
-                  type: 'collections',
-                }
-              : null,
-          },
-        },
-      },
-    }),
+  return httpClient.createActivityLog({
+    forestServerToken,
+    renderingId,
+    action,
+    type,
+    collectionName: extra?.collectionName,
+    recordId: extra?.recordId,
+    recordIds: extra?.recordIds,
+    label: extra?.label,
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to create activity log: ${await response.text()}`);
-  }
-
-  const { data: activityLog } = (await response.json()) as { data: ActivityLogResponse };
-
-  return activityLog;
 }
 
 interface UpdateActivityLogOptions {
-  forestServerUrl: string;
+  httpClient: McpHttpClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   status: 'completed' | 'failed';
@@ -116,24 +66,15 @@ async function updateActivityLogStatus(
   options: UpdateActivityLogOptions,
   attempt = 1,
 ): Promise<void> {
-  const { forestServerUrl, request, activityLog, status, errorMessage, logger } = options;
+  const { httpClient, request, activityLog, status, errorMessage, logger } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
-  const response = await fetch(
-    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Forest-Application-Source': 'MCP',
-        Authorization: `Bearer ${forestServerToken}`,
-      },
-      body: JSON.stringify({
-        status,
-        ...(errorMessage && { errorMessage }),
-      }),
-    },
-  );
+  const response = await httpClient.updateActivityLogStatus({
+    forestServerToken,
+    activityLog,
+    status,
+    errorMessage,
+  });
 
   if (response.status === 404 && attempt < MAX_RETRIES) {
     logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
@@ -151,7 +92,7 @@ async function updateActivityLogStatus(
 }
 
 interface MarkActivityLogAsFailedOptions {
-  forestServerUrl: string;
+  httpClient: McpHttpClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   errorMessage: string;
@@ -159,10 +100,10 @@ interface MarkActivityLogAsFailedOptions {
 }
 
 export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions): void {
-  const { forestServerUrl, request, activityLog, errorMessage, logger } = options;
+  const { httpClient, request, activityLog, errorMessage, logger } = options;
   // Fire-and-forget: don't block error response on activity log update
   updateActivityLogStatus({
-    forestServerUrl,
+    httpClient,
     request,
     activityLog,
     status: 'failed',
@@ -174,17 +115,17 @@ export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions)
 }
 
 interface MarkActivityLogAsSucceededOptions {
-  forestServerUrl: string;
+  httpClient: McpHttpClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   logger: Logger;
 }
 
 export function markActivityLogAsSucceeded(options: MarkActivityLogAsSucceededOptions): void {
-  const { forestServerUrl, request, activityLog, logger } = options;
+  const { httpClient, request, activityLog, logger } = options;
   // Fire-and-forget: don't block successful response on activity log update
   updateActivityLogStatus({
-    forestServerUrl,
+    httpClient,
     request,
     activityLog,
     status: 'completed',

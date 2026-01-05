@@ -1,3 +1,4 @@
+import type { McpHttpClient } from '../http-client';
 import type { Logger } from '../server';
 import type { ActivityLogAction } from './activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -17,7 +18,7 @@ interface ActivityLogContext {
 }
 
 interface WithActivityLogOptions<T> {
-  forestServerUrl: string;
+  httpClient: McpHttpClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   action: ActivityLogAction;
   context?: ActivityLogContext;
@@ -36,17 +37,17 @@ interface WithActivityLogOptions<T> {
  * Creates a pending activity log, executes the operation, and marks it as succeeded or failed.
  */
 export default async function withActivityLog<T>(options: WithActivityLogOptions<T>): Promise<T> {
-  const { forestServerUrl, request, action, context, logger, operation, errorEnhancer } = options;
+  const { httpClient, request, action, context, logger, operation, errorEnhancer } = options;
 
   // We want to create the activity log before executing the operation
   // If activity log creation fails, we must prevent the execution of the operation
-  const activityLog = await createPendingActivityLog(forestServerUrl, request, action, context);
+  const activityLog = await createPendingActivityLog(httpClient, request, action, context);
 
   try {
     const result = await operation();
 
     markActivityLogAsSucceeded({
-      forestServerUrl,
+      httpClient,
       request,
       activityLog,
       logger,
@@ -67,7 +68,7 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
     }
 
     markActivityLogAsFailed({
-      forestServerUrl,
+      httpClient,
       request,
       activityLog,
       errorMessage,

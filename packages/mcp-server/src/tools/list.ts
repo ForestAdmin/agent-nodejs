@@ -1,3 +1,4 @@
+import type { McpHttpClient } from '../http-client';
 import type { Logger } from '../server';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -72,7 +73,7 @@ export function createListArgumentShape(collectionNames: string[]) {
 
 export default function declareListTool(
   mcpServer: McpServer,
-  forestServerUrl: string,
+  httpClient: McpHttpClient,
   logger: Logger,
   collectionNames: string[] = [],
 ): string {
@@ -98,7 +99,7 @@ export default function declareListTool(
       }
 
       return withActivityLog({
-        forestServerUrl,
+        httpClient,
         request: extra,
         action: actionType,
         context: { collectionName: options.collectionName },
@@ -127,7 +128,7 @@ export default function declareListTool(
           if (errorMessage?.includes('Invalid sort')) {
             try {
               const fields = getFieldsOfCollection(
-                await fetchForestSchema(forestServerUrl),
+                await fetchForestSchema(httpClient),
                 options.collectionName,
               );
 
