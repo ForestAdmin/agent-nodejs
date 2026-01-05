@@ -2,7 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
-import type { ForestAdminServerInterface, McpHttpClient } from './http-client';
+import type { McpHttpClient } from './http-client';
 import type { Express } from 'express';
 
 import { ForestHttpApi } from '@forestadmin/forestadmin-client';
@@ -77,10 +77,8 @@ export interface ForestMCPServerOptions {
   authSecret?: string;
   /** Optional logger function. Defaults to console logging. */
   logger?: Logger;
-  /** Optional HTTP client for dependency injection (useful for testing) */
+  /** Optional HTTP client for dependency injection (useful for testing or agent integration) */
   httpClient?: McpHttpClient;
-  /** Optional server interface for HTTP calls (useful for testing) */
-  serverInterface?: ForestAdminServerInterface;
 }
 
 /**
@@ -119,11 +117,10 @@ export default class ForestMCPServer {
     this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
     this.logger = options?.logger || defaultLogger;
 
-    // Use injected httpClient or create default implementation using ForestAdminServerInterface
-    const serverInterface = options?.serverInterface || new ForestHttpApi();
+    // Use injected httpClient or create default implementation
     this.httpClient =
       options?.httpClient ||
-      new McpHttpClientImpl(serverInterface, this.forestServerUrl, this.envSecret || '');
+      new McpHttpClientImpl(new ForestHttpApi(), this.forestServerUrl, this.envSecret || '');
 
     this.mcpServer = new McpServer({
       name: NAME,
