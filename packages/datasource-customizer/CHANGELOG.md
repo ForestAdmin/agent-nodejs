@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.67.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.1...@forestadmin/datasource-customizer@1.67.2) (2026-01-05)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.50.1
+
 ## @forestadmin/datasource-customizer [1.67.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.0...@forestadmin/datasource-customizer@1.67.1) (2025-06-23)
 
 
