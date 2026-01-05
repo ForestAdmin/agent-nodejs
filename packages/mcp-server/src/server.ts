@@ -2,6 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
+import type { ForestAdminServerInterface, McpHttpClient } from './http-client';
 import type { Express } from 'express';
 
 import { ForestHttpApi } from '@forestadmin/forestadmin-client';
@@ -20,7 +21,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
-import { ForestAdminServerInterface, McpHttpClient, McpHttpClientImpl } from './http-client';
+import { McpHttpClientImpl } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';

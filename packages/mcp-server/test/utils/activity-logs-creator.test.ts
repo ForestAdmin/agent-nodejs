@@ -1,5 +1,5 @@
-import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { McpHttpClient } from '../../src/http-client';
+import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
