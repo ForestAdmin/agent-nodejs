@@ -2,8 +2,7 @@ import type {
   CollectionCustomizer,
   DataSourceCustomizer,
 } from '@forestadmin/datasource-customizer';
-
-import { RelationSchema } from '@forestadmin/datasource-toolkit';
+import type { RelationSchema } from '@forestadmin/datasource-toolkit';
 
 // eslint-disable-next-line import/prefer-default-export
 export function getRelation(

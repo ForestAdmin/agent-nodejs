@@ -1,8 +1,18 @@
-import {
+import type { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
+import type {
+  DynamicField,
+  DynamicForm,
+  DynamicFormElement,
+  DynamicFormElementOrPage,
+  Handler,
+  SearchOptionsHandler,
+  ValueOrHandler,
+} from './types/fields';
+import type { TSchema } from '../../templates';
+import type {
   ActionFormElement,
   ActionResult,
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   DataSourceDecorator,
   Filter,
@@ -12,20 +22,11 @@ import {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
+import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
+
 import ActionContext from './context/base';
 import ActionContextSingle from './context/single';
 import ResultBuilder from './result-builder';
-import { ActionBulk, ActionDefinition, ActionGlobal, ActionSingle } from './types/actions';
-import {
-  DynamicField,
-  DynamicForm,
-  DynamicFormElement,
-  DynamicFormElementOrPage,
-  Handler,
-  SearchOptionsHandler,
-  ValueOrHandler,
-} from './types/fields';
-import { TSchema } from '../../templates';
 
 type DynamicFieldWithId<Context = unknown> = DynamicField<Context> & { id: string };
 

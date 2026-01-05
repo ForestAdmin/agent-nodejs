@@ -1,8 +1,8 @@
+import type { ActionPermissions } from '../../src/permissions/generate-actions-from-permissions';
+import type { RawTreeWithSources } from '../../src/permissions/types';
+
 import ActionPermissionService from '../../src/permissions/action-permission';
-import generateActionsFromPermissions, {
-  ActionPermissions,
-} from '../../src/permissions/generate-actions-from-permissions';
-import { RawTreeWithSources } from '../../src/permissions/types';
+import generateActionsFromPermissions from '../../src/permissions/generate-actions-from-permissions';
 import * as factories from '../__factories__';
 
 jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({

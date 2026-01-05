@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-underscore-dangle  */
-import {
+import type { SchemaBranch, SchemaNode } from '../../mongoose/schema';
+import type { Stack } from '../../types';
+import type {
   CollectionSchema,
   ColumnSchema,
   ColumnType,
   ManyToOneSchema,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
-import { Model, SchemaType } from 'mongoose';
+import type { Model, SchemaType } from 'mongoose';
 
 import FilterOperatorsGenerator from './filter-operators';
 import isSchemaType from './is-schema-type';
-import MongooseSchema, { SchemaBranch, SchemaNode } from '../../mongoose/schema';
-import { Stack } from '../../types';
+import MongooseSchema from '../../mongoose/schema';
 import { escape } from '../helpers';
 import VersionManager from '../version-manager';
 

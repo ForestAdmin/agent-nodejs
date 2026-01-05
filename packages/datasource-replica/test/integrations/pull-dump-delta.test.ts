@@ -1,10 +1,11 @@
-import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
-import {
+import type {
   PullDeltaRequest,
   PullDeltaResponse,
   PullDumpResponse,
   ReplicaDataSourceOptions,
 } from '../../src';
+
+import { getAllRecords, makeReplicaDataSource, makeSchemaWithId } from './factories';
 
 describe('pull dump and delta', () => {
   describe('when the dump has been executed and a delta is triggered', () => {

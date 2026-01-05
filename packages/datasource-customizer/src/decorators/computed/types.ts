@@ -1,7 +1,6 @@
-import { ColumnType } from '@forestadmin/datasource-toolkit';
-
-import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TFieldName, TRow, TSchema } from '../../templates';
+import type CollectionCustomizationContext from '../../context/collection-context';
+import type { TCollectionName, TFieldName, TRow, TSchema } from '../../templates';
+import type { ColumnType } from '@forestadmin/datasource-toolkit';
 
 export interface ComputedDefinition<
   S extends TSchema = TSchema,

@@ -1,4 +1,5 @@
-import {
+import type { ChartInterface } from './chart';
+import type {
   DistributionChart,
   LeaderboardChart,
   ObjectiveChart,
@@ -7,7 +8,6 @@ import {
   ValueChart,
 } from '@forestadmin/datasource-toolkit';
 
-import { ChartInterface } from './chart';
 import HttpRequester from '../http-requester';
 
 export type ChartContext = {

@@ -1,4 +1,4 @@
-import { ForestServerActionFormElementFieldReference } from '@forestadmin/forestadmin-client';
+import type { ForestServerActionFormElementFieldReference } from '@forestadmin/forestadmin-client';
 
 export default class ActionLayoutInput {
   protected readonly layoutItem: ForestServerActionFormElementFieldReference;

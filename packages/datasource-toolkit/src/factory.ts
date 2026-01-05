@@ -1,4 +1,4 @@
-import { DataSource } from './interfaces/collection';
+import type { DataSource } from './interfaces/collection';
 
 /** Logger */
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';

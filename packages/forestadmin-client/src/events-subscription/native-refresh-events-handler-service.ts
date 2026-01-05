@@ -1,9 +1,9 @@
-import EventEmitter from 'events';
+import type { RefreshEventsHandlerService } from './types';
+import type ActionPermissionService from '../permissions/action-permission';
+import type RenderingPermissionService from '../permissions/rendering-permission';
+import type UserPermissionService from '../permissions/user-permission';
 
-import { RefreshEventsHandlerService } from './types';
-import ActionPermissionService from '../permissions/action-permission';
-import RenderingPermissionService from '../permissions/rendering-permission';
-import UserPermissionService from '../permissions/user-permission';
+import EventEmitter from 'events';
 
 export default class NativeRefreshEventsHandlerService implements RefreshEventsHandlerService {
   private readonly eventEmitter: EventEmitter;

@@ -1,3 +1,5 @@
+import type Router from '@koa/router';
+
 import {
   BadRequestError,
   ForbiddenError,
@@ -5,7 +7,6 @@ import {
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import ErrorHandling from '../../../src/routes/system/error-handling';

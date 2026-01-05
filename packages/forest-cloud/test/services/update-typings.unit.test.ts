@@ -1,10 +1,13 @@
+import type BootstrapPathManager from '../../src/services/bootstrap-path-manager';
+import type DistPathManager from '../../src/services/dist-path-manager';
+import type { Agent } from '@forestadmin/agent';
 import type { Introspection as DataSourceMongoIntrospection } from '@forestadmin/datasource-mongo';
 import type { SupportedIntrospection as DataSourceSQLIntrospection } from '@forestadmin/datasource-sql';
 import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { Mongoose } from 'mongoose';
 import type { Sequelize } from 'sequelize';
 
-import { Agent, createAgent } from '@forestadmin/agent';
+import { createAgent } from '@forestadmin/agent';
 import { buildDisconnectedMongooseInstance } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -13,8 +16,6 @@ import { BusinessError, IntrospectionFormatError } from '@forestadmin/datasource
 import path from 'path';
 
 import { throwIfNoBuiltCode } from '../../src/services/access-file';
-import BootstrapPathManager from '../../src/services/bootstrap-path-manager';
-import DistPathManager from '../../src/services/dist-path-manager';
 import loadCustomization from '../../src/services/load-customization';
 import { updateTypings, updateTypingsWithCustomizations } from '../../src/services/update-typings';
 

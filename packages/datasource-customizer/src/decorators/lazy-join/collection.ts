@@ -1,8 +1,7 @@
-import {
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   FieldSchema,
   Filter,
   ManyToOneSchema,
@@ -10,6 +9,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
 
 export default class LazyJoinDecorator extends CollectionDecorator {
   override async list(

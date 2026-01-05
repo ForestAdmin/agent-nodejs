@@ -1,13 +1,19 @@
 import type {
+  Introspection,
+  LatestIntrospection,
+  SupportedIntrospection,
+  Table,
+} from './introspection/types';
+import type {
   PlainConnectionOptions,
   PlainConnectionOptionsOrUri,
   SqlDatasourceOptions,
   SslMode,
 } from './types';
 import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
+import type { Sequelize } from 'sequelize';
 
 import { SequelizeDataSource } from '@forestadmin/datasource-sequelize';
-import { Sequelize } from 'sequelize';
 
 import connect from './connection';
 import ConnectionOptions from './connection/connection-options';
@@ -15,12 +21,6 @@ import SequelizeFactory from './connection/sequelize-factory';
 import SqlDatasource from './decorators/sql-datasource';
 import Introspector from './introspection/introspector';
 import listCollectionsFromIntrospection from './introspection/list-collections-from-introspection';
-import {
-  Introspection,
-  LatestIntrospection,
-  SupportedIntrospection,
-  Table,
-} from './introspection/types';
 import ModelBuilder from './orm-builder/model';
 import RelationBuilder from './orm-builder/relations';
 

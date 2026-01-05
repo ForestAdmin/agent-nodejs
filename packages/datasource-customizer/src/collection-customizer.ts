@@ -1,33 +1,21 @@
-import {
-  CollectionSchema,
-  CollectionUtils,
-  Logger,
-  Operator,
-  SchemaUtils,
-  allowedOperatorsForColumnType,
-} from '@forestadmin/datasource-toolkit';
-
-import DataSourceCustomizer from './datasource-customizer';
-import { ActionDefinition } from './decorators/actions/types/actions';
-import { BinaryMode } from './decorators/binary/types';
-import { CollectionChartDefinition } from './decorators/chart/types';
-import { ComputedDefinition } from './decorators/computed/types';
-import mapDeprecated from './decorators/computed/utils/map-deprecated';
-import DecoratorsStackBase from './decorators/decorators-stack-base';
-import { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
-import { OperatorDefinition } from './decorators/operators-emulate/types';
-import {
+import type DataSourceCustomizer from './datasource-customizer';
+import type { ActionDefinition } from './decorators/actions/types/actions';
+import type { BinaryMode } from './decorators/binary/types';
+import type { CollectionChartDefinition } from './decorators/chart/types';
+import type { ComputedDefinition } from './decorators/computed/types';
+import type DecoratorsStackBase from './decorators/decorators-stack-base';
+import type { HookHandler, HookPosition, HookType, HooksContext } from './decorators/hook/types';
+import type { OperatorDefinition } from './decorators/operators-emulate/types';
+import type {
   CreateOverrideHandler,
   DeleteOverrideHandler,
   UpdateOverrideHandler,
 } from './decorators/override/types';
-import { RelationDefinition } from './decorators/relation/types';
-import { SearchDefinition } from './decorators/search/types';
-import { SegmentDefinition } from './decorators/segment/types';
-import { WriteDefinition } from './decorators/write/write-replace/types';
-import addExternalRelation from './plugins/add-external-relation';
-import importField from './plugins/import-field';
-import {
+import type { RelationDefinition } from './decorators/relation/types';
+import type { SearchDefinition } from './decorators/search/types';
+import type { SegmentDefinition } from './decorators/segment/types';
+import type { WriteDefinition } from './decorators/write/write-replace/types';
+import type {
   TCollectionName,
   TColumnName,
   TColumnNameAndRelationName,
@@ -35,7 +23,18 @@ import {
   TSchema,
   TSortClause,
 } from './templates';
-import { OneToManyEmbeddedDefinition, Plugin } from './types';
+import type { OneToManyEmbeddedDefinition, Plugin } from './types';
+import type { CollectionSchema, Logger, Operator } from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionUtils,
+  SchemaUtils,
+  allowedOperatorsForColumnType,
+} from '@forestadmin/datasource-toolkit';
+
+import mapDeprecated from './decorators/computed/utils/map-deprecated';
+import addExternalRelation from './plugins/add-external-relation';
+import importField from './plugins/import-field';
 
 export default class CollectionCustomizer<
   S extends TSchema = TSchema,

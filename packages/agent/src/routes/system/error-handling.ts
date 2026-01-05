@@ -1,3 +1,6 @@
+import type Router from '@koa/router';
+import type { Context, Next } from 'koa';
+
 import {
   BadRequestError,
   BusinessError,
@@ -6,8 +9,7 @@ import {
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context, HttpError, Next } from 'koa';
+import { HttpError } from 'koa';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';

@@ -1,9 +1,10 @@
+import type { Collection } from '../interfaces/collection';
+import type { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
+
 import { MAP_ALLOWED_TYPES_FOR_COLUMN_TYPE } from './rules';
 import TypeGetter from './type-getter';
 import { MissingRelationError, ValidationError } from '../errors';
 import { SchemaUtils } from '../index';
-import { Collection } from '../interfaces/collection';
-import { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
 
 export default class FieldValidator {
   static validate(collection: Collection, field: string, values?: unknown[]) {

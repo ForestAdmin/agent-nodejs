@@ -1,7 +1,7 @@
-import { Caller, Collection } from '@forestadmin/datasource-toolkit';
+import type { TCollectionName, TConditionTree, TFieldName, TSchema } from '../../templates';
+import type { Caller, Collection } from '@forestadmin/datasource-toolkit';
 
 import CollectionCustomizationContext from '../../context/collection-context';
-import { TCollectionName, TConditionTree, TFieldName, TSchema } from '../../templates';
 
 export type SearchOptions<
   S extends TSchema = TSchema,

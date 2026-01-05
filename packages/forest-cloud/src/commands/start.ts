@@ -1,4 +1,6 @@
-import { Command } from 'commander';
+import type { MakeCommands } from '../types';
+import type { Command } from 'commander';
+
 import fs from 'fs';
 
 import actionRunner from '../dialogs/action-runner';
@@ -8,7 +10,6 @@ import { validateEnvironmentVariables } from '../services/environment-variables'
 import HttpServer from '../services/http-server';
 import { startingAgent } from '../services/starting-agent-locally';
 import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
-import { MakeCommands } from '../types';
 
 export default (program: Command, context: MakeCommands) => {
   const {

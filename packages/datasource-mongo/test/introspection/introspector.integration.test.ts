@@ -1,5 +1,7 @@
+import type { Connection } from 'mongoose';
+
 import crypto from 'crypto';
-import { Connection, Schema, Types, createConnection } from 'mongoose';
+import { Schema, Types, createConnection } from 'mongoose';
 
 import Introspector from '../../src/introspection/introspector';
 

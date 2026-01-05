@@ -1,5 +1,6 @@
+import type { PlainField } from '../../src/action-fields/types';
+
 import FieldGetter from '../../src/action-fields/field-getter';
-import { PlainField } from '../../src/action-fields/types';
 
 describe('FieldGetter', () => {
   const createPlainField = (overrides: Partial<PlainField> = {}): PlainField => ({

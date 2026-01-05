@@ -1,5 +1,6 @@
+import type { Context, Next } from 'koa';
+
 import { createMockContext } from '@shopify/jest-koa-mocks';
-import { Context, Next } from 'koa';
 
 import IpWhitelist from '../../../src/routes/security/ip-whitelist';
 import { HttpCode } from '../../../src/types';

@@ -1,4 +1,5 @@
-import {
+import type { BelongsToManyExt, ModelAttributeColumnOptionsExt } from '../type-overrides';
+import type {
   CollectionSchema,
   ColumnSchema,
   ColumnSchemaValidation,
@@ -6,21 +7,18 @@ import {
   Logger,
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
-import {
+import type {
   AbstractDataType,
   Association,
-  BelongsTo,
-  BelongsToMany,
   DataTypes,
-  HasMany,
-  HasOne,
   Model,
   ModelAttributes,
   ModelDefined,
 } from 'sequelize';
 
+import { BelongsTo, BelongsToMany, HasMany, HasOne } from 'sequelize';
+
 import TypeConverter from './type-converter';
-import { BelongsToManyExt, ModelAttributeColumnOptionsExt } from '../type-overrides';
 
 export default class ModelToCollectionSchemaConverter {
   private static convertAssociation(

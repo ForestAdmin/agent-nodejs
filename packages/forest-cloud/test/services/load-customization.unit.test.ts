@@ -1,8 +1,9 @@
+import type { Agent } from '../../src/types';
+
 import path from 'path';
 
 import { CustomizationError } from '../../src/errors';
 import loadCustomization from '../../src/services/load-customization';
-import { Agent } from '../../src/types';
 
 describe('loadCustomization', () => {
   function setupAgent() {

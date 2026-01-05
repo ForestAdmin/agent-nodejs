@@ -1,14 +1,7 @@
+import type { Caller, Collection, Projection, RecordData } from '@forestadmin/datasource-toolkit';
+
 import { writeToString } from '@fast-csv/format';
-import {
-  Caller,
-  Collection,
-  Page,
-  PaginatedFilter,
-  Projection,
-  RecordData,
-  RecordUtils,
-  SortFactory,
-} from '@forestadmin/datasource-toolkit';
+import { Page, PaginatedFilter, RecordUtils, SortFactory } from '@forestadmin/datasource-toolkit';
 
 export const CHUNK_SIZE = 1000;
 

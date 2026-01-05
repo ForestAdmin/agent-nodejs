@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 
-import { MongoCollection, MongoDb, NodeStudy } from './types';
+import type { MongoCollection, MongoDb, NodeStudy } from './types';
 
 export default class ReferenceCandidateVerifier {
   /** Filter out all candidates where references can't be found */

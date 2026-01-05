@@ -1,9 +1,9 @@
-import {
+import type {
   CreateOverrideCustomizationContext,
   DeleteOverrideCustomizationContext,
   UpdateOverrideCustomizationContext,
 } from './context';
-import { TCollectionName, TPartialSimpleRow, TSchema } from '../../templates';
+import type { TCollectionName, TPartialSimpleRow, TSchema } from '../../templates';
 
 export type CreateOverrideHandler<
   S extends TSchema = TSchema,

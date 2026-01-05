@@ -1,7 +1,8 @@
+import type { Collection, DataSource } from '../../src/interfaces/collection';
+
 import { Factory } from 'fishery';
 
 import factoryCollection from './collection';
-import { Collection, DataSource } from '../../src/interfaces/collection';
 
 export class DataSourceFactory extends Factory<DataSource> {
   buildWithCharts(charts: Array<string>): DataSource {

@@ -1,18 +1,17 @@
-import {
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   DataSourceDecorator,
   FieldSchema,
-  FieldValidator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
-  SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator, FieldValidator, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 /**
  * This decorator renames fields.

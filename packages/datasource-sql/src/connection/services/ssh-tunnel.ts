@@ -1,8 +1,9 @@
-import net from 'net';
+import type { SshOptions } from '../../types';
+import type net from 'net';
+
 import { Client } from 'ssh2';
 
 import Service from './service';
-import { SshOptions } from '../../types';
 import { SshConnectError, SshForwardError } from '../errors';
 
 export default class SshTunnel extends Service {

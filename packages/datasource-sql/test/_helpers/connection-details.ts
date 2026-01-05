@@ -1,6 +1,7 @@
+import type { Dialect, Options, Sequelize } from 'sequelize';
+
 import { tmpdir } from 'os';
 import path from 'path';
-import { Dialect, Options, Sequelize } from 'sequelize';
 
 export type ConnectionDetails = {
   name: string;

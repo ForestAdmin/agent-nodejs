@@ -1,6 +1,13 @@
 /* eslint-disable max-classes-per-file */
 
-import {
+import type {
+  TCollectionName,
+  TFieldName,
+  TPaginatedFilter,
+  TRow,
+  TSchema,
+} from '../../../templates';
+import type {
   Caller,
   Collection,
   PaginatedFilter,
@@ -9,7 +16,6 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import HookContext from './hook';
-import { TCollectionName, TFieldName, TPaginatedFilter, TRow, TSchema } from '../../../templates';
 
 export class HookBeforeListContext<
   S extends TSchema = TSchema,

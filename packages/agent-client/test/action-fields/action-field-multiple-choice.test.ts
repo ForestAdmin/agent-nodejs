@@ -1,5 +1,6 @@
+import type { PlainField, PlainFieldOption } from '../../src/action-fields/types';
+
 import ActionFieldMultipleChoice from '../../src/action-fields/action-field-multiple-choice';
-import { PlainField, PlainFieldOption } from '../../src/action-fields/types';
 
 describe('ActionFieldMultipleChoice', () => {
   const createPlainField = (options?: PlainFieldOption[], value?: unknown): PlainField => ({

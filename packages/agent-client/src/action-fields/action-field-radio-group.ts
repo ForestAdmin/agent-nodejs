@@ -1,5 +1,6 @@
+import type { PlainFieldOption } from './types';
+
 import ActionField from './action-field';
-import { PlainFieldOption } from './types';
 
 export default class ActionFieldRadioGroup extends ActionField {
   async getOptions(): Promise<PlainFieldOption[] | undefined> {

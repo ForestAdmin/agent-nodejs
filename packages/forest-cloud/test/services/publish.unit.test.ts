@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+import type HttpServer from '../../src/services/http-server';
+import type { ClientRequest, IncomingMessage } from 'node:http';
+
 import FormData from 'form-data';
-import { ClientRequest, IncomingMessage } from 'node:http';
 import { afterEach } from 'node:test';
 
 import DistPathManager from '../../src/services/dist-path-manager';
-import HttpServer from '../../src/services/http-server';
 import publish from '../../src/services/publish';
 
 const mockToBuffer = jest.fn();

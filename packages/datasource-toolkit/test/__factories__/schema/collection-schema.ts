@@ -1,6 +1,6 @@
-import { Factory } from 'fishery';
+import type { CollectionSchema } from '../../../src/interfaces/schema';
 
-import { CollectionSchema } from '../../../src/interfaces/schema';
+import { Factory } from 'fishery';
 
 export class CollectionSchemaFactory extends Factory<CollectionSchema> {
   unsearchable(): CollectionSchemaFactory {

@@ -1,10 +1,7 @@
 /* eslint-disable no-continue */
-import {
-  ConditionTree,
-  ConditionTreeFactory,
-  ConditionTreeLeaf,
-  Operator,
-} from '@forestadmin/datasource-toolkit';
+import type { ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 
 import buildDefaultCondition from './utils/build-default-condition';
 

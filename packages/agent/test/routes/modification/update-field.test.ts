@@ -1,9 +1,6 @@
-import {
-  ConditionTreeFactory,
-  DataSource,
-  Projection,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
+import { ConditionTreeFactory, Projection, ValidationError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import UpdateField from '../../../src/routes/modification/update-field';

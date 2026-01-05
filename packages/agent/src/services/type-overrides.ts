@@ -1,4 +1,4 @@
-import JSONAPISerializer from 'json-api-serializer';
+import type JSONAPISerializer from 'json-api-serializer';
 
 export interface JsonApiRelationshipOptionsExt extends JSONAPISerializer.RelationshipOptions {
   deserialize?: (data: Record<string, unknown>) => unknown;

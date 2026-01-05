@@ -1,4 +1,4 @@
-import { ForestAdminServerInterface } from '../../src/types';
+import type { ForestAdminServerInterface } from '../../src/types';
 
 const forestAdminServerInterface = {
   build: (): ForestAdminServerInterface => ({

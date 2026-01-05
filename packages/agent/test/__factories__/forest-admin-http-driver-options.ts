@@ -1,7 +1,8 @@
+import type { AgentOptionsWithDefaults } from '../../src/types';
+
 import { Factory } from 'fishery';
 
 import forestAdminClientFactory from './forest-admin-client';
-import { AgentOptionsWithDefaults } from '../../src/types';
 
 export default Factory.define<AgentOptionsWithDefaults>(() => ({
   authSecret: 'not_so_random_auth_secret',

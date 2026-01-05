@@ -1,5 +1,6 @@
+import type { Introspection, Introspection1, Table } from '../../src/introspection/types';
+
 import Introspector from '../../src/introspection/introspector';
-import { Introspection, Introspection1, Table } from '../../src/introspection/types';
 
 const defaultIntrospection: Introspection = {
   source: '@forestadmin/datasource-sql',

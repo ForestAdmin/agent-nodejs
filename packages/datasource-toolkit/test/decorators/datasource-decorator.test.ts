@@ -1,6 +1,7 @@
+import type { Collection } from '../../src/interfaces/collection';
+
 import CollectionDecorator from '../../src/decorators/collection-decorator';
 import DataSourceDecorator from '../../src/decorators/datasource-decorator';
-import { Collection } from '../../src/interfaces/collection';
 import * as factories from '../__factories__';
 
 class DecoratedCollection extends CollectionDecorator {

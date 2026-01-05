@@ -1,5 +1,5 @@
-import { Projection } from '@forestadmin/datasource-toolkit';
-import { PipelineStage } from 'mongoose';
+import type { Projection } from '@forestadmin/datasource-toolkit';
+import type { PipelineStage } from 'mongoose';
 
 import { FOREST_RECORD_DOES_NOT_EXIST } from './condition-generator';
 

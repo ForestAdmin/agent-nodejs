@@ -1,6 +1,7 @@
+import type ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
+import type { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
+
 import { MissingFieldError } from '../../../src';
-import ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
-import { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeValidator from '../../../src/validation/condition-tree';
 import * as factories from '../../__factories__';
 

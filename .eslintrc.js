@@ -56,6 +56,12 @@ module.exports = {
     // No unused variables
     '@typescript-eslint/no-unused-vars': ['error'],
 
+    // Enforce type imports for type-only imports
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+    ],
+
     // No reassigning function parameters
     'no-param-reassign': ['error', { props: false }],
 

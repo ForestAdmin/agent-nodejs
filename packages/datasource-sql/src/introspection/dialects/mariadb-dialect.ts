@@ -1,4 +1,6 @@
-import MySQLDialect, { MySQLDBColumn } from './mysql-dialect';
+import type { MySQLDBColumn } from './mysql-dialect';
+
+import MySQLDialect from './mysql-dialect';
 
 export default class MariadbDialect extends MySQLDialect {
   protected override mapDefaultValue(dbColumn: MySQLDBColumn): {

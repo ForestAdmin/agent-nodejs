@@ -1,6 +1,6 @@
-import { Factory } from 'fishery';
+import type { ManyToManySchema } from '../../../src/interfaces/schema';
 
-import { ManyToManySchema } from '../../../src/interfaces/schema';
+import { Factory } from 'fishery';
 
 export default Factory.define<ManyToManySchema>(() => ({
   type: 'ManyToMany',

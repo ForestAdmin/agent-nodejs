@@ -1,9 +1,12 @@
 /* eslint-disable max-classes-per-file */
 
+import type { SqliteSetupResult } from './__helper__/sqlite-setup';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
 import express from 'express';
 import Fastify3 from 'fastify';
 import Fastify2 from 'fastify2';
@@ -15,11 +18,7 @@ import path from 'path';
 import superagent from 'superagent';
 
 import MockForestServer from './__helper__/mock-forest-server';
-import {
-  SqliteSetupResult,
-  getTestCollectionsSchema,
-  setupSqliteDatabase,
-} from './__helper__/sqlite-setup';
+import { getTestCollectionsSchema, setupSqliteDatabase } from './__helper__/sqlite-setup';
 import Agent from '../src/agent';
 
 const AUTH_SECRET = 'test-auth-secret-32-chars-min!!!';

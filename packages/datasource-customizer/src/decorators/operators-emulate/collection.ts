@@ -1,21 +1,24 @@
-import {
+import type { OperatorDefinition } from './types';
+import type {
   Caller,
-  CollectionDecorator,
   CollectionSchema,
   ColumnSchema,
-  ConditionTree,
-  ConditionTreeFactory,
   ConditionTreeLeaf,
-  ConditionTreeValidator,
   DataSourceDecorator,
   FieldSchema,
-  FieldValidator,
   Operator,
+} from '@forestadmin/datasource-toolkit';
+
+import {
+  CollectionDecorator,
+  ConditionTree,
+  ConditionTreeFactory,
+  ConditionTreeValidator,
+  FieldValidator,
   PaginatedFilter,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
 
-import { OperatorDefinition } from './types';
 import CollectionCustomizationContext from '../../context/collection-context';
 
 export default class OperatorsEmulateCollectionDecorator extends CollectionDecorator {

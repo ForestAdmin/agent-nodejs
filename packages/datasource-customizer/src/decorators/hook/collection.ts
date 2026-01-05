@@ -1,42 +1,28 @@
-import {
+import type { HookBeforeAggregateContext } from './context/aggregate';
+import type { HookBeforeCreateContext } from './context/create';
+import type { HookBeforeDeleteContext } from './context/delete';
+import type HookContext from './context/hook';
+import type { HookBeforeListContext } from './context/list';
+import type { HookBeforeUpdateContext } from './context/update';
+import type { HookHandler, HookPosition, HookType, HooksContext } from './types';
+import type {
   AggregateResult,
   Aggregation,
   Caller,
-  CollectionDecorator,
   Filter,
   PaginatedFilter,
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import {
-  HookAfterAggregateContext,
-  HookBeforeAggregateContext,
-  InternalHookBeforeAggregateContext,
-} from './context/aggregate';
-import {
-  HookAfterCreateContext,
-  HookBeforeCreateContext,
-  InternalHookBeforeCreateContext,
-} from './context/create';
-import {
-  HookAfterDeleteContext,
-  HookBeforeDeleteContext,
-  InternalHookBeforeDeleteContext,
-} from './context/delete';
-import HookContext from './context/hook';
-import {
-  HookAfterListContext,
-  HookBeforeListContext,
-  InternalHookBeforeListContext,
-} from './context/list';
-import {
-  HookAfterUpdateContext,
-  HookBeforeUpdateContext,
-  InternalHookBeforeUpdateContext,
-} from './context/update';
+import { CollectionDecorator } from '@forestadmin/datasource-toolkit';
+
+import { HookAfterAggregateContext, InternalHookBeforeAggregateContext } from './context/aggregate';
+import { HookAfterCreateContext, InternalHookBeforeCreateContext } from './context/create';
+import { HookAfterDeleteContext, InternalHookBeforeDeleteContext } from './context/delete';
+import { HookAfterListContext, InternalHookBeforeListContext } from './context/list';
+import { HookAfterUpdateContext, InternalHookBeforeUpdateContext } from './context/update';
 import Hooks from './hook';
-import { HookHandler, HookPosition, HookType, HooksContext } from './types';
 
 export default class CollectionHookDecorator extends CollectionDecorator {
   private hooks: { [type in HookType<'After'>]: Hooks<HookContext, HookContext> } = {

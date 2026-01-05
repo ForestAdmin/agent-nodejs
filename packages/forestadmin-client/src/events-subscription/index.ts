@@ -1,12 +1,13 @@
-import EventSource from 'eventsource';
-
-import {
+import type {
   BaseEventsSubscriptionService,
   RefreshEventsHandlerService,
   ServerEvent,
-  ServerEventType,
 } from './types';
-import { ForestAdminClientOptionsWithDefaults } from '../types';
+import type { ForestAdminClientOptionsWithDefaults } from '../types';
+
+import EventSource from 'eventsource';
+
+import { ServerEventType } from './types';
 
 export default class EventsSubscriptionService implements BaseEventsSubscriptionService {
   private eventSource: EventSource;

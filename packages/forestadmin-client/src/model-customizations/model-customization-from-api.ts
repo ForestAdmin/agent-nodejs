@@ -1,12 +1,13 @@
-import {
+import type {
   ActionConfigurationApi,
   ActionScope,
   ConfigurationApi,
   ModelCustomization,
   ModelCustomizationService,
-  ModelCustomizationType,
 } from './types';
-import { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
+import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
+
+import { ModelCustomizationType } from './types';
 
 function mapApiValues(
   modelCustomization: ModelCustomization<ConfigurationApi>,

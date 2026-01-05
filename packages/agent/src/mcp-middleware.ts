@@ -1,6 +1,6 @@
-import Koa from 'koa';
+import type { HttpCallback } from './types';
+import type Koa from 'koa';
 
-import { HttpCallback } from './types';
 import expressToKoa from './utils/express-to-koa';
 
 /**

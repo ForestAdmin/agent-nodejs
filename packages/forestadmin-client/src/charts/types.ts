@@ -1,4 +1,4 @@
-import { RawTree } from '../permissions/types';
+import type { RawTree } from '../permissions/types';
 
 export type KeysOfUnion<T> = T extends T ? keyof T : never;
 

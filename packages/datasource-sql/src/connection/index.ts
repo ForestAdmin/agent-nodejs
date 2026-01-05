@@ -1,6 +1,6 @@
-import { Sequelize } from 'sequelize';
+import type ConnectionOptions from './connection-options';
+import type { Sequelize } from 'sequelize';
 
-import ConnectionOptions from './connection-options';
 import testConnectionWithTimeOut from './connection-tester';
 import handleErrors from './handle-errors';
 import SequelizeFactory from './sequelize-factory';

@@ -1,13 +1,16 @@
-import {
+import type {
   Collection,
   ColumnSchema,
   DataSource,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
+
+import {
   DataSourceDecorator,
   MissingFieldError,
   Page,
   PaginatedFilter,
   Projection,
-  RecordData,
   Sort,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';

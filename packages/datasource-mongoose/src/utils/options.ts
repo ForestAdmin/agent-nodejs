@@ -1,12 +1,12 @@
-import { Model } from 'mongoose';
-
-import MongooseSchema from '../mongoose/schema';
-import {
+import type {
   FlattenOptions,
   LegacyFlattenOptions,
   ManualFlattenOptions,
   MongooseOptions,
 } from '../types';
+import type { Model } from 'mongoose';
+
+import MongooseSchema from '../mongoose/schema';
 
 export default class OptionsParser {
   static parseOptions(model: Model<unknown>, options: MongooseOptions): FlattenOptions {

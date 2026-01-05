@@ -1,5 +1,6 @@
+import type { Spinner } from '../types';
+
 import { BusinessError } from '../errors';
-import { Spinner } from '../types';
 
 export default function actionRunner(spinner: Spinner, fn: (...args) => Promise<any>) {
   return async (...args) => {

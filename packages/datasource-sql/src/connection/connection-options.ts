@@ -1,15 +1,15 @@
-import { Logger } from '@forestadmin/datasource-toolkit';
-import { Dialect, Sequelize, Options as SequelizeOptions } from 'sequelize';
-
-import { DatabaseConnectError } from './errors';
-import connect from './index';
-import {
+import type {
   PlainConnectionOptions,
   PlainConnectionOptionsOrUri,
   ProxyOptions,
   SshOptions,
   SslMode,
 } from '../types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Dialect, Sequelize, Options as SequelizeOptions } from 'sequelize';
+
+import { DatabaseConnectError } from './errors';
+import connect from './index';
 
 /**
  * Connection options.

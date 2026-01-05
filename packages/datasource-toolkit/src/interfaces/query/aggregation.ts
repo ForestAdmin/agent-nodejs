@@ -1,9 +1,10 @@
+import type { RecordData } from '../record';
+
 import { DateTime } from 'luxon';
 import hashRecord from 'object-hash';
 
 import Projection from './projection';
 import RecordUtils from '../../utils/record';
-import { RecordData } from '../record';
 
 export type AggregationOperation = 'Count' | 'Sum' | 'Avg' | 'Max' | 'Min';
 export type DateOperation = 'Year' | 'Quarter' | 'Month' | 'Week' | 'Day';

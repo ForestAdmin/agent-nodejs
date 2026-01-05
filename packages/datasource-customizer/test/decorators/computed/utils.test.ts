@@ -1,6 +1,6 @@
-import { ColumnType } from '@forestadmin/datasource-toolkit';
+import type { ComputedDefinition } from '../../../src/decorators/computed/types';
+import type { ColumnType } from '@forestadmin/datasource-toolkit';
 
-import { ComputedDefinition } from '../../../src/decorators/computed/types';
 import transformUniqueValues from '../../../src/decorators/computed/utils/deduplication';
 import {
   flatten,

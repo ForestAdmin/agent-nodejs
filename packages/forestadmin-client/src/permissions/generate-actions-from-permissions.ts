@@ -1,10 +1,4 @@
-import {
-  generateCollectionActionIdentifier,
-  generateCustomActionIdentifier,
-} from './generate-action-identifier';
-import {
-  CollectionActionEvent,
-  CustomActionEvent,
+import type {
   EnvironmentCollectionActionPermissionsV4,
   EnvironmentCollectionsPermissionsV4,
   EnvironmentPermissionsV4,
@@ -14,6 +8,12 @@ import {
   RightDescriptionV4,
   RightDescriptionWithRolesV4,
 } from './types';
+
+import {
+  generateCollectionActionIdentifier,
+  generateCustomActionIdentifier,
+} from './generate-action-identifier';
+import { CollectionActionEvent, CustomActionEvent } from './types';
 
 export type ActionPermissions = {
   isDevelopment: boolean;

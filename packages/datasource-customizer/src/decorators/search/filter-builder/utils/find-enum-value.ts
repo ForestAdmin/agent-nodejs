@@ -1,4 +1,4 @@
-import { ColumnSchema } from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
 
 function normalize(value: string): string {
   return value.trim().toLocaleLowerCase();

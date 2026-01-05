@@ -1,7 +1,10 @@
-import { ActionContext, TFieldName, TRow, TSchema } from '@forestadmin/datasource-customizer';
-import { ActionResult, SchemaUtils } from '@forestadmin/datasource-toolkit';
-import { WebhookAction } from '@forestadmin/forestadmin-client';
-import superagent, { ResponseError } from 'superagent';
+import type { ActionContext, TFieldName, TRow, TSchema } from '@forestadmin/datasource-customizer';
+import type { ActionResult } from '@forestadmin/datasource-toolkit';
+import type { WebhookAction } from '@forestadmin/forestadmin-client';
+import type { ResponseError } from 'superagent';
+
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+import superagent from 'superagent';
 
 function generateBody<S extends TSchema>(
   action: WebhookAction,

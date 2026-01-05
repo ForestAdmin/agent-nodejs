@@ -1,5 +1,7 @@
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { DataSource, MissingColumnError, Projection } from '@forestadmin/datasource-toolkit';
+import { MissingColumnError, Projection } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import flattenColumn from '../src/flatten-column';

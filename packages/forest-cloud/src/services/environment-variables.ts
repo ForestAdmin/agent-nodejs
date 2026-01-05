@@ -1,10 +1,11 @@
+import type { EnvironmentVariables } from '../types';
+
 import * as fs from 'fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'path';
 
 import { BusinessError } from '../errors';
-import { EnvironmentVariables } from '../types';
 
 const getTokenFromToolbelt = async (baseTokenPath: string): Promise<string | null> => {
   const tokenPath = path.join(baseTokenPath, '.forest.d', '.forestrc');

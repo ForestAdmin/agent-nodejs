@@ -1,4 +1,5 @@
-import { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+
 import { ModelCustomizationType } from '@forestadmin/forestadmin-client/src/model-customizations/types';
 
 import UpdateRecordActionsPlugin from '../../../src/services/model-customizations/actions/update-record/update-record-plugin';

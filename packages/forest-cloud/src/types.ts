@@ -1,3 +1,7 @@
+import type BootstrapPathManager from './services/bootstrap-path-manager';
+import type DistPathManager from './services/dist-path-manager';
+import type EventSubscriber from './services/event-subscriber';
+import type HttpServer from './services/http-server';
 import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
@@ -5,11 +9,6 @@ import type {
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
-
-import BootstrapPathManager from './services/bootstrap-path-manager';
-import DistPathManager from './services/dist-path-manager';
-import EventSubscriber from './services/event-subscriber';
-import HttpServer from './services/http-server';
 
 /**
  * This agent the central object used to customize your cloud project

@@ -1,10 +1,8 @@
 /* eslint-disable max-classes-per-file */
 
-import {
+import type {
   AggregateResult,
   Aggregation,
-  BaseCollection,
-  BaseDataSource,
   Caller,
   DataSource,
   DataSourceFactory,
@@ -14,6 +12,8 @@ import {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+
+import { BaseCollection, BaseDataSource } from '@forestadmin/datasource-toolkit';
 import superagent from 'superagent';
 
 class TypicodeCollection extends BaseCollection {

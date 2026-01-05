@@ -1,12 +1,14 @@
-import ActionPermission from './action-permission';
+import type ActionPermission from './action-permission';
+import type RenderingPermissionService from './rendering-permission';
+import type { CollectionActionEvent } from './types';
+import type { Chart } from '../charts/types';
+import type { PermissionService } from '../types';
+
 import {
   generateCollectionActionIdentifier,
   generateCustomActionIdentifier,
 } from './generate-action-identifier';
-import RenderingPermissionService from './rendering-permission';
-import { CollectionActionEvent, CustomActionEvent } from './types';
-import { Chart } from '../charts/types';
-import { PermissionService } from '../types';
+import { CustomActionEvent } from './types';
 
 export default class PermissionServiceWithCache implements PermissionService {
   constructor(

@@ -1,4 +1,6 @@
-import { ColumnSchema, ValidationError } from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
+
+import { ValidationError } from '@forestadmin/datasource-toolkit';
 
 export default class ColumnSchemaValidator {
   static validate(column: ColumnSchema, name: string): void {

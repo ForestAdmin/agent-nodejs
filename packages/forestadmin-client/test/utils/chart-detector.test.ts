@@ -1,12 +1,13 @@
-import {
+import type {
   ApiRouteChart,
-  ChartType,
   LeaderboardChart,
   LineChart,
   ObjectiveChart,
   PieChart,
   ValueChart,
 } from '../../src/charts/types';
+
+import { ChartType } from '../../src/charts/types';
 import ChartDetector from '../../src/utils/chart-detector';
 
 describe('ChartDetector', () => {

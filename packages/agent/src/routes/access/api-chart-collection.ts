@@ -1,11 +1,12 @@
-import { Chart, DataSource } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
+import type { ForestAdminHttpDriverServices } from '../../services';
+import type { AgentOptionsWithDefaults } from '../../types';
+import type { Chart, DataSource } from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
 import path from 'path';
 import { v1 as uuidv1 } from 'uuid';
 
-import { ForestAdminHttpDriverServices } from '../../services';
-import { AgentOptionsWithDefaults } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';

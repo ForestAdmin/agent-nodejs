@@ -1,4 +1,6 @@
-import { ColumnSchema, DataSource, MissingFieldError } from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema, DataSource } from '@forestadmin/datasource-toolkit';
+
+import { MissingFieldError } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import WriteDecorator from '../../../../src/decorators/write/write-replace/collection';

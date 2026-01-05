@@ -1,4 +1,4 @@
-import { ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type { ColumnSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 
 import buildBasicArrayFieldFilter from './build-basic-array-field-filter';
 import buildDefaultCondition from './utils/build-default-condition';

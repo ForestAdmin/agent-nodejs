@@ -1,8 +1,8 @@
-import { Dialect } from 'sequelize';
+import type { PlainConnectionOptionsOrUri } from '../../src/types';
+import type { Dialect } from 'sequelize';
 
 import ConnectionOptions from '../../src/connection/connection-options';
 import { DatabaseConnectError } from '../../src/connection/errors';
-import { PlainConnectionOptionsOrUri } from '../../src/types';
 
 describe('ConnectionOptionsWrapper', () => {
   describe('when using sqlite', () => {

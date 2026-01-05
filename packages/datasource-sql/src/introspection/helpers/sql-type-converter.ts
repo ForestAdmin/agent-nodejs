@@ -1,6 +1,6 @@
-import { ColumnDescription } from '../dialects/dialect.interface';
-import { SequelizeTableIdentifier } from '../type-overrides';
-import { ColumnType, ScalarSubType } from '../types';
+import type { ColumnDescription } from '../dialects/dialect.interface';
+import type { SequelizeTableIdentifier } from '../type-overrides';
+import type { ColumnType, ScalarSubType } from '../types';
 
 export default class SqlTypeConverter {
   private static readonly enumRegex = /ENUM\((.*)\)/i;

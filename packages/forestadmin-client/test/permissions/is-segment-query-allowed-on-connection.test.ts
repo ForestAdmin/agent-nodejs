@@ -1,5 +1,6 @@
+import type { CollectionRenderingPermissionV4 } from '../../src/permissions/types';
+
 import isSegmentQueryAllowedOnConnection from '../../src/permissions/is-segment-query-allowed-on-connection';
-import { CollectionRenderingPermissionV4 } from '../../src/permissions/types';
 
 describe('isSegmentQueryAllowedOnConnection', () => {
   it('should return false if there is no permissions', () => {

@@ -1,12 +1,15 @@
-import { QueryTypes, Sequelize } from 'sequelize';
-
-import parseArray from './parse-array';
-import {
+import type {
   SequelizeColumn,
   SequelizeTableIdentifier,
   SequelizeWithOptions,
 } from '../../type-overrides';
-import IntrospectionDialect, { ColumnDescription } from '../dialect.interface';
+import type { ColumnDescription } from '../dialect.interface';
+import type IntrospectionDialect from '../dialect.interface';
+import type { Sequelize } from 'sequelize';
+
+import { QueryTypes } from 'sequelize';
+
+import parseArray from './parse-array';
 
 type DBColumn = {
   Schema: string;

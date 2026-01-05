@@ -1,5 +1,5 @@
-import CollectionSearchContext from './collection-search-context';
-import { TCollectionName, TConditionTree, TSchema } from '../../templates';
+import type CollectionSearchContext from './collection-search-context';
+import type { TCollectionName, TConditionTree, TSchema } from '../../templates';
 
 export type SearchDefinition<
   S extends TSchema = TSchema,

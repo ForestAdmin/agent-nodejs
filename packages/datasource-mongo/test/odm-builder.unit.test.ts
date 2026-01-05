@@ -1,6 +1,8 @@
-import { Connection, Schema } from 'mongoose';
+import type { ModelDefinition } from '../src/introspection/types';
+import type { Connection } from 'mongoose';
 
-import { ModelDefinition } from '../src/introspection/types';
+import { Schema } from 'mongoose';
+
 import OrmBuilder from '../src/odm-builder/index';
 
 jest.mock('mongoose', () => {

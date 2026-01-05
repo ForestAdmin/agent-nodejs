@@ -1,4 +1,4 @@
-import { EnvironmentVariables, Logger, Login } from './types';
+import type { EnvironmentVariables, Logger, Login } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const loginIfMissingAuthAndReturnEnvironmentVariables = async (

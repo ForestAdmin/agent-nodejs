@@ -1,3 +1,5 @@
+import type { EnvironmentVariables } from './types';
+
 import fsSync from 'fs';
 import os from 'os';
 import path from 'path';
@@ -11,7 +13,6 @@ import { getEnvironmentVariables } from './services/environment-variables';
 import EventSubscriber from './services/event-subscriber';
 import generateDatasourceConfigFile from './services/generate-datasource-config-file';
 import HttpServer from './services/http-server';
-import { EnvironmentVariables } from './types';
 
 const buildHttpServer = (envs: EnvironmentVariables): HttpServer => {
   return new HttpServer(envs.FOREST_SERVER_URL, envs.FOREST_ENV_SECRET, envs.FOREST_AUTH_TOKEN);

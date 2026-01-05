@@ -1,12 +1,14 @@
+import type { MakeCommandsForTests } from './utils';
+import type DistPathManager from '../../src/services/dist-path-manager';
+import type { ClientRequest, IncomingMessage } from 'http';
+
 import AdmZip from 'adm-zip';
 import FormData from 'form-data';
 import fs from 'fs/promises';
-import { ClientRequest, IncomingMessage } from 'http';
 import path from 'path';
 
 import CommandTester from './command-tester';
-import { MakeCommandsForTests, setupCommandArguments } from './utils';
-import DistPathManager from '../../src/services/dist-path-manager';
+import { setupCommandArguments } from './utils';
 
 const createFakeZip = async (distPathManager: DistPathManager) => {
   const { zip: zipPath } = distPathManager;

@@ -1,4 +1,4 @@
-import { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import ActionLayoutElement from '../../src/action-layout/action-layout-element';
 import ActionLayoutInput from '../../src/action-layout/action-layout-input';

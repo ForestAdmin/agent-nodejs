@@ -1,3 +1,5 @@
+import type HttpRequester from '../../src/http-requester';
+
 import ActionFieldCheckbox from '../../src/action-fields/action-field-checkbox';
 import ActionFieldCheckboxGroup from '../../src/action-fields/action-field-checkbox-group';
 import ActionFieldColorPicker from '../../src/action-fields/action-field-color-picker';
@@ -11,7 +13,6 @@ import ActionFieldRadioGroup from '../../src/action-fields/action-field-radio-gr
 import ActionFieldString from '../../src/action-fields/action-field-string';
 import ActionFieldStringList from '../../src/action-fields/action-field-string-list';
 import FieldFormStates from '../../src/action-fields/field-form-states';
-import HttpRequester from '../../src/http-requester';
 
 jest.mock('../../src/http-requester');
 

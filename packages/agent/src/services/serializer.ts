@@ -1,13 +1,10 @@
-import {
-  Collection,
-  CollectionSchema,
-  RecordData,
-  SchemaUtils,
-} from '@forestadmin/datasource-toolkit';
+import type { JsonApiRelationshipOptionsExt } from './type-overrides';
+import type { Collection, CollectionSchema, RecordData } from '@forestadmin/datasource-toolkit';
+
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 import JsonApiSerializer from 'json-api-serializer';
 import path from 'path';
 
-import { JsonApiRelationshipOptionsExt } from './type-overrides';
 import IdUtils from '../utils/id';
 
 type SerializedRecord = { forestId: string };

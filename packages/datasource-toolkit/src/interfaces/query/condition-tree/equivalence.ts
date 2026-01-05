@@ -1,10 +1,11 @@
-import ConditionTree from './nodes/base';
-import ConditionTreeLeaf from './nodes/leaf';
-import { Operator } from './nodes/operators';
+import type ConditionTree from './nodes/base';
+import type ConditionTreeLeaf from './nodes/leaf';
+import type { Operator } from './nodes/operators';
+import type { ColumnType, PrimitiveTypes } from '../../schema';
+
 import equalityTransforms from './transforms/comparison';
 import patternTransforms from './transforms/pattern';
 import timeTransforms from './transforms/time';
-import { ColumnType, PrimitiveTypes } from '../../schema';
 
 export type Replacer = (
   leaf: ConditionTreeLeaf,

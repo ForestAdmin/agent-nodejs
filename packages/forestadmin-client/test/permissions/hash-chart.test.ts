@@ -1,4 +1,6 @@
-import { Chart, ChartType, LineChart, PieChart, ValueChart } from '../../src/charts/types';
+import type { Chart, LineChart, PieChart, ValueChart } from '../../src/charts/types';
+
+import { ChartType } from '../../src/charts/types';
 import { hashChartRequest, hashServerCharts } from '../../src/permissions/hash-chart';
 
 describe('HashChart', () => {

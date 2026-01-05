@@ -1,6 +1,7 @@
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
 import { Aggregation } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
 
 import ContextFilterFactory from '../../utils/context-filter-factory';
 import QueryStringParser from '../../utils/query-string';

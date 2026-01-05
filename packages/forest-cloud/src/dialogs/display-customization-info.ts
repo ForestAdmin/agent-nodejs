@@ -1,4 +1,4 @@
-import { CodeCustomizationDetails, Spinner } from '../types';
+import type { CodeCustomizationDetails, Spinner } from '../types';
 
 export default function displayCustomizationInfo(
   spinner: Spinner,

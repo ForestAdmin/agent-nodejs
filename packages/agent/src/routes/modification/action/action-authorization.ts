@@ -1,12 +1,7 @@
-import {
-  Aggregation,
-  Caller,
-  Collection,
-  ConditionTreeFactory,
-  Filter,
-  ForbiddenError,
-} from '@forestadmin/datasource-toolkit';
-import { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type { Caller, Collection, Filter } from '@forestadmin/datasource-toolkit';
+import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+
+import { Aggregation, ConditionTreeFactory, ForbiddenError } from '@forestadmin/datasource-toolkit';
 import hashObject from 'object-hash';
 
 import ApprovalNotAllowedError from './errors/approval-not-allowed-error';

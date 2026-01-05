@@ -1,4 +1,4 @@
-import { Introspection } from './types';
+import type { Introspection } from './types';
 
 export default function listCollectionsFromIntrospection(introspection: Introspection): string[] {
   if (!introspection) {

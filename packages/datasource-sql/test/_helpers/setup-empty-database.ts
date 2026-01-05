@@ -1,6 +1,7 @@
-import { Options, Sequelize } from 'sequelize';
+import type { ConnectionDetails } from './connection-details';
+import type { Options } from 'sequelize';
 
-import { ConnectionDetails } from './connection-details';
+import { Sequelize } from 'sequelize';
 
 export default async function setupEmptyDatabase(
   connectionDetails: ConnectionDetails,

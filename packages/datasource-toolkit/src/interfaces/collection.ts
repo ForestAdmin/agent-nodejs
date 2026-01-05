@@ -1,12 +1,13 @@
-import { ActionFormElement, ActionResult } from './action';
-import { Caller } from './caller';
-import { Chart } from './chart';
-import Aggregation, { AggregateResult } from './query/aggregation';
-import PaginatedFilter from './query/filter/paginated';
-import Filter from './query/filter/unpaginated';
-import Projection from './query/projection';
-import { CompositeId, RecordData } from './record';
-import { CollectionSchema, DataSourceSchema } from './schema';
+import type { ActionFormElement, ActionResult } from './action';
+import type { Caller } from './caller';
+import type { Chart } from './chart';
+import type { AggregateResult } from './query/aggregation';
+import type Aggregation from './query/aggregation';
+import type PaginatedFilter from './query/filter/paginated';
+import type Filter from './query/filter/unpaginated';
+import type Projection from './query/projection';
+import type { CompositeId, RecordData } from './record';
+import type { CollectionSchema, DataSourceSchema } from './schema';
 
 export interface DataSource<C extends Collection = Collection> {
   get collections(): C[];

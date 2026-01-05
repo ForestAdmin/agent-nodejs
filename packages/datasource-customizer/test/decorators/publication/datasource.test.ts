@@ -1,4 +1,5 @@
-import { DataSource } from '@forestadmin/datasource-toolkit';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import PublicationDataSourceDecorator from '../../../src/decorators/publication/datasource';

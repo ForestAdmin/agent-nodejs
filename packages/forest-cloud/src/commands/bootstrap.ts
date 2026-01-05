@@ -1,4 +1,5 @@
-import { Command } from 'commander';
+import type { MakeCommands } from '../types';
+import type { Command } from 'commander';
 
 import actionRunner from '../dialogs/action-runner';
 import askQuestion from '../dialogs/ask-question';
@@ -10,7 +11,6 @@ import {
   validateMissingForestEnvSecret,
 } from '../services/environment-variables';
 import { loginIfMissingAuthAndReturnEnvironmentVariables } from '../shared';
-import { MakeCommands } from '../types';
 
 export default (program: Command, context: MakeCommands) => {
   const { logger, buildHttpServer, bootstrapPathManager, login, getEnvironmentVariables } = context;

@@ -1,8 +1,8 @@
+import type { AgentOptions, AgentOptionsWithDefaults } from '../types';
+
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import { existsSync } from 'fs';
 import path from 'path';
-
-import { AgentOptions, AgentOptionsWithDefaults } from '../types';
 
 const DEFAULT_MINIMUM_CACHE_DURATION = 60;
 // One year cache duration when using events

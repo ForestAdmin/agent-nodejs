@@ -1,10 +1,11 @@
+import type { ConnectionParams } from '../../src';
+import type { Connection } from 'mongoose';
 import type { AddressInfo, Server } from 'net';
 import type { Client } from 'ssh2';
 
-import mongoose, { Connection } from 'mongoose';
+import mongoose from 'mongoose';
 import { createTunnel } from 'tunnel-ssh';
 
-import { ConnectionParams } from '../../src';
 import createConnection from '../../src/connection/create-connection';
 import { ConnectionError, SshConnectError } from '../../src/errors';
 

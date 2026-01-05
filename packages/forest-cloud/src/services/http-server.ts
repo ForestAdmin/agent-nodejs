@@ -1,10 +1,11 @@
+import type { Datasources } from './update-typings';
+import type { CodeCustomizationDetails, Log } from '../types';
+
 import * as axios from 'axios';
 import * as fs from 'fs';
 
 import latestVersion from './latest-version';
-import { Datasources } from './update-typings';
 import { BusinessError, ValidationError } from '../errors';
-import { CodeCustomizationDetails, Log } from '../types';
 
 async function handledAxios<T>(
   axiosRequestConfig: axios.AxiosRequestConfig,

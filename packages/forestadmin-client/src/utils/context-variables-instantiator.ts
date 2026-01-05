@@ -1,6 +1,8 @@
-import ContextVariables, { RequestContextVariables } from './context-variables';
-import RenderingPermissionService from '../permissions/rendering-permission';
-import { ContextVariablesInstantiatorInterface } from '../types';
+import type { RequestContextVariables } from './context-variables';
+import type RenderingPermissionService from '../permissions/rendering-permission';
+import type { ContextVariablesInstantiatorInterface } from '../types';
+
+import ContextVariables from './context-variables';
 
 export default class ContextVariablesInstantiator implements ContextVariablesInstantiatorInterface {
   constructor(private readonly renderingPermissionService: RenderingPermissionService) {}

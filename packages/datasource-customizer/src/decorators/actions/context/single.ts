@@ -1,7 +1,7 @@
-import { CompositeId } from '@forestadmin/datasource-toolkit';
+import type { TCollectionName, TFieldName, TFieldType, TRow, TSchema } from '../../../templates';
+import type { CompositeId } from '@forestadmin/datasource-toolkit';
 
 import ActionContext from './base';
-import { TCollectionName, TFieldName, TFieldType, TRow, TSchema } from '../../../templates';
 
 export default class ActionContextSingle<
   S extends TSchema = TSchema,

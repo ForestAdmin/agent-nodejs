@@ -1,8 +1,9 @@
+import type { Configuration } from '../types';
 import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { RecordData } from '@forestadmin/datasource-toolkit';
 
-import { RecordData, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
-import { Configuration } from '../types';
 import { parseDataUri } from '../utils/data-uri';
 
 function getPks(collection: CollectionCustomizer): string[] {

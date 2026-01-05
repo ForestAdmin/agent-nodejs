@@ -1,8 +1,9 @@
+import type { Collection } from '../interfaces/collection';
+import type { RecordData } from '../interfaces/record';
+
 import FieldValidator from './field';
 import { ValidationError } from '../errors';
 import { SchemaUtils } from '../index';
-import { Collection } from '../interfaces/collection';
-import { RecordData } from '../interfaces/record';
 
 export default class RecordValidator {
   static validate(collection: Collection, recordData: RecordData): void {

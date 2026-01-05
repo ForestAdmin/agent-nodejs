@@ -1,26 +1,22 @@
-import {
-  DataSource,
-  DataSourceDecorator,
-  Logger,
-  MissingSchemaElementError,
-} from '@forestadmin/datasource-toolkit';
+import type ActionCollectionDecorator from './actions/collection';
+import type BinaryCollectionDecorator from './binary/collection';
+import type ChartDataSourceDecorator from './chart/datasource';
+import type ComputedCollectionDecorator from './computed/collection';
+import type HookCollectionDecorator from './hook/collection';
+import type OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
+import type OverrideCollectionDecorator from './override/collection';
+import type PublicationDataSourceDecorator from './publication/datasource';
+import type RelationCollectionDecorator from './relation/collection';
+import type RenameFieldCollectionDecorator from './rename-field/collection';
+import type SchemaCollectionDecorator from './schema/collection';
+import type SearchCollectionDecorator from './search/collection';
+import type SegmentCollectionDecorator from './segment/collection';
+import type SortEmulateCollectionDecorator from './sort-emulate/collection';
+import type ValidationCollectionDecorator from './validation/collection';
+import type WriteDataSourceDecorator from './write/datasource';
+import type { DataSource, DataSourceDecorator, Logger } from '@forestadmin/datasource-toolkit';
 
-import ActionCollectionDecorator from './actions/collection';
-import BinaryCollectionDecorator from './binary/collection';
-import ChartDataSourceDecorator from './chart/datasource';
-import ComputedCollectionDecorator from './computed/collection';
-import HookCollectionDecorator from './hook/collection';
-import OperatorsEmulateCollectionDecorator from './operators-emulate/collection';
-import OverrideCollectionDecorator from './override/collection';
-import PublicationDataSourceDecorator from './publication/datasource';
-import RelationCollectionDecorator from './relation/collection';
-import RenameFieldCollectionDecorator from './rename-field/collection';
-import SchemaCollectionDecorator from './schema/collection';
-import SearchCollectionDecorator from './search/collection';
-import SegmentCollectionDecorator from './segment/collection';
-import SortEmulateCollectionDecorator from './sort-emulate/collection';
-import ValidationCollectionDecorator from './validation/collection';
-import WriteDataSourceDecorator from './write/datasource';
+import { MissingSchemaElementError } from '@forestadmin/datasource-toolkit';
 
 export type Options = {
   ignoreMissingSchemaElementErrors?: boolean;

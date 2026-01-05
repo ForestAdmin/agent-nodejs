@@ -1,16 +1,15 @@
+import type { CompositeId, ManyToOneSchema, RecordData } from '@forestadmin/datasource-toolkit';
+import type Router from '@koa/router';
+import type { Context } from 'koa';
+
 import {
   CollectionUtils,
-  CompositeId,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   Filter,
-  ManyToOneSchema,
-  RecordData,
   RecordValidator,
   SchemaUtils,
 } from '@forestadmin/datasource-toolkit';
-import Router from '@koa/router';
-import { Context } from 'koa';
 
 import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';

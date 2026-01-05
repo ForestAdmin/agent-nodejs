@@ -1,4 +1,4 @@
-import { CompositeId, File, Json } from '@forestadmin/datasource-toolkit';
+import type { CompositeId, File, Json } from '@forestadmin/datasource-toolkit';
 
 type UnionKeys<T> = T extends T ? keyof T : never;
 type StrictUnionHelper<T, TAll> = T extends any

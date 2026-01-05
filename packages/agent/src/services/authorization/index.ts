@@ -1,5 +1,6 @@
+import type { AgentOptionsWithDefaults } from '../../types';
+
 import AuthorizationService from './authorization';
-import { AgentOptionsWithDefaults } from '../../types';
 
 export default function authorizationServiceFactory(
   options: AgentOptionsWithDefaults,

@@ -1,9 +1,9 @@
-import { RawTreeWithSources } from '@forestadmin/forestadmin-client';
+import type { ActionEndpointsByCollection } from './action';
+import type HttpRequester from '../http-requester';
+import type { RawTreeWithSources } from '@forestadmin/forestadmin-client';
 
-import { ActionEndpointsByCollection } from './action';
 import Chart from './chart';
 import Collection from './collection';
-import HttpRequester from '../http-requester';
 
 export type SmartActionPermissionsOverride = Partial<{
   triggerEnabled: boolean;

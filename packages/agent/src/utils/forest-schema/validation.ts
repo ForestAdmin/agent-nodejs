@@ -1,13 +1,16 @@
-import {
+import type {
   ColumnSchema,
   ColumnSchemaValidation,
   ColumnType,
+  Operator,
+} from '@forestadmin/datasource-toolkit';
+import type { ForestServerField } from '@forestadmin/forestadmin-client';
+
+import {
   ConditionTreeBranch,
   ConditionTreeEquivalent,
   ConditionTreeLeaf,
-  Operator,
 } from '@forestadmin/datasource-toolkit';
-import { ForestServerField } from '@forestadmin/forestadmin-client';
 
 type FrontendValidation = ForestServerField['validations'][number];
 type Validation = ColumnSchemaValidation[number];

@@ -1,7 +1,9 @@
-import { DataTypes, Dialect, Sequelize, literal } from 'sequelize';
-import { Literal } from 'sequelize/types/utils';
+import type { ConnectionDetails } from './connection-details';
+import type { Dialect, Sequelize } from 'sequelize';
+import type { Literal } from 'sequelize/types/utils';
 
-import { ConnectionDetails } from './connection-details';
+import { DataTypes, literal } from 'sequelize';
+
 import setupEmptyDatabase from './setup-empty-database';
 
 function getDefaultFunctionDateFromDialect(dialect: Dialect): Literal {

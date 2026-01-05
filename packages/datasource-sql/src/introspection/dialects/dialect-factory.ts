@@ -1,6 +1,6 @@
-import { Dialect } from 'sequelize';
+import type IntrospectionDialect from './dialect.interface';
+import type { Dialect } from 'sequelize';
 
-import IntrospectionDialect from './dialect.interface';
 import MariadbDialect from './mariadb-dialect';
 import MsSQLDialect from './mssql-dialect';
 import MySQLDialect from './mysql-dialect';

@@ -1,4 +1,4 @@
-import { Connection } from 'mongoose';
+import type { Connection } from 'mongoose';
 
 import setupFlattener from './_build-models';
 import MongooseDatasource from '../../../src/datasource';

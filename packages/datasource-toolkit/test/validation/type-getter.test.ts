@@ -1,4 +1,5 @@
-import { ColumnType } from '../../src/interfaces/schema';
+import type { ColumnType } from '../../src/interfaces/schema';
+
 import TypeGetter from '../../src/validation/type-getter';
 
 describe('TypeGetter', () => {

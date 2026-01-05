@@ -1,8 +1,10 @@
 // eslint-disable-next-line max-classes-per-file
+import type { Caller } from '../src';
+import type { Collection } from '../src/interfaces/collection';
+
 import * as factories from './__factories__';
-import { Caller, MissingCollectionError } from '../src';
+import { MissingCollectionError } from '../src';
 import BaseDataSource from '../src/base-datasource';
-import { Collection } from '../src/interfaces/collection';
 
 class ConcreteDataSource extends BaseDataSource<Collection> {}
 

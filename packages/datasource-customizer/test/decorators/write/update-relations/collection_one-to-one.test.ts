@@ -1,6 +1,7 @@
 /* eslint-disable no-plusplus */
+import type { Collection } from '@forestadmin/datasource-toolkit';
+
 import {
-  Collection,
   ConditionTreeLeaf,
   DataSourceDecorator,
   Filter,
