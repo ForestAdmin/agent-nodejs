@@ -3,7 +3,7 @@ import type { ResponseError } from 'superagent';
 
 import superagent from 'superagent';
 
-import { ForbiddenError } from '..';
+import { ForbiddenError, NotFoundError } from '..';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
 
@@ -40,11 +40,16 @@ export default class ServerUtils {
   }
 
   /** Query Forest-Admin server with Bearer token authentication */
-  static async queryWithBearerToken<T = unknown>(
-    options: QueryWithBearerTokenOptions,
-  ): Promise<T> {
-    const { forestServerUrl, method, path, bearerToken, headers = {}, body, maxTimeAllowed } =
-      options;
+  static async queryWithBearerToken<T = unknown>(options: QueryWithBearerTokenOptions): Promise<T> {
+    const {
+      forestServerUrl,
+      method,
+      path,
+      bearerToken,
+      headers = {},
+      body,
+      maxTimeAllowed,
+    } = options;
 
     return this.queryWithHeaders(
       { forestServerUrl },
@@ -112,8 +117,8 @@ export default class ServerUtils {
       }
 
       if (status === 404) {
-        throw new Error(
-          '[404] Forest Admin server failed to find the' +
+        throw new NotFoundError(
+          'Forest Admin server failed to find the' +
             ' project related to the envSecret you configured.' +
             ' Can you check that you copied it properly in the Forest initialization?',
         );

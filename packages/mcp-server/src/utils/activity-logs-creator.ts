@@ -8,6 +8,8 @@ import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
+import { NotFoundError } from '@forestadmin/forestadmin-client';
+
 export type { ActivityLogAction, ActivityLogResponse };
 
 const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
@@ -77,10 +79,8 @@ async function updateActivityLogStatus(
       errorMessage,
     });
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-
     // Retry on 404 errors (activity log may not be immediately available)
-    if (errorMsg.includes('404') && attempt < MAX_RETRIES) {
+    if (error instanceof NotFoundError && attempt < MAX_RETRIES) {
       logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
       await new Promise<void>(resolve => {
         setTimeout(resolve, RETRY_DELAY_MS);
@@ -89,6 +89,7 @@ async function updateActivityLogStatus(
       return updateActivityLogStatus(options, attempt + 1);
     }
 
+    const errorMsg = error instanceof Error ? error.message : String(error);
     logger('Error', `Failed to update activity log status to '${status}': ${errorMsg}`);
   }
 }

@@ -3,6 +3,8 @@ import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { NotFoundError } from '@forestadmin/forestadmin-client';
+
 import createPendingActivityLog, {
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
@@ -272,10 +274,10 @@ describe('markActivityLogAsFailed', () => {
     });
   });
 
-  it('should retry up to 5 times on 404 errors', async () => {
+  it('should retry up to 5 times on NotFoundError', async () => {
     jest.useFakeTimers();
 
-    const notFoundError = new Error('404 Not Found');
+    const notFoundError = new NotFoundError('Activity log not found');
     mockHttpClient.updateActivityLogStatus
       .mockRejectedValueOnce(notFoundError)
       .mockRejectedValueOnce(notFoundError)
@@ -314,7 +316,7 @@ describe('markActivityLogAsFailed', () => {
   it('should stop retrying after 5 failed attempts and log error', async () => {
     jest.useFakeTimers();
 
-    const notFoundError = new Error('404 Not found');
+    const notFoundError = new NotFoundError('Activity log not found');
     mockHttpClient.updateActivityLogStatus.mockRejectedValue(notFoundError);
 
     const request = createMockRequest();
@@ -335,13 +337,15 @@ describe('markActivityLogAsFailed', () => {
     expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledTimes(5);
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
-      "Failed to update activity log status to 'failed': 404 Not found",
+      "Failed to update activity log status to 'failed': Activity log not found",
     );
 
     jest.useRealTimers();
   });
 
   it('should not retry on non-404 errors', async () => {
+    jest.useFakeTimers();
+
     const serverError = new Error('Internal server error');
     mockHttpClient.updateActivityLogStatus.mockRejectedValue(serverError);
 
@@ -357,15 +361,15 @@ describe('markActivityLogAsFailed', () => {
       logger: mockLogger,
     });
 
-    await new Promise(resolve => {
-      setTimeout(resolve, 50);
-    });
+    await jest.advanceTimersByTimeAsync(0);
 
     expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledTimes(1);
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
       "Failed to update activity log status to 'failed': Internal server error",
     );
+
+    jest.useRealTimers();
   });
 });
 
@@ -391,6 +395,8 @@ describe('markActivityLogAsSucceeded', () => {
   }
 
   it('should call updateActivityLogStatus with completed status', async () => {
+    jest.useFakeTimers();
+
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -403,9 +409,7 @@ describe('markActivityLogAsSucceeded', () => {
     });
 
     // Wait for the fire-and-forget promise to resolve
-    await new Promise(resolve => {
-      setTimeout(resolve, 0);
-    });
+    await jest.advanceTimersByTimeAsync(0);
 
     expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledWith({
       forestServerToken: 'test-forest-token',
@@ -413,9 +417,13 @@ describe('markActivityLogAsSucceeded', () => {
       status: 'completed',
       errorMessage: undefined,
     });
+
+    jest.useRealTimers();
   });
 
   it('should not include errorMessage in completed status', async () => {
+    jest.useFakeTimers();
+
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -428,14 +436,14 @@ describe('markActivityLogAsSucceeded', () => {
     });
 
     // Wait for the fire-and-forget promise to resolve
-    await new Promise(resolve => {
-      setTimeout(resolve, 0);
-    });
+    await jest.advanceTimersByTimeAsync(0);
 
     expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: undefined,
       }),
     );
+
+    jest.useRealTimers();
   });
 });
