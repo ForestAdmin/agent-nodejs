@@ -29,31 +29,38 @@ export default class ActivityLogsService {
 
     const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
       data: ActivityLogResponse;
-    }>(this.options, 'post', '/api/activity-logs-requests', forestServerToken, MCP_HEADERS, {
-      data: {
-        id: 1,
-        type: 'activity-logs-requests',
-        attributes: {
-          type,
-          action,
-          label,
-          status: 'pending',
-          records: (recordIds || (recordId ? [recordId] : [])) as string[],
-        },
-        relationships: {
-          rendering: {
-            data: {
-              id: renderingId,
-              type: 'renderings',
-            },
+    }>({
+      forestServerUrl: this.options.forestServerUrl,
+      method: 'post',
+      path: '/api/activity-logs-requests',
+      bearerToken: forestServerToken,
+      headers: MCP_HEADERS,
+      body: {
+        data: {
+          id: 1,
+          type: 'activity-logs-requests',
+          attributes: {
+            type,
+            action,
+            label,
+            status: 'pending',
+            records: (recordIds || (recordId ? [recordId] : [])) as string[],
           },
-          collection: {
-            data: collectionName
-              ? {
-                  id: collectionName,
-                  type: 'collections',
-                }
-              : null,
+          relationships: {
+            rendering: {
+              data: {
+                id: renderingId,
+                type: 'renderings',
+              },
+            },
+            collection: {
+              data: collectionName
+                ? {
+                    id: collectionName,
+                    type: 'collections',
+                  }
+                : null,
+            },
           },
         },
       },
@@ -65,16 +72,16 @@ export default class ActivityLogsService {
   async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
     const { forestServerToken, activityLog, status, errorMessage } = params;
 
-    await ServerUtils.queryWithBearerToken(
-      this.options,
-      'patch',
-      `/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
-      forestServerToken,
-      MCP_HEADERS,
-      {
+    await ServerUtils.queryWithBearerToken({
+      forestServerUrl: this.options.forestServerUrl,
+      method: 'patch',
+      path: `/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
+      bearerToken: forestServerToken,
+      headers: MCP_HEADERS,
+      body: {
         status,
         ...(errorMessage && { errorMessage }),
       },
-    );
+    });
   }
 }

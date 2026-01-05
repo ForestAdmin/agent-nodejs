@@ -9,6 +9,16 @@ type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'for
 
 type BearerHttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'forestServerUrl'>;
 
+type QueryWithBearerTokenOptions = {
+  forestServerUrl: string;
+  method: 'get' | 'post' | 'put' | 'delete' | 'patch';
+  path: string;
+  bearerToken: string;
+  headers?: Record<string, string>;
+  body?: string | object;
+  maxTimeAllowed?: number;
+};
+
 export default class ServerUtils {
   /** Query Forest-Admin server */
   static async query<T = unknown>(
@@ -31,16 +41,13 @@ export default class ServerUtils {
 
   /** Query Forest-Admin server with Bearer token authentication */
   static async queryWithBearerToken<T = unknown>(
-    options: BearerHttpOptions,
-    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
-    path: string,
-    bearerToken: string,
-    headers: Record<string, string> = {},
-    body?: string | object,
-    maxTimeAllowed = 10000,
+    options: QueryWithBearerTokenOptions,
   ): Promise<T> {
+    const { forestServerUrl, method, path, bearerToken, headers = {}, body, maxTimeAllowed } =
+      options;
+
     return this.queryWithHeaders(
-      options,
+      { forestServerUrl },
       method,
       path,
       { Authorization: `Bearer ${bearerToken}`, ...headers },
@@ -106,7 +113,7 @@ export default class ServerUtils {
 
       if (status === 404) {
         throw new Error(
-          'Forest Admin server failed to find the' +
+          '[404] Forest Admin server failed to find the' +
             ' project related to the envSecret you configured.' +
             ' Can you check that you copied it properly in the Forest initialization?',
         );
