@@ -1,3 +1,19 @@
+## @forestadmin/datasource-dummy [1.1.60](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.1.59...@forestadmin/datasource-dummy@1.1.60) (2026-01-05)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.67.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.50.1
+
 ## @forestadmin/datasource-dummy [1.1.59](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.1.58...@forestadmin/datasource-dummy@1.1.59) (2025-06-23)
 
 
