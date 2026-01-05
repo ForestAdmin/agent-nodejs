@@ -1,17 +1,29 @@
-// Re-export types from forestadmin-client for convenience
-export type {
-  ForestSchemaCollection,
-  ForestSchemaField,
-  ForestSchemaAction,
-  ActivityLogResponse,
+import type {
   ActivityLogAction,
+  ActivityLogResponse,
   ActivityLogType,
   CreateActivityLogParams,
-  UpdateActivityLogStatusParams,
   ForestAdminServerInterface,
+  ForestSchemaAction,
+  ForestSchemaCollection,
+  ForestSchemaField,
+  HttpOptions,
+  UpdateActivityLogStatusParams,
 } from '@forestadmin/forestadmin-client';
 
-export type { HttpOptions } from '@forestadmin/forestadmin-client';
+// Re-export types from forestadmin-client for convenience
+export type {
+  ActivityLogAction,
+  ActivityLogResponse,
+  ActivityLogType,
+  CreateActivityLogParams,
+  ForestAdminServerInterface,
+  ForestSchemaAction,
+  ForestSchemaCollection,
+  ForestSchemaField,
+  HttpOptions,
+  UpdateActivityLogStatusParams,
+};
 
 /**
  * Interface for HTTP calls made by the MCP server.
@@ -21,19 +33,15 @@ export interface McpHttpClient {
   /**
    * Fetches the Forest Admin schema from the server.
    */
-  fetchSchema(): Promise<import('@forestadmin/forestadmin-client').ForestSchemaCollection[]>;
+  fetchSchema(): Promise<ForestSchemaCollection[]>;
 
   /**
    * Creates a pending activity log.
    */
-  createActivityLog(
-    params: import('@forestadmin/forestadmin-client').CreateActivityLogParams,
-  ): Promise<import('@forestadmin/forestadmin-client').ActivityLogResponse>;
+  createActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse>;
 
   /**
    * Updates an activity log status.
    */
-  updateActivityLogStatus(
-    params: import('@forestadmin/forestadmin-client').UpdateActivityLogStatusParams,
-  ): Promise<Response>;
+  updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<Response>;
 }
