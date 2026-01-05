@@ -1,4 +1,9 @@
-import type { McpHttpClient } from '../http-client';
+import type {
+  ForestSchemaAction,
+  ForestSchemaCollection,
+  ForestSchemaField,
+  McpHttpClient,
+} from '../http-client';
 
 /**
  * Schema Fetcher Utility
@@ -7,43 +12,10 @@ import type { McpHttpClient } from '../http-client';
  * and caches it for 24 hours.
  */
 
-export interface ForestField {
-  field: string;
-  type: string;
-  isFilterable?: boolean;
-  isSortable?: boolean;
-  enum: string[] | null;
-  inverseOf?: string | null;
-  reference: string | null;
-  isReadOnly: boolean;
-  isRequired: boolean;
-  integration?: string | null;
-  validations?: unknown[];
-  defaultValue?: unknown;
-  isPrimaryKey: boolean;
-  relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
-}
-
-export interface ForestAction {
-  id: string;
-  name: string;
-  type: 'single' | 'bulk' | 'global';
-  endpoint: string;
-  description?: string;
-  submitButtonLabel?: string;
-  download: boolean;
-  fields: { field: string }[];
-  hooks: {
-    load: boolean;
-    change: unknown[];
-  };
-}
-
-export interface ForestCollection {
-  name: string;
-  fields: ForestField[];
-  actions?: ForestAction[];
-}
+// Re-export types for backwards compatibility
+export type ForestField = ForestSchemaField;
+export type ForestAction = ForestSchemaAction;
+export type ForestCollection = ForestSchemaCollection;
 
 export interface ForestSchema {
   collections: ForestCollection[];

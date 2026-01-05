@@ -6,4 +6,9 @@ export type {
   CreateActivityLogParams,
   McpHttpClient,
   UpdateActivityLogStatusParams,
+  ForestAdminServerInterface,
+  ForestSchemaCollection,
+  ForestSchemaField,
+  ForestSchemaAction,
+  HttpOptions,
 } from './types';

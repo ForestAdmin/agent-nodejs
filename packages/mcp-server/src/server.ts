@@ -18,8 +18,10 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
+import { ForestHttpApi } from '@forestadmin/forestadmin-client';
+
 import ForestOAuthProvider from './forest-oauth-provider';
-import { McpHttpClient, McpHttpClientImpl } from './http-client';
+import { ForestAdminServerInterface, McpHttpClient, McpHttpClientImpl } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -76,6 +78,8 @@ export interface ForestMCPServerOptions {
   logger?: Logger;
   /** Optional HTTP client for dependency injection (useful for testing) */
   httpClient?: McpHttpClient;
+  /** Optional server interface for HTTP calls (useful for testing) */
+  serverInterface?: ForestAdminServerInterface;
 }
 
 /**
@@ -109,15 +113,16 @@ export default class ForestMCPServer {
 
     this.forestAppUrl = options?.forestAppUrl || 'https://app.forestadmin.com';
 
-    this.envSecret = options?.envSecret;
-    this.authSecret = options?.authSecret;
+    // Support environment variable fallback for secrets
+    this.envSecret = options?.envSecret || process.env.FOREST_ENV_SECRET;
+    this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
     this.logger = options?.logger || defaultLogger;
 
-    // Use injected httpClient or create default implementation
-    // Note: If envSecret is not provided yet, we create the client with empty string
-    // and it will be validated later in ensureSecretsAreSet
+    // Use injected httpClient or create default implementation using ForestAdminServerInterface
+    const serverInterface = options?.serverInterface || new ForestHttpApi();
     this.httpClient =
-      options?.httpClient || new McpHttpClientImpl(this.forestServerUrl, this.envSecret || '');
+      options?.httpClient ||
+      new McpHttpClientImpl(serverInterface, this.forestServerUrl, this.envSecret || '');
 
     this.mcpServer = new McpServer({
       name: NAME,

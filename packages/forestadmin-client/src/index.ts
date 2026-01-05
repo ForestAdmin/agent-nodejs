@@ -19,6 +19,15 @@ export {
   RawTree,
   RawTreeWithSources,
   ForestAdminServerInterface,
+  // MCP-specific types
+  ForestSchemaField,
+  ForestSchemaAction,
+  ForestSchemaCollection,
+  ActivityLogResponse,
+  ActivityLogAction,
+  ActivityLogType,
+  CreateActivityLogParams,
+  UpdateActivityLogStatusParams,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
 

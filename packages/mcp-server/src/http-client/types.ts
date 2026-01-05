@@ -1,49 +1,17 @@
-import type { ForestCollection } from '../utils/schema-fetcher';
+// Re-export types from forestadmin-client for convenience
+export type {
+  ForestSchemaCollection,
+  ForestSchemaField,
+  ForestSchemaAction,
+  ActivityLogResponse,
+  ActivityLogAction,
+  ActivityLogType,
+  CreateActivityLogParams,
+  UpdateActivityLogStatusParams,
+  ForestAdminServerInterface,
+} from '@forestadmin/forestadmin-client';
 
-/**
- * Activity log response from the Forest Admin server.
- */
-export interface ActivityLogResponse {
-  id: string;
-  attributes: {
-    index: string;
-  };
-}
-
-/**
- * Valid activity log actions.
- * These must match ActivityLogActions enum in forestadmin-server.
- */
-export type ActivityLogAction =
-  | 'index'
-  | 'search'
-  | 'filter'
-  | 'action'
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'listRelatedData'
-  | 'describeCollection';
-
-export type ActivityLogType = 'read' | 'write';
-
-export interface CreateActivityLogParams {
-  forestServerToken: string;
-  renderingId: string;
-  action: ActivityLogAction;
-  type: ActivityLogType;
-  collectionName?: string;
-  recordId?: string | number;
-  recordIds?: string[] | number[];
-  label?: string;
-}
-
-export interface UpdateActivityLogStatusParams {
-  forestServerToken: string;
-  activityLog: ActivityLogResponse;
-  status: 'completed' | 'failed';
-  errorMessage?: string;
-}
+export type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 /**
  * Interface for HTTP calls made by the MCP server.
@@ -53,15 +21,19 @@ export interface McpHttpClient {
   /**
    * Fetches the Forest Admin schema from the server.
    */
-  fetchSchema(): Promise<ForestCollection[]>;
+  fetchSchema(): Promise<import('@forestadmin/forestadmin-client').ForestSchemaCollection[]>;
 
   /**
    * Creates a pending activity log.
    */
-  createActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse>;
+  createActivityLog(
+    params: import('@forestadmin/forestadmin-client').CreateActivityLogParams,
+  ): Promise<import('@forestadmin/forestadmin-client').ActivityLogResponse>;
 
   /**
    * Updates an activity log status.
    */
-  updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<Response>;
+  updateActivityLogStatus(
+    params: import('@forestadmin/forestadmin-client').UpdateActivityLogStatusParams,
+  ): Promise<Response>;
 }

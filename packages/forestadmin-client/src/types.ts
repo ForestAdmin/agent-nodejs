@@ -158,6 +158,97 @@ export interface ContextVariablesInstantiatorInterface {
   }): Promise<ContextVariables>;
 }
 
+/**
+ * Schema field definition from Forest Admin.
+ */
+export interface ForestSchemaField {
+  field: string;
+  type: string;
+  isFilterable?: boolean;
+  isSortable?: boolean;
+  enum: string[] | null;
+  inverseOf?: string | null;
+  reference: string | null;
+  isReadOnly: boolean;
+  isRequired: boolean;
+  integration?: string | null;
+  validations?: unknown[];
+  defaultValue?: unknown;
+  isPrimaryKey: boolean;
+  relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
+}
+
+/**
+ * Schema action definition from Forest Admin.
+ */
+export interface ForestSchemaAction {
+  id: string;
+  name: string;
+  type: 'single' | 'bulk' | 'global';
+  endpoint: string;
+  description?: string;
+  submitButtonLabel?: string;
+  download: boolean;
+  fields: { field: string }[];
+  hooks: {
+    load: boolean;
+    change: unknown[];
+  };
+}
+
+/**
+ * Schema collection definition from Forest Admin.
+ */
+export interface ForestSchemaCollection {
+  name: string;
+  fields: ForestSchemaField[];
+  actions?: ForestSchemaAction[];
+}
+
+/**
+ * Activity log response from the Forest Admin server.
+ */
+export interface ActivityLogResponse {
+  id: string;
+  attributes: {
+    index: string;
+  };
+}
+
+/**
+ * Valid activity log actions.
+ */
+export type ActivityLogAction =
+  | 'index'
+  | 'search'
+  | 'filter'
+  | 'action'
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'listRelatedData'
+  | 'describeCollection';
+
+export type ActivityLogType = 'read' | 'write';
+
+export interface CreateActivityLogParams {
+  forestServerToken: string;
+  renderingId: string;
+  action: ActivityLogAction;
+  type: ActivityLogType;
+  collectionName?: string;
+  recordId?: string | number;
+  recordIds?: string[] | number[];
+  label?: string;
+}
+
+export interface UpdateActivityLogStatusParams {
+  forestServerToken: string;
+  activityLog: ActivityLogResponse;
+  status: 'completed' | 'failed';
+  errorMessage?: string;
+}
+
 export interface ForestAdminServerInterface {
   getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
   getUsers: (...args) => Promise<UserPermissionV4[]>;
@@ -165,4 +256,15 @@ export interface ForestAdminServerInterface {
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
   getMcpServerConfigs: (options: HttpOptions) => Promise<McpConfiguration>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
+
+  // MCP-specific methods
+  getSchema: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
+  createActivityLog: (
+    options: HttpOptions,
+    params: CreateActivityLogParams,
+  ) => Promise<ActivityLogResponse>;
+  updateActivityLogStatus: (
+    options: HttpOptions,
+    params: UpdateActivityLogStatusParams,
+  ) => Promise<Response>;
 }
