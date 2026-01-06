@@ -16,7 +16,7 @@
     "dist/**/*.d.ts"
   ],
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "luxon": "^3.2.1"
   },
   "devDependencies": {

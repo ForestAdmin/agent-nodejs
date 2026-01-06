@@ -15,8 +15,8 @@
     "excel4node": "^1.8.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
-    "@forestadmin/datasource-toolkit": "1.50.0"
+    "@forestadmin/datasource-customizer": "1.67.2",
+    "@forestadmin/datasource-toolkit": "1.50.1"
   },
   "files": [
     "dist/**/*.js",
