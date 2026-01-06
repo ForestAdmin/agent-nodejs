@@ -142,6 +142,11 @@ export function replaceMongoTypes(data: any): any {
   if (data instanceof Types.ObjectId) return data.toHexString();
   if (data instanceof Types.Decimal128) return data.toString();
 
+  // Handle BSON types that may not pass instanceof checks due to different module versions
+  // eslint-disable-next-line no-underscore-dangle
+  if (data?._bsontype === 'ObjectId' && typeof data.toHexString === 'function') {
+    return data.toHexString();
+  }
   // eslint-disable-next-line no-underscore-dangle
   if (data?._bsontype === 'Binary') return data.buffer;
 

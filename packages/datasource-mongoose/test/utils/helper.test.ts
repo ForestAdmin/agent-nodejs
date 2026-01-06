@@ -64,4 +64,17 @@ describe('helpers', () => {
       nested: [{ _id: '5a934e000102030405000000', date: '1985-10-26T09:22:00.000Z', price: '42' }],
     });
   });
+
+  it('replaceMongoTypes should handle ObjectId with _bsontype property (BSON module mismatch)', () => {
+    // Simulate an ObjectId that doesn't pass instanceof check but has _bsontype
+    // This can happen when different versions of the BSON library are loaded
+    const fakeObjectId = {
+      _bsontype: 'ObjectId',
+      toHexString: () => '5a934e000102030405000000',
+    };
+
+    const record = helpers.replaceMongoTypes({ _id: fakeObjectId });
+
+    expect(record).toEqual({ _id: '5a934e000102030405000000' });
+  });
 });
