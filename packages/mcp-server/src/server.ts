@@ -85,12 +85,6 @@ export interface ForestMCPServerOptions {
  *
  * This server provides HTTP REST API access to Forest Admin operations
  * with OAuth authentication support.
- *
- * Environment Variables (used as fallback when options not provided):
- * - FOREST_ENV_SECRET: Your Forest Admin environment secret (required)
- * - FOREST_AUTH_SECRET: Your Forest Admin authentication secret, it must be the same one as the one on your agent (required)
- * - FOREST_SERVER_URL: Forest Admin server URL (optional)
- * - MCP_SERVER_PORT: Port for the HTTP server (default: 3931)
  */
 
 export default class ForestMCPServer {
@@ -108,12 +102,9 @@ export default class ForestMCPServer {
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
-
     this.forestAppUrl = options?.forestAppUrl || 'https://app.forestadmin.com';
-
-    // Support environment variable fallback for secrets
-    this.envSecret = options?.envSecret || process.env.FOREST_ENV_SECRET;
-    this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
+    this.envSecret = options?.envSecret;
+    this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
 
     // Use injected forestServerClient or create default
