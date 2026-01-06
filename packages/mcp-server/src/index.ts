@@ -2,10 +2,10 @@
 export { default as ForestMCPServer } from './server';
 export type { ForestMCPServerOptions, HttpCallback } from './server';
 export { MCP_PATHS, isMcpRoute } from './mcp-paths';
-export { McpHttpClientImpl, createMcpHttpClient } from './http-client';
+export { McpHttpClientImpl, createForestServerClient } from './http-client';
 export type {
   McpHttpClient,
   ActivityLogsServiceInterface,
   SchemaServiceInterface,
-  CreateMcpHttpClientOptions,
+  CreateForestServerClientOptions,
 } from './http-client';

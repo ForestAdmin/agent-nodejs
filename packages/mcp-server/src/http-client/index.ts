@@ -4,12 +4,12 @@ import { ActivityLogsService, SchemaService } from '@forestadmin/forestadmin-cli
 
 import McpHttpClientImpl from './mcp-http-client';
 
-export interface CreateMcpHttpClientOptions {
+export interface CreateForestServerClientOptions {
   forestServerUrl: string;
   envSecret?: string;
 }
 
-export function createMcpHttpClient(options: CreateMcpHttpClientOptions): McpHttpClient {
+export function createForestServerClient(options: CreateForestServerClientOptions): McpHttpClient {
   const schemaService = new SchemaService({
     forestServerUrl: options.forestServerUrl,
     envSecret: options.envSecret || '',

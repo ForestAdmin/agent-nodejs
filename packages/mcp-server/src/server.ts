@@ -20,7 +20,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
-import { createMcpHttpClient } from './http-client';
+import { createForestServerClient } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -126,7 +126,7 @@ export default class ForestMCPServer {
   }
 
   private createDefaultHttpClient(): McpHttpClient {
-    return createMcpHttpClient({
+    return createForestServerClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
     });
