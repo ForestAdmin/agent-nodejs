@@ -52,6 +52,8 @@ export interface ForestAdminClient {
   readonly modelCustomizationService: ModelCustomizationService;
   readonly mcpServerConfigService: McpServerConfigService;
   readonly authService: ForestAdminAuthServiceInterface;
+  readonly schemaService: SchemaServiceInterface;
+  readonly activityLogsService: ActivityLogsServiceInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 

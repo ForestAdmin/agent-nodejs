@@ -2,7 +2,11 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
-import type { McpHttpClient } from './http-client';
+import type {
+  ActivityLogsServiceInterface,
+  McpHttpClient,
+  SchemaServiceInterface,
+} from './http-client';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
@@ -20,7 +24,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
-import { createForestServerClient } from './http-client';
+import { createForestServerClient, McpHttpClientImpl } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -76,7 +80,11 @@ export interface ForestMCPServerOptions {
   authSecret?: string;
   /** Optional logger function. Defaults to console logging. */
   logger?: Logger;
-  /** Optional HTTP client for dependency injection (useful for testing or agent integration) */
+  /** Optional schema service for dependency injection (from agent integration) */
+  schemaService?: SchemaServiceInterface;
+  /** Optional activity logs service for dependency injection (from agent integration) */
+  activityLogsService?: ActivityLogsServiceInterface;
+  /** Optional HTTP client for dependency injection (useful for testing) */
   httpClient?: McpHttpClient;
 }
 
@@ -116,13 +124,25 @@ export default class ForestMCPServer {
     this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
     this.logger = options?.logger || defaultLogger;
 
-    // Use injected httpClient or create default implementation
-    this.httpClient = options?.httpClient || this.createDefaultHttpClient();
+    // Use injected httpClient, or create from forestAdminClient, or create default
+    this.httpClient = this.resolveHttpClient(options);
 
     this.mcpServer = new McpServer({
       name: NAME,
       version: VERSION,
     });
+  }
+
+  private resolveHttpClient(options?: ForestMCPServerOptions): McpHttpClient {
+    if (options?.httpClient) {
+      return options.httpClient;
+    }
+
+    if (options?.schemaService && options?.activityLogsService) {
+      return new McpHttpClientImpl(options.schemaService, options.activityLogsService);
+    }
+
+    return this.createDefaultHttpClient();
   }
 
   private createDefaultHttpClient(): McpHttpClient {

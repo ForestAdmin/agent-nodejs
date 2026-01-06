@@ -1,11 +1,13 @@
 import { Factory } from 'fishery';
 
+import activityLogsServiceFactory from './activity-logs';
 import authServiceFactory from './auth';
 import chartHandlerFactory from './chart/chart-handler';
 import eventsSubscriptionServiceFactory from './events-subscription';
 import nativeRefreshEventsHandlerServiceFactory from './events-subscription/native-refresh-events-handler-service';
 import forestAdminClientOptionsFactory from './forest-admin-client-options';
 import ipWhitelistServiceFactory from './ip-whitelist';
+import mcpServerConfigServiceFactory from './mcp-server-config';
 import modelCustomizationServiceFactory from './model-customizations/model-customization-from-api';
 import permissionServiceFactory from './permissions/permission';
 import renderingPermissionsFactory from './permissions/rendering-permission';
@@ -33,8 +35,10 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(
       chartHandlerFactory.build(),
       ipWhitelistServiceFactory.build(),
       schemaServiceFactory.build(),
+      activityLogsServiceFactory.build(),
       authServiceFactory.build(),
       modelCustomizationServiceFactory.build(),
+      mcpServerConfigServiceFactory.build(),
       eventsSubscriptionServiceFactory.build(),
       nativeRefreshEventsHandlerServiceFactory.build(),
     ),
