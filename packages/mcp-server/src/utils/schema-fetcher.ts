@@ -110,3 +110,35 @@ export function getActionsOfCollection(
 
   return collection.actions || [];
 }
+
+export type ActionEndpointsByCollection = {
+  [collectionName: string]: {
+    [actionName: string]: { name: string; endpoint: string };
+  };
+};
+
+/**
+ * Builds a mapping of action endpoints by collection from the Forest Admin schema.
+ * This is used by the agent client to resolve action endpoints.
+ *
+ * @param schema - The Forest Admin schema
+ * @returns A mapping of collection names to action names to their endpoints
+ */
+export function getActionEndpoints(schema: ForestSchema): ActionEndpointsByCollection {
+  const actionEndpoints: ActionEndpointsByCollection = {};
+
+  for (const collection of schema.collections) {
+    if (collection.actions && collection.actions.length > 0) {
+      actionEndpoints[collection.name] = {};
+
+      for (const action of collection.actions) {
+        actionEndpoints[collection.name][action.name] = {
+          name: action.name,
+          endpoint: action.endpoint,
+        };
+      }
+    }
+  }
+
+  return actionEndpoints;
+}

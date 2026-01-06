@@ -1,7 +1,10 @@
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import buildClient from '../../src/utils/agent-caller';
+import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
+import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
+
+jest.mock('../../src/utils/schema-fetcher');
 
 describe('buildClient', () => {
   it('should create a remote agent client with the token from authInfo', () => {
@@ -112,5 +115,131 @@ describe('buildClient', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     expect(() => buildClient(request)).toThrow('Environment API endpoint is missing or invalid');
+  });
+});
+
+describe('buildClientWithActions', () => {
+  const mockFetchForestSchema = fetchForestSchema as jest.MockedFunction<typeof fetchForestSchema>;
+  const mockGetActionEndpoints = getActionEndpoints as jest.MockedFunction<
+    typeof getActionEndpoints
+  >;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should fetch the forest schema and get action endpoints', async () => {
+    const mockSchema = {
+      collections: [
+        {
+          name: 'users',
+          actions: [{ name: 'Send Email', endpoint: '/forest/_actions/users/0/send-email' }],
+        },
+      ],
+    };
+    const mockActionEndpoints = {
+      users: {
+        'Send Email': { name: 'Send Email', endpoint: '/forest/_actions/users/0/send-email' },
+      },
+    };
+
+    mockFetchForestSchema.mockResolvedValue(mockSchema as never);
+    mockGetActionEndpoints.mockReturnValue(mockActionEndpoints);
+
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    await buildClientWithActions(request, 'https://api.forestadmin.com');
+
+    expect(mockFetchForestSchema).toHaveBeenCalledWith('https://api.forestadmin.com');
+    expect(mockGetActionEndpoints).toHaveBeenCalledWith(mockSchema);
+  });
+
+  it('should create a client with the action endpoints', async () => {
+    const mockSchema = {
+      collections: [
+        {
+          name: 'orders',
+          actions: [
+            { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund' },
+            { name: 'Ship', endpoint: '/forest/_actions/orders/1/ship' },
+          ],
+        },
+      ],
+    };
+    const mockActionEndpoints = {
+      orders: {
+        Refund: { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund' },
+        Ship: { name: 'Ship', endpoint: '/forest/_actions/orders/1/ship' },
+      },
+    };
+
+    mockFetchForestSchema.mockResolvedValue(mockSchema as never);
+    mockGetActionEndpoints.mockReturnValue(mockActionEndpoints);
+
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    const result = await buildClientWithActions(request, 'https://api.forestadmin.com');
+
+    expect(result.rpcClient).toBeDefined();
+    expect(typeof result.rpcClient.collection).toBe('function');
+  });
+
+  it('should return authData from request', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          userId: 123,
+          renderingId: 456,
+          environmentId: 789,
+          projectId: 101,
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    const result = await buildClientWithActions(request, 'https://api.forestadmin.com');
+
+    expect(result.authData).toEqual({
+      userId: 123,
+      renderingId: 456,
+      environmentId: 789,
+      projectId: 101,
+      environmentApiEndpoint: 'http://localhost:3310',
+    });
+  });
+
+  it('should throw error when token is missing', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+
+    const request = {
+      authInfo: {
+        extra: {
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    await expect(buildClientWithActions(request, 'https://api.forestadmin.com')).rejects.toThrow(
+      'Authentication token is missing',
+    );
   });
 });

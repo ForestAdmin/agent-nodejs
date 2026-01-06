@@ -4,6 +4,7 @@ import {
   type ForestSchema,
   clearSchemaCache,
   fetchForestSchema,
+  getActionEndpoints,
   getCollectionNames,
   setSchemaCache,
 } from '../../src/utils/schema-fetcher';
@@ -165,6 +166,97 @@ describe('schema-fetcher', () => {
       expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result.collections).toHaveLength(1);
       expect(result.collections[0].name).toBe('new');
+    });
+  });
+
+  describe('getActionEndpoints', () => {
+    const createAction = (name: string, endpoint: string) => ({
+      id: `action-${name.toLowerCase().replace(/\s/g, '-')}`,
+      name,
+      type: 'single' as const,
+      endpoint,
+      download: false,
+      fields: [],
+      hooks: { load: false, change: [] },
+    });
+
+    it('should extract action endpoints from schema', () => {
+      const schema: ForestSchema = {
+        collections: [
+          {
+            name: 'users',
+            fields: [],
+            actions: [
+              createAction('Send Email', '/forest/_actions/users/0/send-email'),
+              createAction('Reset Password', '/forest/_actions/users/1/reset-password'),
+            ],
+          },
+          {
+            name: 'orders',
+            fields: [],
+            actions: [createAction('Refund', '/forest/_actions/orders/0/refund')],
+          },
+        ],
+      };
+
+      const result = getActionEndpoints(schema);
+
+      expect(result).toEqual({
+        users: {
+          'Send Email': { name: 'Send Email', endpoint: '/forest/_actions/users/0/send-email' },
+          'Reset Password': {
+            name: 'Reset Password',
+            endpoint: '/forest/_actions/users/1/reset-password',
+          },
+        },
+        orders: {
+          Refund: { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund' },
+        },
+      });
+    });
+
+    it('should return empty object for collections without actions', () => {
+      const schema: ForestSchema = {
+        collections: [
+          { name: 'users', fields: [] },
+          { name: 'products', fields: [] },
+        ],
+      };
+
+      const result = getActionEndpoints(schema);
+
+      expect(result).toEqual({});
+    });
+
+    it('should skip collections with empty actions array', () => {
+      const schema: ForestSchema = {
+        collections: [
+          { name: 'users', fields: [], actions: [] },
+          {
+            name: 'orders',
+            fields: [],
+            actions: [createAction('Ship', '/forest/_actions/orders/0/ship')],
+          },
+        ],
+      };
+
+      const result = getActionEndpoints(schema);
+
+      expect(result).toEqual({
+        orders: {
+          Ship: { name: 'Ship', endpoint: '/forest/_actions/orders/0/ship' },
+        },
+      });
+    });
+
+    it('should return empty object for empty collections', () => {
+      const schema: ForestSchema = {
+        collections: [],
+      };
+
+      const result = getActionEndpoints(schema);
+
+      expect(result).toEqual({});
     });
   });
 });
