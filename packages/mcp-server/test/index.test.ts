@@ -1,9 +1,9 @@
 import {
-  createForestServerClient,
   ForestMCPServer,
   ForestServerClientImpl,
-  isMcpRoute,
   MCP_PATHS,
+  createForestServerClient,
+  isMcpRoute,
 } from '../src';
 
 describe('mcp-server exports', () => {

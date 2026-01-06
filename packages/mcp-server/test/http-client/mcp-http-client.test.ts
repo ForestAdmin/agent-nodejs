@@ -25,7 +25,12 @@ describe('ForestServerClientImpl', () => {
   describe('fetchSchema', () => {
     it('should delegate to schemaService.getSchema()', async () => {
       const mockSchema: ForestSchemaCollection[] = [
-        { name: 'users', fields: [], actions: [], segments: [] } as unknown as ForestSchemaCollection,
+        {
+          name: 'users',
+          fields: [],
+          actions: [],
+          segments: [],
+        } as unknown as ForestSchemaCollection,
       ];
       mockSchemaService.getSchema.mockResolvedValue(mockSchema);
 
