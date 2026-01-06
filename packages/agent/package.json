@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
-    "@forestadmin/datasource-customizer": "1.67.1",
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-customizer": "1.67.2",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "@forestadmin/forestadmin-client": "1.37.0",
     "@forestadmin/mcp-server": "1.5.0",
     "@koa/bodyparser": "^6.0.0",

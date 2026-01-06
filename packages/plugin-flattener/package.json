@@ -24,11 +24,11 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
+    "@forestadmin/datasource-customizer": "1.67.2",
     "@types/object-hash": "^3.0.2"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "object-hash": "^3.0.0"
   }
 }
