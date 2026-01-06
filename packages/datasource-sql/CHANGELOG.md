@@ -1,3 +1,18 @@
+## @forestadmin/datasource-sql [1.17.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.1...@forestadmin/datasource-sql@1.17.2) (2026-01-06)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.1
+
 ## @forestadmin/datasource-sql [1.17.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.0...@forestadmin/datasource-sql@1.17.1) (2025-05-14)
 
 
