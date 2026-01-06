@@ -352,6 +352,126 @@ describe('declareGetActionFormTool', () => {
       expect(parsedResult.isValid).toBe(false);
     });
 
+    it('should return isValid true when required field has falsy value 0', async () => {
+      const mockFields = [
+        {
+          getName: () => 'quantity',
+          getType: () => 'Number',
+          getValue: () => 0,
+          isRequired: () => true,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'updateQuantity', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.isValid).toBe(true);
+    });
+
+    it('should return isValid true when required field has falsy value false', async () => {
+      const mockFields = [
+        {
+          getName: () => 'isActive',
+          getType: () => 'Boolean',
+          getValue: () => false,
+          isRequired: () => true,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'setStatus', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.isValid).toBe(true);
+    });
+
+    it('should return isValid true when required field has empty string value', async () => {
+      const mockFields = [
+        {
+          getName: () => 'notes',
+          getType: () => 'String',
+          getValue: () => '',
+          isRequired: () => true,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'addNotes', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.isValid).toBe(true);
+    });
+
+    it('should return isValid false when required field has null value', async () => {
+      const mockFields = [
+        {
+          getName: () => 'subject',
+          getType: () => 'String',
+          getValue: () => null,
+          isRequired: () => true,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'sendEmail', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.isValid).toBe(false);
+    });
+
     it('should return isValid true when there are no required fields', async () => {
       const mockFields = [
         {

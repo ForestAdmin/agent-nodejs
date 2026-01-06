@@ -2,21 +2,9 @@ import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { z } from 'zod';
-
+import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
 import registerToolWithLogging from '../utils/tool-with-logging';
-
-// Preprocess to handle LLM sending values as JSON string instead of object
-const valuesWithPreprocess = z.preprocess(val => {
-  if (typeof val !== 'string') return val;
-
-  try {
-    return JSON.parse(val);
-  } catch {
-    return val;
-  }
-}, z.record(z.string(), z.unknown()));
 
 interface GetActionFormArgument {
   collectionName: string;
@@ -25,27 +13,13 @@ interface GetActionFormArgument {
   values?: Record<string, unknown>;
 }
 
-function createArgumentShape(collectionNames: string[]) {
-  return {
-    collectionName:
-      collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
-    actionName: z.string().describe('The name of the action to get the form for.'),
-    recordIds: z
-      .array(z.union([z.string(), z.number()]))
-      .describe('The IDs of the records to execute the action on.'),
-    values: valuesWithPreprocess
-      .optional()
-      .describe('Optional values to pre-fill the form fields with.'),
-  };
-}
-
 export default function declareGetActionFormTool(
   mcpServer: McpServer,
   forestServerClient: ForestServerClient,
   logger: Logger,
   collectionNames: string[] = [],
 ): string {
-  const argumentShape = createArgumentShape(collectionNames);
+  const argumentShape = createActionArgumentShape(collectionNames);
 
   return registerToolWithLogging(
     mcpServer,
@@ -82,7 +56,9 @@ The response includes:
 
       const fields = action.getFields();
 
-      const isValid = fields.filter(field => field.isRequired()).every(field => !!field.getValue());
+      const isValid = fields
+        .filter(field => field.isRequired())
+        .every(field => field.getValue() !== undefined && field.getValue() !== null);
 
       return {
         content: [
