@@ -1,3 +1,10 @@
+## @forestadmin/plugin-export-advanced [1.1.34](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.33...@forestadmin/plugin-export-advanced@1.1.34) (2026-01-06)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
 ## @forestadmin/plugin-export-advanced [1.1.33](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.32...@forestadmin/plugin-export-advanced@1.1.33) (2025-06-23)
 
 
