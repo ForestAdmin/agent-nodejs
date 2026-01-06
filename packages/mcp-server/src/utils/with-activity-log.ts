@@ -66,7 +66,9 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
       } catch (enhancerError) {
         logger(
           'Debug',
-          `Error enhancement failed: ${enhancerError instanceof Error ? enhancerError.message : String(enhancerError)}`,
+          `Error enhancement failed: ${
+            enhancerError instanceof Error ? enhancerError.message : String(enhancerError)
+          }`,
         );
       }
     }
