@@ -26,8 +26,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-customizer": "1.67.2",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "@forestadmin/forestadmin-client": "1.37.0",
     "jsonapi-serializer": "^3.6.9",
     "jsonwebtoken": "^9.0.0",
@@ -42,7 +42,7 @@
     }
   },
   "devDependencies": {
-    "@forestadmin/agent": "1.67.0",
+    "@forestadmin/agent": "1.70.1",
     "@forestadmin/datasource-sql": "1.17.1",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9",
