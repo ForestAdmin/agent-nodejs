@@ -1,3 +1,18 @@
+## @forestadmin/datasource-mongo [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.0...@forestadmin/datasource-mongo@1.6.1) (2026-01-06)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-mongoose:** upgraded to 1.12.5
+
 # @forestadmin/datasource-mongo [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.5.4...@forestadmin/datasource-mongo@1.6.0) (2025-12-18)
 
 
