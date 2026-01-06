@@ -147,7 +147,7 @@ describe('SchemaService', () => {
       expect(result[0].name).toBe('users');
     });
 
-    test('should handle schema with related fields, actions, and segments', async () => {
+    test('should handle schema with related fields, actions and segments', async () => {
       const mockResponse = {
         data: [
           {
@@ -196,7 +196,13 @@ describe('SchemaService', () => {
 
       expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('products');
+
+      const collection = result[0];
+      expect(collection.name).toBe('products');
+      expect(collection.fields).toHaveLength(1);
+      expect(collection.fields[0]).toMatchObject({ field: 'name', type: 'String' });
+      expect(collection.actions).toHaveLength(1);
+      expect(collection.actions[0]).toMatchObject({ name: 'archive' });
     });
 
     test('should propagate errors from the server', async () => {

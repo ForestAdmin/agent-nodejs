@@ -8,9 +8,8 @@ import ServerUtils from '../utils/server';
 
 export type ActivityLogsOptions = {
   forestServerUrl: string;
+  headers?: Record<string, string>;
 };
-
-const MCP_HEADERS = { 'Forest-Application-Source': 'MCP' };
 
 export default class ActivityLogsService {
   constructor(private options: ActivityLogsOptions) {}
@@ -34,7 +33,7 @@ export default class ActivityLogsService {
       method: 'post',
       path: '/api/activity-logs-requests',
       bearerToken: forestServerToken,
-      headers: MCP_HEADERS,
+      headers: this.options.headers,
       body: {
         data: {
           id: 1,
@@ -78,7 +77,7 @@ export default class ActivityLogsService {
       method: 'patch',
       path: `/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
       bearerToken: forestServerToken,
-      headers: MCP_HEADERS,
+      headers: this.options.headers,
       body: {
         status,
         ...(errorMessage && { errorMessage }),

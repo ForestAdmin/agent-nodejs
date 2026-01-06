@@ -22,6 +22,7 @@ export function createForestServerClient(
   });
   const activityLogsService = new ActivityLogsService({
     forestServerUrl: options.forestServerUrl,
+    headers: { 'Forest-Application-Source': 'MCP' },
   });
 
   return new ForestServerClientImpl(schemaService, activityLogsService);

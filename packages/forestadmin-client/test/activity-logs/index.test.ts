@@ -37,7 +37,7 @@ describe('ActivityLogsService', () => {
         method: 'post',
         path: '/api/activity-logs-requests',
         bearerToken: 'test-token',
-        headers: { 'Forest-Application-Source': 'MCP' },
+        headers: undefined,
         body: {
           data: {
             id: 1,
@@ -150,7 +150,7 @@ describe('ActivityLogsService', () => {
         method: 'patch',
         path: '/api/activity-logs-requests/idx-456/log-123/status',
         bearerToken: 'test-token',
-        headers: { 'Forest-Application-Source': 'MCP' },
+        headers: undefined,
         body: {
           status: 'completed',
         },
@@ -175,10 +175,38 @@ describe('ActivityLogsService', () => {
         method: 'patch',
         path: '/api/activity-logs-requests/idx-456/log-123/status',
         bearerToken: 'test-token',
-        headers: { 'Forest-Application-Source': 'MCP' },
+        headers: undefined,
         body: {
           status: 'failed',
           errorMessage: 'Something went wrong',
+        },
+      });
+    });
+
+    it('should pass custom headers when provided', async () => {
+      queryWithBearerTokenMock.mockResolvedValue(undefined);
+
+      const optionsWithHeaders = {
+        ...options,
+        headers: { 'Custom-Header': 'value' },
+      };
+      const service = new ActivityLogsService(optionsWithHeaders);
+      const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+
+      await service.updateActivityLogStatus({
+        forestServerToken: 'test-token',
+        activityLog,
+        status: 'completed',
+      });
+
+      expect(queryWithBearerTokenMock).toHaveBeenCalledWith({
+        forestServerUrl: options.forestServerUrl,
+        method: 'patch',
+        path: '/api/activity-logs-requests/idx-456/log-123/status',
+        bearerToken: 'test-token',
+        headers: { 'Custom-Header': 'value' },
+        body: {
+          status: 'completed',
         },
       });
     });
