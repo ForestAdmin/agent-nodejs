@@ -1,3 +1,22 @@
+## @forestadmin/forest-cloud [1.12.68](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.67...@forestadmin/forest-cloud@1.12.68) (2026-01-06)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.70.2
+* **@forestadmin/datasource-mongo:** upgraded to 1.6.1
+* **@forestadmin/datasource-mongoose:** upgraded to 1.12.5
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.2
+
 ## @forestadmin/forest-cloud [1.12.67](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.66...@forestadmin/forest-cloud@1.12.67) (2025-12-24)
 
 
