@@ -48,11 +48,18 @@ describe('ServerUtils', () => {
   it('should fail if project does not exists', async () => {
     nock(options.forestServerUrl)
       .get('/endpoint')
-      .reply(404, { error: 'what is this env secret?' });
+      .reply(404, { errors: [{ detail: 'Project not found' }] });
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
-      'Forest Admin server failed to find the project related to the envSecret you configured.' +
-        ' Can you check that you copied it properly in the Forest initialization?',
+      'Project not found',
+    );
+  });
+
+  it('should fail with generic 404 message when server has no detail', async () => {
+    nock(options.forestServerUrl).get('/endpoint').reply(404, {});
+
+    await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
+      'The requested resource was not found on Forest Admin server.',
     );
   });
 
@@ -195,6 +202,34 @@ describe('ServerUtils', () => {
           bearerToken: 'invalid-token',
         }),
       ).rejects.toEqual(new ForbiddenError('unauthorized access'));
+    });
+
+    it('should throw NotFoundError on 404 with server message', async () => {
+      nock(options.forestServerUrl)
+        .get('/api/resource/123')
+        .reply(404, { errors: [{ detail: 'Activity log not found' }] });
+
+      await expect(
+        ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          method: 'get',
+          path: '/api/resource/123',
+          bearerToken: 'valid-token',
+        }),
+      ).rejects.toThrow('Activity log not found');
+    });
+
+    it('should throw NotFoundError with generic message when server has no detail', async () => {
+      nock(options.forestServerUrl).get('/api/resource/456').reply(404, {});
+
+      await expect(
+        ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          method: 'get',
+          path: '/api/resource/456',
+          bearerToken: 'valid-token',
+        }),
+      ).rejects.toThrow('The requested resource was not found on Forest Admin server.');
     });
   });
 });

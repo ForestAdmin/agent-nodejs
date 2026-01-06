@@ -88,7 +88,7 @@ describe('createPendingActivityLog', () => {
       );
     });
 
-    it('should send undefined token when forestServerToken is missing from extra', async () => {
+    it('should throw error when forestServerToken is missing from extra', async () => {
       const request = {
         authInfo: {
           token: 'mcp-jwt-token',
@@ -98,11 +98,42 @@ describe('createPendingActivityLog', () => {
         },
       } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow('Invalid or missing forestServerToken in authentication context');
+    });
+
+    it('should throw error when renderingId is missing from extra', async () => {
+      const request = {
+        authInfo: {
+          token: 'mcp-jwt-token',
+          extra: {
+            forestServerToken: 'test-token',
+            // renderingId is missing
+          },
+        },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow('Invalid or missing renderingId in authentication context');
+    });
+
+    it('should accept numeric renderingId and convert to string', async () => {
+      const request = {
+        authInfo: {
+          extra: {
+            forestServerToken: 'test-token',
+            renderingId: 456, // numeric renderingId from JWT
+          },
+        },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
       await createPendingActivityLog(mockForestServerClient, request, 'index');
 
       expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          forestServerToken: undefined,
+          renderingId: '456', // should be converted to string
         }),
       );
     });

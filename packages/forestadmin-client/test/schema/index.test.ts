@@ -198,5 +198,25 @@ describe('SchemaService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('products');
     });
+
+    test('should propagate errors from the server', async () => {
+      const networkError = new Error('Network error: connection refused');
+      serverQueryMock.mockRejectedValue(networkError);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(options);
+
+      await expect(schemaService.getSchema()).rejects.toThrow('Network error: connection refused');
+    });
+
+    test('should propagate authentication errors', async () => {
+      const authError = new Error('Forbidden: invalid credentials');
+      serverQueryMock.mockRejectedValue(authError);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(options);
+
+      await expect(schemaService.getSchema()).rejects.toThrow('Forbidden: invalid credentials');
+    });
   });
 });

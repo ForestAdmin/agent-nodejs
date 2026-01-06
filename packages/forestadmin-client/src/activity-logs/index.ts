@@ -44,7 +44,8 @@ export default class ActivityLogsService {
             action,
             label,
             status: 'pending',
-            records: (recordIds || (recordId ? [recordId] : [])) as string[],
+            // Ensure all record IDs are converted to strings
+            records: (recordIds || (recordId ? [recordId] : [])).map(String),
           },
           relationships: {
             rendering: {

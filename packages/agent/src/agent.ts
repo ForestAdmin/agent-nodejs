@@ -13,7 +13,6 @@ import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-tool
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { ForestMCPServer, ForestServerClientImpl } from '@forestadmin/mcp-server';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import Router from '@koa/router';
@@ -253,9 +252,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /**
    * Initialize the MCP server.
+   * Uses dynamic import to defer loading until mountAiMcpServer() is actually used.
+   * This avoids loading the mcp-server dependency at startup for users who don't use MCP.
    */
   private async initializeMcpServer(): Promise<HttpCallback> {
     try {
+      // Dynamic import to defer loading until actually needed
+      const { ForestMCPServer, ForestServerClientImpl } = await import('@forestadmin/mcp-server');
+
       const forestServerClient = new ForestServerClientImpl(
         this.options.forestAdminClient.schemaService,
         this.options.forestAdminClient.activityLogsService,

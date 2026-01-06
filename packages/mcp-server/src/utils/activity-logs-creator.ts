@@ -24,6 +24,25 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   describeCollection: 'read',
 };
 
+function getAuthContext(request: RequestHandlerExtra<ServerRequest, ServerNotification>): {
+  forestServerToken: string;
+  renderingId: string;
+} {
+  const forestServerToken = request.authInfo?.extra?.forestServerToken;
+  const renderingId = request.authInfo?.extra?.renderingId;
+
+  if (!forestServerToken || typeof forestServerToken !== 'string') {
+    throw new Error('Invalid or missing forestServerToken in authentication context');
+  }
+
+  // renderingId can be number (from JWT) or string - convert to string for API calls
+  if (renderingId === undefined || renderingId === null) {
+    throw new Error('Invalid or missing renderingId in authentication context');
+  }
+
+  return { forestServerToken, renderingId: String(renderingId) };
+}
+
 export default async function createPendingActivityLog(
   forestServerClient: ForestServerClient,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
@@ -36,9 +55,7 @@ export default async function createPendingActivityLog(
   },
 ) {
   const type = ACTION_TO_TYPE[action];
-
-  const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
-  const renderingId = request.authInfo?.extra?.renderingId as string;
+  const { forestServerToken, renderingId } = getAuthContext(request);
 
   return forestServerClient.createActivityLog({
     forestServerToken,
@@ -69,7 +86,10 @@ async function updateActivityLogStatus(
   attempt = 1,
 ): Promise<void> {
   const { forestServerClient, request, activityLog, status, errorMessage, logger } = options;
-  const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
+
+  // Use optional chaining with fallback since we're in error handling context
+  // and don't want to throw a different error if auth context is missing
+  const forestServerToken = (request.authInfo?.extra?.forestServerToken as string) ?? '';
 
   try {
     await forestServerClient.updateActivityLogStatus({
@@ -91,6 +111,9 @@ async function updateActivityLogStatus(
 
     const errorMsg = error instanceof Error ? error.message : String(error);
     logger('Error', `Failed to update activity log status to '${status}': ${errorMsg}`);
+
+    // Rethrow so callers are aware of the failure
+    throw error;
   }
 }
 

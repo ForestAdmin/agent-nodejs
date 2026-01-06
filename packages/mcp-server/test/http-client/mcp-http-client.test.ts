@@ -4,6 +4,7 @@ import type {
   SchemaServiceInterface,
 } from '../../src/http-client/types';
 
+import { createForestServerClient } from '../../src/http-client';
 import ForestServerClientImpl from '../../src/http-client/mcp-http-client';
 
 describe('ForestServerClientImpl', () => {
@@ -75,5 +76,36 @@ describe('ForestServerClientImpl', () => {
 
       expect(mockActivityLogsService.updateActivityLogStatus).toHaveBeenCalledWith(params);
     });
+  });
+});
+
+describe('createForestServerClient', () => {
+  it('should throw an error if envSecret is missing', () => {
+    expect(() =>
+      createForestServerClient({
+        forestServerUrl: 'http://localhost:3000',
+      }),
+    ).toThrow('envSecret is required to create ForestServerClient');
+  });
+
+  it('should throw an error if envSecret is empty string', () => {
+    expect(() =>
+      createForestServerClient({
+        forestServerUrl: 'http://localhost:3000',
+        envSecret: '',
+      }),
+    ).toThrow('envSecret is required to create ForestServerClient');
+  });
+
+  it('should create a ForestServerClient when envSecret is provided', () => {
+    const client = createForestServerClient({
+      forestServerUrl: 'http://localhost:3000',
+      envSecret: 'test-secret',
+    });
+
+    expect(client).toBeDefined();
+    expect(client.fetchSchema).toBeDefined();
+    expect(client.createActivityLog).toBeDefined();
+    expect(client.updateActivityLogStatus).toBeDefined();
   });
 });

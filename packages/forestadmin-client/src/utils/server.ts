@@ -90,11 +90,12 @@ export default class ServerUtils {
         );
       }
 
+      // handleResponseError always throws, but TypeScript doesn't know that
       this.handleResponseError(error);
     }
   }
 
-  private static handleResponseError(e: Error): void {
+  private static handleResponseError(e: Error): never {
     if (/certificate/i.test(e.message)) {
       throw new Error(
         'Forest Admin server TLS certificate cannot be verified. ' +
@@ -117,10 +118,9 @@ export default class ServerUtils {
       }
 
       if (status === 404) {
+        // Use server message if available, otherwise provide generic message
         throw new NotFoundError(
-          'Forest Admin server failed to find the' +
-            ' project related to the envSecret you configured.' +
-            ' Can you check that you copied it properly in the Forest initialization?',
+          message || 'The requested resource was not found on Forest Admin server.',
         );
       }
 

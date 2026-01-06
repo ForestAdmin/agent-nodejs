@@ -1,5 +1,5 @@
 import type { ForestSchema } from './types';
-import type { ForestAdminClientOptionsWithDefaults, ForestSchemaCollection } from '../types';
+import type { ForestSchemaCollection } from '../types';
 
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
@@ -11,6 +11,8 @@ type SerializedSchema = { meta: { schemaFileHash: string } };
 export interface SchemaServiceOptions {
   envSecret: string;
   forestServerUrl: string;
+  /** Optional logger function for schema operations */
+  logger?: (level: 'Info' | 'Warn' | 'Error' | 'Debug', message: string) => void;
 }
 
 export default class SchemaService {
@@ -28,10 +30,8 @@ export default class SchemaService {
       ? 'Schema was updated, sending new version'
       : 'Schema was not updated since last run';
 
-    const optionsWithLogger = this.options as ForestAdminClientOptionsWithDefaults;
-
-    if (optionsWithLogger.logger) {
-      optionsWithLogger.logger('Info', `${message} (hash: ${apimap.meta.schemaFileHash})`);
+    if (this.options.logger) {
+      this.options.logger('Info', `${message} (hash: ${apimap.meta.schemaFileHash})`);
     }
 
     return shouldSend;
