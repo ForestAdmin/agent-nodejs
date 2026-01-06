@@ -12,9 +12,13 @@ export interface CreateForestServerClientOptions {
 export function createForestServerClient(
   options: CreateForestServerClientOptions,
 ): ForestServerClient {
+  if (!options.envSecret) {
+    throw new Error('envSecret is required to create ForestServerClient');
+  }
+
   const schemaService = new SchemaService({
     forestServerUrl: options.forestServerUrl,
-    envSecret: options.envSecret || '',
+    envSecret: options.envSecret,
   });
   const activityLogsService = new ActivityLogsService({
     forestServerUrl: options.forestServerUrl,

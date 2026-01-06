@@ -63,8 +63,11 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
     if (errorEnhancer) {
       try {
         errorMessage = await errorEnhancer(errorMessage, error);
-      } catch {
-        // If enhancement fails, use the original parsed message
+      } catch (enhancerError) {
+        logger(
+          'Debug',
+          `Error enhancement failed: ${enhancerError instanceof Error ? enhancerError.message : String(enhancerError)}`,
+        );
       }
     }
 

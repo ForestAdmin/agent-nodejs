@@ -101,12 +101,11 @@ describe('ForestMCPServer Instance', () => {
   });
 
   describe('environment validation', () => {
-    it('should throw error when FOREST_ENV_SECRET is missing', async () => {
+    it('should throw error when FOREST_ENV_SECRET is missing', () => {
       delete process.env.FOREST_ENV_SECRET;
-      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET' });
 
-      await expect(server.run()).rejects.toThrow(
-        'FOREST_ENV_SECRET is not set. Provide it via options.envSecret or FOREST_ENV_SECRET environment variable.',
+      expect(() => new ForestMCPServer({ authSecret: 'AUTH_SECRET' })).toThrow(
+        'envSecret is required to create ForestServerClient',
       );
     });
 

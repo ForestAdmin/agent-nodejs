@@ -132,7 +132,7 @@ export default class ForestMCPServer {
     } catch (error) {
       this.logger(
         'Warn',
-        `Failed to fetch forest schema, collection names will not be available: ${error}`,
+        `Failed to fetch forest schema: ${error}. MCP server will operate in degraded mode without collection name validation.`,
       );
     }
 
