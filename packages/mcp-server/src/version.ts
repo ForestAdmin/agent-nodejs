@@ -13,6 +13,7 @@ function findPackageJson(): { version: string; name: string } {
   for (const p of possiblePaths) {
     try {
       const content = fs.readFileSync(p, 'utf-8');
+
       return JSON.parse(content);
     } catch {
       // Try next path
