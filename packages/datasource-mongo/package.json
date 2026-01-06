@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@forestadmin/datasource-mongoose": "1.12.4",
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "json-stringify-pretty-compact": "^3.0.0",
     "mongoose": "8.8.4",
     "tunnel-ssh": "^5.2.0"
