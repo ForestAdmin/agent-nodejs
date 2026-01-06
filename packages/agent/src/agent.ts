@@ -13,8 +13,7 @@ import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-tool
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
-import { ActivityLogsService, SchemaService } from '@forestadmin/forestadmin-client';
-import { ForestMCPServer, McpHttpClientImpl } from '@forestadmin/mcp-server';
+import { createMcpHttpClient, ForestMCPServer } from '@forestadmin/mcp-server';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import Router from '@koa/router';
@@ -257,14 +256,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   private async initializeMcpServer(): Promise<HttpCallback> {
     try {
-      const schemaService = new SchemaService({
+      const httpClient = createMcpHttpClient({
         forestServerUrl: this.options.forestServerUrl,
         envSecret: this.options.envSecret,
       });
-      const activityLogsService = new ActivityLogsService({
-        forestServerUrl: this.options.forestServerUrl,
-      });
-      const httpClient = new McpHttpClientImpl(schemaService, activityLogsService);
 
       const mcpServer = new ForestMCPServer({
         forestServerUrl: this.options.forestServerUrl,

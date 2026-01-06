@@ -5,7 +5,6 @@ import './polyfills';
 import type { McpHttpClient } from './http-client';
 import type { Express } from 'express';
 
-import { ActivityLogsService, SchemaService } from '@forestadmin/forestadmin-client';
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
@@ -21,7 +20,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
-import { McpHttpClientImpl } from './http-client';
+import { createMcpHttpClient } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -127,15 +126,10 @@ export default class ForestMCPServer {
   }
 
   private createDefaultHttpClient(): McpHttpClient {
-    const schemaService = new SchemaService({
+    return createMcpHttpClient({
       forestServerUrl: this.forestServerUrl,
-      envSecret: this.envSecret || '',
+      envSecret: this.envSecret,
     });
-    const activityLogsService = new ActivityLogsService({
-      forestServerUrl: this.forestServerUrl,
-    });
-
-    return new McpHttpClientImpl(schemaService, activityLogsService);
   }
 
   private async setupTools(): Promise<void> {
