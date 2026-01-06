@@ -1,3 +1,18 @@
+## @forestadmin/agent-client [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.2.0...@forestadmin/agent-client@1.2.1) (2026-01-06)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.1
+
 # @forestadmin/agent-client [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.1.0...@forestadmin/agent-client@1.2.0) (2025-12-23)
 
 
