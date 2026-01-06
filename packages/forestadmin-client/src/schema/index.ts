@@ -8,13 +8,13 @@ import ServerUtils from '../utils/server';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
-export type SchemaServiceOptions = Pick<
-  ForestAdminClientOptionsWithDefaults,
-  'envSecret' | 'forestServerUrl'
->;
+export interface SchemaServiceOptions {
+  envSecret: string;
+  forestServerUrl: string;
+}
 
 export default class SchemaService {
-  constructor(private options: ForestAdminClientOptionsWithDefaults | SchemaServiceOptions) {}
+  constructor(private options: SchemaServiceOptions) {}
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     const apimap = SchemaService.serialize(schema);
