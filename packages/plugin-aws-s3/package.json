@@ -14,11 +14,11 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.157.0",
     "@aws-sdk/s3-request-presigner": "^3.157.0",
-    "@forestadmin/datasource-toolkit": "1.50.0"
+    "@forestadmin/datasource-toolkit": "1.50.1"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
-    "@forestadmin/datasource-toolkit": "1.50.0"
+    "@forestadmin/datasource-customizer": "1.67.2",
+    "@forestadmin/datasource-toolkit": "1.50.1"
   },
   "files": [
     "dist/**/*.js",

@@ -23,10 +23,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.67.1",
+    "@forestadmin/datasource-customizer": "1.67.2",
     "@forestadmin/datasource-sequelize": "1.13.0",
     "@forestadmin/datasource-sql": "1.17.1",
-    "@forestadmin/datasource-toolkit": "1.50.0",
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "croner": "^6.0.6",
     "sequelize": "^6.37.5"
   }
