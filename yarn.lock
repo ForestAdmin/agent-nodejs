@@ -1794,85 +1794,10 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent-client@1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent-client/-/agent-client-1.2.0.tgz#c9daa3171109ed5868e170f5974e3af9d0b803e2"
-  integrity sha512-cR3n3oKo5vhFOX633ZZm3/IsKgY82n4sDCiC7NcDsPi9qk8DSy4Dyt1xUIbExKxSSlKfzHCx+GDULP8f+oanWg==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    "@forestadmin/forestadmin-client" "1.37.0"
-    jsonapi-serializer "^3.6.9"
-    superagent "^10.2.3"
-
-"@forestadmin/agent@1.70.0":
-  version "1.70.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.70.0.tgz#671fa312a07afc4932d725867944dcee92e38ad8"
-  integrity sha512-OcUx4QZ1rMYs3Ahg0gd4/vXmGrWhwQtFD7c0Xz/zdS0fYA+4mvdQsH6BUbryb32MqtvZ5VJY3ge+7fTETGvMyg==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@forestadmin/datasource-customizer" "1.67.1"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    "@forestadmin/forestadmin-client" "1.37.0"
-    "@forestadmin/mcp-server" "1.4.0"
-    "@koa/bodyparser" "^6.0.0"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^13.1.0"
-    "@paralleldrive/cuid2" "2.2.2"
-    "@types/koa__router" "^12.0.4"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.0"
-    koa "^3.0.1"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^10.2.3"
-    uuid "11.0.2"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
-
-"@forestadmin/datasource-customizer@1.67.1":
-  version "1.67.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.67.1.tgz#e6edfa453c3b4f03ef942453e1f7c363d7d37d7c"
-  integrity sha512-9UdAyTALFmzb82azp+vstLvpJh49K54UyvAV8EPIy0o9JdHNEQYSAhKflROz/T7QGKP7Wmr0oA6hT1/N5Z7/KQ==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    antlr4 "^4.13.1-patch-1"
-    file-type "^16.5.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "11.0.2"
-
-"@forestadmin/datasource-dummy@1.1.59":
-  version "1.1.59"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-dummy/-/datasource-dummy-1.1.59.tgz#f6ed7fdb2d73c7d2875cbfc4f12a1a306bc86826"
-  integrity sha512-2NpffL21Gad1gKKodmLQovfW1Gfzajok+K5p+7VPXfzAqHarta4TRyf8zJj6rfuekvhfTIrHA513rihzjHEmuA==
-  dependencies:
-    "@forestadmin/datasource-customizer" "1.67.1"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-
-"@forestadmin/datasource-mongo@1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongo/-/datasource-mongo-1.6.0.tgz#db5bc76f1f5dff938c1b3cf8092644d9fbed7037"
-  integrity sha512-n8y0uWD62j5ae8juFK3I9pq3uYt5KEVddzfGFar0OmNM3VWv+dYkl3sHf9CsA4mDrvjn4LYYc6MtnmpBNErodQ==
-  dependencies:
-    "@forestadmin/datasource-mongoose" "1.12.4"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    json-stringify-pretty-compact "^3.0.0"
-    mongoose "8.14.1"
-    tunnel-ssh "^5.2.0"
-
-"@forestadmin/datasource-mongoose@1.12.4":
-  version "1.12.4"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.12.4.tgz#5bae340026bdeca38c6883f0d0381a762c1ff759"
-  integrity sha512-GMxdNhcNInjirVsMtADQaTZbMOJ6bL3tmqOAd2ORMc/2mI0eN6/TsN6on2jlHwPU8zVqpH+h63UwbD0nx5BYwA==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    luxon "^3.2.1"
 
 "@forestadmin/datasource-sequelize@1.10.5":
   version "1.10.5"
@@ -1880,13 +1805,6 @@
   integrity sha512-1RRHxghW3eGyvOaQNiQZbGZtPBoh2k1SzbNdS7bcMjN7rX96QFSWyKIZtWI+WXyVgphpAR6kn2GQMb9TT6YVnA==
   dependencies:
     "@forestadmin/datasource-toolkit" "1.43.0"
-
-"@forestadmin/datasource-sequelize@1.13.0":
-  version "1.13.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.13.0.tgz#4c84571e4c6e568d5a121daafbca6482244e497a"
-  integrity sha512-RZzbMoESj0/Oqzb2mmOO5bLUeGVFxoTb/gBu8YUgRBLdwOLvIhiD2UnbNgnSIznlop0rk/atxi2hxQ0VEr7KFg==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.50.0"
 
 "@forestadmin/datasource-sql@1.14.31":
   version "1.14.31"
@@ -1901,19 +1819,6 @@
     socks "^2.7.1"
     ssh2 "^1.14.0"
 
-"@forestadmin/datasource-sql@1.17.1":
-  version "1.17.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.17.1.tgz#02a6137b2370a462d445bfed195134b27af78bbd"
-  integrity sha512-YLWgDwmdnqu/+LbzjpUkz3hvUBVlWp77hfQxsa67Z604bEP7JkbQZ094it/YO3su1nE8OQ/SK2BOLsFddUraxg==
-  dependencies:
-    "@forestadmin/datasource-sequelize" "1.13.0"
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    "@types/ssh2" "^1.11.11"
-    pluralize "^8.0.0"
-    sequelize "^6.37.5"
-    socks "^2.8.4"
-    ssh2 "^1.14.0"
-
 "@forestadmin/datasource-toolkit@1.43.0":
   version "1.43.0"
   resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.43.0.tgz#d9b1ab2ce52c338a0fdf9be4149b3222c5762958"
@@ -1922,41 +1827,6 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
-
-"@forestadmin/datasource-toolkit@1.50.0":
-  version "1.50.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.50.0.tgz#a94ae271044df38ced9222c163087d6d0229a83e"
-  integrity sha512-yYrDOhoc+c5w++W3iSK5G+UBnD94ghPv+gjLehC3aMSxTOXmVDT32qHs82HJQlNThbtSoGvFNFx3rqYcbI2P2Q==
-  dependencies:
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "11.0.2"
-
-"@forestadmin/forestadmin-client@1.37.0":
-  version "1.37.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.37.0.tgz#4c7e2dc600cf4be350c5c0ea24b20558f1e94c35"
-  integrity sha512-4Kq8TwijAS6lPFMEJ69sWEok5deYTJkvcts9z22v2sD+bx8AYWRPZbwXSZ7OekS5S+8iZXpDptwzU2fYjGx7kA==
-  dependencies:
-    eventsource "2.0.2"
-    json-api-serializer "^2.6.6"
-    jsonwebtoken "^9.0.0"
-    object-hash "^3.0.0"
-    openid-client "^5.7.1"
-    superagent "^10.2.3"
-
-"@forestadmin/mcp-server@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/mcp-server/-/mcp-server-1.4.0.tgz#531e4c76f2d767f32b497d154595c809b78e1536"
-  integrity sha512-gwOJYVyTyMOgzurdSh/DWAsEm0pAvpe7PC07dshLf/u6hgNyWXswZ6GPqwUApxjVQFM0T7heOVq3lv8qWpJjBw==
-  dependencies:
-    "@forestadmin/agent-client" "1.2.0"
-    "@forestadmin/forestadmin-client" "1.37.0"
-    "@modelcontextprotocol/sdk" "^1.25.1"
-    cors "^2.8.5"
-    express "^5.2.1"
-    jsonapi-serializer "^3.6.9"
-    jsonwebtoken "^9.0.3"
-    zod "^4.2.1"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
@@ -2781,13 +2651,6 @@
   version "1.4.4"
   resolved "https://registry.yarnpkg.com/@mongodb-js/saslprep/-/saslprep-1.4.4.tgz#34a946ff6ae142e8f2259b87f2935f8284ba874d"
   integrity sha512-p7X/ytJDIdwUfFL/CLOhKgdfJe1Fa8uw9seJYvdOmnP9JBWGWHW69HkOixXS6Wy9yvGf1MbhcS6lVmrhy4jm2g==
-  dependencies:
-    sparse-bitfield "^3.0.3"
-
-"@mongodb-js/saslprep@^1.1.9":
-  version "1.1.9"
-  resolved "https://registry.yarnpkg.com/@mongodb-js/saslprep/-/saslprep-1.1.9.tgz#e974bab8eca9faa88677d4ea4da8d09a52069004"
-  integrity sha512-tVkljjeEaAhCqTzajSdgbQ6gE6f3oneVwa3iXR6csiEwXXOFsiC6Uh9iAjAhXPtqa/XMDHWjjeNH/77m/Yq2dw==
   dependencies:
     sparse-bitfield "^3.0.3"
 
@@ -6434,11 +6297,6 @@ bson@^4.7.2:
   integrity sha512-Ry9wCtIZ5kGqkJoi6aD8KjxFZEx78guTQDnpXWiNthsxzrxAK/i8E6pCHAIZTbaEFWcOCvbecMukfK7XUvyLpQ==
   dependencies:
     buffer "^5.6.0"
-
-bson@^6.10.3:
-  version "6.10.3"
-  resolved "https://registry.yarnpkg.com/bson/-/bson-6.10.3.tgz#5f9a463af6b83e264bedd08b236d1356a30eda47"
-  integrity sha512-MTxGsqgYTwfshYWTRdmZRC+M7FnG1b4y7RO7p2k3X24Wq0yv1m77Wsj0BzlPzd/IowgESfsruQCUToa7vbOpPQ==
 
 bson@^6.7.0:
   version "6.10.4"
@@ -13397,28 +13255,6 @@ mongodb@~6.10.0:
     "@mongodb-js/saslprep" "^1.1.5"
     bson "^6.7.0"
     mongodb-connection-string-url "^3.0.0"
-
-mongodb@~6.16.0:
-  version "6.16.0"
-  resolved "https://registry.yarnpkg.com/mongodb/-/mongodb-6.16.0.tgz#2a7a1986ec151d9c738fc8ce4cf4324c3f728a2f"
-  integrity sha512-D1PNcdT0y4Grhou5Zi/qgipZOYeWrhLEpk33n3nm6LGtz61jvO88WlrWCK/bigMjpnOdAUKKQwsGIl0NtWMyYw==
-  dependencies:
-    "@mongodb-js/saslprep" "^1.1.9"
-    bson "^6.10.3"
-    mongodb-connection-string-url "^3.0.0"
-
-mongoose@8.14.1:
-  version "8.14.1"
-  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-8.14.1.tgz#3f2a2b4efab38e5aa740e78606529b4643d6ba74"
-  integrity sha512-ijd12vjqUBr5Btqqflu0c/o8Oed5JpdaE0AKO9TjGxCgywYwnzt6ynR1ySjhgxGxrYVeXC0t1P11f1zlRiE93Q==
-  dependencies:
-    bson "^6.10.3"
-    kareem "2.6.3"
-    mongodb "~6.16.0"
-    mpath "0.9.0"
-    mquery "5.0.0"
-    ms "2.1.3"
-    sift "17.1.3"
 
 mongoose@8.8.4:
   version "8.8.4"
