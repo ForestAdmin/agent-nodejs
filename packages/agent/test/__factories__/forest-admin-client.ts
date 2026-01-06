@@ -46,6 +46,13 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   mcpServerConfigService: {
     getConfiguration: jest.fn(),
   },
+  schemaService: {
+    getSchema: jest.fn(),
+  },
+  activityLogsService: {
+    createActivityLog: jest.fn(),
+    updateActivityLogStatus: jest.fn(),
+  },
   subscribeToServerEvents: jest.fn(),
   close: jest.fn(),
   onRefreshCustomizations: jest.fn(),
