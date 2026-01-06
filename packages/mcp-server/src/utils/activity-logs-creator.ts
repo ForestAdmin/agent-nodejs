@@ -2,7 +2,7 @@ import type {
   ActivityLogAction,
   ActivityLogResponse,
   ActivityLogType,
-  McpHttpClient,
+  ForestServerClient,
 } from '../http-client';
 import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
@@ -25,7 +25,7 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
 };
 
 export default async function createPendingActivityLog(
-  httpClient: McpHttpClient,
+  forestServerClient: ForestServerClient,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
   action: ActivityLogAction,
   extra?: {
@@ -40,7 +40,7 @@ export default async function createPendingActivityLog(
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
   const renderingId = request.authInfo?.extra?.renderingId as string;
 
-  return httpClient.createActivityLog({
+  return forestServerClient.createActivityLog({
     forestServerToken,
     renderingId,
     action,
@@ -53,7 +53,7 @@ export default async function createPendingActivityLog(
 }
 
 interface UpdateActivityLogOptions {
-  httpClient: McpHttpClient;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   status: 'completed' | 'failed';
@@ -68,11 +68,11 @@ async function updateActivityLogStatus(
   options: UpdateActivityLogOptions,
   attempt = 1,
 ): Promise<void> {
-  const { httpClient, request, activityLog, status, errorMessage, logger } = options;
+  const { forestServerClient, request, activityLog, status, errorMessage, logger } = options;
   const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
 
   try {
-    await httpClient.updateActivityLogStatus({
+    await forestServerClient.updateActivityLogStatus({
       forestServerToken,
       activityLog,
       status,
@@ -95,7 +95,7 @@ async function updateActivityLogStatus(
 }
 
 interface MarkActivityLogAsFailedOptions {
-  httpClient: McpHttpClient;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   errorMessage: string;
@@ -103,10 +103,10 @@ interface MarkActivityLogAsFailedOptions {
 }
 
 export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions): void {
-  const { httpClient, request, activityLog, errorMessage, logger } = options;
+  const { forestServerClient, request, activityLog, errorMessage, logger } = options;
   // Fire-and-forget: don't block error response on activity log update
   updateActivityLogStatus({
-    httpClient,
+    forestServerClient,
     request,
     activityLog,
     status: 'failed',
@@ -118,17 +118,17 @@ export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions)
 }
 
 interface MarkActivityLogAsSucceededOptions {
-  httpClient: McpHttpClient;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   logger: Logger;
 }
 
 export function markActivityLogAsSucceeded(options: MarkActivityLogAsSucceededOptions): void {
-  const { httpClient, request, activityLog, logger } = options;
+  const { forestServerClient, request, activityLog, logger } = options;
   // Fire-and-forget: don't block successful response on activity log update
   updateActivityLogStatus({
-    httpClient,
+    forestServerClient,
     request,
     activityLog,
     status: 'completed',

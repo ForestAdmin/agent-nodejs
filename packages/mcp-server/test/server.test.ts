@@ -3,7 +3,7 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import createMockHttpClient from './helpers/mcp-http-client';
+import createMockForestServerClient from './helpers/forest-server-client';
 import MockServer from './test-utils/mock-server';
 import ForestMCPServer from '../src/server';
 import { clearSchemaCache } from '../src/utils/schema-fetcher';
@@ -132,7 +132,7 @@ describe('ForestMCPServer Instance', () => {
       server = new ForestMCPServer({
         authSecret: 'AUTH_SECRET',
         envSecret: 'ENV_SECRET',
-        httpClient: createMockHttpClient(),
+        forestServerClient: createMockForestServerClient(),
       });
 
       // Start the server without awaiting (it runs indefinitely)
@@ -162,7 +162,7 @@ describe('ForestMCPServer Instance', () => {
       server = new ForestMCPServer({
         authSecret: 'AUTH_SECRET',
         envSecret: 'ENV_SECRET',
-        httpClient: createMockHttpClient(),
+        forestServerClient: createMockForestServerClient(),
       });
       server.run();
 
@@ -895,7 +895,7 @@ describe('ForestMCPServer Instance', () => {
     let listServer: ForestMCPServer;
     let listHttpServer: http.Server;
     let listMockServer: MockServer;
-    let listMockHttpClient: jest.Mocked<ReturnType<typeof createMockHttpClient>>;
+    let listMockForestServerClient: jest.Mocked<ReturnType<typeof createMockForestServerClient>>;
 
     beforeAll(async () => {
       // Clear schema cache to ensure our mock data is used
@@ -940,7 +940,7 @@ describe('ForestMCPServer Instance', () => {
       listMockServer.setupSuperagentMock();
 
       // Inject mock httpClient to return expected collections
-      listMockHttpClient = createMockHttpClient({
+      listMockForestServerClient = createMockForestServerClient({
         fetchSchema: jest.fn().mockResolvedValue([
           { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
           { name: 'products', fields: [{ field: 'name', type: 'String' }] },
@@ -951,7 +951,7 @@ describe('ForestMCPServer Instance', () => {
         envSecret: 'test-env-secret',
         authSecret: 'test-auth-secret',
         forestServerUrl: 'https://test.forestadmin.com',
-        httpClient: listMockHttpClient,
+        forestServerClient: listMockForestServerClient,
       });
       listServer.run();
 
@@ -1140,9 +1140,9 @@ describe('ForestMCPServer Instance', () => {
 
       // Verify activity log API was called with the correct forestServerToken
       // The mock httpClient captures all createActivityLog calls
-      expect(listMockHttpClient.createActivityLog).toHaveBeenCalled();
+      expect(listMockForestServerClient.createActivityLog).toHaveBeenCalled();
 
-      const activityLogCall = listMockHttpClient.createActivityLog.mock.calls[0][0];
+      const activityLogCall = listMockForestServerClient.createActivityLog.mock.calls[0][0];
       expect(activityLogCall.forestServerToken).toBe(forestServerToken);
       expect(activityLogCall.action).toBe('index');
       expect(activityLogCall.collectionName).toBe('users');

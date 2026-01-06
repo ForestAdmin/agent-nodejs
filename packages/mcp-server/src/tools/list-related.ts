@@ -1,5 +1,5 @@
 import type { ListArgument } from './list';
-import type { McpHttpClient } from '../http-client';
+import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -30,14 +30,14 @@ type HasManyArgument = ListArgument & {
  * Enhances error messages with helpful context about available relations and sortable fields.
  */
 function createErrorEnhancer(
-  httpClient: McpHttpClient,
+  forestServerClient: ForestServerClient,
   options: HasManyArgument,
   logger: Logger,
 ): (errorMessage: string) => Promise<string> {
   return async (errorMessage: string) => {
     try {
       const fields = getFieldsOfCollection(
-        await fetchForestSchema(httpClient),
+        await fetchForestSchema(forestServerClient),
         options.collectionName,
       );
 
@@ -72,7 +72,7 @@ function createErrorEnhancer(
 
 export default function declareListRelatedTool(
   mcpServer: McpServer,
-  httpClient: McpHttpClient,
+  forestServerClient: ForestServerClient,
   logger: Logger,
   collectionNames: string[] = [],
 ): string {
@@ -102,7 +102,7 @@ export default function declareListRelatedTool(
       const extraLabel = labelParts.length > 0 ? ` with ${labelParts.join(' and ')}` : '';
 
       return withActivityLog({
-        httpClient,
+        forestServerClient,
         request: extra,
         action: 'listRelatedData',
         context: {
@@ -131,7 +131,7 @@ export default function declareListRelatedTool(
 
           return { content: [{ type: 'text', text: JSON.stringify(response) }] };
         },
-        errorEnhancer: createErrorEnhancer(httpClient, options, logger),
+        errorEnhancer: createErrorEnhancer(forestServerClient, options, logger),
       });
     },
     logger,

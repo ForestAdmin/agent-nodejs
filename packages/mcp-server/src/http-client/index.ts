@@ -1,15 +1,17 @@
-import type { McpHttpClient } from './types';
+import type { ForestServerClient } from './types';
 
 import { ActivityLogsService, SchemaService } from '@forestadmin/forestadmin-client';
 
-import McpHttpClientImpl from './mcp-http-client';
+import ForestServerClientImpl from './mcp-http-client';
 
 export interface CreateForestServerClientOptions {
   forestServerUrl: string;
   envSecret?: string;
 }
 
-export function createForestServerClient(options: CreateForestServerClientOptions): McpHttpClient {
+export function createForestServerClient(
+  options: CreateForestServerClientOptions,
+): ForestServerClient {
   const schemaService = new SchemaService({
     forestServerUrl: options.forestServerUrl,
     envSecret: options.envSecret || '',
@@ -18,17 +20,17 @@ export function createForestServerClient(options: CreateForestServerClientOption
     forestServerUrl: options.forestServerUrl,
   });
 
-  return new McpHttpClientImpl(schemaService, activityLogsService);
+  return new ForestServerClientImpl(schemaService, activityLogsService);
 }
 
-export { McpHttpClientImpl };
+export { ForestServerClientImpl };
 export type {
   ActivityLogAction,
   ActivityLogResponse,
   ActivityLogsServiceInterface,
   ActivityLogType,
   CreateActivityLogParams,
-  McpHttpClient,
+  ForestServerClient,
   UpdateActivityLogStatusParams,
   ForestSchemaCollection,
   ForestSchemaField,

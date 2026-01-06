@@ -1,4 +1,4 @@
-import type { McpHttpClient } from '../../src/http-client';
+import type { ForestServerClient } from '../../src/http-client';
 
 import {
   type ForestSchema,
@@ -7,13 +7,13 @@ import {
   getCollectionNames,
   setSchemaCache,
 } from '../../src/utils/schema-fetcher';
-import createMockHttpClient from '../helpers/mcp-http-client';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 describe('schema-fetcher', () => {
-  let mockHttpClient: jest.Mocked<McpHttpClient>;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
-    mockHttpClient = createMockHttpClient();
+    mockForestServerClient = createMockForestServerClient();
     clearSchemaCache();
   });
 
@@ -24,23 +24,23 @@ describe('schema-fetcher', () => {
     ];
 
     it('should fetch schema from http client and return collections', async () => {
-      mockHttpClient.fetchSchema.mockResolvedValue(mockCollections as any);
+      mockForestServerClient.fetchSchema.mockResolvedValue(mockCollections as any);
 
-      const result = await fetchForestSchema(mockHttpClient);
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockHttpClient.fetchSchema).toHaveBeenCalled();
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalled();
       expect(result.collections).toHaveLength(2);
       expect(result.collections[0].name).toBe('users');
       expect(result.collections[1].name).toBe('products');
     });
 
     it('should use cached schema on subsequent calls', async () => {
-      mockHttpClient.fetchSchema.mockResolvedValue(mockCollections as any);
+      mockForestServerClient.fetchSchema.mockResolvedValue(mockCollections as any);
 
-      const result1 = await fetchForestSchema(mockHttpClient);
-      const result2 = await fetchForestSchema(mockHttpClient);
+      const result1 = await fetchForestSchema(mockForestServerClient);
+      const result2 = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockHttpClient.fetchSchema).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result1).toEqual(result2);
     });
 
@@ -54,11 +54,11 @@ describe('schema-fetcher', () => {
       const oneDayAgo = Date.now() - 25 * 60 * 60 * 1000;
       setSchemaCache(oldSchema, oneDayAgo);
 
-      mockHttpClient.fetchSchema.mockResolvedValue(newCollections as any);
+      mockForestServerClient.fetchSchema.mockResolvedValue(newCollections as any);
 
-      const result = await fetchForestSchema(mockHttpClient);
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockHttpClient.fetchSchema).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result.collections).toHaveLength(1);
       expect(result.collections[0].name).toBe('new_collection');
     });
@@ -72,18 +72,18 @@ describe('schema-fetcher', () => {
       const recentTime = Date.now() - 1 * 60 * 60 * 1000; // 1 hour ago
       setSchemaCache(cachedSchema, recentTime);
 
-      const result = await fetchForestSchema(mockHttpClient);
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockHttpClient.fetchSchema).not.toHaveBeenCalled();
+      expect(mockForestServerClient.fetchSchema).not.toHaveBeenCalled();
       expect(result).toEqual(cachedSchema);
     });
 
     it('should throw error when http client fetchSchema fails', async () => {
-      mockHttpClient.fetchSchema.mockRejectedValue(
+      mockForestServerClient.fetchSchema.mockRejectedValue(
         new Error('Failed to fetch forest schema: Server error message'),
       );
 
-      await expect(fetchForestSchema(mockHttpClient)).rejects.toThrow(
+      await expect(fetchForestSchema(mockForestServerClient)).rejects.toThrow(
         'Failed to fetch forest schema: Server error message',
       );
     });
@@ -119,18 +119,18 @@ describe('schema-fetcher', () => {
     it('should clear the cache so next fetch makes API call', async () => {
       const collections = [{ name: 'test', fields: [] }];
 
-      mockHttpClient.fetchSchema.mockResolvedValue(collections as any);
+      mockForestServerClient.fetchSchema.mockResolvedValue(collections as any);
 
       // First fetch
-      await fetchForestSchema(mockHttpClient);
-      expect(mockHttpClient.fetchSchema).toHaveBeenCalledTimes(1);
+      await fetchForestSchema(mockForestServerClient);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
 
       // Clear cache
       clearSchemaCache();
 
       // Second fetch should make API call
-      await fetchForestSchema(mockHttpClient);
-      expect(mockHttpClient.fetchSchema).toHaveBeenCalledTimes(2);
+      await fetchForestSchema(mockForestServerClient);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -142,9 +142,9 @@ describe('schema-fetcher', () => {
 
       setSchemaCache(schema);
 
-      const result = await fetchForestSchema(mockHttpClient);
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockHttpClient.fetchSchema).not.toHaveBeenCalled();
+      expect(mockForestServerClient.fetchSchema).not.toHaveBeenCalled();
       expect(result).toEqual(schema);
     });
 
@@ -158,11 +158,11 @@ describe('schema-fetcher', () => {
       const oldTime = Date.now() - 25 * 60 * 60 * 1000;
       setSchemaCache(schema, oldTime);
 
-      mockHttpClient.fetchSchema.mockResolvedValue(newCollections as any);
+      mockForestServerClient.fetchSchema.mockResolvedValue(newCollections as any);
 
-      const result = await fetchForestSchema(mockHttpClient);
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockHttpClient.fetchSchema).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result.collections).toHaveLength(1);
       expect(result.collections[0].name).toBe('new');
     });

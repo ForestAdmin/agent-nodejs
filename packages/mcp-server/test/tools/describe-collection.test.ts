@@ -1,4 +1,4 @@
-import type { McpHttpClient } from '../../src/http-client';
+import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
@@ -8,7 +8,7 @@ import declareDescribeCollectionTool from '../../src/tools/describe-collection';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
 import withActivityLog from '../../src/utils/with-activity-log';
-import createMockHttpClient from '../helpers/mcp-http-client';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/schema-fetcher');
@@ -30,14 +30,14 @@ const mockGetActionsOfCollection = schemaFetcher.getActionsOfCollection as jest.
 
 describe('declareDescribeCollectionTool', () => {
   let mcpServer: McpServer;
-  let mockHttpClient: jest.Mocked<McpHttpClient>;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
   let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockHttpClient = createMockHttpClient();
+    mockForestServerClient = createMockForestServerClient();
 
     // Mock withActivityLog to execute the operation directly
     mockWithActivityLog.mockImplementation(async options => options.operation());
@@ -56,7 +56,7 @@ describe('declareDescribeCollectionTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "describeCollection"', () => {
-      declareDescribeCollectionTool(mcpServer, mockHttpClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'describeCollection',
@@ -66,7 +66,7 @@ describe('declareDescribeCollectionTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareDescribeCollectionTool(mcpServer, mockHttpClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Describe a collection');
       expect(registeredToolConfig.description).toBe(
@@ -75,13 +75,13 @@ describe('declareDescribeCollectionTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareDescribeCollectionTool(mcpServer, mockHttpClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareDescribeCollectionTool(mcpServer, mockHttpClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -94,7 +94,7 @@ describe('declareDescribeCollectionTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareDescribeCollectionTool(mcpServer, mockHttpClient, mockLogger, [
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger, [
         'users',
         'products',
         'orders',
@@ -126,7 +126,7 @@ describe('declareDescribeCollectionTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareDescribeCollectionTool(mcpServer, mockHttpClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -158,7 +158,7 @@ describe('declareDescribeCollectionTool', () => {
 
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-      expect(mockFetchForestSchema).toHaveBeenCalledWith(mockHttpClient);
+      expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
     });
 
     it('should call capabilities on the collection', async () => {

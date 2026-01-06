@@ -2,11 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
-import type {
-  ActivityLogsServiceInterface,
-  McpHttpClient,
-  SchemaServiceInterface,
-} from './http-client';
+import type { ForestServerClient } from './http-client';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
@@ -24,7 +20,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
-import { createForestServerClient, McpHttpClientImpl } from './http-client';
+import { createForestServerClient } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -80,12 +76,8 @@ export interface ForestMCPServerOptions {
   authSecret?: string;
   /** Optional logger function. Defaults to console logging. */
   logger?: Logger;
-  /** Optional schema service for dependency injection (from agent integration) */
-  schemaService?: SchemaServiceInterface;
-  /** Optional activity logs service for dependency injection (from agent integration) */
-  activityLogsService?: ActivityLogsServiceInterface;
-  /** Optional HTTP client for dependency injection (useful for testing) */
-  httpClient?: McpHttpClient;
+  /** Optional Forest server client for dependency injection (from agent integration) */
+  forestServerClient?: ForestServerClient;
 }
 
 /**
@@ -108,7 +100,7 @@ export default class ForestMCPServer {
   public expressApp?: Express;
   public forestServerUrl: string;
   public forestAppUrl: string;
-  public httpClient: McpHttpClient;
+  public forestServerClient: ForestServerClient;
 
   private envSecret?: string;
   private authSecret?: string;
@@ -124,8 +116,8 @@ export default class ForestMCPServer {
     this.authSecret = options?.authSecret || process.env.FOREST_AUTH_SECRET;
     this.logger = options?.logger || defaultLogger;
 
-    // Use injected httpClient, or create from forestAdminClient, or create default
-    this.httpClient = this.resolveHttpClient(options);
+    // Use injected forestServerClient or create default
+    this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
 
     this.mcpServer = new McpServer({
       name: NAME,
@@ -133,19 +125,7 @@ export default class ForestMCPServer {
     });
   }
 
-  private resolveHttpClient(options?: ForestMCPServerOptions): McpHttpClient {
-    if (options?.httpClient) {
-      return options.httpClient;
-    }
-
-    if (options?.schemaService && options?.activityLogsService) {
-      return new McpHttpClientImpl(options.schemaService, options.activityLogsService);
-    }
-
-    return this.createDefaultHttpClient();
-  }
-
-  private createDefaultHttpClient(): McpHttpClient {
+  private createDefaultForestServerClient(): ForestServerClient {
     return createForestServerClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
@@ -156,7 +136,7 @@ export default class ForestMCPServer {
     let collectionNames: string[] = [];
 
     try {
-      const schema = await fetchForestSchema(this.httpClient);
+      const schema = await fetchForestSchema(this.forestServerClient);
       collectionNames = getCollectionNames(schema);
     } catch (error) {
       this.logger(
@@ -166,12 +146,17 @@ export default class ForestMCPServer {
     }
 
     const toolNames = [
-      declareDescribeCollectionTool(this.mcpServer, this.httpClient, this.logger, collectionNames),
-      declareListTool(this.mcpServer, this.httpClient, this.logger, collectionNames),
-      declareListRelatedTool(this.mcpServer, this.httpClient, this.logger, collectionNames),
-      declareCreateTool(this.mcpServer, this.httpClient, this.logger, collectionNames),
-      declareUpdateTool(this.mcpServer, this.httpClient, this.logger, collectionNames),
-      declareDeleteTool(this.mcpServer, this.httpClient, this.logger, collectionNames),
+      declareDescribeCollectionTool(
+        this.mcpServer,
+        this.forestServerClient,
+        this.logger,
+        collectionNames,
+      ),
+      declareListTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareListRelatedTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareCreateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareUpdateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareDeleteTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
     ];
 
     this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);

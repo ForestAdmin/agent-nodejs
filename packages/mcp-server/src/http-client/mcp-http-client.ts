@@ -3,16 +3,16 @@ import type {
   ActivityLogsServiceInterface,
   CreateActivityLogParams,
   ForestSchemaCollection,
-  McpHttpClient,
+  ForestServerClient,
   SchemaServiceInterface,
   UpdateActivityLogStatusParams,
 } from './types';
 
 /**
- * Default implementation of McpHttpClient that uses SchemaService and ActivityLogsService.
+ * Default implementation of ForestServerClient that uses SchemaService and ActivityLogsService.
  * This provides a convenient API for MCP server operations.
  */
-export default class McpHttpClientImpl implements McpHttpClient {
+export default class ForestServerClientImpl implements ForestServerClient {
   constructor(
     private readonly schemaService: SchemaServiceInterface,
     private readonly activityLogsService: ActivityLogsServiceInterface,

@@ -2,7 +2,7 @@ import type {
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
-  McpHttpClient,
+  ForestServerClient,
 } from '../http-client';
 
 /**
@@ -34,10 +34,12 @@ let schemaCache: SchemaCache | null = null;
  * Fetches the Forest Admin schema from the server.
  * The schema is cached for 24 hours to reduce API calls.
  *
- * @param httpClient - The HTTP client to use for fetching the schema
+ * @param forestServerClient - The Forest server client to use for fetching the schema
  * @returns The Forest Admin schema containing collections
  */
-export async function fetchForestSchema(httpClient: McpHttpClient): Promise<ForestSchema> {
+export async function fetchForestSchema(
+  forestServerClient: ForestServerClient,
+): Promise<ForestSchema> {
   const now = Date.now();
 
   // Return cached schema if it's still valid (less than 24 hours old)
@@ -45,7 +47,7 @@ export async function fetchForestSchema(httpClient: McpHttpClient): Promise<Fore
     return schemaCache.schema;
   }
 
-  const collections = await httpClient.fetchSchema();
+  const collections = await forestServerClient.fetchSchema();
 
   // Update cache
   schemaCache = {

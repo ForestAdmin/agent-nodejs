@@ -26,10 +26,10 @@ export type {
 };
 
 /**
- * Interface for HTTP calls made by the MCP server.
+ * Interface for communicating with Forest Admin server.
  * This abstraction allows for easy mocking in tests.
  */
-export interface McpHttpClient {
+export interface ForestServerClient {
   /**
    * Fetches the Forest Admin schema from the server.
    */

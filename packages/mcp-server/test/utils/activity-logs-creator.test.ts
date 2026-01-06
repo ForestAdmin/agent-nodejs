@@ -1,4 +1,4 @@
-import type { McpHttpClient } from '../../src/http-client';
+import type { ForestServerClient } from '../../src/http-client';
 import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -9,13 +9,13 @@ import createPendingActivityLog, {
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
 } from '../../src/utils/activity-logs-creator';
-import createMockHttpClient from '../helpers/mcp-http-client';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 describe('createPendingActivityLog', () => {
-  let mockHttpClient: jest.Mocked<McpHttpClient>;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
-    mockHttpClient = createMockHttpClient();
+    mockForestServerClient = createMockForestServerClient();
   });
 
   const createMockRequest = (overrides = {}) =>
@@ -43,9 +43,9 @@ describe('createPendingActivityLog', () => {
     ])('should map action "%s" to type "%s"', async (action, expectedType) => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, action);
+      await createPendingActivityLog(mockForestServerClient, request, action);
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action,
           type: expectedType,
@@ -58,9 +58,9 @@ describe('createPendingActivityLog', () => {
     it('should call createActivityLog with forestServerToken from authInfo.extra', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'index');
+      await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           forestServerToken: 'test-forest-token',
           renderingId: '12345',
@@ -79,9 +79,9 @@ describe('createPendingActivityLog', () => {
         },
       } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-      await createPendingActivityLog(mockHttpClient, request, 'index');
+      await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           forestServerToken: 'original-forest-server-token',
         }),
@@ -98,9 +98,9 @@ describe('createPendingActivityLog', () => {
         },
       } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-      await createPendingActivityLog(mockHttpClient, request, 'index');
+      await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           forestServerToken: undefined,
         }),
@@ -110,11 +110,11 @@ describe('createPendingActivityLog', () => {
     it('should include collection name when provided', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'index', {
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
         collectionName: 'users',
       });
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           collectionName: 'users',
         }),
@@ -124,9 +124,9 @@ describe('createPendingActivityLog', () => {
     it('should not include collectionName when not provided', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'index');
+      await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           collectionName: undefined,
         }),
@@ -136,11 +136,11 @@ describe('createPendingActivityLog', () => {
     it('should include label when provided', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'action', {
+      await createPendingActivityLog(mockForestServerClient, request, 'action', {
         label: 'Custom Action Label',
       });
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           label: 'Custom Action Label',
         }),
@@ -150,11 +150,11 @@ describe('createPendingActivityLog', () => {
     it('should include single recordId', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'update', {
+      await createPendingActivityLog(mockForestServerClient, request, 'update', {
         recordId: 42,
       });
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           recordId: 42,
         }),
@@ -164,11 +164,11 @@ describe('createPendingActivityLog', () => {
     it('should include multiple recordIds', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'delete', {
+      await createPendingActivityLog(mockForestServerClient, request, 'delete', {
         recordIds: [1, 2, 3],
       });
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           recordIds: [1, 2, 3],
         }),
@@ -178,12 +178,12 @@ describe('createPendingActivityLog', () => {
     it('should include both recordId and recordIds when provided', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'delete', {
+      await createPendingActivityLog(mockForestServerClient, request, 'delete', {
         recordId: 99,
         recordIds: [1, 2, 3],
       });
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           recordId: 99,
           recordIds: [1, 2, 3],
@@ -194,9 +194,9 @@ describe('createPendingActivityLog', () => {
     it('should include action name', async () => {
       const request = createMockRequest();
 
-      await createPendingActivityLog(mockHttpClient, request, 'search');
+      await createPendingActivityLog(mockForestServerClient, request, 'search');
 
-      expect(mockHttpClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'search',
         }),
@@ -206,32 +206,32 @@ describe('createPendingActivityLog', () => {
 
   describe('error handling', () => {
     it('should propagate error when createActivityLog fails', async () => {
-      mockHttpClient.createActivityLog.mockRejectedValue(
+      mockForestServerClient.createActivityLog.mockRejectedValue(
         new Error('Failed to create activity log: Server error message'),
       );
 
       const request = createMockRequest();
 
-      await expect(createPendingActivityLog(mockHttpClient, request, 'index')).rejects.toThrow(
-        'Failed to create activity log: Server error message',
-      );
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow('Failed to create activity log: Server error message');
     });
 
     it('should not throw when createActivityLog succeeds', async () => {
       const request = createMockRequest();
 
       await expect(
-        createPendingActivityLog(mockHttpClient, request, 'index'),
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
       ).resolves.not.toThrow();
     });
   });
 });
 
 describe('markActivityLogAsFailed', () => {
-  let mockHttpClient: jest.Mocked<McpHttpClient>;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
-    mockHttpClient = createMockHttpClient();
+    mockForestServerClient = createMockForestServerClient();
   });
 
   function createMockRequest(): RequestHandlerExtra<ServerRequest, ServerNotification> {
@@ -254,7 +254,7 @@ describe('markActivityLogAsFailed', () => {
     const mockLogger = jest.fn();
 
     markActivityLogAsFailed({
-      httpClient: mockHttpClient,
+      forestServerClient: mockForestServerClient,
       request,
       activityLog,
       errorMessage: 'Something went wrong',
@@ -266,7 +266,7 @@ describe('markActivityLogAsFailed', () => {
       setTimeout(resolve, 0);
     });
 
-    expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledWith({
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith({
       forestServerToken: 'test-forest-token',
       activityLog,
       status: 'failed',
@@ -278,7 +278,7 @@ describe('markActivityLogAsFailed', () => {
     jest.useFakeTimers();
 
     const notFoundError = new NotFoundError('Activity log not found');
-    mockHttpClient.updateActivityLogStatus
+    mockForestServerClient.updateActivityLogStatus
       .mockRejectedValueOnce(notFoundError)
       .mockRejectedValueOnce(notFoundError)
       .mockRejectedValueOnce(notFoundError)
@@ -290,7 +290,7 @@ describe('markActivityLogAsFailed', () => {
     const mockLogger = jest.fn();
 
     markActivityLogAsFailed({
-      httpClient: mockHttpClient,
+      forestServerClient: mockForestServerClient,
       request,
       activityLog,
       errorMessage: 'Something went wrong',
@@ -300,7 +300,7 @@ describe('markActivityLogAsFailed', () => {
     // Advance timers for all retries (4 retries * 500ms delay)
     await jest.advanceTimersByTimeAsync(4000);
 
-    expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledTimes(5);
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledTimes(5);
     expect(mockLogger).toHaveBeenCalledWith(
       'Debug',
       'Activity log not found (attempt 1/5), retrying...',
@@ -317,14 +317,14 @@ describe('markActivityLogAsFailed', () => {
     jest.useFakeTimers();
 
     const notFoundError = new NotFoundError('Activity log not found');
-    mockHttpClient.updateActivityLogStatus.mockRejectedValue(notFoundError);
+    mockForestServerClient.updateActivityLogStatus.mockRejectedValue(notFoundError);
 
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
 
     markActivityLogAsFailed({
-      httpClient: mockHttpClient,
+      forestServerClient: mockForestServerClient,
       request,
       activityLog,
       errorMessage: 'Something went wrong',
@@ -334,7 +334,7 @@ describe('markActivityLogAsFailed', () => {
     // Advance timers for all retries (4 retries * 500ms delay)
     await jest.advanceTimersByTimeAsync(4000);
 
-    expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledTimes(5);
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledTimes(5);
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
       "Failed to update activity log status to 'failed': Activity log not found",
@@ -347,14 +347,14 @@ describe('markActivityLogAsFailed', () => {
     jest.useFakeTimers();
 
     const serverError = new Error('Internal server error');
-    mockHttpClient.updateActivityLogStatus.mockRejectedValue(serverError);
+    mockForestServerClient.updateActivityLogStatus.mockRejectedValue(serverError);
 
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
 
     markActivityLogAsFailed({
-      httpClient: mockHttpClient,
+      forestServerClient: mockForestServerClient,
       request,
       activityLog,
       errorMessage: 'Something went wrong',
@@ -363,7 +363,7 @@ describe('markActivityLogAsFailed', () => {
 
     await jest.advanceTimersByTimeAsync(0);
 
-    expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledTimes(1);
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledTimes(1);
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
       "Failed to update activity log status to 'failed': Internal server error",
@@ -374,10 +374,10 @@ describe('markActivityLogAsFailed', () => {
 });
 
 describe('markActivityLogAsSucceeded', () => {
-  let mockHttpClient: jest.Mocked<McpHttpClient>;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
-    mockHttpClient = createMockHttpClient();
+    mockForestServerClient = createMockForestServerClient();
   });
 
   function createMockRequest(): RequestHandlerExtra<ServerRequest, ServerNotification> {
@@ -402,7 +402,7 @@ describe('markActivityLogAsSucceeded', () => {
     const mockLogger = jest.fn();
 
     markActivityLogAsSucceeded({
-      httpClient: mockHttpClient,
+      forestServerClient: mockForestServerClient,
       request,
       activityLog,
       logger: mockLogger,
@@ -411,7 +411,7 @@ describe('markActivityLogAsSucceeded', () => {
     // Wait for the fire-and-forget promise to resolve
     await jest.advanceTimersByTimeAsync(0);
 
-    expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledWith({
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith({
       forestServerToken: 'test-forest-token',
       activityLog,
       status: 'completed',
@@ -429,7 +429,7 @@ describe('markActivityLogAsSucceeded', () => {
     const mockLogger = jest.fn();
 
     markActivityLogAsSucceeded({
-      httpClient: mockHttpClient,
+      forestServerClient: mockForestServerClient,
       request,
       activityLog,
       logger: mockLogger,
@@ -438,7 +438,7 @@ describe('markActivityLogAsSucceeded', () => {
     // Wait for the fire-and-forget promise to resolve
     await jest.advanceTimersByTimeAsync(0);
 
-    expect(mockHttpClient.updateActivityLogStatus).toHaveBeenCalledWith(
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: undefined,
       }),

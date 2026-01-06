@@ -1,8 +1,8 @@
-import type { McpHttpClient } from '../../src/http-client';
+import type { ForestServerClient } from '../../src/http-client';
 
-export default function createMockHttpClient(
-  overrides: Partial<McpHttpClient> = {},
-): jest.Mocked<McpHttpClient> {
+export default function createMockForestServerClient(
+  overrides: Partial<ForestServerClient> = {},
+): jest.Mocked<ForestServerClient> {
   return {
     fetchSchema: jest.fn().mockResolvedValue([]),
     createActivityLog: jest.fn().mockResolvedValue({
@@ -11,5 +11,5 @@ export default function createMockHttpClient(
     }),
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
     ...overrides,
-  } as jest.Mocked<McpHttpClient>;
+  } as jest.Mocked<ForestServerClient>;
 }
