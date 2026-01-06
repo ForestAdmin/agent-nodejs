@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.12.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.4...@forestadmin/datasource-mongoose@1.12.5) (2026-01-06)
+
+
+### Bug Fixes
+
+* **eslint:** enforce type import ([#1399](https://github.com/ForestAdmin/agent-nodejs/issues/1399)) ([a2c7330](https://github.com/ForestAdmin/agent-nodejs/commit/a2c73300a2019ed790b7c2660734ece17ff3eed5))
+
 ## @forestadmin/datasource-mongoose [1.12.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.3...@forestadmin/datasource-mongoose@1.12.4) (2025-08-28)
 
 
