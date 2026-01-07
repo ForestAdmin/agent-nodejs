@@ -106,7 +106,8 @@ export async function createTestableAgent<TypingsSchema extends TSchema = TSchem
     ...(options || {}),
     // 0 is a random port
     port: options?.port || 0,
-    forestAdminClient: new ForestAdminClientMock(),
+    // Cast to any to avoid type mismatch when workspace has different forestadmin-client version
+    forestAdminClient: new ForestAdminClientMock() as any,
     authSecret: options?.authSecret || 'b0bdf0a639c16bae8851dd24ee3d79ef0a352e957c5b86cb',
     envSecret:
       options?.envSecret || 'ceba742f5bc73946b34da192816a4d7177b3233fee7769955c29c0e90fd584f2',
