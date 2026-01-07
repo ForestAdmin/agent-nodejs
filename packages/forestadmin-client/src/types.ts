@@ -52,6 +52,8 @@ export interface ForestAdminClient {
   readonly modelCustomizationService: ModelCustomizationService;
   readonly mcpServerConfigService: McpServerConfigService;
   readonly authService: ForestAdminAuthServiceInterface;
+  readonly schemaService: SchemaServiceInterface;
+  readonly activityLogsService: ActivityLogsServiceInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
@@ -156,6 +158,112 @@ export interface ContextVariablesInstantiatorInterface {
     renderingId: string | number;
     userId: string | number;
   }): Promise<ContextVariables>;
+}
+
+/**
+ * Schema field definition from Forest Admin.
+ */
+export interface ForestSchemaField {
+  field: string;
+  type: string;
+  isFilterable?: boolean;
+  isSortable?: boolean;
+  enum: string[] | null;
+  inverseOf?: string | null;
+  reference: string | null;
+  isReadOnly: boolean;
+  isRequired: boolean;
+  integration?: string | null;
+  validations?: unknown[];
+  defaultValue?: unknown;
+  isPrimaryKey: boolean;
+  relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
+}
+
+/**
+ * Schema action definition from Forest Admin.
+ */
+export interface ForestSchemaAction {
+  id: string;
+  name: string;
+  type: 'single' | 'bulk' | 'global';
+  endpoint: string;
+  description?: string;
+  submitButtonLabel?: string;
+  download: boolean;
+  fields: { field: string }[];
+  hooks: {
+    load: boolean;
+    change: unknown[];
+  };
+}
+
+/**
+ * Schema collection definition from Forest Admin.
+ */
+export interface ForestSchemaCollection {
+  name: string;
+  fields: ForestSchemaField[];
+  actions?: ForestSchemaAction[];
+}
+
+/**
+ * Activity log response from the Forest Admin server.
+ */
+export interface ActivityLogResponse {
+  id: string;
+  attributes: {
+    index: string;
+  };
+}
+
+/**
+ * Valid activity log actions.
+ */
+export type ActivityLogAction =
+  | 'index'
+  | 'search'
+  | 'filter'
+  | 'action'
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'listRelatedData'
+  | 'describeCollection';
+
+export type ActivityLogType = 'read' | 'write';
+
+export interface CreateActivityLogParams {
+  forestServerToken: string;
+  renderingId: string;
+  action: ActivityLogAction;
+  type: ActivityLogType;
+  collectionName?: string;
+  recordId?: string | number;
+  recordIds?: string[] | number[];
+  label?: string;
+}
+
+export interface UpdateActivityLogStatusParams {
+  forestServerToken: string;
+  activityLog: ActivityLogResponse;
+  status: 'completed' | 'failed';
+  errorMessage?: string;
+}
+
+/**
+ * Service interface for activity logs operations (MCP-related).
+ */
+export interface ActivityLogsServiceInterface {
+  createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
+  updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
+}
+
+/**
+ * Service interface for schema operations (extended for MCP).
+ */
+export interface SchemaServiceInterface {
+  getSchema: () => Promise<ForestSchemaCollection[]>;
 }
 
 export interface ForestAdminServerInterface {

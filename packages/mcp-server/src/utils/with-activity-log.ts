@@ -1,5 +1,6 @@
-import type { Logger } from '../server';
 import type { ActivityLogAction } from './activity-logs-creator';
+import type { ForestServerClient } from '../http-client';
+import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
@@ -17,7 +18,7 @@ interface ActivityLogContext {
 }
 
 interface WithActivityLogOptions<T> {
-  forestServerUrl: string;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   action: ActivityLogAction;
   context?: ActivityLogContext;
@@ -36,17 +37,18 @@ interface WithActivityLogOptions<T> {
  * Creates a pending activity log, executes the operation, and marks it as succeeded or failed.
  */
 export default async function withActivityLog<T>(options: WithActivityLogOptions<T>): Promise<T> {
-  const { forestServerUrl, request, action, context, logger, operation, errorEnhancer } = options;
+  const { forestServerClient, request, action, context, logger, operation, errorEnhancer } =
+    options;
 
   // We want to create the activity log before executing the operation
   // If activity log creation fails, we must prevent the execution of the operation
-  const activityLog = await createPendingActivityLog(forestServerUrl, request, action, context);
+  const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
 
   try {
     const result = await operation();
 
     markActivityLogAsSucceeded({
-      forestServerUrl,
+      forestServerClient,
       request,
       activityLog,
       logger,
@@ -61,13 +63,18 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
     if (errorEnhancer) {
       try {
         errorMessage = await errorEnhancer(errorMessage, error);
-      } catch {
-        // If enhancement fails, use the original parsed message
+      } catch (enhancerError) {
+        logger(
+          'Warn',
+          `Error enhancement failed (using original error message): ${
+            enhancerError instanceof Error ? enhancerError.message : String(enhancerError)
+          }`,
+        );
       }
     }
 
     markActivityLogAsFailed({
-      forestServerUrl,
+      forestServerClient,
       request,
       activityLog,
       errorMessage,

@@ -8,6 +8,7 @@ import type {
   ForestAdminServerInterface,
 } from './types';
 
+import ActivityLogsService from './activity-logs';
 import ChartHandler from './charts/chart-handler';
 import EventsSubscriptionService from './events-subscription';
 import NativeRefreshEventsHandlerService from './events-subscription/native-refresh-events-handler-service';
@@ -29,6 +30,7 @@ export default function buildApplicationServices(
   optionsWithDefaults: ForestAdminClientOptionsWithDefaults;
   renderingPermission: RenderingPermissionService;
   schema: SchemaService;
+  activityLogs: ActivityLogsService;
   contextVariables: ContextVariablesInstantiator;
   ipWhitelist: IpWhiteListService;
   permission: PermissionService;
@@ -86,6 +88,7 @@ export default function buildApplicationServices(
     chartHandler: new ChartHandler(contextVariables),
     ipWhitelist: new IpWhiteListService(optionsWithDefaults),
     schema: new SchemaService(optionsWithDefaults),
+    activityLogs: new ActivityLogsService(optionsWithDefaults),
     auth: forestAdminServerInterface.makeAuthService(optionsWithDefaults),
     modelCustomizationService: new ModelCustomizationFromApiService(
       forestAdminServerInterface,

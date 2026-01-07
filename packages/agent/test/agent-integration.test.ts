@@ -45,6 +45,7 @@ function createTestToken(payload: object = {}): string {
       id: 1,
       email: 'test@example.com',
       renderingId: 1,
+      serverToken: 'test-forest-server-token',
       ...payload,
     },
     AUTH_SECRET,

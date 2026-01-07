@@ -48,11 +48,18 @@ describe('ServerUtils', () => {
   it('should fail if project does not exists', async () => {
     nock(options.forestServerUrl)
       .get('/endpoint')
-      .reply(404, { error: 'what is this env secret?' });
+      .reply(404, { errors: [{ detail: 'Project not found' }] });
 
     await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
-      'Forest Admin server failed to find the project related to the envSecret you configured.' +
-        ' Can you check that you copied it properly in the Forest initialization?',
+      'Project not found',
+    );
+  });
+
+  it('should fail with generic 404 message when server has no detail', async () => {
+    nock(options.forestServerUrl).get('/endpoint').reply(404, {});
+
+    await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(
+      'The requested resource was not found on Forest Admin server.',
     );
   });
 
@@ -139,6 +146,90 @@ describe('ServerUtils', () => {
         .reply(424, { errors: [{ detail: message }] });
 
       await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(message);
+    });
+  });
+
+  describe('queryWithBearerToken', () => {
+    it('should make a request with Bearer token authorization', async () => {
+      nock(options.forestServerUrl, {
+        reqheaders: {
+          Authorization: 'Bearer my-bearer-token',
+          'x-custom': 'header',
+        },
+      })
+        .post('/api/endpoint', { data: 'payload' })
+        .reply(200, { result: 'success' });
+
+      const result = await ServerUtils.queryWithBearerToken({
+        forestServerUrl: options.forestServerUrl,
+        method: 'post',
+        path: '/api/endpoint',
+        bearerToken: 'my-bearer-token',
+        headers: { 'x-custom': 'header' },
+        body: { data: 'payload' },
+      });
+
+      expect(result).toStrictEqual({ result: 'success' });
+    });
+
+    it('should make a PATCH request', async () => {
+      nock(options.forestServerUrl, {
+        reqheaders: { Authorization: 'Bearer my-token' },
+      })
+        .patch('/api/resource/123')
+        .reply(200, { updated: true });
+
+      const result = await ServerUtils.queryWithBearerToken({
+        forestServerUrl: options.forestServerUrl,
+        method: 'patch',
+        path: '/api/resource/123',
+        bearerToken: 'my-token',
+      });
+
+      expect(result).toStrictEqual({ updated: true });
+    });
+
+    it('should handle errors with Bearer token requests', async () => {
+      nock(options.forestServerUrl)
+        .post('/api/endpoint')
+        .reply(403, { errors: [{ detail: 'unauthorized access' }] });
+
+      await expect(
+        ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          method: 'post',
+          path: '/api/endpoint',
+          bearerToken: 'invalid-token',
+        }),
+      ).rejects.toEqual(new ForbiddenError('unauthorized access'));
+    });
+
+    it('should throw NotFoundError on 404 with server message', async () => {
+      nock(options.forestServerUrl)
+        .get('/api/resource/123')
+        .reply(404, { errors: [{ detail: 'Activity log not found' }] });
+
+      await expect(
+        ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          method: 'get',
+          path: '/api/resource/123',
+          bearerToken: 'valid-token',
+        }),
+      ).rejects.toThrow('Activity log not found');
+    });
+
+    it('should throw NotFoundError with generic message when server has no detail', async () => {
+      nock(options.forestServerUrl).get('/api/resource/456').reply(404, {});
+
+      await expect(
+        ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          method: 'get',
+          path: '/api/resource/456',
+          bearerToken: 'valid-token',
+        }),
+      ).rejects.toThrow('The requested resource was not found on Forest Admin server.');
     });
   });
 });

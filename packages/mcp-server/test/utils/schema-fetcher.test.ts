@@ -1,3 +1,5 @@
+import type { ForestServerClient } from '../../src/http-client';
+
 import {
   type ForestSchema,
   clearSchemaCache,
@@ -5,79 +7,40 @@ import {
   getCollectionNames,
   setSchemaCache,
 } from '../../src/utils/schema-fetcher';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 describe('schema-fetcher', () => {
-  const originalFetch = global.fetch;
-  const originalEnv = process.env.FOREST_ENV_SECRET;
-  let mockFetch: jest.Mock;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
-    mockFetch = jest.fn();
-    global.fetch = mockFetch;
-    process.env.FOREST_ENV_SECRET = 'test-env-secret';
+    mockForestServerClient = createMockForestServerClient();
     clearSchemaCache();
   });
 
-  afterAll(() => {
-    global.fetch = originalFetch;
-    process.env.FOREST_ENV_SECRET = originalEnv;
-  });
-
-  // Helper to create JSON:API formatted schema response
-  const createJsonApiSchema = (
-    collections: Array<{ name: string; fields: Array<{ field: string; type: string }> }>,
-  ) => ({
-    data: collections.map((col, index) => ({
-      id: `collection-${index}`,
-      type: 'collections',
-      attributes: {
-        name: col.name,
-        fields: col.fields,
-      },
-    })),
-    meta: {
-      liana: 'forest-express-sequelize',
-      liana_version: '9.0.0',
-      liana_features: null,
-    },
-  });
-
   describe('fetchForestSchema', () => {
-    const mockJsonApiResponse = createJsonApiSchema([
+    const mockCollections = [
       { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
       { name: 'products', fields: [{ field: 'name', type: 'String' }] },
-    ]);
+    ];
 
-    it('should fetch schema from forest server and deserialize JSON:API response', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockJsonApiResponse),
-      });
+    it('should fetch schema from http client and return collections', async () => {
+      mockForestServerClient.fetchSchema.mockResolvedValue(mockCollections as any);
 
-      const result = await fetchForestSchema('https://api.forestadmin.com');
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockFetch).toHaveBeenCalledWith('https://api.forestadmin.com/liana/forest-schema', {
-        method: 'GET',
-        headers: {
-          'forest-secret-key': 'test-env-secret',
-          'Content-Type': 'application/json',
-        },
-      });
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalled();
       expect(result.collections).toHaveLength(2);
       expect(result.collections[0].name).toBe('users');
       expect(result.collections[1].name).toBe('products');
     });
 
     it('should use cached schema on subsequent calls', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockJsonApiResponse),
-      });
+      mockForestServerClient.fetchSchema.mockResolvedValue(mockCollections as any);
 
-      const result1 = await fetchForestSchema('https://api.forestadmin.com');
-      const result2 = await fetchForestSchema('https://api.forestadmin.com');
+      const result1 = await fetchForestSchema(mockForestServerClient);
+      const result2 = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result1).toEqual(result2);
     });
 
@@ -85,20 +48,17 @@ describe('schema-fetcher', () => {
       const oldSchema: ForestSchema = {
         collections: [{ name: 'old_collection', fields: [] }],
       };
-      const newJsonApiResponse = createJsonApiSchema([{ name: 'new_collection', fields: [] }]);
+      const newCollections = [{ name: 'new_collection', fields: [] }];
 
       // Set cache with an old timestamp (more than 24 hours ago)
       const oneDayAgo = Date.now() - 25 * 60 * 60 * 1000;
       setSchemaCache(oldSchema, oneDayAgo);
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(newJsonApiResponse),
-      });
+      mockForestServerClient.fetchSchema.mockResolvedValue(newCollections as any);
 
-      const result = await fetchForestSchema('https://api.forestadmin.com');
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result.collections).toHaveLength(1);
       expect(result.collections[0].name).toBe('new_collection');
     });
@@ -112,42 +72,19 @@ describe('schema-fetcher', () => {
       const recentTime = Date.now() - 1 * 60 * 60 * 1000; // 1 hour ago
       setSchemaCache(cachedSchema, recentTime);
 
-      const result = await fetchForestSchema('https://api.forestadmin.com');
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockForestServerClient.fetchSchema).not.toHaveBeenCalled();
       expect(result).toEqual(cachedSchema);
     });
 
-    it('should throw error when FOREST_ENV_SECRET is not set', async () => {
-      delete process.env.FOREST_ENV_SECRET;
-
-      await expect(fetchForestSchema('https://api.forestadmin.com')).rejects.toThrow(
-        'FOREST_ENV_SECRET environment variable is not set',
+    it('should throw error when http client fetchSchema fails', async () => {
+      mockForestServerClient.fetchSchema.mockRejectedValue(
+        new Error('Failed to fetch forest schema: Server error message'),
       );
-    });
 
-    it('should throw error when response is not ok', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        text: () => Promise.resolve('Server error message'),
-      });
-
-      await expect(fetchForestSchema('https://api.forestadmin.com')).rejects.toThrow(
+      await expect(fetchForestSchema(mockForestServerClient)).rejects.toThrow(
         'Failed to fetch forest schema: Server error message',
-      );
-    });
-
-    it('should use custom forest server URL', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockJsonApiResponse),
-      });
-
-      await fetchForestSchema('https://custom.forestadmin.com');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://custom.forestadmin.com/liana/forest-schema',
-        expect.any(Object),
       );
     });
   });
@@ -180,23 +117,20 @@ describe('schema-fetcher', () => {
 
   describe('clearSchemaCache', () => {
     it('should clear the cache so next fetch makes API call', async () => {
-      const jsonApiResponse = createJsonApiSchema([{ name: 'test', fields: [] }]);
+      const collections = [{ name: 'test', fields: [] }];
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(jsonApiResponse),
-      });
+      mockForestServerClient.fetchSchema.mockResolvedValue(collections as any);
 
       // First fetch
-      await fetchForestSchema('https://api.forestadmin.com');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      await fetchForestSchema(mockForestServerClient);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
 
       // Clear cache
       clearSchemaCache();
 
       // Second fetch should make API call
-      await fetchForestSchema('https://api.forestadmin.com');
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      await fetchForestSchema(mockForestServerClient);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -208,9 +142,9 @@ describe('schema-fetcher', () => {
 
       setSchemaCache(schema);
 
-      const result = await fetchForestSchema('https://api.forestadmin.com');
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockForestServerClient.fetchSchema).not.toHaveBeenCalled();
       expect(result).toEqual(schema);
     });
 
@@ -218,20 +152,17 @@ describe('schema-fetcher', () => {
       const schema: ForestSchema = {
         collections: [{ name: 'old_cached', fields: [] }],
       };
-      const newJsonApiResponse = createJsonApiSchema([{ name: 'new', fields: [] }]);
+      const newCollections = [{ name: 'new', fields: [] }];
 
       // Set cache with old timestamp
       const oldTime = Date.now() - 25 * 60 * 60 * 1000;
       setSchemaCache(schema, oldTime);
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(newJsonApiResponse),
-      });
+      mockForestServerClient.fetchSchema.mockResolvedValue(newCollections as any);
 
-      const result = await fetchForestSchema('https://api.forestadmin.com');
+      const result = await fetchForestSchema(mockForestServerClient);
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.fetchSchema).toHaveBeenCalledTimes(1);
       expect(result.collections).toHaveLength(1);
       expect(result.collections[0].name).toBe('new');
     });

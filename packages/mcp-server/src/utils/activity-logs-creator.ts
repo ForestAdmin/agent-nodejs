@@ -1,24 +1,18 @@
+import type {
+  ActivityLogAction,
+  ActivityLogResponse,
+  ActivityLogType,
+  ForestServerClient,
+} from '../http-client';
 import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
-/**
- * Valid activity log actions.
- * These must match ActivityLogActions enum in forestadmin-server.
- * @see packages/private-api/src/config/activity-logs.ts
- */
-export type ActivityLogAction =
-  | 'index'
-  | 'search'
-  | 'filter'
-  | 'action'
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'listRelatedData'
-  | 'describeCollection';
+import { NotFoundError } from '@forestadmin/forestadmin-client';
 
-const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
+export type { ActivityLogAction, ActivityLogResponse };
+
+const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   index: 'read',
   search: 'read',
   filter: 'read',
@@ -30,15 +24,27 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, 'read' | 'write'> = {
   describeCollection: 'read',
 };
 
-type ActivityLogResponse = {
-  id: string;
-  attributes: {
-    index: string;
-  };
-};
+function getAuthContext(request: RequestHandlerExtra<ServerRequest, ServerNotification>): {
+  forestServerToken: string;
+  renderingId: string;
+} {
+  const forestServerToken = request.authInfo?.extra?.forestServerToken;
+  const renderingId = request.authInfo?.extra?.renderingId;
+
+  if (!forestServerToken || typeof forestServerToken !== 'string') {
+    throw new Error('Invalid or missing forestServerToken in authentication context');
+  }
+
+  // renderingId can be number (from JWT) or string - convert to string for API calls
+  if (renderingId === undefined || renderingId === null) {
+    throw new Error('Invalid or missing renderingId in authentication context');
+  }
+
+  return { forestServerToken, renderingId: String(renderingId) };
+}
 
 export default async function createPendingActivityLog(
-  forestServerUrl: string,
+  forestServerClient: ForestServerClient,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
   action: ActivityLogAction,
   extra?: {
@@ -49,59 +55,22 @@ export default async function createPendingActivityLog(
   },
 ) {
   const type = ACTION_TO_TYPE[action];
+  const { forestServerToken, renderingId } = getAuthContext(request);
 
-  const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
-  const renderingId = request.authInfo?.extra?.renderingId as string;
-
-  const response = await fetch(`${forestServerUrl}/api/activity-logs-requests`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Forest-Application-Source': 'MCP',
-      Authorization: `Bearer ${forestServerToken}`,
-    },
-    body: JSON.stringify({
-      data: {
-        id: 1,
-        type: 'activity-logs-requests',
-        attributes: {
-          type,
-          action,
-          label: extra?.label,
-          status: 'pending',
-          records: (extra?.recordIds || (extra?.recordId ? [extra.recordId] : [])) as string[],
-        },
-        relationships: {
-          rendering: {
-            data: {
-              id: renderingId,
-              type: 'renderings',
-            },
-          },
-          collection: {
-            data: extra?.collectionName
-              ? {
-                  id: extra.collectionName,
-                  type: 'collections',
-                }
-              : null,
-          },
-        },
-      },
-    }),
+  return forestServerClient.createActivityLog({
+    forestServerToken,
+    renderingId,
+    action,
+    type,
+    collectionName: extra?.collectionName,
+    recordId: extra?.recordId,
+    recordIds: extra?.recordIds,
+    label: extra?.label,
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to create activity log: ${await response.text()}`);
-  }
-
-  const { data: activityLog } = (await response.json()) as { data: ActivityLogResponse };
-
-  return activityLog;
 }
 
 interface UpdateActivityLogOptions {
-  forestServerUrl: string;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   status: 'completed' | 'failed';
@@ -116,42 +85,40 @@ async function updateActivityLogStatus(
   options: UpdateActivityLogOptions,
   attempt = 1,
 ): Promise<void> {
-  const { forestServerUrl, request, activityLog, status, errorMessage, logger } = options;
-  const forestServerToken = request.authInfo?.extra?.forestServerToken as string;
+  const { forestServerClient, request, activityLog, status, errorMessage, logger } = options;
 
-  const response = await fetch(
-    `${forestServerUrl}/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Forest-Application-Source': 'MCP',
-        Authorization: `Bearer ${forestServerToken}`,
-      },
-      body: JSON.stringify({
-        status,
-        ...(errorMessage && { errorMessage }),
-      }),
-    },
-  );
+  // Use optional chaining with fallback since we're in error handling context
+  // and don't want to throw a different error if auth context is missing
+  const forestServerToken = (request.authInfo?.extra?.forestServerToken as string) ?? '';
 
-  if (response.status === 404 && attempt < MAX_RETRIES) {
-    logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
-    await new Promise<void>(resolve => {
-      setTimeout(resolve, RETRY_DELAY_MS);
+  try {
+    await forestServerClient.updateActivityLogStatus({
+      forestServerToken,
+      activityLog,
+      status,
+      errorMessage,
     });
+  } catch (error) {
+    // Retry on 404 errors (activity log may not be immediately available)
+    if (error instanceof NotFoundError && attempt < MAX_RETRIES) {
+      logger('Debug', `Activity log not found (attempt ${attempt}/${MAX_RETRIES}), retrying...`);
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, RETRY_DELAY_MS);
+      });
 
-    return updateActivityLogStatus(options, attempt + 1);
-  }
+      return updateActivityLogStatus(options, attempt + 1);
+    }
 
-  if (!response.ok) {
-    const responseText = await response.text();
-    logger('Error', `Failed to update activity log status to '${status}': ${responseText}`);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger('Error', `Failed to update activity log status to '${status}': ${errorMsg}`);
+
+    // Rethrow so callers are aware of the failure
+    throw error;
   }
 }
 
 interface MarkActivityLogAsFailedOptions {
-  forestServerUrl: string;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   errorMessage: string;
@@ -159,10 +126,10 @@ interface MarkActivityLogAsFailedOptions {
 }
 
 export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions): void {
-  const { forestServerUrl, request, activityLog, errorMessage, logger } = options;
+  const { forestServerClient, request, activityLog, errorMessage, logger } = options;
   // Fire-and-forget: don't block error response on activity log update
   updateActivityLogStatus({
-    forestServerUrl,
+    forestServerClient,
     request,
     activityLog,
     status: 'failed',
@@ -174,17 +141,17 @@ export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions)
 }
 
 interface MarkActivityLogAsSucceededOptions {
-  forestServerUrl: string;
+  forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   logger: Logger;
 }
 
 export function markActivityLogAsSucceeded(options: MarkActivityLogAsSucceededOptions): void {
-  const { forestServerUrl, request, activityLog, logger } = options;
+  const { forestServerClient, request, activityLog, logger } = options;
   // Fire-and-forget: don't block successful response on activity log update
   updateActivityLogStatus({
-    forestServerUrl,
+    forestServerClient,
     request,
     activityLog,
     status: 'completed',

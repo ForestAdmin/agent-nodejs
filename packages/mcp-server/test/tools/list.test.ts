@@ -1,3 +1,4 @@
+import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
@@ -7,6 +8,7 @@ import declareListTool from '../../src/tools/list';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
 import withActivityLog from '../../src/utils/with-activity-log';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/with-activity-log');
@@ -25,11 +27,14 @@ const mockGetFieldsOfCollection = schemaFetcher.getFieldsOfCollection as jest.Mo
 
 describe('declareListTool', () => {
   let mcpServer: McpServer;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
   let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockForestServerClient = createMockForestServerClient();
 
     // Create a mock MCP server that captures the registered tool
     mcpServer = {
@@ -73,7 +78,7 @@ describe('declareListTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "list"', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'list',
@@ -83,7 +88,7 @@ describe('declareListTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('List records from a collection');
       expect(registeredToolConfig.description).toBe(
@@ -92,7 +97,7 @@ describe('declareListTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('search');
@@ -104,7 +109,7 @@ describe('declareListTool', () => {
     });
 
     it('should have fields schema with description mentioning @@@ separator for relations', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const schema = registeredToolConfig.inputSchema as any;
@@ -117,7 +122,7 @@ describe('declareListTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -130,7 +135,7 @@ describe('declareListTool', () => {
     });
 
     it('should use string type for collectionName when empty array provided', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -143,7 +148,7 @@ describe('declareListTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
+      declareListTool(mcpServer, mockForestServerClient, mockLogger, [
         'users',
         'products',
         'orders',
@@ -175,7 +180,7 @@ describe('declareListTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareListTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -237,7 +242,7 @@ describe('declareListTool', () => {
         await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'index',
           context: { collectionName: 'users' },
@@ -251,7 +256,7 @@ describe('declareListTool', () => {
         await registeredToolHandler({ collectionName: 'users', search: 'john' }, mockExtra);
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'search',
           context: { collectionName: 'users' },
@@ -271,7 +276,7 @@ describe('declareListTool', () => {
         );
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'filter',
           context: { collectionName: 'users' },
@@ -292,7 +297,7 @@ describe('declareListTool', () => {
         );
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'search',
           context: { collectionName: 'users' },
@@ -1008,7 +1013,7 @@ describe('declareListTool', () => {
           'The sort field provided is invalid for this collection. Available fields for the collection users are: id, name, email.',
         );
 
-        expect(mockFetchForestSchema).toHaveBeenCalledWith('https://api.forestadmin.com');
+        expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
         expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');
       });
     });

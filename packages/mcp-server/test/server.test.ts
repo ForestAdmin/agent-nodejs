@@ -3,8 +3,10 @@ import type * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
+import createMockForestServerClient from './helpers/forest-server-client';
 import MockServer from './test-utils/mock-server';
 import ForestMCPServer from '../src/server';
+import { clearSchemaCache } from '../src/utils/schema-fetcher';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
@@ -99,12 +101,11 @@ describe('ForestMCPServer Instance', () => {
   });
 
   describe('environment validation', () => {
-    it('should throw error when FOREST_ENV_SECRET is missing', async () => {
+    it('should throw error when FOREST_ENV_SECRET is missing', () => {
       delete process.env.FOREST_ENV_SECRET;
-      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET' });
 
-      await expect(server.run()).rejects.toThrow(
-        'FOREST_ENV_SECRET is not set. Provide it via options.envSecret or FOREST_ENV_SECRET environment variable.',
+      expect(() => new ForestMCPServer({ authSecret: 'AUTH_SECRET' })).toThrow(
+        'envSecret is required to create ForestServerClient',
       );
     });
 
@@ -127,7 +128,11 @@ describe('ForestMCPServer Instance', () => {
       const testPort = 39310; // Use a different port for testing
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
 
       // Start the server without awaiting (it runs indefinitely)
       server.run();
@@ -153,7 +158,11 @@ describe('ForestMCPServer Instance', () => {
       const testPort = 39311;
       process.env.MCP_SERVER_PORT = testPort.toString();
 
-      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
       server.run();
 
       await new Promise(resolve => {
@@ -885,8 +894,12 @@ describe('ForestMCPServer Instance', () => {
     let listServer: ForestMCPServer;
     let listHttpServer: http.Server;
     let listMockServer: MockServer;
+    let listMockForestServerClient: jest.Mocked<ReturnType<typeof createMockForestServerClient>>;
 
     beforeAll(async () => {
+      // Clear schema cache to ensure our mock data is used
+      clearSchemaCache();
+
       process.env.FOREST_ENV_SECRET = 'test-env-secret';
       process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
       process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
@@ -925,10 +938,19 @@ describe('ForestMCPServer Instance', () => {
       // Setup superagent mock for agent-client RPC calls
       listMockServer.setupSuperagentMock();
 
+      // Inject mock httpClient to return expected collections
+      listMockForestServerClient = createMockForestServerClient({
+        fetchSchema: jest.fn().mockResolvedValue([
+          { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          { name: 'products', fields: [{ field: 'name', type: 'String' }] },
+        ]),
+      });
+
       listServer = new ForestMCPServer({
         envSecret: 'test-env-secret',
         authSecret: 'test-auth-secret',
         forestServerUrl: 'https://test.forestadmin.com',
+        forestServerClient: listMockForestServerClient,
       });
       listServer.run();
 
@@ -1116,26 +1138,13 @@ describe('ForestMCPServer Instance', () => {
       expect(response.status).toBe(200);
 
       // Verify activity log API was called with the correct forestServerToken
-      // The mock fetch captures all calls as [url, options] tuples
-      const activityLogCall = listMockServer.fetch.mock.calls.find(
-        (call: [string, RequestInit]) =>
-          call[0] === 'https://test.forestadmin.com/api/activity-logs-requests',
-      ) as [string, RequestInit] | undefined;
+      // The mock httpClient captures all createActivityLog calls
+      expect(listMockForestServerClient.createActivityLog).toHaveBeenCalled();
 
-      expect(activityLogCall).toBeDefined();
-      expect(activityLogCall![1].headers).toMatchObject({
-        Authorization: `Bearer ${forestServerToken}`,
-        'Content-Type': 'application/json',
-        'Forest-Application-Source': 'MCP',
-      });
-
-      // Verify the body contains the correct data
-      const body = JSON.parse(activityLogCall![1].body as string);
-      expect(body.data.attributes.action).toBe('index');
-      expect(body.data.relationships.collection.data).toEqual({
-        id: 'users',
-        type: 'collections',
-      });
+      const activityLogCall = listMockForestServerClient.createActivityLog.mock.calls[0][0];
+      expect(activityLogCall.forestServerToken).toBe(forestServerToken);
+      expect(activityLogCall.action).toBe('index');
+      expect(activityLogCall.collectionName).toBe('users');
     });
 
     it('should include shouldSearchInRelation and fields in list tool schema', async () => {

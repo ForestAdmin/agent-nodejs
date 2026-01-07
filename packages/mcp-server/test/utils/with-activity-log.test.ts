@@ -1,3 +1,4 @@
+import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -7,6 +8,7 @@ import createPendingActivityLog, {
   markActivityLogAsSucceeded,
 } from '../../src/utils/activity-logs-creator';
 import withActivityLog from '../../src/utils/with-activity-log';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/activity-logs-creator');
 
@@ -22,6 +24,7 @@ const mockMarkActivityLogAsFailed = markActivityLogAsFailed as jest.MockedFuncti
 
 describe('withActivityLog', () => {
   const mockLogger: Logger = jest.fn();
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
   const mockRequest = {
     authInfo: {
       token: 'test-token',
@@ -35,6 +38,7 @@ describe('withActivityLog', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockForestServerClient = createMockForestServerClient();
     mockCreatePendingActivityLog.mockResolvedValue(mockActivityLog);
   });
 
@@ -42,7 +46,7 @@ describe('withActivityLog', () => {
     const operation = jest.fn().mockResolvedValue({ result: 'success' });
 
     await withActivityLog({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       action: 'index',
       context: { collectionName: 'users' },
@@ -51,7 +55,7 @@ describe('withActivityLog', () => {
     });
 
     expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-      'https://api.forestadmin.com',
+      mockForestServerClient,
       mockRequest,
       'index',
       { collectionName: 'users' },
@@ -63,7 +67,7 @@ describe('withActivityLog', () => {
     const operation = jest.fn().mockResolvedValue({ result: 'success' });
 
     await withActivityLog({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       action: 'create',
       context: { collectionName: 'users' },
@@ -72,7 +76,7 @@ describe('withActivityLog', () => {
     });
 
     expect(mockMarkActivityLogAsSucceeded).toHaveBeenCalledWith({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
       logger: mockLogger,
@@ -84,7 +88,7 @@ describe('withActivityLog', () => {
     const operation = jest.fn().mockResolvedValue(expectedResult);
 
     const result = await withActivityLog({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       action: 'index',
       logger: mockLogger,
@@ -99,7 +103,7 @@ describe('withActivityLog', () => {
 
     await expect(
       withActivityLog({
-        forestServerUrl: 'https://api.forestadmin.com',
+        forestServerClient: mockForestServerClient,
         request: mockRequest,
         action: 'update',
         context: { collectionName: 'users', recordId: 123 },
@@ -109,7 +113,7 @@ describe('withActivityLog', () => {
     ).rejects.toThrow('Operation failed');
 
     expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
       errorMessage: 'Operation failed',
@@ -122,7 +126,7 @@ describe('withActivityLog', () => {
 
     await expect(
       withActivityLog({
-        forestServerUrl: 'https://api.forestadmin.com',
+        forestServerClient: mockForestServerClient,
         request: mockRequest,
         action: 'delete',
         logger: mockLogger,
@@ -146,7 +150,7 @@ describe('withActivityLog', () => {
 
     await expect(
       withActivityLog({
-        forestServerUrl: 'https://api.forestadmin.com',
+        forestServerClient: mockForestServerClient,
         request: mockRequest,
         action: 'create',
         logger: mockLogger,
@@ -155,7 +159,7 @@ describe('withActivityLog', () => {
     ).rejects.toThrow('Invalid field value');
 
     expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
       errorMessage: 'Invalid field value',
@@ -169,7 +173,7 @@ describe('withActivityLog', () => {
     // withActivityLog now always wraps errors in an Error object
     await expect(
       withActivityLog({
-        forestServerUrl: 'https://api.forestadmin.com',
+        forestServerClient: mockForestServerClient,
         request: mockRequest,
         action: 'index',
         logger: mockLogger,
@@ -178,7 +182,7 @@ describe('withActivityLog', () => {
     ).rejects.toThrow('string error');
 
     expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
       errorMessage: 'string error',
@@ -190,7 +194,7 @@ describe('withActivityLog', () => {
     const operation = jest.fn().mockResolvedValue({ result: 'success' });
 
     await withActivityLog({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       action: 'index',
       logger: mockLogger,
@@ -198,7 +202,7 @@ describe('withActivityLog', () => {
     });
 
     expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-      'https://api.forestadmin.com',
+      mockForestServerClient,
       mockRequest,
       'index',
       undefined,
@@ -209,7 +213,7 @@ describe('withActivityLog', () => {
     const operation = jest.fn().mockResolvedValue({ result: 'success' });
 
     await withActivityLog({
-      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerClient: mockForestServerClient,
       request: mockRequest,
       action: 'delete',
       context: {
@@ -222,7 +226,7 @@ describe('withActivityLog', () => {
     });
 
     expect(mockCreatePendingActivityLog).toHaveBeenCalledWith(
-      'https://api.forestadmin.com',
+      mockForestServerClient,
       mockRequest,
       'delete',
       {
@@ -240,7 +244,7 @@ describe('withActivityLog', () => {
 
       await expect(
         withActivityLog({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockRequest,
           action: 'index',
           logger: mockLogger,
@@ -251,7 +255,7 @@ describe('withActivityLog', () => {
 
       expect(errorEnhancer).toHaveBeenCalledWith('Original error', expect.any(Error));
       expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-        forestServerUrl: 'https://api.forestadmin.com',
+        forestServerClient: mockForestServerClient,
         request: mockRequest,
         activityLog: mockActivityLog,
         errorMessage: 'Enhanced error message',
@@ -265,7 +269,7 @@ describe('withActivityLog', () => {
 
       await expect(
         withActivityLog({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockRequest,
           action: 'index',
           logger: mockLogger,
@@ -275,7 +279,7 @@ describe('withActivityLog', () => {
       ).rejects.toThrow('Original error');
 
       expect(mockMarkActivityLogAsFailed).toHaveBeenCalledWith({
-        forestServerUrl: 'https://api.forestadmin.com',
+        forestServerClient: mockForestServerClient,
         request: mockRequest,
         activityLog: mockActivityLog,
         errorMessage: 'Original error',
@@ -299,7 +303,7 @@ describe('withActivityLog', () => {
 
       await expect(
         withActivityLog({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockRequest,
           action: 'index',
           logger: mockLogger,

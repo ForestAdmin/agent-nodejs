@@ -1,3 +1,4 @@
+import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
@@ -35,7 +36,7 @@ function createArgumentShape(collectionNames: string[]) {
 
 export default function declareCreateTool(
   mcpServer: McpServer,
-  forestServerUrl: string,
+  forestServerClient: ForestServerClient,
   logger: Logger,
   collectionNames: string[] = [],
 ): string {
@@ -53,7 +54,7 @@ export default function declareCreateTool(
       const { rpcClient } = buildClient(extra);
 
       return withActivityLog({
-        forestServerUrl,
+        forestServerClient,
         request: extra,
         action: 'create',
         context: { collectionName: options.collectionName },

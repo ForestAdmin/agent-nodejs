@@ -2,6 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
+import type { ForestServerClient } from './http-client';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
@@ -19,6 +20,7 @@ import express from 'express';
 import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
+import { createForestServerClient } from './http-client';
 import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -55,6 +57,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
   listRelated: ['collectionName', 'relationName', 'parentRecordId'],
   create: ['collectionName'],
+  update: ['collectionName', 'recordId'],
   delete: ['collectionName', 'recordIds'],
   describeCollection: ['collectionName'],
 };
@@ -73,6 +76,8 @@ export interface ForestMCPServerOptions {
   authSecret?: string;
   /** Optional logger function. Defaults to console logging. */
   logger?: Logger;
+  /** Optional Forest server client for dependency injection (from agent integration) */
+  forestServerClient?: ForestServerClient;
 }
 
 /**
@@ -80,12 +85,6 @@ export interface ForestMCPServerOptions {
  *
  * This server provides HTTP REST API access to Forest Admin operations
  * with OAuth authentication support.
- *
- * Environment Variables (used as fallback when options not provided):
- * - FOREST_ENV_SECRET: Your Forest Admin environment secret (required)
- * - FOREST_AUTH_SECRET: Your Forest Admin authentication secret, it must be the same one as the one on your agent (required)
- * - FOREST_SERVER_URL: Forest Admin server URL (optional)
- * - MCP_SERVER_PORT: Port for the HTTP server (default: 3931)
  */
 
 export default class ForestMCPServer {
@@ -95,6 +94,7 @@ export default class ForestMCPServer {
   public expressApp?: Express;
   public forestServerUrl: string;
   public forestAppUrl: string;
+  public forestServerClient: ForestServerClient;
 
   private envSecret?: string;
   private authSecret?: string;
@@ -102,12 +102,13 @@ export default class ForestMCPServer {
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
-
     this.forestAppUrl = options?.forestAppUrl || 'https://app.forestadmin.com';
-
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
+
+    // Use injected forestServerClient or create default
+    this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
 
     this.mcpServer = new McpServer({
       name: NAME,
@@ -115,31 +116,38 @@ export default class ForestMCPServer {
     });
   }
 
+  private createDefaultForestServerClient(): ForestServerClient {
+    return createForestServerClient({
+      forestServerUrl: this.forestServerUrl,
+      envSecret: this.envSecret,
+    });
+  }
+
   private async setupTools(): Promise<void> {
     let collectionNames: string[] = [];
 
     try {
-      const schema = await fetchForestSchema(this.forestServerUrl);
+      const schema = await fetchForestSchema(this.forestServerClient);
       collectionNames = getCollectionNames(schema);
     } catch (error) {
       this.logger(
         'Warn',
-        `Failed to fetch forest schema, collection names will not be available: ${error}`,
+        `Failed to fetch forest schema: ${error}. MCP server will operate in degraded mode without collection name validation.`,
       );
     }
 
     const toolNames = [
       declareDescribeCollectionTool(
         this.mcpServer,
-        this.forestServerUrl,
+        this.forestServerClient,
         this.logger,
         collectionNames,
       ),
-      declareListTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
-      declareListRelatedTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
-      declareCreateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
-      declareUpdateTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
-      declareDeleteTool(this.mcpServer, this.forestServerUrl, this.logger, collectionNames),
+      declareListTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareListRelatedTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareCreateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareUpdateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareDeleteTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
     ];
 
     this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);

@@ -1,3 +1,4 @@
+import type ActivityLogsService from './activity-logs';
 import type ChartHandler from './charts/chart-handler';
 import type {
   BaseEventsSubscriptionService,
@@ -29,7 +30,8 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly contextVariablesInstantiator: ContextVariablesInstantiator,
     public readonly chartHandler: ChartHandler,
     protected readonly ipWhitelistService: IpWhiteListService,
-    protected readonly schemaService: SchemaService,
+    public readonly schemaService: SchemaService,
+    public readonly activityLogsService: ActivityLogsService,
     public readonly authService: ForestAdminAuthServiceInterface,
     public readonly modelCustomizationService: ModelCustomizationService,
     public readonly mcpServerConfigService: McpServerConfigService,

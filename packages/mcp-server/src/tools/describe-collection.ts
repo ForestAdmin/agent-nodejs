@@ -1,3 +1,4 @@
+import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
@@ -79,7 +80,7 @@ function mapRelationType(relationship: string | undefined): string {
 
 export default function declareDescribeCollectionTool(
   mcpServer: McpServer,
-  forestServerUrl: string,
+  forestServerClient: ForestServerClient,
   logger: Logger,
   collectionNames: string[] = [],
 ): string {
@@ -98,14 +99,14 @@ export default function declareDescribeCollectionTool(
       const { rpcClient } = buildClient(extra);
 
       return withActivityLog({
-        forestServerUrl,
+        forestServerClient,
         request: extra,
         action: 'describeCollection',
         context: { collectionName: options.collectionName },
         logger,
         operation: async () => {
           // Get schema from forest server (relations, isFilterable, isSortable, etc.)
-          const schema = await fetchForestSchema(forestServerUrl);
+          const schema = await fetchForestSchema(forestServerClient);
           const schemaFields = getFieldsOfCollection(schema, options.collectionName);
 
           // Try to get capabilities from agent (may be unavailable on older versions)

@@ -3,9 +3,21 @@ import type { ResponseError } from 'superagent';
 
 import superagent from 'superagent';
 
-import { ForbiddenError } from '..';
+import { ForbiddenError, NotFoundError } from '..';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
+
+type BearerHttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'forestServerUrl'>;
+
+type QueryWithBearerTokenOptions = {
+  forestServerUrl: string;
+  method: 'get' | 'post' | 'put' | 'delete' | 'patch';
+  path: string;
+  bearerToken: string;
+  headers?: Record<string, string>;
+  body?: string | object;
+  maxTimeAllowed?: number;
+};
 
 export default class ServerUtils {
   /** Query Forest-Admin server */
@@ -17,13 +29,53 @@ export default class ServerUtils {
     body?: string | object,
     maxTimeAllowed = 10000, // Set a default value if not provided
   ): Promise<T> {
+    return this.queryWithHeaders(
+      options,
+      method,
+      path,
+      { 'forest-secret-key': options.envSecret, ...headers },
+      body,
+      maxTimeAllowed,
+    );
+  }
+
+  /** Query Forest-Admin server with Bearer token authentication */
+  static async queryWithBearerToken<T = unknown>(options: QueryWithBearerTokenOptions): Promise<T> {
+    const {
+      forestServerUrl,
+      method,
+      path,
+      bearerToken,
+      headers = {},
+      body,
+      maxTimeAllowed,
+    } = options;
+
+    return this.queryWithHeaders(
+      { forestServerUrl },
+      method,
+      path,
+      { Authorization: `Bearer ${bearerToken}`, ...headers },
+      body,
+      maxTimeAllowed,
+    );
+  }
+
+  /** Internal method to query with arbitrary headers */
+  private static async queryWithHeaders<T = unknown>(
+    options: BearerHttpOptions,
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    path: string,
+    headers: Record<string, string>,
+    body?: string | object,
+    maxTimeAllowed = 10000,
+  ): Promise<T> {
     let url;
 
     try {
       url = new URL(path, options.forestServerUrl).toString();
       const request = superagent[method](url).timeout(maxTimeAllowed);
 
-      request.set('forest-secret-key', options.envSecret);
       if (headers) request.set(headers);
 
       const response = await request.send(body);
@@ -38,11 +90,12 @@ export default class ServerUtils {
         );
       }
 
+      // handleResponseError always throws, but TypeScript doesn't know that
       this.handleResponseError(error);
     }
   }
 
-  private static handleResponseError(e: Error): void {
+  private static handleResponseError(e: Error): never {
     if (/certificate/i.test(e.message)) {
       throw new Error(
         'Forest Admin server TLS certificate cannot be verified. ' +
@@ -65,10 +118,9 @@ export default class ServerUtils {
       }
 
       if (status === 404) {
-        throw new Error(
-          'Forest Admin server failed to find the' +
-            ' project related to the envSecret you configured.' +
-            ' Can you check that you copied it properly in the Forest initialization?',
+        // Use server message if available, otherwise provide generic message
+        throw new NotFoundError(
+          message || 'The requested resource was not found on Forest Admin server.',
         );
       }
 

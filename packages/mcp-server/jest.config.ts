@@ -3,7 +3,11 @@ import jestConfig from '../../jest.config';
 
 export default {
   ...jestConfig,
-  collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
+  collectCoverageFrom: [
+    '<rootDir>/src/**/*.ts',
+    '!<rootDir>/src/version.ts', // Mocked due to import.meta.url issues in Jest
+    '!<rootDir>/src/__mocks__/**',
+  ],
   testMatch: ['<rootDir>/test/**/*.test.ts'],
   // Map .js imports to .ts files for ESM compatibility
   // Also mock version.ts to avoid import.meta.url issues in Jest's CommonJS mode

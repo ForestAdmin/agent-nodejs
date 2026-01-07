@@ -110,4 +110,121 @@ describe('SchemaService', () => {
       );
     });
   });
+
+  describe('getSchema', () => {
+    test('should fetch and deserialize schema from Forest Admin server', async () => {
+      const mockResponse = {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: {
+              name: 'users',
+            },
+          },
+        ],
+        included: [
+          {
+            id: 'users.id',
+            type: 'fields',
+            attributes: {
+              field: 'id',
+              type: 'Number',
+              isPrimaryKey: true,
+            },
+          },
+        ],
+      };
+
+      serverQueryMock.mockResolvedValue(mockResponse);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(options);
+      const result = await schemaService.getSchema();
+
+      expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('users');
+    });
+
+    test('should handle schema with related fields, actions and segments', async () => {
+      const mockResponse = {
+        data: [
+          {
+            id: 'products',
+            type: 'collections',
+            attributes: {
+              name: 'products',
+            },
+            relationships: {
+              fields: {
+                data: [{ id: 'products.name', type: 'fields' }],
+              },
+              actions: {
+                data: [{ id: 'products.archive', type: 'actions' }],
+              },
+              segments: {
+                data: [{ id: 'products.active', type: 'segments' }],
+              },
+            },
+          },
+        ],
+        included: [
+          {
+            id: 'products.name',
+            type: 'fields',
+            attributes: { field: 'name', type: 'String' },
+          },
+          {
+            id: 'products.archive',
+            type: 'actions',
+            attributes: { name: 'archive' },
+          },
+          {
+            id: 'products.active',
+            type: 'segments',
+            attributes: { name: 'active' },
+          },
+        ],
+      };
+
+      serverQueryMock.mockResolvedValue(mockResponse);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(options);
+      const result = await schemaService.getSchema();
+
+      expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
+
+      expect(result).toStrictEqual([
+        {
+          id: 'products',
+          name: 'products',
+          fields: [{ id: 'products.name', field: 'name', type: 'String' }],
+          actions: [{ id: 'products.archive', name: 'archive' }],
+          segments: [{ id: 'products.active', name: 'active' }],
+        },
+      ]);
+    });
+
+    test('should propagate errors from the server', async () => {
+      const networkError = new Error('Network error: connection refused');
+      serverQueryMock.mockRejectedValue(networkError);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(options);
+
+      await expect(schemaService.getSchema()).rejects.toThrow('Network error: connection refused');
+    });
+
+    test('should propagate authentication errors', async () => {
+      const authError = new Error('Forbidden: invalid credentials');
+      serverQueryMock.mockRejectedValue(authError);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(options);
+
+      await expect(schemaService.getSchema()).rejects.toThrow('Forbidden: invalid credentials');
+    });
+  });
 });
