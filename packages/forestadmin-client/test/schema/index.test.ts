@@ -195,14 +195,16 @@ describe('SchemaService', () => {
       const result = await schemaService.getSchema();
 
       expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
-      expect(result).toHaveLength(1);
 
-      const collection = result[0];
-      expect(collection.name).toBe('products');
-      expect(collection.fields).toHaveLength(1);
-      expect(collection.fields[0]).toMatchObject({ field: 'name', type: 'String' });
-      expect(collection.actions).toHaveLength(1);
-      expect(collection.actions[0]).toMatchObject({ name: 'archive' });
+      expect(result).toStrictEqual([
+        {
+          id: 'products',
+          name: 'products',
+          fields: [{ id: 'products.name', field: 'name', type: 'String' }],
+          actions: [{ id: 'products.archive', name: 'archive' }],
+          segments: [{ id: 'products.active', name: 'active' }],
+        },
+      ]);
     });
 
     test('should propagate errors from the server', async () => {

@@ -54,10 +54,9 @@ export default class SchemaService {
     serializer.register('fields', {});
     serializer.register('actions', {
       relationships: {
-        fields: { type: 'action-fields' },
+        fields: { type: 'fields' },
       },
     });
-    serializer.register('action-fields', {});
     serializer.register('segments', {});
 
     return serializer.deserialize('collections', response) as ForestSchemaCollection[];
