@@ -1832,18 +1832,14 @@
     ssh2 "^1.14.0"
 
 "@forestadmin/datasource-toolkit@1.43.0":
-  version "1.43.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.43.0.tgz#d9b1ab2ce52c338a0fdf9be4149b3222c5762958"
-  integrity sha512-LBtIt+z2dUPTs4ypgCA6/AlP1xJlFiz6Z+N7mz+h78HOITnaWLVF0F0Hmljav0EFI2/evtR3AghohYAeS0wiLg==
+  version "1.50.1"
   dependencies:
     luxon "^3.2.1"
     object-hash "^3.0.0"
-    uuid "^9.0.0"
+    uuid "11.0.2"
 
 "@forestadmin/datasource-toolkit@1.50.0":
-  version "1.50.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.50.0.tgz#a94ae271044df38ced9222c163087d6d0229a83e"
-  integrity sha512-yYrDOhoc+c5w++W3iSK5G+UBnD94ghPv+gjLehC3aMSxTOXmVDT32qHs82HJQlNThbtSoGvFNFx3rqYcbI2P2Q==
+  version "1.50.1"
   dependencies:
     luxon "^3.2.1"
     object-hash "^3.0.0"

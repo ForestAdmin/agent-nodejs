@@ -60,6 +60,8 @@
     "socks": "^2.8.7",
     "micromatch": "^4.0.8",
     "@babel/helpers": "^7.26.10",
-    "semantic-release": "^25.0.0"
+    "semantic-release": "^25.0.0",
+    "@forestadmin/datasource-toolkit": "1.50.1",
+    "@forestadmin/datasource-customizer": "1.67.2"
   }
 }
