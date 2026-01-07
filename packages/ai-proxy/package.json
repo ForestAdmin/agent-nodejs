@@ -15,7 +15,7 @@
     "openai": "4.95.0",
     "@forestadmin/datasource-toolkit": "1.50.1",
     "@langchain/community": "0.3.57",
-    "@langchain/core": "1.1.4",
+    "@langchain/core": "1.1.8",
     "@langchain/langgraph": "1.0.4",
     "@langchain/mcp-adapters": "1.0.3"
   },
