@@ -104,6 +104,16 @@ describe('declareExecuteActionTool', () => {
       expect(() => schema.recordIds.parse(['1', 2, '3'])).not.toThrow();
     });
 
+    it('should accept null for recordIds (global actions)', () => {
+      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { parse: (value: unknown) => unknown }
+      >;
+      expect(() => schema.recordIds.parse(null)).not.toThrow();
+    });
+
     it('should accept optional values parameter', () => {
       declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
@@ -196,6 +206,27 @@ describe('declareExecuteActionTool', () => {
       );
 
       expect(mockAction).toHaveBeenCalledWith('sendEmail', { recordIds });
+    });
+
+    it('should call action with empty recordIds array when recordIds is null (global action)', async () => {
+      const mockExecute = jest.fn().mockResolvedValue({ success: 'Action executed' });
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        execute: mockExecute,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      await registeredToolHandler(
+        { collectionName: 'users', actionName: 'globalAction', recordIds: null },
+        mockExtra,
+      );
+
+      expect(mockAction).toHaveBeenCalledWith('globalAction', { recordIds: [] });
     });
 
     it('should call setFields when values are provided', async () => {
@@ -295,7 +326,7 @@ describe('declareExecuteActionTool', () => {
           context: {
             collectionName: 'users',
             recordIds,
-            label: 'Trigger the action "sendEmail" on records 1,2,3 from the collection users',
+            label: 'triggered the action "sendEmail"',
           },
           logger: mockLogger,
           operation: expect.any(Function),

@@ -10,7 +10,7 @@ import withActivityLog from '../utils/with-activity-log';
 interface ExecuteActionArgument {
   collectionName: string;
   actionName: string;
-  recordIds: (string | number)[];
+  recordIds: (string | number)[] | null;
   values?: Record<string, unknown>;
 }
 
@@ -41,7 +41,7 @@ If you call executeAction with missing required fields, it will return an error 
       const { rpcClient } = await buildClientWithActions(extra, forestServerClient);
 
       // Cast to satisfy the type system - the API accepts both string[] and number[]
-      const recordIds = options.recordIds as string[] | number[];
+      const recordIds = (options.recordIds ?? []) as string[] | number[];
 
       return withActivityLog({
         forestServerClient,
@@ -50,9 +50,7 @@ If you call executeAction with missing required fields, it will return an error 
         context: {
           collectionName: options.collectionName,
           recordIds,
-          label: `Trigger the action "${options.actionName}" on records ${recordIds.join(
-            ',',
-          )} from the collection ${options.collectionName}`,
+          label: `triggered the action "${options.actionName}"`,
         },
         logger,
         operation: async () => {
