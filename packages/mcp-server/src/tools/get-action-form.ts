@@ -38,7 +38,8 @@ Workflow:
 The response includes:
 - fields: Array of form fields with name, type, current value, and isRequired flag
 - canExecute: Boolean indicating if all required fields have values (ready to execute)
-- requiredFields: Array of field names that are required but missing values (empty when canExecute is true)`,
+- requiredFields: Array of field names that are required but missing values (empty when canExecute is true)
+- skippedFields: Array of field names that were skipped because they no longer exist in the form (due to dynamic form behavior)`,
       inputSchema: argumentShape,
     },
     async (options: GetActionFormArgument, extra) => {
@@ -51,8 +52,11 @@ The response includes:
         .collection(options.collectionName)
         .action(options.actionName, { recordIds });
 
+      let skippedFields: string[] = [];
+
       if (options.values) {
-        await action.setFields(options.values);
+        skippedFields =
+          ((await action.setFields(options.values)) as unknown as string[] | undefined) ?? [];
       }
 
       const fields = action.getFields();
@@ -77,6 +81,7 @@ The response includes:
               })),
               canExecute,
               requiredFields,
+              skippedFields,
             }),
           },
         ],
