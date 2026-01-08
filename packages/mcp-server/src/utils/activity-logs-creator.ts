@@ -85,7 +85,7 @@ async function updateActivityLogStatus(
   options: UpdateActivityLogOptions,
   attempt = 1,
 ): Promise<void> {
-  const { forestServerClient, request, activityLog, status, errorMessage, logger } = options;
+  const { forestServerClient, request, activityLog, status, logger } = options;
 
   // Use optional chaining with fallback since we're in error handling context
   // and don't want to throw a different error if auth context is missing
@@ -96,7 +96,6 @@ async function updateActivityLogStatus(
       forestServerToken,
       activityLog,
       status,
-      errorMessage,
     });
   } catch (error) {
     // Retry on 404 errors (activity log may not be immediately available)
