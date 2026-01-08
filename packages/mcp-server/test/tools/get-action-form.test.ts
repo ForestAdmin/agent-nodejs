@@ -48,7 +48,7 @@ describe('declareGetActionFormTool', () => {
       expect(registeredToolConfig.description).toContain(
         'Retrieve and validate the form for a specific action',
       );
-      expect(registeredToolConfig.description).toContain('isValid');
+      expect(registeredToolConfig.description).toContain('canExecute');
     });
 
     it('should define correct input schema', () => {
@@ -272,7 +272,8 @@ describe('declareGetActionFormTool', () => {
           { name: 'subject', type: 'String', value: undefined, isRequired: true },
           { name: 'message', type: 'String', value: 'Default message', isRequired: false },
         ],
-        isValid: false,
+        canExecute: false,
+        requiredFields: ['subject'],
       };
 
       expect(result).toEqual({
@@ -280,7 +281,7 @@ describe('declareGetActionFormTool', () => {
       });
     });
 
-    it('should return isValid true when all required fields have values', async () => {
+    it('should return canExecute true when all required fields have values', async () => {
       const mockFields = [
         {
           getName: () => 'subject',
@@ -313,10 +314,11 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(true);
+      expect(parsedResult.canExecute).toBe(true);
+      expect(parsedResult.requiredFields).toEqual([]);
     });
 
-    it('should return isValid false when some required fields are missing values', async () => {
+    it('should return canExecute false when some required fields are missing values', async () => {
       const mockFields = [
         {
           getName: () => 'subject',
@@ -349,10 +351,11 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(false);
+      expect(parsedResult.canExecute).toBe(false);
+      expect(parsedResult.requiredFields).toEqual(['subject']);
     });
 
-    it('should return isValid true when required field has falsy value 0', async () => {
+    it('should return canExecute true when required field has falsy value 0', async () => {
       const mockFields = [
         {
           getName: () => 'quantity',
@@ -379,10 +382,11 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(true);
+      expect(parsedResult.canExecute).toBe(true);
+      expect(parsedResult.requiredFields).toEqual([]);
     });
 
-    it('should return isValid true when required field has falsy value false', async () => {
+    it('should return canExecute true when required field has falsy value false', async () => {
       const mockFields = [
         {
           getName: () => 'isActive',
@@ -409,10 +413,11 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(true);
+      expect(parsedResult.canExecute).toBe(true);
+      expect(parsedResult.requiredFields).toEqual([]);
     });
 
-    it('should return isValid true when required field has empty string value', async () => {
+    it('should return canExecute true when required field has empty string value', async () => {
       const mockFields = [
         {
           getName: () => 'notes',
@@ -439,10 +444,11 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(true);
+      expect(parsedResult.canExecute).toBe(true);
+      expect(parsedResult.requiredFields).toEqual([]);
     });
 
-    it('should return isValid false when required field has null value', async () => {
+    it('should return canExecute false when required field has null value', async () => {
       const mockFields = [
         {
           getName: () => 'subject',
@@ -469,10 +475,11 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(false);
+      expect(parsedResult.canExecute).toBe(false);
+      expect(parsedResult.requiredFields).toEqual(['subject']);
     });
 
-    it('should return isValid true when there are no required fields', async () => {
+    it('should return canExecute true when there are no required fields', async () => {
       const mockFields = [
         {
           getName: () => 'optionalField',
@@ -499,7 +506,8 @@ describe('declareGetActionFormTool', () => {
       );
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
-      expect(parsedResult.isValid).toBe(true);
+      expect(parsedResult.canExecute).toBe(true);
+      expect(parsedResult.requiredFields).toEqual([]);
     });
 
     it('should handle empty fields array', async () => {
@@ -522,7 +530,8 @@ describe('declareGetActionFormTool', () => {
 
       const expectedResponse = {
         fields: [],
-        isValid: true,
+        canExecute: true,
+        requiredFields: [],
       };
 
       expect(result).toEqual({

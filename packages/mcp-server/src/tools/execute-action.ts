@@ -27,11 +27,11 @@ export default function declareExecuteActionTool(
     'executeAction',
     {
       title: 'Execute an action',
-      description: `Execute a specific action on one or more records. IMPORTANT: You MUST call getActionForm first and ensure "isValid" is true before calling this tool.
+      description: `Execute a specific action on one or more records. IMPORTANT: You MUST call getActionForm first and ensure "canExecute" is true before calling this tool.
 
 Required workflow:
 1. Call getActionForm to retrieve the form fields and check if the form is valid
-2. If getActionForm returns "isValid": false, call it again with values until "isValid": true
+2. If getActionForm returns "canExecute": false, call it again with values until "canExecute": true
 3. Only then call executeAction with the same values used in the last getActionForm call
 
 If you call executeAction with missing required fields, it will return an error with the missing fields instead of executing the action.`,
