@@ -1,3 +1,4 @@
+import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
@@ -9,6 +10,11 @@ import { buildClientWithActions } from '../../src/utils/agent-caller';
 jest.mock('../../src/utils/agent-caller');
 
 const mockLogger: Logger = jest.fn();
+const mockForestServerClient: ForestServerClient = {
+  fetchSchema: jest.fn(),
+  createActivityLog: jest.fn(),
+  updateActivityLogStatus: jest.fn(),
+};
 
 const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction<
   typeof buildClientWithActions
@@ -32,7 +38,7 @@ describe('declareGetActionFormTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "getActionForm"', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'getActionForm',
@@ -42,7 +48,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Retrieve action form');
       expect(registeredToolConfig.description).toContain(
@@ -52,7 +58,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('actionName');
@@ -61,7 +67,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -72,7 +78,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger, [
         'users',
         'products',
       ]);
@@ -87,7 +93,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should accept array of strings or numbers for recordIds', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -99,7 +105,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should accept null for recordIds (global actions)', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -109,7 +115,7 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should accept optional values parameter', () => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -132,7 +138,7 @@ describe('declareGetActionFormTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
     });
 
     it('should call buildClientWithActions with the extra parameter and forestServerUrl', async () => {
@@ -155,7 +161,7 @@ describe('declareGetActionFormTool', () => {
 
       expect(mockBuildClientWithActions).toHaveBeenCalledWith(
         mockExtra,
-        'https://api.forestadmin.com',
+        mockForestServerClient,
       );
     });
 
@@ -284,6 +290,7 @@ describe('declareGetActionFormTool', () => {
         ],
         canExecute: false,
         requiredFields: ['subject'],
+        skippedFields: [],
       };
 
       expect(result).toEqual({
@@ -326,6 +333,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(true);
       expect(parsedResult.requiredFields).toEqual([]);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should return canExecute false when some required fields are missing values', async () => {
@@ -363,6 +371,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(false);
       expect(parsedResult.requiredFields).toEqual(['subject']);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should return canExecute true when required field has falsy value 0', async () => {
@@ -394,6 +403,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(true);
       expect(parsedResult.requiredFields).toEqual([]);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should return canExecute true when required field has falsy value false', async () => {
@@ -425,6 +435,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(true);
       expect(parsedResult.requiredFields).toEqual([]);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should return canExecute true when required field has empty string value', async () => {
@@ -456,6 +467,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(true);
       expect(parsedResult.requiredFields).toEqual([]);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should return canExecute false when required field has null value', async () => {
@@ -487,6 +499,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(false);
       expect(parsedResult.requiredFields).toEqual(['subject']);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should return canExecute true when there are no required fields', async () => {
@@ -518,6 +531,7 @@ describe('declareGetActionFormTool', () => {
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.canExecute).toBe(true);
       expect(parsedResult.requiredFields).toEqual([]);
+      expect(parsedResult.skippedFields).toEqual([]);
     });
 
     it('should handle empty fields array', async () => {
@@ -542,11 +556,81 @@ describe('declareGetActionFormTool', () => {
         fields: [],
         canExecute: true,
         requiredFields: [],
+        skippedFields: [],
       };
 
       expect(result).toEqual({
         content: [{ type: 'text', text: JSON.stringify(expectedResponse) }],
       });
+    });
+
+    it('should return skipped fields when setFields skips fields due to dynamic form behavior', async () => {
+      const mockFields = [
+        {
+          getName: () => 'subject',
+          getType: () => 'String',
+          getValue: () => 'Test Subject',
+          isRequired: () => true,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      // setFields returns skipped fields (e.g., 'removedField' was removed by dynamic form)
+      const mockSetFields = jest.fn().mockResolvedValue(['removedField', 'anotherRemovedField']);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { subject: 'Test', removedField: 'value', anotherRemovedField: 'value2' },
+        },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.skippedFields).toEqual(['removedField', 'anotherRemovedField']);
+      expect(parsedResult.canExecute).toBe(true);
+    });
+
+    it('should return empty skippedFields when no values are provided', async () => {
+      const mockFields = [
+        {
+          getName: () => 'subject',
+          getType: () => 'String',
+          getValue: () => undefined,
+          isRequired: () => true,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'sendEmail', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.skippedFields).toEqual([]);
+      // setFields should not have been called since no values were provided
+      expect(mockSetFields).not.toHaveBeenCalled();
     });
 
     describe('values parsing', () => {

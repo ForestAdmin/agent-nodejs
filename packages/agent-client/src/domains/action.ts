@@ -70,11 +70,20 @@ export default class Action {
     });
   }
 
-  async setFields(fields: Record<string, unknown>): Promise<void> {
+  async setFields(fields: Record<string, unknown>): Promise<string[]> {
+    const skippedFields: string[] = [];
+
     for (const [fieldName, value] of Object.entries(fields)) {
-      // eslint-disable-next-line no-await-in-loop
-      await this.fieldsFormStates.setFieldValue(fieldName, value);
+      // Check if field still exists before setting (dynamic forms may remove fields)
+      if (this.doesFieldExist(fieldName)) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.fieldsFormStates.setFieldValue(fieldName, value);
+      } else {
+        skippedFields.push(fieldName);
+      }
     }
+
+    return skippedFields;
   }
 
   getFields() {

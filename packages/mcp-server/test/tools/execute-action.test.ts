@@ -1,3 +1,4 @@
+import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
@@ -11,6 +12,11 @@ jest.mock('../../src/utils/agent-caller');
 jest.mock('../../src/utils/with-activity-log');
 
 const mockLogger: Logger = jest.fn();
+const mockForestServerClient: ForestServerClient = {
+  fetchSchema: jest.fn(),
+  createActivityLog: jest.fn(),
+  updateActivityLogStatus: jest.fn(),
+};
 
 const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction<
   typeof buildClientWithActions
@@ -38,7 +44,7 @@ describe('declareExecuteActionTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "executeAction"', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'executeAction',
@@ -48,7 +54,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Execute an action');
       expect(registeredToolConfig.description).toContain(
@@ -58,7 +64,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('actionName');
@@ -67,7 +73,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -78,7 +84,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger, [
         'users',
         'products',
       ]);
@@ -93,7 +99,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should accept array of strings or numbers for recordIds', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -105,7 +111,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should accept null for recordIds (global actions)', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -115,7 +121,7 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should accept optional values parameter', () => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -138,7 +144,7 @@ describe('declareExecuteActionTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareExecuteActionTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
     });
 
     it('should call buildClientWithActions with the extra parameter and forestServerUrl', async () => {
@@ -161,7 +167,7 @@ describe('declareExecuteActionTool', () => {
 
       expect(mockBuildClientWithActions).toHaveBeenCalledWith(
         mockExtra,
-        'https://api.forestadmin.com',
+        mockForestServerClient,
       );
     });
 
@@ -320,7 +326,7 @@ describe('declareExecuteActionTool', () => {
         );
 
         expect(mockWithActivityLog).toHaveBeenCalledWith({
-          forestServerUrl: 'https://api.forestadmin.com',
+          forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'action',
           context: {
