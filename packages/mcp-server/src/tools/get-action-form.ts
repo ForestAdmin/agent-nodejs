@@ -30,14 +30,15 @@ export default function declareGetActionFormTool(
 
 Workflow:
 1. Call getActionForm with the action name and record IDs to get the form fields
-2. Check the "isValid" field in the response - if false, required fields are missing
+2. Check the "canExecute" field in the response - if false, required fields are missing
 3. Call getActionForm again with the "values" parameter to fill in the missing required fields
-4. Repeat step 2-3 until "isValid" is true
+4. Repeat step 2-3 until "canExecute" is true
 5. Only then call executeAction with the same values
 
 The response includes:
 - fields: Array of form fields with name, type, current value, and isRequired flag
-- isValid: Boolean indicating if all required fields have values (ready to execute)`,
+- canExecute: Boolean indicating if all required fields have values (ready to execute)
+- requiredFields: Array of field names that are required but missing values (empty when canExecute is true)`,
       inputSchema: argumentShape,
     },
     async (options: GetActionFormArgument, extra) => {
@@ -56,9 +57,12 @@ The response includes:
 
       const fields = action.getFields();
 
-      const isValid = fields
+      const requiredFields = fields
         .filter(field => field.isRequired())
-        .every(field => field.getValue() !== undefined && field.getValue() !== null);
+        .filter(field => field.getValue() === undefined || field.getValue() === null)
+        .map(field => field.getName());
+
+      const canExecute = requiredFields.length === 0;
 
       return {
         content: [
@@ -71,7 +75,8 @@ The response includes:
                 value: field.getValue(),
                 isRequired: field.isRequired() ?? false,
               })),
-              isValid,
+              canExecute,
+              requiredFields,
             }),
           },
         ],
