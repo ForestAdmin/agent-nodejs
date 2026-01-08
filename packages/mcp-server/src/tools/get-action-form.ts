@@ -9,7 +9,7 @@ import registerToolWithLogging from '../utils/tool-with-logging';
 interface GetActionFormArgument {
   collectionName: string;
   actionName: string;
-  recordIds: (string | number)[];
+  recordIds: (string | number)[] | null;
   values?: Record<string, unknown>;
 }
 
@@ -46,7 +46,7 @@ The response includes:
 
       // TODO: Enhance when more methods are available in the agent client helper
       // https://github.com/ForestAdmin/forestadmin-experimental/pull/140
-      const recordIds = options.recordIds as string[] | number[];
+      const recordIds = (options.recordIds ?? []) as string[] | number[];
       const action = await rpcClient
         .collection(options.collectionName)
         .action(options.actionName, { recordIds });

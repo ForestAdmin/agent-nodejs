@@ -27,7 +27,8 @@ export function createActionArgumentShape(collectionNames: string[]) {
     actionName: z.string().describe('The name of the action.'),
     recordIds: z
       .array(z.union([z.string(), z.number()]))
-      .describe('The IDs of the records to execute the action on.'),
+      .nullable()
+      .describe('The IDs of the records to execute the action on. Use null for global actions.'),
     values: valuesWithPreprocess.optional().describe('Optional values for the action form fields.'),
   };
 }

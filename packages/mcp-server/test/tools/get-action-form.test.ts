@@ -98,6 +98,16 @@ describe('declareGetActionFormTool', () => {
       expect(() => schema.recordIds.parse(['1', 2, '3'])).not.toThrow();
     });
 
+    it('should accept null for recordIds (global actions)', () => {
+      declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { parse: (value: unknown) => unknown }
+      >;
+      expect(() => schema.recordIds.parse(null)).not.toThrow();
+    });
+
     it('should accept optional values parameter', () => {
       declareGetActionFormTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
 
