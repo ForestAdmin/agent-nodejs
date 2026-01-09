@@ -1,6 +1,6 @@
 import type { ForestServerClient } from './types';
 
-import { ActivityLogsService, SchemaService } from '@forestadmin/forestadmin-client';
+import { ActivityLogsService, ForestHttpApi, SchemaService } from '@forestadmin/forestadmin-client';
 
 import ForestServerClientImpl from './mcp-http-client';
 
@@ -16,12 +16,15 @@ export function createForestServerClient(
     throw new Error('envSecret is required to create ForestServerClient');
   }
 
-  const schemaService = new SchemaService({
+  const forestHttpApi = new ForestHttpApi();
+  const serviceOptions = {
     forestServerUrl: options.forestServerUrl,
     envSecret: options.envSecret,
-  });
-  const activityLogsService = new ActivityLogsService({
-    forestServerUrl: options.forestServerUrl,
+  };
+
+  const schemaService = new SchemaService(forestHttpApi, serviceOptions);
+  const activityLogsService = new ActivityLogsService(forestHttpApi, {
+    ...serviceOptions,
     headers: { 'Forest-Application-Source': 'MCP' },
   });
 

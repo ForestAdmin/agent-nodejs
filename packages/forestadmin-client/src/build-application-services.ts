@@ -86,9 +86,9 @@ export default function buildApplicationServices(
     eventsSubscription,
     eventsHandler,
     chartHandler: new ChartHandler(contextVariables),
-    ipWhitelist: new IpWhiteListService(optionsWithDefaults),
-    schema: new SchemaService(optionsWithDefaults),
-    activityLogs: new ActivityLogsService(optionsWithDefaults),
+    ipWhitelist: new IpWhiteListService(forestAdminServerInterface, optionsWithDefaults),
+    schema: new SchemaService(forestAdminServerInterface, optionsWithDefaults),
+    activityLogs: new ActivityLogsService(forestAdminServerInterface, optionsWithDefaults),
     auth: forestAdminServerInterface.makeAuthService(optionsWithDefaults),
     modelCustomizationService: new ModelCustomizationFromApiService(
       forestAdminServerInterface,

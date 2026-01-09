@@ -1,29 +1,26 @@
+import type { ForestAdminServerInterface } from '../../src/types';
+
 import SchemaService from '../../src/schema';
-import ServerUtils from '../../src/utils/server';
 import * as factories from '../__factories__';
 
-jest.mock('../../src/utils/server');
-
-const serverQueryMock = ServerUtils.query as jest.Mock;
-
 describe('SchemaService', () => {
+  let mockForestAdminServerInterface: jest.Mocked<ForestAdminServerInterface>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockForestAdminServerInterface =
+      factories.forestAdminServerInterface.build() as jest.Mocked<ForestAdminServerInterface>;
   });
 
   describe('the server does not know the schema', () => {
     beforeEach(() => {
-      // return true when asked if the schema should be sent
-      serverQueryMock.mockImplementation((options, method, route) =>
-        route === '/forest/apimaps/hashcheck'
-          ? Promise.resolve({ sendSchema: true })
-          : Promise.resolve(),
-      );
+      mockForestAdminServerInterface.checkSchemaHash.mockResolvedValue({ sendSchema: true });
+      mockForestAdminServerInterface.postSchema.mockResolvedValue(undefined);
     });
 
     test('should post schema', async () => {
       const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
       const sent = await schemaService.postSchema({
         collections: [],
         meta: {
@@ -35,21 +32,14 @@ describe('SchemaService', () => {
       });
 
       expect(sent).toBe(true);
-      expect(ServerUtils.query).toHaveBeenCalledTimes(2);
-      expect(ServerUtils.query).toHaveBeenNthCalledWith(
-        1,
-        options,
-        'post',
-        '/forest/apimaps/hashcheck',
-        {},
-        expect.objectContaining({}),
+      expect(mockForestAdminServerInterface.checkSchemaHash).toHaveBeenCalledTimes(1);
+      expect(mockForestAdminServerInterface.checkSchemaHash).toHaveBeenCalledWith(
+        { envSecret: options.envSecret, forestServerUrl: options.forestServerUrl },
+        expect.any(String),
       );
-      expect(ServerUtils.query).toHaveBeenNthCalledWith(
-        2,
-        options,
-        'post',
-        '/forest/apimaps',
-        {},
+      expect(mockForestAdminServerInterface.postSchema).toHaveBeenCalledTimes(1);
+      expect(mockForestAdminServerInterface.postSchema).toHaveBeenCalledWith(
+        { envSecret: options.envSecret, forestServerUrl: options.forestServerUrl },
         expect.objectContaining({
           data: [],
           jsonapi: { version: '1.0' },
@@ -72,17 +62,12 @@ describe('SchemaService', () => {
 
   describe('the server knows the schema', () => {
     beforeEach(() => {
-      // return false when asked if the schema should be sent
-      serverQueryMock.mockImplementation((options, method, route) =>
-        route === '/forest/apimaps/hashcheck'
-          ? Promise.resolve({ sendSchema: false })
-          : Promise.resolve(),
-      );
+      mockForestAdminServerInterface.checkSchemaHash.mockResolvedValue({ sendSchema: false });
     });
 
     test('should not post schema if known by the server', async () => {
       const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
       const sent = await schemaService.postSchema({
         collections: [],
         meta: {
@@ -94,15 +79,8 @@ describe('SchemaService', () => {
       });
 
       expect(sent).toBe(false);
-      expect(ServerUtils.query).toHaveBeenCalledTimes(1);
-      expect(ServerUtils.query).toHaveBeenNthCalledWith(
-        1,
-        options,
-        'post',
-        '/forest/apimaps/hashcheck',
-        {},
-        expect.objectContaining({}),
-      );
+      expect(mockForestAdminServerInterface.checkSchemaHash).toHaveBeenCalledTimes(1);
+      expect(mockForestAdminServerInterface.postSchema).not.toHaveBeenCalled();
       expect(options.logger).toHaveBeenCalledTimes(1);
       expect(options.logger).toHaveBeenCalledWith(
         'Info',
@@ -112,117 +90,52 @@ describe('SchemaService', () => {
   });
 
   describe('getSchema', () => {
-    test('should fetch and deserialize schema from Forest Admin server', async () => {
-      const mockResponse = {
-        data: [
-          {
-            id: 'users',
-            type: 'collections',
-            attributes: {
-              name: 'users',
-            },
-          },
-        ],
-        included: [
-          {
-            id: 'users.id',
-            type: 'fields',
-            attributes: {
+    test('should fetch schema from ForestAdminServerInterface', async () => {
+      const mockCollections = [
+        {
+          name: 'users',
+          fields: [
+            {
               field: 'id',
               type: 'Number',
               isPrimaryKey: true,
+              enum: null,
+              reference: null,
+              isReadOnly: false,
+              isRequired: true,
             },
-          },
-        ],
-      };
-
-      serverQueryMock.mockResolvedValue(mockResponse);
-
-      const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
-      const result = await schemaService.getSchema();
-
-      expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('users');
-    });
-
-    test('should handle schema with related fields, actions and segments', async () => {
-      const mockResponse = {
-        data: [
-          {
-            id: 'products',
-            type: 'collections',
-            attributes: {
-              name: 'products',
-            },
-            relationships: {
-              fields: {
-                data: [{ id: 'products.name', type: 'fields' }],
-              },
-              actions: {
-                data: [{ id: 'products.archive', type: 'actions' }],
-              },
-              segments: {
-                data: [{ id: 'products.active', type: 'segments' }],
-              },
-            },
-          },
-        ],
-        included: [
-          {
-            id: 'products.name',
-            type: 'fields',
-            attributes: { field: 'name', type: 'String' },
-          },
-          {
-            id: 'products.archive',
-            type: 'actions',
-            attributes: { name: 'archive' },
-          },
-          {
-            id: 'products.active',
-            type: 'segments',
-            attributes: { name: 'active' },
-          },
-        ],
-      };
-
-      serverQueryMock.mockResolvedValue(mockResponse);
-
-      const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
-      const result = await schemaService.getSchema();
-
-      expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
-
-      expect(result).toStrictEqual([
-        {
-          id: 'products',
-          name: 'products',
-          fields: [{ id: 'products.name', field: 'name', type: 'String' }],
-          actions: [{ id: 'products.archive', name: 'archive' }],
-          segments: [{ id: 'products.active', name: 'active' }],
+          ],
         },
-      ]);
+      ];
+      mockForestAdminServerInterface.getSchema.mockResolvedValue(mockCollections);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
+      const result = await schemaService.getSchema();
+
+      expect(mockForestAdminServerInterface.getSchema).toHaveBeenCalledWith({
+        envSecret: options.envSecret,
+        forestServerUrl: options.forestServerUrl,
+      });
+      expect(result).toStrictEqual(mockCollections);
     });
 
     test('should propagate errors from the server', async () => {
       const networkError = new Error('Network error: connection refused');
-      serverQueryMock.mockRejectedValue(networkError);
+      mockForestAdminServerInterface.getSchema.mockRejectedValue(networkError);
 
       const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
 
       await expect(schemaService.getSchema()).rejects.toThrow('Network error: connection refused');
     });
 
     test('should propagate authentication errors', async () => {
       const authError = new Error('Forbidden: invalid credentials');
-      serverQueryMock.mockRejectedValue(authError);
+      mockForestAdminServerInterface.getSchema.mockRejectedValue(authError);
 
       const options = factories.forestAdminClientOptions.build();
-      const schemaService = new SchemaService(options);
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
 
       await expect(schemaService.getSchema()).rejects.toThrow('Forbidden: invalid credentials');
     });
