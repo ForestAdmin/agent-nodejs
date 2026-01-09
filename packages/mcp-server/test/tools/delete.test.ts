@@ -77,16 +77,20 @@ describe('declareDeleteTool', () => {
       expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
     });
 
-    it('should use enum type for collectionName when collection names provided', () => {
+    it('should provide collection names in description when collection names provided', () => {
       declareDeleteTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
-        { options: string[]; parse: (value: unknown) => unknown }
+        { description?: string; parse: (value: unknown) => unknown }
       >;
-      expect(schema.collectionName.options).toEqual(['users', 'products']);
+      // Description should include available collection names
+      expect(schema.collectionName.description).toContain('Available collections:');
+      expect(schema.collectionName.description).toContain('users');
+      expect(schema.collectionName.description).toContain('products');
+      // Should accept any string (no strict validation)
       expect(() => schema.collectionName.parse('users')).not.toThrow();
-      expect(() => schema.collectionName.parse('invalid-collection')).toThrow();
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
     });
 
     it('should accept array of strings or numbers for recordIds', () => {

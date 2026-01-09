@@ -4,6 +4,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
+import createCollectionNameSchema from '../schemas/collection-name';
 import buildClient from '../utils/agent-caller';
 import registerToolWithLogging from '../utils/tool-with-logging';
 import withActivityLog from '../utils/with-activity-log';
@@ -26,8 +27,7 @@ interface CreateArgument {
 
 function createArgumentShape(collectionNames: string[]) {
   return {
-    collectionName:
-      collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
+    collectionName: createCollectionNameSchema(collectionNames),
     attributes: attributesWithPreprocess.describe(
       'The attributes of the record to create. Must be an object with field names as keys.',
     ),

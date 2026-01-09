@@ -5,6 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
+import createCollectionNameSchema from '../schemas/collection-name';
 import filterSchema from '../schemas/filter';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
@@ -66,8 +67,7 @@ export type ListArgument = z.infer<typeof listArgumentSchema>;
 export function createListArgumentShape(collectionNames: string[]) {
   return {
     ...listArgumentSchema.shape,
-    collectionName:
-      collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
+    collectionName: createCollectionNameSchema(collectionNames),
   };
 }
 
