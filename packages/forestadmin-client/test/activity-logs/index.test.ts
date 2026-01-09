@@ -36,8 +36,7 @@ describe('ActivityLogsService', () => {
 
       expect(result).toEqual(mockActivityLog);
       expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
-        options.forestServerUrl,
-        'test-token',
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
         {
           data: {
             id: 1,
@@ -65,7 +64,6 @@ describe('ActivityLogsService', () => {
             },
           },
         },
-        undefined,
       );
     });
 
@@ -87,8 +85,7 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
-        expect.anything(),
-        'test-token',
+        expect.objectContaining({ bearerToken: 'test-token' }),
         expect.objectContaining({
           data: expect.objectContaining({
             attributes: expect.objectContaining({
@@ -96,7 +93,6 @@ describe('ActivityLogsService', () => {
             }),
           }),
         }),
-        undefined,
       );
     });
 
@@ -116,8 +112,7 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
-        expect.anything(),
-        'test-token',
+        expect.objectContaining({ bearerToken: 'test-token' }),
         expect.objectContaining({
           data: expect.objectContaining({
             attributes: expect.objectContaining({
@@ -130,7 +125,6 @@ describe('ActivityLogsService', () => {
             }),
           }),
         }),
-        undefined,
       );
     });
 
@@ -154,10 +148,11 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Custom-Header': 'value' },
+        }),
         expect.anything(),
-        'test-token',
-        expect.anything(),
-        { 'Custom-Header': 'value' },
       );
     });
   });
@@ -176,12 +171,10 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
-        options.forestServerUrl,
-        'test-token',
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
         'idx-456',
         'log-123',
         { status: 'completed' },
-        undefined,
       );
     });
 
@@ -199,12 +192,10 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
-        options.forestServerUrl,
-        'test-token',
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
         'idx-456',
         'log-123',
         { status: 'failed', errorMessage: 'Something went wrong' },
-        undefined,
       );
     });
 
@@ -225,12 +216,13 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.anything(),
-        'test-token',
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Custom-Header': 'value' },
+        }),
         'idx-456',
         'log-123',
         { status: 'completed' },
-        { 'Custom-Header': 'value' },
       );
     });
   });

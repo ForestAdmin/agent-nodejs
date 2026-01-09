@@ -1,4 +1,5 @@
 import type {
+  ActivityLogHttpOptions,
   ActivityLogResponse,
   CreateActivityLogParams,
   ForestAdminServerInterface,
@@ -60,10 +61,8 @@ export default class ActivityLogsService {
     };
 
     return this.forestAdminServerInterface.createActivityLog(
-      this.options.forestServerUrl,
-      forestServerToken,
+      this.getHttpOptions(forestServerToken),
       body,
-      this.options.headers,
     );
   }
 
@@ -76,12 +75,18 @@ export default class ActivityLogsService {
     };
 
     await this.forestAdminServerInterface.updateActivityLogStatus(
-      this.options.forestServerUrl,
-      forestServerToken,
+      this.getHttpOptions(forestServerToken),
       activityLog.attributes.index,
       activityLog.id,
       body,
-      this.options.headers,
     );
+  }
+
+  private getHttpOptions(bearerToken: string): ActivityLogHttpOptions {
+    return {
+      forestServerUrl: this.options.forestServerUrl,
+      bearerToken,
+      headers: this.options.headers,
+    };
   }
 }

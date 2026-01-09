@@ -284,20 +284,22 @@ export interface ForestAdminServerInterface {
 
   // Activity logs operations
   createActivityLog: (
-    forestServerUrl: string,
-    bearerToken: string,
+    options: ActivityLogHttpOptions,
     body: object,
-    headers?: Record<string, string>,
   ) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (
-    forestServerUrl: string,
-    bearerToken: string,
+    options: ActivityLogHttpOptions,
     index: string,
     id: string,
     body: object,
-    headers?: Record<string, string>,
   ) => Promise<void>;
 }
+
+export type ActivityLogHttpOptions = {
+  forestServerUrl: string;
+  bearerToken: string;
+  headers?: Record<string, string>;
+};
 
 export type IpWhitelistRulesResponse = {
   data: {

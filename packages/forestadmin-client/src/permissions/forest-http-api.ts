@@ -1,6 +1,7 @@
 import type { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
 import type { ModelCustomization } from '../model-customizations/types';
 import type {
+  ActivityLogHttpOptions,
   ActivityLogResponse,
   ForestAdminAuthServiceInterface,
   ForestAdminClientOptions,
@@ -92,40 +93,36 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   }
 
   async createActivityLog(
-    forestServerUrl: string,
-    bearerToken: string,
+    options: ActivityLogHttpOptions,
     body: object,
-    headers?: Record<string, string>,
   ): Promise<ActivityLogResponse> {
     const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
       data: ActivityLogResponse;
     }>({
-      forestServerUrl,
+      forestServerUrl: options.forestServerUrl,
       method: 'post',
       path: '/api/activity-logs-requests',
-      bearerToken,
+      bearerToken: options.bearerToken,
       body,
-      headers,
+      headers: options.headers,
     });
 
     return activityLog;
   }
 
   async updateActivityLogStatus(
-    forestServerUrl: string,
-    bearerToken: string,
+    options: ActivityLogHttpOptions,
     index: string,
     id: string,
     body: object,
-    headers?: Record<string, string>,
   ): Promise<void> {
     await ServerUtils.queryWithBearerToken({
-      forestServerUrl,
+      forestServerUrl: options.forestServerUrl,
       method: 'patch',
       path: `/api/activity-logs-requests/${index}/${id}/status`,
-      bearerToken,
+      bearerToken: options.bearerToken,
       body,
-      headers,
+      headers: options.headers,
     });
   }
 }
