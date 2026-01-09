@@ -1,7 +1,7 @@
 import type { IpWhitelistConfiguration } from './types';
 import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
-import { toHttpOptions } from '../permissions/forest-http-api';
+import { toHttpOptions } from '../utils/http-options';
 
 export default class IpWhiteListService {
   constructor(

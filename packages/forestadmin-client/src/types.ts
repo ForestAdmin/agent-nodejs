@@ -4,7 +4,6 @@ import type { Chart, QueryChart } from './charts/types';
 import type { IpWhitelistConfiguration } from './ip-whitelist/types';
 import type { McpServerConfigService } from './mcp-server-config/types';
 import type { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
-import type { HttpOptions } from './permissions/forest-http-api';
 import type {
   CollectionActionEvent,
   EnvironmentPermissionsV4,
@@ -16,6 +15,7 @@ import type {
 import type { ForestSchema } from './schema/types';
 import type { RequestContextVariables } from './utils/context-variables';
 import type ContextVariables from './utils/context-variables';
+import type { HttpOptions } from './utils/http-options';
 import type { McpConfiguration } from '@forestadmin/ai-proxy';
 import type { ParsedUrlQuery } from 'querystring';
 
@@ -280,28 +280,17 @@ export interface ForestAdminServerInterface {
   checkSchemaHash: (options: HttpOptions, hash: string) => Promise<{ sendSchema: boolean }>;
 
   // IP whitelist operations
-  getIpWhitelistRules: (options: HttpOptions) => Promise<{
-    data: {
-      attributes: {
-        use_ip_whitelist: boolean;
-        rules: Array<
-          | { type: 0; ip: string }
-          | { type: 1; ipMinimum: string; ipMaximum: string }
-          | { type: 2; range: string }
-        >;
-      };
-    };
-  }>;
+  getIpWhitelistRules: (options: HttpOptions) => Promise<IpWhitelistRulesResponse>;
 
   // Activity logs operations
   createActivityLog: (
-    options: HttpOptions,
+    forestServerUrl: string,
     bearerToken: string,
     body: object,
     headers?: Record<string, string>,
   ) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (
-    options: HttpOptions,
+    forestServerUrl: string,
     bearerToken: string,
     index: string,
     id: string,
@@ -309,3 +298,16 @@ export interface ForestAdminServerInterface {
     headers?: Record<string, string>,
   ) => Promise<void>;
 }
+
+export type IpWhitelistRulesResponse = {
+  data: {
+    attributes: {
+      use_ip_whitelist: boolean;
+      rules: Array<
+        | { type: 0; ip: string }
+        | { type: 1; ipMinimum: string; ipMaximum: string }
+        | { type: 2; range: string }
+      >;
+    };
+  };
+};

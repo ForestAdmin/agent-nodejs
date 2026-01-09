@@ -5,7 +5,6 @@ import * as factories from '../__factories__';
 
 describe('ActivityLogsService', () => {
   const options = {
-    envSecret: 'test-env-secret',
     forestServerUrl: 'http://forestadmin-server.com',
   };
   let mockForestAdminServerInterface: jest.Mocked<ForestAdminServerInterface>;
@@ -37,7 +36,7 @@ describe('ActivityLogsService', () => {
 
       expect(result).toEqual(mockActivityLog);
       expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
-        { envSecret: options.envSecret, forestServerUrl: options.forestServerUrl },
+        options.forestServerUrl,
         'test-token',
         {
           data: {
@@ -177,7 +176,7 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
-        { envSecret: options.envSecret, forestServerUrl: options.forestServerUrl },
+        options.forestServerUrl,
         'test-token',
         'idx-456',
         'log-123',
@@ -200,7 +199,7 @@ describe('ActivityLogsService', () => {
       });
 
       expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
-        { envSecret: options.envSecret, forestServerUrl: options.forestServerUrl },
+        options.forestServerUrl,
         'test-token',
         'idx-456',
         'log-123',

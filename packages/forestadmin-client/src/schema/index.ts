@@ -4,7 +4,7 @@ import type { ForestSchema } from './types';
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
 
-import { toHttpOptions } from '../permissions/forest-http-api';
+import { toHttpOptions } from '../utils/http-options';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 

@@ -4,31 +4,17 @@ import type {
   ActivityLogResponse,
   ForestAdminAuthServiceInterface,
   ForestAdminClientOptions,
-  ForestAdminClientOptionsWithDefaults,
   ForestAdminServerInterface,
   ForestSchemaCollection,
+  IpWhitelistRulesResponse,
 } from '../types';
+import type { HttpOptions } from '../utils/http-options';
 import type { McpConfiguration } from '@forestadmin/ai-proxy';
 
 import JSONAPISerializer from 'json-api-serializer';
 
 import AuthService from '../auth';
 import ServerUtils from '../utils/server';
-
-export type HttpOptions = Pick<
-  ForestAdminClientOptionsWithDefaults,
-  'envSecret' | 'forestServerUrl'
->;
-
-export function toHttpOptions(options: {
-  envSecret: string;
-  forestServerUrl: string;
-}): HttpOptions {
-  return {
-    envSecret: options.envSecret,
-    forestServerUrl: options.forestServerUrl,
-  };
-}
 
 export default class ForestHttpApi implements ForestAdminServerInterface {
   async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {
@@ -101,23 +87,12 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     );
   }
 
-  async getIpWhitelistRules(options: HttpOptions): Promise<{
-    data: {
-      attributes: {
-        use_ip_whitelist: boolean;
-        rules: Array<
-          | { type: 0; ip: string }
-          | { type: 1; ipMinimum: string; ipMaximum: string }
-          | { type: 2; range: string }
-        >;
-      };
-    };
-  }> {
+  async getIpWhitelistRules(options: HttpOptions): Promise<IpWhitelistRulesResponse> {
     return ServerUtils.query(options, 'get', '/liana/v1/ip-whitelist-rules');
   }
 
   async createActivityLog(
-    options: HttpOptions,
+    forestServerUrl: string,
     bearerToken: string,
     body: object,
     headers?: Record<string, string>,
@@ -125,7 +100,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
       data: ActivityLogResponse;
     }>({
-      forestServerUrl: options.forestServerUrl,
+      forestServerUrl,
       method: 'post',
       path: '/api/activity-logs-requests',
       bearerToken,
@@ -137,7 +112,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   }
 
   async updateActivityLogStatus(
-    options: HttpOptions,
+    forestServerUrl: string,
     bearerToken: string,
     index: string,
     id: string,
@@ -145,7 +120,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     headers?: Record<string, string>,
   ): Promise<void> {
     await ServerUtils.queryWithBearerToken({
-      forestServerUrl: options.forestServerUrl,
+      forestServerUrl,
       method: 'patch',
       path: `/api/activity-logs-requests/${index}/${id}/status`,
       bearerToken,

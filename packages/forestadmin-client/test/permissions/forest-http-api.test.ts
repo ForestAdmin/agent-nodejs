@@ -129,7 +129,11 @@ describe('ForestHttpApi', () => {
       (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({ data: mockActivityLog });
 
       const body = { data: { id: 1, type: 'activity-logs-requests' } };
-      const result = await new ForestHttpApi().createActivityLog(options, 'bearer-token', body);
+      const result = await new ForestHttpApi().createActivityLog(
+        options.forestServerUrl,
+        'bearer-token',
+        body,
+      );
 
       expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
         forestServerUrl: options.forestServerUrl,
@@ -147,7 +151,7 @@ describe('ForestHttpApi', () => {
       const body = { status: 'completed' };
 
       await new ForestHttpApi().updateActivityLogStatus(
-        options,
+        options.forestServerUrl,
         'bearer-token',
         'idx-456',
         'log-123',
