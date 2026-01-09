@@ -273,4 +273,39 @@ export interface ForestAdminServerInterface {
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
   getMcpServerConfigs: (options: HttpOptions) => Promise<McpConfiguration>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
+
+  // Schema operations
+  getSchema: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
+  postSchema: (options: HttpOptions, schema: object) => Promise<void>;
+  checkSchemaHash: (options: HttpOptions, hash: string) => Promise<{ sendSchema: boolean }>;
+
+  // IP whitelist operations
+  getIpWhitelistRules: (options: HttpOptions) => Promise<{
+    data: {
+      attributes: {
+        use_ip_whitelist: boolean;
+        rules: Array<
+          | { type: 0; ip: string }
+          | { type: 1; ipMinimum: string; ipMaximum: string }
+          | { type: 2; range: string }
+        >;
+      };
+    };
+  }>;
+
+  // Activity logs operations
+  createActivityLog: (
+    options: HttpOptions,
+    bearerToken: string,
+    body: object,
+    headers?: Record<string, string>,
+  ) => Promise<ActivityLogResponse>;
+  updateActivityLogStatus: (
+    options: HttpOptions,
+    bearerToken: string,
+    index: string,
+    id: string,
+    body: object,
+    headers?: Record<string, string>,
+  ) => Promise<void>;
 }

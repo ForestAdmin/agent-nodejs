@@ -8,6 +8,15 @@ const forestAdminServerInterface = {
     getModelCustomizations: jest.fn(),
     getMcpServerConfigs: jest.fn(),
     makeAuthService: jest.fn(),
+    // Schema operations
+    getSchema: jest.fn(),
+    postSchema: jest.fn(),
+    checkSchemaHash: jest.fn(),
+    // IP whitelist operations
+    getIpWhitelistRules: jest.fn(),
+    // Activity logs operations
+    createActivityLog: jest.fn(),
+    updateActivityLogStatus: jest.fn(),
   }),
 };
 

@@ -1,30 +1,26 @@
 import type { IpWhitelistConfiguration } from './types';
-import type { ForestAdminClientOptionsWithDefaults } from '../types';
-
-import ServerUtils from '../utils/server';
-
-type RawIpWhiteList = {
-  data: {
-    attributes: {
-      use_ip_whitelist: boolean;
-      rules: IpWhitelistConfiguration['ipRules'];
-    };
-  };
-};
+import type { HttpOptions } from '../permissions/forest-http-api';
+import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
 export default class IpWhiteListService {
-  constructor(private options: ForestAdminClientOptionsWithDefaults) {}
+  constructor(
+    private forestAdminServerInterface: ForestAdminServerInterface,
+    private options: ForestAdminClientOptionsWithDefaults,
+  ) {}
 
   async getConfiguration(): Promise<IpWhitelistConfiguration> {
-    const body = await ServerUtils.query<RawIpWhiteList>(
-      this.options,
-      'get',
-      '/liana/v1/ip-whitelist-rules',
-    );
+    const body = await this.forestAdminServerInterface.getIpWhitelistRules(this.getHttpOptions());
 
     return {
       isFeatureEnabled: body.data.attributes.use_ip_whitelist,
       ipRules: body.data.attributes.rules,
+    };
+  }
+
+  private getHttpOptions(): HttpOptions {
+    return {
+      envSecret: this.options.envSecret,
+      forestServerUrl: this.options.forestServerUrl,
     };
   }
 }
