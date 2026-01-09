@@ -166,6 +166,18 @@ describe('declareListTool', () => {
       // Should reject invalid collection names
       expect(() => schema.collectionName.parse('invalid-collection')).toThrow();
     });
+
+    it('should make ascending optional in sort schema with default value true', () => {
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
+
+      const schema = registeredToolConfig.inputSchema as Record<
+        string,
+        { parse: (value: unknown) => unknown }
+      >;
+      // Sort with only field should be accepted
+      const result = schema.sort.parse({ field: 'createdAt' });
+      expect(result).toEqual({ field: 'createdAt', ascending: true });
+    });
   });
 
   describe('tool execution', () => {
