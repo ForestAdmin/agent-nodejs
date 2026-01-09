@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.5.1...@forestadmin/mcp-server@1.5.2) (2026-01-09)
+
+
+### Bug Fixes
+
+* **mcp:** throw invalid_grant error when refresh token is expired ([#1408](https://github.com/ForestAdmin/agent-nodejs/issues/1408)) ([1e44622](https://github.com/ForestAdmin/agent-nodejs/commit/1e4462273d6468bccec41b9257461b60018bd3b6))
+
 ## @forestadmin/mcp-server [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.5.0...@forestadmin/mcp-server@1.5.1) (2026-01-06)
 
 
