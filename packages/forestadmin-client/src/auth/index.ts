@@ -12,6 +12,21 @@ import { Issuer, errors } from 'openid-client';
 import { AuthenticationError } from './errors';
 import ServerUtils from '../utils/server';
 
+type UserInfoResponse = {
+  data: {
+    id: string;
+    attributes: {
+      email: string;
+      first_name: string;
+      last_name: string;
+      teams: string[];
+      role: string;
+      permission_level: string;
+      tags?: Array<{ key: string; value: string }>;
+    };
+  };
+};
+
 export default class AuthService implements ForestAdminAuthServiceInterface {
   protected client: BaseClient;
 
@@ -38,8 +53,7 @@ export default class AuthService implements ForestAdminAuthServiceInterface {
     const url = `/liana/v2/renderings/${renderingId}/authorization`;
     const headers = { 'forest-token': accessToken };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await ServerUtils.query<any>(this.options, 'get', url, headers);
+    const response = await ServerUtils.query<UserInfoResponse>(this.options, 'get', url, headers);
 
     return {
       id: Number(response.data.id),
