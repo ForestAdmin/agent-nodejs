@@ -34,7 +34,7 @@ const listArgumentSchema = z.object({
   sort: z
     .object({
       field: z.string(),
-      ascending: z.boolean(),
+      ascending: z.boolean().optional().default(true),
     })
     .optional(),
   shouldSearchInRelation: z
