@@ -2,8 +2,7 @@ import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { z } from 'zod';
-
+import createCollectionNameSchema from '../schemas/collection-name';
 import buildClient from '../utils/agent-caller';
 import {
   fetchForestSchema,
@@ -23,8 +22,7 @@ interface CollectionCapabilities {
 
 function createDescribeCollectionArgumentShape(collectionNames: string[]) {
   return {
-    collectionName:
-      collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string(),
+    collectionName: createCollectionNameSchema(collectionNames),
   };
 }
 

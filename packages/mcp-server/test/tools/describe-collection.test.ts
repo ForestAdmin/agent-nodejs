@@ -93,7 +93,7 @@ describe('declareDescribeCollectionTool', () => {
       expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
     });
 
-    it('should use enum type for collectionName when collection names provided', () => {
+    it('should provide collection names in description when collection names provided', () => {
       declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger, [
         'users',
         'products',
@@ -102,15 +102,17 @@ describe('declareDescribeCollectionTool', () => {
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
-        { options: string[]; parse: (value: unknown) => unknown }
+        { description?: string; parse: (value: unknown) => unknown }
       >;
-      // Enum type should have options property with the collection names
-      expect(schema.collectionName.options).toEqual(['users', 'products', 'orders']);
-      // Should accept valid collection names
+      // Description should include available collection names
+      expect(schema.collectionName.description).toContain('Available collections:');
+      expect(schema.collectionName.description).toContain('users');
+      expect(schema.collectionName.description).toContain('products');
+      expect(schema.collectionName.description).toContain('orders');
+      // Should accept any string (no strict validation)
       expect(() => schema.collectionName.parse('users')).not.toThrow();
       expect(() => schema.collectionName.parse('products')).not.toThrow();
-      // Should reject invalid collection names
-      expect(() => schema.collectionName.parse('invalid-collection')).toThrow();
+      expect(() => schema.collectionName.parse('any-collection')).not.toThrow();
     });
   });
 
