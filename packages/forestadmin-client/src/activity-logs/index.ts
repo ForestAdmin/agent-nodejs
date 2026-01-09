@@ -1,10 +1,11 @@
-import type { HttpOptions } from '../permissions/forest-http-api';
 import type {
   ActivityLogResponse,
   CreateActivityLogParams,
   ForestAdminServerInterface,
   UpdateActivityLogStatusParams,
 } from '../types';
+
+import { toHttpOptions } from '../permissions/forest-http-api';
 
 export type ActivityLogsOptions = {
   envSecret: string;
@@ -62,7 +63,7 @@ export default class ActivityLogsService {
     };
 
     return this.forestAdminServerInterface.createActivityLog(
-      this.getHttpOptions(),
+      toHttpOptions(this.options),
       forestServerToken,
       body,
       this.options.headers,
@@ -78,19 +79,12 @@ export default class ActivityLogsService {
     };
 
     await this.forestAdminServerInterface.updateActivityLogStatus(
-      this.getHttpOptions(),
+      toHttpOptions(this.options),
       forestServerToken,
       activityLog.attributes.index,
       activityLog.id,
       body,
       this.options.headers,
     );
-  }
-
-  private getHttpOptions(): HttpOptions {
-    return {
-      envSecret: this.options.envSecret,
-      forestServerUrl: this.options.forestServerUrl,
-    };
   }
 }

@@ -1,9 +1,10 @@
-import type { HttpOptions } from '../permissions/forest-http-api';
 import type { ForestAdminServerInterface, ForestSchemaCollection } from '../types';
 import type { ForestSchema } from './types';
 
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
+
+import { toHttpOptions } from '../permissions/forest-http-api';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
@@ -22,7 +23,7 @@ export default class SchemaService {
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     const apimap = SchemaService.serialize(schema);
-    const httpOptions = this.getHttpOptions();
+    const httpOptions = toHttpOptions(this.options);
     const shouldSend = await this.doServerWantsSchema(apimap.meta.schemaFileHash);
 
     if (shouldSend) {
@@ -41,7 +42,7 @@ export default class SchemaService {
   }
 
   async getSchema(): Promise<ForestSchemaCollection[]> {
-    return this.forestAdminServerInterface.getSchema(this.getHttpOptions());
+    return this.forestAdminServerInterface.getSchema(toHttpOptions(this.options));
   }
 
   static serialize(schema: ForestSchema): SerializedSchema {
@@ -73,17 +74,10 @@ export default class SchemaService {
   private async doServerWantsSchema(hash: string): Promise<boolean> {
     // Check if the schema was already sent by another agent
     const { sendSchema } = await this.forestAdminServerInterface.checkSchemaHash(
-      this.getHttpOptions(),
+      toHttpOptions(this.options),
       hash,
     );
 
     return sendSchema;
-  }
-
-  private getHttpOptions(): HttpOptions {
-    return {
-      envSecret: this.options.envSecret,
-      forestServerUrl: this.options.forestServerUrl,
-    };
   }
 }

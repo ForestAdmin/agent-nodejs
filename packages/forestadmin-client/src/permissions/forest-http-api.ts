@@ -20,6 +20,16 @@ export type HttpOptions = Pick<
   'envSecret' | 'forestServerUrl'
 >;
 
+export function toHttpOptions(options: {
+  envSecret: string;
+  forestServerUrl: string;
+}): HttpOptions {
+  return {
+    envSecret: options.envSecret,
+    forestServerUrl: options.forestServerUrl,
+  };
+}
+
 export default class ForestHttpApi implements ForestAdminServerInterface {
   async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {
     return ServerUtils.query(options, 'get', '/liana/v4/permissions/environment');

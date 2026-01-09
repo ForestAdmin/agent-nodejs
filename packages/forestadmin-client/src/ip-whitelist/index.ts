@@ -1,6 +1,7 @@
 import type { IpWhitelistConfiguration } from './types';
-import type { HttpOptions } from '../permissions/forest-http-api';
 import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
+
+import { toHttpOptions } from '../permissions/forest-http-api';
 
 export default class IpWhiteListService {
   constructor(
@@ -9,18 +10,13 @@ export default class IpWhiteListService {
   ) {}
 
   async getConfiguration(): Promise<IpWhitelistConfiguration> {
-    const body = await this.forestAdminServerInterface.getIpWhitelistRules(this.getHttpOptions());
+    const body = await this.forestAdminServerInterface.getIpWhitelistRules(
+      toHttpOptions(this.options),
+    );
 
     return {
       isFeatureEnabled: body.data.attributes.use_ip_whitelist,
       ipRules: body.data.attributes.rules,
-    };
-  }
-
-  private getHttpOptions(): HttpOptions {
-    return {
-      envSecret: this.options.envSecret,
-      forestServerUrl: this.options.forestServerUrl,
     };
   }
 }
