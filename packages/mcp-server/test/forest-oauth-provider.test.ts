@@ -645,7 +645,19 @@ describe('ForestOAuthProvider', () => {
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'invalid-refresh-token'),
-      ).rejects.toThrow('Invalid or expired refresh token');
+      ).rejects.toThrow('Invalid refresh token');
+    });
+
+    it('should throw error for expired refresh token', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockImplementation(() => {
+        throw new jsonwebtoken.TokenExpiredError('jwt expired', new Date());
+      });
+
+      const provider = createProvider();
+
+      await expect(
+        provider.exchangeRefreshToken(mockClient, 'expired-refresh-token'),
+      ).rejects.toThrow('Refresh token has expired');
     });
 
     it('should throw error when token type is not refresh', async () => {

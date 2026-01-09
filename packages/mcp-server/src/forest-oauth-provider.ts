@@ -17,6 +17,7 @@ import createForestAdminClient from '@forestadmin/forestadmin-client';
 import {
   CustomOAuthError,
   InvalidClientError,
+  InvalidGrantError,
   InvalidRequestError,
   InvalidTokenError,
   UnsupportedTokenTypeError,
@@ -229,7 +230,11 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     try {
       decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
     } catch (error) {
-      throw new InvalidTokenError('Invalid or expired refresh token');
+      if (error instanceof jsonwebtoken.TokenExpiredError) {
+        throw new InvalidGrantError('Refresh token has expired');
+      }
+
+      throw new InvalidGrantError('Invalid refresh token');
     }
 
     // Validate token type
