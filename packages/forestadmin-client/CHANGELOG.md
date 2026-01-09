@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.1...@forestadmin/forestadmin-client@1.37.2) (2026-01-09)
+
+
+### Bug Fixes
+
+* **forestadmin-client:** add proper typing for user info response ([#1412](https://github.com/ForestAdmin/agent-nodejs/issues/1412)) ([f8e7965](https://github.com/ForestAdmin/agent-nodejs/commit/f8e796510af3234988411522cc0a5a2aeb993592))
+
 ## @forestadmin/forestadmin-client [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.0...@forestadmin/forestadmin-client@1.37.1) (2026-01-06)
 
 
