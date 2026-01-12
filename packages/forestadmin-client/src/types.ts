@@ -4,7 +4,6 @@ import type { Chart, QueryChart } from './charts/types';
 import type { IpWhitelistConfiguration } from './ip-whitelist/types';
 import type { McpServerConfigService } from './mcp-server-config/types';
 import type { ModelCustomization, ModelCustomizationService } from './model-customizations/types';
-import type { HttpOptions } from './permissions/forest-http-api';
 import type {
   CollectionActionEvent,
   EnvironmentPermissionsV4,
@@ -16,6 +15,7 @@ import type {
 import type { ForestSchema } from './schema/types';
 import type { RequestContextVariables } from './utils/context-variables';
 import type ContextVariables from './utils/context-variables';
+import type { HttpOptions } from './utils/http-options';
 import type { McpConfiguration } from '@forestadmin/ai-proxy';
 import type { ParsedUrlQuery } from 'querystring';
 
@@ -273,4 +273,43 @@ export interface ForestAdminServerInterface {
   getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
   getMcpServerConfigs: (options: HttpOptions) => Promise<McpConfiguration>;
   makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
+
+  // Schema operations
+  getSchema: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
+  postSchema: (options: HttpOptions, schema: object) => Promise<void>;
+  checkSchemaHash: (options: HttpOptions, hash: string) => Promise<{ sendSchema: boolean }>;
+
+  // IP whitelist operations
+  getIpWhitelistRules: (options: HttpOptions) => Promise<IpWhitelistRulesResponse>;
+
+  // Activity logs operations
+  createActivityLog: (
+    options: ActivityLogHttpOptions,
+    body: object,
+  ) => Promise<ActivityLogResponse>;
+  updateActivityLogStatus: (
+    options: ActivityLogHttpOptions,
+    index: string,
+    id: string,
+    body: object,
+  ) => Promise<void>;
 }
+
+export type ActivityLogHttpOptions = {
+  forestServerUrl: string;
+  bearerToken: string;
+  headers?: Record<string, string>;
+};
+
+export type IpWhitelistRulesResponse = {
+  data: {
+    attributes: {
+      use_ip_whitelist: boolean;
+      rules: Array<
+        | { type: 0; ip: string }
+        | { type: 1; ipMinimum: string; ipMaximum: string }
+        | { type: 2; range: string }
+      >;
+    };
+  };
+};

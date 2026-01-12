@@ -1,10 +1,10 @@
 import type {
+  ActivityLogHttpOptions,
   ActivityLogResponse,
   CreateActivityLogParams,
+  ForestAdminServerInterface,
   UpdateActivityLogStatusParams,
 } from '../types';
-
-import ServerUtils from '../utils/server';
 
 export type ActivityLogsOptions = {
   forestServerUrl: string;
@@ -12,7 +12,10 @@ export type ActivityLogsOptions = {
 };
 
 export default class ActivityLogsService {
-  constructor(private options: ActivityLogsOptions) {}
+  constructor(
+    private forestAdminServerInterface: ForestAdminServerInterface,
+    private options: ActivityLogsOptions,
+  ) {}
 
   async createActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse> {
     const {
@@ -26,62 +29,64 @@ export default class ActivityLogsService {
       label,
     } = params;
 
-    const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
-      data: ActivityLogResponse;
-    }>({
-      forestServerUrl: this.options.forestServerUrl,
-      method: 'post',
-      path: '/api/activity-logs-requests',
-      bearerToken: forestServerToken,
-      headers: this.options.headers,
-      body: {
-        data: {
-          id: 1,
-          type: 'activity-logs-requests',
-          attributes: {
-            type,
-            action,
-            label,
-            status: 'pending',
-            // Ensure all record IDs are converted to strings
-            records: (recordIds || (recordId ? [recordId] : [])).map(String),
+    const body = {
+      data: {
+        id: 1,
+        type: 'activity-logs-requests',
+        attributes: {
+          type,
+          action,
+          label,
+          status: 'pending',
+          // Ensure all record IDs are converted to strings
+          records: (recordIds || (recordId ? [recordId] : [])).map(String),
+        },
+        relationships: {
+          rendering: {
+            data: {
+              id: renderingId,
+              type: 'renderings',
+            },
           },
-          relationships: {
-            rendering: {
-              data: {
-                id: renderingId,
-                type: 'renderings',
-              },
-            },
-            collection: {
-              data: collectionName
-                ? {
-                    id: collectionName,
-                    type: 'collections',
-                  }
-                : null,
-            },
+          collection: {
+            data: collectionName
+              ? {
+                  id: collectionName,
+                  type: 'collections',
+                }
+              : null,
           },
         },
       },
-    });
+    };
 
-    return activityLog;
+    return this.forestAdminServerInterface.createActivityLog(
+      this.getHttpOptions(forestServerToken),
+      body,
+    );
   }
 
   async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
     const { forestServerToken, activityLog, status, errorMessage } = params;
 
-    await ServerUtils.queryWithBearerToken({
+    const body = {
+      status,
+      ...(errorMessage && { errorMessage }),
+    };
+
+    await this.forestAdminServerInterface.updateActivityLogStatus(
+      this.getHttpOptions(forestServerToken),
+      activityLog.attributes.index,
+      activityLog.id,
+      body,
+    );
+  }
+
+  private getHttpOptions(bearerToken: string): ActivityLogHttpOptions {
+    return {
       forestServerUrl: this.options.forestServerUrl,
-      method: 'patch',
-      path: `/api/activity-logs-requests/${activityLog.attributes.index}/${activityLog.id}/status`,
-      bearerToken: forestServerToken,
+      bearerToken,
       headers: this.options.headers,
-      body: {
-        status,
-        ...(errorMessage && { errorMessage }),
-      },
-    });
+    };
   }
 }

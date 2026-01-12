@@ -1,10 +1,10 @@
+import type { ForestAdminServerInterface, ForestSchemaCollection } from '../types';
 import type { ForestSchema } from './types';
-import type { ForestSchemaCollection } from '../types';
 
 import crypto from 'crypto';
 import JSONAPISerializer from 'json-api-serializer';
 
-import ServerUtils from '../utils/server';
+import { toHttpOptions } from '../utils/http-options';
 
 type SerializedSchema = { meta: { schemaFileHash: string } };
 
@@ -16,14 +16,18 @@ export interface SchemaServiceOptions {
 }
 
 export default class SchemaService {
-  constructor(private options: SchemaServiceOptions) {}
+  constructor(
+    private forestAdminServerInterface: ForestAdminServerInterface,
+    private options: SchemaServiceOptions,
+  ) {}
 
   async postSchema(schema: ForestSchema): Promise<boolean> {
     const apimap = SchemaService.serialize(schema);
+    const httpOptions = toHttpOptions(this.options);
     const shouldSend = await this.doServerWantsSchema(apimap.meta.schemaFileHash);
 
     if (shouldSend) {
-      await ServerUtils.query(this.options, 'post', '/forest/apimaps', {}, apimap);
+      await this.forestAdminServerInterface.postSchema(httpOptions, apimap);
     }
 
     const message = shouldSend
@@ -38,28 +42,7 @@ export default class SchemaService {
   }
 
   async getSchema(): Promise<ForestSchemaCollection[]> {
-    const response = await ServerUtils.query<{
-      data: Array<{ id: string; type: string; attributes: Record<string, unknown> }>;
-      included?: Array<{ id: string; type: string; attributes: Record<string, unknown> }>;
-    }>(this.options, 'get', '/liana/forest-schema');
-
-    const serializer = new JSONAPISerializer();
-    serializer.register('collections', {
-      relationships: {
-        fields: { type: 'fields' },
-        actions: { type: 'actions' },
-        segments: { type: 'segments' },
-      },
-    });
-    serializer.register('fields', {});
-    serializer.register('actions', {
-      relationships: {
-        fields: { type: 'fields' },
-      },
-    });
-    serializer.register('segments', {});
-
-    return serializer.deserialize('collections', response) as ForestSchemaCollection[];
+    return this.forestAdminServerInterface.getSchema(toHttpOptions(this.options));
   }
 
   static serialize(schema: ForestSchema): SerializedSchema {
@@ -90,12 +73,9 @@ export default class SchemaService {
 
   private async doServerWantsSchema(hash: string): Promise<boolean> {
     // Check if the schema was already sent by another agent
-    const { sendSchema } = await ServerUtils.query<{ sendSchema: boolean }>(
-      this.options,
-      'post',
-      '/forest/apimaps/hashcheck',
-      {},
-      { schemaFileHash: hash },
+    const { sendSchema } = await this.forestAdminServerInterface.checkSchemaHash(
+      toHttpOptions(this.options),
+      hash,
     );
 
     return sendSchema;

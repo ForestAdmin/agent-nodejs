@@ -1,15 +1,18 @@
+import type { ForestAdminServerInterface } from '../../src/types';
+
 import ActivityLogsService from '../../src/activity-logs';
-import ServerUtils from '../../src/utils/server';
-
-jest.mock('../../src/utils/server');
-
-const queryWithBearerTokenMock = ServerUtils.queryWithBearerToken as jest.Mock;
+import * as factories from '../__factories__';
 
 describe('ActivityLogsService', () => {
-  const options = { forestServerUrl: 'http://forestadmin-server.com' };
+  const options = {
+    forestServerUrl: 'http://forestadmin-server.com',
+  };
+  let mockForestAdminServerInterface: jest.Mocked<ForestAdminServerInterface>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockForestAdminServerInterface =
+      factories.forestAdminServerInterface.build() as jest.Mocked<ForestAdminServerInterface>;
   });
 
   describe('createActivityLog', () => {
@@ -18,9 +21,9 @@ describe('ActivityLogsService', () => {
         id: 'log-123',
         attributes: { index: 'idx-456' },
       };
-      queryWithBearerTokenMock.mockResolvedValue({ data: mockActivityLog });
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue(mockActivityLog);
 
-      const service = new ActivityLogsService(options);
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
       const result = await service.createActivityLog({
         forestServerToken: 'test-token',
         renderingId: '12345',
@@ -32,13 +35,9 @@ describe('ActivityLogsService', () => {
       });
 
       expect(result).toEqual(mockActivityLog);
-      expect(queryWithBearerTokenMock).toHaveBeenCalledWith({
-        forestServerUrl: options.forestServerUrl,
-        method: 'post',
-        path: '/api/activity-logs-requests',
-        bearerToken: 'test-token',
-        headers: undefined,
-        body: {
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        {
           data: {
             id: 1,
             type: 'activity-logs-requests',
@@ -65,7 +64,7 @@ describe('ActivityLogsService', () => {
             },
           },
         },
-      });
+      );
     });
 
     it('should create an activity log with recordIds array', async () => {
@@ -73,9 +72,9 @@ describe('ActivityLogsService', () => {
         id: 'log-123',
         attributes: { index: 'idx-456' },
       };
-      queryWithBearerTokenMock.mockResolvedValue({ data: mockActivityLog });
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue(mockActivityLog);
 
-      const service = new ActivityLogsService(options);
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
       await service.createActivityLog({
         forestServerToken: 'test-token',
         renderingId: '12345',
@@ -85,13 +84,12 @@ describe('ActivityLogsService', () => {
         recordIds: ['1', '2', '3'],
       });
 
-      expect(queryWithBearerTokenMock).toHaveBeenCalledWith(
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ bearerToken: 'test-token' }),
         expect.objectContaining({
-          body: expect.objectContaining({
-            data: expect.objectContaining({
-              attributes: expect.objectContaining({
-                records: ['1', '2', '3'],
-              }),
+          data: expect.objectContaining({
+            attributes: expect.objectContaining({
+              records: ['1', '2', '3'],
             }),
           }),
         }),
@@ -103,9 +101,9 @@ describe('ActivityLogsService', () => {
         id: 'log-123',
         attributes: { index: 'idx-456' },
       };
-      queryWithBearerTokenMock.mockResolvedValue({ data: mockActivityLog });
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue(mockActivityLog);
 
-      const service = new ActivityLogsService(options);
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
       await service.createActivityLog({
         forestServerToken: 'test-token',
         renderingId: '12345',
@@ -113,30 +111,57 @@ describe('ActivityLogsService', () => {
         type: 'read',
       });
 
-      expect(queryWithBearerTokenMock).toHaveBeenCalledWith(
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ bearerToken: 'test-token' }),
         expect.objectContaining({
-          body: expect.objectContaining({
-            data: expect.objectContaining({
-              attributes: expect.objectContaining({
-                records: [],
-              }),
-              relationships: expect.objectContaining({
-                collection: {
-                  data: null,
-                },
-              }),
+          data: expect.objectContaining({
+            attributes: expect.objectContaining({
+              records: [],
+            }),
+            relationships: expect.objectContaining({
+              collection: {
+                data: null,
+              },
             }),
           }),
         }),
+      );
+    });
+
+    it('should pass custom headers when provided', async () => {
+      const mockActivityLog = {
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      };
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue(mockActivityLog);
+
+      const optionsWithHeaders = {
+        ...options,
+        headers: { 'Custom-Header': 'value' },
+      };
+      const service = new ActivityLogsService(mockForestAdminServerInterface, optionsWithHeaders);
+      await service.createActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'search',
+        type: 'read',
+      });
+
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Custom-Header': 'value' },
+        }),
+        expect.anything(),
       );
     });
   });
 
   describe('updateActivityLogStatus', () => {
     it('should update activity log status to completed', async () => {
-      queryWithBearerTokenMock.mockResolvedValue(undefined);
+      mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);
 
-      const service = new ActivityLogsService(options);
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
       const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
 
       await service.updateActivityLogStatus({
@@ -145,22 +170,18 @@ describe('ActivityLogsService', () => {
         status: 'completed',
       });
 
-      expect(queryWithBearerTokenMock).toHaveBeenCalledWith({
-        forestServerUrl: options.forestServerUrl,
-        method: 'patch',
-        path: '/api/activity-logs-requests/idx-456/log-123/status',
-        bearerToken: 'test-token',
-        headers: undefined,
-        body: {
-          status: 'completed',
-        },
-      });
+      expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        'idx-456',
+        'log-123',
+        { status: 'completed' },
+      );
     });
 
     it('should update activity log status to failed with error message', async () => {
-      queryWithBearerTokenMock.mockResolvedValue(undefined);
+      mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);
 
-      const service = new ActivityLogsService(options);
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
       const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
 
       await service.updateActivityLogStatus({
@@ -170,27 +191,22 @@ describe('ActivityLogsService', () => {
         errorMessage: 'Something went wrong',
       });
 
-      expect(queryWithBearerTokenMock).toHaveBeenCalledWith({
-        forestServerUrl: options.forestServerUrl,
-        method: 'patch',
-        path: '/api/activity-logs-requests/idx-456/log-123/status',
-        bearerToken: 'test-token',
-        headers: undefined,
-        body: {
-          status: 'failed',
-          errorMessage: 'Something went wrong',
-        },
-      });
+      expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        'idx-456',
+        'log-123',
+        { status: 'failed', errorMessage: 'Something went wrong' },
+      );
     });
 
-    it('should pass custom headers when provided', async () => {
-      queryWithBearerTokenMock.mockResolvedValue(undefined);
+    it('should pass custom headers when updating status', async () => {
+      mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);
 
       const optionsWithHeaders = {
         ...options,
         headers: { 'Custom-Header': 'value' },
       };
-      const service = new ActivityLogsService(optionsWithHeaders);
+      const service = new ActivityLogsService(mockForestAdminServerInterface, optionsWithHeaders);
       const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
 
       await service.updateActivityLogStatus({
@@ -199,16 +215,15 @@ describe('ActivityLogsService', () => {
         status: 'completed',
       });
 
-      expect(queryWithBearerTokenMock).toHaveBeenCalledWith({
-        forestServerUrl: options.forestServerUrl,
-        method: 'patch',
-        path: '/api/activity-logs-requests/idx-456/log-123/status',
-        bearerToken: 'test-token',
-        headers: { 'Custom-Header': 'value' },
-        body: {
-          status: 'completed',
-        },
-      });
+      expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Custom-Header': 'value' },
+        }),
+        'idx-456',
+        'log-123',
+        { status: 'completed' },
+      );
     });
   });
 });
