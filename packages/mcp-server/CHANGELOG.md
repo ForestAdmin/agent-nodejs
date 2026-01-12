@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.5.3...@forestadmin/mcp-server@1.5.4) (2026-01-12)
+
+
+### Bug Fixes
+
+* **mcp-server:** make ascending optional in sort schema ([#1410](https://github.com/ForestAdmin/agent-nodejs/issues/1410)) ([38c9f74](https://github.com/ForestAdmin/agent-nodejs/commit/38c9f744852560e1781b2d3063b9925bfc605f71))
+
 ## @forestadmin/mcp-server [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.5.2...@forestadmin/mcp-server@1.5.3) (2026-01-09)
 
 
