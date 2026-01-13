@@ -1,8 +1,10 @@
+import type { ForestServerClient } from '../../src/http-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
 import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/schema-fetcher');
 
@@ -123,9 +125,11 @@ describe('buildClientWithActions', () => {
   const mockGetActionEndpoints = getActionEndpoints as jest.MockedFunction<
     typeof getActionEndpoints
   >;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockForestServerClient = createMockForestServerClient();
   });
 
   it('should fetch the forest schema and get action endpoints', async () => {
@@ -155,9 +159,9 @@ describe('buildClientWithActions', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await buildClientWithActions(request, 'https://api.forestadmin.com');
+    await buildClientWithActions(request, mockForestServerClient);
 
-    expect(mockFetchForestSchema).toHaveBeenCalledWith('https://api.forestadmin.com');
+    expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
     expect(mockGetActionEndpoints).toHaveBeenCalledWith(mockSchema);
   });
 
@@ -192,7 +196,7 @@ describe('buildClientWithActions', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = await buildClientWithActions(request, 'https://api.forestadmin.com');
+    const result = await buildClientWithActions(request, mockForestServerClient);
 
     expect(result.rpcClient).toBeDefined();
     expect(typeof result.rpcClient.collection).toBe('function');
@@ -215,7 +219,7 @@ describe('buildClientWithActions', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    const result = await buildClientWithActions(request, 'https://api.forestadmin.com');
+    const result = await buildClientWithActions(request, mockForestServerClient);
 
     expect(result.authData).toEqual({
       userId: 123,
@@ -238,7 +242,7 @@ describe('buildClientWithActions', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-    await expect(buildClientWithActions(request, 'https://api.forestadmin.com')).rejects.toThrow(
+    await expect(buildClientWithActions(request, mockForestServerClient)).rejects.toThrow(
       'Authentication token is missing',
     );
   });
