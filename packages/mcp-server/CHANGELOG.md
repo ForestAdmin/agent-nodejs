@@ -1,3 +1,18 @@
+# @forestadmin/mcp-server [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.5.5...@forestadmin/mcp-server@1.6.0) (2026-01-13)
+
+
+### Features
+
+* **forest mcp:** add smart action tools ([#1403](https://github.com/ForestAdmin/agent-nodejs/issues/1403)) ([dd1996f](https://github.com/ForestAdmin/agent-nodejs/commit/dd1996fbd444b6c7b944a2481a7ec96ec3a66f6f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.3.0
+
 ## @forestadmin/mcp-server [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.5.4...@forestadmin/mcp-server@1.5.5) (2026-01-12)
 
 
