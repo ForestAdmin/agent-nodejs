@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.2.3...@forestadmin/agent-client@1.3.0) (2026-01-13)
+
+
+### Features
+
+* **forest mcp:** add smart action tools ([#1403](https://github.com/ForestAdmin/agent-nodejs/issues/1403)) ([dd1996f](https://github.com/ForestAdmin/agent-nodejs/commit/dd1996fbd444b6c7b944a2481a7ec96ec3a66f6f))
+
 ## @forestadmin/agent-client [1.2.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.2.2...@forestadmin/agent-client@1.2.3) (2026-01-12)
 
 
