@@ -165,10 +165,7 @@ describe('declareExecuteActionTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClientWithActions).toHaveBeenCalledWith(
-        mockExtra,
-        mockForestServerClient,
-      );
+      expect(mockBuildClientWithActions).toHaveBeenCalledWith(mockExtra, mockForestServerClient);
     });
 
     it('should call rpcClient.collection with the collection name', async () => {

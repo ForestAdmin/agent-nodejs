@@ -106,6 +106,54 @@ describe('Action', () => {
 
       expect(callOrder).toEqual(['first', 'second', 'third']);
     });
+
+    it('should throw when field does not exist', async () => {
+      fieldsFormStates.getField.mockReturnValue(null);
+
+      await expect(
+        action.setFields({
+          nonexistent: 'value',
+        }),
+      ).rejects.toThrow('Field "nonexistent" does not exist in this form');
+    });
+  });
+
+  describe('tryToSetFields', () => {
+    it('should call setFieldValue for each field that exists', async () => {
+      await action.tryToSetFields({
+        email: 'new@example.com',
+        subject: 'Hello',
+      });
+
+      expect(fieldsFormStates.setFieldValue).toHaveBeenCalledTimes(2);
+      expect(fieldsFormStates.setFieldValue).toHaveBeenCalledWith('email', 'new@example.com');
+      expect(fieldsFormStates.setFieldValue).toHaveBeenCalledWith('subject', 'Hello');
+    });
+
+    it('should return skipped fields when field does not exist', async () => {
+      fieldsFormStates.getField.mockImplementation((fieldName: string) => {
+        if (fieldName === 'nonexistent') return null;
+
+        return { getName: () => fieldName, getType: () => 'String' } as any;
+      });
+
+      const skipped = await action.tryToSetFields({
+        email: 'new@example.com',
+        nonexistent: 'value',
+      });
+
+      expect(skipped).toEqual(['nonexistent']);
+      expect(fieldsFormStates.setFieldValue).toHaveBeenCalledTimes(1);
+      expect(fieldsFormStates.setFieldValue).toHaveBeenCalledWith('email', 'new@example.com');
+    });
+
+    it('should return empty array when all fields exist', async () => {
+      const skipped = await action.tryToSetFields({
+        email: 'new@example.com',
+      });
+
+      expect(skipped).toEqual([]);
+    });
   });
 
   describe('getFields', () => {

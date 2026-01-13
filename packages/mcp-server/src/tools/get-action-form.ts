@@ -55,8 +55,7 @@ The response includes:
       let skippedFields: string[] = [];
 
       if (options.values) {
-        skippedFields =
-          ((await action.setFields(options.values)) as unknown as string[] | undefined) ?? [];
+        skippedFields = await action.tryToSetFields(options.values);
       }
 
       const fields = action.getFields();

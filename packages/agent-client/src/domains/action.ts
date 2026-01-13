@@ -70,11 +70,21 @@ export default class Action {
     });
   }
 
-  async setFields(fields: Record<string, unknown>): Promise<string[]> {
+  async setFields(fields: Record<string, unknown>): Promise<void> {
+    for (const [fieldName, value] of Object.entries(fields)) {
+      if (!this.doesFieldExist(fieldName)) {
+        throw new Error(`Field "${fieldName}" does not exist in this form`);
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      await this.fieldsFormStates.setFieldValue(fieldName, value);
+    }
+  }
+
+  async tryToSetFields(fields: Record<string, unknown>): Promise<string[]> {
     const skippedFields: string[] = [];
 
     for (const [fieldName, value] of Object.entries(fields)) {
-      // Check if field still exists before setting (dynamic forms may remove fields)
       if (this.doesFieldExist(fieldName)) {
         // eslint-disable-next-line no-await-in-loop
         await this.fieldsFormStates.setFieldValue(fieldName, value);

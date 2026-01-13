@@ -143,10 +143,10 @@ describe('declareGetActionFormTool', () => {
 
     it('should call buildClientWithActions with the extra parameter and forestServerUrl', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -159,18 +159,15 @@ describe('declareGetActionFormTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClientWithActions).toHaveBeenCalledWith(
-        mockExtra,
-        mockForestServerClient,
-      );
+      expect(mockBuildClientWithActions).toHaveBeenCalledWith(mockExtra, mockForestServerClient);
     });
 
     it('should call rpcClient.collection with the collection name', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -188,10 +185,10 @@ describe('declareGetActionFormTool', () => {
 
     it('should call action with the action name and recordIds', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -208,12 +205,12 @@ describe('declareGetActionFormTool', () => {
       expect(mockAction).toHaveBeenCalledWith('sendEmail', { recordIds });
     });
 
-    it('should call setFields when values are provided', async () => {
+    it('should call tryToSetFields when values are provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -227,15 +224,15 @@ describe('declareGetActionFormTool', () => {
         mockExtra,
       );
 
-      expect(mockSetFields).toHaveBeenCalledWith(values);
+      expect(mockTryToSetFields).toHaveBeenCalledWith(values);
     });
 
-    it('should not call setFields when values are not provided', async () => {
+    it('should not call tryToSetFields when values are not provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -248,7 +245,7 @@ describe('declareGetActionFormTool', () => {
         mockExtra,
       );
 
-      expect(mockSetFields).not.toHaveBeenCalled();
+      expect(mockTryToSetFields).not.toHaveBeenCalled();
     });
 
     it('should return form fields with their properties', async () => {
@@ -267,10 +264,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -314,10 +311,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -352,10 +349,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -384,10 +381,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -416,10 +413,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -448,10 +445,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -480,10 +477,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -512,10 +509,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -536,10 +533,10 @@ describe('declareGetActionFormTool', () => {
 
     it('should handle empty fields array', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
-      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -564,7 +561,7 @@ describe('declareGetActionFormTool', () => {
       });
     });
 
-    it('should return skipped fields when setFields skips fields due to dynamic form behavior', async () => {
+    it('should return skipped fields when tryToSetFields skips fields due to dynamic form behavior', async () => {
       const mockFields = [
         {
           getName: () => 'subject',
@@ -574,11 +571,13 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      // setFields returns skipped fields (e.g., 'removedField' was removed by dynamic form)
-      const mockSetFields = jest.fn().mockResolvedValue(['removedField', 'anotherRemovedField']);
+      // tryToSetFields returns skipped fields (e.g., 'removedField' was removed by dynamic form)
+      const mockTryToSetFields = jest
+        .fn()
+        .mockResolvedValue(['removedField', 'anotherRemovedField']);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -611,10 +610,10 @@ describe('declareGetActionFormTool', () => {
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
-      const mockSetFields = jest.fn().mockResolvedValue([]);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: mockGetFields,
-        setFields: mockSetFields,
+        tryToSetFields: mockTryToSetFields,
       });
       const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
       mockBuildClientWithActions.mockResolvedValue({
@@ -629,8 +628,8 @@ describe('declareGetActionFormTool', () => {
 
       const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
       expect(parsedResult.skippedFields).toEqual([]);
-      // setFields should not have been called since no values were provided
-      expect(mockSetFields).not.toHaveBeenCalled();
+      // tryToSetFields should not have been called since no values were provided
+      expect(mockTryToSetFields).not.toHaveBeenCalled();
     });
 
     describe('values parsing', () => {
@@ -649,10 +648,10 @@ describe('declareGetActionFormTool', () => {
 
       it('should handle values as object when not sent as string', async () => {
         const mockGetFields = jest.fn().mockReturnValue([]);
-        const mockSetFields = jest.fn().mockResolvedValue(undefined);
+        const mockTryToSetFields = jest.fn().mockResolvedValue([]);
         const mockAction = jest.fn().mockResolvedValue({
           getFields: mockGetFields,
-          setFields: mockSetFields,
+          tryToSetFields: mockTryToSetFields,
         });
         const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
         mockBuildClientWithActions.mockResolvedValue({
@@ -666,7 +665,7 @@ describe('declareGetActionFormTool', () => {
           mockExtra,
         );
 
-        expect(mockSetFields).toHaveBeenCalledWith(values);
+        expect(mockTryToSetFields).toHaveBeenCalledWith(values);
       });
     });
 
@@ -688,13 +687,13 @@ describe('declareGetActionFormTool', () => {
         ).rejects.toThrow('Action not found');
       });
 
-      it('should propagate errors from setFields call', async () => {
-        const setFieldsError = new Error('Invalid field value');
+      it('should propagate errors from tryToSetFields call', async () => {
+        const tryToSetFieldsError = new Error('Invalid field value');
         const mockGetFields = jest.fn().mockReturnValue([]);
-        const mockSetFields = jest.fn().mockRejectedValue(setFieldsError);
+        const mockTryToSetFields = jest.fn().mockRejectedValue(tryToSetFieldsError);
         const mockAction = jest.fn().mockResolvedValue({
           getFields: mockGetFields,
-          setFields: mockSetFields,
+          tryToSetFields: mockTryToSetFields,
         });
         const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
         mockBuildClientWithActions.mockResolvedValue({
