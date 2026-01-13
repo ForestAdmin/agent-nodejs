@@ -25,43 +25,6 @@ agent.start();
 
 The MCP server will be automatically initialized and mounted on your application.
 
-#### Framework Compatibility
-
-The agent supports multiple web frameworks:
-
-**Express**
-```typescript
-import express from 'express';
-const app = express();
-agent.mountOnExpress(app);
-```
-
-**Fastify (v2, v3, v4)**
-```typescript
-import Fastify from 'fastify';
-const app = Fastify();
-agent.mountOnFastify(app);
-```
-
-**Koa**
-```typescript
-import Koa from 'koa';
-const app = new Koa();
-agent.mountOnKoa(app);
-```
-
-**NestJS (Express or Fastify)**
-```typescript
-import { NestFactory } from '@nestjs/core';
-const app = await NestFactory.create(AppModule);
-agent.mountOnNestJs(app);
-```
-
-**Standalone**
-```typescript
-agent.mountOnStandaloneServer(3000);
-```
-
 ### Standalone Server
 
 You can also run the MCP server standalone using the CLI:
@@ -109,7 +72,7 @@ The server expects MCP protocol messages in the request body and returns MCP-for
 - **HTTP Transport**: Uses streamable HTTP transport for MCP communication
 - **OAuth Authentication**: Built-in support for Forest Admin OAuth
 - **CORS Enabled**: Allows cross-origin requests
-- **Multi-framework Support**: Works with Express, Fastify (v2/v3/v4), Koa, NestJS, or standalone
+- **Express-based**: Built on top of Express.js for reliability and extensibility
 
 ## Development
 
