@@ -1,6 +1,5 @@
-import { ForestSchema } from '@forestadmin/forestadmin-client';
-
-import { ActionEndpointsByCollection } from '../remote-agent-client/domains/action';
+import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
+import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 export default class SchemaConverter {
   static extractActionEndpoints(schema: ForestSchema): ActionEndpointsByCollection {

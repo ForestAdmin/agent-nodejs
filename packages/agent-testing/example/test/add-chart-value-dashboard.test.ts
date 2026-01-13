@@ -2,8 +2,7 @@ import { Agent } from '@forestadmin/agent';
 import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
 import { DataTypes } from 'sequelize';
 
-import { createTestableAgent } from '../../src';
-import TestableAgent from '../../src/integrations/testable-agent';
+import { createTestableAgent, TestableAgent } from '../../src';
 import { STORAGE_PREFIX, logger } from '../utils';
 
 describe('addValueChart on dashboard', () => {

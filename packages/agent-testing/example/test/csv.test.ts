@@ -3,8 +3,7 @@ import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/dataso
 import fs from 'fs';
 import { DataTypes } from 'sequelize';
 
-import { createTestableAgent } from '../../src';
-import TestableAgent from '../../src/integrations/testable-agent';
+import { createTestableAgent, TestableAgent } from '../../src';
 import { STORAGE_PREFIX, logger } from '../utils';
 
 describe('csv export', () => {
@@ -86,11 +85,9 @@ describe('csv export', () => {
     await testableAgent.collection('restaurants').exportCsv(stream, {
       projection: ['name', 'comment'],
       filters: {
-        conditionTree: {
-          field: 'name',
-          operator: 'Contains',
-          value: 'Best Forest',
-        },
+        field: 'name',
+        operator: 'Contains',
+        value: 'Best Forest',
       },
       sort: {
         field: 'name',

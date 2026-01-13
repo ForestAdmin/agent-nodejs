@@ -52,6 +52,15 @@ export default class ForestAdminClientMock implements ForestAdminClient {
     getConfiguration: () => Promise.resolve({ configs: {} }),
   };
 
+  readonly schemaService: ForestAdminClient['schemaService'] = {
+    getSchema: () => Promise.resolve([]),
+  };
+
+  readonly activityLogsService: ForestAdminClient['activityLogsService'] = {
+    createActivityLog: () => Promise.resolve({ id: '1', attributes: { index: '1' } }),
+    updateActivityLogStatus: () => Promise.resolve(),
+  };
+
   readonly permissionService: any;
   readonly authService: any;
 

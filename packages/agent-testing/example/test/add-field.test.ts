@@ -2,8 +2,7 @@ import { Agent } from '@forestadmin/agent';
 import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
 import { DataTypes } from 'sequelize';
 
-import { createTestableAgent } from '../../src';
-import TestableAgent from '../../src/integrations/testable-agent';
+import { createTestableAgent, TestableAgent } from '../../src';
 import { STORAGE_PREFIX, logger } from '../utils';
 
 describe('addField', () => {
@@ -54,9 +53,7 @@ describe('addField', () => {
 
     // get the created user
     const [user] = await testableAgent.collection('users').list<{ fullName: string }>({
-      filters: {
-        conditionTree: { field: 'id', value: createdUser.dataValues.id, operator: 'Equal' },
-      },
+      filters: { field: 'id', value: createdUser.dataValues.id, operator: 'Equal' },
     });
 
     // test the full name content

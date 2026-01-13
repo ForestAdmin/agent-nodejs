@@ -2,14 +2,13 @@ import { Agent } from '@forestadmin/agent';
 import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
 import { DataTypes } from 'sequelize';
 
-import { createTestableAgent } from '../../src';
-import TestableAgent from '../../src/integrations/testable-agent';
+import { createTestableAgent, TestableAgent } from '../../src';
 import { STORAGE_PREFIX, logger } from '../utils';
 
 describe('benchmark', () => {
   let testableAgent: TestableAgent;
   let sequelize: Awaited<ReturnType<typeof buildSequelizeInstance>>;
-  const storage = `${STORAGE_PREFIX}-segment.db`;
+  const storage = `${STORAGE_PREFIX}-benchmark.db`;
 
   // create a segment to get only minor users
   const segmentCustomizer = (agent: Agent) => {

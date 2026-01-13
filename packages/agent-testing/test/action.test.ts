@@ -1,11 +1,12 @@
-import { Agent } from '@forestadmin/agent';
+import type { TestableAgent } from '../src';
+import type { Agent } from '@forestadmin/agent';
+
+import { ActionFieldJson, ActionFieldStringList } from '@forestadmin/agent-client';
 import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
 import { DataTypes } from 'sequelize';
 
 import { STORAGE_PREFIX, logger } from '../example/utils';
-import { TestableAgent, createTestableAgent } from '../src';
-import ActionFieldJson from '../src/remote-agent-client/action-fields/action-field-json';
-import ActionFieldStringList from '../src/remote-agent-client/action-fields/action-field-string-list';
+import { createTestableAgent } from '../src';
 
 describe('action', () => {
   let testableAgent: TestableAgent;

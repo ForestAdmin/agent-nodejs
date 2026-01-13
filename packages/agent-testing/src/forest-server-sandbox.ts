@@ -1,17 +1,18 @@
-import { ForestSchema } from '@forestadmin/forestadmin-client';
-import {
+import type {
+  CollectionPermissionsOverride,
+  PermissionsOverride,
+  SmartActionPermissionsOverride,
+} from '@forestadmin/agent-client';
+import type { ForestSchema } from '@forestadmin/forestadmin-client';
+import type {
   EnvironmentCollectionPermissionsV4,
   EnvironmentPermissionsV4Remote,
   EnvironmentSmartActionPermissionsV4,
 } from '@forestadmin/forestadmin-client/dist/permissions/types';
+
 import http from 'node:http';
 
 import { CURRENT_USER } from './forest-admin-client-mock';
-import {
-  CollectionPermissionsOverride,
-  PermissionsOverride,
-  SmartActionPermissionsOverride,
-} from '../remote-agent-client/domains/remote-agent-client';
 
 export default class ForestServerSandbox {
   private fakeForestServer: http.Server;

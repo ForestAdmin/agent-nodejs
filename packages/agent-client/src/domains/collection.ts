@@ -70,12 +70,13 @@ export default class Collection extends CollectionChart {
   }
 
   async exportCsv(stream: WriteStream, options?: ExportOptions): Promise<void> {
+    const projection = options?.projection ?? options?.fields;
     await this.httpRequester.stream({
       path: `/forest/${this.name}.csv`,
       contentType: 'text/csv',
       query: {
         ...QuerySerializer.serialize(options, this.name),
-        ...{ header: JSON.stringify(options?.fields) },
+        ...(projection && { header: JSON.stringify(projection) }),
       },
       stream,
     });

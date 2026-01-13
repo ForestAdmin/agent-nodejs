@@ -8,7 +8,9 @@ export type BaseOptions = {
   shouldSearchInRelation?: boolean; // Whether to search also on related collections
 };
 
-export type ExportOptions = BaseOptions;
+export type ExportOptions = BaseOptions & {
+  projection?: string[]; // Fields to export
+};
 
 export type LiveQueryOptions = {
   connectionName: string;
