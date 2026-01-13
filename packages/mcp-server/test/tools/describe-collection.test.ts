@@ -69,9 +69,11 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Describe a collection');
-      expect(registeredToolConfig.description).toBe(
-        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data. Check `_meta` for data availability context.",
+      expect(registeredToolConfig.description).toContain(
+        "Discover a collection's schema: fields, types, operators, relations, and available actions.",
       );
+      expect(registeredToolConfig.description).toContain('Actions properties:');
+      expect(registeredToolConfig.description).toContain('download:');
     });
 
     it('should define correct input schema', () => {
