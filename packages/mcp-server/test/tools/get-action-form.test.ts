@@ -531,6 +531,56 @@ describe('declareGetActionFormTool', () => {
       expect(parsedResult.skippedFields).toEqual([]);
     });
 
+    it('should return enumValues for Enum type fields', async () => {
+      const mockFields = [
+        {
+          getName: () => 'status',
+          getType: () => 'Enum',
+          getValue: () => undefined,
+          isRequired: () => true,
+        },
+        {
+          getName: () => 'message',
+          getType: () => 'String',
+          getValue: () => undefined,
+          isRequired: () => false,
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockGetEnumField = jest.fn().mockReturnValue({
+        getOptions: () => ['Active', 'Inactive', 'Pending'],
+      });
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        tryToSetFields: mockTryToSetFields,
+        getEnumField: mockGetEnumField,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'updateStatus', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.fields).toEqual([
+        {
+          name: 'status',
+          type: 'Enum',
+          value: undefined,
+          isRequired: true,
+          enumValues: ['Active', 'Inactive', 'Pending'],
+        },
+        { name: 'message', type: 'String', value: undefined, isRequired: false },
+      ]);
+      expect(mockGetEnumField).toHaveBeenCalledWith('status');
+    });
+
     it('should handle empty fields array', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);

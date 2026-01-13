@@ -36,7 +36,7 @@ Workflow:
 5. Only then call executeAction with the same values
 
 The response includes:
-- fields: Array of form fields with name, type, current value, and isRequired flag
+- fields: Array of form fields with name, type, current value, isRequired flag, and enumValues (for Enum type fields)
 - canExecute: Boolean indicating if all required fields have values (ready to execute)
 - requiredFields: Array of field names that are required but missing values (empty when canExecute is true)
 - skippedFields: Array of field names that were skipped because they no longer exist in the form (due to dynamic form behavior)`,
@@ -72,12 +72,22 @@ The response includes:
           {
             type: 'text',
             text: JSON.stringify({
-              fields: fields.map(field => ({
-                name: field.getName(),
-                type: field.getType(),
-                value: field.getValue(),
-                isRequired: field.isRequired() ?? false,
-              })),
+              fields: fields.map(field => {
+                const baseField = {
+                  name: field.getName(),
+                  type: field.getType(),
+                  value: field.getValue(),
+                  isRequired: field.isRequired() ?? false,
+                };
+
+                if (field.getType() === 'Enum') {
+                  const enumField = action.getEnumField(field.getName());
+
+                  return { ...baseField, enumValues: enumField.getOptions() ?? null };
+                }
+
+                return baseField;
+              }),
               canExecute,
               requiredFields,
               skippedFields,
