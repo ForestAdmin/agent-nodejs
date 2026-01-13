@@ -301,7 +301,6 @@ describe('markActivityLogAsFailed', () => {
       forestServerToken: 'test-forest-token',
       activityLog,
       status: 'failed',
-      errorMessage: 'Something went wrong',
     });
   });
 
@@ -469,11 +468,11 @@ describe('markActivityLogAsSucceeded', () => {
     // Wait for the fire-and-forget promise to resolve
     await jest.advanceTimersByTimeAsync(0);
 
-    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
-      expect.objectContaining({
-        errorMessage: undefined,
-      }),
-    );
+    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith({
+      forestServerToken: 'test-forest-token',
+      activityLog,
+      status: 'completed',
+    });
 
     jest.useRealTimers();
   });

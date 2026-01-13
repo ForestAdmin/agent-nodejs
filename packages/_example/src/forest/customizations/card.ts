@@ -136,4 +136,76 @@ export default (collection: CardCustomizer) =>
           ],
         },
       ],
+    })
+    .addAction('Test Dynamic Form', {
+      scope: 'Single',
+      form: [
+        // Type d'opération - contrôle la visibilité des autres champs
+        {
+          label: 'Operation type',
+          type: 'Enum',
+          enumValues: ['Transfer', 'Withdrawal', 'Deposit'],
+          isRequired: true,
+        },
+        // Montant - toujours visible et requis
+        {
+          label: 'Amount',
+          type: 'Number',
+          isRequired: true,
+          defaultValue: 100,
+        },
+        // Compte destination - visible seulement pour Transfer
+        {
+          label: 'Destination account',
+          type: 'String',
+          if: ctx => ctx.formValues['Operation type'] === 'Transfer',
+          isRequired: ctx => ctx.formValues['Operation type'] === 'Transfer',
+        },
+        // Référence - requis si Transfer ET montant > 1000
+        {
+          label: 'Transfer reference',
+          type: 'String',
+          if: ctx => ctx.formValues['Operation type'] === 'Transfer',
+          isRequired: ctx =>
+            ctx.formValues['Operation type'] === 'Transfer' && (ctx.formValues.Amount || 0) > 1000,
+          description: ctx =>
+            (ctx.formValues.Amount || 0) > 1000
+              ? 'Required for transfers over 1000'
+              : 'Optional for small transfers',
+        },
+        // Raison de retrait - visible seulement pour Withdrawal
+        {
+          label: 'Withdrawal reason',
+          type: 'Enum',
+          enumValues: ['Personal', 'Business', 'Emergency'],
+          if: ctx => ctx.formValues['Operation type'] === 'Withdrawal',
+        },
+        // Priorité - options différentes selon le montant
+        {
+          label: 'Priority',
+          type: 'Enum',
+          enumValues: ctx => {
+            const amount = ctx.formValues.Amount || 0;
+            if (amount > 5000) return ['Standard', 'Express', 'Urgent'];
+
+            return ['Standard', 'Express'];
+          },
+          defaultValue: 'Standard',
+        },
+        // Confirmation - apparaît pour les gros montants
+        {
+          label: 'Confirm large amount',
+          type: 'Boolean',
+          if: ctx => (ctx.formValues.Amount || 0) > 10000,
+          isRequired: ctx => (ctx.formValues.Amount || 0) > 10000,
+          description: 'You must confirm operations over 10,000',
+        },
+      ],
+      execute: async (context, resultBuilder) => {
+        const values = context.formValues;
+
+        return resultBuilder.success(
+          `Operation ${values['Operation type']} of ${values.Amount} processed`,
+        );
+      },
     });

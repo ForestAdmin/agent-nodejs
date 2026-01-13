@@ -25,6 +25,8 @@ import { isMcpRoute } from './mcp-paths';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
 import declareDescribeCollectionTool from './tools/describe-collection';
+import declareExecuteActionTool from './tools/execute-action';
+import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
@@ -60,6 +62,8 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   update: ['collectionName', 'recordId'],
   delete: ['collectionName', 'recordIds'],
   describeCollection: ['collectionName'],
+  getActionForm: ['collectionName', 'actionName', 'recordIds'],
+  executeAction: ['collectionName', 'actionName', 'recordIds'],
 };
 
 /**
@@ -148,6 +152,18 @@ export default class ForestMCPServer {
       declareCreateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
       declareUpdateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
       declareDeleteTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareGetActionFormTool(
+        this.mcpServer,
+        this.forestServerClient,
+        this.logger,
+        collectionNames,
+      ),
+      declareExecuteActionTool(
+        this.mcpServer,
+        this.forestServerClient,
+        this.logger,
+        collectionNames,
+      ),
     ];
 
     this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
