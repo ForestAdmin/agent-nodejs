@@ -91,8 +91,14 @@ export default function declareDescribeCollectionTool(
     'describeCollection',
     {
       title: 'Describe a collection',
-      description:
-        "Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data. Check `_meta` for data availability context.",
+      description: `Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data.
+
+Actions properties:
+- type: 'single' (requires one record), 'bulk' (multiple records), 'global' (no record needed)
+- hasForm: true if action requires form input (use getActionForm to see fields)
+- download: true if action returns a file download (not executable via AI)
+
+Check \`_meta\` for data availability context.`,
       inputSchema: argumentShape,
     },
     async (options: DescribeCollectionArgument, extra) => {
