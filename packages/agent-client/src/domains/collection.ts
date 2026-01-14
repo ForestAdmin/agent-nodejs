@@ -74,7 +74,9 @@ export default class Collection extends CollectionChart {
       path: `/forest/${this.name}.csv`,
       contentType: 'text/csv',
       query: {
+        // QuerySerializer.serialize sends fields[collection]=... to filter which fields are returned
         ...QuerySerializer.serialize(options, this.name),
+        // header is used separately by the CSV generator to build the first row of the CSV file
         ...(options?.fields && { header: JSON.stringify(options.fields) }),
       },
       stream,
