@@ -1794,17 +1794,41 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/ai-proxy@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/ai-proxy/-/ai-proxy-1.0.0.tgz#1417b616ce6a33e19c2341f6cde54983559d0563"
-  integrity sha512-dikTJffc828Dk9WxDwdAH18UKsY2XEvTUWa6q9TMOlPlcSkYetQGI4Xtc8yb3Ejn6pkmd6nNxlSLjhfd9Nb8QQ==
+"@forestadmin/agent-client@1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent-client/-/agent-client-1.2.3.tgz#9f48ab0a74c7fb38cd42573a0770a2b7f9cd4b05"
+  integrity sha512-R6HVdNhgmjv4BVLe9jROL3G9Ta2+rufUEE2IC0M90C4/ZXN546HiHFe8O5092EplQMDyr0XEsRlzoEAdi12fyg==
   dependencies:
-    "@forestadmin/datasource-toolkit" "1.50.0"
-    "@langchain/community" "0.3.57"
-    "@langchain/core" "1.1.4"
-    "@langchain/langgraph" "1.0.4"
-    "@langchain/mcp-adapters" "1.0.3"
-    openai "4.95.0"
+    "@forestadmin/datasource-toolkit" "1.50.1"
+    "@forestadmin/forestadmin-client" "1.37.3"
+    jsonapi-serializer "^3.6.9"
+    superagent "^10.2.3"
+
+"@forestadmin/agent@1.70.6":
+  version "1.70.6"
+  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.70.6.tgz#31d891793b64b23c9a9f027e18e8f5c15a9186ce"
+  integrity sha512-24sJ7dmXvsTIzq44Z5YzGAQfJVzpsLAqc4yFehbLkGeR+RQSCMb3e329ctoBQNkKws26QNLyef+IeaEcTzw7HQ==
+  dependencies:
+    "@fast-csv/format" "^4.3.5"
+    "@forestadmin/datasource-customizer" "1.67.2"
+    "@forestadmin/datasource-toolkit" "1.50.1"
+    "@forestadmin/forestadmin-client" "1.37.3"
+    "@forestadmin/mcp-server" "1.5.5"
+    "@koa/bodyparser" "^6.0.0"
+    "@koa/cors" "^5.0.0"
+    "@koa/router" "^13.1.0"
+    "@paralleldrive/cuid2" "2.2.2"
+    "@types/koa__router" "^12.0.4"
+    forest-ip-utils "^1.0.1"
+    json-api-serializer "^2.6.6"
+    json-stringify-pretty-compact "^3.0.0"
+    jsonwebtoken "^9.0.0"
+    koa "^3.0.1"
+    koa-jwt "^4.0.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    superagent "^10.2.3"
+    uuid "11.0.2"
 
 "@forestadmin/context@1.37.1":
   version "1.37.1"
@@ -1832,18 +1856,27 @@
     ssh2 "^1.14.0"
 
 "@forestadmin/datasource-toolkit@1.43.0":
-  version "1.50.1"
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.43.0.tgz#d9b1ab2ce52c338a0fdf9be4149b3222c5762958"
+  integrity sha512-LBtIt+z2dUPTs4ypgCA6/AlP1xJlFiz6Z+N7mz+h78HOITnaWLVF0F0Hmljav0EFI2/evtR3AghohYAeS0wiLg==
   dependencies:
     luxon "^3.2.1"
     object-hash "^3.0.0"
-    uuid "11.0.2"
+    uuid "^9.0.0"
 
-"@forestadmin/datasource-toolkit@1.50.0":
-  version "1.50.1"
+"@forestadmin/mcp-server@1.5.5":
+  version "1.5.5"
+  resolved "https://registry.yarnpkg.com/@forestadmin/mcp-server/-/mcp-server-1.5.5.tgz#f1d60154fae130b4d0454739b03a86cdbccc5bf5"
+  integrity sha512-yNGpVoh1g9z7qPgBV+Z5bIeg4RlhkQejEZNrOzLrpP3nseOroG7abozfGAL3R5sgvOwikOzMHOaqdw9B/wrMqw==
   dependencies:
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "11.0.2"
+    "@forestadmin/agent-client" "1.2.3"
+    "@forestadmin/forestadmin-client" "1.37.3"
+    "@modelcontextprotocol/sdk" "^1.25.1"
+    cors "^2.8.5"
+    express "^5.2.1"
+    jsonapi-serializer "^3.6.9"
+    jsonwebtoken "^9.0.3"
+    zod "^4.2.1"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
@@ -16826,16 +16859,7 @@ string-similarity@^4.0.1:
   resolved "https://registry.yarnpkg.com/string-similarity/-/string-similarity-4.0.4.tgz#42d01ab0b34660ea8a018da8f56a3309bb8b2a5b"
   integrity sha512-/q/8Q4Bl4ZKAPjj8WerIBJWALKkaPRfrvhfF8k/B23i4nzrlRj2/go1m90In7nG/3XDSbOo0+pu6RvCTM9RGMQ==
 
-"string-width-cjs@npm:string-width@^4.2.0":
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
-  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
-  dependencies:
-    emoji-regex "^8.0.0"
-    is-fullwidth-code-point "^3.0.0"
-    strip-ansi "^6.0.1"
-
-"string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
+"string-width-cjs@npm:string-width@^4.2.0", "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -16943,7 +16967,7 @@ string_decoder@~1.1.1:
   dependencies:
     safe-buffer "~5.1.0"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -16970,13 +16994,6 @@ strip-ansi@^5.2.0:
   integrity sha512-DuRs1gKbBqsMKIZlrffwlug8MHkcnpjs5VPmL1PAh+mA30U0DTotfDZ0d2UUsXpPmPmMMJ6W773MaA3J+lbiWA==
   dependencies:
     ansi-regex "^4.1.0"
-
-strip-ansi@^6.0.0, strip-ansi@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
-  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
-  dependencies:
-    ansi-regex "^5.0.1"
 
 strip-ansi@^7.0.1:
   version "7.1.0"
@@ -18465,7 +18482,7 @@ wordwrap@>=0.0.2, wordwrap@^1.0.0:
   resolved "https://registry.yarnpkg.com/wordwrap/-/wordwrap-1.0.0.tgz#27584810891456a4171c8d0226441ade90cbcaeb"
   integrity sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==
 
-"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
+"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
@@ -18478,15 +18495,6 @@ wrap-ansi@^6.0.1, wrap-ansi@^6.2.0:
   version "6.2.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-6.2.0.tgz#e9393ba07102e6c91a3b221478f0257cd2856e53"
   integrity sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==
-  dependencies:
-    ansi-styles "^4.0.0"
-    string-width "^4.1.0"
-    strip-ansi "^6.0.0"
-
-wrap-ansi@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
-  integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
   dependencies:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
@@ -18729,4 +18737,3 @@ zwitch@^1.0.0:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/zwitch/-/zwitch-1.0.5.tgz#d11d7381ffed16b742f6af7b3f223d5cd9fe9920"
   integrity sha512-V50KMwwzqJV0NpZIZFwfOD5/lyny3WlSzRiXgA0G7VUnRlqttta1L6UQIHzd6EuBY/cHGfwTIck7w1yH6Q5zUw==
-# Force cache invalidation for PR 1377

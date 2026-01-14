@@ -83,7 +83,7 @@ describe('csv export', () => {
     });
 
     await testableAgent.collection('restaurants').exportCsv(stream, {
-      projection: ['name', 'comment'],
+      fields: ['name', 'comment'],
       filters: {
         field: 'name',
         operator: 'Contains',
