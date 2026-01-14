@@ -267,27 +267,27 @@ export interface SchemaServiceInterface {
 }
 
 export interface ForestAdminServerInterface {
-  getEnvironmentPermissions: (...args) => Promise<EnvironmentPermissionsV4>;
-  getUsers: (...args) => Promise<UserPermissionV4[]>;
-  getRenderingPermissions: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
-  getModelCustomizations: (options: HttpOptions) => Promise<ModelCustomization[]>;
-  getMcpServerConfigs: (options: HttpOptions) => Promise<McpConfiguration>;
-  makeAuthService(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
+  getEnvironmentPermissions?: (...args) => Promise<EnvironmentPermissionsV4>;
+  getUsers?: (...args) => Promise<UserPermissionV4[]>;
+  getRenderingPermissions?: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
+  getModelCustomizations?: (options: HttpOptions) => Promise<ModelCustomization[]>;
+  getMcpServerConfigs?: (options: HttpOptions) => Promise<McpConfiguration>;
+  makeAuthService?(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
 
   // Schema operations
-  getSchema: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
-  postSchema: (options: HttpOptions, schema: object) => Promise<void>;
-  checkSchemaHash: (options: HttpOptions, hash: string) => Promise<{ sendSchema: boolean }>;
+  getSchema?: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
+  postSchema?: (options: HttpOptions, schema: object) => Promise<void>;
+  checkSchemaHash?: (options: HttpOptions, hash: string) => Promise<{ sendSchema: boolean }>;
 
   // IP whitelist operations
-  getIpWhitelistRules: (options: HttpOptions) => Promise<IpWhitelistRulesResponse>;
+  getIpWhitelistRules?: (options: HttpOptions) => Promise<IpWhitelistRulesResponse>;
 
   // Activity logs operations
-  createActivityLog: (
+  createActivityLog?: (
     options: ActivityLogHttpOptions,
     body: object,
   ) => Promise<ActivityLogResponse>;
-  updateActivityLogStatus: (
+  updateActivityLogStatus?: (
     options: ActivityLogHttpOptions,
     index: string,
     id: string,
