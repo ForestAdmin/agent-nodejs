@@ -35,8 +35,13 @@ function withDefaultImplementation(
   const defaultImplementation = new ForestHttpApi();
 
   return new Proxy(customInterface, {
-    get(target, prop: keyof ForestAdminServerInterface) {
-      const customMethod = target[prop];
+    get(target, prop: string | symbol) {
+      // Handle Symbol properties (e.g., Symbol.toStringTag, Symbol.iterator)
+      if (typeof prop === 'symbol') {
+        return Reflect.get(target, prop);
+      }
+
+      const customMethod = target[prop as keyof ForestAdminServerInterface];
 
       // Use custom implementation if provided
       if (customMethod !== undefined) {
@@ -44,7 +49,7 @@ function withDefaultImplementation(
       }
 
       // Fallback to default implementation
-      const defaultMethod = defaultImplementation[prop];
+      const defaultMethod = defaultImplementation[prop as keyof ForestAdminServerInterface];
 
       return typeof defaultMethod === 'function'
         ? defaultMethod.bind(defaultImplementation)

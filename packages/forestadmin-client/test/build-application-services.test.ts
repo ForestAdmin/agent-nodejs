@@ -37,16 +37,20 @@ describe('buildApplicationServices', () => {
 
   describe('withDefaultImplementation (fallback mechanism)', () => {
     it('should use custom implementation when method is provided', async () => {
-      const customGetUsers = jest.fn().mockResolvedValue([{ id: 1, name: 'Custom User' }]);
+      const customGetUsers = jest
+        .fn()
+        .mockResolvedValue([{ id: 1, name: 'Custom User', permissionLevel: 'admin' }]);
       const partialInterface: Partial<ForestAdminServerInterface> = {
         getUsers: customGetUsers,
       };
 
       const options = factories.forestAdminClientOptions.build();
-      buildApplicationServices(partialInterface, options);
+      const { renderingPermission } = buildApplicationServices(partialInterface, options);
 
-      // The custom method should be called, not the default
-      await customGetUsers();
+      // Trigger getUsers through the Proxy by calling a service that uses it
+      await renderingPermission.getUser(1);
+
+      // The custom method should have been called through the Proxy, not the default
       expect(customGetUsers).toHaveBeenCalled();
       expect(mockForestHttpApi.getUsers).not.toHaveBeenCalled();
     });
@@ -117,7 +121,7 @@ describe('buildApplicationServices', () => {
         .mockImplementation(function setCalledFlag(this: typeof customState) {
           this.called = true;
 
-          return Promise.resolve([]);
+          return Promise.resolve([{ id: 1, name: 'User', permissionLevel: 'admin' }]);
         })
         .bind(customState);
 
@@ -126,11 +130,10 @@ describe('buildApplicationServices', () => {
       };
 
       const options = factories.forestAdminClientOptions.build();
-      buildApplicationServices(customInterface, options);
+      const { renderingPermission } = buildApplicationServices(customInterface, options);
 
-      if (customInterface.getUsers) {
-        await customInterface.getUsers(options);
-      }
+      // Trigger getUsers through the Proxy by calling a service that uses it
+      await renderingPermission.getUser(1);
 
       expect(customState.called).toBe(true);
     });
