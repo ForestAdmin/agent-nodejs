@@ -52,13 +52,17 @@ describe('route', () => {
 
       await router.route({
         route: 'ai-query',
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: {
+          tools: [],
+          tool_choice: 'required',
+          messages: [{ role: 'user', content: 'test' }],
+        } as unknown as DispatchBody,
       });
 
       expect(dispatchMock).toHaveBeenCalledWith({
         tools: [],
         tool_choice: 'required',
-        messages: [],
+        messages: [{ role: 'user', content: 'test' }],
       });
     });
   });
@@ -70,10 +74,10 @@ describe('route', () => {
       await router.route({
         route: 'invoke-remote-tool',
         query: { 'tool-name': 'tool-name' },
-        body: { inputs: [] },
+        body: { inputs: [{ role: 'user', content: 'test' }] },
       });
 
-      expect(invokeToolMock).toHaveBeenCalledWith('tool-name', []);
+      expect(invokeToolMock).toHaveBeenCalledWith('tool-name', [{ role: 'user', content: 'test' }]);
     });
   });
 

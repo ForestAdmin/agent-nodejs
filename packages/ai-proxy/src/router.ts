@@ -7,6 +7,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import { AIUnprocessableError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
+import { dispatchBodySchema, invokeRemoteToolBodySchema, invokeToolQuerySchema } from './schemas';
 
 export type InvokeRemoteToolBody = { inputs: Messages };
 export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
@@ -55,12 +56,30 @@ export class Router {
       const remoteTools = new RemoteTools(this.localToolsApiKeys, await mcpClient?.loadTools());
 
       if (args.route === 'ai-query') {
+        const bodyResult = dispatchBodySchema.safeParse(args.body);
+
+        if (!bodyResult.success) {
+          throw new AIUnprocessableError(`Invalid body: ${bodyResult.error.message}`);
+        }
+
         return await new ProviderDispatcher(this.aiConfiguration, remoteTools).dispatch(
           args.body as DispatchBody,
         );
       }
 
       if (args.route === 'invoke-remote-tool') {
+        const bodyResult = invokeRemoteToolBodySchema.safeParse(args.body);
+
+        if (!bodyResult.success) {
+          throw new AIUnprocessableError(`Invalid body: ${bodyResult.error.message}`);
+        }
+
+        const queryResult = invokeToolQuerySchema.safeParse(args.query);
+
+        if (!queryResult.success) {
+          throw new AIUnprocessableError(`Invalid query: ${queryResult.error.message}`);
+        }
+
         return await remoteTools.invokeTool(
           args.query['tool-name'],
           (args.body as InvokeRemoteToolBody).inputs,
