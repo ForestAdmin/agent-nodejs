@@ -1,17 +1,20 @@
 import type RemoteTool from '../remote-tool';
 import type { BraveConfig } from './brave/tools';
 import type { GmailConfig } from './gmail/tools';
+import type { InfogreffeConfig } from './infogreffe/tools';
 import type { SlackConfig } from './slack/tools';
 import type { ZendeskConfig } from './zendesk/tools';
 
 import getBraveTools from './brave/tools';
 import getGmailTools from './gmail/tools';
+import getInfogreffeTools from './infogreffe/tools';
 import getSlackTools from './slack/tools';
 import getZendeskTools from './zendesk/tools';
 
 export interface IntegrationConfigs {
   brave?: BraveConfig;
   gmail?: GmailConfig;
+  infogreffe?: InfogreffeConfig;
   slack?: SlackConfig;
   zendesk?: ZendeskConfig;
 }
@@ -33,6 +36,10 @@ export default function getIntegratedTools(configs: IntegrationConfigs): RemoteT
 
   if (configs.zendesk) {
     integratedTools.push(...getZendeskTools(configs.zendesk));
+  }
+
+  if (configs.infogreffe) {
+    integratedTools.push(...getInfogreffeTools(configs.infogreffe));
   }
 
   return integratedTools;
