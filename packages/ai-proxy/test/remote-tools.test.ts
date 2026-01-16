@@ -4,7 +4,7 @@ import type { JSONSchema } from '@langchain/core/utils/json_schema';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { RemoteTools } from '../src';
-import RemoteTool from '../src/remote-tool';
+import McpServerRemoteTool from '../src/mcp-server-remote-tool';
 
 describe('RemoteTools', () => {
   const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
@@ -31,7 +31,7 @@ describe('RemoteTools', () => {
     describe('when tools are passed in the constructor', () => {
       it('should return the tools', () => {
         const tools = [
-          new RemoteTool({
+          new McpServerRemoteTool({
             tool: {
               name: 'tool1',
               description: 'description1',
@@ -42,7 +42,8 @@ describe('RemoteTools', () => {
         ];
         const remoteTools = new RemoteTools(apiKeys, tools);
         expect(remoteTools.tools.length).toEqual(2);
-        expect(remoteTools.tools[0].base.name).toEqual('tool1');
+        // Server tools (brave-search) are added first, then passed tools
+        expect(remoteTools.tools[1].base.name).toEqual('tool1');
       });
     });
   });

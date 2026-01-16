@@ -3,7 +3,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 import { McpConnectionError } from './errors';
-import RemoteTool from './remote-tool';
+import McpServerRemoteTool from './mcp-server-remote-tool';
 
 export type McpConfiguration = {
   configs: MultiServerMCPClient['config']['mcpServers'];
@@ -13,7 +13,7 @@ export default class McpClient {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
   private readonly logger?: Logger;
 
-  readonly tools: RemoteTool[] = [];
+  readonly tools: McpServerRemoteTool[] = [];
 
   constructor(config: McpConfiguration, logger?: Logger) {
     this.logger = logger;
@@ -27,7 +27,7 @@ export default class McpClient {
     });
   }
 
-  async loadTools(): Promise<RemoteTool[]> {
+  async loadTools(): Promise<McpServerRemoteTool[]> {
     const errors: Array<{ server: string; error: Error }> = [];
 
     await Promise.all(
@@ -35,12 +35,7 @@ export default class McpClient {
         try {
           const tools = (await client.getTools()) ?? [];
           const extendedTools = tools.map(
-            tool =>
-              new RemoteTool({
-                tool,
-                sourceId: name,
-                sourceType: 'mcp-server',
-              }),
+            tool => new McpServerRemoteTool({ tool, sourceId: name }),
           );
           this.tools.push(...extendedTools);
         } catch (error) {

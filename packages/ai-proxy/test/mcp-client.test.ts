@@ -4,7 +4,7 @@ import { tool } from '@langchain/core/tools';
 
 import { McpConnectionError } from '../src';
 import McpClient from '../src/mcp-client';
-import RemoteTool from '../src/remote-tool';
+import McpServerRemoteTool from '../src/mcp-server-remote-tool';
 
 const getToolsMock = jest.fn();
 const closeMock = jest.fn();
@@ -56,15 +56,13 @@ describe('McpClient', () => {
         await mcpClient.loadTools();
 
         expect(mcpClient.tools).toEqual([
-          new RemoteTool({
+          new McpServerRemoteTool({
             tool: tool1,
             sourceId: 'slack',
-            sourceType: 'mcp-server',
           }),
-          new RemoteTool({
+          new McpServerRemoteTool({
             tool: tool2,
             sourceId: 'slack',
-            sourceType: 'mcp-server',
           }),
         ]);
       });
