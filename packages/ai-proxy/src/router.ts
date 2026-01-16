@@ -1,6 +1,7 @@
 import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
-import type { Messages, RemoteToolsApiKeys } from './remote-tools';
+import type { Messages } from './remote-tools';
+import type { ServerRemoteToolsApiKeys } from './server-remote-tool-builder';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, ProviderDispatcher } from './index';
@@ -13,7 +14,7 @@ export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool';
 export type Query = {
   'tool-name'?: string;
 };
-export type ApiKeys = RemoteToolsApiKeys;
+export type ApiKeys = ServerRemoteToolsApiKeys;
 
 export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
