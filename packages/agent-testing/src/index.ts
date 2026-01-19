@@ -20,11 +20,13 @@ export { AgentOptions, Agent } from '@forestadmin/agent';
 export * from './types';
 
 export { SchemaPathManager, ForestServerSandbox, TestableAgent };
+export type AgentTestClient = TestableAgentBase;
+/** @deprecated Use AgentTestClient instead */
 export type ForestAgentClient = TestableAgentBase;
 
 /**
  * Create a forest server sandbox
- * It is useful to test the agent if you use the createForestAgentClient way to test your agent
+ * It is useful to test the agent if you use the createAgentTestClient way to test your agent
  * @param port
  */
 export async function createForestServerSandbox(port: number): Promise<ForestServerSandbox> {
@@ -32,19 +34,19 @@ export async function createForestServerSandbox(port: number): Promise<ForestSer
 }
 
 /**
- * Create a forest client to test your agent customizations
+ * Create a test client to test your agent customizations
  * by sending requests to the agent like the frontend does.
  * With this client, you should start your agent by yourself.
  * You can test any agent with this client (python, ruby, nodeJs, etc.)
  * @param options
  */
-export async function createForestAgentClient(options: {
+export async function createAgentTestClient(options: {
   agentForestEnvSecret: string;
   agentForestAuthSecret: string;
   agentUrl: string;
   serverUrl: string;
   agentSchemaPath: string;
-}): Promise<ForestAgentClient> {
+}): Promise<AgentTestClient> {
   const { serverUrl, agentUrl, agentSchemaPath } = options;
   let schema: ForestSchema;
 
@@ -80,11 +82,11 @@ export async function createForestAgentClient(options: {
 }
 
 /**
+ * @deprecated Use createAgentTestClient with createForestServerSandbox instead.
+ *
  * Create a testable agent
  * You can test your agentNodejs customizations by injecting your customizations.
  * It will start the agent for you. You don't need to start the agent by yourself and a server.
- * It's not compatible with the createForestAgentClient & createForestServerSandbox way.
- * It is recommended to user createForestAgentClient & createForestServerSandbox to test your agent.
  *
  * @param customizer
  * @param options
@@ -115,3 +117,6 @@ export async function createTestableAgent<TypingsSchema extends TSchema = TSchem
 
   return new TestableAgent<TypingsSchema>({ agent, agentOptions });
 }
+
+/** @deprecated Use createAgentTestClient instead */
+export const createForestAgentClient = createAgentTestClient;

@@ -12,19 +12,19 @@ yarn add --dev @forestadmin/agent-testing
 
 ## Quick Start
 
-Test your agent using `createForestServerSandbox` and `createForestAgentClient`:
+Test your agent using `createForestServerSandbox` and `createAgentTestClient`:
 
 ```typescript
 import {
-  createForestAgentClient,
+  createAgentTestClient,
   createForestServerSandbox,
   ForestServerSandbox,
-  ForestAgentClient,
+  AgentTestClient,
 } from '@forestadmin/agent-testing';
 
 describe('My Agent Tests', () => {
   let sandbox: ForestServerSandbox;
-  let client: ForestAgentClient;
+  let client: AgentTestClient;
 
   beforeAll(async () => {
     // 1. Start the sandbox server (mocks Forest Admin server)
@@ -34,7 +34,7 @@ describe('My Agent Tests', () => {
     //    (your agent should use FOREST_SERVER_URL=http://localhost:3001)
 
     // 3. Create client to communicate with your agent
-    client = await createForestAgentClient({
+    client = await createAgentTestClient({
       agentUrl: 'http://localhost:3310',              // Your agent URL
       serverUrl: 'http://localhost:3001',             // Sandbox server URL
       agentSchemaPath: './.forestadmin-schema.json',  // Path to schema file
@@ -103,7 +103,7 @@ const sandbox = await createForestServerSandbox(3001);
 await sandbox.close();
 ```
 
-### `createForestAgentClient(options)`
+### `createAgentTestClient(options)`
 
 Creates a client to communicate with your agent.
 
@@ -114,10 +114,10 @@ Creates a client to communicate with your agent.
 - `agentForestEnvSecret`: `string` - Your agent's env secret
 - `agentForestAuthSecret`: `string` - Your agent's auth secret
 
-**Returns:** `Promise<ForestAgentClient>`
+**Returns:** `Promise<AgentTestClient>`
 
 ```typescript
-const client = await createForestAgentClient({
+const client = await createAgentTestClient({
   agentUrl: 'http://localhost:3310',
   serverUrl: 'http://localhost:3001',
   agentSchemaPath: './.forestadmin-schema.json',
@@ -401,15 +401,15 @@ console.log(`Duration: ${results.duration}ms`);
 
 ```typescript
 import {
-  createForestAgentClient,
+  createAgentTestClient,
   createForestServerSandbox,
   ForestServerSandbox,
-  ForestAgentClient,
+  AgentTestClient,
 } from '@forestadmin/agent-testing';
 
 describe('Restaurant Reviews', () => {
   let sandbox: ForestServerSandbox;
-  let client: ForestAgentClient;
+  let client: AgentTestClient;
 
   beforeAll(async () => {
     // 1. Start the sandbox server
@@ -419,7 +419,7 @@ describe('Restaurant Reviews', () => {
     //    This step depends on your agent setup
 
     // 3. Create the client
-    client = await createForestAgentClient({
+    client = await createAgentTestClient({
       agentUrl: 'http://localhost:3310',
       serverUrl: 'http://localhost:3001',
       agentSchemaPath: './.forestadmin-schema.json',
