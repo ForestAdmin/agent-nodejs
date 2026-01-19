@@ -5,7 +5,7 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 import { BraveSearch } from '@langchain/community/tools/brave_search';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
-import { AIToolNotFoundError, AIToolUnprocessableError } from './errors';
+import { AIToolNotFoundError, AIToolUnprocessableError } from './types/errors';
 import ServerRemoteTool from './types/server-remote-tool';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];

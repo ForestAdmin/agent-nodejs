@@ -2,7 +2,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
-import { McpConnectionError } from './errors';
+import { McpConnectionError } from './types/errors';
 import McpServerRemoteTool from './types/mcp-server-remote-tool';
 
 export type McpConfiguration = {
