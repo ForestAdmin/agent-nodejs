@@ -1,3 +1,4 @@
+import type RemoteTool from './types/remote-tool';
 import type { ResponseFormat } from '@langchain/core/tools';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
@@ -5,7 +6,7 @@ import { BraveSearch } from '@langchain/community/tools/brave_search';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { AIToolNotFoundError, AIToolUnprocessableError } from './errors';
-import RemoteTool from './remote-tool';
+import ServerRemoteTool from './types/server-remote-tool';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
 
@@ -23,9 +24,8 @@ export class RemoteTools {
 
     if (this.apiKeys?.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY) {
       this.tools.push(
-        new RemoteTool({
+        new ServerRemoteTool({
           sourceId: 'brave_search',
-          sourceType: 'server',
           tool: new BraveSearch({ apiKey: this.apiKeys.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY }),
         }),
       );
