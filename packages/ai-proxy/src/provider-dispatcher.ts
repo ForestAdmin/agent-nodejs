@@ -1,15 +1,15 @@
 import type { RemoteTools } from './remote-tools';
-import type { ClientOptions } from 'openai';
-import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
+import type { BaseMessageLike } from '@langchain/core/messages';
+import type { ChatOpenAIFields } from '@langchain/openai';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
-import OpenAI from 'openai';
+import { ChatOpenAI } from '@langchain/openai';
 
 import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
-export type OpenAiConfiguration = ClientOptions & {
+export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model'> & {
   provider: 'openai';
-  model: ChatCompletionCreateParamsNonStreaming['model'];
+  model: string;
 };
 
 export type AiConfiguration = OpenAiConfiguration & {
@@ -18,17 +18,23 @@ export type AiConfiguration = OpenAiConfiguration & {
 
 export type AiProvider = AiConfiguration['provider'];
 
-export type OpenAIBody = Pick<
-  ChatCompletionCreateParamsNonStreaming,
-  'tools' | 'messages' | 'tool_choice'
->;
+export type Tool = {
+  type: 'function';
+  function: {
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+  };
+};
 
-export type DispatchBody = OpenAIBody;
-
-type OpenAiClient = { client: OpenAI; model: ChatCompletionCreateParamsNonStreaming['model'] };
+export type DispatchBody = {
+  tools?: Tool[];
+  messages: BaseMessageLike[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+};
 
 export class ProviderDispatcher {
-  private readonly aiClient: OpenAiClient | null = null;
+  private readonly chatModel: ChatOpenAI | null = null;
 
   private readonly remoteTools: RemoteTools;
 
@@ -36,39 +42,66 @@ export class ProviderDispatcher {
     this.remoteTools = remoteTools;
 
     if (configuration?.provider === 'openai' && configuration.apiKey) {
-      const { provider, model, ...clientOptions } = configuration;
-      this.aiClient = {
-        client: new OpenAI(clientOptions),
-        model,
-      };
+      const { provider, name, ...chatOpenAIOptions } = configuration;
+      this.chatModel = new ChatOpenAI(chatOpenAIOptions);
     }
   }
 
   async dispatch(body: DispatchBody): Promise<unknown> {
-    if (!this.aiClient) {
+    if (!this.chatModel) {
       throw new AINotConfiguredError();
     }
 
-    // tools, messages and tool_choice must be extracted from the body and passed as options
-    // because we don't want to let users to pass any other option
     const { tools, messages, tool_choice: toolChoice } = body;
 
-    const options = {
-      model: this.aiClient.model,
-      // Add the remote tools to the tools to be used by the AI
-      tools: this.enhanceOpenAIRemoteTools(tools),
-      messages,
-      tool_choice: toolChoice,
-    } as ChatCompletionCreateParamsNonStreaming;
-
     try {
-      return await this.aiClient.client.chat.completions.create(options);
+      const enhancedTools = this.enhanceRemoteTools(tools);
+
+      const model =
+        enhancedTools && enhancedTools.length > 0
+          ? this.chatModel.bindTools(enhancedTools, { tool_choice: toolChoice })
+          : this.chatModel;
+
+      const response = await model.invoke(messages);
+
+      const responseMetadata = response.response_metadata as { finish_reason?: string } | undefined;
+      const usageMetadata = response.usage_metadata as
+        | { input_tokens: number; output_tokens: number; total_tokens: number }
+        | undefined;
+
+      // Convert LangChain response to OpenAI-compatible format
+      return {
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: response.content,
+              tool_calls: response.tool_calls?.map(tc => ({
+                id: tc.id,
+                type: 'function',
+                function: {
+                  name: tc.name,
+                  arguments: JSON.stringify(tc.args),
+                },
+              })),
+            },
+            finish_reason: responseMetadata?.finish_reason || 'stop',
+          },
+        ],
+        usage: usageMetadata
+          ? {
+              prompt_tokens: usageMetadata.input_tokens,
+              completion_tokens: usageMetadata.output_tokens,
+              total_tokens: usageMetadata.total_tokens,
+            }
+          : undefined,
+      };
     } catch (error) {
       throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${(error as Error).message}`);
     }
   }
 
-  private enhanceOpenAIRemoteTools(tools?: ChatCompletionCreateParamsNonStreaming['tools']) {
+  private enhanceRemoteTools(tools?: Tool[]) {
     if (!tools || !Array.isArray(tools)) return tools;
 
     const remoteToolFunctions = this.remoteTools.tools.map(extendedTools =>
