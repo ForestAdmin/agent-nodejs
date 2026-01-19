@@ -10,23 +10,9 @@ npm install --save-dev @forestadmin/agent-testing
 yarn add --dev @forestadmin/agent-testing
 ```
 
-## Testing Modes
+## Quick Start
 
-This package provides two approaches for testing your agent:
-
-| Mode | Use Case | Recommended |
-|------|----------|-------------|
-| **Sandbox Mode** | Production-like testing with a mock Forest Admin server | ✅ Yes |
-| **Simple Mode** | Quick tests with internal mocking | For simple cases |
-
-**Sandbox mode is recommended** because it:
-- Tests your agent in conditions closer to production (agent ↔ server communication)
-- Supports permission testing with realistic server responses
-- Works with any agent (Node.js, Python, Ruby, etc.)
-
-## Quick Start (Sandbox Mode - Recommended)
-
-The recommended way to test your agent is using the sandbox mode with `createForestServerSandbox` and `createForestAgentClient`:
+Test your agent using `createForestServerSandbox` and `createForestAgentClient`:
 
 ```typescript
 import {
@@ -100,105 +86,60 @@ const agent = createAgent({
 
 When running tests, set `FOREST_SERVER_URL` to your sandbox URL (e.g., `http://localhost:3001`).
 
-## Simple Mode (Alternative)
+## API Reference
 
-For quick tests without setting up a separate agent process, use `createTestableAgent`:
+### `createForestServerSandbox(port)`
+
+Creates a sandbox server that mocks Forest Admin server.
+
+**Parameters:**
+- `port`: `number` - Port to run the sandbox server on
+
+**Returns:** `Promise<ForestServerSandbox>`
 
 ```typescript
-import { Agent } from '@forestadmin/agent';
-import { createSqlDataSource } from '@forestadmin/datasource-sql';
-import { createTestableAgent, TestableAgent } from '@forestadmin/agent-testing';
+const sandbox = await createForestServerSandbox(3001);
+// ... run tests
+await sandbox.close();
+```
 
-describe('My Agent Tests', () => {
-  let testableAgent: TestableAgent;
+### `createForestAgentClient(options)`
 
-  beforeAll(async () => {
-    testableAgent = await createTestableAgent((agent: Agent) => {
-      // Add your datasource
-      agent.addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: ':memory:' }));
+Creates a client to communicate with your agent.
 
-      // Add your customizations
-      agent.customizeCollection('users', collection => {
-        collection.addField('fullName', {
-          columnType: 'String',
-          dependencies: ['firstName', 'lastName'],
-          getValues: records => records.map(r => `${r.firstName} ${r.lastName}`),
-        });
-      });
-    });
+**Parameters:**
+- `agentUrl`: `string` - URL where your agent is running
+- `serverUrl`: `string` - URL of the sandbox server
+- `agentSchemaPath`: `string` - Path to `.forestadmin-schema.json`
+- `agentForestEnvSecret`: `string` - Your agent's env secret
+- `agentForestAuthSecret`: `string` - Your agent's auth secret
 
-    await testableAgent.start();
-  });
+**Returns:** `Promise<ForestAgentClient>`
 
-  afterAll(async () => {
-    await testableAgent?.stop();
-  });
-
-  it('should compute fullName correctly', async () => {
-    const [user] = await testableAgent.collection('users').list<{ fullName: string }>();
-    expect(user.fullName).toEqual('John Doe');
-  });
+```typescript
+const client = await createForestAgentClient({
+  agentUrl: 'http://localhost:3310',
+  serverUrl: 'http://localhost:3001',
+  agentSchemaPath: './.forestadmin-schema.json',
+  agentForestEnvSecret: 'your-env-secret',
+  agentForestAuthSecret: 'your-auth-secret',
 });
 ```
 
-> **Note:** Simple mode uses internal mocking and doesn't test the full agent-server communication. Use sandbox mode for more realistic testing.
-
-## API Reference
-
-### `createTestableAgent(customizer, options?)`
-
-Creates a testable agent instance with your customizations.
-
-**Parameters:**
-- `customizer`: `(agent: Agent) => void` - Function to configure your agent
-- `options?`: `TestableAgentOptions` - Optional configuration
-
-**Returns:** `Promise<TestableAgent>`
-
-```typescript
-const testableAgent = await createTestableAgent(
-  (agent) => {
-    agent.addDataSource(myDataSource);
-    agent.customizeCollection('users', collection => { /* ... */ });
-  },
-  {
-    port: 3000,        // Optional: specific port (default: random)
-    envSecret: '...',  // Optional: custom env secret
-    authSecret: '...', // Optional: custom auth secret
-  }
-);
-```
-
-### TestableAgent Methods
-
-#### `start()`
-Starts the agent server. Must be called before running tests.
-
-```typescript
-await testableAgent.start();
-```
-
-#### `stop()`
-Stops the agent server and cleans up resources.
-
-```typescript
-await testableAgent.stop();
-```
+### Collection Methods
 
 #### `collection(name)`
 Returns a collection client for querying and testing.
 
 ```typescript
-const collection = testableAgent.collection('users');
+const collection = client.collection('users');
 ```
-
-### Collection Methods
 
 #### `list<T>(options?)`
 Retrieves records from the collection.
 
 ```typescript
-const users = await testableAgent.collection('users').list<{ id: number; name: string }>({
+const users = await client.collection('users').list<{ id: number; name: string }>({
   filters: {
     conditionTree: { field: 'age', operator: 'GreaterThan', value: 18 },
   },
@@ -211,14 +152,14 @@ const users = await testableAgent.collection('users').list<{ id: number; name: s
 Searches records in the collection.
 
 ```typescript
-const users = await testableAgent.collection('users').search<{ name: string }>('John');
+const users = await client.collection('users').search<{ name: string }>('John');
 ```
 
 #### `count(options?)`
 Counts records in the collection.
 
 ```typescript
-const count = await testableAgent.collection('users').count({
+const count = await client.collection('users').count({
   filters: { conditionTree: { field: 'active', operator: 'Equal', value: true } },
 });
 ```
@@ -227,7 +168,7 @@ const count = await testableAgent.collection('users').count({
 Creates a new record.
 
 ```typescript
-const user = await testableAgent.collection('users').create<{ id: number }>({
+const user = await client.collection('users').create<{ id: number }>({
   firstName: 'John',
   lastName: 'Doe',
 });
@@ -237,21 +178,21 @@ const user = await testableAgent.collection('users').create<{ id: number }>({
 Updates an existing record.
 
 ```typescript
-await testableAgent.collection('users').update(userId, { firstName: 'Jane' });
+await client.collection('users').update(userId, { firstName: 'Jane' });
 ```
 
 #### `delete(ids)`
 Deletes records by their IDs.
 
 ```typescript
-await testableAgent.collection('users').delete([1, 2, 3]);
+await client.collection('users').delete([1, 2, 3]);
 ```
 
 #### `segment(name)`
 Accesses a named segment.
 
 ```typescript
-const minorUsers = await testableAgent
+const minorUsers = await client
   .collection('users')
   .segment('minorUsers')
   .list<{ age: number }>();
@@ -261,7 +202,7 @@ const minorUsers = await testableAgent
 Accesses a live query segment.
 
 ```typescript
-const users = await testableAgent
+const users = await client
   .collection('users')
   .liveQuerySegment({
     connectionName: 'main',
@@ -274,7 +215,7 @@ const users = await testableAgent
 Accesses a relation from a parent record.
 
 ```typescript
-const orders = await testableAgent
+const orders = await client
   .collection('users')
   .relation('orders', userId)
   .list<{ total: number }>();
@@ -287,7 +228,7 @@ Exports collection data to CSV.
 import { createWriteStream } from 'fs';
 
 const stream = createWriteStream('export.csv');
-await testableAgent.collection('users').exportCsv(stream, {
+await client.collection('users').exportCsv(stream, {
   projection: ['id', 'name', 'email'],
 });
 ```
@@ -298,11 +239,11 @@ await testableAgent.collection('users').exportCsv(stream, {
 Retrieves an action form for testing.
 
 ```typescript
-const action = await testableAgent
+const action = await client
   .collection('restaurants')
   .action('Leave a review', { recordId: restaurantId });
 // or for multiple records
-const action = await testableAgent
+const action = await client
   .collection('restaurants')
   .action('Bulk action', { recordIds: [1, 2, 3] });
 ```
@@ -374,44 +315,44 @@ await action.execute();
 
 ```typescript
 // Value chart
-const value = await testableAgent.chart('Total Revenue').getValue();
+const value = await client.chart('Total Revenue').getValue();
 expect(value).toBe(50000);
 
 // Objective chart
-const objective = await testableAgent.chart('Monthly Goal').getObjective();
+const objective = await client.chart('Monthly Goal').getObjective();
 expect(objective.value).toBe(80);
 expect(objective.objective).toBe(100);
 
 // Distribution/Pie chart
-const distribution = await testableAgent.chart('Users by Country').getDistribution();
+const distribution = await client.chart('Users by Country').getDistribution();
 expect(distribution).toEqual([
   { key: 'USA', value: 500 },
   { key: 'France', value: 300 },
 ]);
 
 // Leaderboard chart
-const leaderboard = await testableAgent.chart('Top Sellers').getLeaderboard();
+const leaderboard = await client.chart('Top Sellers').getLeaderboard();
 expect(leaderboard).toEqual([
   { key: 'Product A', value: 1000 },
   { key: 'Product B', value: 800 },
 ]);
 
 // Time-based chart
-const timeSeries = await testableAgent.chart('Sales Over Time').getTimeBased();
+const timeSeries = await client.chart('Sales Over Time').getTimeBased();
 expect(timeSeries).toEqual([
   { label: '2024-01', values: { value: 5000 } },
   { label: '2024-02', values: { value: 6000 } },
 ]);
 
 // Percentage chart
-const percentage = await testableAgent.chart('Completion Rate').getPercentage();
+const percentage = await client.chart('Completion Rate').getPercentage();
 expect(percentage).toBe(75);
 ```
 
 #### Collection Charts
 
 ```typescript
-const chart = await testableAgent
+const chart = await client
   .collection('orders')
   .chart('Revenue by Status')
   .getDistribution();
@@ -423,20 +364,20 @@ Override permissions for testing authorization scenarios:
 
 ```typescript
 // Override collection permissions
-await testableAgent.overrideCollectionPermission('users', {
+await client.overrideCollectionPermission('users', {
   browseEnabled: true,
   deleteEnabled: false,
   editEnabled: true,
 });
 
 // Override action permissions
-await testableAgent.overrideActionPermission('users', 'Delete User', {
+await client.overrideActionPermission('users', 'Delete User', {
   triggerEnabled: false,
   approvalRequired: true,
 });
 
 // Clear all permission overrides
-await testableAgent.clearPermissionOverride();
+await client.clearPermissionOverride();
 ```
 
 ## Advanced Usage
@@ -446,11 +387,11 @@ await testableAgent.clearPermissionOverride();
 The package includes utilities for performance testing:
 
 ```typescript
-const benchmark = testableAgent.benchmark();
+const benchmark = client.benchmark();
 
 // Run your operations
 const results = await benchmark.measure(async () => {
-  await testableAgent.collection('users').list();
+  await client.collection('users').list();
 });
 
 console.log(`Duration: ${results.duration}ms`);
@@ -459,72 +400,45 @@ console.log(`Duration: ${results.duration}ms`);
 ## Complete Example
 
 ```typescript
-import { Agent } from '@forestadmin/agent';
-import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
-import { DataTypes } from 'sequelize';
-import { createTestableAgent, TestableAgent } from '@forestadmin/agent-testing';
+import {
+  createForestAgentClient,
+  createForestServerSandbox,
+  ForestServerSandbox,
+  ForestAgentClient,
+} from '@forestadmin/agent-testing';
 
 describe('Restaurant Reviews', () => {
-  let testableAgent: TestableAgent;
-  let sequelize: Awaited<ReturnType<typeof buildSequelizeInstance>>;
-  let restaurantId: number;
+  let sandbox: ForestServerSandbox;
+  let client: ForestAgentClient;
 
   beforeAll(async () => {
-    // Setup database
-    sequelize = await buildSequelizeInstance({ dialect: 'sqlite', storage: ':memory:' });
-    sequelize.define('restaurants', {
-      name: { type: DataTypes.STRING },
-      rating: { type: DataTypes.INTEGER },
-      comment: { type: DataTypes.STRING },
+    // 1. Start the sandbox server
+    sandbox = await createForestServerSandbox(3001);
+
+    // 2. Start your agent (configured with FOREST_SERVER_URL=http://localhost:3001)
+    //    This step depends on your agent setup
+
+    // 3. Create the client
+    client = await createForestAgentClient({
+      agentUrl: 'http://localhost:3310',
+      serverUrl: 'http://localhost:3001',
+      agentSchemaPath: './.forestadmin-schema.json',
+      agentForestEnvSecret: 'your-env-secret',
+      agentForestAuthSecret: 'your-auth-secret',
     });
-    await sequelize.sync({ force: true });
-
-    // Create testable agent with customizations
-    testableAgent = await createTestableAgent((agent: Agent) => {
-      agent.addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: ':memory:' }));
-
-      agent.customizeCollection('restaurants', collection => {
-        collection.addAction('Leave a review', {
-          scope: 'Single',
-          form: [
-            { label: 'rating', type: 'Number', isRequired: true },
-            {
-              label: 'comment',
-              type: 'String',
-              if: ctx => Number(ctx.formValues.rating) >= 4,
-            },
-          ],
-          execute: async (context) => {
-            const { id } = await context.getRecord(['id']);
-            await context.dataSource.getCollection('restaurants').update(
-              { conditionTree: { field: 'id', operator: 'Equal', value: id } },
-              {
-                rating: context.formValues.rating,
-                comment: context.formValues.comment,
-              },
-            );
-          },
-        });
-      });
-    });
-
-    await testableAgent.start();
   });
 
   afterAll(async () => {
-    await testableAgent?.stop();
-    await sequelize?.close();
-  });
-
-  beforeEach(async () => {
-    const restaurant = await sequelize.models.restaurants.create({ name: 'Test Restaurant' });
-    restaurantId = restaurant.dataValues.id;
+    await sandbox?.close();
+    // Stop your agent here
   });
 
   it('should show comment field only for high ratings', async () => {
-    const action = await testableAgent
+    const [restaurant] = await client.collection('restaurants').list<{ id: number }>();
+
+    const action = await client
       .collection('restaurants')
-      .action('Leave a review', { recordId: restaurantId });
+      .action('Leave a review', { recordId: restaurant.id });
 
     // Comment field should not exist initially
     expect(action.doesFieldExist('comment')).toBe(false);
@@ -537,22 +451,24 @@ describe('Restaurant Reviews', () => {
   });
 
   it('should save review to database', async () => {
-    const action = await testableAgent
+    const [restaurant] = await client.collection('restaurants').list<{ id: number }>();
+
+    const action = await client
       .collection('restaurants')
-      .action('Leave a review', { recordId: restaurantId });
+      .action('Leave a review', { recordId: restaurant.id });
 
     await action.getFieldNumber('rating').fill(5);
     await action.getFieldString('comment').fill('Excellent!');
     await action.execute();
 
-    const [restaurant] = await testableAgent
+    const [updated] = await client
       .collection('restaurants')
       .list<{ rating: number; comment: string }>({
-        filters: { conditionTree: { field: 'id', value: restaurantId, operator: 'Equal' } },
+        filters: { conditionTree: { field: 'id', value: restaurant.id, operator: 'Equal' } },
       });
 
-    expect(restaurant.rating).toBe(5);
-    expect(restaurant.comment).toBe('Excellent!');
+    expect(updated.rating).toBe(5);
+    expect(updated.comment).toBe('Excellent!');
   });
 });
 ```
