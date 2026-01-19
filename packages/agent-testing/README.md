@@ -1,6 +1,6 @@
 # @forestadmin/agent-testing
 
-Integration testing utilities for Forest Admin agents.
+Test your Forest Admin agent customizations (actions, hooks, segments) locally without connecting to Forest Admin servers.
 
 ## Installation
 
@@ -8,22 +8,7 @@ Integration testing utilities for Forest Admin agents.
 npm install --save-dev @forestadmin/agent-testing
 ```
 
-## Setup
-
-### 1. Configure your agent
-
-Your agent must accept a configurable `forestServerUrl`:
-
-```typescript
-// agent.ts
-const agent = createAgent({
-  envSecret: process.env.FOREST_ENV_SECRET,
-  authSecret: process.env.FOREST_AUTH_SECRET,
-  forestServerUrl: process.env.FOREST_SERVER_URL,
-});
-```
-
-### 2. Write your test
+## Quick Start
 
 ```typescript
 import {
@@ -35,18 +20,19 @@ describe('My Agent', () => {
   let sandbox, client;
 
   beforeAll(async () => {
-    // Start sandbox (mocks Forest Admin server)
+    // 1. Start a local sandbox that replaces Forest Admin servers
     sandbox = await createForestServerSandbox(3001);
 
-    // Start your agent with FOREST_SERVER_URL=http://localhost:3001
+    // 2. Start your agent pointing to the sandbox
+    // FOREST_SERVER_URL=http://localhost:3001 node your-agent.js
 
-    // Create test client
+    // 3. Connect the test client
     client = await createAgentTestClient({
-      agentUrl: 'http://localhost:3310',
       serverUrl: 'http://localhost:3001',
+      agentUrl: 'http://localhost:3310',
       agentSchemaPath: './.forestadmin-schema.json',
-      agentForestEnvSecret: 'your-env-secret',
-      agentForestAuthSecret: 'your-auth-secret',
+      agentForestEnvSecret: process.env.FOREST_ENV_SECRET,
+      agentForestAuthSecret: process.env.FOREST_AUTH_SECRET,
     });
   });
 
@@ -54,7 +40,7 @@ describe('My Agent', () => {
     await sandbox?.close();
   });
 
-  it('should list records', async () => {
+  it('should list users', async () => {
     const users = await client.collection('users').list();
     expect(users.length).toBeGreaterThan(0);
   });
