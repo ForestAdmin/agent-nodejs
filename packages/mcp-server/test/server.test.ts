@@ -2111,7 +2111,7 @@ describe('ForestMCPServer Instance', () => {
         });
 
       // Should log the error from the tool response
-      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('[MCP]'));
+      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('Tool error:'));
     });
 
     it('should log HTTP response at the end with status and duration', async () => {
