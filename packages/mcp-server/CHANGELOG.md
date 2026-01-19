@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.6.1...@forestadmin/mcp-server@1.6.2) (2026-01-19)
+
+
+### Bug Fixes
+
+* **mcp server:** add debug logs for the refresh token flow ([#1423](https://github.com/ForestAdmin/agent-nodejs/issues/1423)) ([b169a0a](https://github.com/ForestAdmin/agent-nodejs/commit/b169a0a4d707ac1fa348efd04a659c4b9362e401))
+
 ## @forestadmin/mcp-server [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.6.0...@forestadmin/mcp-server@1.6.1) (2026-01-14)
 
 
