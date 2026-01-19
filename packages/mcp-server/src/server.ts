@@ -44,10 +44,10 @@ export type HttpCallback = (
 ) => void;
 
 function getDefaultLogFn(level: LogLevel): (message: string) => void {
-  if (level === 'Error') return (msg: string) => console.error(`[MCP Server] ${msg}`);
-  if (level === 'Warn') return (msg: string) => console.warn(`[MCP Server] ${msg}`);
+  if (level === 'Error') return (msg: string) => console.error(msg);
+  if (level === 'Warn') return (msg: string) => console.warn(msg);
 
-  return (msg: string) => console.info(`[MCP Server] ${msg}`);
+  return (msg: string) => console.info(msg);
 }
 
 const defaultLogger: Logger = (level, message) => {
@@ -109,9 +109,7 @@ export default class ForestMCPServer {
     this.forestAppUrl = options?.forestAppUrl || 'https://app.forestadmin.com';
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
-    this.logger = options?.logger
-      ? (level: LogLevel, message: string) => options.logger(level, `[MCP Server] ${message}`)
-      : defaultLogger;
+    this.logger = options?.logger || defaultLogger;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();

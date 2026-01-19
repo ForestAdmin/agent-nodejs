@@ -270,7 +270,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         forestAppUrl: this.options.forestAppUrl,
         envSecret: this.options.envSecret,
         authSecret: this.options.authSecret,
-        logger: this.options.logger,
+        logger: (level, message) => this.options.logger(level, `[MCP Server] ${message}`),
         forestServerClient,
       });
 
