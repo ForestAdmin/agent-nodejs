@@ -52,19 +52,6 @@ describe('My Agent Tests', () => {
     const users = await client.collection('users').list<{ fullName: string }>();
     expect(users.length).toBeGreaterThan(0);
   });
-
-  it('should test permissions', async () => {
-    // Override permissions for testing
-    await client.overrideCollectionPermission('users', {
-      browseEnabled: false,
-    });
-
-    // Test that browsing is denied
-    await expect(client.collection('users').list()).rejects.toThrow();
-
-    // Reset permissions
-    await client.clearPermissionOverride();
-  });
 });
 ```
 
