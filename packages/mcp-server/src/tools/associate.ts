@@ -1,11 +1,12 @@
+import type { ForestServerClient } from '../http-client';
+import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import { Logger } from '../server.js';
-import createActivityLog from '../utils/activity-logs-creator.js';
-import buildClient from '../utils/agent-caller.js';
-import registerToolWithLogging from '../utils/tool-with-logging.js';
+import buildClient from '../utils/agent-caller';
+import registerToolWithLogging from '../utils/tool-with-logging';
+import withActivityLog from '../utils/with-activity-log';
 
 interface AssociateArgument {
   collectionName: string;
@@ -30,13 +31,13 @@ function createAssociateArgumentShape(collectionNames: string[]) {
 
 export default function declareAssociateTool(
   mcpServer: McpServer,
-  forestServerUrl: string,
+  forestServerClient: ForestServerClient,
   logger: Logger,
   collectionNames: string[] = [],
-): void {
+): string {
   const argumentShape = createAssociateArgumentShape(collectionNames);
 
-  registerToolWithLogging(
+  return registerToolWithLogging(
     mcpServer,
     'associate',
     {
@@ -46,31 +47,38 @@ export default function declareAssociateTool(
       inputSchema: argumentShape,
     },
     async (options: AssociateArgument, extra) => {
-      const { rpcClient } = await buildClient(extra);
+      const { rpcClient } = buildClient(extra);
 
-      await createActivityLog(forestServerUrl, extra, 'associate', {
-        collectionName: options.collectionName,
-        recordId: options.parentRecordId,
-        label: `associate "${options.relationName}" with record ${options.targetRecordId}`,
+      return withActivityLog({
+        forestServerClient,
+        request: extra,
+        action: 'associate',
+        context: {
+          collectionName: options.collectionName,
+          recordId: options.parentRecordId,
+          label: `associate "${options.relationName}" with record ${options.targetRecordId}`,
+        },
+        logger,
+        operation: async () => {
+          const relation = rpcClient
+            .collection(options.collectionName)
+            .relation(options.relationName, options.parentRecordId);
+
+          await relation.associate(options.targetRecordId);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  success: true,
+                  message: `Successfully associated record ${options.targetRecordId} with ${options.collectionName}/${options.parentRecordId} through relation "${options.relationName}"`,
+                }),
+              },
+            ],
+          };
+        },
       });
-
-      const relation = rpcClient
-        .collection(options.collectionName)
-        .relation(options.relationName, options.parentRecordId);
-
-      await relation.associate(options.targetRecordId);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: `Successfully associated record ${options.targetRecordId} with ${options.collectionName}/${options.parentRecordId} through relation "${options.relationName}"`,
-            }),
-          },
-        ],
-      };
     },
     logger,
   );

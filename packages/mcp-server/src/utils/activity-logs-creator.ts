@@ -22,6 +22,8 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   delete: 'write',
   listRelatedData: 'read',
   describeCollection: 'read',
+  associate: 'write',
+  dissociate: 'write',
 };
 
 function getAuthContext(request: RequestHandlerExtra<ServerRequest, ServerNotification>): {

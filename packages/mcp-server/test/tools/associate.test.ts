@@ -1,28 +1,32 @@
+import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
 import declareAssociateTool from '../../src/tools/associate';
-import createActivityLog from '../../src/utils/activity-logs-creator';
 import buildClient from '../../src/utils/agent-caller';
+import withActivityLog from '../../src/utils/with-activity-log';
+import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/agent-caller');
-jest.mock('../../src/utils/activity-logs-creator');
+jest.mock('../../src/utils/with-activity-log');
+
+const mockLogger: Logger = jest.fn();
 
 const mockBuildClient = buildClient as jest.MockedFunction<typeof buildClient>;
-const mockCreateActivityLog = createActivityLog as jest.MockedFunction<typeof createActivityLog>;
+const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 
 describe('declareAssociateTool', () => {
   let mcpServer: McpServer;
-  let mockLogger: Logger;
+  let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
   let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockLogger = jest.fn();
+    mockForestServerClient = createMockForestServerClient();
 
     mcpServer = {
       registerTool: jest.fn((name, config, handler) => {
@@ -31,12 +35,13 @@ describe('declareAssociateTool', () => {
       }),
     } as unknown as McpServer;
 
-    mockCreateActivityLog.mockResolvedValue(undefined);
+    // By default, withActivityLog executes the operation and returns its result
+    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
     it('should register a tool named "associate"', () => {
-      declareAssociateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'associate',
@@ -46,7 +51,7 @@ describe('declareAssociateTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareAssociateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.title).toBe('Associate records in a relation');
       expect(registeredToolConfig.description).toBe(
@@ -55,7 +60,7 @@ describe('declareAssociateTool', () => {
     });
 
     it('should define correct input schema', () => {
-      declareAssociateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
@@ -64,10 +69,7 @@ describe('declareAssociateTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareAssociateTool(mcpServer, 'https://api.forestadmin.com', mockLogger, [
-        'users',
-        'posts',
-      ]);
+      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'posts']);
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -89,7 +91,7 @@ describe('declareAssociateTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareAssociateTool(mcpServer, 'https://api.forestadmin.com', mockLogger);
+      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
     });
 
     it('should call associate on the relation', async () => {
@@ -119,34 +121,64 @@ describe('declareAssociateTool', () => {
       expect(parsed.success).toBe(true);
     });
 
-    it('should create an activity log', async () => {
-      const mockAssociate = jest.fn().mockResolvedValue(undefined);
-      const mockRelation = jest.fn().mockReturnValue({ associate: mockAssociate });
-      const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
-      mockBuildClient.mockReturnValue({
-        rpcClient: { collection: mockCollection },
-        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
-      } as unknown as ReturnType<typeof buildClient>);
+    describe('activity logging', () => {
+      beforeEach(() => {
+        const mockAssociate = jest.fn().mockResolvedValue(undefined);
+        const mockRelation = jest.fn().mockReturnValue({ associate: mockAssociate });
+        const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+      });
 
-      await registeredToolHandler(
-        {
-          collectionName: 'posts',
-          relationName: 'tags',
-          parentRecordId: 1,
-          targetRecordId: 42,
-        },
-        mockExtra,
-      );
+      it('should call withActivityLog with correct parameters', async () => {
+        await registeredToolHandler(
+          {
+            collectionName: 'posts',
+            relationName: 'tags',
+            parentRecordId: 1,
+            targetRecordId: 42,
+          },
+          mockExtra,
+        );
 
-      expect(mockCreateActivityLog).toHaveBeenCalledWith(
-        'https://api.forestadmin.com',
-        mockExtra,
-        'associate',
-        expect.objectContaining({
-          collectionName: 'posts',
-          recordId: 1,
-        }),
-      );
+        expect(mockWithActivityLog).toHaveBeenCalledWith({
+          forestServerClient: mockForestServerClient,
+          request: mockExtra,
+          action: 'associate',
+          context: expect.objectContaining({
+            collectionName: 'posts',
+            recordId: 1,
+          }),
+          logger: mockLogger,
+          operation: expect.any(Function),
+        });
+      });
+
+      it('should wrap the associate operation with activity logging', async () => {
+        const mockAssociate = jest.fn().mockResolvedValue(undefined);
+        const mockRelation = jest.fn().mockReturnValue({ associate: mockAssociate });
+        const mockCollection = jest.fn().mockReturnValue({ relation: mockRelation });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+
+        await registeredToolHandler(
+          {
+            collectionName: 'posts',
+            relationName: 'tags',
+            parentRecordId: 1,
+            targetRecordId: 42,
+          },
+          mockExtra,
+        );
+
+        // Verify the operation was executed through withActivityLog
+        expect(mockWithActivityLog).toHaveBeenCalled();
+        expect(mockAssociate).toHaveBeenCalledWith(42);
+      });
     });
 
     it('should handle string record ids', async () => {
