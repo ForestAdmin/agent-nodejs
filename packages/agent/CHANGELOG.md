@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.70.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.70.8...@forestadmin/agent@1.70.9) (2026-01-19)
+
+
+### Bug Fixes
+
+* **mcp server:** add debug logs for the refresh token flow ([#1423](https://github.com/ForestAdmin/agent-nodejs/issues/1423)) ([b169a0a](https://github.com/ForestAdmin/agent-nodejs/commit/b169a0a4d707ac1fa348efd04a659c4b9362e401))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.6.2
+
 ## @forestadmin/agent [1.70.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.70.7...@forestadmin/agent@1.70.8) (2026-01-14)
 
 
