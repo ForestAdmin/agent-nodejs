@@ -1,11 +1,12 @@
+import type { IntegrationConfigs } from './integrations/tools';
+import type RemoteTool from './remote-tool';
 import type { ResponseFormat } from '@langchain/core/tools';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
-import { BraveSearch } from '@langchain/community/tools/brave_search';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { AIToolNotFoundError, AIToolUnprocessableError } from './errors';
-import RemoteTool from './remote-tool';
+import getIntegratedTools from './integrations/tools';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
 
@@ -19,17 +20,16 @@ export class RemoteTools {
 
   constructor(apiKeys: RemoteToolsApiKeys, tools?: RemoteTool[]) {
     this.apiKeys = apiKeys;
-    this.tools.push(...(tools ?? []));
+
+    const integrationConfigs: IntegrationConfigs = {};
 
     if (this.apiKeys?.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY) {
-      this.tools.push(
-        new RemoteTool({
-          sourceId: 'brave_search',
-          sourceType: 'server',
-          tool: new BraveSearch({ apiKey: this.apiKeys.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY }),
-        }),
-      );
+      integrationConfigs.brave = {
+        apiKey: this.apiKeys.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY,
+      };
     }
+
+    this.tools.push(...(tools ?? []), ...getIntegratedTools(integrationConfigs));
   }
 
   get toolDefinitionsForFrontend() {
