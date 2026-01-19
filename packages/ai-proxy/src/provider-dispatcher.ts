@@ -5,7 +5,7 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import OpenAI from 'openai';
 
-import { AINotConfiguredError, OpenAIUnprocessableError } from './errors';
+import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
 export type OpenAiConfiguration = ClientOptions & {
   provider: 'openai';
