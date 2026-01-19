@@ -20,4 +20,19 @@ export default class VersionManager {
       (field?.instance === 'Array' || field?.instance === 'DocumentArray') && isSchemaType(field)
     );
   }
+
+  /**
+   * Get the embedded schema type from an array field.
+   * In Mongoose 9+, use `embeddedSchemaType` property.
+   * In Mongoose 8 and below, use `caster` property.
+   */
+  public static getEmbeddedSchemaType(field: any): any {
+    // Mongoose 9+ uses embeddedSchemaType
+    if (field.embeddedSchemaType !== undefined) {
+      return field.embeddedSchemaType;
+    }
+
+    // Mongoose 8 and below use caster
+    return field.caster;
+  }
 }
