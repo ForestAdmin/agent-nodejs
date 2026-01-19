@@ -37,6 +37,7 @@ describe('SchemaGenerator', () => {
 
       expect(schema).toStrictEqual({
         meta: {
+          ai_llms: null,
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
           liana_features: null,
@@ -56,6 +57,7 @@ describe('SchemaGenerator', () => {
 
       expect(schema).toStrictEqual({
         meta: {
+          ai_llms: null,
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
           liana_features: {
