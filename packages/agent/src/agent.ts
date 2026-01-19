@@ -42,7 +42,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
-  protected aiConfiguration: AiConfiguration | null = null;
+  protected aiConfigurations: AiConfiguration[] = [];
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
@@ -217,34 +217,43 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * All AI requests from Forest Admin are forwarded to your agent and processed locally.
    * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
    *
-   * This method can only be called once per agent.
+   * This method can be called multiple times to add multiple AI providers.
    *
    * @param configuration - The AI provider configuration
+   * @param configuration.name - A unique name to identify this AI configuration
    * @param configuration.provider - The AI provider to use ('openai')
    * @param configuration.apiKey - Your API key for the chosen provider
    * @param configuration.model - The model to use (e.g., 'gpt-4o')
    * @returns The agent instance for chaining
-   * @throws Error if addAI() has already been called
+   * @throws Error if an AI configuration with the same name already exists
    *
    * @example
-   * agent.addAI({
-   *   provider: 'openai',
-   *   apiKey: process.env.OPENAI_API_KEY,
-   *   model: 'gpt-4o',
-   * });
+   * agent
+   *   .addAI({
+   *     name: 'gpt4',
+   *     provider: 'openai',
+   *     apiKey: process.env.OPENAI_API_KEY,
+   *     model: 'gpt-4o',
+   *   })
+   *   .addAI({
+   *     name: 'gpt3',
+   *     provider: 'openai',
+   *     apiKey: process.env.OPENAI_API_KEY,
+   *     model: 'gpt-3.5-turbo',
+   *   });
    */
   addAI(configuration: AiConfiguration): this {
-    if (this.aiConfiguration) {
-      throw new Error('addAI() can only be called once');
+    if (this.aiConfigurations.some(c => c.name === configuration.name)) {
+      throw new Error(`An AI configuration with name '${configuration.name}' already exists`);
     }
 
-    this.aiConfiguration = configuration;
+    this.aiConfigurations.push(configuration);
 
     return this;
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services, this.aiConfiguration);
+    return makeRoutes(dataSource, this.options, services, this.aiConfigurations);
   }
 
   /**
@@ -366,11 +375,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Either load the schema from the file system or build it
     let schema: Pick<ForestSchema, 'collections'>;
 
-    // Get the AI provider name if configured (e.g., 'openai')
-    const aiProvider = this.aiConfiguration?.provider ?? null;
+    // Get the AI configurations for schema metadata
     const { meta } = SchemaGenerator.buildMetadata(
       this.customizationService.buildFeatures(),
-      aiProvider,
+      this.aiConfigurations,
     );
 
     // When using experimental no-code features even in production we need to build a new schema

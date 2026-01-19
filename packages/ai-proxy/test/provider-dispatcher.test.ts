@@ -36,6 +36,7 @@ describe('ProviderDispatcher', () => {
       it('should return the response from openai', async () => {
         const dispatcher = new ProviderDispatcher(
           {
+            name: 'gpt4',
             provider: 'openai',
             apiKey: 'dev',
             model: 'gpt-4o',
@@ -53,6 +54,7 @@ describe('ProviderDispatcher', () => {
         it('should not allow the user to override the configuration', async () => {
           const dispatcher = new ProviderDispatcher(
             {
+              name: 'base',
               provider: 'openai',
               apiKey: 'dev',
               model: 'BASE MODEL',
@@ -81,6 +83,7 @@ describe('ProviderDispatcher', () => {
         it('should throw an OpenAIUnprocessableError', async () => {
           const dispatcher = new ProviderDispatcher(
             {
+              name: 'gpt4',
               provider: 'openai',
               apiKey: 'dev',
               model: 'gpt-4o',
@@ -103,6 +106,7 @@ describe('ProviderDispatcher', () => {
 
         const dispatcher = new ProviderDispatcher(
           {
+            name: 'gpt4',
             provider: 'openai',
             apiKey: 'dev',
             model: 'gpt-4o',
@@ -142,6 +146,7 @@ describe('ProviderDispatcher', () => {
 
         const dispatcher = new ProviderDispatcher(
           {
+            name: 'gpt4',
             provider: 'openai',
             apiKey: 'dev',
             model: 'gpt-4o',

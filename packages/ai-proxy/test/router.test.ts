@@ -43,11 +43,14 @@ describe('route', () => {
   describe('when the route is /ai-query', () => {
     it('calls the provider dispatcher', async () => {
       const router = new Router({
-        aiConfiguration: {
-          provider: 'openai',
-          apiKey: 'dev',
-          model: 'gpt-4o',
-        },
+        aiConfigurations: [
+          {
+            name: 'gpt4',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-4o',
+          },
+        ],
       });
 
       await router.route({
@@ -60,6 +63,33 @@ describe('route', () => {
         tool_choice: 'required',
         messages: [],
       });
+    });
+
+    it('selects the AI configuration by name when ai-name query is provided', async () => {
+      const router = new Router({
+        aiConfigurations: [
+          {
+            name: 'gpt4',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-4o',
+          },
+          {
+            name: 'gpt3',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-3.5-turbo',
+          },
+        ],
+      });
+
+      await router.route({
+        route: 'ai-query',
+        query: { 'ai-name': 'gpt3' },
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      expect(dispatchMock).toHaveBeenCalled();
     });
   });
 

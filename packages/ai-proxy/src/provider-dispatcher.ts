@@ -12,7 +12,9 @@ export type OpenAiConfiguration = ClientOptions & {
   model: ChatCompletionCreateParamsNonStreaming['model'];
 };
 
-export type AiConfiguration = OpenAiConfiguration;
+export type AiConfiguration = OpenAiConfiguration & {
+  name: string;
+};
 
 export type AiProvider = AiConfiguration['provider'];
 

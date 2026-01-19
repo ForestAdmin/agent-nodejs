@@ -1,4 +1,4 @@
-import type { AgentOptionsWithDefaults, AiProvider } from '../../types';
+import type { AgentOptionsWithDefaults, AiConfiguration } from '../../types';
 import type { DataSource } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
@@ -23,7 +23,7 @@ export default class SchemaGenerator {
 
   static buildMetadata(
     features: Record<string, string> | null,
-    aiLlm: AiProvider | null = null,
+    aiConfigurations: AiConfiguration[] = [],
   ): Pick<ForestSchema, 'meta'> {
     const { version } = require('../../../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require
 
@@ -32,7 +32,10 @@ export default class SchemaGenerator {
         liana: 'forest-nodejs-agent',
         liana_version: version,
         liana_features: features,
-        ai_llms: aiLlm ? [{ provider: aiLlm }] : null,
+        ai_llms:
+          aiConfigurations.length > 0
+            ? aiConfigurations.map(c => ({ name: c.name, provider: c.provider }))
+            : null,
         stack: {
           engine: 'nodejs',
           engine_version: process.versions && process.versions.node,
