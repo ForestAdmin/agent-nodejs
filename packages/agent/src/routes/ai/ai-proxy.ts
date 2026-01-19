@@ -1,3 +1,9 @@
+import type { ForestAdminHttpDriverServices } from '../../services';
+import type { AgentOptionsWithDefaults, AiConfiguration } from '../../types';
+import type KoaRouter from '@koa/router';
+import type { Context } from 'koa';
+
+// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   AIError,
   AINotConfiguredError,
@@ -6,11 +12,8 @@ import {
   Router as AiProxyRouter,
 } from '@forestadmin/ai-proxy';
 import { UnprocessableError } from '@forestadmin/datasource-toolkit';
-import KoaRouter from '@koa/router';
-import { Context } from 'koa';
 
-import { ForestAdminHttpDriverServices } from '../../services';
-import { AgentOptionsWithDefaults, AiConfiguration, HttpCode, RouteType } from '../../types';
+import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 export default class AiProxyRoute extends BaseRoute {

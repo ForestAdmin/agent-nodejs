@@ -8,7 +8,6 @@ import makeRoutes, {
   RELATED_ROUTES_CTOR,
   ROOT_ROUTES_CTOR,
 } from '../../src/routes';
-import AiProxyRoute from '../../src/routes/ai/ai-proxy';
 import Chart from '../../src/routes/access/chart';
 import Count from '../../src/routes/access/count';
 import CountRelated from '../../src/routes/access/count-related';
@@ -18,6 +17,7 @@ import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
 import DataSourceNativeQueryRoute from '../../src/routes/access/native-query-datasource';
+import AiProxyRoute from '../../src/routes/ai/ai-proxy';
 import Capabilities from '../../src/routes/capabilities';
 import AssociateRelated from '../../src/routes/modification/associate-related';
 import Create from '../../src/routes/modification/create';

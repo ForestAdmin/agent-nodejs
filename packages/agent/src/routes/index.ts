@@ -1,5 +1,5 @@
 import type { ForestAdminHttpDriverServices as Services } from '../services';
-import type { AgentOptionsWithDefaults as Options, AiConfiguration } from '../types';
+import type { AiConfiguration, AgentOptionsWithDefaults as Options } from '../types';
 import type BaseRoute from './base-route';
 import type { DataSource } from '@forestadmin/datasource-toolkit';
 

@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   AIError,
   AINotConfiguredError,
@@ -54,10 +55,7 @@ describe('AiProxyRoute', () => {
       const route = new AiProxyRoute(services, options, aiConfigurations);
       route.setupRoutes(router);
 
-      expect(router.post).toHaveBeenCalledWith(
-        '/_internal/ai-proxy/:route',
-        expect.any(Function),
-      );
+      expect(router.post).toHaveBeenCalledWith('/_internal/ai-proxy/:route', expect.any(Function));
     });
   });
 
@@ -178,13 +176,11 @@ describe('AiProxyRoute', () => {
         });
         context.query = {};
 
-        try {
-          await (route as any).handleAiProxy(context);
-          fail('Expected error to be thrown');
-        } catch (error) {
-          expect(error).toBe(unknownError);
-          expect(error).not.toBeInstanceOf(UnprocessableError);
-        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const promise = (route as any).handleAiProxy(context);
+
+        await expect(promise).rejects.toBe(unknownError);
+        expect(unknownError).not.toBeInstanceOf(UnprocessableError);
       });
     });
   });
