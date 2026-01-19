@@ -26,13 +26,16 @@ export default class VersionManager {
    * In Mongoose 9+, use `embeddedSchemaType` property.
    * In Mongoose 8 and below, use `caster` property.
    */
-  public static getEmbeddedSchemaType(field: any): any {
+  public static getEmbeddedSchemaType(
+    field: Schema.Types.DocumentArray,
+  ): Schema.Types.Subdocument<unknown> {
     // Mongoose 9+ uses embeddedSchemaType
     if (field.embeddedSchemaType !== undefined) {
       return field.embeddedSchemaType;
     }
 
     // Mongoose 8 and below use caster
-    return field.caster;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (field as any).caster;
   }
 }

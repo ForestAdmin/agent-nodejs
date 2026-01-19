@@ -194,6 +194,7 @@ export default class MongooseSchema {
           }
         } else if (VersionManager.isSubDocumentArray(field)) {
           const embeddedType = VersionManager.getEmbeddedSchemaType(field);
+
           if (embeddedType && VersionManager.isSubDocument(embeddedType)) {
             const subPaths = this.buildFields((embeddedType as any).schema, level + 1);
 
