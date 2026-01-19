@@ -70,7 +70,7 @@ function parseAndLogMcpErrors(data: string, logger: Logger): void {
   } catch (error) {
     // SyntaxError is expected for non-JSON SSE events (like "ping")
     if (!(error instanceof SyntaxError)) {
-      logger('Warn', `[MCP] Failed to parse SSE response: ${error}`);
+      logger('Warn', `Failed to parse SSE response: ${error}`);
     }
 
     return;
@@ -78,13 +78,13 @@ function parseAndLogMcpErrors(data: string, logger: Logger): void {
 
   // Log JSON-RPC level errors
   if (parsed.error?.message) {
-    logger('Error', `[MCP] ${parsed.error.message}`);
+    logger('Error', `${parsed.error.message}`);
   }
 
   // Log tool execution errors (isError: true in result)
   if (parsed.result?.isError) {
     const errorText = parsed.result.content?.[0]?.text || 'Unknown error';
-    logger('Error', `[MCP] Tool error: ${errorText}`);
+    logger('Error', `Tool error: ${errorText}`);
   }
 }
 
@@ -108,7 +108,7 @@ function logChunkErrors(
     const data = chunkToString(chunk);
     parseAndLogMcpErrors(data, logger);
   } catch (error) {
-    logger('Warn', `[MCP] Failed to parse response for error logging: ${error}`);
+    logger('Warn', `Failed to parse response for error logging: ${error}`);
   }
 }
 

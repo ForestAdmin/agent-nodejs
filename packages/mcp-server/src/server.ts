@@ -44,10 +44,10 @@ export type HttpCallback = (
 ) => void;
 
 function getDefaultLogFn(level: LogLevel): (message: string) => void {
-  if (level === 'Error') return (msg: string) => console.error(`[MCP Server] ${msg}`);
-  if (level === 'Warn') return (msg: string) => console.warn(`[MCP Server] ${msg}`);
+  if (level === 'Error') return (msg: string) => console.error(msg);
+  if (level === 'Warn') return (msg: string) => console.warn(msg);
 
-  return (msg: string) => console.info(`[MCP Server] ${msg}`);
+  return (msg: string) => console.info(msg);
 }
 
 const defaultLogger: Logger = (level, message) => {
@@ -166,7 +166,7 @@ export default class ForestMCPServer {
       ),
     ];
 
-    this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    this.logger('Info', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
@@ -220,7 +220,7 @@ export default class ForestMCPServer {
     const args = body.params.arguments || {};
     const safeArgs = this.filterArgsForLogging(toolName, args);
 
-    this.logger('Info', `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(safeArgs)}`);
+    this.logger('Info', `Tool call: ${toolName} - params: ${JSON.stringify(safeArgs)}`);
   }
 
   /**
@@ -228,7 +228,7 @@ export default class ForestMCPServer {
    * Logs the request, intercepts the response for error logging, and delegates to the transport.
    */
   private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
-    this.logger('Info', `[MCP] Incoming ${req.method} ${req.path}`);
+    this.logger('Info', `Incoming ${req.method} ${req.path}`);
 
     if (!this.mcpTransport) {
       throw new Error('MCP transport not initialized');

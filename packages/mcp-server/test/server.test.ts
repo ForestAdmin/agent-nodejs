@@ -2047,7 +2047,7 @@ describe('ForestMCPServer Instance', () => {
         .set('Accept', 'application/json, text/event-stream')
         .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
 
-      expect(mockLogger).toHaveBeenCalledWith('Info', '[MCP] Incoming POST /mcp');
+      expect(mockLogger).toHaveBeenCalledWith('Info', 'Incoming POST /mcp');
     });
 
     it('should log tool calls with safe parameters', async () => {
@@ -2079,7 +2079,7 @@ describe('ForestMCPServer Instance', () => {
       // Should log the tool call with only safe arguments (collectionName, not search)
       expect(mockLogger).toHaveBeenCalledWith(
         'Info',
-        '[MCP] Tool call: list - params: {"collectionName":"users"}',
+        'Tool call: list - params: {"collectionName":"users"}',
       );
     });
 
@@ -2111,7 +2111,7 @@ describe('ForestMCPServer Instance', () => {
         });
 
       // Should log the error from the tool response
-      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('[MCP]'));
+      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('Tool error:'));
     });
 
     it('should log HTTP response at the end with status and duration', async () => {
@@ -2163,11 +2163,9 @@ describe('ForestMCPServer Instance', () => {
         });
 
       const { calls } = mockLogger.mock;
-      const incomingIndex = calls.findIndex(
-        (c: [string, string]) => c[1] === '[MCP] Incoming POST /mcp',
-      );
+      const incomingIndex = calls.findIndex((c: [string, string]) => c[1] === 'Incoming POST /mcp');
       const toolCallIndex = calls.findIndex((c: [string, string]) =>
-        c[1].includes('[MCP] Tool call: list'),
+        c[1].includes('Tool call: list'),
       );
       const responseIndex = calls.findIndex((c: [string, string]) =>
         c[1].match(/\[200\] POST \/mcp/),

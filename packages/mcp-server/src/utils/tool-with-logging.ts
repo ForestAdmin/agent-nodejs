@@ -46,7 +46,7 @@ function logValidationErrorsIfAny(
 
   if (!result.success) {
     const errorMessage = formatZodError(result.error);
-    logger('Error', `[MCP] Tool "${toolName}" validation error: ${errorMessage}`);
+    logger('Error', `Tool "${toolName}" validation error: ${errorMessage}`);
   }
 }
 

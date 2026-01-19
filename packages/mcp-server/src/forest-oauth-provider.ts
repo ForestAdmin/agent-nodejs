@@ -231,9 +231,20 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
     } catch (error) {
       if (error instanceof jsonwebtoken.TokenExpiredError) {
+        this.logger(
+          'Error',
+          `[ForestOAuthProvider] Refresh token expired: expiredAt=${error.expiredAt?.toISOString()}, ` +
+            `message=${error.message}`,
+        );
         throw new InvalidGrantError('Refresh token has expired');
       }
 
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : 'Unknown';
+      this.logger(
+        'Error',
+        `[ForestOAuthProvider] Invalid refresh token: name=${errorName}, message=${errorMessage}`,
+      );
       throw new InvalidGrantError('Invalid refresh token');
     }
 
@@ -257,6 +268,12 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : 'Unknown';
+      this.logger(
+        'Error',
+        `[ForestOAuthProvider] Failed to refresh token with Forest Admin server: ` +
+          `name=${errorName}, message=${message}, clientId=${client.client_id}, userId=${decoded.userId}`,
+      );
       throw new InvalidRequestError(`Failed to refresh token: ${message}`);
     }
   }

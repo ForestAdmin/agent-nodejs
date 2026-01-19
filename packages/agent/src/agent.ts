@@ -256,6 +256,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * This avoids loading the mcp-server dependency at startup for users who don't use MCP.
    */
   private async initializeMcpServer(): Promise<HttpCallback> {
+    const mcpLogger = (level, message) => this.options.logger(level, `[MCP] ${message}`);
+
     try {
       // Dynamic import to defer loading until actually needed
       const { ForestMCPServer, ForestServerClientImpl } = await import('@forestadmin/mcp-server');
@@ -270,18 +272,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         forestAppUrl: this.options.forestAppUrl,
         envSecret: this.options.envSecret,
         authSecret: this.options.authSecret,
-        logger: this.options.logger,
+        logger: mcpLogger,
         forestServerClient,
       });
 
       const httpCallback = await mcpServer.getHttpCallback();
 
-      this.options.logger('Info', '[MCP] Server initialized successfully');
+      mcpLogger('Info', 'Server initialized successfully');
 
       return httpCallback;
     } catch (error) {
       const { message } = error as Error;
-      this.options.logger('Error', `Failed to initialize MCP server: ${message}`);
+      mcpLogger('Error', `Failed to initialize MCP server: ${message}`);
       throw error;
     }
   }
