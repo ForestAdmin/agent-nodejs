@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ForestAdminHttpDriverServices } from './services';
-import type { AgentOptions, AgentOptionsWithDefaults, AiConfiguration, HttpCallback } from './types';
+import type {
+  AgentOptions,
+  AgentOptionsWithDefaults,
+  AiConfiguration,
+  HttpCallback,
+} from './types';
 import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
