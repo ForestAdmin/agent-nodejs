@@ -1,6 +1,6 @@
 # @forestadmin/agent-testing
 
-Testing utilities for Forest Admin Node.js agents. This package enables you to write integration tests for your agent customizations (computed fields, actions, segments, hooks, etc.) without needing a running Forest Admin server.
+Testing utilities for Forest Admin agents. This package enables you to write integration tests for your agent customizations (computed fields, actions, segments, hooks, etc.) without needing a running Forest Admin server.
 
 ## Installation
 
@@ -10,9 +10,99 @@ npm install --save-dev @forestadmin/agent-testing
 yarn add --dev @forestadmin/agent-testing
 ```
 
-## Quick Start
+## Testing Modes
 
-The simplest way to test your agent customizations is using `createTestableAgent`:
+This package provides two approaches for testing your agent:
+
+| Mode | Use Case | Recommended |
+|------|----------|-------------|
+| **Sandbox Mode** | Production-like testing with a mock Forest Admin server | ✅ Yes |
+| **Simple Mode** | Quick tests with internal mocking | For simple cases |
+
+**Sandbox mode is recommended** because it:
+- Tests your agent in conditions closer to production (agent ↔ server communication)
+- Supports permission testing with realistic server responses
+- Works with any agent (Node.js, Python, Ruby, etc.)
+
+## Quick Start (Sandbox Mode - Recommended)
+
+The recommended way to test your agent is using the sandbox mode with `createForestServerSandbox` and `createForestAgentClient`:
+
+```typescript
+import {
+  createForestAgentClient,
+  createForestServerSandbox,
+  ForestServerSandbox,
+  ForestAgentClient,
+} from '@forestadmin/agent-testing';
+
+describe('My Agent Tests', () => {
+  let sandbox: ForestServerSandbox;
+  let client: ForestAgentClient;
+
+  beforeAll(async () => {
+    // 1. Start the sandbox server (mocks Forest Admin server)
+    sandbox = await createForestServerSandbox(3001);
+
+    // 2. Start your agent configured to connect to the sandbox
+    //    (your agent should use FOREST_SERVER_URL=http://localhost:3001)
+
+    // 3. Create client to communicate with your agent
+    client = await createForestAgentClient({
+      agentUrl: 'http://localhost:3310',              // Your agent URL
+      serverUrl: 'http://localhost:3001',             // Sandbox server URL
+      agentSchemaPath: './.forestadmin-schema.json',  // Path to schema file
+      agentForestEnvSecret: 'your-env-secret',
+      agentForestAuthSecret: 'your-auth-secret',
+    });
+  });
+
+  afterAll(async () => {
+    await sandbox?.close();
+    // Stop your agent here if needed
+  });
+
+  it('should list users', async () => {
+    const users = await client.collection('users').list<{ fullName: string }>();
+    expect(users.length).toBeGreaterThan(0);
+  });
+
+  it('should test permissions', async () => {
+    // Override permissions for testing
+    await client.overrideCollectionPermission('users', {
+      browseEnabled: false,
+    });
+
+    // Test that browsing is denied
+    await expect(client.collection('users').list()).rejects.toThrow();
+
+    // Reset permissions
+    await client.clearPermissionOverride();
+  });
+});
+```
+
+### Agent Configuration for Sandbox Mode
+
+Your agent must be configured to connect to the sandbox server:
+
+```typescript
+// agent.ts
+import { createAgent } from '@forestadmin/agent';
+
+const agent = createAgent({
+  envSecret: process.env.FOREST_ENV_SECRET,
+  authSecret: process.env.FOREST_AUTH_SECRET,
+  forestServerUrl: process.env.FOREST_SERVER_URL, // Point to sandbox in tests
+  // ... other options
+});
+```
+
+When running tests, set `FOREST_SERVER_URL` to your sandbox URL (e.g., `http://localhost:3001`).
+
+## Simple Mode (Alternative)
+
+For quick tests without setting up a separate agent process, use `createTestableAgent`:
 
 ```typescript
 import { Agent } from '@forestadmin/agent';
@@ -50,6 +140,8 @@ describe('My Agent Tests', () => {
   });
 });
 ```
+
+> **Note:** Simple mode uses internal mocking and doesn't test the full agent-server communication. Use sandbox mode for more realistic testing.
 
 ## API Reference
 
@@ -348,47 +440,6 @@ await testableAgent.clearPermissionOverride();
 ```
 
 ## Advanced Usage
-
-### Testing Any Agent (Python, Ruby, etc.)
-
-For testing agents written in other languages, use the `createForestAgentClient` and `createForestServerSandbox` approach:
-
-```typescript
-import {
-  createForestAgentClient,
-  createForestServerSandbox,
-  ForestServerSandbox,
-  ForestAgentClient,
-} from '@forestadmin/agent-testing';
-
-describe('External Agent Tests', () => {
-  let sandbox: ForestServerSandbox;
-  let client: ForestAgentClient;
-
-  beforeAll(async () => {
-    // Start the sandbox server (mocks Forest Admin server)
-    sandbox = await createForestServerSandbox(3001);
-
-    // Create client to communicate with your agent
-    client = await createForestAgentClient({
-      agentUrl: 'http://localhost:3310',        // Your agent URL
-      serverUrl: 'http://localhost:3001',       // Sandbox server URL
-      agentSchemaPath: './path/to/.forestadmin-schema.json',
-      agentForestEnvSecret: 'your-env-secret',
-      agentForestAuthSecret: 'your-auth-secret',
-    });
-  });
-
-  afterAll(async () => {
-    await sandbox?.close();
-  });
-
-  it('should list users', async () => {
-    const users = await client.collection('users').list();
-    expect(users.length).toBeGreaterThan(0);
-  });
-});
-```
 
 ### Benchmarking
 
