@@ -1,6 +1,8 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { getBody, getHeader } from './utils';
+
 export default function createGetThreadTool(
   headers: Record<string, string>,
 ): DynamicStructuredTool {
@@ -25,42 +27,13 @@ export default function createGetThreadTool(
         return JSON.stringify({ error: 'Thread not found or no messages' });
       }
 
-      const decodeBody = (body: string) => {
-        if (!body) return '';
-        try {
-          const sanitized = body.replace(/-/g, '+').replace(/_/g, '/');
-          return Buffer.from(sanitized, 'base64').toString('utf-8');
-        } catch {
-          return '';
-        }
-      };
-
-      const getBody = (payload: any): string => {
-        if (payload.body?.data) {
-          return decodeBody(payload.body.data);
-        }
-        if (payload.parts) {
-          for (const part of payload.parts) {
-            const body = getBody(part);
-            if (body) return body;
-          }
-        }
-        return '';
-      };
-
       const messages = data.messages.map((msg: any) => {
-        const getHeader = (name: string) =>
-          msg.payload?.headers?.find(
-            (h: { name: string; value: string }) =>
-              h.name.toLowerCase() === name.toLowerCase(),
-          )?.value || '';
-
         return {
           id: msg.id,
-          subject: getHeader('Subject'),
-          from: getHeader('From'),
-          to: getHeader('To'),
-          date: getHeader('Date'),
+          subject: getHeader(msg.payload, 'Subject'),
+          from: getHeader(msg.payload, 'From'),
+          to: getHeader(msg.payload, 'To'),
+          date: getHeader(msg.payload, 'Date'),
           body: getBody(msg.payload),
         };
       });

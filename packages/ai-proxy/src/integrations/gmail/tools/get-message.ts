@@ -1,6 +1,8 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { getBody, getHeader } from './utils';
+
 export default function createGetMessageTool(
   headers: Record<string, string>,
 ): DynamicStructuredTool {
@@ -25,41 +27,13 @@ export default function createGetMessageTool(
         return JSON.stringify({ error: 'Message not found or invalid payload' });
       }
 
-      const getHeader = (name: string) =>
-        data.payload.headers?.find(
-          (h: { name: string; value: string }) => h.name.toLowerCase() === name.toLowerCase(),
-        )?.value || '';
-
-      const decodeBody = (body: string) => {
-        if (!body) return '';
-        try {
-          const sanitized = body.replace(/-/g, '+').replace(/_/g, '/');
-          return Buffer.from(sanitized, 'base64').toString('utf-8');
-        } catch {
-          return '';
-        }
-      };
-
-      const getBody = (payload: any): string => {
-        if (payload.body?.data) {
-          return decodeBody(payload.body.data);
-        }
-        if (payload.parts) {
-          for (const part of payload.parts) {
-            const body = getBody(part);
-            if (body) return body;
-          }
-        }
-        return '';
-      };
-
       const result = {
         id: data.id,
         threadId: data.threadId,
-        subject: getHeader('Subject'),
-        from: getHeader('From'),
-        to: getHeader('To'),
-        date: getHeader('Date'),
+        subject: getHeader(data.payload, 'Subject'),
+        from: getHeader(data.payload, 'From'),
+        to: getHeader(data.payload, 'To'),
+        date: getHeader(data.payload, 'Date'),
         body: getBody(data.payload),
       };
 

@@ -1,6 +1,8 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { encodeEmail } from './utils';
+
 export default function createSendMessageTool(
   headers: Record<string, string>,
 ): DynamicStructuredTool {
@@ -15,32 +17,15 @@ export default function createSendMessageTool(
       bcc: z.array(z.string()).optional().describe('Array of BCC email addresses'),
     }),
     func: async ({ to, subject, message, cc, bcc }) => {
-      const emailLines = [
-        `To: ${to.join(', ')}`,
-        ...(cc ? [`Cc: ${cc.join(', ')}`] : []),
-        ...(bcc ? [`Bcc: ${bcc.join(', ')}`] : []),
-        `Subject: ${subject}`,
-        '',
-        message,
-      ];
+      const encodedEmail = encodeEmail({ to, subject, message, cc, bcc });
 
-      const email = emailLines.join('\r\n');
-      const encodedEmail = Buffer.from(email)
-        .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-      const response = await fetch(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            raw: encodedEmail,
-          }),
-        },
-      );
+      const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          raw: encodedEmail,
+        }),
+      });
 
       return JSON.stringify(await response.json());
     },

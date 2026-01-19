@@ -1,9 +1,9 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-export default function createSearchTool(
-  headers: Record<string, string>,
-): DynamicStructuredTool {
+import { getBody, getHeader } from './utils';
+
+export default function createSearchTool(headers: Record<string, string>): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name: 'gmail_search',
     description:
@@ -14,7 +14,11 @@ export default function createSearchTool(
         .describe(
           'Gmail search query (e.g., "from:user@example.com", "subject:meeting", "is:unread")',
         ),
-      max_results: z.number().optional().default(10).describe('Maximum number of results (default: 10)'),
+      max_results: z
+        .number()
+        .optional()
+        .default(10)
+        .describe('Maximum number of results (default: 10)'),
       resource: z
         .enum(['messages', 'threads'])
         .optional()
@@ -35,6 +39,7 @@ export default function createSearchTool(
 
       if (resource === 'messages') {
         const messages = data.messages || [];
+
         if (messages.length === 0) {
           return JSON.stringify({ results: [], count: 0 });
         }
@@ -50,42 +55,13 @@ export default function createSearchTool(
             );
             const msgData = await msgResponse.json();
 
-            const getHeader = (name: string) =>
-              msgData.payload?.headers?.find(
-                (h: { name: string; value: string }) =>
-                  h.name.toLowerCase() === name.toLowerCase(),
-              )?.value || '';
-
-            const decodeBody = (body: string) => {
-              if (!body) return '';
-              try {
-                const sanitized = body.replace(/-/g, '+').replace(/_/g, '/');
-                return Buffer.from(sanitized, 'base64').toString('utf-8');
-              } catch {
-                return '';
-              }
-            };
-
-            const getBody = (payload: any): string => {
-              if (payload.body?.data) {
-                return decodeBody(payload.body.data);
-              }
-              if (payload.parts) {
-                for (const part of payload.parts) {
-                  const body = getBody(part);
-                  if (body) return body;
-                }
-              }
-              return '';
-            };
-
             return {
               id: msgData.id,
               threadId: msgData.threadId,
-              subject: getHeader('Subject'),
-              from: getHeader('From'),
-              to: getHeader('To'),
-              date: getHeader('Date'),
+              subject: getHeader(msgData.payload, 'Subject'),
+              from: getHeader(msgData.payload, 'From'),
+              to: getHeader(msgData.payload, 'To'),
+              date: getHeader(msgData.payload, 'Date'),
               snippet: msgData.snippet,
               body: getBody(msgData.payload)?.substring(0, 500),
             };
@@ -96,6 +72,7 @@ export default function createSearchTool(
       }
 
       const threads = data.threads || [];
+
       return JSON.stringify({ results: threads, count: threads.length });
     },
   });
