@@ -91,6 +91,55 @@ describe('route', () => {
 
       expect(dispatchMock).toHaveBeenCalled();
     });
+
+    it('uses first configuration when ai-name query is not provided', async () => {
+      const router = new Router({
+        aiConfigurations: [
+          {
+            name: 'gpt4',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-4o',
+          },
+          {
+            name: 'gpt3',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-3.5-turbo',
+          },
+        ],
+      });
+
+      await router.route({
+        route: 'ai-query',
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      expect(dispatchMock).toHaveBeenCalled();
+    });
+
+    it('passes null to ProviderDispatcher when ai-name references non-existent configuration', async () => {
+      const { ProviderDispatcher } = jest.requireMock('../src/provider-dispatcher');
+      const router = new Router({
+        aiConfigurations: [
+          {
+            name: 'gpt4',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-4o',
+          },
+        ],
+      });
+
+      await router.route({
+        route: 'ai-query',
+        query: { 'ai-name': 'non-existent' },
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      // ProviderDispatcher is called with null configuration when ai-name is not found
+      expect(ProviderDispatcher).toHaveBeenCalledWith(null, expect.anything());
+    });
   });
 
   describe('when the route is /invoke-remote-tool', () => {

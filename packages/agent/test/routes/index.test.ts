@@ -8,6 +8,7 @@ import makeRoutes, {
   RELATED_ROUTES_CTOR,
   ROOT_ROUTES_CTOR,
 } from '../../src/routes';
+import AiProxyRoute from '../../src/routes/ai/ai-proxy';
 import Chart from '../../src/routes/access/chart';
 import Count from '../../src/routes/access/count';
 import CountRelated from '../../src/routes/access/count-related';
@@ -296,6 +297,81 @@ describe('Route index', () => {
         const lqRoute = routes.find(route => route instanceof DataSourceNativeQueryRoute);
 
         expect(lqRoute).toBeTruthy();
+      });
+    });
+
+    describe('with AI configurations', () => {
+      test('should not include AI routes when aiConfigurations is empty', () => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({ name: 'books' }),
+        ]);
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+          [],
+        );
+
+        const aiRoute = routes.find(route => route instanceof AiProxyRoute);
+        expect(aiRoute).toBeUndefined();
+      });
+
+      test('should include AiProxyRoute when AI configurations are provided', () => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({ name: 'books' }),
+        ]);
+
+        const aiConfigurations = [
+          {
+            name: 'gpt4',
+            provider: 'openai' as const,
+            apiKey: 'test-key',
+            model: 'gpt-4o',
+          },
+        ];
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+          aiConfigurations,
+        );
+
+        const aiRoute = routes.find(route => route instanceof AiProxyRoute);
+        expect(aiRoute).toBeTruthy();
+        expect(aiRoute).toBeInstanceOf(AiProxyRoute);
+      });
+
+      test('should include only one AiProxyRoute even with multiple AI configurations', () => {
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({ name: 'books' }),
+        ]);
+
+        const aiConfigurations = [
+          {
+            name: 'gpt4',
+            provider: 'openai' as const,
+            apiKey: 'test-key',
+            model: 'gpt-4o',
+          },
+          {
+            name: 'gpt3',
+            provider: 'openai' as const,
+            apiKey: 'test-key-2',
+            model: 'gpt-3.5-turbo',
+          },
+        ];
+
+        const routes = makeRoutes(
+          dataSource,
+          factories.forestAdminHttpDriverOptions.build(),
+          factories.forestAdminHttpDriverServices.build(),
+          aiConfigurations,
+        );
+
+        const aiRoutes = routes.filter(route => route instanceof AiProxyRoute);
+        expect(aiRoutes).toHaveLength(1);
       });
     });
   });
