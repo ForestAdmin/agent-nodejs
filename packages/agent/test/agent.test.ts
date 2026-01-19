@@ -378,7 +378,7 @@ describe('Agent', () => {
 
       expect(mcpServerSpy).toHaveBeenCalled();
       expect(mockGetHttpCallback).toHaveBeenCalled();
-      expect(mockLogger).toHaveBeenCalledWith('Info', '[MCP] Server initialized successfully');
+      expect(mockLogger).toHaveBeenCalledWith('Info', 'Server initialized successfully');
     });
 
     test('should log error when MCP initialization fails', async () => {

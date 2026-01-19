@@ -109,7 +109,9 @@ export default class ForestMCPServer {
     this.forestAppUrl = options?.forestAppUrl || 'https://app.forestadmin.com';
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
-    this.logger = options?.logger || defaultLogger;
+    this.logger = options?.logger
+      ? (level: LogLevel, message: string) => options.logger(level, `[MCP Server] ${message}`)
+      : defaultLogger;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -166,7 +168,7 @@ export default class ForestMCPServer {
       ),
     ];
 
-    this.logger('Info', `[MCP] Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    this.logger('Info', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
@@ -220,7 +222,7 @@ export default class ForestMCPServer {
     const args = body.params.arguments || {};
     const safeArgs = this.filterArgsForLogging(toolName, args);
 
-    this.logger('Info', `[MCP] Tool call: ${toolName} - params: ${JSON.stringify(safeArgs)}`);
+    this.logger('Info', `Tool call: ${toolName} - params: ${JSON.stringify(safeArgs)}`);
   }
 
   /**
@@ -228,7 +230,7 @@ export default class ForestMCPServer {
    * Logs the request, intercepts the response for error logging, and delegates to the transport.
    */
   private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
-    this.logger('Info', `[MCP] Incoming ${req.method} ${req.path}`);
+    this.logger('Info', `Incoming ${req.method} ${req.path}`);
 
     if (!this.mcpTransport) {
       throw new Error('MCP transport not initialized');

@@ -64,7 +64,7 @@ describe('registerToolWithLogging', () => {
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Error',
-        expect.stringContaining('[MCP] Tool "test-tool" validation error:'),
+        expect.stringContaining('Tool "test-tool" validation error:'),
       );
       expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('name:'));
       expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('count:'));
@@ -80,7 +80,7 @@ describe('registerToolWithLogging', () => {
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Error',
-        expect.stringContaining('[MCP] Tool "test-tool" validation error:'),
+        expect.stringContaining('Tool "test-tool" validation error:'),
       );
       expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('count:'));
     });
