@@ -1794,32 +1794,6 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent@1.70.9":
-  version "1.70.9"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.70.9.tgz#f705cc4ff4108b54bf400553ba18ce272592455a"
-  integrity sha512-IUxqu/145i1DvmmVz2BvLt6RNPlvxWiCDV6CSpP8iMB96tHo8w5rHAK3cF0kH+EPzL/T7hTPgU5BsMxZb1UVDg==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@forestadmin/datasource-customizer" "1.67.2"
-    "@forestadmin/datasource-toolkit" "1.50.1"
-    "@forestadmin/forestadmin-client" "1.37.4"
-    "@forestadmin/mcp-server" "1.6.2"
-    "@koa/bodyparser" "^6.0.0"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^13.1.0"
-    "@paralleldrive/cuid2" "2.2.2"
-    "@types/koa__router" "^12.0.4"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.0"
-    koa "^3.0.1"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^10.2.3"
-    uuid "11.0.2"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
