@@ -1,3 +1,18 @@
+# @forestadmin/mcp-server [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.6.2...@forestadmin/mcp-server@1.7.0) (2026-01-20)
+
+
+### Features
+
+* **mcp-server:** add associate and dissociate tools ([#1393](https://github.com/ForestAdmin/agent-nodejs/issues/1393)) ([c3fa294](https://github.com/ForestAdmin/agent-nodejs/commit/c3fa294e57db06befd708552802646661c852e0e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.0
+
 ## @forestadmin/mcp-server [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.6.1...@forestadmin/mcp-server@1.6.2) (2026-01-19)
 
 
