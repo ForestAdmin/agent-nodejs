@@ -22,9 +22,11 @@ import * as http from 'http';
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
 import { isMcpRoute } from './mcp-paths';
+import declareAssociateTool from './tools/associate';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
 import declareDescribeCollectionTool from './tools/describe-collection';
+import declareDissociateTool from './tools/dissociate';
 import declareExecuteActionTool from './tools/execute-action';
 import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
@@ -64,6 +66,8 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   describeCollection: ['collectionName'],
   getActionForm: ['collectionName', 'actionName', 'recordIds'],
   executeAction: ['collectionName', 'actionName', 'recordIds'],
+  associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
+  dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
 };
 
 /**
@@ -152,6 +156,8 @@ export default class ForestMCPServer {
       declareCreateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
       declareUpdateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
       declareDeleteTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareAssociateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareDissociateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
       declareGetActionFormTool(
         this.mcpServer,
         this.forestServerClient,

@@ -40,4 +40,32 @@ export default class Relation {
       ).count,
     );
   }
+
+  async associate(targetRecordId: string | number): Promise<void> {
+    await this.httpRequester.query({
+      method: 'post',
+      path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
+      body: {
+        data: [{ id: String(targetRecordId), type: this.name }],
+      },
+    });
+  }
+
+  async dissociate(targetRecordIds: (string | number)[]): Promise<void> {
+    await this.httpRequester.query({
+      method: 'delete',
+      path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
+      body: {
+        data: {
+          attributes: {
+            ids: targetRecordIds.map(String),
+            collection_name: this.name,
+            all_records: false,
+            all_records_ids_excluded: [],
+          },
+          type: 'action-requests',
+        },
+      },
+    });
+  }
 }
