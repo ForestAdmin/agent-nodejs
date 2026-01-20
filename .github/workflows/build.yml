@@ -63,6 +63,7 @@ jobs:
         package:
           - agent
           - agent-client
+          - agent-testing
           - forest-cloud
           - mcp-server
           - datasource-customizer

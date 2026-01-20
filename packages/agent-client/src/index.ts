@@ -1,10 +1,23 @@
 import type { ActionEndpointsByCollection } from './domains/action';
-import type { PermissionsOverride } from './domains/remote-agent-client';
+import type {
+  CollectionPermissionsOverride,
+  PermissionsOverride,
+  SmartActionPermissionsOverride,
+} from './domains/remote-agent-client';
 
+import ActionFieldJson from './action-fields/action-field-json';
+import ActionFieldStringList from './action-fields/action-field-string-list';
 import RemoteAgentClient from './domains/remote-agent-client';
 import HttpRequester from './http-requester';
 
-// eslint-disable-next-line import/prefer-default-export
+export { ActionFieldJson, ActionFieldStringList, RemoteAgentClient, HttpRequester };
+export type {
+  ActionEndpointsByCollection,
+  CollectionPermissionsOverride,
+  PermissionsOverride,
+  SmartActionPermissionsOverride,
+};
+
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
   actionEndpoints?: ActionEndpointsByCollection;
