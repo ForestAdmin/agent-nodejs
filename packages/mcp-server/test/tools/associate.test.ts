@@ -146,7 +146,7 @@ describe('declareAssociateTool', () => {
         expect(mockWithActivityLog).toHaveBeenCalledWith({
           forestServerClient: mockForestServerClient,
           request: mockExtra,
-          action: 'associate',
+          action: 'update',
           context: expect.objectContaining({
             collectionName: 'posts',
             recordId: 1,

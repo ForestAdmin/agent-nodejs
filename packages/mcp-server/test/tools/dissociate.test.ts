@@ -146,7 +146,7 @@ describe('declareDissociateTool', () => {
         expect(mockWithActivityLog).toHaveBeenCalledWith({
           forestServerClient: mockForestServerClient,
           request: mockExtra,
-          action: 'dissociate',
+          action: 'update',
           context: expect.objectContaining({
             collectionName: 'posts',
             recordId: 1,

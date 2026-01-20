@@ -52,7 +52,7 @@ export default function declareAssociateTool(
       return withActivityLog({
         forestServerClient,
         request: extra,
-        action: 'associate',
+        action: 'update',
         context: {
           collectionName: options.collectionName,
           recordId: options.parentRecordId,

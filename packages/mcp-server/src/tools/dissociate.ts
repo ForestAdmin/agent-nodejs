@@ -52,7 +52,7 @@ export default function declareDissociateTool(
       return withActivityLog({
         forestServerClient,
         request: extra,
-        action: 'dissociate',
+        action: 'update',
         context: {
           collectionName: options.collectionName,
           recordId: options.parentRecordId,

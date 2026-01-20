@@ -229,9 +229,7 @@ export type ActivityLogAction =
   | 'update'
   | 'delete'
   | 'listRelatedData'
-  | 'describeCollection'
-  | 'associate'
-  | 'dissociate';
+  | 'describeCollection';
 
 export type ActivityLogType = 'read' | 'write';
 
