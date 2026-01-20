@@ -59,7 +59,7 @@ describe('create collection', () => {
         { parentId: car._id, date: '2020-01-01', comment: 'my comment 2' },
       ]);
 
-      const doc = await connection.model('cars').findOne({ _id: car._id });
+      const doc = await connection.model('cars').findOne({ _id: car._id }).lean();
 
       expect(car).toEqual(
         expect.objectContaining({
@@ -75,7 +75,7 @@ describe('create collection', () => {
         expect.objectContaining({ _id: `${car._id}.engine.comments.1` }),
       ]);
 
-      expect(doc).toEqual(
+      expect(doc as any).toEqual(
         expect.objectContaining({
           name: 'my fiesta',
           wheelSize: 12,
@@ -125,9 +125,9 @@ describe('create collection', () => {
           { capacity: 12, category: 'EXPLOSION' },
         );
 
-      const doc = await connection.model('cars').findOne({ _id: car._id });
+      const doc = await connection.model('cars').findOne({ _id: car._id }).lean();
 
-      expect(doc).toEqual(
+      expect(doc as any).toEqual(
         expect.objectContaining({
           name: 'my fiesta',
           wheelSize: 12,
@@ -165,10 +165,10 @@ describe('create collection', () => {
         .getCollection('cars_engine_comments')
         .create(caller, [{ parentId: car._id, ...flatRecord }]);
 
-      const carSeenFromDb = await connection.model('cars').findOne({ _id: car._id });
+      const carSeenFromDb = await connection.model('cars').findOne({ _id: car._id }).lean();
 
       expect(carCommentFromApp).toMatchObject(flatRecord);
-      expect(carSeenFromDb.engine.comments[0]).toEqual(
+      expect((carSeenFromDb as any).engine.comments[0]).toEqual(
         expect.objectContaining({
           date: expect.any(Date),
           comment: 'hi!',
@@ -192,7 +192,7 @@ describe('create collection', () => {
         .getCollection('cars_engine')
         .create(caller, [{ parentId: car._id, horsePower: '12' }]);
 
-      const doc = await connection.model('cars').findOne({ _id: car._id });
+      const doc = await connection.model('cars').findOne({ _id: car._id }).lean();
 
       expect(result).toEqual(
         expect.arrayContaining([
@@ -202,7 +202,7 @@ describe('create collection', () => {
         ]),
       );
 
-      expect(doc).toEqual(
+      expect(doc as any).toEqual(
         expect.objectContaining({
           name: 'my fiesta',
           wheelSize: 12,

@@ -63,9 +63,9 @@ describe('Complex flattening', () => {
       }),
     ).rejects.toThrow(ValidationError);
 
-    const doc = await connection.model('cars').findOne({ _id: car._id });
+    const doc = await connection.model('cars').findOne({ _id: car._id }).lean();
 
-    expect(doc).toEqual(
+    expect(doc as any).toEqual(
       expect.objectContaining({
         engine: expect.objectContaining({
           // Check that manufacturer was updated
