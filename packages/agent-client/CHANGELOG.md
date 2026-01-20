@@ -1,3 +1,11 @@
+# @forestadmin/agent-client [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.3.1...@forestadmin/agent-client@1.4.0) (2026-01-20)
+
+
+### Features
+
+* **agent testing:** introduce Agent testing ([#1377](https://github.com/ForestAdmin/agent-nodejs/issues/1377)) ([2ce12f2](https://github.com/ForestAdmin/agent-nodejs/commit/2ce12f2abb5eb0e7ea1be00380f3b943deaef673))
+* **mcp-server:** add associate and dissociate tools ([#1393](https://github.com/ForestAdmin/agent-nodejs/issues/1393)) ([c3fa294](https://github.com/ForestAdmin/agent-nodejs/commit/c3fa294e57db06befd708552802646661c852e0e))
+
 ## @forestadmin/agent-client [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.3.0...@forestadmin/agent-client@1.3.1) (2026-01-14)
 
 
