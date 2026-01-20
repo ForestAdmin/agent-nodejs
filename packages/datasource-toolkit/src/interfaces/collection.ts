@@ -42,6 +42,9 @@ export interface Collection {
     name: string,
     formValues: RecordData,
     filter?: Filter,
+    additionalInformation?: {
+      webAppURL: URL;
+    },
   ): Promise<ActionResult>;
 
   getForm(

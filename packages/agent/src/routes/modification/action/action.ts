@@ -76,6 +76,7 @@ export default class ActionRoute extends CollectionRoute {
       this.getRecordSelection(context, false),
     ]);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
+    const webAppURL: URL = new URL(context.request.url || context.request.originalUrl);
 
     const canPerformCustomActionParams = {
       caller,
@@ -113,7 +114,9 @@ export default class ActionRoute extends CollectionRoute {
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
+    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller, {
+      webAppURL,
+    });
 
     if (result.responseHeaders) {
       context.response.set(result.responseHeaders);
