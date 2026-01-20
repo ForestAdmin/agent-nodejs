@@ -1,0 +1,12 @@
+src/
+test/
+*.test.ts
+*.spec.ts
+tsconfig.json
+jest.config.ts
+.eslintrc.js
+docker-compose.test.yml
+EXAMPLE.md
+md/
+.git
+.github
