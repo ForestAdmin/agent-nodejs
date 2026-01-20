@@ -4,11 +4,36 @@ import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling'
 
 import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
 
+// Mock raw OpenAI response (returned via __includeRawResponse: true)
+const mockOpenAIResponse = {
+  id: 'chatcmpl-123',
+  object: 'chat.completion',
+  created: 1234567890,
+  model: 'gpt-4o',
+  choices: [
+    {
+      index: 0,
+      message: {
+        role: 'assistant',
+        content: 'response',
+        tool_calls: [],
+      },
+      finish_reason: 'stop',
+    },
+  ],
+  usage: {
+    prompt_tokens: 10,
+    completion_tokens: 20,
+    total_tokens: 30,
+  },
+};
+
 const invokeMock = jest.fn().mockResolvedValue({
   content: 'response',
   tool_calls: [],
   response_metadata: { finish_reason: 'stop' },
   usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+  additional_kwargs: { __raw_response: mockOpenAIResponse },
 });
 
 const bindToolsMock = jest.fn().mockReturnValue({ invoke: invokeMock });
@@ -56,23 +81,8 @@ describe('ProviderDispatcher', () => {
           messages: [],
         } as unknown as DispatchBody);
 
-        expect(response).toEqual({
-          choices: [
-            {
-              message: {
-                role: 'assistant',
-                content: 'response',
-                tool_calls: [],
-              },
-              finish_reason: 'stop',
-            },
-          ],
-          usage: {
-            prompt_tokens: 10,
-            completion_tokens: 20,
-            total_tokens: 30,
-          },
-        });
+        // Response is the raw OpenAI response (via __includeRawResponse)
+        expect(response).toEqual(mockOpenAIResponse);
       });
 
       describe('when the user tries to override the configuration', () => {
