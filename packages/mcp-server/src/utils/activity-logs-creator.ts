@@ -22,8 +22,15 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   delete: 'write',
   listRelatedData: 'read',
   describeCollection: 'read',
+  // associate/dissociate are mapped to 'update' until Forest server supports them natively
   associate: 'write',
   dissociate: 'write',
+};
+
+// Map actions to Forest server supported actions (associate/dissociate -> update)
+const ACTION_TO_SERVER_ACTION: Partial<Record<ActivityLogAction, ActivityLogAction>> = {
+  associate: 'update',
+  dissociate: 'update',
 };
 
 function getAuthContext(request: RequestHandlerExtra<ServerRequest, ServerNotification>): {
@@ -57,12 +64,13 @@ export default async function createPendingActivityLog(
   },
 ) {
   const type = ACTION_TO_TYPE[action];
+  const serverAction = ACTION_TO_SERVER_ACTION[action] ?? action;
   const { forestServerToken, renderingId } = getAuthContext(request);
 
   return forestServerClient.createActivityLog({
     forestServerToken,
     renderingId,
-    action,
+    action: serverAction,
     type,
     collectionName: extra?.collectionName,
     recordId: extra?.recordId,
