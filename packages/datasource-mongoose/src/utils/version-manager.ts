@@ -10,8 +10,11 @@ export default class VersionManager {
   public static isSubDocument(field): field is Schema.Types.Subdocument {
     return (
       field?.name === 'EmbeddedDocument' ||
-      field?.constructor?.name === 'SubdocumentPath' ||
-      (field?.instance === 'Embedded' && isSchemaType(field))
+      field?.constructor?.name === 'SubdocumentPath' || // Mongoose 8 and below
+      field?.constructor?.name === 'SchemaSubdocument' || // Mongoose 9+ (single nested)
+      field?.constructor?.name === 'SchemaDocumentArrayElement' || // Mongoose 9+ (array element)
+      (field?.instance === 'Embedded' && isSchemaType(field)) ||
+      (field?.instance === 'DocumentArrayElement' && isSchemaType(field))
     );
   }
 

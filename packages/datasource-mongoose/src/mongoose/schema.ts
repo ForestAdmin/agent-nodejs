@@ -186,7 +186,10 @@ export default class MongooseSchema {
           for (const [subName, subField] of Object.entries(subPaths)) {
             recursiveSet(paths, `${name}.${subName}`, subField);
           }
-        } else if (field.constructor.name === 'DocumentArrayPath') {
+        } else if (
+          field.constructor.name === 'DocumentArrayPath' ||
+          field.constructor.name === 'SchemaDocumentArray'
+        ) {
           const subPaths = this.buildFields(field.schema as Schema, level + 1);
 
           for (const [subName, subField] of Object.entries(subPaths)) {
