@@ -143,6 +143,10 @@ export function replaceMongoTypes(data: any): any {
   if (data instanceof Types.Decimal128) return data.toString();
 
   // eslint-disable-next-line no-underscore-dangle
+  if (data?._bsontype === 'ObjectId') return data.toHexString();
+  // eslint-disable-next-line no-underscore-dangle
+  if (data?._bsontype === 'Decimal128') return data.toString();
+  // eslint-disable-next-line no-underscore-dangle
   if (data?._bsontype === 'Binary') return data.buffer;
 
   if (Array.isArray(data)) return data.map(item => replaceMongoTypes(item));
