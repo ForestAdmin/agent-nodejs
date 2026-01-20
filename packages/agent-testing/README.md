@@ -1,6 +1,6 @@
 # @forestadmin/agent-testing
 
-Test your Forest Admin agent customizations (actions, hooks, segments) locally without connecting to Forest Admin servers.
+Testing utilities for Forest Admin agents. Test your customizations (actions, hooks, segments, charts) locally without connecting to Forest Admin servers.
 
 ## Installation
 
