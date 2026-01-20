@@ -10,10 +10,15 @@ import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
 /**
  * OpenAI provider configuration.
+ *
+ * @property provider - Must be 'openai'
+ * @property model - The model to use (e.g., 'gpt-4o', 'gpt-4-turbo')
+ * @property apiKey - Required OpenAI API key
  */
-export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model'> & {
+export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
   provider: 'openai';
   model: string;
+  apiKey: string;
 };
 
 /**
@@ -51,16 +56,6 @@ export type DispatchBody = {
   tool_choice?: ChatCompletionToolChoice;
 };
 
-/**
- * Dispatches AI requests to the configured OpenAI provider.
- *
- * @description
- * Uses LangChain's ChatOpenAI with `__includeRawResponse: true` to get the raw OpenAI response
- * directly, avoiding any response transformation.
- *
- * @see {@link DispatchBody} - Input type (OpenAI Chat Completion format)
- * @see {@link ChatCompletionResponse} - Output type (OpenAI Chat Completion format)
- */
 export class ProviderDispatcher {
   private readonly chatModel: ChatOpenAI | null = null;
 
@@ -91,16 +86,37 @@ export class ProviderDispatcher {
 
     const { tools, messages, tool_choice: toolChoice } = body;
 
+    const enrichedTools = this.enrichToolDefinitions(tools);
+    const model = this.bindToolsIfNeeded(this.chatModel, enrichedTools, toolChoice);
+
     try {
-      const enrichedTools = this.enrichToolDefinitions(tools);
-      const model = this.bindToolsIfNeeded(this.chatModel, enrichedTools, toolChoice);
       const response = await model.invoke(messages as BaseMessageLike[]);
 
       // Extract raw OpenAI response (enabled via __includeRawResponse in constructor)
       // eslint-disable-next-line no-underscore-dangle
-      return response.additional_kwargs.__raw_response as ChatCompletionResponse;
+      const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
+
+      if (!rawResponse) {
+        throw new OpenAIUnprocessableError(
+          'OpenAI response missing raw response data. This may indicate an API change.',
+        );
+      }
+
+      return rawResponse;
     } catch (error) {
-      throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${(error as Error).message}`);
+      if (error instanceof OpenAIUnprocessableError) throw error;
+
+      const err = error as Error & { status?: number };
+
+      if (err.status === 429) {
+        throw new OpenAIUnprocessableError(`Rate limit exceeded: ${err.message}`);
+      }
+
+      if (err.status === 401) {
+        throw new OpenAIUnprocessableError(`Authentication failed: ${err.message}`);
+      }
+
+      throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${err.message}`);
     }
   }
 

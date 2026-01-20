@@ -4,13 +4,7 @@ import type KoaRouter from '@koa/router';
 import type { Context } from 'koa';
 
 // eslint-disable-next-line import/no-extraneous-dependencies
-import {
-  AIError,
-  AINotConfiguredError,
-  AIToolNotFoundError,
-  AIUnprocessableError,
-  Router as AiProxyRouter,
-} from '@forestadmin/ai-proxy';
+import { AIError, Router as AiProxyRouter } from '@forestadmin/ai-proxy';
 import { UnprocessableError } from '@forestadmin/datasource-toolkit';
 
 import { HttpCode, RouteType } from '../../types';
@@ -47,18 +41,7 @@ export default class AiProxyRoute extends BaseRoute {
       context.response.status = HttpCode.Ok;
     } catch (error) {
       // Convert AI errors to framework errors for proper HTTP status codes
-      if (error instanceof AINotConfiguredError) {
-        throw new UnprocessableError(error.message);
-      }
-
-      if (error instanceof AIToolNotFoundError) {
-        throw new UnprocessableError(error.message);
-      }
-
-      if (error instanceof AIUnprocessableError) {
-        throw new UnprocessableError(error.message);
-      }
-
+      // All AI errors extend AIError, so we only need one check
       if (error instanceof AIError) {
         throw new UnprocessableError(error.message);
       }

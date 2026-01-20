@@ -35,7 +35,16 @@ export class Router {
     if (this.aiConfigurations.length === 0) return null;
 
     if (aiName) {
-      return this.aiConfigurations.find(config => config.name === aiName) ?? null;
+      const config = this.aiConfigurations.find(c => c.name === aiName);
+
+      if (!config) {
+        const available = this.aiConfigurations.map(c => c.name).join(', ');
+        throw new AIUnprocessableError(
+          `AI configuration '${aiName}' not found. Available configurations: ${available}`,
+        );
+      }
+
+      return config;
     }
 
     // Default to first configuration if no name specified
@@ -74,10 +83,19 @@ export class Router {
       }
 
       if (args.route === 'invoke-remote-tool') {
-        return await remoteTools.invokeTool(
-          args.query['tool-name'],
-          (args.body as InvokeRemoteToolBody).inputs,
-        );
+        const toolName = args.query?.['tool-name'];
+
+        if (!toolName) {
+          throw new AIUnprocessableError('Missing required query parameter: tool-name');
+        }
+
+        const body = args.body as InvokeRemoteToolBody | undefined;
+
+        if (!body?.inputs) {
+          throw new AIUnprocessableError('Missing required body parameter: inputs');
+        }
+
+        return await remoteTools.invokeTool(toolName, body.inputs);
       }
 
       if (args.route === 'remote-tools') {

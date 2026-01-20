@@ -1,4 +1,5 @@
 import type { DispatchBody, Route } from '../src';
+import type { InvokeRemoteToolBody } from '../src/router';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, Router } from '../src';
@@ -118,8 +119,7 @@ describe('route', () => {
       expect(dispatchMock).toHaveBeenCalled();
     });
 
-    it('passes null to ProviderDispatcher when ai-name references non-existent configuration', async () => {
-      const { ProviderDispatcher } = jest.requireMock('../src/provider-dispatcher');
+    it('throws an error when ai-name references non-existent configuration', async () => {
       const router = new Router({
         aiConfigurations: [
           {
@@ -131,14 +131,13 @@ describe('route', () => {
         ],
       });
 
-      await router.route({
-        route: 'ai-query',
-        query: { 'ai-name': 'non-existent' },
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
-      });
-
-      // ProviderDispatcher is called with null configuration when ai-name is not found
-      expect(ProviderDispatcher).toHaveBeenCalledWith(null, expect.anything());
+      await expect(
+        router.route({
+          route: 'ai-query',
+          query: { 'ai-name': 'non-existent' },
+          body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        }),
+      ).rejects.toThrow("AI configuration 'non-existent' not found. Available configurations: gpt4");
     });
   });
 
@@ -153,6 +152,30 @@ describe('route', () => {
       });
 
       expect(invokeToolMock).toHaveBeenCalledWith('tool-name', []);
+    });
+
+    it('throws an error when tool-name query parameter is missing', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'invoke-remote-tool',
+          query: {},
+          body: { inputs: [] },
+        }),
+      ).rejects.toThrow('Missing required query parameter: tool-name');
+    });
+
+    it('throws an error when body.inputs is missing', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'invoke-remote-tool',
+          query: { 'tool-name': 'tool-name' },
+          body: {} as InvokeRemoteToolBody,
+        }),
+      ).rejects.toThrow('Missing required body parameter: inputs');
     });
   });
 
