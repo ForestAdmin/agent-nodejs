@@ -419,27 +419,7 @@ describe('Agent', () => {
       expect(result).toBe(agent);
     });
 
-    test('should allow calling addAI multiple times with different names', () => {
-      const agent = new Agent(options);
-
-      agent.addAI({
-        name: 'gpt4',
-        provider: 'openai',
-        apiKey: 'test-key',
-        model: 'gpt-4',
-      });
-
-      const result = agent.addAI({
-        name: 'gpt3',
-        provider: 'openai',
-        apiKey: 'another-key',
-        model: 'gpt-3.5-turbo',
-      });
-
-      expect(result).toBe(agent);
-    });
-
-    test('should throw an error when called with the same name twice', () => {
+    test('should throw an error when addAI is called more than once', () => {
       const agent = new Agent(options);
 
       agent.addAI({
@@ -451,12 +431,12 @@ describe('Agent', () => {
 
       expect(() =>
         agent.addAI({
-          name: 'gpt4',
+          name: 'gpt3',
           provider: 'openai',
           apiKey: 'another-key',
-          model: 'gpt-4-turbo',
+          model: 'gpt-3.5-turbo',
         }),
-      ).toThrow("An AI configuration with name 'gpt4' already exists");
+      ).toThrow('addAI can only be called once. Multiple AI configurations are not supported yet.');
     });
 
     test('should include ai_llms in schema meta when AI is configured', async () => {
@@ -474,36 +454,6 @@ describe('Agent', () => {
         expect.objectContaining({
           meta: expect.objectContaining({
             ai_llms: [{ name: 'gpt4', provider: 'openai' }],
-          }),
-        }),
-      );
-    });
-
-    test('should include multiple ai_llms in schema meta when multiple AIs are configured', async () => {
-      const agent = new Agent(options);
-      agent
-        .addAI({
-          name: 'gpt4',
-          provider: 'openai',
-          apiKey: 'test-key',
-          model: 'gpt-4',
-        })
-        .addAI({
-          name: 'gpt3',
-          provider: 'openai',
-          apiKey: 'test-key-2',
-          model: 'gpt-3.5-turbo',
-        });
-
-      await agent.start();
-
-      expect(mockPostSchema).toHaveBeenCalledWith(
-        expect.objectContaining({
-          meta: expect.objectContaining({
-            ai_llms: [
-              { name: 'gpt4', provider: 'openai' },
-              { name: 'gpt3', provider: 'openai' },
-            ],
           }),
         }),
       );

@@ -230,26 +230,19 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @param configuration.apiKey - Your API key for the chosen provider
    * @param configuration.model - The model to use (e.g., 'gpt-4o')
    * @returns The agent instance for chaining
-   * @throws Error if an AI configuration with the same name already exists
+   * @throws Error if addAI is called more than once
    *
    * @example
-   * agent
-   *   .addAI({
-   *     name: 'gpt4',
-   *     provider: 'openai',
-   *     apiKey: process.env.OPENAI_API_KEY,
-   *     model: 'gpt-4o',
-   *   })
-   *   .addAI({
-   *     name: 'gpt3',
-   *     provider: 'openai',
-   *     apiKey: process.env.OPENAI_API_KEY,
-   *     model: 'gpt-3.5-turbo',
-   *   });
+   * agent.addAI({
+   *   name: 'assistant',
+   *   provider: 'openai',
+   *   apiKey: process.env.OPENAI_API_KEY,
+   *   model: 'gpt-4o',
+   * });
    */
   addAI(configuration: AiConfiguration): this {
-    if (this.aiConfigurations.some(c => c.name === configuration.name)) {
-      throw new Error(`An AI configuration with name '${configuration.name}' already exists`);
+    if (this.aiConfigurations.length > 0) {
+      throw new Error('addAI can only be called once. Multiple AI configurations are not supported yet.');
     }
 
     this.aiConfigurations.push(configuration);
