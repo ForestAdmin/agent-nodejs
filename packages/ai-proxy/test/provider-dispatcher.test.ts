@@ -2,7 +2,7 @@ import type { DispatchBody } from '../src';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
-import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
+import { AINotConfiguredError, isModelSupportingTools, ProviderDispatcher, RemoteTools } from '../src';
 
 // Mock raw OpenAI response (returned via __includeRawResponse: true)
 const mockOpenAIResponse = {
@@ -255,6 +255,50 @@ describe('ProviderDispatcher', () => {
         );
         expect(invokeMock).toHaveBeenCalledWith(messages);
       });
+    });
+  });
+});
+
+describe('isModelSupportingTools', () => {
+  describe('should return true for supported models', () => {
+    const supportedModels = [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4o-2024-08-06',
+      'gpt-4-turbo',
+      'gpt-4-turbo-preview',
+      'gpt-4',
+      'gpt-4-0613',
+      'gpt-3.5-turbo',
+      'gpt-3.5-turbo-0125',
+      'gpt-4.1',
+      'gpt-4.1-mini',
+      'o1',
+      'o1-mini',
+      'o1-preview',
+      'o3',
+      'o3-mini',
+      'o4-mini',
+    ];
+
+    it.each(supportedModels)('%s', model => {
+      expect(isModelSupportingTools(model)).toBe(true);
+    });
+  });
+
+  describe('should return false for unsupported models', () => {
+    const unsupportedModels = [
+      'text-davinci-003',
+      'davinci',
+      'curie',
+      'babbage',
+      'ada',
+      'gpt-3',
+      'unknown-model',
+    ];
+
+    it.each(unsupportedModels)('%s', model => {
+      expect(isModelSupportingTools(model)).toBe(false);
     });
   });
 });

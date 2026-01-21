@@ -439,6 +439,22 @@ describe('Agent', () => {
       ).toThrow('addAI can only be called once. Multiple AI configurations are not supported yet.');
     });
 
+    test('should throw an error when model does not support tools', () => {
+      const agent = new Agent(options);
+
+      expect(() =>
+        agent.addAI({
+          name: 'davinci',
+          provider: 'openai',
+          apiKey: 'test-key',
+          model: 'text-davinci-003',
+        }),
+      ).toThrow(
+        "Model 'text-davinci-003' does not support function calling (tools). " +
+          'Please use a compatible model like gpt-4o, gpt-4-turbo, or gpt-3.5-turbo.',
+      );
+    });
+
     test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
       agent.addAI({

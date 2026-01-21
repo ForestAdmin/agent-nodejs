@@ -8,6 +8,28 @@ import { ChatOpenAI } from '@langchain/openai';
 
 import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
+/**
+ * OpenAI model prefixes that support function calling (tools).
+ * Models not in this list will be rejected.
+ * @see https://platform.openai.com/docs/guides/function-calling
+ */
+const OPENAI_MODELS_WITH_TOOLS_SUPPORT = [
+  'gpt-4o',
+  'gpt-4-turbo',
+  'gpt-4.1',
+  'gpt-4',
+  'gpt-3.5-turbo',
+  'o1',
+  'o3',
+  'o4',
+];
+
+export function isModelSupportingTools(model: string): boolean {
+  return OPENAI_MODELS_WITH_TOOLS_SUPPORT.some(
+    supported => model === supported || model.startsWith(`${supported}-`),
+  );
+}
+
 export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
   provider: 'openai';
   // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
