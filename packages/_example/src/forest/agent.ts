@@ -94,11 +94,5 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales)
-    .addAI({
-      name: 'assist',
-      provider: 'openai',
-      apiKey: '',
-      model: 'dezdfez',
-    });
+    .customizeCollection('sales', customizeSales);
 }
