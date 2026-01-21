@@ -260,24 +260,21 @@ describe('ProviderDispatcher', () => {
 });
 
 describe('isModelSupportingTools', () => {
-  describe('should return true for supported models', () => {
+  describe('should return true for supported and unknown models', () => {
     const supportedModels = [
       'gpt-4o',
       'gpt-4o-mini',
       'gpt-4o-2024-08-06',
-      'gpt-4o-2024-11-20',
       'gpt-4-turbo',
       'gpt-4-turbo-2024-04-09',
       'gpt-4.1',
-      'gpt-4.1-2025-04-14',
       'gpt-5',
-      'gpt-5-2025-08-07',
       'gpt-5.2',
       'o1',
-      'o1-2024-12-17',
       'o3',
-      'o3-2025-04-16',
       'o4-mini',
+      'unknown-model',
+      'future-gpt-model',
     ];
 
     it.each(supportedModels)('%s', model => {
@@ -285,15 +282,18 @@ describe('isModelSupportingTools', () => {
     });
   });
 
-  describe('should return false for unsupported models', () => {
+  describe('should return false for known unsupported models', () => {
     const unsupportedModels = [
       'gpt-4',
       'gpt-4-0613',
       'gpt-3.5-turbo',
       'gpt-3.5-turbo-0125',
+      'gpt-3.5',
       'text-davinci-003',
       'davinci',
-      'unknown-model',
+      'curie',
+      'babbage',
+      'ada',
     ];
 
     it.each(unsupportedModels)('%s', model => {

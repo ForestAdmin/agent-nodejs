@@ -9,25 +9,38 @@ import { ChatOpenAI } from '@langchain/openai';
 import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
 /**
- * OpenAI model prefixes that support function calling (tools).
- * Models not in this list will be rejected.
+ * OpenAI model prefixes that do NOT support function calling (tools).
+ * Unknown models are allowed.
  * @see https://platform.openai.com/docs/guides/function-calling
  */
-const OPENAI_MODELS_WITH_TOOLS_SUPPORT = [
-  'gpt-4o',
-  'gpt-4-turbo',
-  'gpt-4.1',
-  'gpt-5',
-  'gpt-5.2',
-  'o1',
-  'o3',
-  'o4',
+const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT = [
+  'gpt-4',
+  'gpt-3.5-turbo',
+  'gpt-3.5',
+  'text-davinci',
+  'davinci',
+  'curie',
+  'babbage',
+  'ada',
 ];
 
+/**
+ * Exceptions to the unsupported list - these models DO support tools
+ * even though they start with an unsupported prefix.
+ */
+const OPENAI_MODELS_EXCEPTIONS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
+
 export function isModelSupportingTools(model: string): boolean {
-  return OPENAI_MODELS_WITH_TOOLS_SUPPORT.some(
-    supported => model === supported || model.startsWith(`${supported}-`),
+  const isException = OPENAI_MODELS_EXCEPTIONS.some(
+    exception => model === exception || model.startsWith(`${exception}-`),
   );
+  if (isException) return true;
+
+  const isKnownUnsupported = OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT.some(
+    unsupported => model === unsupported || model.startsWith(`${unsupported}-`),
+  );
+
+  return !isKnownUnsupported;
 }
 
 export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
