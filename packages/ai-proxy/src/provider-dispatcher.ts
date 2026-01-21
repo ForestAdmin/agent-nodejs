@@ -1,6 +1,6 @@
 import type { RemoteTools } from './remote-tools';
 import type { BaseMessageLike } from '@langchain/core/messages';
-import type { ChatOpenAIFields } from '@langchain/openai';
+import type { ChatOpenAIFields, OpenAIChatModelId } from '@langchain/openai';
 import type OpenAI from 'openai';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
@@ -10,7 +10,7 @@ import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
 export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
   provider: 'openai';
-  model: string;
+  model: OpenAIChatModelId;
   apiKey: string;
 };
 
