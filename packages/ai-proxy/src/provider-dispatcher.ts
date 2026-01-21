@@ -10,7 +10,7 @@ import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
 export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
   provider: 'openai';
-  model: OpenAIChatModelId;
+  model: OpenAIChatModelId | (string & {});
   apiKey: string;
 };
 
