@@ -401,7 +401,7 @@ describe('Agent', () => {
     });
   });
 
-  describe('addAI', () => {
+  describe('addAi', () => {
     const options = factories.forestAdminHttpDriverOptions.build({
       isProduction: false,
       forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
@@ -409,7 +409,7 @@ describe('Agent', () => {
 
     test('should store the AI configuration', () => {
       const agent = new Agent(options);
-      const result = agent.addAI({
+      const result = agent.addAi({
         name: 'gpt4o',
         provider: 'openai',
         apiKey: 'test-key',
@@ -419,10 +419,10 @@ describe('Agent', () => {
       expect(result).toBe(agent);
     });
 
-    test('should throw an error when addAI is called more than once', () => {
+    test('should throw an error when addAi is called more than once', () => {
       const agent = new Agent(options);
 
-      agent.addAI({
+      agent.addAi({
         name: 'gpt4o',
         provider: 'openai',
         apiKey: 'test-key',
@@ -430,20 +430,20 @@ describe('Agent', () => {
       });
 
       expect(() =>
-        agent.addAI({
+        agent.addAi({
           name: 'gpt4o-mini',
           provider: 'openai',
           apiKey: 'another-key',
           model: 'gpt-4o-mini',
         }),
-      ).toThrow('addAI can only be called once. Multiple AI configurations are not supported yet.');
+      ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
     });
 
     test('should throw an error when model does not support tools', () => {
       const agent = new Agent(options);
 
       expect(() =>
-        agent.addAI({
+        agent.addAi({
           name: 'gpt4-base',
           provider: 'openai',
           apiKey: 'test-key',
@@ -457,7 +457,7 @@ describe('Agent', () => {
 
     test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
-      agent.addAI({
+      agent.addAi({
         name: 'gpt4o',
         provider: 'openai',
         apiKey: 'test-key',
