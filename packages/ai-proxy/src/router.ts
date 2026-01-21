@@ -3,7 +3,12 @@ import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
 import type { Messages, RemoteToolsApiKeys } from './remote-tools';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIBadRequestError, AINotFoundError, AIUnprocessableError, ProviderDispatcher } from './index';
+import {
+  AIBadRequestError,
+  AINotFoundError,
+  AIUnprocessableError,
+  ProviderDispatcher,
+} from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
 
@@ -53,10 +58,10 @@ export class Router {
   /**
    * Route the request to the appropriate handler
    *
-   * List of routes:
-   * - /ai-query
-   * - /invoke-remote-tool?tool-name=:toolName
-   * - /remote-tools
+   * Routes:
+   * - ai-query: Dispatch messages to the configured AI provider and return the response
+   * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
+   * - remote-tools: Return the list of available remote tools definitions
    */
   async route(args: { body?: Body; route: Route; query?: Query; mcpConfigs?: McpConfiguration }) {
     let mcpClient: McpClient | undefined;
@@ -66,7 +71,10 @@ export class Router {
         mcpClient = new McpClient(args.mcpConfigs, this.logger);
       }
 
-      const remoteTools = new RemoteTools(this.localToolsApiKeys ?? {}, await mcpClient?.loadTools());
+      const remoteTools = new RemoteTools(
+        this.localToolsApiKeys ?? {},
+        await mcpClient?.loadTools(),
+      );
 
       if (args.route === 'ai-query') {
         const aiConfiguration = this.getAiConfiguration(args.query?.['ai-name']);
@@ -109,7 +117,8 @@ export class Router {
         try {
           await mcpClient.closeConnections();
         } catch (cleanupError) {
-          const error = cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
+          const error =
+            cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
           this.logger?.('Error', 'Error during MCP connection cleanup', error);
         }
       }
