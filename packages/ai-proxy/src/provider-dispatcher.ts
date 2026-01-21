@@ -8,48 +8,23 @@ import { ChatOpenAI } from '@langchain/openai';
 
 import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
-/**
- * OpenAI provider configuration.
- *
- * @property provider - Must be 'openai'
- * @property model - The model to use (e.g., 'gpt-4o', 'gpt-4-turbo')
- * @property apiKey - Required OpenAI API key
- */
 export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
   provider: 'openai';
   model: string;
   apiKey: string;
 };
 
-/**
- * AI provider configuration with a display name.
- */
 export type AiConfiguration = OpenAiConfiguration & {
   name: string;
 };
 
 export type AiProvider = AiConfiguration['provider'];
 
-// ============================================================================
-// OpenAI Types - Re-exported for convenience
-// ============================================================================
-
-/** OpenAI Chat Completion response. */
 export type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
-
-/** OpenAI Chat Completion message. */
 export type ChatCompletionMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
-
-/** OpenAI Chat Completion tool. */
 export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
-
-/** OpenAI Chat Completion tool choice. */
 export type ChatCompletionToolChoice = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
 
-/**
- * Request body for the AI dispatch endpoint.
- * Uses OpenAI Chat Completion types.
- */
 export type DispatchBody = {
   messages: ChatCompletionMessage[];
   tools?: ChatCompletionTool[];
@@ -68,17 +43,11 @@ export class ProviderDispatcher {
       const { provider, name, ...chatOpenAIOptions } = configuration;
       this.chatModel = new ChatOpenAI({
         ...chatOpenAIOptions,
-        __includeRawResponse: true, // Include raw OpenAI response in AIMessage
+        __includeRawResponse: true,
       });
     }
   }
 
-  /**
-   * Dispatches a chat completion request to the configured AI provider.
-   *
-   * @param body - OpenAI-compatible request body
-   * @returns OpenAI-compatible response
-   */
   async dispatch(body: DispatchBody): Promise<ChatCompletionResponse> {
     if (!this.chatModel) {
       throw new AINotConfiguredError();
@@ -92,7 +61,6 @@ export class ProviderDispatcher {
     try {
       const response = await model.invoke(messages as BaseMessageLike[]);
 
-      // Extract raw OpenAI response (enabled via __includeRawResponse in constructor)
       // eslint-disable-next-line no-underscore-dangle
       const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
 
@@ -134,10 +102,6 @@ export class ProviderDispatcher {
     });
   }
 
-  /**
-   * Enriches tool definitions with full schemas from remote tools.
-   * The frontend sends minimal tool definitions; this replaces them with complete schemas.
-   */
   private enrichToolDefinitions(tools?: ChatCompletionTool[]) {
     if (!tools || !Array.isArray(tools)) return tools;
 

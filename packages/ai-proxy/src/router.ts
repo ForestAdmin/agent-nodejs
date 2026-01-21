@@ -50,19 +50,6 @@ export class Router {
     return this.aiConfigurations[0];
   }
 
-  /**
-   * Route the request to the appropriate handler
-   *
-   * List of routes:
-   * // dispatch the query to the AI
-   * - /ai-query
-   *
-   * // invoke a remote tool by name
-   * - /invoke-remote-tool?tool-name=:toolName
-   *
-   * // get the list of available remote tools
-   * - /remote-tools
-   */
   async route(args: { body?: Body; route: Route; query?: Query; mcpConfigs?: McpConfiguration }) {
     let mcpClient: McpClient | undefined;
 
