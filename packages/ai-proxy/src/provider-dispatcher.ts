@@ -10,6 +10,8 @@ import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
 
 export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
   provider: 'openai';
+  // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
+  // (string & NonNullable<unknown>) allows custom model strings without losing autocomplete
   model: OpenAIChatModelId | (string & NonNullable<unknown>);
   apiKey: string;
 };
