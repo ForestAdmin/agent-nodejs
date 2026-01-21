@@ -6,6 +6,7 @@ import type { Context } from 'koa';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
   AIBadRequestError,
+  AIError,
   AINotFoundError,
   Router as AiProxyRouter,
 } from '@forestadmin/ai-proxy';
@@ -46,9 +47,7 @@ export default class AiProxyRoute extends BaseRoute {
     } catch (error) {
       if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
       if (error instanceof AINotFoundError) throw new NotFoundError(error.message);
-      if (error instanceof Error && error.name.startsWith('AI')) {
-        throw new UnprocessableError(error.message);
-      }
+      if (error instanceof AIError) throw new UnprocessableError(error.message);
 
       throw error;
     }
