@@ -7,7 +7,11 @@ import {
   AIToolNotFoundError,
   AIUnprocessableError,
 } from '@forestadmin/ai-proxy';
-import { BadRequestError, NotFoundError, UnprocessableError } from '@forestadmin/datasource-toolkit';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import AiProxyRoute from '../../../src/routes/ai/ai-proxy';
