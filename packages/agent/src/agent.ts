@@ -252,7 +252,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     if (!isModelSupportingTools(configuration.model)) {
       throw new Error(
         `Model '${configuration.model}' does not support function calling (tools). ` +
-          'Please use a compatible model like gpt-4o, gpt-4-turbo, or gpt-3.5-turbo.',
+          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
       );
     }
 

@@ -410,10 +410,10 @@ describe('Agent', () => {
     test('should store the AI configuration', () => {
       const agent = new Agent(options);
       const result = agent.addAI({
-        name: 'gpt4',
+        name: 'gpt4o',
         provider: 'openai',
         apiKey: 'test-key',
-        model: 'gpt-4',
+        model: 'gpt-4o',
       });
 
       expect(result).toBe(agent);
@@ -423,18 +423,18 @@ describe('Agent', () => {
       const agent = new Agent(options);
 
       agent.addAI({
-        name: 'gpt4',
+        name: 'gpt4o',
         provider: 'openai',
         apiKey: 'test-key',
-        model: 'gpt-4',
+        model: 'gpt-4o',
       });
 
       expect(() =>
         agent.addAI({
-          name: 'gpt3',
+          name: 'gpt4o-mini',
           provider: 'openai',
           apiKey: 'another-key',
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini',
         }),
       ).toThrow('addAI can only be called once. Multiple AI configurations are not supported yet.');
     });
@@ -444,24 +444,24 @@ describe('Agent', () => {
 
       expect(() =>
         agent.addAI({
-          name: 'davinci',
+          name: 'gpt4-base',
           provider: 'openai',
           apiKey: 'test-key',
-          model: 'text-davinci-003',
+          model: 'gpt-4',
         }),
       ).toThrow(
-        "Model 'text-davinci-003' does not support function calling (tools). " +
-          'Please use a compatible model like gpt-4o, gpt-4-turbo, or gpt-3.5-turbo.',
+        "Model 'gpt-4' does not support function calling (tools). " +
+          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
       );
     });
 
     test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
       agent.addAI({
-        name: 'gpt4',
+        name: 'gpt4o',
         provider: 'openai',
         apiKey: 'test-key',
-        model: 'gpt-4',
+        model: 'gpt-4o',
       });
 
       await agent.start();
@@ -469,7 +469,7 @@ describe('Agent', () => {
       expect(mockPostSchema).toHaveBeenCalledWith(
         expect.objectContaining({
           meta: expect.objectContaining({
-            ai_llms: [{ name: 'gpt4', provider: 'openai' }],
+            ai_llms: [{ name: 'gpt4o', provider: 'openai' }],
           }),
         }),
       );
