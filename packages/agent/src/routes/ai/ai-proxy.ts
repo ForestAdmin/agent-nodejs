@@ -45,9 +45,13 @@ export default class AiProxyRoute extends BaseRoute {
       });
       context.response.status = HttpCode.Ok;
     } catch (error) {
-      if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
-      if (error instanceof AINotFoundError) throw new NotFoundError(error.message);
-      if (error instanceof AIError) throw new UnprocessableError(error.message);
+      if (error instanceof AIError) {
+        this.options.logger('Error', `AI proxy error: ${error.message}`, error);
+
+        if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
+        if (error instanceof AINotFoundError) throw new NotFoundError(error.message);
+        throw new UnprocessableError(error.message);
+      }
 
       throw error;
     }

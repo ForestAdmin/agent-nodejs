@@ -127,6 +127,51 @@ describe('ProviderDispatcher', () => {
             dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
           ).rejects.toThrow('Error while calling OpenAI: OpenAI error');
         });
+
+        it('should throw rate limit error when status is 429', async () => {
+          const dispatcher = new ProviderDispatcher(
+            { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+            new RemoteTools(apiKeys),
+          );
+          const rateLimitError = new Error('Too many requests') as Error & { status?: number };
+          rateLimitError.status = 429;
+          invokeMock.mockRejectedValueOnce(rateLimitError);
+
+          await expect(
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+          ).rejects.toThrow('Rate limit exceeded: Too many requests');
+        });
+
+        it('should throw authentication error when status is 401', async () => {
+          const dispatcher = new ProviderDispatcher(
+            { name: 'gpt4', provider: 'openai', apiKey: 'invalid', model: 'gpt-4o' },
+            new RemoteTools(apiKeys),
+          );
+          const authError = new Error('Invalid API key') as Error & { status?: number };
+          authError.status = 401;
+          invokeMock.mockRejectedValueOnce(authError);
+
+          await expect(
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+          ).rejects.toThrow('Authentication failed: Invalid API key');
+        });
+      });
+
+      describe('when rawResponse is missing', () => {
+        it('should throw an error indicating API change', async () => {
+          const dispatcher = new ProviderDispatcher(
+            { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+            new RemoteTools(apiKeys),
+          );
+          invokeMock.mockResolvedValueOnce({
+            content: 'response',
+            additional_kwargs: { __raw_response: null },
+          });
+
+          await expect(
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+          ).rejects.toThrow('OpenAI response missing raw response data. This may indicate an API change.');
+        });
       });
     });
 

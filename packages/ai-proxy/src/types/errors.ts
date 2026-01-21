@@ -15,6 +15,10 @@ export class AIError extends Error {
   readonly status: number;
 
   constructor(message: string, status = 422) {
+    if (status < 100 || status > 599) {
+      throw new RangeError(`Invalid HTTP status code: ${status}`);
+    }
+
     super(message);
     this.name = 'AIError';
     this.status = status;

@@ -66,7 +66,7 @@ export class Router {
         mcpClient = new McpClient(args.mcpConfigs, this.logger);
       }
 
-      const remoteTools = new RemoteTools(this.localToolsApiKeys, await mcpClient?.loadTools());
+      const remoteTools = new RemoteTools(this.localToolsApiKeys ?? {}, await mcpClient?.loadTools());
 
       if (args.route === 'ai-query') {
         const aiConfiguration = this.getAiConfiguration(args.query?.['ai-name']);
@@ -109,7 +109,8 @@ export class Router {
         try {
           await mcpClient.closeConnections();
         } catch (cleanupError) {
-          this.logger?.('Error', 'Error during MCP connection cleanup', cleanupError as Error);
+          const error = cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
+          this.logger?.('Error', 'Error during MCP connection cleanup', error);
         }
       }
     }
