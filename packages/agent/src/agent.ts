@@ -242,7 +242,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   addAI(configuration: AiConfiguration): this {
     if (this.aiConfigurations.length > 0) {
-      throw new Error('addAI can only be called once. Multiple AI configurations are not supported yet.');
+      throw new Error(
+        'addAI can only be called once. Multiple AI configurations are not supported yet.',
+      );
     }
 
     this.aiConfigurations.push(configuration);
