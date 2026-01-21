@@ -3,12 +3,7 @@ import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
 import type { Messages, RemoteToolsApiKeys } from './remote-tools';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import {
-  AIBadRequestError,
-  AINotFoundError,
-  AIUnprocessableError,
-  ProviderDispatcher,
-} from './index';
+import { AIBadRequestError, AIUnprocessableError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
 
@@ -43,10 +38,13 @@ export class Router {
       const config = this.aiConfigurations.find(c => c.name === aiName);
 
       if (!config) {
-        const available = this.aiConfigurations.map(c => c.name).join(', ');
-        throw new AINotFoundError(
-          `AI configuration '${aiName}' not found. Available configurations: ${available}`,
+        const fallback = this.aiConfigurations[0];
+        this.logger?.(
+          'Warn',
+          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}'.`,
         );
+
+        return fallback;
       }
 
       return config;

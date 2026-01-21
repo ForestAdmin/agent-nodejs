@@ -119,7 +119,8 @@ describe('route', () => {
       expect(dispatchMock).toHaveBeenCalled();
     });
 
-    it('throws an error when ai-name references non-existent configuration', async () => {
+    it('falls back to first configuration with warning when ai-name not found', async () => {
+      const mockLogger = jest.fn();
       const router = new Router({
         aiConfigurations: [
           {
@@ -129,17 +130,20 @@ describe('route', () => {
             model: 'gpt-4o',
           },
         ],
+        logger: mockLogger,
       });
 
-      await expect(
-        router.route({
-          route: 'ai-query',
-          query: { 'ai-name': 'non-existent' },
-          body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
-        }),
-      ).rejects.toThrow(
-        "AI configuration 'non-existent' not found. Available configurations: gpt4",
+      await router.route({
+        route: 'ai-query',
+        query: { 'ai-name': 'non-existent' },
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        "AI configuration 'non-existent' not found. Falling back to 'gpt4'.",
       );
+      expect(dispatchMock).toHaveBeenCalled();
     });
   });
 
