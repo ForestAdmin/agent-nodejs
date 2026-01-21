@@ -58,6 +58,15 @@ yarn workspace @forestadmin/mcp-server test
 yarn workspace @forestadmin/agent test
 ```
 
+### Writing Meaningful Tests
+
+- **Assertions must verify behavior** - Don't just check that a function was called; verify it was called with the correct arguments
+- **Test name = assertion** - If the test says "selects config X", the assertion must verify config X was selected
+- **Avoid weak assertions**:
+  - ❌ `expect(mock).toHaveBeenCalled()`
+  - ✅ `expect(mock).toHaveBeenCalledWith(expectedConfig, expect.anything())`
+- **One behavior per test** - Each test should verify one specific behavior
+
 ## Code Review Principles
 
 ### Core Principles
