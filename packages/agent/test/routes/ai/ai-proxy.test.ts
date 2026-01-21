@@ -1,11 +1,13 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
+  AIBadRequestError,
   AIError,
   AINotConfiguredError,
+  AINotFoundError,
   AIToolNotFoundError,
   AIUnprocessableError,
 } from '@forestadmin/ai-proxy';
-import { UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { BadRequestError, NotFoundError, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import AiProxyRoute from '../../../src/routes/ai/ai-proxy';
@@ -118,7 +120,7 @@ describe('AiProxyRoute', () => {
         await expect((route as any).handleAiProxy(context)).rejects.toThrow(UnprocessableError);
       });
 
-      test('should convert AIToolNotFoundError to UnprocessableError', async () => {
+      test('should convert AIToolNotFoundError to NotFoundError', async () => {
         const route = new AiProxyRoute(services, options, aiConfigurations);
         mockRoute.mockRejectedValueOnce(new AIToolNotFoundError('tool-name'));
 
@@ -130,7 +132,37 @@ describe('AiProxyRoute', () => {
           requestBody: {},
         });
 
-        await expect((route as any).handleAiProxy(context)).rejects.toThrow(UnprocessableError);
+        await expect((route as any).handleAiProxy(context)).rejects.toThrow(NotFoundError);
+      });
+
+      test('should convert AINotFoundError to NotFoundError', async () => {
+        const route = new AiProxyRoute(services, options, aiConfigurations);
+        mockRoute.mockRejectedValueOnce(new AINotFoundError('Resource not found'));
+
+        const context = createMockContext({
+          customProperties: {
+            params: { route: 'ai-query' },
+            query: {},
+          },
+          requestBody: {},
+        });
+
+        await expect((route as any).handleAiProxy(context)).rejects.toThrow(NotFoundError);
+      });
+
+      test('should convert AIBadRequestError to BadRequestError', async () => {
+        const route = new AiProxyRoute(services, options, aiConfigurations);
+        mockRoute.mockRejectedValueOnce(new AIBadRequestError('Invalid input'));
+
+        const context = createMockContext({
+          customProperties: {
+            params: { route: 'ai-query' },
+            query: {},
+          },
+          requestBody: {},
+        });
+
+        await expect((route as any).handleAiProxy(context)).rejects.toThrow(BadRequestError);
       });
 
       test('should convert AIUnprocessableError to UnprocessableError', async () => {

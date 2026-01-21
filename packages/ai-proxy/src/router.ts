@@ -3,7 +3,7 @@ import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
 import type { Messages, RemoteToolsApiKeys } from './remote-tools';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIUnprocessableError, ProviderDispatcher } from './index';
+import { AIBadRequestError, AINotFoundError, AIUnprocessableError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
 
@@ -39,7 +39,7 @@ export class Router {
 
       if (!config) {
         const available = this.aiConfigurations.map(c => c.name).join(', ');
-        throw new AIUnprocessableError(
+        throw new AINotFoundError(
           `AI configuration '${aiName}' not found. Available configurations: ${available}`,
         );
       }
@@ -86,13 +86,13 @@ export class Router {
         const toolName = args.query?.['tool-name'];
 
         if (!toolName) {
-          throw new AIUnprocessableError('Missing required query parameter: tool-name');
+          throw new AIBadRequestError('Missing required query parameter: tool-name');
         }
 
         const body = args.body as InvokeRemoteToolBody | undefined;
 
         if (!body?.inputs) {
-          throw new AIUnprocessableError('Missing required body parameter: inputs');
+          throw new AIBadRequestError('Missing required body parameter: inputs');
         }
 
         return await remoteTools.invokeTool(toolName, body.inputs);
