@@ -3,7 +3,6 @@ import type { AgentOptionsWithDefaults, AiConfiguration } from '../../types';
 import type KoaRouter from '@koa/router';
 import type { Context } from 'koa';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   AIBadRequestError,
   AIError,

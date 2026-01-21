@@ -17,7 +17,6 @@ import type {
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { isModelSupportingTools } from '@forestadmin/ai-proxy';
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
@@ -223,8 +222,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *
    * All AI requests from Forest Admin are forwarded to your agent and processed locally.
    * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
-   *
-   * This method can be called multiple times to add multiple AI providers.
    *
    * @param configuration - The AI provider configuration
    * @param configuration.name - A unique name to identify this AI configuration
