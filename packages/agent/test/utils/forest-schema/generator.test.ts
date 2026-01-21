@@ -71,5 +71,30 @@ describe('SchemaGenerator', () => {
         },
       });
     });
+
+    test('it should serialize ai_llms when AI configurations are provided', async () => {
+      const aiConfigurations = [
+        { name: 'gpt4', provider: 'openai' as const, apiKey: 'key1', model: 'gpt-4o' },
+        { name: 'claude', provider: 'openai' as const, apiKey: 'key2', model: 'claude-3' },
+      ];
+
+      const schema = await SchemaGenerator.buildMetadata(null, aiConfigurations);
+
+      expect(schema).toStrictEqual({
+        meta: {
+          ai_llms: [
+            { name: 'gpt4', provider: 'openai' },
+            { name: 'claude', provider: 'openai' },
+          ],
+          liana: 'forest-nodejs-agent',
+          liana_version: expect.any(String),
+          liana_features: null,
+          stack: {
+            engine: 'nodejs',
+            engine_version: expect.any(String),
+          },
+        },
+      });
+    });
   });
 });
