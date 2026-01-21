@@ -63,9 +63,14 @@ yarn workspace @forestadmin/agent test
 - **Assertions must verify behavior** - Don't just check that a function was called; verify it was called with the correct arguments
 - **Test name = assertion** - If the test says "selects config X", the assertion must verify config X was selected
 - **Avoid weak assertions**:
-  - ❌ `expect(mock).toHaveBeenCalled()`
-  - ✅ `expect(mock).toHaveBeenCalledWith(expectedConfig, expect.anything())`
+  - ❌ `expect(mock).toHaveBeenCalled()` - only checks the function was called
+  - ✅ `expect(mock).toHaveBeenCalledWith({ host: 'localhost', port: 3000 })` - verifies exact arguments
+  - ✅ `expect(mock).toHaveBeenCalledWith(expect.objectContaining({ host: 'localhost' }))` - partial match when some values are dynamic
 - **One behavior per test** - Each test should verify one specific behavior
+- **Use AAA pattern** - Arrange (setup), Act (execute), Assert (verify) - keep these sections clear
+- **Test edge cases** - Not just happy paths; test errors, null values, empty arrays, boundaries
+- **Test behavior, not implementation** - Assert on observable outputs, not internal method calls
+- **Coverage ≠ quality** - 100% coverage with weak assertions is worse than 80% with strong assertions
 
 ## Code Review Principles
 
