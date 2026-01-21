@@ -170,7 +170,9 @@ describe('ProviderDispatcher', () => {
 
           await expect(
             dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
-          ).rejects.toThrow('OpenAI response missing raw response data. This may indicate an API change.');
+          ).rejects.toThrow(
+            'OpenAI response missing raw response data. This may indicate an API change.',
+          );
         });
       });
     });

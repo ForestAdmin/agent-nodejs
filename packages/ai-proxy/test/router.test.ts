@@ -137,7 +137,9 @@ describe('route', () => {
           query: { 'ai-name': 'non-existent' },
           body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
         }),
-      ).rejects.toThrow("AI configuration 'non-existent' not found. Available configurations: gpt4");
+      ).rejects.toThrow(
+        "AI configuration 'non-existent' not found. Available configurations: gpt4",
+      );
     });
   });
 
