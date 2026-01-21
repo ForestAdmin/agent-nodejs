@@ -44,7 +44,6 @@ export default class AiProxyRoute extends BaseRoute {
       });
       context.response.status = HttpCode.Ok;
     } catch (error) {
-      // Convert AI errors to framework errors for proper HTTP status codes
       if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
       if (error instanceof AINotFoundError) throw new NotFoundError(error.message);
       if (error instanceof Error && error.name.startsWith('AI')) {

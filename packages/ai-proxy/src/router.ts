@@ -47,7 +47,6 @@ export class Router {
       return config;
     }
 
-    // Default to first configuration if no name specified
     return this.aiConfigurations[0];
   }
 
