@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.71.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.70.10...@forestadmin/agent@1.71.0) (2026-01-22)
+
+
+### Features
+
+* **agent:** addAi customization with OpenAI support ([#1420](https://github.com/ForestAdmin/agent-nodejs/issues/1420)) ([a3e2b51](https://github.com/ForestAdmin/agent-nodejs/commit/a3e2b5179dc0b5031721f96b7a49b519817e452e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.5
+* **@forestadmin/mcp-server:** upgraded to 1.7.1
+
 ## @forestadmin/agent [1.70.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.70.9...@forestadmin/agent@1.70.10) (2026-01-20)
 
 
