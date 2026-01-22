@@ -43,19 +43,30 @@ export function isModelSupportingTools(model: string): boolean {
   return !isKnownUnsupported;
 }
 
-export type OpenAiConfiguration = Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
-  provider: 'openai';
-  // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
-  // (string & NonNullable<unknown>) allows custom model strings without losing autocomplete
-  model: OpenAIChatModelId | (string & NonNullable<unknown>);
-  apiKey: string;
-};
-
-export type AiConfiguration = OpenAiConfiguration & {
+/**
+ * Base configuration common to all AI providers.
+ */
+export type BaseAiConfiguration = {
   name: string;
+  provider: AiProvider;
+  model: string;
+  apiKey?: string;
 };
 
-export type AiProvider = AiConfiguration['provider'];
+/**
+ * OpenAI-specific configuration.
+ * Extends base with all ChatOpenAI options (temperature, maxTokens, configuration, etc.)
+ */
+export type OpenAiConfiguration = BaseAiConfiguration &
+  Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
+    provider: 'openai';
+    // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
+    // (string & NonNullable<unknown>) allows custom model strings without losing autocomplete
+    model: OpenAIChatModelId | (string & NonNullable<unknown>);
+  };
+
+export type AiProvider = 'openai';
+export type AiConfiguration = OpenAiConfiguration;
 
 export type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
 export type ChatCompletionMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
@@ -76,7 +87,7 @@ export class ProviderDispatcher {
   constructor(configuration: AiConfiguration | null, remoteTools: RemoteTools) {
     this.remoteTools = remoteTools;
 
-    if (configuration?.provider === 'openai' && configuration.apiKey) {
+    if (configuration?.provider === 'openai') {
       const { provider, name, ...chatOpenAIOptions } = configuration;
       this.chatModel = new ChatOpenAI({
         ...chatOpenAIOptions,
