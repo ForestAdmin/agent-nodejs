@@ -50,8 +50,7 @@
     "test:coverage": "yarn test --coverage"
   },
   "workspaces": [
-    "packages/*",
-    "!packages/_example/*"
+    "packages/*"
   ],
   "resolutions": {
     "express": "^4.21.1",
