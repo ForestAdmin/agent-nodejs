@@ -1,3 +1,5 @@
+## @forestadmin/forestadmin-client [1.37.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.4...@forestadmin/forestadmin-client@1.37.5) (2026-01-22)
+
 ## @forestadmin/forestadmin-client [1.37.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.3...@forestadmin/forestadmin-client@1.37.4) (2026-01-14)
 
 ## @forestadmin/forestadmin-client [1.37.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.2...@forestadmin/forestadmin-client@1.37.3) (2026-01-12)
