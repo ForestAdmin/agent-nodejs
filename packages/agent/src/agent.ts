@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ForestAdminHttpDriverServices } from './services';
-import type { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
+import type {
+  AgentOptions,
+  AgentOptionsWithDefaults,
+  AiConfiguration,
+  HttpCallback,
+} from './types';
 import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
@@ -12,6 +17,7 @@ import type {
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
+import { isModelSupportingTools } from '@forestadmin/ai-proxy';
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
@@ -42,6 +48,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
+  protected aiConfigurations: AiConfiguration[] = [];
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
@@ -210,8 +217,55 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  /**
+   * Enable AI features for your Forest Admin panel.
+   *
+   * All AI requests from Forest Admin are forwarded to your agent and processed locally.
+   * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
+   *
+   * @param configuration - The AI provider configuration
+   * @param configuration.name - A unique name to identify this AI configuration
+   * @param configuration.provider - The AI provider to use ('openai')
+   * @param configuration.apiKey - Your API key for the chosen provider
+   * @param configuration.model - The model to use (e.g., 'gpt-4o')
+   * @returns The agent instance for chaining
+   * @throws Error if addAi is called more than once
+   *
+   * @example
+   * agent.addAi({
+   *   name: 'assistant',
+   *   provider: 'openai',
+   *   apiKey: process.env.OPENAI_API_KEY,
+   *   model: 'gpt-4o',
+   * });
+   */
+  addAi(configuration: AiConfiguration): this {
+    if (this.aiConfigurations.length > 0) {
+      throw new Error(
+        'addAi can only be called once. Multiple AI configurations are not supported yet.',
+      );
+    }
+
+    if (!isModelSupportingTools(configuration.model)) {
+      throw new Error(
+        `Model '${configuration.model}' does not support function calling (tools). ` +
+          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
+      );
+    }
+
+    this.options.logger(
+      'Warn',
+      `AI configuration added with model '${configuration.model}'. ` +
+        'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
+    );
+
+    this.aiConfigurations.push(configuration);
+
+    return this;
+  }
+
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services);
+    return makeRoutes(dataSource, this.options, services, this.aiConfigurations);
   }
 
   /**
@@ -333,7 +387,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // Either load the schema from the file system or build it
     let schema: Pick<ForestSchema, 'collections'>;
 
-    const { meta } = SchemaGenerator.buildMetadata(this.customizationService.buildFeatures());
+    // Get the AI configurations for schema metadata
+    const { meta } = SchemaGenerator.buildMetadata(
+      this.customizationService.buildFeatures(),
+      this.aiConfigurations,
+    );
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {

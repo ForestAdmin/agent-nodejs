@@ -2,15 +2,48 @@ import type { DispatchBody } from '../src';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
-import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
+import { AINotConfiguredError, isModelSupportingTools, ProviderDispatcher, RemoteTools } from '../src';
 
-const openaiCreateMock = jest.fn().mockResolvedValue('response');
+// Mock raw OpenAI response (returned via __includeRawResponse: true)
+const mockOpenAIResponse = {
+  id: 'chatcmpl-123',
+  object: 'chat.completion',
+  created: 1234567890,
+  model: 'gpt-4o',
+  choices: [
+    {
+      index: 0,
+      message: {
+        role: 'assistant',
+        content: 'response',
+        tool_calls: [],
+      },
+      finish_reason: 'stop',
+    },
+  ],
+  usage: {
+    prompt_tokens: 10,
+    completion_tokens: 20,
+    total_tokens: 30,
+  },
+};
 
-jest.mock('openai', () => {
-  return jest.fn().mockImplementation(() => {
-    return { chat: { completions: { create: openaiCreateMock } } };
-  });
+const invokeMock = jest.fn().mockResolvedValue({
+  content: 'response',
+  tool_calls: [],
+  response_metadata: { finish_reason: 'stop' },
+  usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+  additional_kwargs: { __raw_response: mockOpenAIResponse },
 });
+
+const bindToolsMock = jest.fn().mockReturnValue({ invoke: invokeMock });
+
+jest.mock('@langchain/openai', () => ({
+  ChatOpenAI: jest.fn().mockImplementation(() => ({
+    invoke: invokeMock,
+    bindTools: bindToolsMock,
+  })),
+}));
 
 describe('ProviderDispatcher', () => {
   const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
@@ -33,9 +66,10 @@ describe('ProviderDispatcher', () => {
 
   describe('openai', () => {
     describe('when openai is configured', () => {
-      it('should return the response from openai', async () => {
+      it('should return the response in OpenAI-compatible format', async () => {
         const dispatcher = new ProviderDispatcher(
           {
+            name: 'gpt4',
             provider: 'openai',
             apiKey: 'dev',
             model: 'gpt-4o',
@@ -46,34 +80,33 @@ describe('ProviderDispatcher', () => {
           tools: [],
           messages: [],
         } as unknown as DispatchBody);
-        expect(response).toBe('response');
+
+        // Response is the raw OpenAI response (via __includeRawResponse)
+        expect(response).toEqual(mockOpenAIResponse);
       });
 
       describe('when the user tries to override the configuration', () => {
-        it('should not allow the user to override the configuration', async () => {
+        it('should only pass allowed parameters', async () => {
           const dispatcher = new ProviderDispatcher(
             {
+              name: 'base',
               provider: 'openai',
               apiKey: 'dev',
               model: 'BASE MODEL',
             },
             new RemoteTools(apiKeys),
           );
+          const messages = [{ role: 'user', content: 'Hello' }];
           await dispatcher.dispatch({
             model: 'OTHER MODEL',
             propertyInjection: 'hack',
-
             tools: [],
-            messages: [],
+            messages,
             tool_choice: 'auto',
           } as unknown as DispatchBody);
 
-          expect(openaiCreateMock).toHaveBeenCalledWith({
-            model: 'BASE MODEL',
-            tools: [],
-            messages: [],
-            tool_choice: 'auto',
-          });
+          // When no tools, invoke is called directly with messages
+          expect(invokeMock).toHaveBeenCalledWith(messages);
         });
       });
 
@@ -81,17 +114,65 @@ describe('ProviderDispatcher', () => {
         it('should throw an OpenAIUnprocessableError', async () => {
           const dispatcher = new ProviderDispatcher(
             {
+              name: 'gpt4',
               provider: 'openai',
               apiKey: 'dev',
               model: 'gpt-4o',
             },
             new RemoteTools(apiKeys),
           );
-          openaiCreateMock.mockRejectedValueOnce(new Error('OpenAI error'));
+          invokeMock.mockRejectedValueOnce(new Error('OpenAI error'));
 
           await expect(
             dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
           ).rejects.toThrow('Error while calling OpenAI: OpenAI error');
+        });
+
+        it('should throw rate limit error when status is 429', async () => {
+          const dispatcher = new ProviderDispatcher(
+            { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+            new RemoteTools(apiKeys),
+          );
+          const rateLimitError = new Error('Too many requests') as Error & { status?: number };
+          rateLimitError.status = 429;
+          invokeMock.mockRejectedValueOnce(rateLimitError);
+
+          await expect(
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+          ).rejects.toThrow('Rate limit exceeded: Too many requests');
+        });
+
+        it('should throw authentication error when status is 401', async () => {
+          const dispatcher = new ProviderDispatcher(
+            { name: 'gpt4', provider: 'openai', apiKey: 'invalid', model: 'gpt-4o' },
+            new RemoteTools(apiKeys),
+          );
+          const authError = new Error('Invalid API key') as Error & { status?: number };
+          authError.status = 401;
+          invokeMock.mockRejectedValueOnce(authError);
+
+          await expect(
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+          ).rejects.toThrow('Authentication failed: Invalid API key');
+        });
+      });
+
+      describe('when rawResponse is missing', () => {
+        it('should throw an error indicating API change', async () => {
+          const dispatcher = new ProviderDispatcher(
+            { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+            new RemoteTools(apiKeys),
+          );
+          invokeMock.mockResolvedValueOnce({
+            content: 'response',
+            additional_kwargs: { __raw_response: null },
+          });
+
+          await expect(
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+          ).rejects.toThrow(
+            'OpenAI response missing raw response data. This may indicate an API change.',
+          );
         });
       });
     });
@@ -103,12 +184,14 @@ describe('ProviderDispatcher', () => {
 
         const dispatcher = new ProviderDispatcher(
           {
+            name: 'gpt4',
             provider: 'openai',
             apiKey: 'dev',
             model: 'gpt-4o',
           },
           remoteTools,
         );
+        const messages = [{ role: 'user', content: 'test' }];
         await dispatcher.dispatch({
           tools: [
             {
@@ -118,20 +201,20 @@ describe('ProviderDispatcher', () => {
               function: { name: remoteTools.tools[0].base.name, parameters: {} },
             },
           ],
-          messages: [],
+          messages,
         } as unknown as DispatchBody);
 
-        expect(openaiCreateMock).toHaveBeenCalledWith({
-          messages: [],
-          model: 'gpt-4o',
-          tool_choice: undefined,
-          tools: [
+        // When tools are provided, bindTools is called first
+        expect(bindToolsMock).toHaveBeenCalledWith(
+          [
             {
               type: 'function',
               function: convertToOpenAIFunction(remoteTools.tools[0].base),
             },
           ],
-        });
+          { tool_choice: undefined },
+        );
+        expect(invokeMock).toHaveBeenCalledWith(messages);
       });
     });
 
@@ -142,12 +225,14 @@ describe('ProviderDispatcher', () => {
 
         const dispatcher = new ProviderDispatcher(
           {
+            name: 'gpt4',
             provider: 'openai',
             apiKey: 'dev',
             model: 'gpt-4o',
           },
           remoteTools,
         );
+        const messages = [{ role: 'user', content: 'test' }];
         await dispatcher.dispatch({
           tools: [
             {
@@ -155,21 +240,70 @@ describe('ProviderDispatcher', () => {
               function: { name: 'notRemoteTool', parameters: {} },
             },
           ],
-          messages: [],
+          messages,
         } as unknown as DispatchBody);
 
-        expect(openaiCreateMock).toHaveBeenCalledWith({
-          messages: [],
-          model: 'gpt-4o',
-          tool_choice: undefined,
-          tools: [
+        // When tools are provided, bindTools is called
+        expect(bindToolsMock).toHaveBeenCalledWith(
+          [
             {
               type: 'function',
               function: { name: 'notRemoteTool', parameters: {} },
             },
           ],
-        });
+          { tool_choice: undefined },
+        );
+        expect(invokeMock).toHaveBeenCalledWith(messages);
       });
+    });
+  });
+});
+
+describe('isModelSupportingTools', () => {
+  describe('should return true for supported and unknown models', () => {
+    const supportedModels = [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4o-2024-08-06',
+      'gpt-4-turbo',
+      'gpt-4-turbo-2024-04-09',
+      'gpt-4.1',
+      'gpt-4.1-mini',
+      'gpt-4.1-nano',
+      'gpt-5',
+      'gpt-5-mini',
+      'gpt-5-nano',
+      'gpt-5.2',
+      'o1',
+      'o3',
+      'o3-mini',
+      'o3-pro',
+      'o4-mini',
+      'unknown-model',
+      'future-gpt-model',
+    ];
+
+    it.each(supportedModels)('%s', model => {
+      expect(isModelSupportingTools(model)).toBe(true);
+    });
+  });
+
+  describe('should return false for known unsupported models', () => {
+    const unsupportedModels = [
+      'gpt-4',
+      'gpt-4-0613',
+      'gpt-3.5-turbo',
+      'gpt-3.5-turbo-0125',
+      'gpt-3.5',
+      'text-davinci-003',
+      'davinci',
+      'curie',
+      'babbage',
+      'ada',
+    ];
+
+    it.each(unsupportedModels)('%s', model => {
+      expect(isModelSupportingTools(model)).toBe(false);
     });
   });
 });

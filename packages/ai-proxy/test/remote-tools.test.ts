@@ -4,7 +4,7 @@ import type { JSONSchema } from '@langchain/core/utils/json_schema';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { RemoteTools } from '../src';
-import RemoteTool from '../src/remote-tool';
+import ServerRemoteTool from '../src/types/server-remote-tool';
 
 describe('RemoteTools', () => {
   const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
@@ -31,7 +31,7 @@ describe('RemoteTools', () => {
     describe('when tools are passed in the constructor', () => {
       it('should return the tools', () => {
         const tools = [
-          new RemoteTool({
+          new ServerRemoteTool({
             tool: {
               name: 'tool1',
               description: 'description1',

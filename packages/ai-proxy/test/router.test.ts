@@ -1,4 +1,5 @@
 import type { DispatchBody, Route } from '../src';
+import type { InvokeRemoteToolBody } from '../src/router';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, Router } from '../src';
@@ -26,6 +27,11 @@ jest.mock('../src/provider-dispatcher', () => {
   };
 });
 
+// eslint-disable-next-line import/first
+import { ProviderDispatcher } from '../src/provider-dispatcher';
+
+const ProviderDispatcherMock = ProviderDispatcher as jest.MockedClass<typeof ProviderDispatcher>;
+
 jest.mock('../src/mcp-client', () => {
   return jest.fn().mockImplementation(() => ({
     loadTools: jest.fn().mockResolvedValue([]),
@@ -43,11 +49,14 @@ describe('route', () => {
   describe('when the route is /ai-query', () => {
     it('calls the provider dispatcher', async () => {
       const router = new Router({
-        aiConfiguration: {
-          provider: 'openai',
-          apiKey: 'dev',
-          model: 'gpt-4o',
-        },
+        aiConfigurations: [
+          {
+            name: 'gpt4',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-4o',
+          },
+        ],
       });
 
       await router.route({
@@ -60,6 +69,84 @@ describe('route', () => {
         tool_choice: 'required',
         messages: [],
       });
+    });
+
+    it('selects the AI configuration by name when ai-name query is provided', async () => {
+      const gpt4Config = {
+        name: 'gpt4',
+        provider: 'openai' as const,
+        apiKey: 'dev',
+        model: 'gpt-4o',
+      };
+      const gpt3Config = {
+        name: 'gpt3',
+        provider: 'openai' as const,
+        apiKey: 'dev',
+        model: 'gpt-3.5-turbo',
+      };
+      const router = new Router({
+        aiConfigurations: [gpt4Config, gpt3Config],
+      });
+
+      await router.route({
+        route: 'ai-query',
+        query: { 'ai-name': 'gpt3' },
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt3Config, expect.anything());
+    });
+
+    it('uses first configuration when ai-name query is not provided', async () => {
+      const gpt4Config = {
+        name: 'gpt4',
+        provider: 'openai' as const,
+        apiKey: 'dev',
+        model: 'gpt-4o',
+      };
+      const gpt3Config = {
+        name: 'gpt3',
+        provider: 'openai' as const,
+        apiKey: 'dev',
+        model: 'gpt-3.5-turbo',
+      };
+      const router = new Router({
+        aiConfigurations: [gpt4Config, gpt3Config],
+      });
+
+      await router.route({
+        route: 'ai-query',
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
+    });
+
+    it('falls back to first configuration with warning when ai-name not found', async () => {
+      const mockLogger = jest.fn();
+      const router = new Router({
+        aiConfigurations: [
+          {
+            name: 'gpt4',
+            provider: 'openai',
+            apiKey: 'dev',
+            model: 'gpt-4o',
+          },
+        ],
+        logger: mockLogger,
+      });
+
+      await router.route({
+        route: 'ai-query',
+        query: { 'ai-name': 'non-existent' },
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+      });
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        "AI configuration 'non-existent' not found. Falling back to 'gpt4'.",
+      );
+      expect(dispatchMock).toHaveBeenCalled();
     });
   });
 
@@ -74,6 +161,30 @@ describe('route', () => {
       });
 
       expect(invokeToolMock).toHaveBeenCalledWith('tool-name', []);
+    });
+
+    it('throws an error when tool-name query parameter is missing', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'invoke-remote-tool',
+          query: {},
+          body: { inputs: [] },
+        }),
+      ).rejects.toThrow('Missing required query parameter: tool-name');
+    });
+
+    it('throws an error when body.inputs is missing', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'invoke-remote-tool',
+          query: { 'tool-name': 'tool-name' },
+          body: {} as InvokeRemoteToolBody,
+        }),
+      ).rejects.toThrow('Missing required body parameter: inputs');
     });
   });
 

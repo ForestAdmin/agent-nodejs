@@ -128,6 +128,7 @@ describe('Agent', () => {
           liana: 'forest-nodejs-agent',
           liana_version: expect.stringMatching(/\d+\.\d+\.\d+.*/),
           liana_features: null,
+          ai_llms: null,
           stack: expect.anything(),
         },
       });
@@ -156,6 +157,7 @@ describe('Agent', () => {
           liana_features: {
             'webhook-custom-actions': expect.stringMatching(/\d+\.\d+\.\d+.*/),
           },
+          ai_llms: null,
           stack: expect.anything(),
         },
       });
@@ -395,6 +397,95 @@ describe('Agent', () => {
       expect(mockLogger).toHaveBeenCalledWith(
         'Error',
         expect.stringContaining('Failed to initialize MCP server'),
+      );
+    });
+  });
+
+  describe('addAi', () => {
+    const options = factories.forestAdminHttpDriverOptions.build({
+      isProduction: false,
+      forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+    });
+
+    test('should store the AI configuration', () => {
+      const agent = new Agent(options);
+      const result = agent.addAi({
+        name: 'gpt4o',
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4o',
+      });
+
+      expect(result).toBe(agent);
+    });
+
+    test('should throw an error when addAi is called more than once', () => {
+      const agent = new Agent(options);
+
+      agent.addAi({
+        name: 'gpt4o',
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4o',
+      });
+
+      expect(() =>
+        agent.addAi({
+          name: 'gpt4o-mini',
+          provider: 'openai',
+          apiKey: 'another-key',
+          model: 'gpt-4o-mini',
+        }),
+      ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
+    });
+
+    test('should throw an error when model does not support tools', () => {
+      const agent = new Agent(options);
+
+      expect(() =>
+        agent.addAi({
+          name: 'gpt4-base',
+          provider: 'openai',
+          apiKey: 'test-key',
+          model: 'gpt-4',
+        }),
+      ).toThrow(
+        "Model 'gpt-4' does not support function calling (tools). " +
+          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
+      );
+    });
+
+    test('should include ai_llms in schema meta when AI is configured', async () => {
+      const agent = new Agent(options);
+      agent.addAi({
+        name: 'gpt4o',
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4o',
+      });
+
+      await agent.start();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meta: expect.objectContaining({
+            ai_llms: [{ name: 'gpt4o', provider: 'openai' }],
+          }),
+        }),
+      );
+    });
+
+    test('should not include ai_llms in schema meta when AI is not configured', async () => {
+      const agent = new Agent(options);
+
+      await agent.start();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meta: expect.objectContaining({
+            ai_llms: null,
+          }),
+        }),
       );
     });
   });

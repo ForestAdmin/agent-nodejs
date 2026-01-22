@@ -12,22 +12,43 @@
 
 // eslint-disable-next-line max-classes-per-file
 export class AIError extends Error {
-  constructor(message: string) {
+  readonly status: number;
+
+  constructor(message: string, status = 422) {
+    if (status < 100 || status > 599) {
+      throw new RangeError(`Invalid HTTP status code: ${status}`);
+    }
+
     super(message);
     this.name = 'AIError';
+    this.status = status;
+  }
+}
+
+export class AIBadRequestError extends AIError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'AIBadRequestError';
+  }
+}
+
+export class AINotFoundError extends AIError {
+  constructor(message: string) {
+    super(message, 404);
+    this.name = 'AINotFoundError';
   }
 }
 
 export class AIUnprocessableError extends AIError {
   constructor(message: string) {
-    super(message);
+    super(message, 422);
     this.name = 'AIUnprocessableError';
   }
 }
 
 export class AINotConfiguredError extends AIError {
   constructor() {
-    super('AI is not configured. Please call addAI() on your agent.');
+    super('AI is not configured. Please call addAI() on your agent.', 422);
     this.name = 'AINotConfiguredError';
   }
 }
@@ -46,7 +67,7 @@ export class AIToolUnprocessableError extends AIUnprocessableError {
   }
 }
 
-export class AIToolNotFoundError extends AIError {
+export class AIToolNotFoundError extends AINotFoundError {
   constructor(message: string) {
     super(message);
     this.name = 'AIToolNotFoundError';
