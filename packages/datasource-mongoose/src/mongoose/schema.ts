@@ -186,21 +186,26 @@ export default class MongooseSchema {
           for (const [subName, subField] of Object.entries(subPaths)) {
             recursiveSet(paths, `${name}.${subName}`, subField);
           }
-        } else if (field.constructor.name === 'DocumentArrayPath') {
+        } else if (
+          field.constructor.name === 'DocumentArrayPath' ||
+          field.constructor.name === 'SchemaDocumentArray'
+        ) {
           const subPaths = this.buildFields(field.schema as Schema, level + 1);
 
           for (const [subName, subField] of Object.entries(subPaths)) {
             recursiveSet(paths, `${name}.[].${subName}`, subField);
           }
         } else if (VersionManager.isSubDocumentArray(field)) {
-          if (VersionManager.isSubDocument(field.caster)) {
-            const subPaths = this.buildFields((field as any).caster.schema, level + 1);
+          const embeddedType = VersionManager.getEmbeddedSchemaType(field);
+
+          if (embeddedType && VersionManager.isSubDocument(embeddedType)) {
+            const subPaths = this.buildFields((embeddedType as any).schema, level + 1);
 
             for (const [subName, subField] of Object.entries(subPaths)) {
               recursiveSet(paths, `${name}.[].${subName}`, subField);
             }
-          } else {
-            recursiveSet(paths, `${name}.[]`, (field as any).caster);
+          } else if (embeddedType) {
+            recursiveSet(paths, `${name}.[]`, embeddedType);
           }
         } else {
           recursiveSet(paths, name, field);

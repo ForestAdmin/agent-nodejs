@@ -205,8 +205,8 @@ export default class MongooseCollection extends BaseCollection {
     if (this.stack.length < 2) {
       // We are updating a real document, we can delegate the work to mongoose directly.
       await (ids.length > 1
-        ? this.model.updateMany({ _id: ids }, patch, { rawResult: true })
-        : this.model.updateOne({ _id: ids }, patch, { rawResult: true }));
+        ? this.model.updateMany({ _id: ids }, patch)
+        : this.model.updateOne({ _id: ids }, patch));
     } else if (patch.parentId && ids.some(id => !id.startsWith(patch.parentId))) {
       // When we update subdocuments, we need to make sure that the new parent is the same as the
       // old one: reparenting is not supported.
@@ -238,8 +238,8 @@ export default class MongooseCollection extends BaseCollection {
         if (!Object.keys(subdocPatch).length) return null;
 
         return ids.length > 1
-          ? this.model.updateMany({ _id: rootIds }, subdocPatch, { rawResult: true })
-          : this.model.updateOne({ _id: rootIds }, subdocPatch, { rawResult: true });
+          ? this.model.updateMany({ _id: rootIds }, subdocPatch)
+          : this.model.updateOne({ _id: rootIds }, subdocPatch);
       });
 
       await Promise.all(promises);
@@ -251,7 +251,7 @@ export default class MongooseCollection extends BaseCollection {
     const ids = records.map(record => record._id);
 
     if (this.stack.length < 2) {
-      await this.model.deleteMany({ _id: ids }, { rawResult: true });
+      await this.model.deleteMany({ _id: ids });
 
       return;
     }
