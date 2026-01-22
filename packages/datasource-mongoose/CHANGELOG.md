@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.12.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.5...@forestadmin/datasource-mongoose@1.12.6) (2026-01-22)
+
+
+### Bug Fixes
+
+* **datasource mongoose:** bump mongoose to 8.21 to fix vulnerability ([#1422](https://github.com/ForestAdmin/agent-nodejs/issues/1422)) ([5d33068](https://github.com/ForestAdmin/agent-nodejs/commit/5d33068c44bb145791eb10eb2a4e390245c7124f)), closes [#1421](https://github.com/ForestAdmin/agent-nodejs/issues/1421)
+
 ## @forestadmin/datasource-mongoose [1.12.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.12.4...@forestadmin/datasource-mongoose@1.12.5) (2026-01-06)
 
 
