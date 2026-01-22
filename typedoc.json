@@ -3,6 +3,9 @@
   "excludePrivate": true,
   "hideGenerator": true,
   "entryPointStrategy": "packages",
+  "packageOptions": {
+    "entryPoints": ["src/index.ts"]
+  },
   "entryPoints": [
     "packages/agent",
     "packages/datasource-customizer",
