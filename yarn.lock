@@ -1832,41 +1832,18 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent-client@1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent-client/-/agent-client-1.3.1.tgz#bf2b4d45625f06499636419c4f75f0a46632717c"
-  integrity sha512-+/hyP9diXs8Xv9Ps5aL8Bsw3HfjKEfqGHXuYMrciQ0xeDSqOlK3Zj3N54HiZXqgx4ZSw47x2VDAmcwIWNGg22g==
+"@forestadmin/ai-proxy@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/ai-proxy/-/ai-proxy-1.1.0.tgz#2e33b6d49f043f4a5d08cc6840b84dbb4d2faf32"
+  integrity sha512-PaARjKfpeqIiABXekF3THAqGtddlZlmA/9rmFroJDJ9vXzQqbC9kQj+Z+I01zX4QXG/iRc7ESezc1RqIBZ/wGw==
   dependencies:
     "@forestadmin/datasource-toolkit" "1.50.1"
-    "@forestadmin/forestadmin-client" "1.37.4"
-    jsonapi-serializer "^3.6.9"
-    superagent "^10.2.3"
-
-"@forestadmin/agent@1.70.9":
-  version "1.70.9"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.70.9.tgz#f705cc4ff4108b54bf400553ba18ce272592455a"
-  integrity sha512-IUxqu/145i1DvmmVz2BvLt6RNPlvxWiCDV6CSpP8iMB96tHo8w5rHAK3cF0kH+EPzL/T7hTPgU5BsMxZb1UVDg==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@forestadmin/datasource-customizer" "1.67.2"
-    "@forestadmin/datasource-toolkit" "1.50.1"
-    "@forestadmin/forestadmin-client" "1.37.4"
-    "@forestadmin/mcp-server" "1.6.2"
-    "@koa/bodyparser" "^6.0.0"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^13.1.0"
-    "@paralleldrive/cuid2" "2.2.2"
-    "@types/koa__router" "^12.0.4"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.0"
-    koa "^3.0.1"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^10.2.3"
-    uuid "11.0.2"
+    "@langchain/community" "1.1.4"
+    "@langchain/core" "1.1.15"
+    "@langchain/langgraph" "^1.1.0"
+    "@langchain/mcp-adapters" "1.1.1"
+    "@langchain/openai" "1.2.2"
+    zod "^4.3.5"
 
 "@forestadmin/context@1.37.1":
   version "1.37.1"
@@ -1901,20 +1878,6 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
-
-"@forestadmin/mcp-server@1.6.2":
-  version "1.6.2"
-  resolved "https://registry.yarnpkg.com/@forestadmin/mcp-server/-/mcp-server-1.6.2.tgz#229bc817d545f2e7e3acb03319188e779926522e"
-  integrity sha512-uKh7Af+ieZOUKjjlg4TEWiNqHza8mK8yY5lopLreje6ZejYI2etk9/1DryvzM/M03+sMlvtRKIAagflfORDTOw==
-  dependencies:
-    "@forestadmin/agent-client" "1.3.1"
-    "@forestadmin/forestadmin-client" "1.37.4"
-    "@modelcontextprotocol/sdk" "^1.25.1"
-    cors "^2.8.5"
-    express "^5.2.1"
-    jsonapi-serializer "^3.6.9"
-    jsonwebtoken "^9.0.3"
-    zod "^4.2.1"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
