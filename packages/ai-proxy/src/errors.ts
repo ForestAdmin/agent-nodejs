@@ -69,6 +69,13 @@ export class OpenAIUnprocessableError extends AIUnprocessableError {
   }
 }
 
+export class AnthropicUnprocessableError extends AIUnprocessableError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AnthropicError';
+  }
+}
+
 export class AIToolUnprocessableError extends AIUnprocessableError {
   constructor(message: string) {
     super(message);
