@@ -1,17 +1,22 @@
 import type { AiConfiguration, ChatCompletionResponse, ChatCompletionTool } from './provider';
 import type { RemoteTools } from './remote-tools';
 import type { DispatchBody } from './schemas/route';
-import type { BaseMessageLike } from '@langchain/core/messages';
+import type { BaseMessage, BaseMessageLike } from '@langchain/core/messages';
 
+import { ChatAnthropic } from '@langchain/anthropic';
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
-import { AINotConfiguredError, OpenAIUnprocessableError } from './errors';
+import { AINotConfiguredError, AnthropicUnprocessableError, OpenAIUnprocessableError } from './errors';
+import { ChatCompletionToolChoice } from './provider';
 
 // Re-export types for consumers
 export type {
   AiConfiguration,
   AiProvider,
+  AnthropicConfiguration,
+  AnthropicModel,
   BaseAiConfiguration,
   ChatCompletionMessage,
   ChatCompletionResponse,
@@ -19,10 +24,27 @@ export type {
   ChatCompletionToolChoice,
   OpenAiConfiguration,
 } from './provider';
+export { ANTHROPIC_MODELS } from './provider';
 export type { DispatchBody } from './schemas/route';
 
+interface OpenAIMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_calls?: Array<{
+    id: string;
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
+  tool_call_id?: string;
+}
 export class ProviderDispatcher {
-  private readonly chatModel: ChatOpenAI | null = null;
+  private readonly openaiModel: ChatOpenAI | null = null;
+
+  private readonly anthropicModel: ChatAnthropic | null = null;
+
+  private readonly modelName: string | null = null;
 
   private readonly remoteTools: RemoteTools;
 
@@ -31,19 +53,35 @@ export class ProviderDispatcher {
 
     if (configuration?.provider === 'openai') {
       const { provider, name, ...chatOpenAIOptions } = configuration;
-      this.chatModel = new ChatOpenAI({
+      this.openaiModel = new ChatOpenAI({
         maxRetries: 0, // No retries by default - this lib is a passthrough
         ...chatOpenAIOptions,
         __includeRawResponse: true,
       });
+    } else if (configuration?.provider === 'anthropic') {
+      const { provider, name, model, ...clientOptions } = configuration;
+      this.anthropicModel = new ChatAnthropic({
+        maxRetries: 0, // No retries by default - this lib is a passthrough
+        ...clientOptions,
+        model,
+      });
+      this.modelName = model;
     }
   }
 
   async dispatch(body: DispatchBody): Promise<ChatCompletionResponse> {
-    if (!this.chatModel) {
-      throw new AINotConfiguredError();
+    if (this.openaiModel) {
+      return this.dispatchOpenAI(body);
     }
 
+    if (this.anthropicModel) {
+      return this.dispatchAnthropic(body);
+    }
+
+    throw new AINotConfiguredError();
+  }
+
+  private async dispatchOpenAI(body: DispatchBody): Promise<ChatCompletionResponse> {
     const {
       tools,
       messages,
@@ -53,11 +91,11 @@ export class ProviderDispatcher {
 
     const enrichedTools = this.enrichToolDefinitions(tools);
     const model = enrichedTools?.length
-      ? this.chatModel.bindTools(enrichedTools, {
+      ? this.openaiModel!.bindTools(enrichedTools, {
           tool_choice: toolChoice,
           parallel_tool_calls: parallelToolCalls,
         })
-      : this.chatModel;
+      : this.openaiModel!;
 
     try {
       const response = await model.invoke(messages as BaseMessageLike[]);
@@ -87,6 +125,135 @@ export class ProviderDispatcher {
 
       throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${err.message}`);
     }
+  }
+
+  private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
+    const { tools, messages, tool_choice: toolChoice } = body;
+
+    const langChainMessages = this.convertMessagesToLangChain(messages as OpenAIMessage[]);
+    const enhancedTools = tools ? this.enrichToolDefinitions(tools) : undefined;
+
+    try {
+      let response: AIMessage;
+
+      if (enhancedTools?.length) {
+        const langChainTools = this.convertToolsToLangChain(enhancedTools);
+        const clientWithTools = this.anthropicModel!.bindTools(langChainTools, {
+          tool_choice: this.convertToolChoiceToLangChain(toolChoice),
+        });
+        response = await clientWithTools.invoke(langChainMessages);
+      } else {
+        response = await this.anthropicModel!.invoke(langChainMessages);
+      }
+
+      return this.convertLangChainResponseToOpenAI(response);
+    } catch (error) {
+      throw new AnthropicUnprocessableError(
+        `Error while calling Anthropic: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  private convertMessagesToLangChain(messages: OpenAIMessage[]): BaseMessage[] {
+    return messages.map(msg => {
+      switch (msg.role) {
+        case 'system':
+          return new SystemMessage(msg.content);
+        case 'user':
+          return new HumanMessage(msg.content);
+        case 'assistant':
+          if (msg.tool_calls) {
+            return new AIMessage({
+              content: msg.content || '',
+              tool_calls: msg.tool_calls.map(tc => ({
+                id: tc.id,
+                name: tc.function.name,
+                args: JSON.parse(tc.function.arguments),
+              })),
+            });
+          }
+
+          return new AIMessage(msg.content);
+        case 'tool':
+          return new ToolMessage({
+            content: msg.content,
+            tool_call_id: msg.tool_call_id!,
+          });
+        default:
+          return new HumanMessage(msg.content);
+      }
+    });
+  }
+
+  private convertToolsToLangChain(tools: ChatCompletionTool[]): Array<{
+    type: 'function';
+    function: { name: string; description?: string; parameters?: Record<string, unknown> };
+  }> {
+    return tools
+      .filter((tool): tool is ChatCompletionTool & { type: 'function' } => tool.type === 'function')
+      .map(tool => ({
+        type: 'function' as const,
+        function: {
+          name: tool.function.name,
+          description: tool.function.description,
+          parameters: tool.function.parameters as Record<string, unknown> | undefined,
+        },
+      }));
+  }
+
+  private convertToolChoiceToLangChain(
+    toolChoice: ChatCompletionToolChoice | undefined,
+  ): 'auto' | 'any' | 'none' | { type: 'tool'; name: string } | undefined {
+    if (!toolChoice) return undefined;
+    if (toolChoice === 'auto') return 'auto';
+    if (toolChoice === 'none') return 'none';
+    if (toolChoice === 'required') return 'any';
+
+    if (typeof toolChoice === 'object' && toolChoice.type === 'function') {
+      return { type: 'tool', name: toolChoice.function.name };
+    }
+
+    return undefined;
+  }
+
+  private convertLangChainResponseToOpenAI(response: AIMessage): ChatCompletionResponse {
+    const toolCalls = response.tool_calls?.map(tc => ({
+      id: tc.id || `call_${Date.now()}`,
+      type: 'function' as const,
+      function: {
+        name: tc.name,
+        arguments: JSON.stringify(tc.args),
+      },
+    }));
+
+    const usageMetadata = response.usage_metadata as
+      | { input_tokens?: number; output_tokens?: number; total_tokens?: number }
+      | undefined;
+
+    return {
+      id: response.id || `msg_${Date.now()}`,
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: this.modelName!,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: typeof response.content === 'string' ? response.content : null,
+            refusal: null,
+            tool_calls: toolCalls?.length ? toolCalls : undefined,
+          },
+          finish_reason: toolCalls?.length ? 'tool_calls' : 'stop',
+          logprobs: null,
+        },
+      ],
+      usage: {
+        prompt_tokens: usageMetadata?.input_tokens || 0,
+        completion_tokens: usageMetadata?.output_tokens || 0,
+        total_tokens: usageMetadata?.total_tokens || 0,
+      },
+    };
   }
 
   private enrichToolDefinitions(tools?: ChatCompletionTool[]) {

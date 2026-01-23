@@ -1,8 +1,14 @@
 import type { DispatchBody } from '../src';
 
+import { AIMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
-import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
+import {
+  AINotConfiguredError,
+  AnthropicUnprocessableError,
+  ProviderDispatcher,
+  RemoteTools,
+} from '../src';
 
 // Mock raw OpenAI response (returned via __includeRawResponse: true)
 const mockOpenAIResponse = {
@@ -44,6 +50,20 @@ jest.mock('@langchain/openai', () => ({
     bindTools: bindToolsMock,
   })),
 }));
+
+const anthropicInvokeMock = jest.fn();
+const anthropicBindToolsMock = jest.fn().mockReturnValue({ invoke: anthropicInvokeMock });
+
+jest.mock('@langchain/anthropic', () => {
+  return {
+    ChatAnthropic: jest.fn().mockImplementation(() => {
+      return {
+        invoke: anthropicInvokeMock,
+        bindTools: anthropicBindToolsMock,
+      };
+    }),
+  };
+});
 
 describe('ProviderDispatcher', () => {
   const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
@@ -293,6 +313,346 @@ describe('ProviderDispatcher', () => {
           { tool_choice: undefined },
         );
         expect(invokeMock).toHaveBeenCalledWith(messages);
+      });
+    });
+  });
+
+  describe('anthropic', () => {
+    describe('when anthropic is configured', () => {
+      it('should return the response from anthropic in OpenAI format', async () => {
+        const mockResponse = new AIMessage({
+          content: 'Hello from Claude',
+          id: 'msg_123',
+        });
+        Object.assign(mockResponse, {
+          usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+        });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        const response = await dispatcher.dispatch({
+          tools: [],
+          messages: [{ role: 'user', content: 'Hello' }],
+        } as unknown as DispatchBody);
+
+        expect(response).toEqual(
+          expect.objectContaining({
+            object: 'chat.completion',
+            model: 'claude-3-5-sonnet-latest',
+            choices: [
+              expect.objectContaining({
+                index: 0,
+                message: expect.objectContaining({
+                  role: 'assistant',
+                  content: 'Hello from Claude',
+                }),
+                finish_reason: 'stop',
+              }),
+            ],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+              total_tokens: 30,
+            },
+          }),
+        );
+      });
+
+      it('should convert OpenAI messages to LangChain format', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [],
+          messages: [
+            { role: 'system', content: 'You are helpful' },
+            { role: 'user', content: 'Hello' },
+            { role: 'assistant', content: 'Hi there' },
+          ],
+        } as unknown as DispatchBody);
+
+        expect(anthropicInvokeMock).toHaveBeenCalledWith([
+          expect.objectContaining({ content: 'You are helpful' }),
+          expect.objectContaining({ content: 'Hello' }),
+          expect.objectContaining({ content: 'Hi there' }),
+        ]);
+      });
+
+      it('should convert assistant messages with tool_calls correctly', async () => {
+        const mockResponse = new AIMessage({ content: 'Done' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [],
+          messages: [
+            {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_123',
+                  function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+                },
+              ],
+            },
+            { role: 'tool', content: 'Sunny', tool_call_id: 'call_123' },
+          ],
+        } as unknown as DispatchBody);
+
+        expect(anthropicInvokeMock).toHaveBeenCalledWith([
+          expect.objectContaining({
+            content: '',
+            tool_calls: [{ id: 'call_123', name: 'get_weather', args: { city: 'Paris' } }],
+          }),
+          expect.objectContaining({ content: 'Sunny', tool_call_id: 'call_123' }),
+        ]);
+      });
+
+      it('should return tool_calls in OpenAI format when Claude calls tools', async () => {
+        const mockResponse = new AIMessage({
+          content: '',
+          tool_calls: [{ id: 'call_456', name: 'search', args: { query: 'test' } }],
+        });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        const response = (await dispatcher.dispatch({
+          tools: [],
+          messages: [{ role: 'user', content: 'Search for test' }],
+        } as unknown as DispatchBody)) as {
+          choices: Array<{ message: { tool_calls: unknown[] }; finish_reason: string }>;
+        };
+
+        expect(response.choices[0].message.tool_calls).toEqual([
+          {
+            id: 'call_456',
+            type: 'function',
+            function: { name: 'search', arguments: '{"query":"test"}' },
+          },
+        ]);
+        expect(response.choices[0].finish_reason).toBe('tool_calls');
+      });
+    });
+
+    describe('when tools are provided', () => {
+      it('should bind tools to the client', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                description: 'Get weather for a city',
+                parameters: { type: 'object', properties: { city: { type: 'string' } } },
+              },
+            },
+          ],
+          messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
+          tool_choice: 'auto',
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(
+          [
+            {
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                description: 'Get weather for a city',
+                parameters: { type: 'object', properties: { city: { type: 'string' } } },
+              },
+            },
+          ],
+          { tool_choice: 'auto' },
+        );
+      });
+
+      it('should convert tool_choice "required" to "any"', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'tool1' } }],
+          messages: [],
+          tool_choice: 'required',
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'any',
+        });
+      });
+
+      it('should convert specific function tool_choice to Anthropic format', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'specific_tool' } }],
+          messages: [],
+          tool_choice: { type: 'function', function: { name: 'specific_tool' } },
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'tool', name: 'specific_tool' },
+        });
+      });
+    });
+
+    describe('when the anthropic client throws an error', () => {
+      it('should throw an AnthropicUnprocessableError', async () => {
+        anthropicInvokeMock.mockRejectedValueOnce(new Error('Anthropic API error'));
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [{ role: 'user', content: 'Hello' }],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow(AnthropicUnprocessableError);
+      });
+
+      it('should include the error message from Anthropic', async () => {
+        anthropicInvokeMock.mockRejectedValueOnce(new Error('Anthropic API error'));
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [{ role: 'user', content: 'Hello' }],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow('Error while calling Anthropic: Anthropic API error');
+      });
+    });
+
+    describe('when there is a remote tool', () => {
+      it('should enhance the remote tools definition', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const remoteTools = new RemoteTools(apiKeys);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          remoteTools,
+        );
+
+        await dispatcher.dispatch({
+          tools: [
+            {
+              type: 'function',
+              function: { name: remoteTools.tools[0].base.name, parameters: {} },
+            },
+          ],
+          messages: [],
+        } as unknown as DispatchBody);
+
+        const expectedEnhancedFunction = convertToOpenAIFunction(remoteTools.tools[0].base);
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(
+          [
+            {
+              type: 'function',
+              function: {
+                name: expectedEnhancedFunction.name,
+                description: expectedEnhancedFunction.description,
+                parameters: expectedEnhancedFunction.parameters,
+              },
+            },
+          ],
+          expect.anything(),
+        );
       });
     });
   });
