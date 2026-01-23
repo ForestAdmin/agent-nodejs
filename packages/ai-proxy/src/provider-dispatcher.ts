@@ -29,7 +29,7 @@ export type { DispatchBody } from './schemas/route';
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string;
+  content: string | null;
   tool_calls?: Array<{
     id: string;
     function: {
@@ -130,10 +130,9 @@ export class ProviderDispatcher {
   private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
     const { tools, messages, tool_choice: toolChoice } = body;
 
-    const langChainMessages = this.convertMessagesToLangChain(messages as OpenAIMessage[]);
-    const enhancedTools = tools ? this.enrichToolDefinitions(tools) : undefined;
-
     try {
+      const langChainMessages = this.convertMessagesToLangChain(messages as OpenAIMessage[]);
+      const enhancedTools = tools ? this.enrichToolDefinitions(tools) : undefined;
       let response: AIMessage;
 
       if (enhancedTools?.length) {
@@ -158,9 +157,9 @@ export class ProviderDispatcher {
     return messages.map(msg => {
       switch (msg.role) {
         case 'system':
-          return new SystemMessage(msg.content);
+          return new SystemMessage(msg.content || '');
         case 'user':
-          return new HumanMessage(msg.content);
+          return new HumanMessage(msg.content || '');
         case 'assistant':
           if (msg.tool_calls) {
             return new AIMessage({
@@ -173,14 +172,14 @@ export class ProviderDispatcher {
             });
           }
 
-          return new AIMessage(msg.content);
+          return new AIMessage(msg.content || '');
         case 'tool':
           return new ToolMessage({
-            content: msg.content,
+            content: msg.content || '',
             tool_call_id: msg.tool_call_id!,
           });
         default:
-          return new HumanMessage(msg.content);
+          return new HumanMessage(msg.content || '');
       }
     });
   }
