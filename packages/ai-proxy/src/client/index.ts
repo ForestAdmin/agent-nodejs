@@ -15,13 +15,11 @@ const DEFAULT_TIMEOUT = 30_000;
 
 export class AiProxyClient {
   private readonly baseUrl: string;
-  private readonly apiKey?: string;
   private readonly timeout: number;
   private readonly fetchFn: typeof fetch;
 
   constructor(config: AiProxyClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '');
-    this.apiKey = config.apiKey;
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
     this.fetchFn = config.fetch ?? fetch;
   }
@@ -73,7 +71,6 @@ export class AiProxyClient {
         tools: normalized.tools,
         tool_choice: normalized.toolChoice,
       },
-      auth: true,
     });
   }
 
@@ -107,17 +104,8 @@ export class AiProxyClient {
     path: string;
     searchParams?: URLSearchParams;
     body?: unknown;
-    auth?: boolean;
   }): Promise<T> {
-    const { method, path, searchParams, body, auth } = params;
-
-    // Fail fast if auth required but no API key configured
-    if (auth && !this.apiKey) {
-      throw new AiProxyClientError(
-        `${method} ${path}: Authentication required but no API key configured`,
-        0,
-      );
-    }
+    const { method, path, searchParams, body } = params;
 
     let url = `${this.baseUrl}${path}`;
 
@@ -128,10 +116,6 @@ export class AiProxyClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-
-    if (auth && this.apiKey) {
-      headers.Authorization = `Bearer ${this.apiKey}`;
-    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);

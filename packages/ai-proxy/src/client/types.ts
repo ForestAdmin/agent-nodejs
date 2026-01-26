@@ -25,7 +25,6 @@ export type {
 // Client-specific types
 export interface AiProxyClientConfig {
   baseUrl: string;
-  apiKey?: string;
   timeout?: number;
   fetch?: typeof fetch;
 }

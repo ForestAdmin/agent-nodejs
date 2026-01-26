@@ -58,14 +58,12 @@ describe('AiProxyClientError', () => {
 
 describe('AiProxyClient', () => {
   const baseUrl = 'https://my-agent.com/forest';
-  const apiKey = 'sk-test-key';
 
   const mockFetch = jest.fn();
 
   const createClient = (config: Partial<AiProxyClientConfig> = {}): AiProxyClient => {
     return new AiProxyClient({
       baseUrl,
-      apiKey,
       fetch: mockFetch,
       ...config,
     });
@@ -79,7 +77,6 @@ describe('AiProxyClient', () => {
     it('creates an AiProxyClient instance', () => {
       const client = createAiProxyClient({
         baseUrl,
-        apiKey,
         fetch: mockFetch,
       });
 
@@ -144,10 +141,7 @@ describe('AiProxyClient', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/ai-query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: 'Hello' }],
           tools: undefined,
@@ -240,16 +234,6 @@ describe('AiProxyClient', () => {
       );
     });
 
-    it('throws error when auth required but no apiKey configured', async () => {
-      const client = createClient({ apiKey: undefined });
-
-      await expect(client.chat('Hello')).rejects.toMatchObject({
-        status: 0,
-        message: 'POST /ai-query: Authentication required but no API key configured',
-      });
-
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
   });
 
   describe('callTool', () => {
@@ -274,23 +258,6 @@ describe('AiProxyClient', () => {
         },
       );
       expect(result).toEqual(expectedResult);
-    });
-
-    it('does not include Authorization header (no auth required)', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
-
-      const client = createClient();
-      await client.callTool('test_tool', []);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
     });
   });
 
