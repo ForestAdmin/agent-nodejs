@@ -73,22 +73,6 @@ export type OpenAiConfiguration = BaseAiConfiguration &
 export type AiProvider = 'openai';
 export type AiConfiguration = OpenAiConfiguration;
 
-// Re-export types from routes.ts for backwards compatibility
-export type {
-  AiQueryRequest,
-  AiQueryResponse,
-  ChatCompletion,
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-  ChatCompletionToolChoiceOption,
-} from './routes';
-
-// Legacy type aliases for backwards compatibility
-export type DispatchBody = AiQueryRequest;
-export type ChatCompletionResponse = AiQueryResponse;
-export type { ChatCompletionMessageParam as ChatCompletionMessage } from './routes';
-export type { ChatCompletionToolChoiceOption as ChatCompletionToolChoice } from './routes';
-
 export class ProviderDispatcher {
   private readonly chatModel: ChatOpenAI | null = null;
 

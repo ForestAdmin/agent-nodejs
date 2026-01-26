@@ -2,6 +2,7 @@ import type { McpConfiguration } from './mcp-client';
 
 import McpConfigChecker from './types/mcp-config-checker';
 
+export * from './routes';
 export * from './provider-dispatcher';
 export * from './remote-tools';
 export * from './router';

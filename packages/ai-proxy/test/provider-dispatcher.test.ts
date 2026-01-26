@@ -1,4 +1,4 @@
-import type { DispatchBody } from '../src';
+import type { AiQueryRequest } from '../src';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
@@ -56,8 +56,8 @@ describe('ProviderDispatcher', () => {
     describe('when AI is not configured', () => {
       it('should throw AINotConfiguredError', async () => {
         const dispatcher = new ProviderDispatcher(null, new RemoteTools(apiKeys));
-        await expect(dispatcher.dispatch({} as DispatchBody)).rejects.toThrow(AINotConfiguredError);
-        await expect(dispatcher.dispatch({} as DispatchBody)).rejects.toThrow(
+        await expect(dispatcher.dispatch({} as AiQueryRequest)).rejects.toThrow(AINotConfiguredError);
+        await expect(dispatcher.dispatch({} as AiQueryRequest)).rejects.toThrow(
           'AI is not configured. Please call addAI() on your agent.',
         );
       });
@@ -79,7 +79,7 @@ describe('ProviderDispatcher', () => {
         const response = await dispatcher.dispatch({
           tools: [],
           messages: [],
-        } as unknown as DispatchBody);
+        } as unknown as AiQueryRequest);
 
         // Response is the raw OpenAI response (via __includeRawResponse)
         expect(response).toEqual(mockOpenAIResponse);
@@ -103,7 +103,7 @@ describe('ProviderDispatcher', () => {
             tools: [],
             messages,
             tool_choice: 'auto',
-          } as unknown as DispatchBody);
+          } as unknown as AiQueryRequest);
 
           // When no tools, invoke is called directly with messages
           expect(invokeMock).toHaveBeenCalledWith(messages);
@@ -124,7 +124,7 @@ describe('ProviderDispatcher', () => {
           invokeMock.mockRejectedValueOnce(new Error('OpenAI error'));
 
           await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as AiQueryRequest),
           ).rejects.toThrow('Error while calling OpenAI: OpenAI error');
         });
 
@@ -138,7 +138,7 @@ describe('ProviderDispatcher', () => {
           invokeMock.mockRejectedValueOnce(rateLimitError);
 
           await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as AiQueryRequest),
           ).rejects.toThrow('Rate limit exceeded: Too many requests');
         });
 
@@ -152,7 +152,7 @@ describe('ProviderDispatcher', () => {
           invokeMock.mockRejectedValueOnce(authError);
 
           await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as AiQueryRequest),
           ).rejects.toThrow('Authentication failed: Invalid API key');
         });
       });
@@ -169,7 +169,7 @@ describe('ProviderDispatcher', () => {
           });
 
           await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
+            dispatcher.dispatch({ tools: [], messages: [] } as unknown as AiQueryRequest),
           ).rejects.toThrow(
             'OpenAI response missing raw response data. This may indicate an API change.',
           );
@@ -202,7 +202,7 @@ describe('ProviderDispatcher', () => {
             },
           ],
           messages,
-        } as unknown as DispatchBody);
+        } as unknown as AiQueryRequest);
 
         // When tools are provided, bindTools is called first
         expect(bindToolsMock).toHaveBeenCalledWith(
@@ -241,7 +241,7 @@ describe('ProviderDispatcher', () => {
             },
           ],
           messages,
-        } as unknown as DispatchBody);
+        } as unknown as AiQueryRequest);
 
         // When tools are provided, bindTools is called
         expect(bindToolsMock).toHaveBeenCalledWith(
