@@ -44,7 +44,6 @@ export class AiProxyClientError extends Error {
 
   constructor(message: string, status: number, body?: unknown, cause?: Error) {
     super(message);
-    Object.setPrototypeOf(this, AiProxyClientError.prototype);
     this.name = 'AiProxyClientError';
     this.status = status;
     this.body = body;
