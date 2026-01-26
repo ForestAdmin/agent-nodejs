@@ -23,7 +23,6 @@
     "directory": "packages/ai-proxy"
   },
   "dependencies": {
-    "@forestadmin/datasource-toolkit": "1.50.1",
     "zod": "^4.3.5"
   },
   "peerDependencies": {
@@ -51,6 +50,7 @@
     }
   },
   "devDependencies": {
+    "@forestadmin/datasource-toolkit": "1.50.1",
     "@langchain/community": "1.1.4",
     "@langchain/core": "1.1.15",
     "@langchain/langgraph": "^1.1.0",
