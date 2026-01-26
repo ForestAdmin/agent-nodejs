@@ -2,6 +2,17 @@
   "name": "@forestadmin/ai-proxy",
   "version": "1.1.0",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    }
+  },
   "license": "GPL-3.0",
   "publishConfig": {
     "access": "public"
@@ -13,18 +24,43 @@
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.50.1",
+    "zod": "^4.3.5"
+  },
+  "peerDependencies": {
+    "@langchain/community": "^1.1.4",
+    "@langchain/core": "^1.1.15",
+    "@langchain/langgraph": "^1.1.0",
+    "@langchain/mcp-adapters": "^1.1.1",
+    "@langchain/openai": "^1.2.2"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/community": {
+      "optional": true
+    },
+    "@langchain/core": {
+      "optional": true
+    },
+    "@langchain/langgraph": {
+      "optional": true
+    },
+    "@langchain/mcp-adapters": {
+      "optional": true
+    },
+    "@langchain/openai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
     "@langchain/community": "1.1.4",
     "@langchain/core": "1.1.15",
     "@langchain/langgraph": "^1.1.0",
     "@langchain/mcp-adapters": "1.1.1",
     "@langchain/openai": "1.2.2",
-    "zod": "^4.3.5"
-  },
-  "devDependencies": {
     "@modelcontextprotocol/sdk": "1.25.3",
     "@types/express": "5.0.1",
     "express": "5.1.0",
-    "node-zendesk": "6.0.1"
+    "node-zendesk": "6.0.1",
+    "openai": "^6.16.0"
   },
   "files": [
     "dist/**/*.js",

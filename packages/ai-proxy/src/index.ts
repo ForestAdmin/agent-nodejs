@@ -9,6 +9,9 @@ export * from './mcp-client';
 
 export * from './types/errors';
 
+// Client is exported from a separate entry point: @forestadmin/ai-proxy/client
+// This avoids pulling langchain dependencies in frontend builds
+
 export function validMcpConfigurationOrThrow(mcpConfig: McpConfiguration) {
   return McpConfigChecker.check(mcpConfig);
 }
