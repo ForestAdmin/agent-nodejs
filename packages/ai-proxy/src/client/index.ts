@@ -14,14 +14,27 @@ export * from './types';
 const DEFAULT_TIMEOUT = 30_000;
 
 export class AiProxyClient {
-  private readonly baseUrl: string;
   private readonly timeout: number;
-  private readonly fetchFn: typeof fetch;
+  private readonly mode: 'custom' | 'simple';
+
+  // Custom fetch mode
+  private readonly customFetch?: typeof fetch;
+
+  // Simple mode
+  private readonly baseUrl?: string;
+  private readonly headers?: Record<string, string>;
 
   constructor(config: AiProxyClientConfig) {
-    this.baseUrl = config.baseUrl.replace(/\/$/, '');
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;
-    this.fetchFn = config.fetch ?? fetch;
+
+    if ('fetch' in config) {
+      this.mode = 'custom';
+      this.customFetch = config.fetch;
+    } else {
+      this.mode = 'simple';
+      this.baseUrl = config.baseUrl.replace(/\/$/, '');
+      this.headers = config.headers;
+    }
   }
 
   /**
@@ -107,26 +120,30 @@ export class AiProxyClient {
   }): Promise<T> {
     const { method, path, searchParams, body } = params;
 
-    let url = `${this.baseUrl}${path}`;
+    let url = path;
 
     if (searchParams && searchParams.toString()) {
       url += `?${searchParams.toString()}`;
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      const response = await this.fetchFn(url, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
+      const response =
+        this.mode === 'custom'
+          ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by constructor
+            await this.customFetch!(url, {
+              method,
+              body: body ? JSON.stringify(body) : undefined,
+              signal: controller.signal,
+            })
+          : await fetch(`${this.baseUrl}${url}`, {
+              method,
+              headers: { 'Content-Type': 'application/json', ...this.headers },
+              body: body ? JSON.stringify(body) : undefined,
+              signal: controller.signal,
+            });
 
       if (!response.ok) {
         let responseBody: unknown;

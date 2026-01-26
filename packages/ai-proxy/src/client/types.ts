@@ -23,11 +23,9 @@ export type {
 } from '../types';
 
 // Client-specific types
-export interface AiProxyClientConfig {
-  baseUrl: string;
-  timeout?: number;
-  fetch?: typeof fetch;
-}
+export type AiProxyClientConfig =
+  | { fetch: typeof fetch; timeout?: number }
+  | { baseUrl: string; headers?: Record<string, string>; timeout?: number };
 
 export interface ChatInput {
   messages: ChatCompletionMessageParam[];
