@@ -1,5 +1,5 @@
-import type { DispatchBody, Route } from '../src';
-import type { InvokeRemoteToolBody } from '../src/router';
+import type { AiQueryRequest, Route } from '../src';
+import type { InvokeToolRequest } from '../src/types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, Router } from '../src';
@@ -61,7 +61,7 @@ describe('route', () => {
 
       await router.route({
         route: 'ai-query',
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as AiQueryRequest,
       });
 
       expect(dispatchMock).toHaveBeenCalledWith({
@@ -91,7 +91,7 @@ describe('route', () => {
       await router.route({
         route: 'ai-query',
         query: { 'ai-name': 'gpt3' },
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as AiQueryRequest,
       });
 
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt3Config, expect.anything());
@@ -116,7 +116,7 @@ describe('route', () => {
 
       await router.route({
         route: 'ai-query',
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as AiQueryRequest,
       });
 
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
@@ -139,7 +139,7 @@ describe('route', () => {
       await router.route({
         route: 'ai-query',
         query: { 'ai-name': 'non-existent' },
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as AiQueryRequest,
       });
 
       expect(mockLogger).toHaveBeenCalledWith(
@@ -182,7 +182,7 @@ describe('route', () => {
         router.route({
           route: 'invoke-remote-tool',
           query: { 'tool-name': 'tool-name' },
-          body: {} as InvokeRemoteToolBody,
+          body: {} as InvokeToolRequest,
         }),
       ).rejects.toThrow('Missing required body parameter: inputs');
     });

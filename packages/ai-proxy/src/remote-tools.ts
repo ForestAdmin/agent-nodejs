@@ -1,6 +1,5 @@
+import type { ChatCompletionMessageParam, RemoteToolDefinition } from './types';
 import type RemoteTool from './types/remote-tool';
-import type { ResponseFormat } from '@langchain/core/tools';
-import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
 import { BraveSearch } from '@langchain/community/tools/brave_search';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
@@ -8,7 +7,7 @@ import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import { AIToolNotFoundError, AIToolUnprocessableError } from './types/errors';
 import ServerRemoteTool from './types/server-remote-tool';
 
-export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
+export type Messages = ChatCompletionMessageParam[];
 
 export type RemoteToolsApiKeys =
   | { ['AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY']: string }
@@ -32,12 +31,12 @@ export class RemoteTools {
     }
   }
 
-  get toolDefinitionsForFrontend() {
+  get toolDefinitionsForFrontend(): RemoteToolDefinition[] {
     return this.tools.map(extendedTool => {
       return {
         name: extendedTool.sanitizedName,
         description: extendedTool.base.description,
-        responseFormat: 'content' as ResponseFormat,
+        responseFormat: 'content' as const,
         schema: toJsonSchema(extendedTool.base.schema),
         sourceId: extendedTool.sourceId,
         sourceType: extendedTool.sourceType,
@@ -45,7 +44,7 @@ export class RemoteTools {
     });
   }
 
-  async invokeTool(toolName: string, messages: ChatCompletionCreateParamsNonStreaming['messages']) {
+  async invokeTool(toolName: string, messages: ChatCompletionMessageParam[]) {
     const extendedTool = this.tools.find(exTool => exTool.sanitizedName === toolName);
 
     if (!extendedTool) throw new AIToolNotFoundError(`Tool ${toolName} not found`);

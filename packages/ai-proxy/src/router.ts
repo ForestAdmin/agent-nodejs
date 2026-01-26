@@ -1,19 +1,16 @@
 import type { McpConfiguration } from './mcp-client';
-import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
-import type { Messages, RemoteToolsApiKeys } from './remote-tools';
+import type { AiConfiguration } from './provider-dispatcher';
+import type { RemoteToolsApiKeys } from './remote-tools';
+import type { AiQueryQuery, AiQueryRequest, InvokeToolQuery, InvokeToolRequest } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIBadRequestError, AIUnprocessableError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
 
-export type InvokeRemoteToolBody = { inputs: Messages };
-export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
 export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool';
-export type Query = {
-  'tool-name'?: string;
-  'ai-name'?: string;
-};
+export type Body = AiQueryRequest | InvokeToolRequest | undefined;
+export type Query = Partial<AiQueryQuery & InvokeToolQuery>;
 export type ApiKeys = RemoteToolsApiKeys;
 
 export class Router {
@@ -78,7 +75,7 @@ export class Router {
         const aiConfiguration = this.getAiConfiguration(args.query?.['ai-name']);
 
         return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
-          args.body as DispatchBody,
+          args.body as AiQueryRequest,
         );
       }
 
@@ -89,7 +86,7 @@ export class Router {
           throw new AIBadRequestError('Missing required query parameter: tool-name');
         }
 
-        const body = args.body as InvokeRemoteToolBody | undefined;
+        const body = args.body as InvokeToolRequest | undefined;
 
         if (!body?.inputs) {
           throw new AIBadRequestError('Missing required body parameter: inputs');
