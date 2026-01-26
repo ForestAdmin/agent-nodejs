@@ -33,8 +33,8 @@ export type Options = {
  *  .start();
  */
 export default class DataSourceCustomizer<S extends TSchema = TSchema> {
-  private compositeDataSource: CompositeDatasource<Collection>;
-  private readonly stack: DecoratorsStack;
+  protected compositeDataSource: CompositeDatasource<Collection>;
+  protected readonly stack: DecoratorsStack;
 
   /**
    * Retrieve schema of the agent
