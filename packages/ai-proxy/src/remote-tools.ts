@@ -1,4 +1,4 @@
-import type { ChatCompletionMessageParam, RemoteToolDefinition } from './routes';
+import type { ChatCompletionMessageParam, RemoteToolDefinition } from './types';
 import type RemoteTool from './types/remote-tool';
 
 import { BraveSearch } from '@langchain/community/tools/brave_search';

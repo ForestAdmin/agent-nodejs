@@ -1,5 +1,5 @@
 import type { AiQueryRequest, Route } from '../src';
-import type { InvokeToolRequest } from '../src/routes';
+import type { InvokeToolRequest } from '../src/types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIUnprocessableError, Router } from '../src';

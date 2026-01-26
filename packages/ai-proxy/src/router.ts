@@ -1,7 +1,7 @@
 import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider-dispatcher';
 import type { RemoteToolsApiKeys } from './remote-tools';
-import type { AiQueryQuery, AiQueryRequest, InvokeToolQuery, InvokeToolRequest } from './routes';
+import type { AiQueryQuery, AiQueryRequest, InvokeToolQuery, InvokeToolRequest } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIBadRequestError, AIUnprocessableError, ProviderDispatcher } from './index';

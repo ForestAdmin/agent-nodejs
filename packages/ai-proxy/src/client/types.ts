@@ -6,7 +6,7 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   ChatCompletionToolChoiceOption,
-} from '../routes';
+} from '../types';
 
 // Re-export shared route types for client usage
 export type {
@@ -20,7 +20,7 @@ export type {
   InvokeToolResponse,
   RemoteToolDefinition,
   RemoteToolsResponse,
-} from '../routes';
+} from '../types';
 
 // Client-specific types
 export interface AiProxyClientConfig {

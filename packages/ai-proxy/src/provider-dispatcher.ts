@@ -4,7 +4,7 @@ import type {
   AiQueryResponse,
   ChatCompletionTool,
   ChatCompletionToolChoiceOption,
-} from './routes';
+} from './types';
 import type { BaseMessageLike } from '@langchain/core/messages';
 import type { ChatOpenAIFields, OpenAIChatModelId } from '@langchain/openai';
 
