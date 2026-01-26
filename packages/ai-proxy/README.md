@@ -15,8 +15,16 @@ console.log(response.choices[0].message.content);
 
 ## Installation
 
+**Client only** (frontend, no extra dependencies):
+
 ```bash
 npm install @forestadmin/ai-proxy
+```
+
+**Server side** (Router, ProviderDispatcher):
+
+```bash
+npm install @forestadmin/ai-proxy @langchain/core @langchain/openai
 ```
 
 ## Configuration
