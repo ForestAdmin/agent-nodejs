@@ -77,6 +77,7 @@ export type DispatchBody = {
   messages: ChatCompletionMessage[];
   tools?: ChatCompletionTool[];
   tool_choice?: ChatCompletionToolChoice;
+  parallel_tool_calls?: boolean;
 };
 
 export class ProviderDispatcher {
@@ -101,10 +102,20 @@ export class ProviderDispatcher {
       throw new AINotConfiguredError();
     }
 
-    const { tools, messages, tool_choice: toolChoice } = body;
+    const {
+      tools,
+      messages,
+      tool_choice: toolChoice,
+      parallel_tool_calls: parallelToolCalls,
+    } = body;
 
     const enrichedTools = this.enrichToolDefinitions(tools);
-    const model = this.bindToolsIfNeeded(this.chatModel, enrichedTools, toolChoice);
+    const model = this.bindToolsIfNeeded(
+      this.chatModel,
+      enrichedTools,
+      toolChoice,
+      parallelToolCalls,
+    );
 
     try {
       const response = await model.invoke(messages as BaseMessageLike[]);
@@ -140,6 +151,7 @@ export class ProviderDispatcher {
     chatModel: ChatOpenAI,
     tools: ChatCompletionTool[] | undefined,
     toolChoice?: ChatCompletionToolChoice,
+    parallelToolCalls?: boolean,
   ) {
     if (!tools || tools.length === 0) {
       return chatModel;
@@ -147,6 +159,7 @@ export class ProviderDispatcher {
 
     return chatModel.bindTools(tools, {
       tool_choice: toolChoice as 'auto' | 'none' | 'required' | undefined,
+      parallel_tool_calls: parallelToolCalls,
     });
   }
 
