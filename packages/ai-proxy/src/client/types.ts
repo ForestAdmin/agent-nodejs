@@ -1,14 +1,28 @@
 /**
  * Standalone client types - no runtime dependencies.
- * Uses OpenAI types via type-only imports (erased at compile time).
+ * Re-exports shared route types and defines client-specific types.
  */
-import type OpenAI from 'openai';
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+  ChatCompletionToolChoiceOption,
+} from '../routes';
 
-export type ChatCompletionMessageParam = OpenAI.Chat.Completions.ChatCompletionMessageParam;
-export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
-export type ChatCompletionToolChoiceOption = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
-export type ChatCompletion = OpenAI.Chat.Completions.ChatCompletion;
+// Re-export shared route types for client usage
+export type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+  ChatCompletionToolChoiceOption,
+  ChatCompletion,
+  AiQueryRequest,
+  AiQueryResponse,
+  InvokeToolRequest,
+  InvokeToolResponse,
+  RemoteToolDefinition,
+  RemoteToolsResponse,
+} from '../routes';
 
+// Client-specific types
 export interface AiProxyClientConfig {
   baseUrl: string;
   apiKey?: string;
@@ -21,15 +35,6 @@ export interface ChatInput {
   tools?: ChatCompletionTool[];
   toolChoice?: ChatCompletionToolChoiceOption;
   aiName?: string;
-}
-
-export interface RemoteToolDefinition {
-  name: string;
-  description: string;
-  responseFormat: 'content' | 'content_and_artifact';
-  schema: Record<string, unknown>;
-  sourceId: string;
-  sourceType: string;
 }
 
 export class AiProxyClientError extends Error {

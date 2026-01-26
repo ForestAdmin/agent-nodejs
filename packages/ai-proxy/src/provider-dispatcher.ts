@@ -1,7 +1,12 @@
 import type { RemoteTools } from './remote-tools';
+import type {
+  AiQueryRequest,
+  AiQueryResponse,
+  ChatCompletionTool,
+  ChatCompletionToolChoiceOption,
+} from './routes';
 import type { BaseMessageLike } from '@langchain/core/messages';
 import type { ChatOpenAIFields, OpenAIChatModelId } from '@langchain/openai';
-import type OpenAI from 'openai';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
@@ -68,16 +73,21 @@ export type OpenAiConfiguration = BaseAiConfiguration &
 export type AiProvider = 'openai';
 export type AiConfiguration = OpenAiConfiguration;
 
-export type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
-export type ChatCompletionMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
-export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
-export type ChatCompletionToolChoice = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
+// Re-export types from routes.ts for backwards compatibility
+export type {
+  AiQueryRequest,
+  AiQueryResponse,
+  ChatCompletion,
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+  ChatCompletionToolChoiceOption,
+} from './routes';
 
-export type DispatchBody = {
-  messages: ChatCompletionMessage[];
-  tools?: ChatCompletionTool[];
-  tool_choice?: ChatCompletionToolChoice;
-};
+// Legacy type aliases for backwards compatibility
+export type DispatchBody = AiQueryRequest;
+export type ChatCompletionResponse = AiQueryResponse;
+export type { ChatCompletionMessageParam as ChatCompletionMessage } from './routes';
+export type { ChatCompletionToolChoiceOption as ChatCompletionToolChoice } from './routes';
 
 export class ProviderDispatcher {
   private readonly chatModel: ChatOpenAI | null = null;
@@ -96,7 +106,7 @@ export class ProviderDispatcher {
     }
   }
 
-  async dispatch(body: DispatchBody): Promise<ChatCompletionResponse> {
+  async dispatch(body: AiQueryRequest): Promise<AiQueryResponse> {
     if (!this.chatModel) {
       throw new AINotConfiguredError();
     }
@@ -110,7 +120,7 @@ export class ProviderDispatcher {
       const response = await model.invoke(messages as BaseMessageLike[]);
 
       // eslint-disable-next-line no-underscore-dangle
-      const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
+      const rawResponse = response.additional_kwargs.__raw_response as AiQueryResponse;
 
       if (!rawResponse) {
         throw new OpenAIUnprocessableError(
@@ -139,7 +149,7 @@ export class ProviderDispatcher {
   private bindToolsIfNeeded(
     chatModel: ChatOpenAI,
     tools: ChatCompletionTool[] | undefined,
-    toolChoice?: ChatCompletionToolChoice,
+    toolChoice?: ChatCompletionToolChoiceOption,
   ) {
     if (!tools || tools.length === 0) {
       return chatModel;

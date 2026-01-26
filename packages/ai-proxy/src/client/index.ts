@@ -1,9 +1,10 @@
 import type {
   AiProxyClientConfig,
-  ChatCompletion,
+  AiQueryResponse,
   ChatCompletionMessageParam,
   ChatInput,
-  RemoteToolDefinition,
+  InvokeToolResponse,
+  RemoteToolsResponse,
 } from './types';
 
 import { AiProxyClientError } from './types';
@@ -28,8 +29,8 @@ export class AiProxyClient {
   /**
    * Get the list of available remote tools.
    */
-  async getTools(): Promise<RemoteToolDefinition[]> {
-    return this.request<RemoteToolDefinition[]>({
+  async getTools(): Promise<RemoteToolsResponse> {
+    return this.request<RemoteToolsResponse>({
       method: 'GET',
       path: '/remote-tools',
     });
@@ -53,7 +54,7 @@ export class AiProxyClient {
    * });
    * ```
    */
-  async chat(input: string | ChatInput): Promise<ChatCompletion> {
+  async chat(input: string | ChatInput): Promise<AiQueryResponse> {
     const normalized: ChatInput =
       typeof input === 'string' ? { messages: [{ role: 'user', content: input }] } : input;
 
@@ -63,7 +64,7 @@ export class AiProxyClient {
       searchParams.set('ai-name', normalized.aiName);
     }
 
-    return this.request<ChatCompletion>({
+    return this.request<AiQueryResponse>({
       method: 'POST',
       path: '/ai-query',
       searchParams,
@@ -86,7 +87,10 @@ export class AiProxyClient {
    * ]);
    * ```
    */
-  async callTool<T = unknown>(toolName: string, inputs: ChatCompletionMessageParam[]): Promise<T> {
+  async callTool<T = InvokeToolResponse>(
+    toolName: string,
+    inputs: ChatCompletionMessageParam[],
+  ): Promise<T> {
     const searchParams = new URLSearchParams();
     searchParams.set('tool-name', toolName);
 
