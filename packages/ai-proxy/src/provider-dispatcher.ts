@@ -110,12 +110,12 @@ export class ProviderDispatcher {
     } = body;
 
     const enrichedTools = this.enrichToolDefinitions(tools);
-    const model = this.bindToolsIfNeeded(
-      this.chatModel,
-      enrichedTools,
-      toolChoice,
-      parallelToolCalls,
-    );
+    const model = enrichedTools?.length
+      ? this.chatModel.bindTools(enrichedTools, {
+          tool_choice: toolChoice,
+          parallel_tool_calls: parallelToolCalls,
+        })
+      : this.chatModel;
 
     try {
       const response = await model.invoke(messages as BaseMessageLike[]);
@@ -145,22 +145,6 @@ export class ProviderDispatcher {
 
       throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${err.message}`);
     }
-  }
-
-  private bindToolsIfNeeded(
-    chatModel: ChatOpenAI,
-    tools: ChatCompletionTool[] | undefined,
-    toolChoice?: ChatCompletionToolChoice,
-    parallelToolCalls?: boolean,
-  ) {
-    if (!tools || tools.length === 0) {
-      return chatModel;
-    }
-
-    return chatModel.bindTools(tools, {
-      tool_choice: toolChoice as 'auto' | 'none' | 'required' | undefined,
-      parallel_tool_calls: parallelToolCalls,
-    });
   }
 
   private enrichToolDefinitions(tools?: ChatCompletionTool[]) {
