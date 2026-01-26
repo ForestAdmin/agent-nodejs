@@ -2,6 +2,60 @@ import type { AiProxyClientConfig, ChatCompletion, RemoteToolDefinition } from '
 
 import { AiProxyClient, AiProxyClientError, createAiProxyClient } from '../src/client';
 
+describe('AiProxyClientError', () => {
+  it('creates an error with correct properties', () => {
+    const error = new AiProxyClientError('Test error', 404, { detail: 'Not found' });
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toBeInstanceOf(AiProxyClientError);
+    expect(error.name).toBe('AiProxyClientError');
+    expect(error.message).toBe('Test error');
+    expect(error.status).toBe(404);
+    expect(error.body).toEqual({ detail: 'Not found' });
+  });
+
+  it('preserves cause when provided', () => {
+    const cause = new Error('Original error');
+    const error = new AiProxyClientError('Wrapped error', 500, undefined, cause);
+
+    expect(error.cause).toBe(cause);
+  });
+
+  describe('error categorization helpers', () => {
+    it('identifies network errors (status 0)', () => {
+      const error = new AiProxyClientError('Network error', 0);
+
+      expect(error.isNetworkError).toBe(true);
+      expect(error.isClientError).toBe(false);
+      expect(error.isServerError).toBe(false);
+    });
+
+    it('identifies client errors (4xx)', () => {
+      const error = new AiProxyClientError('Bad request', 400);
+
+      expect(error.isNetworkError).toBe(false);
+      expect(error.isClientError).toBe(true);
+      expect(error.isServerError).toBe(false);
+    });
+
+    it('identifies server errors (5xx)', () => {
+      const error = new AiProxyClientError('Server error', 500);
+
+      expect(error.isNetworkError).toBe(false);
+      expect(error.isClientError).toBe(false);
+      expect(error.isServerError).toBe(true);
+    });
+
+    it('does not categorize 3xx as client or server error', () => {
+      const error = new AiProxyClientError('Redirect', 302);
+
+      expect(error.isNetworkError).toBe(false);
+      expect(error.isClientError).toBe(false);
+      expect(error.isServerError).toBe(false);
+    });
+  });
+});
+
 describe('AiProxyClient', () => {
   const baseUrl = 'https://my-agent.com/forest';
   const apiKey = 'sk-test-key';
@@ -186,21 +240,15 @@ describe('AiProxyClient', () => {
       );
     });
 
-    it('does not include Authorization header when apiKey is not provided', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({}),
+    it('throws error when auth required but no apiKey configured', async () => {
+      const client = createClient({ apiKey: undefined });
+
+      await expect(client.chat('Hello')).rejects.toMatchObject({
+        status: 0,
+        message: 'POST /ai-query: Authentication required but no API key configured',
       });
 
-      const client = createClient({ apiKey: undefined });
-      await client.chat('Hello');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
@@ -322,7 +370,7 @@ describe('AiProxyClient', () => {
 
       await expect(client.getTools()).rejects.toMatchObject({
         status: 408,
-        message: 'Request timeout after 5ms',
+        message: 'GET /remote-tools timed out after 5ms',
       });
     });
 
@@ -333,8 +381,66 @@ describe('AiProxyClient', () => {
 
       await expect(client.getTools()).rejects.toMatchObject({
         status: 0,
-        message: 'Network error: Network unreachable',
+        message: 'GET /remote-tools network error: Network unreachable',
       });
+    });
+
+    it('handles non-Error exceptions in network failures', async () => {
+      mockFetch.mockRejectedValueOnce('string error');
+
+      const client = createClient();
+
+      await expect(client.getTools()).rejects.toMatchObject({
+        status: 0,
+        message: 'GET /remote-tools network error: string error',
+      });
+    });
+
+    it('handles error responses when both json() and text() fail', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: () => Promise.reject(new Error('Parse error')),
+        text: () => Promise.reject(new Error('Read error')),
+      });
+
+      const client = createClient();
+
+      await expect(client.getTools()).rejects.toMatchObject({
+        status: 503,
+        message: 'GET /remote-tools failed with status 503',
+        body: undefined,
+      });
+    });
+
+    it('throws error when successful response is not valid JSON', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.reject(new SyntaxError("Unexpected token '<'")),
+      });
+
+      const client = createClient();
+
+      await expect(client.getTools()).rejects.toMatchObject({
+        status: 200,
+        message: "GET /remote-tools: Server returned 200 but response is not valid JSON",
+      });
+    });
+
+    it('preserves error cause for network errors', async () => {
+      const originalError = new Error('Connection refused');
+      mockFetch.mockRejectedValueOnce(originalError);
+
+      const client = createClient();
+
+      try {
+        await client.getTools();
+        fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AiProxyClientError);
+        expect((error as AiProxyClientError).cause).toBe(originalError);
+      }
     });
   });
 

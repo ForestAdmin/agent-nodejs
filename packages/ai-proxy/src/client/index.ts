@@ -111,6 +111,14 @@ export class AiProxyClient {
   }): Promise<T> {
     const { method, path, searchParams, body, auth } = params;
 
+    // Fail fast if auth required but no API key configured
+    if (auth && !this.apiKey) {
+      throw new AiProxyClientError(
+        `${method} ${path}: Authentication required but no API key configured`,
+        0,
+      );
+    }
+
     let url = `${this.baseUrl}${path}`;
 
     if (searchParams && searchParams.toString()) {
@@ -141,30 +149,47 @@ export class AiProxyClient {
 
         try {
           responseBody = await response.json();
-        } catch {
-          responseBody = await response.text().catch(() => undefined);
+        } catch (jsonError) {
+          try {
+            responseBody = await response.text();
+          } catch {
+            responseBody = undefined;
+          }
         }
 
         throw new AiProxyClientError(
-          `Request failed with status ${response.status}`,
+          `${method} ${path} failed with status ${response.status}`,
           response.status,
           responseBody,
         );
       }
 
-      return (await response.json()) as T;
+      try {
+        return (await response.json()) as T;
+      } catch (parseError) {
+        throw new AiProxyClientError(
+          `${method} ${path}: Server returned ${response.status} but response is not valid JSON`,
+          response.status,
+          undefined,
+          parseError instanceof Error ? parseError : undefined,
+        );
+      }
     } catch (error) {
       if (error instanceof AiProxyClientError) {
         throw error;
       }
 
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new AiProxyClientError(`Request timeout after ${this.timeout}ms`, 408);
+        throw new AiProxyClientError(`${method} ${path} timed out after ${this.timeout}ms`, 408);
       }
 
+      const cause = error instanceof Error ? error : undefined;
+      const message = error instanceof Error ? error.message : String(error);
       throw new AiProxyClientError(
-        `Network error: ${error instanceof Error ? error.message : String(error)}`,
+        `${method} ${path} network error: ${message}`,
         0,
+        undefined,
+        cause,
       );
     } finally {
       clearTimeout(timeoutId);

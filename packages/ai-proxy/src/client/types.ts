@@ -40,11 +40,26 @@ export interface ChatInput {
 export class AiProxyClientError extends Error {
   readonly status: number;
   readonly body?: unknown;
+  readonly cause?: Error;
 
-  constructor(message: string, status: number, body?: unknown) {
+  constructor(message: string, status: number, body?: unknown, cause?: Error) {
     super(message);
+    Object.setPrototypeOf(this, AiProxyClientError.prototype);
     this.name = 'AiProxyClientError';
     this.status = status;
     this.body = body;
+    this.cause = cause;
+  }
+
+  get isNetworkError(): boolean {
+    return this.status === 0;
+  }
+
+  get isClientError(): boolean {
+    return this.status >= 400 && this.status < 500;
+  }
+
+  get isServerError(): boolean {
+    return this.status >= 500 && this.status < 600;
   }
 }
