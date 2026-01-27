@@ -218,6 +218,45 @@ describe('ProviderDispatcher', () => {
       });
     });
 
+    describe('when parallel_tool_calls is provided', () => {
+      it('should pass parallel_tool_calls to bindTools', async () => {
+        const dispatcher = new ProviderDispatcher(
+          { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          messages: [{ role: 'user', content: 'test' }],
+          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+          tool_choice: 'auto',
+          parallel_tool_calls: false,
+        } as unknown as DispatchBody);
+
+        expect(bindToolsMock).toHaveBeenCalledWith(
+          [{ type: 'function', function: { name: 'test', parameters: {} } }],
+          { tool_choice: 'auto', parallel_tool_calls: false },
+        );
+      });
+
+      it('should pass parallel_tool_calls: true when explicitly set', async () => {
+        const dispatcher = new ProviderDispatcher(
+          { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          messages: [{ role: 'user', content: 'test' }],
+          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+          parallel_tool_calls: true,
+        } as unknown as DispatchBody);
+
+        expect(bindToolsMock).toHaveBeenCalledWith(
+          expect.any(Array),
+          { tool_choice: undefined, parallel_tool_calls: true },
+        );
+      });
+    });
+
     describe('when there is not remote tool', () => {
       it('should not enhance the remote tools definition', async () => {
         const remoteTools = new RemoteTools(apiKeys);
