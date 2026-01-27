@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.1.0...@forestadmin/ai-proxy@1.2.0) (2026-01-27)
+
+
+### Features
+
+* **ai-proxy:** add parallel_tool_calls support ([#1438](https://github.com/ForestAdmin/agent-nodejs/issues/1438)) ([ed3d091](https://github.com/ForestAdmin/agent-nodejs/commit/ed3d091d2403f7596a543f870213882c69e0870f))
+
 # @forestadmin/ai-proxy [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.0.1...@forestadmin/ai-proxy@1.1.0) (2026-01-22)
 
 
