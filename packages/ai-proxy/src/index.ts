@@ -9,6 +9,9 @@ export * from './mcp-client';
 
 export * from './types/errors';
 
-export function validMcpConfigurationOrThrow(mcpConfig: McpConfiguration) {
-  return McpConfigChecker.check(mcpConfig);
+export function validMcpConfigurationOrThrow(
+  mcpConfig: McpConfiguration,
+  mcpOauthTokens?: Record<string, string>,
+) {
+  return McpConfigChecker.check(mcpConfig, mcpOauthTokens);
 }

@@ -85,7 +85,7 @@ describe('AiProxyRoute', () => {
       expect(context.response.body).toEqual(expectedResponse);
     });
 
-    test('should pass route, body, query and mcpConfigs to router', async () => {
+    test('should pass route, body, query, mcpConfigs and headers to router', async () => {
       const route = new AiProxyRoute(services, options, aiConfigurations);
       mockRoute.mockResolvedValueOnce({});
 
@@ -105,7 +105,31 @@ describe('AiProxyRoute', () => {
         body: { messages: [{ role: 'user', content: 'Hello' }] },
         query: { 'ai-name': 'gpt4' },
         mcpConfigs: undefined, // mcpServerConfigService.getConfiguration returns undefined in test
+        headers: { mcpOauthTokens: undefined },
       });
+    });
+
+    test('should parse x-mcp-oauth-tokens header as JSON and pass to router', async () => {
+      const route = new AiProxyRoute(services, options, aiConfigurations);
+      mockRoute.mockResolvedValueOnce({});
+
+      const tokens = { server1: 'token1', server2: 'token2' };
+      const context = createMockContext({
+        customProperties: {
+          params: { route: 'ai-query' },
+        },
+        requestBody: { messages: [] },
+        headers: { 'x-mcp-oauth-tokens': JSON.stringify(tokens) },
+      });
+      context.query = {};
+
+      await (route as any).handleAiProxy(context);
+
+      expect(mockRoute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { mcpOauthTokens: tokens },
+        }),
+      );
     });
 
     describe('error handling', () => {
@@ -212,7 +236,6 @@ describe('AiProxyRoute', () => {
         });
         context.query = {};
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const promise = (route as any).handleAiProxy(context);
 
         await expect(promise).rejects.toBe(unknownError);

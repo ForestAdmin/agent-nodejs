@@ -5,26 +5,60 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { McpConnectionError } from './types/errors';
 import McpServerRemoteTool from './types/mcp-server-remote-tool';
 
+export type McpAuthenticationType = 'none' | 'bearer' | 'oauth2';
+
 export type McpConfiguration = {
   configs: MultiServerMCPClient['config']['mcpServers'];
+  authenticationTypes?: Record<string, McpAuthenticationType>;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
 
 export default class McpClient {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
+  private readonly authenticationTypes: Record<string, McpAuthenticationType>;
   private readonly logger?: Logger;
 
   readonly tools: McpServerRemoteTool[] = [];
 
-  constructor(config: McpConfiguration, logger?: Logger) {
+  constructor(config: McpConfiguration, logger?: Logger, mcpOauthTokens?: Record<string, string>) {
     this.logger = logger;
+    this.authenticationTypes = config.authenticationTypes ?? {};
     // split the config into several clients to be more resilient
     // if a mcp server is down, the others will still work
     Object.entries(config.configs).forEach(([name, serverConfig]) => {
+      const token = mcpOauthTokens?.[name];
+      const configWithToken = this.injectOauthToken(serverConfig, token);
       this.mcpClients[name] = new MultiServerMCPClient({
-        mcpServers: { [name]: serverConfig },
+        mcpServers: { [name]: configWithToken },
         ...config,
       });
     });
+  }
+
+  /**
+   * Injects the OAuth token as Authorization header into HTTP-based transport configurations.
+   * The frontend sends 'x-mcp-oauth-tokens' with tokens keyed by server name.
+   * For stdio transports, returns the config unchanged.
+   */
+  private injectOauthToken(
+    serverConfig: MultiServerMCPClient['config']['mcpServers'][string],
+    token?: string,
+  ): MultiServerMCPClient['config']['mcpServers'][string] {
+    if (!token) return serverConfig;
+
+    // Only inject token for HTTP-based transports (sse, http)
+    if (serverConfig.type === 'http') {
+      const { oauthConfig, ...headers } = serverConfig.headers || {};
+
+      return {
+        ...serverConfig,
+        headers: {
+          ...headers,
+          Authorization: token,
+        },
+      };
+    }
+
+    return serverConfig;
   }
 
   async loadTools(): Promise<McpServerRemoteTool[]> {
@@ -61,7 +95,26 @@ export default class McpClient {
   async testConnections(): Promise<true> {
     try {
       await Promise.all(
-        Object.values(this.mcpClients).map(client => client.initializeConnections()),
+        Object.entries(this.mcpClients).map(async ([name, client]) => {
+          const isOAuth = this.authenticationTypes[name] === 'oauth2';
+
+          try {
+            await client.initializeConnections();
+          } catch (error) {
+            // For OAuth servers without a token, we expect auth errors (401/403)
+            // The server is reachable, just not authenticated yet
+            if (isOAuth && this.isAuthenticationError(error)) {
+              this.logger?.(
+                'Info',
+                `OAuth server ${name} is reachable (authentication will be required)`,
+              );
+
+              return;
+            }
+
+            throw error;
+          }
+        }),
       );
 
       return true;
@@ -75,6 +128,21 @@ export default class McpClient {
         this.logger?.('Error', 'Error during test connection cleanup', cleanupError as Error);
       }
     }
+  }
+
+  /**
+   * Checks if an error is an authentication error (401/403).
+   * These errors indicate the server is reachable but requires authentication.
+   */
+  private isAuthenticationError(error: unknown): boolean {
+    const message = (error as Error)?.message?.toLowerCase() ?? '';
+
+    return (
+      message.includes('401') ||
+      message.includes('403') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden')
+    );
   }
 
   async closeConnections(): Promise<void> {
