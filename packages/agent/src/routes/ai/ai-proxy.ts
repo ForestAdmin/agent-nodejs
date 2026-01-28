@@ -41,7 +41,15 @@ export default class AiProxyRoute extends BaseRoute {
   private async handleAiProxy(context: Context): Promise<void> {
     try {
       const mcpOauthTokensHeader = context.request.headers['x-mcp-oauth-tokens'] as string;
-      const mcpOAuthTokens = mcpOauthTokensHeader ? JSON.parse(mcpOauthTokensHeader) : undefined;
+      let mcpOAuthTokens: Record<string, string> | undefined;
+
+      if (mcpOauthTokensHeader) {
+        try {
+          mcpOAuthTokens = JSON.parse(mcpOauthTokensHeader);
+        } catch {
+          throw new BadRequestError('Invalid JSON in x-mcp-oauth-tokens header');
+        }
+      }
 
       context.response.body = await this.aiProxyRouter.route({
         route: context.params.route,

@@ -132,6 +132,24 @@ describe('AiProxyRoute', () => {
       );
     });
 
+    test('should throw BadRequestError when x-mcp-oauth-tokens header contains invalid JSON', async () => {
+      const route = new AiProxyRoute(services, options, aiConfigurations);
+
+      const context = createMockContext({
+        customProperties: {
+          params: { route: 'ai-query' },
+        },
+        requestBody: { messages: [] },
+        headers: { 'x-mcp-oauth-tokens': '{ invalid json }' },
+      });
+      context.query = {};
+
+      await expect((route as any).handleAiProxy(context)).rejects.toThrow(BadRequestError);
+      await expect((route as any).handleAiProxy(context)).rejects.toThrow(
+        'Invalid JSON in x-mcp-oauth-tokens header',
+      );
+    });
+
     describe('error handling', () => {
       test('should convert AINotConfiguredError to UnprocessableError', async () => {
         const route = new AiProxyRoute(services, options, aiConfigurations);

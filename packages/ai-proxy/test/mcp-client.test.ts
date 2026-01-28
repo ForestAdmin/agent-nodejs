@@ -273,6 +273,34 @@ describe('McpClient', () => {
       );
     });
 
+    it('should inject OAuth token as Authorization header into SSE type transport', () => {
+      const sseConfig: McpConfiguration = {
+        configs: {
+          remote: {
+            type: 'sse',
+            url: 'https://example.com/mcp',
+          },
+        },
+      };
+
+      // eslint-disable-next-line no-new
+      new McpClient(sseConfig, undefined, { remote: 'my-oauth-token' });
+
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            remote: {
+              type: 'sse',
+              url: 'https://example.com/mcp',
+              headers: {
+                Authorization: 'my-oauth-token',
+              },
+            },
+          },
+        }),
+      );
+    });
+
     it('should merge Authorization header with existing headers and strip oauthConfig', () => {
       const httpConfig: McpConfiguration = {
         configs: {

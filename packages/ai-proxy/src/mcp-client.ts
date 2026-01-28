@@ -46,7 +46,7 @@ export default class McpClient {
     if (!token) return serverConfig;
 
     // Only inject token for HTTP-based transports (sse, http)
-    if (serverConfig.type === 'http') {
+    if (serverConfig.type === 'http' || serverConfig.type === 'sse') {
       const { oauthConfig, ...headers } = serverConfig.headers || {};
 
       return {
