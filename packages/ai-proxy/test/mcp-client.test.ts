@@ -245,39 +245,11 @@ describe('McpClient', () => {
   });
 
   describe('OAuth token injection', () => {
-    it('should inject OAuth token as Authorization header into SSE transport', () => {
-      const sseConfig: McpConfiguration = {
-        configs: {
-          remote: {
-            transport: 'sse',
-            url: 'https://example.com/mcp',
-          },
-        },
-      };
-
-      // eslint-disable-next-line no-new
-      new McpClient(sseConfig, undefined, { remote: 'my-oauth-token' });
-
-      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mcpServers: {
-            remote: {
-              transport: 'sse',
-              url: 'https://example.com/mcp',
-              headers: {
-                Authorization: 'Bearer my-oauth-token',
-              },
-            },
-          },
-        }),
-      );
-    });
-
-    it('should inject OAuth token as Authorization header into HTTP transport', () => {
+    it('should inject OAuth token as Authorization header into HTTP type transport', () => {
       const httpConfig: McpConfiguration = {
         configs: {
           remote: {
-            transport: 'http',
+            type: 'http',
             url: 'https://example.com/mcp',
           },
         },
@@ -290,10 +262,10 @@ describe('McpClient', () => {
         expect.objectContaining({
           mcpServers: {
             remote: {
-              transport: 'http',
+              type: 'http',
               url: 'https://example.com/mcp',
               headers: {
-                Authorization: 'Bearer my-oauth-token',
+                Authorization: 'my-oauth-token',
               },
             },
           },
@@ -301,31 +273,32 @@ describe('McpClient', () => {
       );
     });
 
-    it('should merge Authorization header with existing headers', () => {
-      const sseConfig: McpConfiguration = {
+    it('should merge Authorization header with existing headers and strip oauthConfig', () => {
+      const httpConfig: McpConfiguration = {
         configs: {
           remote: {
-            transport: 'sse',
+            type: 'http',
             url: 'https://example.com/mcp',
             headers: {
               'x-custom-header': 'custom-value',
+              oauthConfig: { clientId: 'test' } as unknown as string,
             },
           },
         },
       };
 
       // eslint-disable-next-line no-new
-      new McpClient(sseConfig, undefined, { remote: 'my-oauth-token' });
+      new McpClient(httpConfig, undefined, { remote: 'my-oauth-token' });
 
       expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
         expect.objectContaining({
           mcpServers: {
             remote: {
-              transport: 'sse',
+              type: 'http',
               url: 'https://example.com/mcp',
               headers: {
                 'x-custom-header': 'custom-value',
-                Authorization: 'Bearer my-oauth-token',
+                Authorization: 'my-oauth-token',
               },
             },
           },
@@ -355,11 +328,11 @@ describe('McpClient', () => {
       const multiServerConfig: McpConfiguration = {
         configs: {
           server1: {
-            transport: 'sse',
+            type: 'http',
             url: 'https://server1.com/mcp',
           },
           server2: {
-            transport: 'sse',
+            type: 'http',
             url: 'https://server2.com/mcp',
           },
         },
@@ -373,10 +346,10 @@ describe('McpClient', () => {
         expect.objectContaining({
           mcpServers: {
             server1: {
-              transport: 'sse',
+              type: 'http',
               url: 'https://server1.com/mcp',
               headers: {
-                Authorization: 'Bearer token-for-server1',
+                Authorization: 'token-for-server1',
               },
             },
           },
@@ -388,7 +361,7 @@ describe('McpClient', () => {
         expect.objectContaining({
           mcpServers: {
             server2: {
-              transport: 'sse',
+              type: 'http',
               url: 'https://server2.com/mcp',
             },
           },
@@ -397,23 +370,23 @@ describe('McpClient', () => {
     });
 
     it('should not modify config when no OAuth tokens are provided', () => {
-      const sseConfig: McpConfiguration = {
+      const httpConfig: McpConfiguration = {
         configs: {
           remote: {
-            transport: 'sse',
+            type: 'http',
             url: 'https://example.com/mcp',
           },
         },
       };
 
       // eslint-disable-next-line no-new
-      new McpClient(sseConfig);
+      new McpClient(httpConfig);
 
       expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
         expect.objectContaining({
           mcpServers: {
             remote: {
-              transport: 'sse',
+              type: 'http',
               url: 'https://example.com/mcp',
             },
           },

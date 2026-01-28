@@ -366,7 +366,7 @@ describe('route', () => {
       );
     });
 
-    it('passes mcpOauthTokens to McpClient when provided in headers', async () => {
+    it('passes mcpOAuthTokens to McpClient when provided', async () => {
       const customLogger: Logger = jest.fn();
       const router = new Router({
         logger: customLogger,
@@ -376,7 +376,7 @@ describe('route', () => {
       await router.route({
         route: 'remote-tools',
         mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
-        headers: { mcpOauthTokens: tokens },
+        mcpOAuthTokens: tokens,
       });
 
       expect(MockedMcpClient).toHaveBeenCalledWith(
