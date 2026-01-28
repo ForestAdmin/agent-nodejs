@@ -16,6 +16,12 @@ export type Query = {
 };
 export type ApiKeys = RemoteToolsApiKeys;
 
+/** Headers that can be passed to the route method */
+export type RouteHeaders = {
+  /** OAuth tokens for MCP server authentication, keyed by server name */
+  mcpOauthTokens?: Record<string, string>;
+};
+
 export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
   private readonly aiConfigurations: AiConfiguration[];
@@ -61,12 +67,18 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: { body?: Body; route: Route; query?: Query; mcpConfigs?: McpConfiguration }) {
+  async route(args: {
+    body?: Body;
+    route: Route;
+    query?: Query;
+    mcpConfigs?: McpConfiguration;
+    mcpOAuthTokens?: Record<string, string>;
+  }) {
     let mcpClient: McpClient | undefined;
 
     try {
       if (args.mcpConfigs) {
-        mcpClient = new McpClient(args.mcpConfigs, this.logger);
+        mcpClient = new McpClient(args.mcpConfigs, this.logger, args.mcpOAuthTokens);
       }
 
       const remoteTools = new RemoteTools(

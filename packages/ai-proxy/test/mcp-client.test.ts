@@ -19,6 +19,13 @@ jest.mock('@langchain/mcp-adapters', () => {
   };
 });
 
+// eslint-disable-next-line import/first
+import { MultiServerMCPClient } from '@langchain/mcp-adapters';
+
+const MockedMultiServerMCPClient = MultiServerMCPClient as jest.MockedClass<
+  typeof MultiServerMCPClient
+>;
+
 describe('McpClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -234,6 +241,185 @@ describe('McpClient', () => {
           expect.any(Error),
         );
       });
+    });
+  });
+
+  describe('OAuth token injection', () => {
+    it('should inject OAuth token as Authorization header into HTTP type transport', () => {
+      const httpConfig: McpConfiguration = {
+        configs: {
+          remote: {
+            type: 'http',
+            url: 'https://example.com/mcp',
+          },
+        },
+      };
+
+      // eslint-disable-next-line no-new
+      new McpClient(httpConfig, undefined, { remote: 'my-oauth-token' });
+
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            remote: {
+              type: 'http',
+              url: 'https://example.com/mcp',
+              headers: {
+                Authorization: 'my-oauth-token',
+              },
+            },
+          },
+        }),
+      );
+    });
+
+    it('should inject OAuth token as Authorization header into SSE type transport', () => {
+      const sseConfig: McpConfiguration = {
+        configs: {
+          remote: {
+            type: 'sse',
+            url: 'https://example.com/mcp',
+          },
+        },
+      };
+
+      // eslint-disable-next-line no-new
+      new McpClient(sseConfig, undefined, { remote: 'my-oauth-token' });
+
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            remote: {
+              type: 'sse',
+              url: 'https://example.com/mcp',
+              headers: {
+                Authorization: 'my-oauth-token',
+              },
+            },
+          },
+        }),
+      );
+    });
+
+    it('should merge Authorization header with existing headers and strip oauthConfig', () => {
+      const httpConfig: McpConfiguration = {
+        configs: {
+          remote: {
+            type: 'http',
+            url: 'https://example.com/mcp',
+            headers: {
+              'x-custom-header': 'custom-value',
+              oauthConfig: { clientId: 'test' } as unknown as string,
+            },
+          },
+        },
+      };
+
+      // eslint-disable-next-line no-new
+      new McpClient(httpConfig, undefined, { remote: 'my-oauth-token' });
+
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            remote: {
+              type: 'http',
+              url: 'https://example.com/mcp',
+              headers: {
+                'x-custom-header': 'custom-value',
+                Authorization: 'my-oauth-token',
+              },
+            },
+          },
+        }),
+      );
+    });
+
+    it('should not inject OAuth token into stdio transport even if token provided', () => {
+      // eslint-disable-next-line no-new
+      new McpClient(aConfig, undefined, { slack: 'my-oauth-token' });
+
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            slack: {
+              transport: 'stdio',
+              command: 'npx',
+              args: ['-y', '@modelcontextprotocol/server-slack'],
+              env: {},
+            },
+          },
+        }),
+      );
+    });
+
+    it('should only inject token for servers that have a matching token', () => {
+      const multiServerConfig: McpConfiguration = {
+        configs: {
+          server1: {
+            type: 'http',
+            url: 'https://server1.com/mcp',
+          },
+          server2: {
+            type: 'http',
+            url: 'https://server2.com/mcp',
+          },
+        },
+      };
+
+      // eslint-disable-next-line no-new
+      new McpClient(multiServerConfig, undefined, { server1: 'token-for-server1' });
+
+      // server1 should have the token
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            server1: {
+              type: 'http',
+              url: 'https://server1.com/mcp',
+              headers: {
+                Authorization: 'token-for-server1',
+              },
+            },
+          },
+        }),
+      );
+
+      // server2 should not have any headers injected
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            server2: {
+              type: 'http',
+              url: 'https://server2.com/mcp',
+            },
+          },
+        }),
+      );
+    });
+
+    it('should not modify config when no OAuth tokens are provided', () => {
+      const httpConfig: McpConfiguration = {
+        configs: {
+          remote: {
+            type: 'http',
+            url: 'https://example.com/mcp',
+          },
+        },
+      };
+
+      // eslint-disable-next-line no-new
+      new McpClient(httpConfig);
+
+      expect(MockedMultiServerMCPClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServers: {
+            remote: {
+              type: 'http',
+              url: 'https://example.com/mcp',
+            },
+          },
+        }),
+      );
     });
   });
 });
