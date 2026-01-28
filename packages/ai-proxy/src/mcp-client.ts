@@ -95,26 +95,7 @@ export default class McpClient {
   async testConnections(): Promise<true> {
     try {
       await Promise.all(
-        Object.entries(this.mcpClients).map(async ([name, client]) => {
-          const isOAuth = this.authenticationTypes[name] === 'oauth2';
-
-          try {
-            await client.initializeConnections();
-          } catch (error) {
-            // For OAuth servers without a token, we expect auth errors (401/403)
-            // The server is reachable, just not authenticated yet
-            if (isOAuth && this.isAuthenticationError(error)) {
-              this.logger?.(
-                'Info',
-                `OAuth server ${name} is reachable (authentication will be required)`,
-              );
-
-              return;
-            }
-
-            throw error;
-          }
-        }),
+        Object.values(this.mcpClients).map(client => client.initializeConnections()),
       );
 
       return true;
@@ -128,21 +109,6 @@ export default class McpClient {
         this.logger?.('Error', 'Error during test connection cleanup', cleanupError as Error);
       }
     }
-  }
-
-  /**
-   * Checks if an error is an authentication error (401/403).
-   * These errors indicate the server is reachable but requires authentication.
-   */
-  private isAuthenticationError(error: unknown): boolean {
-    const message = (error as Error)?.message?.toLowerCase() ?? '';
-
-    return (
-      message.includes('401') ||
-      message.includes('403') ||
-      message.includes('unauthorized') ||
-      message.includes('forbidden')
-    );
   }
 
   async closeConnections(): Promise<void> {
