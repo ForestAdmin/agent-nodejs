@@ -4,6 +4,9 @@ import McpConfigChecker from './mcp-config-checker';
 
 export { createAiProvider } from './create-ai-provider';
 export { default as ProviderDispatcher } from './provider-dispatcher';
+
+export { ForestIntegrationConfig } from './integration-client';
+
 export * from './provider-dispatcher';
 export * from './remote-tools';
 export * from './router';

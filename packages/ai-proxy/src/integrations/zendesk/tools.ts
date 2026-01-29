@@ -1,10 +1,12 @@
-import RemoteTool from '../../remote-tool';
-import createCreateTicketCommentTool from './tools/create-ticket-comment';
+import type RemoteTool from '../../types/remote-tool';
+
 import createCreateTicketTool from './tools/create-ticket';
-import createGetTicketCommentsTool from './tools/get-ticket-comments';
+import createCreateTicketCommentTool from './tools/create-ticket-comment';
 import createGetTicketTool from './tools/get-ticket';
+import createGetTicketCommentsTool from './tools/get-ticket-comments';
 import createGetTicketsTool from './tools/get-tickets';
 import createUpdateTicketTool from './tools/update-ticket';
+import ServerRemoteTool from '../../types/server-remote-tool';
 
 export interface ZendeskConfig {
   subdomain: string;
@@ -29,9 +31,8 @@ export default function getZendeskTools(config: ZendeskConfig): RemoteTool[] {
     createUpdateTicketTool(headers, baseUrl),
   ].map(
     tool =>
-      new RemoteTool({
+      new ServerRemoteTool({
         sourceId: 'zendesk',
-        sourceType: 'server',
         tool,
       }),
   );

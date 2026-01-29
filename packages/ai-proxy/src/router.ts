@@ -6,6 +6,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
+import IntegrationClient, { type ForestIntegrationConfig } from './integration-client';
 import McpClient from './mcp-client';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
@@ -59,7 +60,12 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: RouteArgs & { mcpConfigs?: McpConfiguration }) {
+  async route(
+    args: RouteArgs & {
+      mcpConfigs?: McpConfiguration;
+      integrationConfigs?: ForestIntegrationConfig[];
+    },
+  ) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
 
@@ -69,16 +75,21 @@ export class Router {
 
     const validatedArgs = result.data;
     let mcpClient: McpClient | undefined;
+    let integrationClient: IntegrationClient | undefined;
 
     try {
       if (args.mcpConfigs) {
         mcpClient = new McpClient(args.mcpConfigs, this.logger);
       }
 
-      const remoteTools = new RemoteTools(
-        this.localToolsApiKeys ?? {},
-        await mcpClient?.loadTools(),
-      );
+      if (args.integrationConfigs) {
+        integrationClient = new IntegrationClient(args.integrationConfigs, this.logger);
+      }
+
+      const remoteTools = new RemoteTools(this.localToolsApiKeys ?? {}, [
+        ...((await mcpClient?.loadTools()) ?? []),
+        ...(integrationClient?.loadTools() ?? []),
+      ]);
 
       switch (validatedArgs.route) {
         case 'ai-query': {

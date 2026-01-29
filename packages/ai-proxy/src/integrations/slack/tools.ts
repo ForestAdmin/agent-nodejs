@@ -1,4 +1,5 @@
-import RemoteTool from '../../remote-tool';
+import type RemoteTool from '../../types/remote-tool';
+
 import createAddReactionTool from './tools/add-reaction';
 import createGetChannelHistoryTool from './tools/get-channel-history';
 import createGetThreadRepliesTool from './tools/get-thread-replies';
@@ -7,6 +8,7 @@ import createGetUsersTool from './tools/get-users';
 import createListChannelsTool from './tools/list-channels';
 import createPostMessageTool from './tools/post-message';
 import createReplyToThreadTool from './tools/reply-to-thread';
+import ServerRemoteTool from '../../types/server-remote-tool';
 
 export interface SlackConfig {
   authToken: string;
@@ -31,9 +33,8 @@ export default function getSlackTools(config: SlackConfig): RemoteTool[] {
     createGetUserProfileTool(headers),
   ].map(
     tool =>
-      new RemoteTool({
+      new ServerRemoteTool({
         sourceId: 'slack',
-        sourceType: 'server',
         tool,
       }),
   );

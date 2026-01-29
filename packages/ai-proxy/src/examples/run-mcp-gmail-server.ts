@@ -1,6 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies, import/extensions */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 /* eslint-enable import/no-extraneous-dependencies, import/extensions */
+import z from 'zod';
 
 import runMcpServer from './simple-mcp-server';
 
@@ -21,20 +22,24 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
-server.tool('gmail_search', { query: 'string', maxResults: 'number' }, async params => {
-  const url = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
-  url.searchParams.set('q', params.query);
-  url.searchParams.set('maxResults', (params.maxResults || 10).toString());
+server.tool(
+  'gmail_search',
+  { query: z.string(), maxResults: z.number().optional() },
+  async params => {
+    const url = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+    url.searchParams.set('q', params.query);
+    url.searchParams.set('maxResults', (params.maxResults || 10).toString());
 
-  const response = await fetch(url.toString(), { headers });
-  const data = await response.json();
+    const response = await fetch(url.toString(), { headers });
+    const data = await response.json();
 
-  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-});
+    return { content: [{ type: 'text', text: JSON.stringify(data) }] };
+  },
+);
 
 server.tool(
   'gmail_send_message',
-  { to: 'array', subject: 'string', message: 'string' },
+  { to: z.array(z.string()), subject: z.string(), message: z.string() },
   async params => {
     const emailLines = [
       `To: ${params.to.join(', ')}`,
@@ -62,7 +67,7 @@ server.tool(
   },
 );
 
-server.tool('gmail_get_message', { messageId: 'string' }, async params => {
+server.tool('gmail_get_message', { messageId: z.string() }, async params => {
   const response = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${params.messageId}?format=full`,
     { headers },

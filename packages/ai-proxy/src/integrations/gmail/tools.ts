@@ -1,9 +1,11 @@
-import RemoteTool from '../../remote-tool';
+import type RemoteTool from '../../types/remote-tool';
+
 import createDraftTool from './tools/create-draft';
 import createGetMessageTool from './tools/get-message';
 import createGetThreadTool from './tools/get-thread';
 import createSearchTool from './tools/search';
 import createSendMessageTool from './tools/send-message';
+import ServerRemoteTool from '../../types/server-remote-tool';
 
 export interface GmailConfig {
   accessToken: string;
@@ -23,9 +25,8 @@ export default function getGmailTools(config: GmailConfig): RemoteTool[] {
     createGetThreadTool(headers),
   ].map(
     tool =>
-      new RemoteTool({
+      new ServerRemoteTool({
         sourceId: 'gmail',
-        sourceType: 'server',
         tool,
       }),
   );
