@@ -3,7 +3,7 @@ import type { McpConfiguration } from '../src';
 import { tool } from '@langchain/core/tools';
 
 import { McpConnectionError } from '../src';
-import McpClient from '../src/mcp-client';
+import McpClient, { injectOauthToken, injectOauthTokens } from '../src/mcp-client';
 import McpServerRemoteTool from '../src/types/mcp-server-remote-tool';
 
 const getToolsMock = jest.fn();
@@ -18,6 +18,13 @@ jest.mock('@langchain/mcp-adapters', () => {
     })),
   };
 });
+
+// eslint-disable-next-line import/first
+import { MultiServerMCPClient } from '@langchain/mcp-adapters';
+
+const MockedMultiServerMCPClient = MultiServerMCPClient as jest.MockedClass<
+  typeof MultiServerMCPClient
+>;
 
 describe('McpClient', () => {
   beforeEach(() => {
@@ -234,6 +241,169 @@ describe('McpClient', () => {
           expect.any(Error),
         );
       });
+    });
+  });
+
+  describe('injectOauthToken', () => {
+    it('should inject OAuth token as Authorization header into HTTP type transport', () => {
+      const serverConfig = {
+        type: 'http' as const,
+        url: 'https://example.com/mcp',
+      };
+
+      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+
+      expect(result).toEqual({
+        type: 'http',
+        url: 'https://example.com/mcp',
+        headers: {
+          Authorization: 'my-oauth-token',
+        },
+      });
+    });
+
+    it('should inject OAuth token as Authorization header into SSE type transport', () => {
+      const serverConfig = {
+        type: 'sse' as const,
+        url: 'https://example.com/mcp',
+      };
+
+      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+
+      expect(result).toEqual({
+        type: 'sse',
+        url: 'https://example.com/mcp',
+        headers: {
+          Authorization: 'my-oauth-token',
+        },
+      });
+    });
+
+    it('should merge Authorization header with existing headers and strip oauthConfig', () => {
+      const serverConfig = {
+        type: 'http' as const,
+        url: 'https://example.com/mcp',
+        headers: {
+          'x-custom-header': 'custom-value',
+          oauthConfig: { clientId: 'test' } as unknown as string,
+        },
+      };
+
+      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+
+      expect(result).toEqual({
+        type: 'http',
+        url: 'https://example.com/mcp',
+        headers: {
+          'x-custom-header': 'custom-value',
+          Authorization: 'my-oauth-token',
+        },
+      });
+    });
+
+    it('should not inject OAuth token into stdio transport even if token provided', () => {
+      const serverConfig = {
+        transport: 'stdio' as const,
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-slack'],
+        env: {},
+      };
+
+      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+
+      expect(result).toEqual(serverConfig);
+    });
+
+    it('should not modify config when no token is provided', () => {
+      const serverConfig = {
+        type: 'http' as const,
+        url: 'https://example.com/mcp',
+      };
+
+      const result = injectOauthToken(serverConfig);
+
+      expect(result).toEqual(serverConfig);
+    });
+
+    it('should return same reference when no token is provided', () => {
+      const serverConfig = {
+        type: 'http' as const,
+        url: 'https://example.com/mcp',
+      };
+
+      const result = injectOauthToken(serverConfig);
+
+      expect(result).toBe(serverConfig);
+    });
+  });
+
+  describe('injectOauthTokens', () => {
+    it('should inject tokens into all matching server configs', () => {
+      const mcpConfigs = {
+        configs: {
+          server1: { type: 'http' as const, url: 'https://server1.com' },
+          server2: { type: 'http' as const, url: 'https://server2.com' },
+        },
+      };
+      const tokens = { server1: 'token1', server2: 'token2' };
+
+      const result = injectOauthTokens(mcpConfigs, tokens);
+
+      expect(result).toEqual({
+        configs: {
+          server1: {
+            type: 'http',
+            url: 'https://server1.com',
+            headers: { Authorization: 'token1' },
+          },
+          server2: {
+            type: 'http',
+            url: 'https://server2.com',
+            headers: { Authorization: 'token2' },
+          },
+        },
+      });
+    });
+
+    it('should only inject tokens for servers that have matching tokens', () => {
+      const mcpConfigs = {
+        configs: {
+          server1: { type: 'http' as const, url: 'https://server1.com' },
+          server2: { type: 'http' as const, url: 'https://server2.com' },
+        },
+      };
+      const tokens = { server1: 'token1' };
+
+      const result = injectOauthTokens(mcpConfigs, tokens);
+
+      expect(result).toEqual({
+        configs: {
+          server1: {
+            type: 'http',
+            url: 'https://server1.com',
+            headers: { Authorization: 'token1' },
+          },
+          server2: { type: 'http', url: 'https://server2.com' },
+        },
+      });
+    });
+
+    it('should return undefined when mcpConfigs is undefined', () => {
+      const result = injectOauthTokens(undefined, { server1: 'token1' });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return mcpConfigs unchanged when tokens is undefined', () => {
+      const mcpConfigs = {
+        configs: {
+          server1: { type: 'http' as const, url: 'https://server1.com' },
+        },
+      };
+
+      const result = injectOauthTokens(mcpConfigs, undefined);
+
+      expect(result).toBe(mcpConfigs);
     });
   });
 });
