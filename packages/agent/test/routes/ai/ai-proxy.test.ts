@@ -105,13 +105,23 @@ describe('AiProxyRoute', () => {
         body: { messages: [{ role: 'user', content: 'Hello' }] },
         query: { 'ai-name': 'gpt4' },
         mcpConfigs: undefined, // mcpServerConfigService.getConfiguration returns undefined in test
-        mcpOAuthTokens: undefined,
       });
     });
 
-    test('should parse x-mcp-oauth-tokens header as JSON and pass to router', async () => {
+    test('should inject oauth tokens into mcpConfigs when header is provided', async () => {
       const route = new AiProxyRoute(services, options, aiConfigurations);
       mockRoute.mockResolvedValueOnce({});
+
+      // Mock mcpServerConfigService to return actual configs
+      const mcpConfigs = {
+        configs: {
+          server1: { type: 'http' as const, url: 'https://server1.com' },
+          server2: { type: 'http' as const, url: 'https://server2.com' },
+        },
+      };
+      options.forestAdminClient.mcpServerConfigService.getConfiguration = jest
+        .fn()
+        .mockResolvedValue(mcpConfigs);
 
       const tokens = { server1: 'token1', server2: 'token2' };
       const context = createMockContext({
@@ -127,7 +137,20 @@ describe('AiProxyRoute', () => {
 
       expect(mockRoute).toHaveBeenCalledWith(
         expect.objectContaining({
-          mcpOAuthTokens: tokens,
+          mcpConfigs: {
+            configs: {
+              server1: {
+                type: 'http',
+                url: 'https://server1.com',
+                headers: { Authorization: 'token1' },
+              },
+              server2: {
+                type: 'http',
+                url: 'https://server2.com',
+                headers: { Authorization: 'token2' },
+              },
+            },
+          },
         }),
       );
     });

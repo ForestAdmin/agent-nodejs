@@ -362,27 +362,6 @@ describe('route', () => {
       expect(MockedMcpClient).toHaveBeenCalledWith(
         { configs: { server1: { command: 'test', args: [] } } },
         customLogger,
-        undefined,
-      );
-    });
-
-    it('passes mcpOAuthTokens to McpClient when provided', async () => {
-      const customLogger: Logger = jest.fn();
-      const router = new Router({
-        logger: customLogger,
-      });
-
-      const tokens = { server1: 'token-for-server1' };
-      await router.route({
-        route: 'remote-tools',
-        mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
-        mcpOAuthTokens: tokens,
-      });
-
-      expect(MockedMcpClient).toHaveBeenCalledWith(
-        { configs: { server1: { command: 'test', args: [] } } },
-        customLogger,
-        tokens,
       );
     });
   });
