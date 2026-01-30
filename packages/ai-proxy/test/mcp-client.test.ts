@@ -106,6 +106,71 @@ describe('McpClient', () => {
         expect(mcpClient.tools.length).toEqual(2);
       });
     });
+
+    describe('error logging levels', () => {
+      function createSystemError(code: string, message: string): NodeJS.ErrnoException {
+        const error = new Error(message) as NodeJS.ErrnoException;
+        error.code = code;
+
+        return error;
+      }
+
+      it('should log unreachable server errors as Warn', async () => {
+        const loggerMock = jest.fn();
+        const mcpClient = new McpClient(aConfig, loggerMock);
+        const unreachableError = createSystemError('ECONNREFUSED', 'Connection refused');
+        getToolsMock.mockRejectedValue(unreachableError);
+
+        await mcpClient.loadTools();
+
+        expect(loggerMock).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('Error loading tools for'),
+          unreachableError,
+        );
+        expect(loggerMock).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('Failed to load tools from'),
+        );
+      });
+
+      it('should log other errors as Error', async () => {
+        const loggerMock = jest.fn();
+        const mcpClient = new McpClient(aConfig, loggerMock);
+        const otherError = new Error('Authentication failed');
+        getToolsMock.mockRejectedValue(otherError);
+
+        await mcpClient.loadTools();
+
+        expect(loggerMock).toHaveBeenCalledWith(
+          'Error',
+          expect.stringContaining('Error loading tools for'),
+          otherError,
+        );
+        expect(loggerMock).toHaveBeenCalledWith(
+          'Error',
+          expect.stringContaining('Failed to load tools from'),
+        );
+      });
+
+      it.each(['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ENETUNREACH', 'EHOSTUNREACH'])(
+        'should log %s errors as Warn',
+        async errorCode => {
+          const loggerMock = jest.fn();
+          const mcpClient = new McpClient(aConfig, loggerMock);
+          const error = createSystemError(errorCode, 'Connection error');
+          getToolsMock.mockRejectedValue(error);
+
+          await mcpClient.loadTools();
+
+          expect(loggerMock).toHaveBeenCalledWith(
+            'Warn',
+            expect.stringContaining('Error loading tools for'),
+            error,
+          );
+        },
+      );
+    });
   });
 
   describe('closeConnection', () => {
