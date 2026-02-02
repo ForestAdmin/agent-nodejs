@@ -5,58 +5,11 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { McpConnectionError } from './types/errors';
 import McpServerRemoteTool from './types/mcp-server-remote-tool';
 
-export type McpAuthenticationType = 'none' | 'bearer' | 'oauth2';
-
 export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string];
 
 export type McpConfiguration = {
   configs: MultiServerMCPClient['config']['mcpServers'];
-  authenticationTypes?: Record<string, McpAuthenticationType>;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
-
-/**
- * Injects the OAuth token as Authorization header into HTTP-based transport configurations.
- * For stdio transports, returns the config unchanged.
- */
-export function injectOauthToken(serverConfig: McpServerConfig, token?: string): McpServerConfig {
-  if (!token) return serverConfig;
-
-  // Only inject token for HTTP-based transports (sse, http)
-  if (serverConfig.type === 'http' || serverConfig.type === 'sse') {
-    const { oauthConfig, ...headers } = serverConfig.headers || {};
-
-    return {
-      ...serverConfig,
-      headers: {
-        ...headers,
-        Authorization: token,
-      },
-    };
-  }
-
-  return serverConfig;
-}
-
-/**
- * Injects OAuth tokens into all server configurations.
- * Returns a new McpConfiguration with tokens injected, or undefined if no configs provided.
- */
-export function injectOauthTokens(
-  mcpConfigs: McpConfiguration | undefined,
-  mcpOAuthTokens: Record<string, string> | undefined,
-): McpConfiguration | undefined {
-  if (!mcpConfigs) return undefined;
-  if (!mcpOAuthTokens) return mcpConfigs;
-
-  const configsWithTokens = Object.fromEntries(
-    Object.entries(mcpConfigs.configs).map(([name, serverConfig]) => [
-      name,
-      injectOauthToken(serverConfig, mcpOAuthTokens[name]),
-    ]),
-  );
-
-  return { ...mcpConfigs, configs: configsWithTokens };
-}
 
 export default class McpClient {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};

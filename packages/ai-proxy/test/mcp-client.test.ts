@@ -3,7 +3,8 @@ import type { McpConfiguration } from '../src';
 import { tool } from '@langchain/core/tools';
 
 import { McpConnectionError } from '../src';
-import McpClient, { injectOauthToken, injectOauthTokens } from '../src/mcp-client';
+import McpClient from '../src/mcp-client';
+import { injectOauthToken, injectOauthTokens } from '../src/oauth-token-injector';
 import McpServerRemoteTool from '../src/types/mcp-server-remote-tool';
 
 const getToolsMock = jest.fn();
