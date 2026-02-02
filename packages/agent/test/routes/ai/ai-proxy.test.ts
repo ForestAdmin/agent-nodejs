@@ -119,11 +119,13 @@ describe('AiProxyRoute', () => {
           server2: { type: 'http' as const, url: 'https://server2.com' },
         },
       };
+      const originalGetConfiguration =
+        options.forestAdminClient.mcpServerConfigService.getConfiguration;
       options.forestAdminClient.mcpServerConfigService.getConfiguration = jest
         .fn()
         .mockResolvedValue(mcpConfigs);
 
-      const tokens = { server1: 'token1', server2: 'token2' };
+      const tokens = { server1: 'Bearer token1', server2: 'Bearer token2' };
       const context = createMockContext({
         customProperties: {
           params: { route: 'ai-query' },
@@ -133,26 +135,32 @@ describe('AiProxyRoute', () => {
       });
       context.query = {};
 
-      await (route as any).handleAiProxy(context);
+      try {
+        await (route as any).handleAiProxy(context);
 
-      expect(mockRoute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mcpConfigs: {
-            configs: {
-              server1: {
-                type: 'http',
-                url: 'https://server1.com',
-                headers: { Authorization: 'token1' },
-              },
-              server2: {
-                type: 'http',
-                url: 'https://server2.com',
-                headers: { Authorization: 'token2' },
+        expect(mockRoute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            mcpConfigs: {
+              configs: {
+                server1: {
+                  type: 'http',
+                  url: 'https://server1.com',
+                  headers: { Authorization: 'Bearer token1' },
+                },
+                server2: {
+                  type: 'http',
+                  url: 'https://server2.com',
+                  headers: { Authorization: 'Bearer token2' },
+                },
               },
             },
-          },
-        }),
-      );
+          }),
+        );
+      } finally {
+        // Restore the original mock to avoid affecting other tests
+        options.forestAdminClient.mcpServerConfigService.getConfiguration =
+          originalGetConfiguration;
+      }
     });
 
     test('should throw BadRequestError when x-mcp-oauth-tokens header contains invalid JSON', async () => {
@@ -267,7 +275,7 @@ describe('AiProxyRoute', () => {
       test('should re-throw unknown errors unchanged', async () => {
         const route = new AiProxyRoute(services, options, aiConfigurations);
         const unknownError = new Error('Unknown error');
-        mockRoute.mockRejectedValue(unknownError);
+        mockRoute.mockRejectedValueOnce(unknownError);
 
         const context = createMockContext({
           customProperties: {
