@@ -51,7 +51,7 @@ export default class AiProxyRoute extends BaseRoute {
         route: context.params.route,
         body: context.request.body,
         query: context.query,
-        mcpConfigs: injectOauthTokens(mcpConfigs, mcpOAuthTokens),
+        mcpConfigs: injectOauthTokens({ mcpConfigs, mcpOAuthTokens }),
       });
       context.response.status = HttpCode.Ok;
     } catch (error) {

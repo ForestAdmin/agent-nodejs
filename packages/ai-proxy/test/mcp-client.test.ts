@@ -20,13 +20,6 @@ jest.mock('@langchain/mcp-adapters', () => {
   };
 });
 
-// eslint-disable-next-line import/first
-import { MultiServerMCPClient } from '@langchain/mcp-adapters';
-
-const MockedMultiServerMCPClient = MultiServerMCPClient as jest.MockedClass<
-  typeof MultiServerMCPClient
->;
-
 describe('McpClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -252,13 +245,13 @@ describe('McpClient', () => {
         url: 'https://example.com/mcp',
       };
 
-      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+      const result = injectOauthToken({ serverConfig, token: 'Bearer my-oauth-token' });
 
       expect(result).toEqual({
         type: 'http',
         url: 'https://example.com/mcp',
         headers: {
-          Authorization: 'my-oauth-token',
+          Authorization: 'Bearer my-oauth-token',
         },
       });
     });
@@ -269,13 +262,13 @@ describe('McpClient', () => {
         url: 'https://example.com/mcp',
       };
 
-      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+      const result = injectOauthToken({ serverConfig, token: 'Bearer my-oauth-token' });
 
       expect(result).toEqual({
         type: 'sse',
         url: 'https://example.com/mcp',
         headers: {
-          Authorization: 'my-oauth-token',
+          Authorization: 'Bearer my-oauth-token',
         },
       });
     });
@@ -290,14 +283,14 @@ describe('McpClient', () => {
         },
       };
 
-      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+      const result = injectOauthToken({ serverConfig, token: 'Bearer my-oauth-token' });
 
       expect(result).toEqual({
         type: 'http',
         url: 'https://example.com/mcp',
         headers: {
           'x-custom-header': 'custom-value',
-          Authorization: 'my-oauth-token',
+          Authorization: 'Bearer my-oauth-token',
         },
       });
     });
@@ -310,7 +303,7 @@ describe('McpClient', () => {
         env: {},
       };
 
-      const result = injectOauthToken(serverConfig, 'my-oauth-token');
+      const result = injectOauthToken({ serverConfig, token: 'Bearer my-oauth-token' });
 
       expect(result).toEqual(serverConfig);
     });
@@ -321,7 +314,7 @@ describe('McpClient', () => {
         url: 'https://example.com/mcp',
       };
 
-      const result = injectOauthToken(serverConfig);
+      const result = injectOauthToken({ serverConfig, token: undefined });
 
       expect(result).toEqual(serverConfig);
     });
@@ -332,7 +325,7 @@ describe('McpClient', () => {
         url: 'https://example.com/mcp',
       };
 
-      const result = injectOauthToken(serverConfig);
+      const result = injectOauthToken({ serverConfig, token: undefined });
 
       expect(result).toBe(serverConfig);
     });
@@ -346,21 +339,21 @@ describe('McpClient', () => {
           server2: { type: 'http' as const, url: 'https://server2.com' },
         },
       };
-      const tokens = { server1: 'token1', server2: 'token2' };
+      const tokens = { server1: 'Bearer token1', server2: 'Bearer token2' };
 
-      const result = injectOauthTokens(mcpConfigs, tokens);
+      const result = injectOauthTokens({ mcpConfigs, mcpOAuthTokens: tokens });
 
       expect(result).toEqual({
         configs: {
           server1: {
             type: 'http',
             url: 'https://server1.com',
-            headers: { Authorization: 'token1' },
+            headers: { Authorization: 'Bearer token1' },
           },
           server2: {
             type: 'http',
             url: 'https://server2.com',
-            headers: { Authorization: 'token2' },
+            headers: { Authorization: 'Bearer token2' },
           },
         },
       });
@@ -373,16 +366,16 @@ describe('McpClient', () => {
           server2: { type: 'http' as const, url: 'https://server2.com' },
         },
       };
-      const tokens = { server1: 'token1' };
+      const tokens = { server1: 'Bearer token1' };
 
-      const result = injectOauthTokens(mcpConfigs, tokens);
+      const result = injectOauthTokens({ mcpConfigs, mcpOAuthTokens: tokens });
 
       expect(result).toEqual({
         configs: {
           server1: {
             type: 'http',
             url: 'https://server1.com',
-            headers: { Authorization: 'token1' },
+            headers: { Authorization: 'Bearer token1' },
           },
           server2: { type: 'http', url: 'https://server2.com' },
         },
@@ -390,7 +383,10 @@ describe('McpClient', () => {
     });
 
     it('should return undefined when mcpConfigs is undefined', () => {
-      const result = injectOauthTokens(undefined, { server1: 'token1' });
+      const result = injectOauthTokens({
+        mcpConfigs: undefined,
+        mcpOAuthTokens: { server1: 'Bearer token1' },
+      });
 
       expect(result).toBeUndefined();
     });
@@ -402,7 +398,7 @@ describe('McpClient', () => {
         },
       };
 
-      const result = injectOauthTokens(mcpConfigs, undefined);
+      const result = injectOauthTokens({ mcpConfigs, mcpOAuthTokens: undefined });
 
       expect(result).toBe(mcpConfigs);
     });

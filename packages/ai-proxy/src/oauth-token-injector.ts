@@ -1,4 +1,4 @@
-import type { McpServerConfig, McpConfiguration } from './mcp-client';
+import type { McpConfiguration, McpServerConfig } from './mcp-client';
 
 import { AIBadRequestError } from './types/errors';
 
@@ -29,8 +29,18 @@ export function extractMcpOauthTokensFromHeaders(
  * Injects the OAuth token as Authorization header into HTTP-based transport configurations.
  * For stdio transports, returns the config unchanged.
  */
-export function injectOauthToken(serverConfig: McpServerConfig, token?: string): McpServerConfig {
+export function injectOauthToken({
+  serverConfig,
+  token,
+}: {
+  serverConfig: McpServerConfig;
+  token?: string;
+}): McpServerConfig {
   if (!token) return serverConfig;
+
+  if (!token.startsWith('Bearer ')) {
+    throw new AIBadRequestError('OAuth token must start with "Bearer "');
+  }
 
   // Only inject token for HTTP-based transports (sse, http)
   if (serverConfig.type === 'http' || serverConfig.type === 'sse') {
@@ -52,17 +62,20 @@ export function injectOauthToken(serverConfig: McpServerConfig, token?: string):
  * Injects OAuth tokens into all server configurations.
  * Returns a new McpConfiguration with tokens injected, or undefined if no configs provided.
  */
-export function injectOauthTokens(
-  mcpConfigs: McpConfiguration | undefined,
-  mcpOAuthTokens: Record<string, string> | undefined,
-): McpConfiguration | undefined {
+export function injectOauthTokens({
+  mcpConfigs,
+  mcpOAuthTokens,
+}: {
+  mcpConfigs: McpConfiguration | undefined;
+  mcpOAuthTokens: Record<string, string> | undefined;
+}): McpConfiguration | undefined {
   if (!mcpConfigs) return undefined;
   if (!mcpOAuthTokens) return mcpConfigs;
 
   const configsWithTokens = Object.fromEntries(
     Object.entries(mcpConfigs.configs).map(([name, serverConfig]) => [
       name,
-      injectOauthToken(serverConfig, mcpOAuthTokens[name]),
+      injectOauthToken({ serverConfig, token: mcpOAuthTokens[name] }),
     ]),
   );
 
