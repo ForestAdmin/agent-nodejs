@@ -45,5 +45,23 @@ describe('Serializer', () => {
 
       expect(result.day).toBe('2025-01-15T00:00:00.000Z');
     });
+
+    it('should return null for invalid dates', () => {
+      const record = { createdAt: new Date('invalid') };
+      const rawAttributes = { createdAt: { type: DataTypes.DATE } };
+
+      const result = Serializer.serialize(record, rawAttributes);
+
+      expect(result.createdAt).toBeNull();
+    });
+
+    it('should return null for Dateonly with invalid date', () => {
+      const record = { day: new Date('invalid') };
+      const rawAttributes = { day: { type: DataTypes.DATEONLY } };
+
+      const result = Serializer.serialize(record, rawAttributes);
+
+      expect(result.day).toBeNull();
+    });
   });
 });
