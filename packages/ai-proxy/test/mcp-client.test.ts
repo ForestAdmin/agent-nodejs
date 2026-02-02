@@ -340,7 +340,7 @@ describe('McpClient', () => {
       };
       const tokens = { server1: 'Bearer token1', server2: 'Bearer token2' };
 
-      const result = injectOauthTokens({ mcpConfigs, mcpOAuthTokens: tokens });
+      const result = injectOauthTokens({ mcpConfigs, tokensByMcpServerName: tokens });
 
       expect(result).toEqual({
         configs: {
@@ -367,7 +367,7 @@ describe('McpClient', () => {
       };
       const tokens = { server1: 'Bearer token1' };
 
-      const result = injectOauthTokens({ mcpConfigs, mcpOAuthTokens: tokens });
+      const result = injectOauthTokens({ mcpConfigs, tokensByMcpServerName: tokens });
 
       expect(result).toEqual({
         configs: {
@@ -384,7 +384,7 @@ describe('McpClient', () => {
     it('should return undefined when mcpConfigs is undefined', () => {
       const result = injectOauthTokens({
         mcpConfigs: undefined,
-        mcpOAuthTokens: { server1: 'Bearer token1' },
+        tokensByMcpServerName: { server1: 'Bearer token1' },
       });
 
       expect(result).toBeUndefined();
@@ -397,7 +397,7 @@ describe('McpClient', () => {
         },
       };
 
-      const result = injectOauthTokens({ mcpConfigs, mcpOAuthTokens: undefined });
+      const result = injectOauthTokens({ mcpConfigs, tokensByMcpServerName: undefined });
 
       expect(result).toBe(mcpConfigs);
     });

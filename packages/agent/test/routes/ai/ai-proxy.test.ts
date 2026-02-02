@@ -85,7 +85,7 @@ describe('AiProxyRoute', () => {
       expect(context.response.body).toEqual(expectedResponse);
     });
 
-    test('should pass route, body, query, mcpConfigs and mcpOAuthTokens to router', async () => {
+    test('should pass route, body, query, mcpConfigs and tokensByMcpServerName to router', async () => {
       const route = new AiProxyRoute(services, options, aiConfigurations);
       mockRoute.mockResolvedValueOnce({});
 

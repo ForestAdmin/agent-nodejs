@@ -42,7 +42,7 @@ export default class AiProxyRoute extends BaseRoute {
 
   private async handleAiProxy(context: Context): Promise<void> {
     try {
-      const mcpOAuthTokens = extractMcpOauthTokensFromHeaders(context.request.headers);
+      const tokensByMcpServerName = extractMcpOauthTokensFromHeaders(context.request.headers);
 
       const mcpConfigs =
         await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
@@ -51,7 +51,7 @@ export default class AiProxyRoute extends BaseRoute {
         route: context.params.route,
         body: context.request.body,
         query: context.query,
-        mcpConfigs: injectOauthTokens({ mcpConfigs, mcpOAuthTokens }),
+        mcpConfigs: injectOauthTokens({ mcpConfigs, tokensByMcpServerName }),
       });
       context.response.status = HttpCode.Ok;
     } catch (error) {

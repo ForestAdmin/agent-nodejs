@@ -62,18 +62,18 @@ export function injectOauthToken({
  */
 export function injectOauthTokens({
   mcpConfigs,
-  mcpOAuthTokens,
+  tokensByMcpServerName,
 }: {
   mcpConfigs: McpConfiguration | undefined;
-  mcpOAuthTokens: Record<string, string> | undefined;
+  tokensByMcpServerName: Record<string, string> | undefined;
 }): McpConfiguration | undefined {
   if (!mcpConfigs) return undefined;
-  if (!mcpOAuthTokens) return mcpConfigs;
+  if (!tokensByMcpServerName) return mcpConfigs;
 
   const configsWithTokens = Object.fromEntries(
     Object.entries(mcpConfigs.configs).map(([name, serverConfig]) => [
       name,
-      injectOauthToken({ serverConfig, token: mcpOAuthTokens[name] }),
+      injectOauthToken({ serverConfig, token: tokensByMcpServerName[name] }),
     ]),
   );
 
