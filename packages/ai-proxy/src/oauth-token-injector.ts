@@ -44,12 +44,10 @@ export function injectOauthToken({
 
   // Only inject token for HTTP-based transports (sse, http)
   if (serverConfig.type === 'http' || serverConfig.type === 'sse') {
-    const { oauthConfig, ...headers } = serverConfig.headers || {};
-
     return {
       ...serverConfig,
       headers: {
-        ...headers,
+        ...(serverConfig.headers || {}),
         Authorization: token,
       },
     };

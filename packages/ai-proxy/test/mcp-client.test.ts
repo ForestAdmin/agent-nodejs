@@ -273,13 +273,12 @@ describe('McpClient', () => {
       });
     });
 
-    it('should merge Authorization header with existing headers and strip oauthConfig', () => {
+    it('should merge Authorization header with existing headers', () => {
       const serverConfig = {
         type: 'http' as const,
         url: 'https://example.com/mcp',
         headers: {
           'x-custom-header': 'custom-value',
-          oauthConfig: { clientId: 'test' } as unknown as string,
         },
       };
 
