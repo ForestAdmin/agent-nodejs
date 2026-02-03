@@ -85,7 +85,7 @@ describe('AiProxyRoute', () => {
       expect(context.response.body).toEqual(expectedResponse);
     });
 
-    test('should pass route, body, query and mcpConfigs to router', async () => {
+    test('should pass route, body, query, mcpConfigs and tokensByMcpServerName to router', async () => {
       const route = new AiProxyRoute(services, options, aiConfigurations);
       mockRoute.mockResolvedValueOnce({});
 
@@ -106,6 +106,70 @@ describe('AiProxyRoute', () => {
         query: { 'ai-name': 'gpt4' },
         mcpConfigs: undefined, // mcpServerConfigService.getConfiguration returns undefined in test
       });
+    });
+
+    test('should inject oauth tokens into mcpConfigs when header is provided', async () => {
+      const route = new AiProxyRoute(services, options, aiConfigurations);
+      mockRoute.mockResolvedValueOnce({});
+
+      const mcpConfigs = {
+        configs: {
+          server1: { type: 'http' as const, url: 'https://server1.com' },
+          server2: { type: 'http' as const, url: 'https://server2.com' },
+        },
+      };
+      jest
+        .spyOn(options.forestAdminClient.mcpServerConfigService, 'getConfiguration')
+        .mockResolvedValueOnce(mcpConfigs);
+
+      const tokens = { server1: 'Bearer token1', server2: 'Bearer token2' };
+      const context = createMockContext({
+        customProperties: {
+          params: { route: 'ai-query' },
+        },
+        requestBody: { messages: [] },
+        headers: { 'x-mcp-oauth-tokens': JSON.stringify(tokens) },
+      });
+      context.query = {};
+
+      await (route as any).handleAiProxy(context);
+
+      expect(mockRoute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpConfigs: {
+            configs: {
+              server1: {
+                type: 'http',
+                url: 'https://server1.com',
+                headers: { Authorization: 'Bearer token1' },
+              },
+              server2: {
+                type: 'http',
+                url: 'https://server2.com',
+                headers: { Authorization: 'Bearer token2' },
+              },
+            },
+          },
+        }),
+      );
+    });
+
+    test('should throw BadRequestError when x-mcp-oauth-tokens header contains invalid JSON', async () => {
+      const route = new AiProxyRoute(services, options, aiConfigurations);
+
+      const context = createMockContext({
+        customProperties: {
+          params: { route: 'ai-query' },
+        },
+        requestBody: { messages: [] },
+        headers: { 'x-mcp-oauth-tokens': '{ invalid json }' },
+      });
+      context.query = {};
+
+      await expect((route as any).handleAiProxy(context)).rejects.toThrow(BadRequestError);
+      await expect((route as any).handleAiProxy(context)).rejects.toThrow(
+        'Invalid JSON in x-mcp-oauth-tokens header',
+      );
     });
 
     describe('error handling', () => {
@@ -202,7 +266,7 @@ describe('AiProxyRoute', () => {
       test('should re-throw unknown errors unchanged', async () => {
         const route = new AiProxyRoute(services, options, aiConfigurations);
         const unknownError = new Error('Unknown error');
-        mockRoute.mockRejectedValue(unknownError);
+        mockRoute.mockRejectedValueOnce(unknownError);
 
         const context = createMockContext({
           customProperties: {
@@ -212,7 +276,6 @@ describe('AiProxyRoute', () => {
         });
         context.query = {};
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const promise = (route as any).handleAiProxy(context);
 
         await expect(promise).rejects.toBe(unknownError);

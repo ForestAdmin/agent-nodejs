@@ -5,6 +5,8 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { McpConnectionError } from './types/errors';
 import McpServerRemoteTool from './types/mcp-server-remote-tool';
 
+export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string];
+
 export type McpConfiguration = {
   configs: MultiServerMCPClient['config']['mcpServers'];
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;

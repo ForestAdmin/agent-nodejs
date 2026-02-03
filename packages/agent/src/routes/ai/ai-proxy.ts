@@ -8,6 +8,8 @@ import {
   AIError,
   AINotFoundError,
   Router as AiProxyRouter,
+  extractMcpOauthTokensFromHeaders,
+  injectOauthTokens,
 } from '@forestadmin/ai-proxy';
 import {
   BadRequestError,
@@ -40,11 +42,16 @@ export default class AiProxyRoute extends BaseRoute {
 
   private async handleAiProxy(context: Context): Promise<void> {
     try {
+      const tokensByMcpServerName = extractMcpOauthTokensFromHeaders(context.request.headers);
+
+      const mcpConfigs =
+        await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
+
       context.response.body = await this.aiProxyRouter.route({
         route: context.params.route,
         body: context.request.body,
         query: context.query,
-        mcpConfigs: await this.options.forestAdminClient.mcpServerConfigService.getConfiguration(),
+        mcpConfigs: injectOauthTokens({ mcpConfigs, tokensByMcpServerName }),
       });
       context.response.status = HttpCode.Ok;
     } catch (error) {
