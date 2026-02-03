@@ -1,7 +1,7 @@
 import type { McpConfiguration } from './mcp-client';
-import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
 import type { RemoteToolsApiKeys } from './remote-tools';
 import type { RouteArgs } from './schemas/route';
+import type { AiConfiguration } from './types/provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
@@ -34,45 +34,6 @@ export class Router {
     this.aiConfigurations = params?.aiConfigurations ?? [];
     this.localToolsApiKeys = params?.localToolsApiKeys;
     this.logger = params?.logger;
-  }
-
-  private static formatZodError(error: z.core.$ZodError): string {
-    return error.issues
-      .map(issue => {
-        // Handle discriminatedUnion errors with helpful message
-        // Zod 4 uses 'invalid_union' code with a 'discriminator' property for these errors
-        if (issue.code === 'invalid_union' && issue.discriminator) {
-          return `Invalid route. Expected: ${VALID_ROUTES.map(r => `'${r}'`).join(', ')}`;
-        }
-
-        // Include path for context when available
-        const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
-
-        return `${path}${issue.message}`;
-      })
-      .join('; ');
-  }
-
-  private getAiConfiguration(aiName?: string): AiConfiguration | null {
-    if (this.aiConfigurations.length === 0) return null;
-
-    if (aiName) {
-      const config = this.aiConfigurations.find(c => c.name === aiName);
-
-      if (!config) {
-        const fallback = this.aiConfigurations[0];
-        this.logger?.(
-          'Warn',
-          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}'.`,
-        );
-
-        return fallback;
-      }
-
-      return config;
-    }
-
-    return this.aiConfigurations[0];
   }
 
   /**
@@ -114,7 +75,7 @@ export class Router {
           const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
 
           return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
-            validatedArgs.body as DispatchBody,
+            validatedArgs.body,
           );
         }
 
@@ -149,5 +110,44 @@ export class Router {
         }
       }
     }
+  }
+
+  private static formatZodError(error: z.core.$ZodError): string {
+    return error.issues
+      .map(issue => {
+        // Handle discriminatedUnion errors with helpful message
+        // Zod 4 uses 'invalid_union' code with a 'discriminator' property for these errors
+        if (issue.code === 'invalid_union' && issue.discriminator) {
+          return `Invalid route. Expected: ${VALID_ROUTES.map(r => `'${r}'`).join(', ')}`;
+        }
+
+        // Include path for context when available
+        const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
+
+        return `${path}${issue.message}`;
+      })
+      .join('; ');
+  }
+
+  private getAiConfiguration(aiName?: string): AiConfiguration | null {
+    if (this.aiConfigurations.length === 0) return null;
+
+    if (aiName) {
+      const config = this.aiConfigurations.find(c => c.name === aiName);
+
+      if (!config) {
+        const fallback = this.aiConfigurations[0];
+        this.logger?.(
+          'Warn',
+          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}'.`,
+        );
+
+        return fallback;
+      }
+
+      return config;
+    }
+
+    return this.aiConfigurations[0];
   }
 }

@@ -1,9 +1,9 @@
+import type { Messages } from '../remote-tools';
 import type {
   ChatCompletionMessage,
   ChatCompletionTool,
   ChatCompletionToolChoice,
-} from '../provider-dispatcher';
-import type { Messages } from '../remote-tools';
+} from '../types/provider';
 
 import { z } from 'zod';
 
@@ -83,3 +83,6 @@ export type RouteArgs = z.infer<typeof routeArgsSchema>;
 export type AiQueryArgs = z.infer<typeof aiQuerySchema>;
 export type InvokeRemoteToolArgs = z.infer<typeof invokeRemoteToolSchema>;
 export type RemoteToolsArgs = z.infer<typeof remoteToolsSchema>;
+
+// Derived types for consumers
+export type DispatchBody = AiQueryArgs['body'];
