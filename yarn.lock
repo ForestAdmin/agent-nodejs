@@ -1832,19 +1832,6 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/ai-proxy@1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/ai-proxy/-/ai-proxy-1.1.0.tgz#2e33b6d49f043f4a5d08cc6840b84dbb4d2faf32"
-  integrity sha512-PaARjKfpeqIiABXekF3THAqGtddlZlmA/9rmFroJDJ9vXzQqbC9kQj+Z+I01zX4QXG/iRc7ESezc1RqIBZ/wGw==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.50.1"
-    "@langchain/community" "1.1.4"
-    "@langchain/core" "1.1.15"
-    "@langchain/langgraph" "^1.1.0"
-    "@langchain/mcp-adapters" "1.1.1"
-    "@langchain/openai" "1.2.2"
-    zod "^4.3.5"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
