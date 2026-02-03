@@ -21,7 +21,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.25.3",
+    "@modelcontextprotocol/sdk": "1.25.2",
     "@types/express": "5.0.1",
     "express": "5.1.0",
     "node-zendesk": "6.0.1"
