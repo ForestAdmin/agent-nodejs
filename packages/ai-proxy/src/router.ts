@@ -21,25 +21,6 @@ export type {
 export type Route = RouteArgs['route'];
 export type ApiKeys = RemoteToolsApiKeys;
 
-function formatZodError(error: z.ZodError): string {
-  return error.issues
-    .map(issue => {
-      // Handle discriminatedUnion errors with helpful message (Zod 4 uses 'invalid_union' with note)
-
-      const zodIssue = issue as z.ZodIssue & { note?: string };
-
-      if (issue.code === 'invalid_union' && zodIssue.note === 'No matching discriminator') {
-        return `Invalid route. Expected: ${VALID_ROUTES.map(r => `'${r}'`).join(', ')}`;
-      }
-
-      // Include path for context when available
-      const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
-
-      return `${path}${issue.message}`;
-    })
-    .join('; ');
-}
-
 export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
   private readonly aiConfigurations: AiConfiguration[];
@@ -53,6 +34,23 @@ export class Router {
     this.aiConfigurations = params?.aiConfigurations ?? [];
     this.localToolsApiKeys = params?.localToolsApiKeys;
     this.logger = params?.logger;
+  }
+
+  private static formatZodError(error: z.core.$ZodError): string {
+    return error.issues
+      .map(issue => {
+        // Handle discriminatedUnion errors with helpful message
+        // Zod 4 uses 'invalid_union' code with a 'discriminator' property for these errors
+        if (issue.code === 'invalid_union' && issue.discriminator) {
+          return `Invalid route. Expected: ${VALID_ROUTES.map(r => `'${r}'`).join(', ')}`;
+        }
+
+        // Include path for context when available
+        const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
+
+        return `${path}${issue.message}`;
+      })
+      .join('; ');
   }
 
   private getAiConfiguration(aiName?: string): AiConfiguration | null {
@@ -95,7 +93,7 @@ export class Router {
     const result = routeArgsSchema.safeParse(args);
 
     if (!result.success) {
-      throw new AIBadRequestError(formatZodError(result.error));
+      throw new AIBadRequestError(Router.formatZodError(result.error));
     }
 
     const validatedArgs = result.data;
