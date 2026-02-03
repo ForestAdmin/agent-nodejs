@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.13.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.1...@forestadmin/datasource-sequelize@1.13.2) (2026-02-03)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** serialize Dateonly fields as YYYY-MM-DD format ([#1442](https://github.com/ForestAdmin/agent-nodejs/issues/1442)) ([db7b967](https://github.com/ForestAdmin/agent-nodejs/commit/db7b967d52b68573dcdb4817e3cf664897264c7b)), closes [#1441](https://github.com/ForestAdmin/agent-nodejs/issues/1441)
+
 ## @forestadmin/datasource-sequelize [1.13.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.0...@forestadmin/datasource-sequelize@1.13.1) (2026-01-06)
 
 
