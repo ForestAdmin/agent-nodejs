@@ -1,4 +1,4 @@
-import { routeArgsSchema } from '../../src/schemas/route';
+import { routeArgsSchema, VALID_ROUTES } from '../../src/schemas/route';
 
 describe('routeArgsSchema', () => {
   describe('ai-query route', () => {
@@ -40,6 +40,15 @@ describe('routeArgsSchema', () => {
       });
     });
 
+    it('rejects ai-query without body', () => {
+      const result = routeArgsSchema.safeParse({
+        route: 'ai-query',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0].message).toBe('Missing required parameter: body');
+    });
+
     it('rejects ai-query without messages', () => {
       const result = routeArgsSchema.safeParse({
         route: 'ai-query',
@@ -47,6 +56,20 @@ describe('routeArgsSchema', () => {
       });
 
       expect(result.success).toBe(false);
+      expect(result.error?.issues[0].message).toBe('Missing required body parameter: messages');
+    });
+
+    it('rejects ai-query with non-boolean parallel_tool_calls', () => {
+      const result = routeArgsSchema.safeParse({
+        route: 'ai-query',
+        body: {
+          messages: [{ role: 'user', content: 'Hello' }],
+          parallel_tool_calls: 'true',
+        },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0].path).toContain('parallel_tool_calls');
     });
   });
 
@@ -64,6 +87,16 @@ describe('routeArgsSchema', () => {
         query: { 'tool-name': 'my-tool' },
         body: { inputs: [{ role: 'user', content: 'test' }] },
       });
+    });
+
+    it('rejects invoke-remote-tool without query', () => {
+      const result = routeArgsSchema.safeParse({
+        route: 'invoke-remote-tool',
+        body: { inputs: [] },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0].message).toBe('Missing required parameter: query');
     });
 
     it('rejects invoke-remote-tool without tool-name', () => {
@@ -84,6 +117,7 @@ describe('routeArgsSchema', () => {
       });
 
       expect(result.success).toBe(false);
+      expect(result.error?.issues[0].message).toBe('Missing required parameter: body');
     });
 
     it('rejects invoke-remote-tool without inputs in body', () => {
@@ -94,6 +128,7 @@ describe('routeArgsSchema', () => {
       });
 
       expect(result.success).toBe(false);
+      expect(result.error?.issues[0].message).toBe('Missing required body parameter: inputs');
     });
   });
 
@@ -118,12 +153,14 @@ describe('routeArgsSchema', () => {
   });
 
   describe('invalid routes', () => {
-    it('rejects unknown routes', () => {
+    it('rejects unknown routes with helpful message', () => {
       const result = routeArgsSchema.safeParse({
         route: 'unknown-route',
       });
 
       expect(result.success).toBe(false);
+      expect(result.error?.issues[0].code).toBe('invalid_union');
+      expect((result.error?.issues[0] as { note?: string }).note).toBe('No matching discriminator');
     });
 
     it('rejects missing route', () => {
@@ -132,6 +169,12 @@ describe('routeArgsSchema', () => {
       });
 
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('VALID_ROUTES constant', () => {
+    it('exports the valid routes', () => {
+      expect(VALID_ROUTES).toEqual(['ai-query', 'invoke-remote-tool', 'remote-tools']);
     });
   });
 });

@@ -1,7 +1,7 @@
 import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIBadRequestError, AIUnprocessableError, Router } from '../src';
+import { AIBadRequestError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 
 const invokeToolMock = jest.fn();
@@ -171,7 +171,7 @@ describe('route', () => {
           query: {},
           body: { inputs: [] },
         }),
-      ).rejects.toThrow('Missing required query parameter: tool-name');
+      ).rejects.toThrow('query.tool-name: Missing required query parameter: tool-name');
     });
 
     it('throws an error when body.inputs is missing', async () => {
@@ -183,7 +183,19 @@ describe('route', () => {
           query: { 'tool-name': 'tool-name' },
           body: {} as InvokeRemoteToolArgs['body'],
         }),
-      ).rejects.toThrow('Invalid input: expected array, received undefined');
+      ).rejects.toThrow('body.inputs: Missing required body parameter: inputs');
+    });
+
+    it('joins multiple validation errors with semicolons', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'invoke-remote-tool',
+          query: {},
+          body: {},
+        }),
+      ).rejects.toThrow(/tool-name.*inputs|inputs.*tool-name/);
     });
   });
 
@@ -198,10 +210,12 @@ describe('route', () => {
   });
 
   describe('when the route is unknown', () => {
-    it('throws a validation error', async () => {
+    it('throws a validation error with helpful message', async () => {
       const router = new Router({});
 
-      await expect(router.route({ route: 'unknown' as Route })).rejects.toThrow(AIBadRequestError);
+      await expect(router.route({ route: 'unknown' as Route })).rejects.toThrow(
+        "Invalid route. Expected: 'ai-query', 'invoke-remote-tool', 'remote-tools'",
+      );
     });
 
     it('does not include mcpConfigs in the error message', async () => {
@@ -212,7 +226,9 @@ describe('route', () => {
           route: 'unknown' as Route,
           mcpConfigs: { configs: {} },
         }),
-      ).rejects.toThrow(AIBadRequestError);
+      ).rejects.toThrow(
+        "Invalid route. Expected: 'ai-query', 'invoke-remote-tool', 'remote-tools'",
+      );
     });
   });
 

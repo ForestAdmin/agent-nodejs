@@ -5,10 +5,10 @@ import type { RouteArgs } from './schemas/route';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
-import { AIBadRequestError, AIUnprocessableError, ProviderDispatcher } from './index';
+import { AIBadRequestError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
-import { routeArgsSchema } from './schemas/route';
+import { VALID_ROUTES, routeArgsSchema } from './schemas/route';
 
 export type {
   AiQueryArgs,
@@ -22,7 +22,22 @@ export type Route = RouteArgs['route'];
 export type ApiKeys = RemoteToolsApiKeys;
 
 function formatZodError(error: z.ZodError): string {
-  return error.issues.map(issue => issue.message).join('; ');
+  return error.issues
+    .map(issue => {
+      // Handle discriminatedUnion errors with helpful message (Zod 4 uses 'invalid_union' with note)
+
+      const zodIssue = issue as z.ZodIssue & { note?: string };
+
+      if (issue.code === 'invalid_union' && zodIssue.note === 'No matching discriminator') {
+        return `Invalid route. Expected: ${VALID_ROUTES.map(r => `'${r}'`).join(', ')}`;
+      }
+
+      // Include path for context when available
+      const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
+
+      return `${path}${issue.message}`;
+    })
+    .join('; ');
 }
 
 export class Router {
@@ -96,33 +111,31 @@ export class Router {
         await mcpClient?.loadTools(),
       );
 
-      if (validatedArgs.route === 'ai-query') {
-        const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
+      switch (validatedArgs.route) {
+        case 'ai-query': {
+          const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
 
-        return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
-          validatedArgs.body as DispatchBody,
-        );
+          return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
+            validatedArgs.body as DispatchBody,
+          );
+        }
+
+        case 'invoke-remote-tool':
+          return await remoteTools.invokeTool(
+            validatedArgs.query['tool-name'],
+            validatedArgs.body.inputs,
+          );
+
+        case 'remote-tools':
+          return remoteTools.toolDefinitionsForFrontend;
+
+        default: {
+          // Exhaustive check: TypeScript will error if a route case is missing
+          const exhaustiveCheck: never = validatedArgs;
+
+          return exhaustiveCheck;
+        }
       }
-
-      if (validatedArgs.route === 'invoke-remote-tool') {
-        return await remoteTools.invokeTool(
-          validatedArgs.query['tool-name'],
-          validatedArgs.body.inputs,
-        );
-      }
-
-      if (validatedArgs.route === 'remote-tools') {
-        return remoteTools.toolDefinitionsForFrontend;
-      }
-
-      // This should never be reached due to Zod validation, but TypeScript doesn't know that
-      throw new AIUnprocessableError(
-        `No action to perform: ${JSON.stringify({
-          body: args.body,
-          route: args.route,
-          query: args.query,
-        })}`,
-      );
     } finally {
       if (mcpClient) {
         try {
