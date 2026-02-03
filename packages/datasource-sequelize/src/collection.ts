@@ -107,7 +107,7 @@ export default class SequelizeCollection extends BaseCollection {
         Object.entries(plainRecord).filter(([key]) => nonVirtualFields.includes(key)),
       );
 
-      return Serializer.serialize(filteredRecord);
+      return Serializer.serialize(filteredRecord, attributes);
     });
   }
 
@@ -141,7 +141,9 @@ export default class SequelizeCollection extends BaseCollection {
     };
 
     const records = await this.model.findAll(query);
-    const rawRecords = records.map(record => Serializer.serialize(record.get({ plain: true })));
+    const rawRecords = records.map(record =>
+      Serializer.serialize(record.get({ plain: true }), this.model.rawAttributes),
+    );
 
     // Use projection to filter out the unwanted primary keys that were added to the projection
     // so that sequelize can do its job.
