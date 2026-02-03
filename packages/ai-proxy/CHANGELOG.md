@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.2.0...@forestadmin/ai-proxy@1.3.0) (2026-02-03)
+
+
+### Features
+
+* **mcp server:** add support for oauth authentication ([#1439](https://github.com/ForestAdmin/agent-nodejs/issues/1439)) ([dc5ccaf](https://github.com/ForestAdmin/agent-nodejs/commit/dc5ccaf00e6d2f54b51ea5461ebed88ed089e565))
+
 # @forestadmin/ai-proxy [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.1.0...@forestadmin/ai-proxy@1.2.0) (2026-01-27)
 
 
