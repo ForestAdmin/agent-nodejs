@@ -130,7 +130,11 @@ export class Router {
           return remoteTools.toolDefinitionsForFrontend;
 
         default: {
-          // Exhaustive check: TypeScript will error if a route case is missing
+          // Exhaustive type check - this code never runs at runtime because Zod validation
+          // catches unknown routes earlier. However, it provides compile-time safety:
+          // if a new route is added to routeArgsSchema, TypeScript will error here with
+          // "Type 'NewRouteArgs' is not assignable to type 'never'", forcing the developer
+          // to add a corresponding case handler.
           const exhaustiveCheck: never = validatedArgs;
 
           return exhaustiveCheck;
