@@ -6,7 +6,7 @@ import type OpenAI from 'openai';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
-import { AINotConfiguredError, OpenAIUnprocessableError } from './types/errors';
+import { AINotConfiguredError, OpenAIUnprocessableError } from './errors';
 
 /**
  * OpenAI model prefixes that do NOT support function calling (tools).

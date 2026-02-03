@@ -1,6 +1,6 @@
 import type { McpConfiguration, McpServerConfig } from './mcp-client';
 
-import { AIBadRequestError } from './types/errors';
+import { AIBadRequestError } from './errors';
 
 export const MCP_OAUTH_TOKENS_HEADER = 'x-mcp-oauth-tokens';
 

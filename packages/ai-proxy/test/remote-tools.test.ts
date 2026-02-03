@@ -4,7 +4,7 @@ import type { JSONSchema } from '@langchain/core/utils/json_schema';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { RemoteTools } from '../src';
-import ServerRemoteTool from '../src/types/server-remote-tool';
+import ServerRemoteTool from '../src/server-remote-tool';
 
 describe('RemoteTools', () => {
   const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };

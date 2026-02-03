@@ -5,7 +5,7 @@ import { tool } from '@langchain/core/tools';
 import { McpConnectionError } from '../src';
 import McpClient from '../src/mcp-client';
 import { injectOauthToken, injectOauthTokens } from '../src/oauth-token-injector';
-import McpServerRemoteTool from '../src/types/mcp-server-remote-tool';
+import McpServerRemoteTool from '../src/mcp-server-remote-tool';
 
 const getToolsMock = jest.fn();
 const closeMock = jest.fn();

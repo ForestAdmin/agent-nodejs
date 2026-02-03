@@ -1,12 +1,12 @@
-import type RemoteTool from './types/remote-tool';
+import type RemoteTool from './remote-tool';
 import type { ResponseFormat } from '@langchain/core/tools';
 import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions';
 
 import { BraveSearch } from '@langchain/community/tools/brave_search';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
-import { AIToolNotFoundError, AIToolUnprocessableError } from './types/errors';
-import ServerRemoteTool from './types/server-remote-tool';
+import { AIToolNotFoundError, AIToolUnprocessableError } from './errors';
+import ServerRemoteTool from './server-remote-tool';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
 
