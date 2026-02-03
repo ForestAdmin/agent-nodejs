@@ -1,11 +1,23 @@
 import type { RecordData } from '@forestadmin/datasource-toolkit';
+import type { ModelAttributeColumnOptions } from 'sequelize';
+
+import { DataTypes } from 'sequelize';
+
+type RawAttributes = Record<string, ModelAttributeColumnOptions>;
 
 export default class Serializer {
-  static serialize(record: RecordData): RecordData {
+  static serialize(record: RecordData, rawAttributes?: RawAttributes): RecordData {
     Object.entries(record).forEach(([name, value]) => {
-      if (value instanceof Date) record[name] = this.serializeValue(value);
-      else if (Array.isArray(value)) this.serializeValue(value); // the change is by references
-      else if (value instanceof Object) return this.serialize(record[name]);
+      if (value instanceof Date) {
+        const typeKey = (rawAttributes?.[name]?.type as { key?: string })?.key;
+        const iso = this.serializeDate(value);
+        // DATEONLY fields should be serialized as YYYY-MM-DD
+        record[name] = typeKey === DataTypes.DATEONLY.key && iso ? iso.slice(0, 10) : iso;
+      } else if (Array.isArray(value)) {
+        this.serializeValue(value); // the change is by references
+      } else if (value instanceof Object) {
+        return this.serialize(record[name]);
+      }
     });
 
     return record;
