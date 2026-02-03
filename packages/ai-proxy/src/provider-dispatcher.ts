@@ -57,7 +57,7 @@ export type BaseAiConfiguration = {
  * OpenAI-specific configuration.
  * Extends base with all ChatOpenAI options (temperature, maxTokens, configuration, etc.)
  */
-export type OpenAiConfiguration = BaseAiConfiguration &
+export type OpenAiConfiguration = Omit<BaseAiConfiguration, 'model'> &
   Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
     provider: 'openai';
     // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
