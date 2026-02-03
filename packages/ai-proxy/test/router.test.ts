@@ -1,8 +1,7 @@
-import type { DispatchBody, Route } from '../src';
-import type { InvokeRemoteToolBody } from '../src/router';
+import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIUnprocessableError, Router } from '../src';
+import { AIBadRequestError, AIUnprocessableError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 
 const invokeToolMock = jest.fn();
@@ -182,9 +181,9 @@ describe('route', () => {
         router.route({
           route: 'invoke-remote-tool',
           query: { 'tool-name': 'tool-name' },
-          body: {} as InvokeRemoteToolBody,
+          body: {} as InvokeRemoteToolArgs['body'],
         }),
-      ).rejects.toThrow('Missing required body parameter: inputs');
+      ).rejects.toThrow('Invalid input: expected array, received undefined');
     });
   });
 
@@ -199,12 +198,10 @@ describe('route', () => {
   });
 
   describe('when the route is unknown', () => {
-    it('throws an error', async () => {
+    it('throws a validation error', async () => {
       const router = new Router({});
 
-      await expect(router.route({ route: 'unknown' as Route })).rejects.toThrow(
-        new AIUnprocessableError('No action to perform: {"route":"unknown"}'),
-      );
+      await expect(router.route({ route: 'unknown' as Route })).rejects.toThrow(AIBadRequestError);
     });
 
     it('does not include mcpConfigs in the error message', async () => {
@@ -215,7 +212,7 @@ describe('route', () => {
           route: 'unknown' as Route,
           mcpConfigs: { configs: {} },
         }),
-      ).rejects.toThrow(new AIUnprocessableError('No action to perform: {"route":"unknown"}'));
+      ).rejects.toThrow(AIBadRequestError);
     });
   });
 
@@ -236,9 +233,14 @@ describe('route', () => {
     it('closes the MCP connection even when an error occurs', async () => {
       const router = new Router({});
 
+      // Validation errors happen before MCP client creation, so we test with a valid route
+      // that causes an error after MCP client is created
+      dispatchMock.mockRejectedValue(new Error('AI dispatch error'));
+
       await expect(
         router.route({
-          route: 'unknown' as Route,
+          route: 'ai-query',
+          body: { messages: [] },
           mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
         }),
       ).rejects.toThrow();
@@ -293,6 +295,7 @@ describe('route', () => {
         logger: mockLogger,
       });
       const closeError = new Error('Cleanup failed');
+      const dispatchError = new Error('Dispatch failed');
 
       jest.mocked(McpClient).mockImplementation(
         () =>
@@ -301,14 +304,16 @@ describe('route', () => {
             closeConnections: jest.fn().mockRejectedValue(closeError),
           } as unknown as McpClient),
       );
+      dispatchMock.mockRejectedValue(dispatchError);
 
       // Should throw the original route error, not the cleanup error
       await expect(
         router.route({
-          route: 'unknown' as Route,
+          route: 'ai-query',
+          body: { messages: [] },
           mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
         }),
-      ).rejects.toThrow(AIUnprocessableError);
+      ).rejects.toThrow(dispatchError);
 
       // Cleanup error should be logged
       expect(mockLogger).toHaveBeenCalledWith(

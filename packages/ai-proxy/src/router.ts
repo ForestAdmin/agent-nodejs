@@ -1,20 +1,29 @@
 import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
-import type { Messages, RemoteToolsApiKeys } from './remote-tools';
+import type { RemoteToolsApiKeys } from './remote-tools';
+import type { RouteArgs } from './schemas/route';
 import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { z } from 'zod';
 
 import { AIBadRequestError, AIUnprocessableError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
+import { routeArgsSchema } from './schemas/route';
 
-export type InvokeRemoteToolBody = { inputs: Messages };
-export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
-export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool';
-export type Query = {
-  'tool-name'?: string;
-  'ai-name'?: string;
-};
+export type {
+  AiQueryArgs,
+  InvokeRemoteToolArgs,
+  RemoteToolsArgs,
+  RouteArgs,
+} from './schemas/route';
+
+// Keep these for backward compatibility
+export type Route = RouteArgs['route'];
 export type ApiKeys = RemoteToolsApiKeys;
+
+function formatZodError(error: z.ZodError): string {
+  return error.issues.map(issue => issue.message).join('; ');
+}
 
 export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
@@ -61,7 +70,20 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: { body?: Body; route: Route; query?: Query; mcpConfigs?: McpConfiguration }) {
+  async route(args: {
+    body?: unknown;
+    route: string;
+    query?: unknown;
+    mcpConfigs?: McpConfiguration;
+  }) {
+    // Validate input with Zod schema
+    const result = routeArgsSchema.safeParse(args);
+
+    if (!result.success) {
+      throw new AIBadRequestError(formatZodError(result.error));
+    }
+
+    const validatedArgs = result.data;
     let mcpClient: McpClient | undefined;
 
     try {
@@ -74,35 +96,26 @@ export class Router {
         await mcpClient?.loadTools(),
       );
 
-      if (args.route === 'ai-query') {
-        const aiConfiguration = this.getAiConfiguration(args.query?.['ai-name']);
+      if (validatedArgs.route === 'ai-query') {
+        const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
 
         return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
-          args.body as DispatchBody,
+          validatedArgs.body as DispatchBody,
         );
       }
 
-      if (args.route === 'invoke-remote-tool') {
-        const toolName = args.query?.['tool-name'];
-
-        if (!toolName) {
-          throw new AIBadRequestError('Missing required query parameter: tool-name');
-        }
-
-        const body = args.body as InvokeRemoteToolBody | undefined;
-
-        if (!body?.inputs) {
-          throw new AIBadRequestError('Missing required body parameter: inputs');
-        }
-
-        return await remoteTools.invokeTool(toolName, body.inputs);
+      if (validatedArgs.route === 'invoke-remote-tool') {
+        return await remoteTools.invokeTool(
+          validatedArgs.query['tool-name'],
+          validatedArgs.body.inputs,
+        );
       }
 
-      if (args.route === 'remote-tools') {
+      if (validatedArgs.route === 'remote-tools') {
         return remoteTools.toolDefinitionsForFrontend;
       }
 
-      // don't add mcpConfigs to the error message, as it may contain sensitive information
+      // This should never be reached due to Zod validation, but TypeScript doesn't know that
       throw new AIUnprocessableError(
         `No action to perform: ${JSON.stringify({
           body: args.body,
