@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.72.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.71.2...@forestadmin/agent@1.72.0) (2026-02-03)
+
+
+### Features
+
+* **mcp server:** add support for oauth authentication ([#1439](https://github.com/ForestAdmin/agent-nodejs/issues/1439)) ([dc5ccaf](https://github.com/ForestAdmin/agent-nodejs/commit/dc5ccaf00e6d2f54b51ea5461ebed88ed089e565))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.3.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.7
+* **@forestadmin/mcp-server:** upgraded to 1.7.3
+
 ## @forestadmin/agent [1.71.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.71.1...@forestadmin/agent@1.71.2) (2026-01-27)
 
 
