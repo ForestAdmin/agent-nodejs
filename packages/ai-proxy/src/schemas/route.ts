@@ -7,8 +7,6 @@ import type {
 
 import { z } from 'zod';
 
-export const VALID_ROUTES = ['ai-query', 'invoke-remote-tool', 'remote-tools'] as const;
-
 // Base query schema with common optional parameters
 const baseQuerySchema = z.object({
   'ai-name': z.string().optional(),

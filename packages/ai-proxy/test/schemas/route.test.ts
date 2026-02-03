@@ -1,4 +1,4 @@
-import { routeArgsSchema, VALID_ROUTES } from '../../src/schemas/route';
+import { routeArgsSchema } from '../../src/schemas/route';
 
 describe('routeArgsSchema', () => {
   describe('ai-query route', () => {
@@ -172,9 +172,11 @@ describe('routeArgsSchema', () => {
     });
   });
 
-  describe('VALID_ROUTES constant', () => {
-    it('exports the valid routes', () => {
-      expect(VALID_ROUTES).toEqual(['ai-query', 'invoke-remote-tool', 'remote-tools']);
+  describe('schema options', () => {
+    it('exposes valid routes via schema options', () => {
+      const validRoutes = routeArgsSchema.options.map(opt => opt.shape.route.value);
+
+      expect(validRoutes).toEqual(['ai-query', 'invoke-remote-tool', 'remote-tools']);
     });
   });
 });

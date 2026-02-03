@@ -8,7 +8,7 @@ import type { z } from 'zod';
 import { AIBadRequestError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
-import { VALID_ROUTES, routeArgsSchema } from './schemas/route';
+import { routeArgsSchema } from './schemas/route';
 
 export type {
   AiQueryArgs,
@@ -118,7 +118,9 @@ export class Router {
         // Handle discriminatedUnion errors with helpful message
         // Zod 4 uses 'invalid_union' code with a 'discriminator' property for these errors
         if (issue.code === 'invalid_union' && issue.discriminator) {
-          return `Invalid route. Expected: ${VALID_ROUTES.map(r => `'${r}'`).join(', ')}`;
+          const validRoutes = routeArgsSchema.options.map(opt => `'${opt.shape.route.value}'`);
+
+          return `Invalid route. Expected: ${validRoutes.join(', ')}`;
         }
 
         // Include path for context when available
