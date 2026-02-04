@@ -377,7 +377,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
             messages: [{ role: 'user', content: 'Hello' }],
           },
         }),
-      ).rejects.toThrow('AI is not configured. Please call addAI() on your agent.');
+      ).rejects.toThrow('AI is not configured');
     });
 
     it('should throw error for missing messages in body', async () => {
