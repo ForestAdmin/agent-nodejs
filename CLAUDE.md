@@ -122,8 +122,8 @@ When pushing a PR that relates to an existing Linear ticket:
    - Example: `fix/prd-139-list-not-refreshing`
    - Linear automatically detects PRs from branches containing `PRD-XXX`
 
-2. **Add the Linear URL in the PR description**
-   - Example: `Linear: https://linear.app/forestadmin/issue/PRD-139/...`
+2. **Add the Linear ticket ID prefixed with "fixes" in the PR body**
+   - Example: `fixes PRD-139`
    - This creates the GitHub → Linear link
 
 ### Creating a Linear ticket from Claude
