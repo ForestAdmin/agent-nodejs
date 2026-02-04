@@ -6,9 +6,8 @@
  *
  * Run with: yarn workspace @forestadmin/ai-proxy test openai.integration
  */
-import type { Server } from 'http';
-
 import type { ChatCompletionResponse } from '../src';
+import type { Server } from 'http';
 
 // eslint-disable-next-line import/extensions
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -27,7 +26,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         name: 'test-gpt',
         provider: 'openai',
         model: 'gpt-4o-mini', // Cheapest model with tool support
-        apiKey: OPENAI_API_KEY!,
+        apiKey: OPENAI_API_KEY,
       },
     ],
   });
@@ -64,7 +63,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           total_tokens: expect.any(Number),
         }),
       });
-    }, 30000);
+    }, 10000);
 
     it('should handle tool calls', async () => {
       const response = (await router.route({
@@ -103,7 +102,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           }),
         ]),
       );
-    }, 30000);
+    }, 10000);
 
     it('should handle tool_choice: required', async () => {
       const response = (await router.route({
@@ -129,7 +128,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         function: { name: string };
       };
       expect(toolCall.function.name).toBe('greet');
-    }, 30000);
+    }, 10000);
 
     it('should handle parallel_tool_calls: false', async () => {
       const response = (await router.route({
@@ -157,7 +156,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
       // With parallel_tool_calls: false, should only get one tool call
       expect(response.choices[0].message.tool_calls).toHaveLength(1);
-    }, 30000);
+    }, 10000);
 
     it('should select AI configuration by name without fallback warning', async () => {
       const mockLogger = jest.fn();
@@ -179,11 +178,8 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
       expect(response.choices[0].message.content).toBeDefined();
       // Verify no fallback warning was logged - this proves 'secondary' was found and selected
-      expect(mockLogger).not.toHaveBeenCalledWith(
-        'Warn',
-        expect.stringContaining('not found'),
-      );
-    }, 30000);
+      expect(mockLogger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('not found'));
+    }, 10000);
 
     it('should fallback to first config and log warning when requested config not found', async () => {
       const mockLogger = jest.fn();
@@ -208,7 +204,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         'Warn',
         expect.stringContaining("'non-existent' not found"),
       );
-    }, 30000);
+    }, 10000);
 
     it('should handle tool_choice with specific function name', async () => {
       const response = (await router.route({
@@ -247,7 +243,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       const toolCall = toolCalls![0] as { function: { name: string } };
       // Should call 'greet' specifically, not 'farewell'
       expect(toolCall.function.name).toBe('greet');
-    }, 30000);
+    }, 10000);
 
     it('should complete multi-turn conversation with tool results', async () => {
       const addTool = {
@@ -295,7 +291,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
       expect(response2.choices[0].finish_reason).toBe('stop');
       expect(response2.choices[0].message.content).toContain('8');
-    }, 60000);
+    }, 15000);
   });
 
   describe('route: remote-tools', () => {
@@ -365,7 +361,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           },
         }),
       ).rejects.toThrow(/Authentication failed|Incorrect API key/);
-    }, 30000);
+    }, 10000);
 
     it('should throw AINotConfiguredError when no AI configuration provided', async () => {
       const routerWithoutAI = new Router({});
@@ -387,7 +383,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           body: {} as any,
         }),
       ).rejects.toThrow(/messages|required|invalid/i);
-    }, 30000);
+    }, 10000);
 
     it('should throw error for empty messages array', async () => {
       // OpenAI requires at least one message
@@ -397,7 +393,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           body: { messages: [] },
         }),
       ).rejects.toThrow(/messages|empty|at least one/i);
-    }, 30000);
+    }, 10000);
 
     it('should throw error for invalid route', async () => {
       await expect(
@@ -432,13 +428,9 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         return { content: [{ type: 'text', text: String(a + b) }] };
       });
 
-      mcp.tool(
-        'multiply',
-        { a: z.number(), b: z.number() },
-        async ({ a, b }) => {
-          return { content: [{ type: 'text', text: String(a * b) }] };
-        },
-      );
+      mcp.tool('multiply', { a: z.number(), b: z.number() }, async ({ a, b }) => {
+        return { content: [{ type: 'text', text: String(a * b) }] };
+      });
 
       mcpServer = runMcpServer(mcp, MCP_PORT, MCP_TOKEN);
     });
@@ -483,7 +475,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
             }),
           ]),
         );
-      }, 30000);
+      }, 10000);
     });
 
     describe('MCP error handling', () => {
@@ -524,7 +516,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           expect.stringContaining('broken'),
           expect.any(Error),
         );
-      }, 30000);
+      }, 10000);
 
       it('should handle MCP authentication failure gracefully and log error', async () => {
         const mockLogger = jest.fn();
@@ -562,7 +554,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           expect.stringContaining('calculator'),
           expect.any(Error),
         );
-      }, 30000);
+      }, 10000);
 
       it('should allow ai-query to work even when MCP server fails', async () => {
         const brokenMcpConfig = {
@@ -584,7 +576,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].message.content).toBeDefined();
-      }, 30000);
+      }, 10000);
     });
 
     describe('route: invoke-remote-tool (with MCP)', () => {
@@ -601,7 +593,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
         // MCP tool returns the computed result as string
         expect(response).toBe('8');
-      }, 30000);
+      }, 10000);
 
       it('should invoke MCP multiply tool and return result', async () => {
         const response = await router.route({
@@ -614,7 +606,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         });
 
         expect(response).toBe('42');
-      }, 30000);
+      }, 10000);
     });
 
     describe('route: ai-query (with MCP tools)', () => {
@@ -661,7 +653,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         const args = JSON.parse(toolCall.function.arguments);
         expect(args.a).toBe(15);
         expect(args.b).toBe(27);
-      }, 30000);
+      }, 10000);
 
       it('should enrich MCP tool definitions when calling OpenAI', async () => {
         // This test verifies that even with minimal tool definition,
@@ -693,7 +685,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         const args = JSON.parse(toolCall.function.arguments);
         expect(typeof args.a).toBe('number');
         expect(typeof args.b).toBe('number');
-      }, 30000);
+      }, 10000);
     });
   });
 });
