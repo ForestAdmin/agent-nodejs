@@ -144,10 +144,3 @@ labels: ["bug"]
 2. **Include Linear URL in PR description**
    - Add the Linear issue URL in the PR body so GitHub shows the link
    - Example: `Linear: https://linear.app/forestadmin/issue/PRD-139/...`
-
-### Example workflow
-
-1. Create Linear issue with labels → get `PRD-XXX` identifier and `gitBranchName`
-2. Create branch using the suggested name: `git checkout -b feature/prd-xxx-description`
-3. Make changes and commit
-4. Create PR with Linear URL in description
