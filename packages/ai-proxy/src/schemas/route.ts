@@ -1,9 +1,9 @@
-import type { Messages } from '../remote-tools';
 import type {
   ChatCompletionMessage,
   ChatCompletionTool,
   ChatCompletionToolChoice,
 } from '../provider';
+import type { Messages } from '../remote-tools';
 
 import { z } from 'zod';
 

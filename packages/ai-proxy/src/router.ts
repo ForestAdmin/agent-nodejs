@@ -1,7 +1,7 @@
 import type { McpConfiguration } from './mcp-client';
+import type { AiConfiguration } from './provider';
 import type { RemoteToolsApiKeys } from './remote-tools';
 import type { RouteArgs } from './schemas/route';
-import type { AiConfiguration } from './provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
