@@ -393,7 +393,7 @@ describeIfProviders('LLM Integration (real API)', () => {
         const args = JSON.parse(toolCall.function.arguments);
         expect(typeof args.a).toBe('number');
         expect(typeof args.b).toBe('number');
-      }, 10000);
+      }, 15000);
     });
   });
 
