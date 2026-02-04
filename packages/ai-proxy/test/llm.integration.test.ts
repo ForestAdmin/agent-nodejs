@@ -14,7 +14,7 @@ import type { Server } from 'http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { Router } from '../src';
+import { ANTHROPIC_MODELS, Router } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
 
 const { OPENAI_API_KEY, ANTHROPIC_API_KEY } = process.env;
@@ -331,6 +331,7 @@ describeIfProviders('LLM Integration (real API)', () => {
 
             return;
           }
+
           mcpServer.close(err => (err ? reject(err) : resolve()));
         });
       });
@@ -481,16 +482,97 @@ describeIfProviders('LLM Integration (real API)', () => {
 
     describe('validation errors', () => {
       it('should throw error for missing messages in body', async () => {
-        await expect(
-          router.route({ route: 'ai-query', body: {} as any }),
-        ).rejects.toThrow(/messages|required|invalid/i);
+        await expect(router.route({ route: 'ai-query', body: {} as any })).rejects.toThrow(
+          /messages|required|invalid/i,
+        );
       });
 
       it('should throw error for invalid route', async () => {
-        await expect(
-          router.route({ route: 'invalid-route' as any }),
-        ).rejects.toThrow(/invalid.*route/i);
+        await expect(router.route({ route: 'invalid-route' as any })).rejects.toThrow(
+          /invalid.*route/i,
+        );
       });
     });
   });
+});
+
+// OpenAI models that support tool calling
+const OPENAI_MODELS_WITH_TOOLS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo'] as const;
+
+// Models that are deprecated or not available via the API
+// These will be skipped with an informative message
+const UNSUPPORTED_MODELS: Record<string, string> = {
+  'claude-sonnet-4-5-20250514': 'Model not available - may require specific API tier or region',
+  'claude-3-5-sonnet-latest': 'Model not available - may require specific API tier or region',
+  'claude-3-5-sonnet-20241022': 'Deprecated - reached end-of-life on October 22, 2025',
+  'claude-3-opus-latest': 'Model not available - alias may have been removed',
+  'claude-3-opus-20240229': 'Deprecated - reached end-of-life on January 5, 2026',
+  'claude-3-sonnet-20240229': 'Deprecated - model no longer available',
+  'claude-3-haiku-20240307': 'Deprecated - model no longer available',
+};
+
+describeIfProviders('Model Compatibility (tool execution)', () => {
+  type ModelConfig = {
+    provider: 'openai' | 'anthropic';
+    model: string;
+    apiKey: string;
+  };
+
+  const modelConfigs: ModelConfig[] = [
+    ...(ANTHROPIC_API_KEY
+      ? ANTHROPIC_MODELS.map(model => ({
+          provider: 'anthropic' as const,
+          model,
+          apiKey: ANTHROPIC_API_KEY,
+        }))
+      : []),
+    ...(OPENAI_API_KEY
+      ? OPENAI_MODELS_WITH_TOOLS.map(model => ({
+          provider: 'openai' as const,
+          model,
+          apiKey: OPENAI_API_KEY,
+        }))
+      : []),
+  ];
+
+  it.each(modelConfigs)(
+    '$provider/$model: should execute tool calls',
+    async ({ provider, model, apiKey }) => {
+      // Skip unsupported models with informative message
+      if (UNSUPPORTED_MODELS[model]) {
+        console.warn(`Skipping ${model}: ${UNSUPPORTED_MODELS[model]}`);
+
+        return;
+      }
+
+      const router = new Router({
+        aiConfigurations: [{ name: 'test', provider, model, apiKey } as AiConfiguration],
+      });
+
+      const response = (await router.route({
+        route: 'ai-query',
+        body: {
+          messages: [{ role: 'user', content: 'Call the ping tool now.' }],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'ping',
+                description: 'A simple ping tool that returns pong',
+                parameters: { type: 'object', properties: {} },
+              },
+            },
+          ],
+          tool_choice: 'required',
+        },
+      })) as ChatCompletionResponse;
+
+      expect(response.choices[0].finish_reason).toBe('tool_calls');
+      expect(response.choices[0].message.tool_calls?.[0]).toMatchObject({
+        type: 'function',
+        function: expect.objectContaining({ name: 'ping' }),
+      });
+    },
+    30000,
+  );
 });
