@@ -5,4 +5,7 @@ export default {
   ...jestConfig,
   collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
   testMatch: ['<rootDir>/test/**/*.test.ts'],
+  setupFiles: ['<rootDir>/test/setup-env.ts'],
+  // Force exit after tests complete to handle async MCP connections
+  forceExit: true,
 };
