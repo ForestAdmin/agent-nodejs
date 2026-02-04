@@ -159,12 +159,14 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       expect(response.choices[0].message.tool_calls).toHaveLength(1);
     }, 30000);
 
-    it('should select AI configuration by name', async () => {
+    it('should select AI configuration by name without fallback warning', async () => {
+      const mockLogger = jest.fn();
       const multiConfigRouter = new Router({
         aiConfigurations: [
           { name: 'primary', provider: 'openai', model: 'gpt-4o-mini', apiKey: OPENAI_API_KEY! },
           { name: 'secondary', provider: 'openai', model: 'gpt-4o-mini', apiKey: OPENAI_API_KEY! },
         ],
+        logger: mockLogger,
       });
 
       const response = (await multiConfigRouter.route({
@@ -176,6 +178,36 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       })) as ChatCompletionResponse;
 
       expect(response.choices[0].message.content).toBeDefined();
+      // Verify no fallback warning was logged - this proves 'secondary' was found and selected
+      expect(mockLogger).not.toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('not found'),
+      );
+    }, 30000);
+
+    it('should fallback to first config and log warning when requested config not found', async () => {
+      const mockLogger = jest.fn();
+      const multiConfigRouter = new Router({
+        aiConfigurations: [
+          { name: 'primary', provider: 'openai', model: 'gpt-4o-mini', apiKey: OPENAI_API_KEY! },
+        ],
+        logger: mockLogger,
+      });
+
+      const response = (await multiConfigRouter.route({
+        route: 'ai-query',
+        query: { 'ai-name': 'non-existent' },
+        body: {
+          messages: [{ role: 'user', content: 'Say "ok"' }],
+        },
+      })) as ChatCompletionResponse;
+
+      expect(response.choices[0].message.content).toBeDefined();
+      // Verify fallback warning WAS logged
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining("'non-existent' not found"),
+      );
     }, 30000);
 
     // Skip: Langchain doesn't fully support tool_choice with specific function name passthrough
@@ -347,23 +379,23 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       ).rejects.toThrow('AI is not configured. Please call addAI() on your agent.');
     });
 
-    it('should throw error for missing body', async () => {
+    it('should throw error for missing messages in body', async () => {
       await expect(
         router.route({
           route: 'ai-query',
           body: {} as any,
         }),
-      ).rejects.toThrow(); // Error from OpenAI or validation
+      ).rejects.toThrow(/messages|required|invalid/i);
     }, 30000);
 
-    it('should handle empty messages array', async () => {
-      // OpenAI requires at least one message, this should fail
+    it('should throw error for empty messages array', async () => {
+      // OpenAI requires at least one message
       await expect(
         router.route({
           route: 'ai-query',
           body: { messages: [] },
         }),
-      ).rejects.toThrow(); // OpenAI rejects empty messages
+      ).rejects.toThrow(/messages|empty|at least one/i);
     }, 30000);
 
     it('should throw error for invalid route', async () => {
@@ -371,7 +403,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         router.route({
           route: 'invalid-route' as any,
         }),
-      ).rejects.toThrow(); // Unprocessable error
+      ).rejects.toThrow(/No action to perform|invalid.*route/i);
     });
   });
 
@@ -443,7 +475,15 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
     });
 
     describe('MCP error handling', () => {
-      it('should continue working when one MCP server is unreachable', async () => {
+      it('should continue working when one MCP server is unreachable and log the error', async () => {
+        const mockLogger = jest.fn();
+        const routerWithLogger = new Router({
+          aiConfigurations: [
+            { name: 'test-gpt', provider: 'openai', model: 'gpt-4o-mini', apiKey: OPENAI_API_KEY! },
+          ],
+          logger: mockLogger,
+        });
+
         // Configure working server + unreachable server
         const mixedConfig = {
           configs: {
@@ -456,7 +496,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         };
 
         // Should still return tools from the working server
-        const response = (await router.route({
+        const response = (await routerWithLogger.route({
           route: 'remote-tools',
           mcpConfigs: mixedConfig,
         })) as Array<{ name: string; sourceId: string }>;
@@ -465,9 +505,24 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         const toolNames = response.map(t => t.name);
         expect(toolNames).toContain('add');
         expect(toolNames).toContain('multiply');
+
+        // Verify the error for 'broken' server was logged
+        expect(mockLogger).toHaveBeenCalledWith(
+          'Error',
+          expect.stringContaining('broken'),
+          expect.any(Error),
+        );
       }, 30000);
 
-      it('should handle MCP authentication failure gracefully', async () => {
+      it('should handle MCP authentication failure gracefully and log error', async () => {
+        const mockLogger = jest.fn();
+        const routerWithLogger = new Router({
+          aiConfigurations: [
+            { name: 'test-gpt', provider: 'openai', model: 'gpt-4o-mini', apiKey: OPENAI_API_KEY! },
+          ],
+          logger: mockLogger,
+        });
+
         const badAuthConfig = {
           configs: {
             calculator: {
@@ -481,13 +536,20 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         };
 
         // Should return empty array when auth fails (server rejects)
-        const response = (await router.route({
+        const response = (await routerWithLogger.route({
           route: 'remote-tools',
           mcpConfigs: badAuthConfig,
         })) as Array<{ name: string }>;
 
         // No tools loaded due to auth failure
         expect(response).toEqual([]);
+
+        // Verify the auth error was logged
+        expect(mockLogger).toHaveBeenCalledWith(
+          'Error',
+          expect.stringContaining('calculator'),
+          expect.any(Error),
+        );
       }, 30000);
 
       it('should allow ai-query to work even when MCP server fails', async () => {
@@ -513,9 +575,35 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       }, 30000);
     });
 
-    // Note: invoke-remote-tool with MCP requires specific input format
-    // that depends on how langchain MCP adapter handles tool invocation.
-    // This is tested indirectly via ai-query tool binding below.
+    describe('route: invoke-remote-tool (with MCP)', () => {
+      it('should invoke MCP add tool and return result', async () => {
+        // MCP tools expect arguments directly matching their schema
+        const response = await router.route({
+          route: 'invoke-remote-tool',
+          query: { 'tool-name': 'add' },
+          body: {
+            inputs: { a: 5, b: 3 } as any, // Direct tool arguments
+          },
+          mcpConfigs: mcpConfig,
+        });
+
+        // MCP tool returns the computed result as string
+        expect(response).toBe('8');
+      }, 30000);
+
+      it('should invoke MCP multiply tool and return result', async () => {
+        const response = await router.route({
+          route: 'invoke-remote-tool',
+          query: { 'tool-name': 'multiply' },
+          body: {
+            inputs: { a: 6, b: 7 } as any, // Direct tool arguments
+          },
+          mcpConfigs: mcpConfig,
+        });
+
+        expect(response).toBe('42');
+      }, 30000);
+    });
 
     describe('route: ai-query (with MCP tools)', () => {
       it('should allow OpenAI to call MCP tools', async () => {
