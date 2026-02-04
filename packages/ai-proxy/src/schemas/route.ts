@@ -3,7 +3,7 @@ import type {
   ChatCompletionMessage,
   ChatCompletionTool,
   ChatCompletionToolChoice,
-} from '../types/provider';
+} from '../provider';
 
 import { z } from 'zod';
 
