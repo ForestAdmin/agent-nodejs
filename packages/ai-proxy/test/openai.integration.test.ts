@@ -312,8 +312,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
   });
 
   describe('error handling', () => {
-    // Skipped: langchain retries with invalid key cause long delays
-    it.skip('should throw authentication error with invalid API key', async () => {
+    it('should throw authentication error with invalid API key', async () => {
       const invalidRouter = new Router({
         aiConfigurations: [
           {
@@ -357,9 +356,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       ).rejects.toThrow(); // Error from OpenAI or validation
     }, 30000);
 
-    // Skip: Langchain has internal retry behavior that causes very long delays
-    // on OpenAI validation errors, making this test unreliable in CI
-    it.skip('should handle empty messages array', async () => {
+    it('should handle empty messages array', async () => {
       // OpenAI requires at least one message, this should fail
       await expect(
         router.route({
@@ -367,7 +364,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           body: { messages: [] },
         }),
       ).rejects.toThrow(); // OpenAI rejects empty messages
-    }, 60000);
+    }, 30000);
 
     it('should throw error for invalid route', async () => {
       await expect(
