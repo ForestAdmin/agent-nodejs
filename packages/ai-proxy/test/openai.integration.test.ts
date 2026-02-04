@@ -210,9 +210,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       );
     }, 30000);
 
-    // Skip: Langchain doesn't fully support tool_choice with specific function name passthrough
-    // The underlying library doesn't reliably forward the specific function choice to OpenAI
-    it.skip('should handle tool_choice with specific function name', async () => {
+    it('should handle tool_choice with specific function name', async () => {
       const response = (await router.route({
         route: 'ai-query',
         body: {
@@ -240,10 +238,13 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         },
       })) as ChatCompletionResponse;
 
-      expect(response.choices[0].finish_reason).toBe('tool_calls');
-      const toolCall = response.choices[0].message.tool_calls?.[0] as {
-        function: { name: string };
-      };
+      // When forcing a specific function, OpenAI returns finish_reason: 'stop' but still includes tool_calls
+      // The key assertion is that the specified function was called
+      const toolCalls = response.choices[0].message.tool_calls;
+      expect(toolCalls).toBeDefined();
+      expect(toolCalls).toHaveLength(1);
+
+      const toolCall = toolCalls![0] as { function: { name: string } };
       // Should call 'greet' specifically, not 'farewell'
       expect(toolCall.function.name).toBe('greet');
     }, 30000);
