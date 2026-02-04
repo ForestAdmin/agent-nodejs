@@ -64,6 +64,7 @@ jobs:
           - agent
           - agent-client
           - agent-testing
+          - ai-proxy
           - forest-cloud
           - mcp-server
           - datasource-customizer
@@ -104,6 +105,8 @@ jobs:
         run: cd packages/${{ matrix.package }} && yarn lint && cd -
       - name: Test code
         run: cd packages/${{ matrix.package }} && yarn test --coverage && cd -
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
