@@ -127,12 +127,12 @@ Use the Linear MCP tools to create issues:
   - `sub epic` - Smaller parts of epics
 
 Example:
-```
-mcp__linear-server__create_issue
-  title: "Bug title"
-  description: "## Description\n\n..."
-  team: "Product"
-  labels: ["bug"]
+```yaml
+# mcp__linear-server__create_issue
+title: "Bug title"
+description: "## Description\n\n..."
+team: "Product"
+labels: ["bug"]
 ```
 
 ### Linking Linear ↔ GitHub
