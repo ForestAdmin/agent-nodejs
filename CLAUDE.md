@@ -106,8 +106,6 @@ yarn workspace @forestadmin/agent test
 
 ## Linear Tickets
 
-When creating Linear tickets for bugs or features, ensure bidirectional linking with GitHub.
-
 ### MCP Setup
 
 If the Linear MCP server is not installed, add it to your Claude Code configuration:
@@ -116,31 +114,34 @@ If the Linear MCP server is not installed, add it to your Claude Code configurat
 claude mcp add linear-server npx -- -y @anthropic/linear-mcp-server
 ```
 
-### Creating a ticket
+### Linking a PR to an existing Linear ticket
 
-Use the Linear MCP tools to create issues:
-- `mcp__linear-server__create_issue` - Create a new issue
-- Team: `Product` for product-related issues
-- **Labels** (optional): Use when appropriate, skip for small tasks
-  - `bug` - Bug reports
-  - `epic` - Large feature groupings
-  - `sub epic` - Smaller parts of epics
+When pushing a PR that relates to an existing Linear ticket:
 
-Example:
+1. **Include the issue identifier in the branch name**
+   - Example: `fix/prd-139-list-not-refreshing`
+   - Linear automatically detects PRs from branches containing `PRD-XXX`
+
+2. **Add the Linear URL in the PR description**
+   - Example: `Linear: https://linear.app/forestadmin/issue/PRD-139/...`
+   - This creates the GitHub → Linear link
+
+### Creating a Linear ticket from Claude
+
+Use `mcp__linear-server__create_issue` to create tickets:
+
 ```yaml
-# mcp__linear-server__create_issue
 title: "Bug title"
 description: "## Description\n\n..."
 team: "Product"
-labels: ["bug"]
+labels: ["bug"]  # optional
 ```
 
-### Linking Linear ↔ GitHub
+**Team**: `Product` for product-related issues
 
-1. **Use the suggested branch name** from Linear (returned in `gitBranchName` field)
-   - Example: `feature/prd-139-list-not-refreshing-when-navigating-back-via-breadcrumbs`
-   - Linear automatically links PRs from branches containing the issue identifier
+**Labels** (optional, skip for small tasks):
+- `bug` - Bug reports
+- `epic` - Large feature groupings
+- `sub epic` - Smaller parts of epics
 
-2. **Include Linear URL in PR description**
-   - Add the Linear issue URL in the PR body so GitHub shows the link
-   - Example: `Linear: https://linear.app/forestadmin/issue/PRD-139/...`
+The response includes a `gitBranchName` field with a suggested branch name containing the issue identifier.
