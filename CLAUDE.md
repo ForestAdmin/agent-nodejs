@@ -103,3 +103,45 @@ yarn workspace @forestadmin/agent test
 4. Are there unused variables/imports?
 5. Are edge cases handled?
 6. Is the naming clear and consistent?
+
+## Linear Tickets
+
+### MCP Setup
+
+If the Linear MCP server is not installed, add it to your Claude Code configuration:
+
+```bash
+claude mcp add linear-server npx -- -y @anthropic/linear-mcp-server
+```
+
+### Linking a PR to an existing Linear ticket
+
+When pushing a PR that relates to an existing Linear ticket:
+
+1. **Include the issue identifier in the branch name**
+   - Example: `fix/prd-139-list-not-refreshing`
+   - Linear automatically detects PRs from branches containing `PRD-XXX`
+
+2. **Add the Linear ticket ID prefixed with "fixes" in the PR body**
+   - Example: `fixes PRD-139`
+   - This creates the GitHub → Linear link
+
+### Creating a Linear ticket from Claude
+
+Use `mcp__linear-server__create_issue` to create tickets:
+
+```yaml
+title: "Bug title"
+description: "## Description\n\n..."
+team: "Product"
+labels: ["bug"]  # optional
+```
+
+**Team**: `Product` for product-related issues
+
+**Labels** (optional, skip for small tasks):
+- `bug` - Bug reports
+- `epic` - Large feature groupings
+- `sub epic` - Smaller parts of epics
+
+The response includes a `gitBranchName` field with a suggested branch name containing the issue identifier.
