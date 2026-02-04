@@ -60,9 +60,7 @@ export default class AiProxyRoute extends BaseRoute {
         this.options.logger('Error', `AI proxy error: ${error.message}`, error);
 
         if (error instanceof AINotConfiguredError) {
-          throw new UnprocessableError(
-            'AI is not configured. Please call addAi() on your agent.',
-          );
+          throw new UnprocessableError('AI is not configured. Please call addAi() on your agent.');
         }
 
         if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
