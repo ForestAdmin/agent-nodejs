@@ -3,7 +3,6 @@ import type {
   ChatCompletionTool,
   ChatCompletionToolChoice,
 } from '../provider';
-import type { Messages } from '../remote-tools';
 
 import { z } from 'zod';
 
@@ -48,16 +47,20 @@ const invokeRemoteToolQuerySchema = z.object(
 /**
  * Route: invoke-remote-tool
  *
- * Note: inputs uses z.any() because the message format is validated downstream.
+ * Note: inputs uses z.any() because it can be either:
+ * - An array of messages (for regular remote tools)
+ * - An object of arguments (for MCP tools)
+ * Validation happens downstream in the tool implementation.
  */
 const invokeRemoteToolSchema = z.object({
   route: z.literal('invoke-remote-tool'),
   query: invokeRemoteToolQuerySchema,
   body: z.object(
     {
-      inputs: z.array(z.any(), {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      inputs: z.any().refine((val: any) => val !== undefined, {
         message: 'Missing required body parameter: inputs',
-      }) as z.ZodType<Messages>,
+      }),
     },
     { message: 'Missing required parameter: body' },
   ),
