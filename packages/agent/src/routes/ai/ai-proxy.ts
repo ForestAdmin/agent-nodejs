@@ -6,6 +6,7 @@ import type { Context } from 'koa';
 import {
   AIBadRequestError,
   AIError,
+  AINotConfiguredError,
   AINotFoundError,
   Router as AiProxyRouter,
   extractMcpOauthTokensFromHeaders,
@@ -57,6 +58,12 @@ export default class AiProxyRoute extends BaseRoute {
     } catch (error) {
       if (error instanceof AIError) {
         this.options.logger('Error', `AI proxy error: ${error.message}`, error);
+
+        if (error instanceof AINotConfiguredError) {
+          throw new UnprocessableError(
+            'AI is not configured. Please call addAi() on your agent.',
+          );
+        }
 
         if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
         if (error instanceof AINotFoundError) throw new NotFoundError(error.message);

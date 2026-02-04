@@ -47,8 +47,8 @@ export class AIUnprocessableError extends AIError {
 }
 
 export class AINotConfiguredError extends AIError {
-  constructor() {
-    super('AI is not configured. Please call addAI() on your agent.', 422);
+  constructor(message = 'AI is not configured') {
+    super(message, 422);
     this.name = 'AINotConfiguredError';
   }
 }
