@@ -443,8 +443,19 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       mcpServer = runMcpServer(mcp, MCP_PORT, MCP_TOKEN);
     });
 
-    afterAll(() => {
-      mcpServer?.close();
+    afterAll(async () => {
+      await new Promise<void>((resolve, reject) => {
+        if (!mcpServer) {
+          resolve();
+
+          return;
+        }
+
+        mcpServer.close(err => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
     });
 
     describe('route: remote-tools (with MCP)', () => {
