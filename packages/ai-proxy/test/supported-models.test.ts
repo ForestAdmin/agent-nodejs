@@ -2,7 +2,6 @@ import isModelSupportingTools, { validateModelSupportsTools } from '../src/suppo
 
 describe('isModelSupportingTools', () => {
   describe('should return true for supported models', () => {
-    // Verified with real API tests - see model-tools-support.integration.test.ts
     const supportedModels = [
       'gpt-4o',
       'gpt-4o-mini',
@@ -11,8 +10,8 @@ describe('isModelSupportingTools', () => {
       'gpt-4-turbo-2024-04-09',
       'gpt-4.1',
       'gpt-4.1-mini',
-      'gpt-3.5-turbo', // Verified: supports tools
-      'gpt-3.5-turbo-0125', // Verified: supports tools
+      'gpt-3.5-turbo',
+      'gpt-3.5-turbo-0125',
       'gpt-5',
       'o1',
       'o3-mini',
@@ -26,7 +25,6 @@ describe('isModelSupportingTools', () => {
   });
 
   describe('should return false for unsupported models', () => {
-    // Base gpt-4 doesn't honor tool_choice: required (verified with real API)
     const unsupportedModels = [
       'gpt-4',
       'gpt-4-0613',

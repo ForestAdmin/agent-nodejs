@@ -1,8 +1,6 @@
 /**
  * OpenAI model prefixes that do NOT support function calling (tools).
  * Unknown models are allowed.
- *
- * Verified with real API tests - see model-tools-support.integration.test.ts
  * @see https://platform.openai.com/docs/guides/function-calling
  */
 const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT = [
