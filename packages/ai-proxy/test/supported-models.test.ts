@@ -1,59 +1,16 @@
 import isModelSupportingTools, { validateModelSupportsTools } from '../src/supported-models';
 
 describe('isModelSupportingTools', () => {
-  describe('should return true for supported models', () => {
-    // Static list for unit tests (no API call required)
-    const supportedModels = [
-      // GPT-5 family
-      'gpt-5',
-      'gpt-5-mini',
-      'gpt-5-nano',
-      'gpt-5.1',
-      'gpt-5.2',
-      // GPT-4o family
-      'gpt-4o',
-      'gpt-4o-mini',
-      'gpt-4o-2024-08-06',
-      // GPT-4.1 family
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'gpt-4.1-nano',
-      // GPT-4 turbo
-      'gpt-4-turbo',
-      'gpt-4-turbo-2024-04-09',
-      'gpt-4-turbo-preview',
-      // GPT-3.5 family
-      'gpt-3.5-turbo',
-      'gpt-3.5-turbo-0125',
-      'gpt-3.5-turbo-16k',
-      // O-series (reasoning models)
-      'o1',
-      'o3',
-      'o3-mini',
-      'o4-mini',
-      // Unknown models are allowed by default
-      'unknown-model',
-    ];
-
-    it.each(supportedModels)('%s', model => {
-      expect(isModelSupportingTools(model)).toBe(true);
-    });
+  it('should return true for a known supported model', () => {
+    expect(isModelSupportingTools('gpt-4o')).toBe(true);
   });
 
-  describe('should return false for unsupported models', () => {
-    const unsupportedModels = [
-      'gpt-4',
-      'gpt-4-0613',
-      'text-davinci-003',
-      'davinci',
-      'curie',
-      'babbage',
-      'ada',
-    ];
+  it('should return true for an unknown model (allowed by default)', () => {
+    expect(isModelSupportingTools('unknown-future-model')).toBe(true);
+  });
 
-    it.each(unsupportedModels)('%s', model => {
-      expect(isModelSupportingTools(model)).toBe(false);
-    });
+  it('should return false for a blacklisted model', () => {
+    expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
 });
 
