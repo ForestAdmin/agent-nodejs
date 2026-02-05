@@ -17,7 +17,7 @@ import { z } from 'zod';
 import { Router } from '../src';
 
 // Models to test - defined here for integration testing purposes
-const ANTHROPIC_MODELS_TO_TEST_TO_TEST = [
+const ANTHROPIC_MODELS_TO_TEST = [
   'claude-sonnet-4-5-20250514',
   'claude-opus-4-20250514',
   'claude-3-5-sonnet-latest',
