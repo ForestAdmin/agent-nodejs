@@ -12,7 +12,10 @@ import { routeArgsSchema } from './schemas/route';
 
 export type {
   AiQueryArgs,
+  Body,
   InvokeRemoteToolArgs,
+  InvokeRemoteToolBody,
+  Query,
   RemoteToolsArgs,
   RouteArgs,
 } from './schemas/route';

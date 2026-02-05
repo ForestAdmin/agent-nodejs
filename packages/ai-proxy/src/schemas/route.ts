@@ -83,3 +83,8 @@ export type RemoteToolsArgs = z.infer<typeof remoteToolsSchema>;
 
 // Derived types for consumers
 export type DispatchBody = AiQueryArgs['body'];
+
+// Backward compatibility types
+export type InvokeRemoteToolBody = InvokeRemoteToolArgs['body'];
+export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
+export type Query = z.infer<typeof baseQuerySchema>;
