@@ -691,34 +691,35 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
   });
 
   describe('Model tool support verification', () => {
+    it.each(SUPPORTED_OPENAI_MODELS)(
+      '%s should support tool calls',
+      async model => {
+        const modelRouter = new Router({
+          aiConfigurations: [{ name: 'test', provider: 'openai', model, apiKey: OPENAI_API_KEY }],
+        });
 
-    it.each(SUPPORTED_OPENAI_MODELS)('%s should support tool calls', async model => {
-      const modelRouter = new Router({
-        aiConfigurations: [
-          { name: 'test', provider: 'openai', model, apiKey: OPENAI_API_KEY! },
-        ],
-      });
-
-      const response = (await modelRouter.route({
-        route: 'ai-query',
-        body: {
-          messages: [{ role: 'user', content: 'What is 2+2?' }],
-          tools: [
-            {
-              type: 'function',
-              function: {
-                name: 'calculate',
-                description: 'Calculate a math expression',
-                parameters: { type: 'object', properties: { result: { type: 'number' } } },
+        const response = (await modelRouter.route({
+          route: 'ai-query',
+          body: {
+            messages: [{ role: 'user', content: 'What is 2+2?' }],
+            tools: [
+              {
+                type: 'function',
+                function: {
+                  name: 'calculate',
+                  description: 'Calculate a math expression',
+                  parameters: { type: 'object', properties: { result: { type: 'number' } } },
+                },
               },
-            },
-          ],
-          tool_choice: 'required',
-        },
-      })) as ChatCompletionResponse;
+            ],
+            tool_choice: 'required',
+          },
+        })) as ChatCompletionResponse;
 
-      expect(response.choices[0].finish_reason).toBe('tool_calls');
-      expect(response.choices[0].message.tool_calls).toBeDefined();
-    }, 30000);
+        expect(response.choices[0].finish_reason).toBe('tool_calls');
+        expect(response.choices[0].message.tool_calls).toBeDefined();
+      },
+      30000,
+    );
   });
 });
