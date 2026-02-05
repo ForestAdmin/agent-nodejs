@@ -91,6 +91,7 @@ export class ProviderDispatcher {
     if (configuration?.provider === 'openai') {
       const { provider, name, ...chatOpenAIOptions } = configuration;
       this.chatModel = new ChatOpenAI({
+        maxRetries: 0, // No retries by default - this lib is a passthrough
         ...chatOpenAIOptions,
         __includeRawResponse: true,
       });

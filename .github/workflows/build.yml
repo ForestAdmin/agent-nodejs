@@ -64,6 +64,7 @@ jobs:
           - agent
           - agent-client
           - agent-testing
+          - ai-proxy
           - forest-cloud
           - mcp-server
           - datasource-customizer
@@ -102,14 +103,44 @@ jobs:
           fail-on-cache-miss: true
       - name: Lint Typescript
         run: cd packages/${{ matrix.package }} && yarn lint && cd -
-      - name: Test code
-        run: cd packages/${{ matrix.package }} && yarn test --coverage && cd -
+      - name: Test code (excluding LLM integration tests)
+        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration' && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.package }}
           path: packages/${{ matrix.package }}/coverage/clover.xml
           retention-days: 1
+
+  llm-integration-tests:
+    name: LLM Integration Tests (ai-proxy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
+      - name: Run LLM integration tests
+        run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='llm.integration'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
   send-coverage:
     name: Send Coverage

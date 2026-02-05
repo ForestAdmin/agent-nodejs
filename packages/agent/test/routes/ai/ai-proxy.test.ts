@@ -173,7 +173,7 @@ describe('AiProxyRoute', () => {
     });
 
     describe('error handling', () => {
-      test('should convert AINotConfiguredError to UnprocessableError', async () => {
+      test('should convert AINotConfiguredError to UnprocessableError with agent-specific message', async () => {
         const route = new AiProxyRoute(services, options, aiConfigurations);
         mockRoute.mockRejectedValueOnce(new AINotConfiguredError());
 
@@ -185,7 +185,10 @@ describe('AiProxyRoute', () => {
           requestBody: {},
         });
 
-        await expect((route as any).handleAiProxy(context)).rejects.toThrow(UnprocessableError);
+        await expect((route as any).handleAiProxy(context)).rejects.toMatchObject({
+          name: 'UnprocessableError',
+          message: 'AI is not configured. Please call addAi() on your agent.',
+        });
       });
 
       test('should convert AIToolNotFoundError to NotFoundError', async () => {

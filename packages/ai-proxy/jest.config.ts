@@ -5,4 +5,5 @@ export default {
   ...jestConfig,
   collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
   testMatch: ['<rootDir>/test/**/*.test.ts'],
+  setupFiles: ['<rootDir>/test/setup-env.ts'],
 };

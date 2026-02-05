@@ -58,7 +58,7 @@ describe('ProviderDispatcher', () => {
         const dispatcher = new ProviderDispatcher(null, new RemoteTools(apiKeys));
         await expect(dispatcher.dispatch({} as DispatchBody)).rejects.toThrow(AINotConfiguredError);
         await expect(dispatcher.dispatch({} as DispatchBody)).rejects.toThrow(
-          'AI is not configured. Please call addAI() on your agent.',
+          'AI is not configured',
         );
       });
     });
