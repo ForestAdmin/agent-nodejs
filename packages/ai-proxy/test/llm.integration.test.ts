@@ -15,6 +15,7 @@ import { z } from 'zod';
 
 import { Router } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
+import { SUPPORTED_OPENAI_MODELS } from '../src/supported-models';
 
 const { OPENAI_API_KEY } = process.env;
 const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
@@ -690,26 +691,8 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
   });
 
   describe('Model tool support verification', () => {
-    const modelsToTest = [
-      // GPT-4o family
-      'gpt-4o',
-      'gpt-4o-mini',
-      // GPT-4.1 family
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'gpt-4.1-nano',
-      // GPT-4 turbo
-      'gpt-4-turbo',
-      // GPT-3.5 family
-      'gpt-3.5-turbo',
-      // O-series (reasoning models)
-      'o1',
-      'o3',
-      'o3-mini',
-      'o4-mini',
-    ];
 
-    it.each(modelsToTest)('%s should support tool calls', async model => {
+    it.each(SUPPORTED_OPENAI_MODELS)('%s should support tool calls', async model => {
       const modelRouter = new Router({
         aiConfigurations: [
           { name: 'test', provider: 'openai', model, apiKey: OPENAI_API_KEY! },

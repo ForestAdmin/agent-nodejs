@@ -1,4 +1,27 @@
 /**
+ * OpenAI models that support function calling (tools).
+ * This list is used for integration tests.
+ */
+export const SUPPORTED_OPENAI_MODELS = [
+  // GPT-4o family
+  'gpt-4o',
+  'gpt-4o-mini',
+  // GPT-4.1 family
+  'gpt-4.1',
+  'gpt-4.1-mini',
+  'gpt-4.1-nano',
+  // GPT-4 turbo
+  'gpt-4-turbo',
+  // GPT-3.5 family
+  'gpt-3.5-turbo',
+  // O-series (reasoning models)
+  'o1',
+  'o3',
+  'o3-mini',
+  'o4-mini',
+] as const;
+
+/**
  * OpenAI model prefixes that do NOT support function calling (tools).
  * Unknown models are allowed.
  * @see https://platform.openai.com/docs/guides/function-calling
