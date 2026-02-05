@@ -3,11 +3,12 @@ import type { McpConfiguration } from './mcp-client';
 import McpConfigChecker from './mcp-config-checker';
 
 export { createAiProvider } from './create-ai-provider';
-// Re-export from provider-dispatcher (excluding isModelSupportingTools - internal only)
 export { ProviderDispatcher } from './provider-dispatcher';
 export type {
   AiConfiguration,
   AiProvider,
+  AnthropicConfiguration,
+  AnthropicModel,
   BaseAiConfiguration,
   ChatCompletionMessage,
   ChatCompletionResponse,
