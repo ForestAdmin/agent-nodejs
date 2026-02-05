@@ -103,8 +103,8 @@ jobs:
           fail-on-cache-miss: true
       - name: Lint Typescript
         run: cd packages/${{ matrix.package }} && yarn lint && cd -
-      - name: Test code (excluding integration tests)
-        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='integration' && cd -
+      - name: Test code (excluding LLM integration tests)
+        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration' && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
@@ -112,8 +112,8 @@ jobs:
           path: packages/${{ matrix.package }}/coverage/clover.xml
           retention-days: 1
 
-  integration-tests:
-    name: Integration Tests (non-blocking)
+  llm-integration-tests:
+    name: LLM Integration Tests (ai-proxy)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build]
@@ -137,8 +137,8 @@ jobs:
           path: packages/*/dist
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
-      - name: Run integration tests (ai-proxy)
-        run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='integration'
+      - name: Run LLM integration tests
+        run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='llm.integration'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
