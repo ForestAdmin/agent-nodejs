@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.3.1...@forestadmin/ai-proxy@1.4.0) (2026-02-05)
+
+
+### Features
+
+* **ai-proxy:** add Zod validation  ([#1419](https://github.com/ForestAdmin/agent-nodejs/issues/1419)) ([3dc00a0](https://github.com/ForestAdmin/agent-nodejs/commit/3dc00a094ac6e57e9ae317d4b21a6857fb449dd9))
+
 ## @forestadmin/ai-proxy [1.3.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.3.0...@forestadmin/ai-proxy@1.3.1) (2026-02-03)
 
 
