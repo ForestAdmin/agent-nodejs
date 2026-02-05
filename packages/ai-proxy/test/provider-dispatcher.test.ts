@@ -3,7 +3,6 @@ import type { DispatchBody } from '../src';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
 import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
-import { isModelSupportingTools } from '../src/provider-dispatcher';
 
 // Mock raw OpenAI response (returned via __includeRawResponse: true)
 const mockOpenAIResponse = {
@@ -295,55 +294,6 @@ describe('ProviderDispatcher', () => {
         );
         expect(invokeMock).toHaveBeenCalledWith(messages);
       });
-    });
-  });
-});
-
-describe('isModelSupportingTools', () => {
-  describe('should return true for supported and unknown models', () => {
-    const supportedModels = [
-      'gpt-4o',
-      'gpt-4o-mini',
-      'gpt-4o-2024-08-06',
-      'gpt-4-turbo',
-      'gpt-4-turbo-2024-04-09',
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'gpt-4.1-nano',
-      'gpt-5',
-      'gpt-5-mini',
-      'gpt-5-nano',
-      'gpt-5.2',
-      'o1',
-      'o3',
-      'o3-mini',
-      'o3-pro',
-      'o4-mini',
-      'unknown-model',
-      'future-gpt-model',
-    ];
-
-    it.each(supportedModels)('%s', model => {
-      expect(isModelSupportingTools(model)).toBe(true);
-    });
-  });
-
-  describe('should return false for known unsupported models', () => {
-    const unsupportedModels = [
-      'gpt-4',
-      'gpt-4-0613',
-      'gpt-3.5-turbo',
-      'gpt-3.5-turbo-0125',
-      'gpt-3.5',
-      'text-davinci-003',
-      'davinci',
-      'curie',
-      'babbage',
-      'ada',
-    ];
-
-    it.each(unsupportedModels)('%s', model => {
-      expect(isModelSupportingTools(model)).toBe(false);
     });
   });
 });

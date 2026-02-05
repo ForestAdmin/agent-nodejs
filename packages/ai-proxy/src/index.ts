@@ -2,7 +2,6 @@ import type { McpConfiguration } from './mcp-client';
 
 import McpConfigChecker from './mcp-config-checker';
 
-// Re-export from provider-dispatcher (excluding isModelSupportingTools - internal only)
 export { ProviderDispatcher } from './provider-dispatcher';
 export type {
   AiConfiguration,

@@ -23,17 +23,13 @@ jest.mock('../src/provider-dispatcher', () => {
     ProviderDispatcher: jest.fn().mockImplementation(() => ({
       dispatch: dispatchMock,
     })),
-    isModelSupportingTools: jest.fn().mockReturnValue(true),
   };
 });
 
 // eslint-disable-next-line import/first
-import { isModelSupportingTools, ProviderDispatcher } from '../src/provider-dispatcher';
+import { ProviderDispatcher } from '../src/provider-dispatcher';
 
 const ProviderDispatcherMock = ProviderDispatcher as jest.MockedClass<typeof ProviderDispatcher>;
-const isModelSupportingToolsMock = isModelSupportingTools as jest.MockedFunction<
-  typeof isModelSupportingTools
->;
 
 jest.mock('../src/mcp-client', () => {
   return jest.fn().mockImplementation(() => ({
@@ -81,23 +77,23 @@ describe('route', () => {
         apiKey: 'dev',
         model: 'gpt-4o',
       };
-      const gpt3Config = {
-        name: 'gpt3',
+      const gpt4MiniConfig = {
+        name: 'gpt4mini',
         provider: 'openai' as const,
         apiKey: 'dev',
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
       };
       const router = new Router({
-        aiConfigurations: [gpt4Config, gpt3Config],
+        aiConfigurations: [gpt4Config, gpt4MiniConfig],
       });
 
       await router.route({
         route: 'ai-query',
-        query: { 'ai-name': 'gpt3' },
+        query: { 'ai-name': 'gpt4mini' },
         body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
       });
 
-      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt3Config, expect.anything());
+      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4MiniConfig, expect.anything());
     });
 
     it('uses first configuration when ai-name query is not provided', async () => {
@@ -107,14 +103,14 @@ describe('route', () => {
         apiKey: 'dev',
         model: 'gpt-4o',
       };
-      const gpt3Config = {
-        name: 'gpt3',
+      const gpt4MiniConfig = {
+        name: 'gpt4mini',
         provider: 'openai' as const,
         apiKey: 'dev',
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
       };
       const router = new Router({
-        aiConfigurations: [gpt4Config, gpt3Config],
+        aiConfigurations: [gpt4Config, gpt4MiniConfig],
       });
 
       await router.route({
@@ -393,8 +389,6 @@ describe('route', () => {
 
   describe('Model validation', () => {
     it('throws AIModelNotSupportedError when model does not support tools', () => {
-      isModelSupportingToolsMock.mockReturnValueOnce(false);
-
       expect(
         () =>
           new Router({
@@ -403,7 +397,7 @@ describe('route', () => {
                 name: 'test',
                 provider: 'openai',
                 apiKey: 'dev',
-                model: 'unsupported-model',
+                model: 'gpt-4', // Known unsupported model
               },
             ],
           }),
@@ -411,8 +405,6 @@ describe('route', () => {
     });
 
     it('throws with helpful error message including model name', () => {
-      isModelSupportingToolsMock.mockReturnValueOnce(false);
-
       expect(
         () =>
           new Router({
@@ -426,6 +418,60 @@ describe('route', () => {
             ],
           }),
       ).toThrow("Model 'text-davinci-003' does not support tools");
+    });
+
+    describe('should accept supported models', () => {
+      const supportedModels = [
+        'gpt-4o',
+        'gpt-4o-mini',
+        'gpt-4o-2024-08-06',
+        'gpt-4-turbo',
+        'gpt-4-turbo-2024-04-09',
+        'gpt-4.1',
+        'gpt-4.1-mini',
+        'gpt-5',
+        'o1',
+        'o3-mini',
+        'unknown-model',
+        'future-gpt-model',
+      ];
+
+      it.each(supportedModels)('%s', model => {
+        expect(
+          () =>
+            new Router({
+              aiConfigurations: [
+                { name: 'test', provider: 'openai', apiKey: 'dev', model },
+              ],
+            }),
+        ).not.toThrow();
+      });
+    });
+
+    describe('should reject known unsupported models', () => {
+      const unsupportedModels = [
+        'gpt-4',
+        'gpt-4-0613',
+        'gpt-3.5-turbo',
+        'gpt-3.5-turbo-0125',
+        'gpt-3.5',
+        'text-davinci-003',
+        'davinci',
+        'curie',
+        'babbage',
+        'ada',
+      ];
+
+      it.each(unsupportedModels)('%s', model => {
+        expect(
+          () =>
+            new Router({
+              aiConfigurations: [
+                { name: 'test', provider: 'openai', apiKey: 'dev', model },
+              ],
+            }),
+        ).toThrow(AIModelNotSupportedError);
+      });
     });
   });
 });
