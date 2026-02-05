@@ -32,3 +32,16 @@ export default function isModelSupportingTools(model: string): boolean {
 
   return !isKnownUnsupported;
 }
+
+/**
+ * Validates that a model supports tool calling.
+ * @throws {Error} with descriptive message if the model doesn't support tools.
+ * @internal Used by Router and Agent for early validation.
+ */
+export function validateModelSupportsTools(model: string): void {
+  if (!isModelSupportingTools(model)) {
+    throw new Error(
+      `Model '${model}' does not support tools. Please use a model that supports function calling.`,
+    );
+  }
+}
