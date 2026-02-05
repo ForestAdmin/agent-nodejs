@@ -691,13 +691,20 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
   describe('Model tool support verification', () => {
     const modelsToTest = [
+      // GPT-4o family
       'gpt-4o',
       'gpt-4o-mini',
+      // GPT-4.1 family
       'gpt-4.1',
       'gpt-4.1-mini',
       'gpt-4.1-nano',
+      // GPT-4 turbo
       'gpt-4-turbo',
+      // GPT-3.5
       'gpt-3.5-turbo',
+      // O-series (reasoning models)
+      'o1-mini',
+      'o3-mini',
     ];
 
     it.each(modelsToTest)('%s should support tool calls', async model => {
