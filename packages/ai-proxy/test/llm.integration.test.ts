@@ -700,11 +700,13 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       'gpt-4.1-nano',
       // GPT-4 turbo
       'gpt-4-turbo',
-      // GPT-3.5
+      // GPT-3.5 family
       'gpt-3.5-turbo',
       // O-series (reasoning models)
-      'o1-mini',
+      'o1',
+      'o3',
       'o3-mini',
+      'o4-mini',
     ];
 
     it.each(modelsToTest)('%s should support tool calls', async model => {

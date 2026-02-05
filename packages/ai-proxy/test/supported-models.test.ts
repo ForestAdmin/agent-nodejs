@@ -23,8 +23,6 @@ describe('isModelSupportingTools', () => {
       'gpt-3.5-turbo-16k',
       // O-series (reasoning models)
       'o1',
-      'o1-mini',
-      'o1-preview',
       'o3',
       'o3-mini',
       'o4-mini',
