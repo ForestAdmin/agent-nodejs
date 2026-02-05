@@ -60,8 +60,5 @@
     "micromatch": "^4.0.8",
     "@babel/helpers": "^7.26.10",
     "semantic-release": "^25.0.0"
-  },
-  "dependencies": {
-    "@langchain/anthropic": "^0.3.17"
   }
 }
