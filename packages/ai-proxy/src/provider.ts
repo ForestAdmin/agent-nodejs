@@ -1,4 +1,4 @@
-import type { AnthropicInput } from '@langchain/anthropic';
+import type { AnthropicInput, AnthropicMessagesModelId } from '@langchain/anthropic';
 import type { ChatOpenAIFields, OpenAIChatModelId } from '@langchain/openai';
 import type OpenAI from 'openai';
 
@@ -8,21 +8,9 @@ export type ChatCompletionMessage = OpenAI.Chat.Completions.ChatCompletionMessag
 export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
 export type ChatCompletionToolChoice = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
 
-// Anthropic models
-export const ANTHROPIC_MODELS = [
-  'claude-sonnet-4-5-20250514',
-  'claude-opus-4-20250514',
-  'claude-3-5-sonnet-latest',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-haiku-latest',
-  'claude-3-5-haiku-20241022',
-  'claude-3-opus-latest',
-  'claude-3-opus-20240229',
-  'claude-3-sonnet-20240229',
-  'claude-3-haiku-20240307',
-] as const;
-
-export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
+// Anthropic model type from langchain (auto-updated when SDK updates)
+// Includes known models for autocomplete + allows custom strings
+export type AnthropicModel = AnthropicMessagesModelId;
 
 // AI Provider types
 export type AiProvider = 'openai' | 'anthropic';
