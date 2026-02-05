@@ -1,9 +1,3 @@
-import type {
-  ChatCompletionMessage,
-  ChatCompletionTool,
-  ChatCompletionToolChoice,
-} from '../provider';
-
 import { z } from 'zod';
 
 // Base query schema with common optional parameters
@@ -19,20 +13,22 @@ const baseQuerySchema = z.object({
  * and frequently evolve. Runtime validation happens downstream in the OpenAI SDK.
  * The type casts ensure TypeScript type safety while allowing flexibility.
  */
+const aiQueryBodySchema = z.object(
+  {
+    messages: z.array(z.any(), {
+      message: 'Missing required body parameter: messages',
+    }),
+    tools: z.array(z.any()).optional(),
+    tool_choice: z.any().optional(),
+    parallel_tool_calls: z.boolean().optional(),
+  },
+  { message: 'Missing required parameter: body' },
+);
+
 const aiQuerySchema = z.object({
   route: z.literal('ai-query'),
   query: baseQuerySchema.optional(),
-  body: z.object(
-    {
-      messages: z.array(z.any(), {
-        message: 'Missing required body parameter: messages',
-      }) as z.ZodType<ChatCompletionMessage[]>,
-      tools: z.array(z.any()).optional() as z.ZodType<ChatCompletionTool[] | undefined>,
-      tool_choice: z.any().optional() as z.ZodType<ChatCompletionToolChoice | undefined>,
-      parallel_tool_calls: z.boolean().optional(),
-    },
-    { message: 'Missing required parameter: body' },
-  ),
+  body: aiQueryBodySchema,
 });
 
 // Query schema for invoke-remote-tool (tool-name is required)
