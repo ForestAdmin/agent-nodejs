@@ -449,7 +449,9 @@ describe('Agent', () => {
           apiKey: 'test-key',
           model: 'gpt-4',
         }),
-      ).toThrow("Model 'gpt-4' does not support tools. Please use a model that supports function calling.");
+      ).toThrow(
+        "Model 'gpt-4' does not support tools. Please use a model that supports function calling.",
+      );
     });
 
     test('should include ai_llms in schema meta when AI is configured', async () => {
