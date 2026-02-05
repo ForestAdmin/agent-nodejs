@@ -17,6 +17,7 @@ import type {
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
+import { validateModelSupportsTools } from '@forestadmin/ai-proxy';
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
@@ -244,6 +245,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         'addAi can only be called once. Multiple AI configurations are not supported yet.',
       );
     }
+
+    validateModelSupportsTools(configuration.model);
 
     this.options.logger(
       'Warn',
