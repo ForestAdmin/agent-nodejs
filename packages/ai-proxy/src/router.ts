@@ -44,12 +44,7 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: {
-    body?: unknown;
-    route: string;
-    query?: unknown;
-    mcpConfigs?: McpConfiguration;
-  }) {
+  async route(args: RouteArgs & { mcpConfigs?: McpConfiguration }) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
 
@@ -88,6 +83,7 @@ export class Router {
         case 'remote-tools':
           return remoteTools.toolDefinitionsForFrontend;
 
+        /* istanbul ignore next */
         default: {
           // Exhaustive type check - this code never runs at runtime because Zod validation
           // catches unknown routes earlier. However, it provides compile-time safety:

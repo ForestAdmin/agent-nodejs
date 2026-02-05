@@ -58,7 +58,7 @@ const invokeRemoteToolSchema = z.object({
   body: z.object(
     {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      inputs: z.any().refine((val: any) => val !== undefined, {
+      inputs: z.any().refine((val: any) => val !== undefined && val !== null, {
         message: 'Missing required body parameter: inputs',
       }),
     },

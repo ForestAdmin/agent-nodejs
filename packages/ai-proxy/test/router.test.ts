@@ -170,7 +170,7 @@ describe('route', () => {
           route: 'invoke-remote-tool',
           query: {},
           body: { inputs: [] },
-        }),
+        } as any),
       ).rejects.toThrow('query.tool-name: Missing required query parameter: tool-name');
     });
 
@@ -194,8 +194,8 @@ describe('route', () => {
           route: 'invoke-remote-tool',
           query: {},
           body: {},
-        }),
-      ).rejects.toThrow(/tool-name.*inputs|inputs.*tool-name/);
+        } as any),
+      ).rejects.toThrow(/tool-name.*;.*inputs|inputs.*;.*tool-name/);
     });
   });
 
@@ -213,7 +213,7 @@ describe('route', () => {
     it('throws a validation error with helpful message', async () => {
       const router = new Router({});
 
-      await expect(router.route({ route: 'unknown' as Route })).rejects.toThrow(
+      await expect(router.route({ route: 'unknown' } as any)).rejects.toThrow(
         "Invalid route. Expected: 'ai-query', 'invoke-remote-tool', 'remote-tools'",
       );
     });
@@ -223,9 +223,9 @@ describe('route', () => {
 
       await expect(
         router.route({
-          route: 'unknown' as Route,
+          route: 'unknown',
           mcpConfigs: { configs: {} },
-        }),
+        } as any),
       ).rejects.toThrow(
         "Invalid route. Expected: 'ai-query', 'invoke-remote-tool', 'remote-tools'",
       );
@@ -258,7 +258,7 @@ describe('route', () => {
           route: 'ai-query',
           body: { messages: [] },
           mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
-        }),
+        } as any),
       ).rejects.toThrow();
 
       expect(MockedMcpClient).toHaveBeenCalledTimes(1);
@@ -328,7 +328,7 @@ describe('route', () => {
           route: 'ai-query',
           body: { messages: [] },
           mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
-        }),
+        } as any),
       ).rejects.toThrow(dispatchError);
 
       // Cleanup error should be logged
