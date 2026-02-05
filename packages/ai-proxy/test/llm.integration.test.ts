@@ -14,7 +14,21 @@ import type { Server } from 'http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { ANTHROPIC_MODELS, Router } from '../src';
+import { Router } from '../src';
+
+// Models to test - defined here for integration testing purposes
+const ANTHROPIC_MODELS_TO_TEST_TO_TEST = [
+  'claude-sonnet-4-5-20250514',
+  'claude-opus-4-20250514',
+  'claude-3-5-sonnet-latest',
+  'claude-3-5-sonnet-20241022',
+  'claude-3-5-haiku-latest',
+  'claude-3-5-haiku-20241022',
+  'claude-3-opus-latest',
+  'claude-3-opus-20240229',
+  'claude-3-sonnet-20240229',
+  'claude-3-haiku-20240307',
+] as const;
 import runMcpServer from '../src/examples/simple-mcp-server';
 
 const { OPENAI_API_KEY, ANTHROPIC_API_KEY } = process.env;
@@ -520,7 +534,7 @@ describeIfProviders('Model Compatibility (tool execution)', () => {
 
   const modelConfigs: ModelConfig[] = [
     ...(ANTHROPIC_API_KEY
-      ? ANTHROPIC_MODELS.map(model => ({
+      ? ANTHROPIC_MODELS_TO_TEST.map(model => ({
           provider: 'anthropic' as const,
           model,
           apiKey: ANTHROPIC_API_KEY,

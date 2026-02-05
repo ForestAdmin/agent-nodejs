@@ -32,7 +32,6 @@ export type {
   ChatCompletionToolChoice,
   OpenAiConfiguration,
 } from './provider';
-export { ANTHROPIC_MODELS } from './provider';
 export type { DispatchBody } from './schemas/route';
 
 interface OpenAIMessage {
