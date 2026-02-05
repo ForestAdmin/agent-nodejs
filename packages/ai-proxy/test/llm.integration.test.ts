@@ -11,14 +11,31 @@ import type { Server } from 'http';
 
 // eslint-disable-next-line import/extensions
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import OpenAI from 'openai';
 import { z } from 'zod';
 
 import { Router } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
-import { SUPPORTED_OPENAI_MODELS } from '../src/supported-models';
+import isModelSupportingTools from '../src/supported-models';
 
 const { OPENAI_API_KEY } = process.env;
 const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
+
+/**
+ * Fetches available models from OpenAI API.
+ * Returns all models that pass `isModelSupportingTools`.
+ *
+ * If a model fails the integration test, update the blacklist in supported-models.ts.
+ */
+async function fetchChatModelsFromOpenAI(): Promise<string[]> {
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const models = await openai.models.list();
+
+  return models.data
+    .map(m => m.id)
+    .filter(id => isModelSupportingTools(id))
+    .sort();
+}
 
 describeWithOpenAI('OpenAI Integration (real API)', () => {
   const router = new Router({
@@ -691,35 +708,70 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
   });
 
   describe('Model tool support verification', () => {
-    it.each(SUPPORTED_OPENAI_MODELS)(
-      '%s should support tool calls',
-      async model => {
+    let modelsToTest: string[];
+
+    beforeAll(async () => {
+      modelsToTest = await fetchChatModelsFromOpenAI();
+    });
+
+    it('should have found chat models from OpenAI API', () => {
+      expect(modelsToTest.length).toBeGreaterThan(0);
+      // eslint-disable-next-line no-console
+      console.log(`Testing ${modelsToTest.length} models:`, modelsToTest);
+    });
+
+    it('all chat models should support tool calls', async () => {
+      const results: { model: string; success: boolean; error?: string }[] = [];
+
+      for (const model of modelsToTest) {
         const modelRouter = new Router({
           aiConfigurations: [{ name: 'test', provider: 'openai', model, apiKey: OPENAI_API_KEY }],
         });
 
-        const response = (await modelRouter.route({
-          route: 'ai-query',
-          body: {
-            messages: [{ role: 'user', content: 'What is 2+2?' }],
-            tools: [
-              {
-                type: 'function',
-                function: {
-                  name: 'calculate',
-                  description: 'Calculate a math expression',
-                  parameters: { type: 'object', properties: { result: { type: 'number' } } },
+        try {
+          const response = (await modelRouter.route({
+            route: 'ai-query',
+            body: {
+              messages: [{ role: 'user', content: 'What is 2+2?' }],
+              tools: [
+                {
+                  type: 'function',
+                  function: {
+                    name: 'calculate',
+                    description: 'Calculate a math expression',
+                    parameters: { type: 'object', properties: { result: { type: 'number' } } },
+                  },
                 },
-              },
-            ],
-            tool_choice: 'required',
-          },
-        })) as ChatCompletionResponse;
+              ],
+              tool_choice: 'required',
+            },
+          })) as ChatCompletionResponse;
 
-        expect(response.choices[0].finish_reason).toBe('tool_calls');
-        expect(response.choices[0].message.tool_calls).toBeDefined();
-      },
-      30000,
-    );
+          const success =
+            response.choices[0].finish_reason === 'tool_calls' &&
+            response.choices[0].message.tool_calls !== undefined;
+
+          results.push({ model, success });
+        } catch (error) {
+          results.push({ model, success: false, error: String(error) });
+        }
+      }
+
+      const failures = results.filter(r => !r.success);
+      if (failures.length > 0) {
+        const failedModelNames = failures.map(f => f.model).join(', ');
+        // eslint-disable-next-line no-console
+        console.error(
+          `\n❌ ${failures.length} model(s) failed: ${failedModelNames}\n\n` +
+            `To fix this, add the failing model(s) to the blacklist in:\n` +
+            `  packages/ai-proxy/src/supported-models.ts\n\n` +
+            `Add to OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PREFIXES (for prefix match)\n` +
+            `or OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS (for contains match)\n`,
+          failures,
+        );
+      }
+
+      expect(failures).toEqual([]);
+    }, 300000); // 5 minutes for all models
   });
 });
