@@ -38,7 +38,7 @@ export function injectOauthToken({
 }): McpServerConfig {
   if (!token) return serverConfig;
 
-  if (!token.startsWith('Bearer ')) {
+  if (!token.toLocaleLowerCase().startsWith('bearer ')) {
     throw new AIBadRequestError('OAuth token must start with "Bearer "');
   }
 

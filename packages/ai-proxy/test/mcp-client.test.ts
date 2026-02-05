@@ -328,6 +328,23 @@ describe('McpClient', () => {
 
       expect(result).toBe(serverConfig);
     });
+
+    it('should accept lowercase "bearer" prefix', () => {
+      const serverConfig = {
+        type: 'http' as const,
+        url: 'https://example.com/mcp',
+      };
+
+      const result = injectOauthToken({ serverConfig, token: 'bearer my-oauth-token' });
+
+      expect(result).toEqual({
+        type: 'http',
+        url: 'https://example.com/mcp',
+        headers: {
+          Authorization: 'bearer my-oauth-token',
+        },
+      });
+    });
   });
 
   describe('injectOauthTokens', () => {
