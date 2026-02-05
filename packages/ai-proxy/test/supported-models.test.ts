@@ -15,12 +15,7 @@ describe('isModelSupportingTools', () => {
       'gpt-4-turbo-preview',
       'gpt-3.5-turbo-0125',
       'gpt-3.5-turbo-16k',
-      // Future models
-      'gpt-5',
-      'gpt-5-mini',
-      'gpt-5-nano',
-      'gpt-5.1',
-      'gpt-5.2',
+      // Unknown models are allowed by default
       'unknown-model',
     ];
 

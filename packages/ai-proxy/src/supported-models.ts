@@ -3,6 +3,12 @@
  * This list is used for integration tests.
  */
 export const SUPPORTED_OPENAI_MODELS = [
+  // GPT-5 family
+  'gpt-5',
+  'gpt-5-mini',
+  'gpt-5-nano',
+  'gpt-5.1',
+  'gpt-5.2',
   // GPT-4o family
   'gpt-4o',
   'gpt-4o-mini',
