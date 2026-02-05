@@ -1,12 +1,25 @@
+import type { AiConfiguration, ChatCompletionResponse, ChatCompletionTool } from './provider';
 import type { RemoteTools } from './remote-tools';
+import type { DispatchBody } from './schemas/route';
 import type { BaseMessageLike } from '@langchain/core/messages';
-import type { ChatOpenAIFields, OpenAIChatModelId } from '@langchain/openai';
-import type OpenAI from 'openai';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
 import { AINotConfiguredError, OpenAIUnprocessableError } from './errors';
+
+// Re-export types for consumers
+export type {
+  AiConfiguration,
+  AiProvider,
+  BaseAiConfiguration,
+  ChatCompletionMessage,
+  ChatCompletionResponse,
+  ChatCompletionTool,
+  ChatCompletionToolChoice,
+  OpenAiConfiguration,
+} from './provider';
+export type { DispatchBody } from './schemas/route';
 
 /**
  * OpenAI model prefixes that do NOT support function calling (tools).
@@ -42,43 +55,6 @@ export function isModelSupportingTools(model: string): boolean {
 
   return !isKnownUnsupported;
 }
-
-/**
- * Base configuration common to all AI providers.
- */
-export type BaseAiConfiguration = {
-  name: string;
-  provider: AiProvider;
-  model: string;
-  apiKey?: string;
-};
-
-/**
- * OpenAI-specific configuration.
- * Extends base with all ChatOpenAI options (temperature, maxTokens, configuration, etc.)
- */
-export type OpenAiConfiguration = Omit<BaseAiConfiguration, 'model'> &
-  Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
-    provider: 'openai';
-    // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
-    // (string & NonNullable<unknown>) allows custom model strings without losing autocomplete
-    model: OpenAIChatModelId | (string & NonNullable<unknown>);
-  };
-
-export type AiProvider = 'openai';
-export type AiConfiguration = OpenAiConfiguration;
-
-export type ChatCompletionResponse = OpenAI.Chat.Completions.ChatCompletion;
-export type ChatCompletionMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
-export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
-export type ChatCompletionToolChoice = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
-
-export type DispatchBody = {
-  messages: ChatCompletionMessage[];
-  tools?: ChatCompletionTool[];
-  tool_choice?: ChatCompletionToolChoice;
-  parallel_tool_calls?: boolean;
-};
 
 export class ProviderDispatcher {
   private readonly chatModel: ChatOpenAI | null = null;

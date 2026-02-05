@@ -1,19 +1,27 @@
 import type { McpConfiguration } from './mcp-client';
-import type { AiConfiguration, DispatchBody } from './provider-dispatcher';
-import type { Messages, RemoteToolsApiKeys } from './remote-tools';
+import type { AiConfiguration } from './provider';
+import type { RemoteToolsApiKeys } from './remote-tools';
+import type { RouteArgs } from './schemas/route';
 import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { z } from 'zod';
 
-import { AIBadRequestError, AIUnprocessableError, ProviderDispatcher } from './index';
+import { AIBadRequestError, ProviderDispatcher } from './index';
 import McpClient from './mcp-client';
 import { RemoteTools } from './remote-tools';
+import { routeArgsSchema } from './schemas/route';
 
-export type InvokeRemoteToolBody = { inputs: Messages };
-export type Body = DispatchBody | InvokeRemoteToolBody | undefined;
-export type Route = 'ai-query' | 'remote-tools' | 'invoke-remote-tool';
-export type Query = {
-  'tool-name'?: string;
-  'ai-name'?: string;
-};
+export type {
+  AiQueryArgs,
+  Body,
+  InvokeRemoteToolArgs,
+  InvokeRemoteToolBody,
+  Query,
+  RemoteToolsArgs,
+  RouteArgs,
+} from './schemas/route';
+
+// Keep these for backward compatibility
+export type Route = RouteArgs['route'];
 export type ApiKeys = RemoteToolsApiKeys;
 
 export class Router {
@@ -29,6 +37,97 @@ export class Router {
     this.aiConfigurations = params?.aiConfigurations ?? [];
     this.localToolsApiKeys = params?.localToolsApiKeys;
     this.logger = params?.logger;
+  }
+
+  /**
+   * Route the request to the appropriate handler
+   *
+   * Routes:
+   * - ai-query: Dispatch messages to the configured AI provider and return the response
+   * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
+   * - remote-tools: Return the list of available remote tools definitions
+   */
+  async route(args: RouteArgs & { mcpConfigs?: McpConfiguration }) {
+    // Validate input with Zod schema
+    const result = routeArgsSchema.safeParse(args);
+
+    if (!result.success) {
+      throw new AIBadRequestError(Router.formatZodError(result.error));
+    }
+
+    const validatedArgs = result.data;
+    let mcpClient: McpClient | undefined;
+
+    try {
+      if (args.mcpConfigs) {
+        mcpClient = new McpClient(args.mcpConfigs, this.logger);
+      }
+
+      const remoteTools = new RemoteTools(
+        this.localToolsApiKeys ?? {},
+        await mcpClient?.loadTools(),
+      );
+
+      switch (validatedArgs.route) {
+        case 'ai-query': {
+          const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
+
+          return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
+            validatedArgs.body,
+          );
+        }
+
+        case 'invoke-remote-tool':
+          return await remoteTools.invokeTool(
+            validatedArgs.query['tool-name'],
+            validatedArgs.body.inputs,
+          );
+
+        case 'remote-tools':
+          return remoteTools.toolDefinitionsForFrontend;
+
+        /* istanbul ignore next */
+        default: {
+          // Exhaustive type check - this code never runs at runtime because Zod validation
+          // catches unknown routes earlier. However, it provides compile-time safety:
+          // if a new route is added to routeArgsSchema, TypeScript will error here with
+          // "Type 'NewRouteArgs' is not assignable to type 'never'", forcing the developer
+          // to add a corresponding case handler.
+          const exhaustiveCheck: never = validatedArgs;
+
+          return exhaustiveCheck;
+        }
+      }
+    } finally {
+      if (mcpClient) {
+        try {
+          await mcpClient.closeConnections();
+        } catch (cleanupError) {
+          const error =
+            cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
+          this.logger?.('Error', 'Error during MCP connection cleanup', error);
+        }
+      }
+    }
+  }
+
+  private static formatZodError(error: z.core.$ZodError): string {
+    return error.issues
+      .map(issue => {
+        // Handle discriminatedUnion errors with helpful message
+        // Zod 4 uses 'invalid_union' code with a 'discriminator' property for these errors
+        if (issue.code === 'invalid_union' && issue.discriminator) {
+          const validRoutes = routeArgsSchema.options.map(opt => `'${opt.shape.route.value}'`);
+
+          return `Invalid route. Expected: ${validRoutes.join(', ')}`;
+        }
+
+        // Include path for context when available
+        const path = issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
+
+        return `${path}${issue.message}`;
+      })
+      .join('; ');
   }
 
   private getAiConfiguration(aiName?: string): AiConfiguration | null {
@@ -51,75 +150,5 @@ export class Router {
     }
 
     return this.aiConfigurations[0];
-  }
-
-  /**
-   * Route the request to the appropriate handler
-   *
-   * Routes:
-   * - ai-query: Dispatch messages to the configured AI provider and return the response
-   * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
-   * - remote-tools: Return the list of available remote tools definitions
-   */
-  async route(args: { body?: Body; route: Route; query?: Query; mcpConfigs?: McpConfiguration }) {
-    let mcpClient: McpClient | undefined;
-
-    try {
-      if (args.mcpConfigs) {
-        mcpClient = new McpClient(args.mcpConfigs, this.logger);
-      }
-
-      const remoteTools = new RemoteTools(
-        this.localToolsApiKeys ?? {},
-        await mcpClient?.loadTools(),
-      );
-
-      if (args.route === 'ai-query') {
-        const aiConfiguration = this.getAiConfiguration(args.query?.['ai-name']);
-
-        return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
-          args.body as DispatchBody,
-        );
-      }
-
-      if (args.route === 'invoke-remote-tool') {
-        const toolName = args.query?.['tool-name'];
-
-        if (!toolName) {
-          throw new AIBadRequestError('Missing required query parameter: tool-name');
-        }
-
-        const body = args.body as InvokeRemoteToolBody | undefined;
-
-        if (!body?.inputs) {
-          throw new AIBadRequestError('Missing required body parameter: inputs');
-        }
-
-        return await remoteTools.invokeTool(toolName, body.inputs);
-      }
-
-      if (args.route === 'remote-tools') {
-        return remoteTools.toolDefinitionsForFrontend;
-      }
-
-      // don't add mcpConfigs to the error message, as it may contain sensitive information
-      throw new AIUnprocessableError(
-        `No action to perform: ${JSON.stringify({
-          body: args.body,
-          route: args.route,
-          query: args.query,
-        })}`,
-      );
-    } finally {
-      if (mcpClient) {
-        try {
-          await mcpClient.closeConnections();
-        } catch (cleanupError) {
-          const error =
-            cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
-          this.logger?.('Error', 'Error during MCP connection cleanup', error);
-        }
-      }
-    }
   }
 }
