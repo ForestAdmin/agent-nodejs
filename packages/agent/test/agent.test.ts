@@ -439,22 +439,6 @@ describe('Agent', () => {
       ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
     });
 
-    test('should throw an error when model does not support tools', () => {
-      const agent = new Agent(options);
-
-      expect(() =>
-        agent.addAi({
-          name: 'gpt4-base',
-          provider: 'openai',
-          apiKey: 'test-key',
-          model: 'gpt-4',
-        }),
-      ).toThrow(
-        "Model 'gpt-4' does not support function calling (tools). " +
-          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
-      );
-    });
-
     test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
       agent.addAi({

@@ -1,7 +1,7 @@
 import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIBadRequestError, Router } from '../src';
+import { AIBadRequestError, AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 
 const invokeToolMock = jest.fn();
@@ -23,13 +23,17 @@ jest.mock('../src/provider-dispatcher', () => {
     ProviderDispatcher: jest.fn().mockImplementation(() => ({
       dispatch: dispatchMock,
     })),
+    isModelSupportingTools: jest.fn().mockReturnValue(true),
   };
 });
 
 // eslint-disable-next-line import/first
-import { ProviderDispatcher } from '../src/provider-dispatcher';
+import { isModelSupportingTools, ProviderDispatcher } from '../src/provider-dispatcher';
 
 const ProviderDispatcherMock = ProviderDispatcher as jest.MockedClass<typeof ProviderDispatcher>;
+const isModelSupportingToolsMock = isModelSupportingTools as jest.MockedFunction<
+  typeof isModelSupportingTools
+>;
 
 jest.mock('../src/mcp-client', () => {
   return jest.fn().mockImplementation(() => ({
@@ -384,6 +388,44 @@ describe('route', () => {
         { configs: { server1: { command: 'test', args: [] } } },
         customLogger,
       );
+    });
+  });
+
+  describe('Model validation', () => {
+    it('throws AIModelNotSupportedError when model does not support tools', () => {
+      isModelSupportingToolsMock.mockReturnValueOnce(false);
+
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              {
+                name: 'test',
+                provider: 'openai',
+                apiKey: 'dev',
+                model: 'unsupported-model',
+              },
+            ],
+          }),
+      ).toThrow(AIModelNotSupportedError);
+    });
+
+    it('throws with helpful error message including model name', () => {
+      isModelSupportingToolsMock.mockReturnValueOnce(false);
+
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              {
+                name: 'test',
+                provider: 'openai',
+                apiKey: 'dev',
+                model: 'text-davinci-003',
+              },
+            ],
+          }),
+      ).toThrow("Model 'text-davinci-003' does not support tools");
     });
   });
 });

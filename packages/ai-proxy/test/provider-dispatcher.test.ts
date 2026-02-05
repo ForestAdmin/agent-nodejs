@@ -2,7 +2,8 @@ import type { DispatchBody } from '../src';
 
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
-import { AINotConfiguredError, isModelSupportingTools, ProviderDispatcher, RemoteTools } from '../src';
+import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
+import { isModelSupportingTools } from '../src/provider-dispatcher';
 
 // Mock raw OpenAI response (returned via __includeRawResponse: true)
 const mockOpenAIResponse = {

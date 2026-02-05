@@ -32,6 +32,15 @@ export class AIBadRequestError extends AIError {
   }
 }
 
+export class AIModelNotSupportedError extends AIBadRequestError {
+  constructor(model: string) {
+    super(
+      `Model '${model}' does not support tools. Please use a model that supports function calling.`,
+    );
+    this.name = 'AIModelNotSupportedError';
+  }
+}
+
 export class AINotFoundError extends AIError {
   constructor(message: string) {
     super(message, 404);
