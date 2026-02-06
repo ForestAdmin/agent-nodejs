@@ -1,6 +1,8 @@
+import type { ForestAdminHttpDriverServices } from './services';
 import type { AiConfiguration, AiProvider } from '@forestadmin/ai-proxy';
-import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
+import type { CompositeId, DataSource, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type Router from '@koa/router';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 export type { AiConfiguration, AiProvider };
@@ -68,11 +70,43 @@ export enum RouteType {
   LoggerHandler = 0,
   ErrorHandler = 1,
   PublicRoute = 2,
+  PublicCustomRoute = 2.5,
   Authentication = 3,
   PrivateRoute = 4,
+  CustomRoute = 5,
 }
 
 export type SelectionIds = {
   areExcluded: boolean;
   ids: CompositeId[];
 };
+
+/**
+ * Context provided to custom router callbacks.
+ * Gives access to the dataSource, services, options, and logger.
+ */
+export interface CustomRouterContext {
+  readonly dataSource: DataSource;
+  readonly services: ForestAdminHttpDriverServices;
+  readonly options: AgentOptionsWithDefaults;
+  readonly logger: Logger;
+}
+
+/**
+ * Callback function for custom routes.
+ * Receives a Koa router and context to define custom HTTP endpoints.
+ */
+export type CustomRouterCallback = (
+  router: Router,
+  context: CustomRouterContext,
+) => void | Promise<void>;
+
+/**
+ * Options for custom router configuration.
+ */
+export interface CustomRouterOptions {
+  /** Whether routes require authentication. Default: true */
+  authenticated?: boolean;
+  /** URL prefix for all routes in this router. Default: '' */
+  prefix?: string;
+}

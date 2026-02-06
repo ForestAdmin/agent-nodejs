@@ -489,4 +489,50 @@ describe('Agent', () => {
       );
     });
   });
+
+  describe('addRouter', () => {
+    const options = factories.forestAdminHttpDriverOptions.build({
+      isProduction: false,
+      forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+    });
+
+    test('should return agent instance for chaining', () => {
+      const agent = new Agent(options);
+      const result = agent.addRouter(() => {});
+
+      expect(result).toBe(agent);
+    });
+
+    test('should allow multiple addRouter calls', () => {
+      const agent = new Agent(options);
+
+      agent.addRouter(() => {});
+      agent.addRouter(() => {});
+      agent.addRouter(() => {});
+
+      // No error should be thrown
+      expect(agent).toBeTruthy();
+    });
+
+    test('should include custom routes when getRoutes is called', async () => {
+      const callback = jest.fn();
+      const agent = new Agent(options);
+
+      agent.addRouter(callback);
+      await agent.start();
+
+      // The custom route should have been set up (callback called)
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    test('should include custom routes with options', async () => {
+      const callback = jest.fn();
+      const agent = new Agent(options);
+
+      agent.addRouter(callback, { authenticated: false, prefix: '/api' });
+      await agent.start();
+
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+  });
 });

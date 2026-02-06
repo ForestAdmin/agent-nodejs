@@ -4,6 +4,8 @@ import type {
   AgentOptions,
   AgentOptionsWithDefaults,
   AiConfiguration,
+  CustomRouterCallback,
+  CustomRouterOptions,
   HttpCallback,
 } from './types';
 import type {
@@ -27,6 +29,7 @@ import stringify from 'json-stringify-pretty-compact';
 
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
+import CustomRoute from './routes/custom/custom-route';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
 import SchemaGenerator from './utils/forest-schema/generator';
@@ -49,6 +52,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
   protected aiConfigurations: AiConfiguration[] = [];
+
+  /** Custom router callbacks registered via addRouter() */
+  private customRouterCallbacks: Array<{
+    callback: CustomRouterCallback;
+    options?: CustomRouterOptions;
+  }> = [];
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
@@ -264,8 +273,56 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  /**
+   * Add custom HTTP routes to the agent.
+   *
+   * Routes are authenticated by default (require Forest Admin authentication).
+   * Use `{ authenticated: false }` to create public routes.
+   *
+   * @param callback - Function that receives a Koa router and context to define routes
+   * @param options - Configuration options for the routes
+   * @param options.authenticated - Whether routes require authentication (default: true)
+   * @param options.prefix - URL prefix for all routes in this router (default: '')
+   * @returns The agent instance for chaining
+   *
+   * @example
+   * // Simple authenticated route
+   * agent.addRouter((router, context) => {
+   *   router.get('/stats', async (ctx) => {
+   *     const users = await context.dataSource
+   *       .getCollection('users')
+   *       .list(caller, new PaginatedFilter({}), new Projection('id'));
+   *     ctx.body = { count: users.length };
+   *   });
+   * });
+   *
+   * @example
+   * // Public route (no authentication required)
+   * agent.addRouter(
+   *   (router) => {
+   *     router.get('/health', (ctx) => {
+   *       ctx.body = { status: 'ok' };
+   *     });
+   *   },
+   *   { authenticated: false }
+   * );
+   */
+  addRouter(callback: CustomRouterCallback, options?: CustomRouterOptions): this {
+    this.customRouterCallbacks.push({ callback, options });
+
+    return this;
+  }
+
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services, this.aiConfigurations);
+    const routes = makeRoutes(dataSource, this.options, services, this.aiConfigurations);
+
+    // Add custom routes
+    for (const { callback, options } of this.customRouterCallbacks) {
+      routes.push(new CustomRoute(services, this.options, dataSource, callback, options));
+    }
+
+    // Re-sort routes to ensure custom routes are in the correct order
+    return routes.sort((a, b) => a.type - b.type);
   }
 
   /**
