@@ -16,6 +16,10 @@ const UNSUPPORTED_MODEL_PREFIXES = [
   'curie',
   'babbage',
   'ada',
+  // O-series reasoning models - don't support parallel_tool_calls
+  'o1',
+  'o3',
+  'o4',
   // Non-chat model families
   'dall-e',
   'whisper',
