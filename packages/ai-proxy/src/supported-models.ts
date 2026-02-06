@@ -46,6 +46,7 @@ const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS = [
   '-codex',
   '-instruct',
   // Models that only support v1/responses, not v1/chat/completions
+  '-pro',
   '-deep-research',
 ];
 
